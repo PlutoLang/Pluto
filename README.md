@@ -8,8 +8,12 @@ Pluto will not have a heavy focus on light-weight and embeddability, but it'll b
 - The `^` operator now performs bitwise XOR instead of exponentiation.
 - The former `~=` inequality operator has been changed to an augmented bitwise NOT assignment.
 
+### Optimizations:
+- Cases of `x = x ** 2` are now optimized into `x = x * x` by the parser. This is 35% faster.
+  - There's one major caveat: Users hooking `__mul` may become confused.
+
 ### New Operators:
-### Arithmetic Operators
+#### Arithmetic Operators:
 - Exponent: `**`
 
 #### Augmented Operators:
