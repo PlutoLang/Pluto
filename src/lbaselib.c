@@ -503,7 +503,13 @@ static int luaB_tostring (lua_State *L) {
 }
 
 
+static int luaB_newuserdata (lua_State *L) {
+  lua_newuserdata(L, 0);
+  return 1;
+}
+
 static const luaL_Reg base_funcs[] = {
+  {"newuserdata", luaB_newuserdata},
   {"assert", luaB_assert},
   {"collectgarbage", luaB_collectgarbage},
   {"dofile", luaB_dofile},

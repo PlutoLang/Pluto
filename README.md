@@ -25,3 +25,10 @@ Pluto will not have a heavy focus on light-weight and embeddability, but it'll b
 - Bitshift right: `>>=`
 - Multiplication: `*=`
 - Integer division: `//=`
+
+### Standard Library Additions:
+#### `_G`
+- `newuserdata` function.
+#### `string`
+- `endswith` function.
+- `startswith` function.

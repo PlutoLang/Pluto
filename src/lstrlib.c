@@ -1824,10 +1824,32 @@ static int str_unpack (lua_State *L) {
   return n + 1;
 }
 
+
+static int str_startswith(lua_State *L) {
+  size_t len;
+  const char *str = luaL_checkstring(L, 1);
+  const char *prefix = luaL_checklstring(L, 2, &len);
+  lua_pushboolean(L, strncmp(str, prefix, len) == 0);
+  return 1;
+}
+
+
+static int str_endswith(lua_State *L) {
+  size_t len;
+  size_t suffixlen;
+  const char *str = luaL_checklstring(L, 1, &len);
+  const char *suffix = luaL_checklstring(L, 2, &suffixlen);
+  lua_pushboolean(L, len >= suffixlen && strcmp(str + (len - suffixlen), suffix) == 0);
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"endswith", str_endswith},
+  {"startswith", str_startswith},
   {"byte", str_byte},
   {"char", str_char},
   {"dump", str_dump},

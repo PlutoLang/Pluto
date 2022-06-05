@@ -47,7 +47,7 @@ enum RESERVED {
 ** This is entirely assignment augmentation symbols, besides TK_POW, which is for '**'.
 */
 enum AUX_SYMBOLS {
-  DUMMY,                /* similar to FIRST_RESERVED   */
+  TK_NOCOPR,            /* similar to FIRST_RESERVED   */
   TK_CSUB, TK_CSHL,     /* subtraction & shift left    */
   TK_CSHR, TK_CBAND,    /* shift right & bitwise AND   */
   TK_CADD, TK_CMUL,     /* addition and multiplication */

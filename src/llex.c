@@ -537,7 +537,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         }
         else if (check_next1(ls, '<')) {
           if (check_next1(ls, '=')) {  /* compound support */
-            ls->lasttoken = TK_CSHL;
+            ls->lasttoken = TK_CSHL;  /* <<= */
             return '=';
           }
           else return TK_SHL;  /* '<<' */
@@ -551,7 +551,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         }
         else if (check_next1(ls, '>')) {
           if (check_next1(ls, '=')) {  /* compound support */
-            ls->lasttoken = TK_CSHR;
+            ls->lasttoken = TK_CSHR;  /* >>= */
             return '=';
           }
           else return TK_SHR;  /* '>>' */
