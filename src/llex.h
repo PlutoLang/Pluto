@@ -36,18 +36,14 @@ enum RESERVED {
   TK_GOTO, TK_IF, TK_IN, TK_LOCAL, TK_NIL, TK_NOT, TK_OR, TK_REPEAT,
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
-  TK_IDIV, TK_CONCAT, TK_DOTS, TK_EQ, TK_GE, TK_LE, TK_NE,
-  TK_SHL, TK_SHR,
-  TK_DBCOLON, TK_EOS,
-  TK_FLT, TK_INT, TK_NAME, TK_STRING,
-};
-
-/*
-** I didn't reserve these because it's mostly syntactic sugar for reserved terminal symbols.
-** This is entirely assignment augmentation symbols, besides TK_POW, which is for '**'.
-*/
-enum AUX_SYMBOLS {
-  TK_NOCOPR,            /* similar to FIRST_RESERVED   */
+  TK_IDIV, TK_CONCAT,
+  TK_DOTS, TK_EQ,
+  TK_GE, TK_LE,
+  TK_NE, TK_SHL,
+  TK_SHR, TK_DBCOLON, 
+  TK_EOS, TK_FLT, 
+  TK_INT, TK_NAME, TK_STRING,
+  /* Pluto symbols */
   TK_CSUB, TK_CSHL,     /* subtraction & shift left    */
   TK_CSHR, TK_CBAND,    /* shift right & bitwise AND   */
   TK_CADD, TK_CMUL,     /* addition and multiplication */
