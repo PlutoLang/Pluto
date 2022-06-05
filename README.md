@@ -10,7 +10,7 @@ Pluto will not have a heavy focus on light-weight and embeddability, but it'll b
 
 ### Optimizations:
 - Cases of `x = x ** 2` are now optimized into `x = x * x` by the parser. This is 35% faster.
-  - There's one major caveat: Users hooking `__mul` may become confused.
+  - This only applies when both operands are numbers. Tables & userdata are not affected, so most overloading is fine.
 
 ### New Operators:
 #### Arithmetic Operators:

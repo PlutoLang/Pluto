@@ -1278,12 +1278,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     luaK_infix(ls->fs, op, v);
     /* read sub-expression with higher priority */
     nextop = subexpr(ls, &v2, priority[op].right);
-    /*
-    ** optimize x ** 2 cases into x * x, 35% faster
-    ** caveat: users hooking methods designated for math ops may become confused.
-    ** I will think more about this later, I am not even sure I like that __mul & __add are things. they are slow.
-    ** in the future, this will be a very easy optimization to disable. so we'll see if non-existent users complain.
-    */
+    /* optimize x ** 2 cases into x * x, 35% faster */
     if (op == OPR_POW && ((v2.k == VKINT && v2.u.ival == 2) || (v2.k == VKFLT && v2.u.nval == 2.0))) {
       op = OPR_MUL;
       v2 = *v;
