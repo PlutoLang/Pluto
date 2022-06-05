@@ -1,0 +1,7 @@
+/doc
+/src/*.o
+/src/*.exe
+/src/*.dll
+/src/*.a
+/tbytecode.script
+/luac.out
