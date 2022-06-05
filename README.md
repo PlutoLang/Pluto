@@ -15,10 +15,10 @@ Pluto will not have a heavy focus on light-weight and embeddability, but it'll b
 #### Augmented Operators:
 - Modulo: `%=`
 - Addition: `+=`
-- Exponent: `^=`
 - Bitwise OR: `|=`
 - Subtraction: `-=`
-- Bitwise XOR: `~=`
+- Bitwise XOR: `^=`
+- Bitwise NOT: `~=`
 - Bitshift left: `<<=`
 - Bitwise AND: `&=`
 - Float division: `/=`
