@@ -1,6 +1,6 @@
 local start = os.clock()
 for i = 1, 10000000 do
     local x = 5
-    x = x * x
+    x = x ** 2.0
 end
 print(os.clock() - start)
