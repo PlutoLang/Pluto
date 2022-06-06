@@ -1017,10 +1017,10 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
   checknext(ls, '|');
   parlist(ls);
   checknext(ls, '|');
+  checknext(ls, ':');
   expr(ls, e);
   luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
   new_fs.f->lastlinedefined = ls->linenumber;
-  check_match(ls, TK_END, '|', line);
   codeclosure(ls, e);
   close_func(ls);
 }
