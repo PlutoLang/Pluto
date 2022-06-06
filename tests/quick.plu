@@ -1,6 +1,3 @@
-local start = os.clock()
-for i = 1, 10000000 do
-    local x = 5
-    x = x * x
-end
-print(os.clock() - start)
+local x = 5
+x = x / 2
+print(x)
