@@ -1281,17 +1281,20 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     /*
     ** Optimization:
     **    Only applies to operands where both types are numbers.
+    **    Neither optimization will take place if operator overloading is in use.
     ** Details:
     **    This will translate `x = x / 2` into `x = x * 0.5` for a 15% speed improvement.
     **    This will translate `x = x ** 2` into `x = x * x` for a 35% speed improvement.
     */
-    if (op == OPR_POW && ((v2.k == VKINT && v2.u.ival == 2) || (v2.k == VKFLT && v2.u.nval == 2.0))) {
-      op = OPR_MUL;
-      v2 = *v;
-    } else if (op == OPR_DIV && ((v2.k == VKINT && v2.u.ival == 2) || (v2.k == VKFLT && v2.u.nval == 2.0))) {
-      op = OPR_MUL;
-      v2.k = VKFLT;
-      v2.u.nval = 0.5;
+    if ((v2.k == VKINT && v2.u.ival == 2) || (v2.k == VKFLT && v2.u.nval == 2.0)) {  /* inherent disallow */
+      if (op == OPR_POW) {
+        op = OPR_MUL;
+        v2 = *v;
+      } else if (op == OPR_DIV && (v->k == VKINT || v->k == VKFLT)) {  /* disallow optimization on tables */
+        op = OPR_MUL;
+        v2.k = VKFLT;
+        v2.u.nval = 0.5;
+      }
     }
     luaK_posfix(ls->fs, op, v, &v2, line);
     op = nextop;

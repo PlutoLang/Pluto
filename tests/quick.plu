@@ -1,6 +1,6 @@
-local num = 3.1223424234234
-local start = os.clock()
-for i = 1, 10000000 do
-    num = num / 2
-end
-print(os.clock() - start)
+local t = setmetatable({}, {
+    __div = function (self, a, b)
+        print("first operand: " .. tostring(a) .. " || second operand: " .. tostring(b))
+    end
+})
+t = t / 2
