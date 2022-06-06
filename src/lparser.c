@@ -961,7 +961,7 @@ static void parlist (LexState *ls) {
   Proto *f = fs->f;
   int nparams = 0;
   int isvararg = 0;
-  if (ls->t.token != ')') {  /* is 'parlist' not empty? */
+  if (ls->t.token != ')' && ls->t.token != '|') {  /* is 'parlist' not empty? */
     do {
       switch (ls->t.token) {
         case TK_NAME: {
@@ -1003,6 +1003,24 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line) {
   statlist(ls);
   new_fs.f->lastlinedefined = ls->linenumber;
   check_match(ls, TK_END, TK_FUNCTION, line);
+  codeclosure(ls, e);
+  close_func(ls);
+}
+
+
+static void lambdabody (LexState *ls, expdesc *e, int line) {
+  FuncState new_fs;
+  BlockCnt bl;
+  new_fs.f = addprototype(ls);
+  new_fs.f->linedefined = line;
+  open_func(ls, &new_fs, &bl);
+  checknext(ls, '|');
+  parlist(ls);
+  checknext(ls, '|');
+  expr(ls, e);
+  luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
+  new_fs.f->lastlinedefined = ls->linenumber;
+  check_match(ls, TK_END, '|', line);
   codeclosure(ls, e);
   close_func(ls);
 }
@@ -1180,6 +1198,10 @@ static void simpleexp (LexState *ls, expdesc *v) {
     case TK_FUNCTION: {
       luaX_next(ls);
       body(ls, v, 0, ls->linenumber);
+      return;
+    }
+    case '|': {
+      lambdabody(ls, v, ls->linenumber);
       return;
     }
     default: {

@@ -18,6 +18,8 @@ Pluto will not have a heavy focus on light-weight and embeddability, but it'll b
 - Dedicated exponent operator: `**`
 - Arbitrary characters in numeral literals.
   - Such that `1_000_000 == 1000000` 
+- Lambda expressions: `|...|`
+  - Such that `(string.gsub("123", ".", |c| tonumber(c) + 1 end)) == "234"`
 
 ### Augmented Operators:
 - Modulo: `%=`
