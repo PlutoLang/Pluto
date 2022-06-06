@@ -9,7 +9,7 @@ Pluto will not have a heavy focus on light-weight and embeddability, but it'll b
 - The former `~=` inequality operator has been changed to an augmented bitwise NOT assignment.
 
 ### Optimizations:
-- Cases of `x = x / 2` are now optimized into `x = x * 0.5` by the parser. This is 5% faster.
+- Cases of `x = x / 2` are now optimized into `x = x * 0.5` by the parser. This is 15% faster.
   - This only applies when both operands are numbers.
 - Cases of `x = x ** 2` are now optimized into `x = x * x` by the parser. This is 35% faster.
   - This only applies when both operands are numbers.

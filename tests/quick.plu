@@ -1,3 +1,6 @@
-local x = 5
-x = x / 2
-print(x)
+local num = 3.1223424234234
+local start = os.clock()
+for i = 1, 10000000 do
+    num = num / 2
+end
+print(os.clock() - start)

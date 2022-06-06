@@ -1282,7 +1282,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     ** Optimization:
     **    Only applies to operands where both types are numbers.
     ** Details:
-    **    This will translate `x = x / 2` into `x = x * 0.5` for a 5% speed improvement.
+    **    This will translate `x = x / 2` into `x = x * 0.5` for a 15% speed improvement.
     **    This will translate `x = x ** 2` into `x = x * x` for a 35% speed improvement.
     */
     if (op == OPR_POW && ((v2.k == VKINT && v2.u.ival == 2) || (v2.k == VKFLT && v2.u.nval == 2.0))) {
