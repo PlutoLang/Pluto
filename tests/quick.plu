@@ -1,3 +1,0 @@
-local str = "12345"
-local new_str, matches = str:gsub(".", |c| tonumber(c) + 1 end)
-assert(new_str == "23456")

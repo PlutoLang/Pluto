@@ -165,7 +165,7 @@ static int docall (lua_State *L, int narg, int nres) {
 
 
 static void print_version (void) {
-  lua_writestring("Pluto: A breaking fork of Lua 5.4.4:", 36);
+  lua_writestring("Pluto 0.1.0", 12);
   lua_writeline();
 }
 
