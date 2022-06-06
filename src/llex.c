@@ -32,6 +32,8 @@
 #define next(ls)	(ls->current = zgetc(ls->z))
 
 
+#define check_condition(ls,c,msg)	{ if (!(c)) luaX_syntaxerror(ls, msg); }
+
 
 #define currIsNewline(ls)	(ls->current == '\n' || ls->current == '\r')
 
@@ -236,8 +238,12 @@ static int read_numeral (LexState *ls, SemInfo *seminfo) {
   for (;;) {
     if (check_next2(ls, expo))  /* exponent mark? */
       check_next2(ls, "-+");  /* optional exponent sign */
-    else if (lisxdigit(ls->current) || ls->current == '.')  /* '%x|%.' */
-      save_and_next(ls);
+    else if (lisxdigit(ls->current) || ls->current == '.' || ls->current == '_') { /* '%x|%.' */
+      if (ls->current != '_')
+        save_and_next(ls);
+      else
+        next(ls);
+    }
     else break;
   }
   if (lislalpha(ls->current))  /* is numeral touching a letter? */
@@ -598,6 +604,12 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9': {
         return read_numeral(ls, seminfo);
+      }
+      case '_': {  /* arbitrary underscores for more readable long numbers */
+        next(ls);
+        if (lisdigit(ls->current)) {
+          return read_numeral(ls, seminfo);
+        } else return '_';
       }
       case '!': {  /* != inequality */
         int c = ls->current;

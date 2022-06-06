@@ -14,11 +14,12 @@ Pluto will not have a heavy focus on light-weight and embeddability, but it'll b
 - Cases of `x = x ** 2` are now optimized into `x = x * x` by the parser. This is 35% faster.
   - This only applies when both operands are numbers.
 
-### New Operators:
-#### Arithmetic Operators:
-- Exponent: `**`
+### New Features:
+- Dedicated exponent operator: `**`
+- Arbitrary characters in numeral literals.
+  - Such that `1_000_000 == 1000000` 
 
-#### Augmented Operators:
+### Augmented Operators:
 - Modulo: `%=`
 - Addition: `+=`
 - Bitwise OR: `|=`

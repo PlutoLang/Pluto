@@ -1,6 +1,2 @@
-local t = setmetatable({}, {
-    __div = function (self, a, b)
-        print("first operand: " .. tostring(a) .. " || second operand: " .. tostring(b))
-    end
-})
-t = t / 2
+local a = 1_000_000
+assert(a == 1000000, a)
