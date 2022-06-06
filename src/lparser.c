@@ -1008,6 +1008,12 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line) {
 }
 
 
+/*
+** Lambda implementation.
+** Shorthands lambda expressions into `function (...) return ... end`.
+** The '|' token was chosen because it's not commonly used as an unary operator in programming.
+** The '=>' arrow syntax looked more visually appealing than a colon. It also plays along with common lambda tokens.
+*/
 static void lambdabody (LexState *ls, expdesc *e, int line) {
   FuncState new_fs;
   BlockCnt bl;
@@ -1017,7 +1023,8 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
   checknext(ls, '|');
   parlist(ls);
   checknext(ls, '|');
-  checknext(ls, ':');
+  checknext(ls, '=');
+  checknext(ls, '>');
   expr(ls, e);
   luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
   new_fs.f->lastlinedefined = ls->linenumber;
