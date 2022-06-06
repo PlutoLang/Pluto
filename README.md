@@ -19,7 +19,7 @@ Pluto will not have a heavy focus on light-weight and embeddability, but it'll b
 - Arbitrary characters in numeral literals.
   - Such that `1_000_000 == 1000000` 
 - Lambda expressions: `|...|:`
-  - Such that `(string.gsub("123", ".", |c|: tonumber(c) + 1 end)) == "234"`
+  - Such that `(string.gsub("123", ".", |c|: tonumber(c) + 1)) == "234"`
   - These are shorthand for brief anonymous functions that return your expression.
 
 ### Augmented Operators:
