@@ -30,7 +30,7 @@ local t = {
     3, 2,
     1, 0
 }
-table.sort(t, |a, b| => a < b)
+table.sort(t, |a, b| -> a < b)
 
 for key, value in ipairs(t) do
     print(value)
@@ -38,17 +38,17 @@ end
 ```
 This will sort the table as expected. The syntax is as follows:
 ```
-|explist| => expr
-|a, b, c| => expression
+|explist| -> expr
+|a, b, c| -> expression
 ```
 Another example of the new lambda expressions:
 ```lua
 local str = "123"
-local inc_str = str:gsub(".", |c| => tonumber(c) + 1)
+local inc_str = str:gsub(".", |c| -> tonumber(c) + 1)
 assert(inc_str == "234")
 ```
 - The '|' token was chosen because it's not commonly used as an unary operator in programming.
-- The '=>' arrow syntax looked more visually appealing than a colon. It also plays along with common lambda tokens.
+- The '->' arrow syntax looked better and didn't resemble any operators. It also plays along with common lambda tokens.
 ### Augmented Operators
 The following augmented operators have been added:
 - Modulo: `%=`

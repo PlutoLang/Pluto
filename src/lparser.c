@@ -1023,7 +1023,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
   checknext(ls, '|');
   parlist(ls);
   checknext(ls, '|');
-  checknext(ls, '=');
+  checknext(ls, '-');
   checknext(ls, '>');
   expr(ls, e);
   luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
