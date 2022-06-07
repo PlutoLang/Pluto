@@ -609,14 +609,13 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         next(ls);
         if (lisdigit(ls->current)) {
           return read_numeral(ls, seminfo);
-        } else return '_';
+        } else return TK_NAME;  /* '_' is the only single-character token inherently reserved as an identifier */
       }
       case '!': {  /* != inequality */
-        int c = ls->current;
         next(ls);
         if (check_next1(ls, '=')) {
           return TK_NE;
-        } else return c;
+        } else return '!';
       }
       case '*': {  /* special case compound, need to support mul, exponent, and augmented mul */
         next(ls);
