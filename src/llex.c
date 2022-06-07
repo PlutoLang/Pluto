@@ -606,10 +606,25 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         return read_numeral(ls, seminfo);
       }
       case '_': {  /* arbitrary underscores for more readable long numbers */
-        next(ls);
-        if (lisdigit(ls->current)) {
-          return read_numeral(ls, seminfo);
-        } else return TK_NAME;  /* '_' is the only single-character token inherently reserved as an identifier */
+        if (lislalpha(ls->current)) {
+          TString *ts;
+          do {
+            save_and_next(ls);
+          } while (lislalnum(ls->current));
+          ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
+                                  luaZ_bufflen(ls->buff));
+          seminfo->ts = ts;
+          if (isreserved(ts))
+            return ts->extra - 1 + FIRST_RESERVED;
+          else {
+            return TK_NAME;
+          }
+        } else {  /* needed to emulate default check because _ is fairly multi-purpose. */
+          next(ls);
+          if (lisdigit(ls->current)) {
+            return read_numeral(ls, seminfo);  /* arbitrary character detected in numeral */
+          } else return '_';  /* this is a normal underscore */
+        }
       }
       case '!': {  /* != inequality */
         next(ls);
