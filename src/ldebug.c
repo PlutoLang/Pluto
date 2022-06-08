@@ -230,7 +230,10 @@ LUA_API const char *lua_getlocal (lua_State *L, const lua_Debug *ar, int n) {
     StkId pos = NULL;  /* to avoid warnings */
     name = luaG_findlocal(L, ar->i_ci, n, &pos);
     if (name) {
-      setobjs2s(L, L->top, pos);
+      if (luai_unlikely(ttype(s2v(pos)) == LUA_TITER))
+        setnilvalue(s2v(L->top));
+      else
+        setobjs2s(L, L->top, pos);
       api_incr_top(L);
     }
   }
@@ -245,8 +248,16 @@ LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
   lua_lock(L);
   name = luaG_findlocal(L, ar->i_ci, n, &pos);
   if (name) {
+    StkId to = pos + 4;
     setobjs2s(L, pos, L->top - 1);
     L->top--;  /* pop value */
+    if (to > L->top) to = L->top;
+    while(++pos < to) {
+      if (luai_unlikely(ttype(s2v(pos)) == LUA_TITER)) {
+        setnilvalue(s2v(pos));
+        break;
+      }
+    }
   }
   lua_unlock(L);
   return name;

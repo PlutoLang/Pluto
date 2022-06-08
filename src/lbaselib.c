@@ -263,8 +263,8 @@ static int luaB_type (lua_State *L) {
   return 1;
 }
 
-
-static int luaB_next (lua_State *L) {
+LUAI_FUNC int luaB_next(lua_State *L);
+int luaB_next (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   lua_settop(L, 2);  /* create a 2nd argument if there isn't one */
   if (lua_next(L, 1))
@@ -299,7 +299,9 @@ static int luaB_pairs (lua_State *L) {
 /*
 ** Traversal function for 'ipairs'
 */
-static int ipairsaux (lua_State *L) {
+#define ipairsaux luaB_ipairsaux
+LUAI_FUNC int ipairsaux (lua_State *L);
+int ipairsaux (lua_State *L) {
   lua_Integer i = luaL_checkinteger(L, 2);
   i = luaL_intop(+, i, 1);
   lua_pushinteger(L, i);
