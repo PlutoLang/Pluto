@@ -10,32 +10,6 @@ This is a learner's project concerning the internals of Lua. I will often add an
 - `!=` is the new inequality operator.
 - The `^` operator now performs bitwise XOR instead of exponentiation.
 - The former `~=` inequality operator has been changed to an augmented bitwise NOT assignment.
-
-### For Loops
-Xmilia Hermit discovered an interesting for loop optimization on June 7th, 2022. It has been implemented in Pluto.
-For example, take this code:
-```lua
-local t = {}
-for i = 1, 10000000 do
-    t[i] = i
-end
-
-local hidetrace
-local start = os.clock()
-for key, value in ipairs(t) do
-    hidetrace = key
-    hidetrace = value
-end
-print(os.clock() - start)
-```
-It takes roughly 650ms to run on my machine. Following the VM optimization, it takes roughly 160ms.
-This optimization takes place in any loop that doesn't access the TBC variable returned by the `pairs` and `ipairs` function. See these returns:
-```
-pairs: next, table, nil, nil
-ipairs: ipairsaux, table, integer, nil
-```
-When the latter `nil` TBC variable is never accessed, this optimization will occur.
-
 ## New Features:
 ### Dedicated Exponent Operator
 The `**` operator has been implemented into the operator set. It has replaced the previous use of '^'.
@@ -79,6 +53,31 @@ assert(inc_str == "234")
 ```
 - The '|' token was chosen because it's not commonly used as an unary operator in programming.
 - The '->' arrow syntax looked better and didn't resemble any operators. It also plays along with common lambda tokens.
+## Optimizations:
+### For Loops
+Xmilia Hermit discovered an interesting for loop optimization on June 7th, 2022. It has been implemented in Pluto.
+For example, take this code:
+```lua
+local t = {}
+for i = 1, 10000000 do
+    t[i] = i
+end
+
+local hidetrace
+local start = os.clock()
+for key, value in ipairs(t) do
+    hidetrace = key
+    hidetrace = value
+end
+print(os.clock() - start)
+```
+It takes roughly 650ms to run on my machine. Following the VM optimization, it takes roughly 160ms.
+This optimization takes place in any loop that doesn't access the TBC variable returned by the `pairs` and `ipairs` function. See these returns:
+```
+pairs: next, table, nil, nil
+ipairs: ipairsaux, table, integer, nil
+```
+When the latter `nil` TBC variable is never accessed, this optimization will occur.
 ### Augmented Operators
 The following augmented operators have been added:
 - Modulo: `%=`
