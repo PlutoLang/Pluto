@@ -1307,53 +1307,6 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     luaK_infix(ls->fs, op, v);
     /* read sub-expression with higher priority */
     nextop = subexpr(ls, &v2, priority[op].right);
-    /*
-    ** Optimization:
-    **    Only applies to operands where both types are numbers.
-    **    Neither optimization will take place if operator overloading is in use.
-    ** Details:
-    **    This will translate `x / 2` into `x * 0.5` for a 10-20% speed improvement.
-    **    This will translate `x << 1` into `x + x` for a 5-10% speed improvement.
-    **    This will translate `x ** 2` into `x * x` for a 10-35% speed improvement.
-    **    This will translate `x // 2` into `x << 1` for a 50% speed improvement. 
-    **
-    **    Yes, this is awfully variable. Benchmarks produced a spectrum of results on different days.
-    */
-    lua_Number nval = v2.u.nval;
-    lua_Integer ival = v2.u.ival;
-    if (v2.u.ind.t && (ival || nval)) { /* is this a number? */
-      switch (op) {
-        case OPR_SHL: { /* x << 1 */
-          if (ival == 1 || nval == 1.0) {
-            op = OPR_ADD;
-            v2 = *v;
-          }
-          break;
-        }
-        case OPR_POW: { /* x ** 2 */
-          if (ival == 2 || nval == 2.0) {
-            op = OPR_MUL;
-            v2 = *v;
-          }
-          break;
-        }
-        case OPR_DIV: { /* x / 2 */
-          if (ival == 2 || nval == 2.0) {
-            op = OPR_MUL;
-            v2.k = VKFLT;
-            v2.u.nval = 0.5; /* x * 0.5 */
-          }
-        }
-        case OPR_IDIV: { /* x // 2 */
-          if (ival == 2 || nval == 2.0) {
-            op = OPR_SHR;
-            v2.k = VKINT;
-            v2.u.ival = 1; /* x >> 1 */
-          }
-        }
-        default: break;
-      }
-    }
     luaK_posfix(ls->fs, op, v, &v2, line);
     op = nextop;
   }

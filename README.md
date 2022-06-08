@@ -11,15 +11,6 @@ This is a learner's project concerning the internals of Lua. I will often add an
 - The `^` operator now performs bitwise XOR instead of exponentiation.
 - The former `~=` inequality operator has been changed to an augmented bitwise NOT assignment.
 
-## Optimizations:
-These current optimizations only apply when both operators are numeric.
-- `x / 2` translates into `x * 0.5` for a 10-20% speed improvement.
-- `x << 1` translates into `x + x` for a 5-10% speed improvement.
-- `x ** 2` translates into `x * x` for a 10-35% speed improvement.
-- `x // 2` translates into `x >> 1` for a 50% speed improvement.
-
-The values are awfully variable because there was a spectrum of results over days of benchmarking.
-
 ### For Loops
 Xmilia Hermit discovered an interesting for loop optimization on June 7th, 2022. It has been implemented in Pluto.
 For example, take this code:
