@@ -1321,7 +1321,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     */
     lua_Number nval = v2.u.nval;
     lua_Integer ival = v2.u.ival;
-    if (ival || nval) { /* is this a number? */
+    if (v2.u.ind.t && (ival || nval)) { /* is this a number? */
       switch (op) {
         case OPR_SHL: { /* x << 1 */
           if (ival == 1 || nval == 1.0) {
