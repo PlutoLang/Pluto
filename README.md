@@ -17,7 +17,6 @@ These current optimizations only apply when both operators are numeric.
 - `x << 1` translates into `x * 2` for a 5-10% speed improvement.
 - `x ** 2` translates into `x * x` for a 10-35% speed improvement.
 - `x // 2` translates into `x >> 1` for a 50% speed improvement.
-  - Yes, the result is coerced into a Lua integer. 
 
 The values are awfully variable because there was a spectrum of results over days of benchmarking.
 
