@@ -1315,9 +1315,11 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     **    This will translate `x / 2` into `x * 0.5` for a 10-20% speed improvement.
     **    This will translate `x << 1` into `x * 2` for a 5-10% speed improvement.
     **    This will translate `x ** 2` into `x * x` for a 10-35% speed improvement.
+    **    This will translate `x // 2` into `x * 0.5` (then perform int conversion) for a 10-20% speed improvement. 
     **
     **    Yes, this is awfully variable. Benchmarks produced a spectrum of results on different days.
     */
+    int coerce = 0; /* whether to convert the final result to the lua_Integer type */
     lua_Number nval = v2.u.nval;
     lua_Integer ival = v2.u.ival;
     if (ival || nval) { /* is this a number? */
@@ -1343,10 +1345,26 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
             v2.u.nval = 0.5; /* x * 0.5 */
           }
         }
+        case OPR_IDIV: {
+          if (ival == 2 || nval == 2.0) {
+            op = OPR_MUL;
+            v2.k = VKFLT;
+            v2.u.nval = 0.5; /* x * 0.5 */
+            coerce = 1;
+          }
+        }
         default: break;
       }
-    } 
+    }
     luaK_posfix(ls->fs, op, v, &v2, line);
+    /*
+    ** This is a very aggressive optimization, and it may have unintended bugs.
+    ** Luckily, it will be an extremely easy optimization to disable once a bug is discovered.
+    */
+    if (coerce == 1) { /* if optimized IDIV occured, splice back into integer */
+      v->k = VKINT;
+      v->u.ival = v->u.nval;
+    }
     op = nextop;
   }
   leavelevel(ls);
