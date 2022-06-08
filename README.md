@@ -12,10 +12,12 @@ This is a learner's project concerning the internals of Lua. I will often add an
 - The former `~=` inequality operator has been changed to an augmented bitwise NOT assignment.
 
 ## Optimizations:
-- Cases of `x = x / 2` are now optimized into `x = x * 0.5` by the parser. This is 15% faster.
-  - This only applies when both operands are numbers.
-- Cases of `x = x ** 2` are now optimized into `x = x * x` by the parser. This is 35% faster.
-  - This only applies when both operands are numbers.
+These current optimizations only apply when both operators are numeric.
+- `x / 2` translates into `x * 0.5` for a 10-20% speed improvement.
+- `x << 1` translates into `x * 2` for a 5-10% speed improvement.
+- `x ** 2` translates into `x * x` for a 10-35% speed improvement.
+
+The values are awfully variable because there was a spectrum of results over days of benchmarking.
 
 ## New Features:
 ### Dedicated Exponent Operator

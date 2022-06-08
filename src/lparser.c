@@ -1312,28 +1312,40 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     **    Only applies to operands where both types are numbers.
     **    Neither optimization will take place if operator overloading is in use.
     ** Details:
-    **    This will translate `x / 2` into `x * 0.5` for a 15% speed improvement.
-    **    This will translate `x ** 2` into `x * x` for a 35% speed improvement.
-    **    This will translate `x << 1` into `x * 2` for a 20% speed improvement.
+    **    This will translate `x / 2` into `x * 0.5` for a 10-20% speed improvement.
+    **    This will translate `x << 1` into `x * 2` for a 5-10% speed improvement.
+    **    This will translate `x ** 2` into `x * x` for a 10-35% speed improvement.
+    **
+    **    Yes, this is awfully variable. Benchmarks produced a spectrum of results on different days.
     */
-    expkind v1Type = v->k;
-    expkind v2Type = v2.k;
-    if ((v2Type == VKINT && v2.u.ival == 2) || (v2Type == VKFLT && v2.u.nval == 2.0)) { /* optimize POW & DIV */
-      if (op == OPR_POW) { /* optimize x = x ** 2 into x = x * x */
-        op = OPR_MUL;
-        v2 = *v;
-      } else if (op == OPR_DIV && (v1Type == VKINT || v1Type == VKFLT)) { /* optimize x / 2 into x * 0.5 */
-        op = OPR_MUL;
-        v2.k = VKFLT;
-        v2.u.nval = 0.5;
+    lua_Number nval = v2.u.nval;
+    lua_Integer ival = v2.u.ival;
+    if (ival || nval) { /* is this a number? */
+      switch (op) {
+        case OPR_SHL: { /* x << 1 */
+          if (ival == 1 || nval == 1.0) {
+            op = OPR_ADD;
+            v2 = *v;
+          }
+          break;
+        }
+        case OPR_POW: { /* x ** 2 */
+          if (ival == 2 || nval == 2.0) {
+            op = OPR_MUL;
+            v2 = *v;
+          }
+          break;
+        }
+        case OPR_DIV: { /* x / 2 */
+          if (ival == 2 || nval == 2.0) {
+            op = OPR_MUL;
+            v2.k = VKFLT;
+            v2.u.nval = 0.5; /* x * 0.5 */
+          }
+        }
+        default: break;
       }
-    } else if ((v2Type == VKINT && v2.u.ival == 1) || (v2Type == VKFLT && v2.u.nval == 1.0)) { /* optimize SHL & SHR */
-      if (op == OPR_SHL) { /* optimize x << 1 into x * 2 */
-        op = OPR_MUL;
-        v2.k = VKINT;
-        v2.u.ival = 2;
-      }
-    }
+    } 
     luaK_posfix(ls->fs, op, v, &v2, line);
     op = nextop;
   }
