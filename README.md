@@ -14,7 +14,7 @@ This is a learner's project concerning the internals of Lua. I will often add an
 ## Optimizations:
 These current optimizations only apply when both operators are numeric.
 - `x / 2` translates into `x * 0.5` for a 10-20% speed improvement.
-- `x << 1` translates into `x * 2` for a 5-10% speed improvement.
+- `x << 1` translates into `x + x` for a 5-10% speed improvement.
 - `x ** 2` translates into `x * x` for a 10-35% speed improvement.
 - `x // 2` translates into `x >> 1` for a 50% speed improvement.
 

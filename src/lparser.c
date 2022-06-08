@@ -1313,7 +1313,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     **    Neither optimization will take place if operator overloading is in use.
     ** Details:
     **    This will translate `x / 2` into `x * 0.5` for a 10-20% speed improvement.
-    **    This will translate `x << 1` into `x * 2` for a 5-10% speed improvement.
+    **    This will translate `x << 1` into `x + x` for a 5-10% speed improvement.
     **    This will translate `x ** 2` into `x * x` for a 10-35% speed improvement.
     **    This will translate `x // 2` into `x << 1` for a 50% speed improvement. 
     **
