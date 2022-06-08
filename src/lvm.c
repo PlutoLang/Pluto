@@ -291,10 +291,23 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
     if (slot == NULL) {  /* 't' is not a table? */
       lua_assert(!ttistable(t));
-      tm = luaT_gettmbyobj(L, t, TM_INDEX);
-      if (l_unlikely(notm(tm)))
-        luaG_typeerror(L, t, "index");  /* no metamethod */
-      /* else will try the metamethod */
+      if (ttisstring(t) && ttisinteger(key)) { /* index for character of string */
+        lua_Integer index = ivalue(key);
+        if ((vslen(t) < index) || (index < 1)) { /* invalid index */
+          setnilvalue(s2v(val));
+          return;
+        }
+        else { /* index is valid */
+          setsvalue(L, s2v(val), luaS_newlstr(L, &tsvalue(t)->contents[index - 1], 1));
+          return;
+        }
+      }
+      else {
+        tm = luaT_gettmbyobj(L, t, TM_INDEX);
+        if (l_unlikely(notm(tm)))
+          luaG_typeerror(L, t, "index");  /* no metamethod */
+        /* else will try the metamethod */
+      }
     }
     else {  /* 't' is a table */
       lua_assert(isempty(slot));

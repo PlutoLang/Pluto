@@ -50,6 +50,14 @@ When the latter `nil` TBC variable is never accessed, this optimization will occ
 The `**` operator has been implemented into the operator set. It has replaced the previous use of '^'.
 ### Arbitrary Characters in Numeral Literals
 Long numbers can get confusing to read for some people. `1_000_000` is now a valid alternative to `1000000`.
+### String Indexing
+String indexing makes character-intensive tasks nearly 3x faster. The syntax is as follows:
+```lua
+local str = "hello world"
+assert(str[5] == "o")
+assert(str[200] == nil)
+```
+This is a very nice addition because it avoids a lookup and function call for each character. Things like (i.e, hash algorithms) will significantly benefit from this change.
 ### Lambda Expressions
 Without the size constraint of Lua, there's no need to hold weary of shorthand expressions.
 Here's example usage of the new lambda expressions:
