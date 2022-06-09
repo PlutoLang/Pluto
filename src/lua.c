@@ -305,7 +305,7 @@ static int collectargs (char **argv, int *first) {
           return has_error;  /* invalid option */
         args |= has_v;
         break;
-      case 'D': {
+      case 'D': { /* '-D' debug output flag */
         args |= has_D;
         break;
       }
