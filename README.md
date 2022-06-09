@@ -27,32 +27,25 @@ This is a very nice addition because it avoids a lookup and function call for ea
 Without the size constraint of Lua, there's no need to hold weary of shorthand expressions.
 Here's example usage of the new lambda expressions:
 ```lua
-local t = {
-    9, 8,
-    7, 6,
-    5, 4,
-    3, 2,
-    1, 0
-}
-table.sort(t, |a, b| -> a < b)
-
-for key, value in ipairs(t) do
-    print(value)
-end
-```
-This will sort the table as expected. The syntax is as follows:
-```
-|explist| -> expr
-|a, b, c| -> expression
-```
-Another example of the new lambda expressions:
-```lua
 local str = "123"
 local inc_str = str:gsub(".", |c| -> tonumber(c) + 1)
 assert(inc_str == "234")
 ```
 - The '|' token was chosen because it's not commonly used as an unary operator in programming.
 - The '->' arrow syntax looked better and didn't resemble any operators. It also plays along with common lambda tokens.
+### Compiler Warnings
+Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. For an example, see this code:
+```lua
+local a = "hello world"
+do
+    local a = "shadowed"
+end
+```
+The parser will emit the following message to standard error output:
+```
+WARNING: tests/quick.plu:12: duplicated local definition ('a') implies value shadowing.
+```
+This behavior can be toggled via the `PLUTO_PARSER_WARNING_LOCALDEF` macro in `luaconf.h`.
 ## Optimizations:
 ### For Loops
 Xmilia Hermit discovered an interesting for loop optimization on June 7th, 2022. It has been implemented in Pluto.

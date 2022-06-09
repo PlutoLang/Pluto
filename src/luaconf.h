@@ -768,19 +768,25 @@
 /* }================================================================== */
 
 
-
-
-
-/* =================================================================== */
-
 /*
-** Local configuration. You can use this space to add your redefinitions
-** without modifying the main part of the file.
+** {====================================================================
+** Pluto configuration macros.
+** If a macro is followed by a commented-out undef, you can toggle it.
+** =====================================================================}
 */
 
-
-
-
-
+/* Do you want warnings to be issued during compile-time? */
+#define PLUTO_PARSER_ENABLE_WARNIGNS
+// #undef PLUTO_PARSER_ENABLE_WARNIGNS
+#ifdef PLUTO_PARSER_ENABLE_WARNIGNS
+  /* Do you want warnings for local duplication during compilation? */
+  #define PLUTO_PARSER_WARNING_LOCALDEF
+  // #undef PLUTO_PARSER_WARNING_LOCALDEF
+  #ifdef PLUTO_PARSER_WARNING_LOCALDEF
+    /* This is the message used when a duplicated local definition is discovered. */
+    #define PLUTO_PARSER_WARNINGS_LOCALDEF_MESSAGE "duplicated local definition ('%s') implies value shadowing."
+  #endif
 #endif
 
+/* }================================================================== */
+#endif

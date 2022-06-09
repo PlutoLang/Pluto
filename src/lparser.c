@@ -10,6 +10,7 @@
 #include "lprefix.h"
 
 
+#include <stdio.h>
 #include <limits.h>
 #include <string.h>
 
@@ -70,6 +71,14 @@ static l_noret error_expected (LexState *ls, int token) {
       luaO_pushfstring(ls->L, "%s expected", luaX_token2str(ls, token)));
 }
 
+
+#ifdef PLUTO_PARSER_ENABLE_WARNIGNS
+static void emitwarning (LexState *ls, const char *text) {
+  text = luaG_addinfo(ls->L, text, ls->source, ls->linenumber);
+  fprintf(stderr, "WARNING: %s\n", text);
+  fflush(stderr);
+}
+#endif
 
 static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
   lua_State *L = fs->ls->L;
@@ -195,6 +204,17 @@ static int new_localvar (LexState *ls, TString *name) {
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
   Vardesc *var;
+#ifdef PLUTO_PARSER_WARNING_LOCALDEF
+  /* check for local duplication */
+  for (int i = fs->firstlocal; i < dyd->actvar.n; i++) {
+    LocVar *local = &fs->f->locvars[dyd->actvar.arr[i].vd.ridx];
+    if (local && (name == local->varname)) {
+      int top = lua_gettop(ls->L);
+      emitwarning(ls, luaO_pushfstring(ls->L, PLUTO_PARSER_WARNINGS_LOCALDEF_MESSAGE, name->contents));
+      lua_settop(L, top); /* reset stack */
+    }
+  }
+#endif
   checklimit(fs, dyd->actvar.n + 1 - fs->firstlocal,
                  MAXVARS, "local variables");
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
