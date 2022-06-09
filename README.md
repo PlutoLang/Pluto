@@ -34,7 +34,7 @@ assert(inc_str == "234")
 - The '|' token was chosen because it's not commonly used as an unary operator in programming.
 - The '->' arrow syntax looked better and didn't resemble any operators. It also plays along with common lambda tokens.
 ### Compiler Warnings
-Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag. For an example, see this code:
+Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
 ```lua
 local a = "hello world"
 do
