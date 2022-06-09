@@ -71,18 +71,6 @@ static l_noret error_expected (LexState *ls, int token) {
       luaO_pushfstring(ls->L, "%s expected", luaX_token2str(ls, token)));
 }
 
-
-#ifdef PLUTO_PARSER_ENABLE_WARNIGNS
-static void emitwarning (LexState *ls, const char *text) {
-  lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
-  if (lua_toboolean(ls->L, -1) == 1) {
-    text = luaG_addinfo(ls->L, text, ls->source, ls->linenumber);
-    fprintf(stderr, "WARNING: %s\n", text);
-    fflush(stderr);
-  }
-}
-#endif
-
 static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
   lua_State *L = fs->ls->L;
   const char *msg;
@@ -193,6 +181,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     f->locvars[oldsize++].varname = NULL;
   f->locvars[fs->ndebugvars].varname = varname;
   f->locvars[fs->ndebugvars].startpc = fs->pc;
+  f->locvars[fs->ndebugvars].line = ls->linenumber - 1; /* previous line was the declaration */
   luaC_objbarrier(ls->L, f, varname);
   return fs->ndebugvars++;
 }
@@ -208,12 +197,18 @@ static int new_localvar (LexState *ls, TString *name) {
   Dyndata *dyd = ls->dyd;
   Vardesc *var;
 #ifdef PLUTO_PARSER_WARNING_LOCALDEF
-  /* check for local duplication */
+  /* compile-time warnings for duplicate local declarations */
   for (int i = fs->firstlocal; i < dyd->actvar.n; i++) {
     LocVar *local = &fs->f->locvars[dyd->actvar.arr[i].vd.ridx];
     if (local && (name == local->varname)) {
-      int top = lua_gettop(ls->L);
-      emitwarning(ls, luaO_pushfstring(ls->L, PLUTO_PARSER_WARNINGS_LOCALDEF_MESSAGE, name->contents));
+      int top = lua_gettop(L);
+      lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
+      if (lua_toboolean(ls->L, -1) == 1) { /* only issue warnings when '-D' is passed */
+        const char* loc = getstr(name);
+        const char *text = luaG_addinfo(ls->L, "", ls->source, ls->linenumber); /* filename:line: */
+        fprintf(stderr, PLUTO_PARSER_WARNINGS_LOCALDEF_MESSAGE, text, ls->linenumber, loc, loc, local->line, loc);
+        fflush(stderr);
+      }
       lua_settop(L, top); /* reset stack */
     }
   }
