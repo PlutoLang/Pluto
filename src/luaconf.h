@@ -783,8 +783,12 @@
   #define PLUTO_PARSER_WARNING_LOCALDEF
   // #undef PLUTO_PARSER_WARNING_LOCALDEF
   #ifdef PLUTO_PARSER_WARNING_LOCALDEF
-    /* This is the message used when a duplicated local definition is discovered. */
-    #define PLUTO_PARSER_WARNINGS_LOCALDEF_MESSAGE "duplicated local definition ('%s') implies value shadowing."
+    /*
+	** This is the message used by the parser when issuing warnings.
+	** Because warnings only exist for local re-declarations, this is hard-coded.
+	** Please read lparser.c to find out what arguments are passed to the formatter.
+	*/
+    #define PLUTO_PARSER_WARNINGS_LOCALDEF_MESSAGE "%swarning: duplicate local declaration [-D]\n\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n\t%d |\tlocal %s = ...\n\t   |\n"
   #endif
 #endif
 
