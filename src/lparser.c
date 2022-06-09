@@ -74,9 +74,12 @@ static l_noret error_expected (LexState *ls, int token) {
 
 #ifdef PLUTO_PARSER_ENABLE_WARNIGNS
 static void emitwarning (LexState *ls, const char *text) {
-  text = luaG_addinfo(ls->L, text, ls->source, ls->linenumber);
-  fprintf(stderr, "WARNING: %s\n", text);
-  fflush(stderr);
+  lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
+  if (lua_toboolean(ls->L, -1) == 1) {
+    text = luaG_addinfo(ls->L, text, ls->source, ls->linenumber);
+    fprintf(stderr, "WARNING: %s\n", text);
+    fflush(stderr);
+  }
 }
 #endif
 

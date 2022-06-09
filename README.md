@@ -34,18 +34,18 @@ assert(inc_str == "234")
 - The '|' token was chosen because it's not commonly used as an unary operator in programming.
 - The '->' arrow syntax looked better and didn't resemble any operators. It also plays along with common lambda tokens.
 ### Compiler Warnings
-Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. For an example, see this code:
+Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag. For an example, see this code:
 ```lua
 local a = "hello world"
 do
     local a = "shadowed"
 end
 ```
-The parser will emit the following message to standard error output:
+Given you run the file like this: `pluto -D file.plu`, the parser will emit the following message to standard error output:
 ```
-WARNING: tests/quick.plu:12: duplicated local definition ('a') implies value shadowing.
+WARNING: file.plu:3: duplicated local definition ('a') implies value shadowing.
 ```
-This behavior can be toggled via the `PLUTO_PARSER_WARNING_LOCALDEF` macro in `luaconf.h`.
+This feature can be removed from Pluto via the `PLUTO_PARSER_WARNING_LOCALDEF` macro in `luaconf.h`.
 ## Optimizations:
 ### For Loops
 Xmilia Hermit discovered an interesting for loop optimization on June 7th, 2022. It has been implemented in Pluto.
