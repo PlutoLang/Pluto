@@ -46,6 +46,22 @@ Given you run the file like this: `pluto -D file.plu`, the parser will emit the 
 WARNING: file.plu:3: duplicated local definition ('a') implies value shadowing.
 ```
 This feature can be removed from Pluto via the `PLUTO_PARSER_WARNING_LOCALDEF` macro in `luaconf.h`.
+### Augmented Operators
+The following augmented operators have been added:
+- Modulo: `%=`
+- Addition: `+=`
+- Bitwise OR: `|=`
+- Subtraction: `-=`
+- Bitwise XOR: `^=`
+- Bitwise NOT: `~=`
+- Bitshift left: `<<=`
+- Bitwise AND: `&=`
+- Float division: `/=`
+- Bitshift right: `>>=`
+- Multiplication: `*=`
+- Integer division: `//=`
+
+These are all syntactic sugar for the usual binary operation & manual assignment, as such they produce nearly the same bytecode. In some instances, Pluto's augmented operators are faster than Lua. This happens because augmented operators temporarily store the left-hand operand inside of a register & share the value to the expression, whereas Lua would request the value twice.
 ## Optimizations:
 ### For Loops
 Xmilia Hermit discovered an interesting for loop optimization on June 7th, 2022. It has been implemented in Pluto.
@@ -71,21 +87,6 @@ pairs: next, table, nil, nil
 ipairs: ipairsaux, table, integer, nil
 ```
 When the latter `nil` TBC variable is never accessed, this optimization will occur.
-### Augmented Operators
-The following augmented operators have been added:
-- Modulo: `%=`
-- Addition: `+=`
-- Bitwise OR: `|=`
-- Subtraction: `-=`
-- Bitwise XOR: `^=`
-- Bitwise NOT: `~=`
-- Bitshift left: `<<=`
-- Bitwise AND: `&=`
-- Float division: `/=`
-- Bitshift right: `>>=`
-- Multiplication: `*=`
-- Integer division: `//=`
-
 ## Standard Library Additions
 ### `_G`
 - `newuserdata` function.
