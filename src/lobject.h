@@ -517,6 +517,7 @@ typedef struct LocVar {
   TString *varname;
   int startpc;  /* first point where variable is active */
   int endpc;    /* first point where variable is dead */
+  int line;     /* line where this local is defined */
 } LocVar;
 
 
