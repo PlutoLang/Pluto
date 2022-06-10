@@ -187,60 +187,6 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
 }
 
 
-/*
-** Create a new local variable with the given 'name'. Return its index
-** in the function.
-*/
-static int new_localvar (LexState *ls, TString *name) {
-  lua_State *L = ls->L;
-  FuncState *fs = ls->fs;
-  Dyndata *dyd = ls->dyd;
-  Vardesc *var;
-#ifdef PLUTO_PARSER_WARNING_LOCALDEF
-  /* compile-time warnings for duplicate local declarations */
-  for (int i = 1; i < dyd->actvar.n; i++) {
-    LocVar *local = &fs->f->locvars[dyd->actvar.arr[i].vd.ridx];
-    if (local && (name == local->varname)) {
-      int top = lua_gettop(L);
-      lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
-      if (lua_toboolean(ls->L, -1) == 1) { // only issue warnings when '-D' is passed
-        const char* loc = getstr(name);
-        const char *text = luaG_addinfo(ls->L, "", ls->source, ls->linenumber); // filename:line:
-        if (local->line < 10 && ls->linenumber < 10) {  // both declarations below line 10
-          fprintf(stderr,
-                  "%swarning: duplicate local declaration [-D]\n"
-                  "\t%d |\tlocal %s = ...\n\t  |\nnote: '%s' initially declared here:\n"
-                  "\t%d |\tlocal %s = ...\n\t  |\n",
-                  text, ls->linenumber, loc, loc, local->line, loc);
-        } else if (ls->linenumber >= 10 && local->line < 10) { // initial declaration below line 10
-          fprintf(stderr,
-                  "%swarning: duplicate local declaration [-D]\n"
-                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
-                  "\t%d |\tlocal %s = ...\n\t  |\n",
-                  text, ls->linenumber, loc, loc, local->line, loc);
-        } else { // both declarations above line 10
-          fprintf(stderr, 
-                  "%swarning: duplicate local declaration [-D]\n"
-                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
-                  "\t%d |\tlocal %s = ...\n\t   |\n",
-                  text, ls->linenumber, loc, loc, local->line, loc);        
-        }
-        fflush(stderr);
-      }
-      lua_settop(L, top); // reset stack
-    }
-  }
-#endif
-  checklimit(fs, dyd->actvar.n + 1 - fs->firstlocal,
-                 MAXVARS, "local variables");
-  luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
-                  dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
-  var = &dyd->actvar.arr[dyd->actvar.n++];
-  var->vd.kind = VDKREG;  /* default */
-  var->vd.name = name;
-  return dyd->actvar.n - 1 - fs->firstlocal;
-}
-
 #define new_localvarliteral(ls,v) \
     new_localvar(ls,  \
       luaX_newstring(ls, "" v, (sizeof(v)/sizeof(char)) - 1));
@@ -293,6 +239,61 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
     lua_assert(idx < fs->ndebugvars);
     return &fs->f->locvars[idx];
   }
+}
+
+
+/*
+** Create a new local variable with the given 'name'. Return its index
+** in the function.
+*/
+static int new_localvar (LexState *ls, TString *name) {
+  lua_State *L = ls->L;
+  FuncState *fs = ls->fs;
+  Dyndata *dyd = ls->dyd;
+  Vardesc *var;
+#ifdef PLUTO_PARSER_WARNING_LOCALDEF
+  int locals = luaY_nvarstack(fs);
+  for (int i = 1; i < locals; i++) {
+    LocVar *local = localdebuginfo(fs, i);
+    if (local && (local->varname == name)) {
+      int top = lua_gettop(L);
+      lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
+      if (lua_toboolean(ls->L, -1) == 1) { // only issue warnings when '-D' is passed
+        const char* loc = getstr(name);
+        const char *text = luaG_addinfo(ls->L, "", ls->source, ls->linenumber); // filename:line:
+        if (local->line < 10 && ls->linenumber < 10) {  // both declarations below line 10
+          fprintf(stderr,
+                  "%swarning: duplicate local declaration [-D]\n"
+                  "\t%d |\tlocal %s = ...\n\t  |\nnote: '%s' initially declared here:\n"
+                  "\t%d |\tlocal %s = ...\n\t  |\n",
+                  text, ls->linenumber, loc, loc, local->line, loc);
+        } else if (ls->linenumber >= 10 && local->line < 10) { // initial declaration below line 10
+          fprintf(stderr,
+                  "%swarning: duplicate local declaration [-D]\n"
+                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
+                  "\t%d |\tlocal %s = ...\n\t  |\n",
+                  text, ls->linenumber, loc, loc, local->line, loc);
+        } else { // both declarations above line 10
+          fprintf(stderr, 
+                  "%swarning: duplicate local declaration [-D]\n"
+                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
+                  "\t%d |\tlocal %s = ...\n\t   |\n",
+                  text, ls->linenumber, loc, loc, local->line, loc);        
+        }
+        fflush(stderr);
+      }
+      lua_settop(L, top);
+    }
+  }
+#endif
+  checklimit(fs, dyd->actvar.n + 1 - fs->firstlocal,
+                 MAXVARS, "local variables");
+  luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
+                  dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
+  var = &dyd->actvar.arr[dyd->actvar.n++];
+  var->vd.kind = VDKREG;  /* default */
+  var->vd.name = name;
+  return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
 
