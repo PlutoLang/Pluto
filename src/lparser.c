@@ -10,7 +10,9 @@
 #include "lprefix.h"
 
 
+#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <limits.h>
 #include <string.h>
 
@@ -28,6 +30,7 @@
 #include "lstate.h"
 #include "lstring.h"
 #include "ltable.h"
+#include "lauxlib.h"
 
 
 
@@ -65,13 +68,25 @@ typedef struct BlockCnt {
 static void statement (LexState *ls);
 static void expr (LexState *ls, expdesc *v);
 
+/* Creates a temporary string of white-space characters for padding. Result must manually be freed. */
+static char* calc_format_padding(int line) {
+  lua_Integer n = 0;
+  while (line >= 10) {
+    n++;
+    line = l_floor(line / 10);
+  }
+  char *buffer = malloc(n + 1);
+  memset(buffer, ' ', n);
+  buffer[n] = '\0';
+  return buffer;
+}
+
 
 static const char *format_line_error (LexState *ls, const char *msg, const char *token) {
+  char* pad = calc_format_padding(ls->linenumber);
   const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
-  if (ls->linenumber < 10)
-    text = luaO_pushfstring(ls->L, "%s\n\t%d | %s\n\t  | ^ here\n\t  |", text, ls->linenumber, token);
-  else
-    text = luaO_pushfstring(ls->L, "%s\n\t%d | %s\n\t   | ^ here\n\t   |", text, ls->linenumber, token);
+  text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s  | ^ here\n\t%s%s  |", text, pad, ls->linenumber, token, pad, pad, pad, pad);
+  free(pad);
   return text;
 }
 
