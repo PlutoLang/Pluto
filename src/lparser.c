@@ -181,7 +181,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     f->locvars[oldsize++].varname = NULL;
   f->locvars[fs->ndebugvars].varname = varname;
   f->locvars[fs->ndebugvars].startpc = fs->pc;
-  f->locvars[fs->ndebugvars].line = ls->linenumber - 1;
+  f->locvars[fs->ndebugvars].line = f->linedefined;
   luaC_objbarrier(ls->L, f, varname);
   return fs->ndebugvars++;
 }
