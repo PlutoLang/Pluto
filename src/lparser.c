@@ -253,7 +253,7 @@ static int new_localvar (LexState *ls, TString *name) {
   Vardesc *var;
 #ifdef PLUTO_PARSER_WARNING_LOCALDEF
   int locals = luaY_nvarstack(fs);
-  for (int i = 1; i < locals; i++) {
+  for (int i = fs->firstlocal; i < locals; i++) {
     Vardesc *desc = getlocalvardesc(fs,  i);
     LocVar *local = localdebuginfo(fs, i);
     if (desc && local && (local->varname == name)) {
