@@ -109,7 +109,7 @@ note: You may've forgot to name your function during declaration.
       Functions must be associated with names when they're declared.
       Here's an example inside the PIL: https://www.lua.org/pil/5.html
 ```
-This error also propagates to missing tokens:
+Another example: 
 ```lua
 if true return 5 end
 ```
