@@ -43,12 +43,12 @@ end
 ```
 Given you run the file like this: `pluto -D file.plu`, the parser will emit the following message to standard error output:
 ```
-tests/quick.plu:13: warning: duplicate local declaration [-D]
-        13 |    local a = ...
-           |
+file.plu:3: warning: duplicate local declaration [-D]
+        3 |    local a = ...
+          |
 note: 'a' initially declared here:
-        11 |    local a = ...
-           |
+        1 |    local a = ...
+          |
 ```
 This feature can be removed from Pluto via the `PLUTO_PARSER_WARNING_LOCALDEF` macro in `luaconf.h`.
 ### Augmented Operators
