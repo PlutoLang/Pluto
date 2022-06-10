@@ -105,7 +105,7 @@ static l_noret error_expected (LexState *ls, int token) {
   switch (token) {
     case TK_THEN: {
       int top = lua_gettop(ls->L);
-      const char *err = "syntax error: expected 'then' to match preceding 'if' statement.";
+      const char *err = "syntax error: expected 'then' to delimit 'if' condition.";
       const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "if ... %s", ls->buff->buffer));
       text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_IF_STATEMENT, text);
       throw_format_error(ls, top, LUA_ERRSYNTAX);
