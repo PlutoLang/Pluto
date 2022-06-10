@@ -181,7 +181,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     f->locvars[oldsize++].varname = NULL;
   f->locvars[fs->ndebugvars].varname = varname;
   f->locvars[fs->ndebugvars].startpc = fs->pc;
-  f->locvars[fs->ndebugvars].line = f->linedefined;
+  // f->locvars[fs->ndebugvars].line = f->linedefined;
   luaC_objbarrier(ls->L, f, varname);
   return fs->ndebugvars++;
 }
@@ -254,31 +254,32 @@ static int new_localvar (LexState *ls, TString *name) {
 #ifdef PLUTO_PARSER_WARNING_LOCALDEF
   int locals = luaY_nvarstack(fs);
   for (int i = 1; i < locals; i++) {
+    Vardesc *desc = getlocalvardesc(fs,  i);
     LocVar *local = localdebuginfo(fs, i);
-    if (local && (local->varname == name)) {
+    if (desc && local && (local->varname == name)) {
       int top = lua_gettop(L);
       lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
       if (lua_toboolean(ls->L, -1) == 1) { // only issue warnings when '-D' is passed
         const char* loc = getstr(name);
         const char *text = luaG_addinfo(ls->L, "", ls->source, ls->linenumber); // filename:line:
-        if (local->line < 10 && ls->linenumber < 10) {  // both declarations below line 10
+        if (desc->vd.linenumber < 10 && ls->linenumber < 10) {  // both declarations below line 10
           fprintf(stderr,
                   "%swarning: duplicate local declaration [-D]\n"
                   "\t%d |\tlocal %s = ...\n\t  |\nnote: '%s' initially declared here:\n"
                   "\t%d |\tlocal %s = ...\n\t  |\n",
-                  text, ls->linenumber, loc, loc, local->line, loc);
-        } else if (ls->linenumber >= 10 && local->line < 10) { // initial declaration below line 10
+                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);
+        } else if (ls->linenumber >= 10 && desc->vd.linenumber < 10) { // initial declaration below line 10
           fprintf(stderr,
                   "%swarning: duplicate local declaration [-D]\n"
                   "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
                   "\t%d |\tlocal %s = ...\n\t  |\n",
-                  text, ls->linenumber, loc, loc, local->line, loc);
+                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);
         } else { // both declarations above line 10
           fprintf(stderr, 
                   "%swarning: duplicate local declaration [-D]\n"
                   "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
                   "\t%d |\tlocal %s = ...\n\t   |\n",
-                  text, ls->linenumber, loc, loc, local->line, loc);        
+                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);        
         }
         fflush(stderr);
       }
@@ -293,6 +294,7 @@ static int new_localvar (LexState *ls, TString *name) {
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
   var->vd.name = name;
+  var->vd.linenumber = ls->linenumber;
   return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
