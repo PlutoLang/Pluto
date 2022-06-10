@@ -795,5 +795,11 @@
 // Unfinished if statement, missing TK_THEN token.
 #define ERROR_UNFINISHED_IF_STATEMENT   "%s\nnote: You forgot to finish your condition with 'then'.\n      Pluto requires this symbol to append each condition.\n      If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html"
 
+// Control structure (i.e, do) doesn't end with 'end'.
+#define ERROR_UNFINISHED_STRUCTURE_END	"%s\nnote: You forgot to close your control structure with 'end'.\n      Pluto requires this symbol to append each control structure.\n      If needed, here's an example of how to delimit control structures: https://www.lua.org/pil/4.3.html"
+
+// Control structure (i.e, do) doesn't end with 'end'.
+#define ERROR_UNFINISHED_STRUCTURE_UNT	"%s\nnote: You forgot to close your 'repeat' structure with 'until'.\n      This conditional delimits the loop's behavior & terminates the structure.\n      If needed, here's an example of how to delimit control structures: https://www.lua.org/pil/4.3.html"
+
 /* }================================================================== */
 #endif
