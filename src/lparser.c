@@ -113,8 +113,8 @@ static l_noret error_expected (LexState *ls, int token) {
     case TK_NAME: {
       int top = lua_gettop(ls->L);
       const char *err = "syntax error: expected <name> to perform as an identifier.";
-      const char *text = ls->t.token == '('  ? format_line_error(ls, err, "function ()")
-                                             : format_line_error(ls, err, luaX_token2str_noq(ls, ls->t.token));
+      const char *text = ls->t.token == '(' ? format_line_error(ls, err, "function ()")
+                                            : format_line_error(ls, err, luaX_token2str_noq(ls, ls->t.token));
       switch (ls->t.token) {
         case '=': text = luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text); break;
         case '(': text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text); break;
@@ -192,9 +192,37 @@ static void check_match (LexState *ls, int what, int who, int where) {
     if (where == ls->linenumber)  /* all in the same line? */
       error_expected(ls, what);  /* do not need a complex message */
     else {
-      luaX_syntaxerror(ls, luaO_pushfstring(ls->L,
-             "%s expected (to close %s at line %d)",
-              luaX_token2str(ls, what), luaX_token2str(ls, who), where));
+      switch (what) {
+        case TK_END: {
+          int top = lua_gettop(ls->L);
+          const char *err;
+          switch (who) {
+            case TK_IF: setcasestr(err, "syntax error: expected 'end' to terminate 'if' structure");
+            case TK_DO: setcasestr(err, "syntax error: expected 'end' to terminate 'do' structure");
+            case TK_FOR: setcasestr(err, "syntax error: expected 'end' to terminate 'for' structure");
+            case TK_WHILE: setcasestr(err, "syntax error: expected 'end' to terminate 'while' structure");
+            case TK_FUNCTION: setcasestr(err, "syntax error: expected 'end' to terminate 'function' structure");
+            default: {
+              err = "syntax error: expected 'end' to terminate control structure";
+            }
+          }
+          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer));
+          text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_END, text);
+          throw_format_error(ls, top, LUA_ERRSYNTAX);
+        }
+        case TK_UNTIL: {
+          int top = lua_gettop(ls->L);
+          const char *err = "syntax error: expected 'until' to terminate 'repeat' structure";
+          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer));
+          text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_UNT, text);
+          throw_format_error(ls, top, LUA_ERRSYNTAX);
+        }
+        default: {
+          luaX_syntaxerror(ls, luaO_pushfstring(ls->L,
+                "%s expected (to close %s at line %d)",
+                  luaX_token2str(ls, what), luaX_token2str(ls, who), where));
+        }
+      }
     }
   }
 }
