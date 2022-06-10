@@ -71,6 +71,27 @@ static l_noret error_expected (LexState *ls, int token) {
       luaO_pushfstring(ls->L, "%s expected", luaX_token2str(ls, token)));
 }
 
+
+static const char *format_line_error (LexState *ls, const char *msg) {
+  const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
+  if (ls->linenumber < 10)
+    text = luaO_pushfstring(ls->L, "%s\n\t%d | %c\n\t  | ^ here\n\t  |", text, ls->linenumber, ls->t.token);
+  else
+    text = luaO_pushfstring(ls->L, "%s\n\t%d | %c\n\t   | ^ here\n\t   |", text, ls->linenumber, ls->t.token);
+  return text;
+}
+
+
+/*
+** Throws a formatted error message (by Pluto), with the message at the top of the stack.
+** Afterwards, this resets the stack back to its original size, provided by originalStackSize.
+*/
+static void throw_format_error (LexState *ls, int originalStackSize, int errcode) {
+  luaD_throw(ls->L, errcode);
+  lua_settop(ls->L, originalStackSize);
+} 
+
+
 static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
   lua_State *L = fs->ls->L;
   const char *msg;
@@ -1160,12 +1181,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       luaX_syntaxerror(ls, "unexpected symbol");
 #else
       int top = lua_gettop(ls->L);
-      const char *text = luaG_addinfo(ls->L, "syntax error: unexpected symbol", ls->source, ls->linenumber);
-      if (ls->linenumber < 10)
-        text = luaO_pushfstring(ls->L, "%s\n\t%d | %c\n\t  | ^ here\n\t  |", text, ls->linenumber, ls->t.token);
-      else
-        text = luaO_pushfstring(ls->L, "%s\n\t%d | %c\n\t   | ^ here\n\t   |", text, ls->linenumber, ls->t.token);
-      /* we may be able to attach a mildly helpful reminder for very new programmers */
+      const char *text = format_line_error(ls, "syntax error: unexpected symbol");
       switch (ls->t.token) {
         case '}':
         case '{': {
@@ -1184,8 +1200,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
           break;
         }
       }
-      luaD_throw(ls->L, LUA_ERRSYNTAX);
-      lua_settop(ls->L, top);
+      throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
 #endif
   }
