@@ -784,5 +784,16 @@
   // #undef PLUTO_PARSER_WARNING_LOCALDEF
 #endif
 
+/* Compile-time errors. */
+/* Yes, these are very long. */
+// Missing identifier for local message.
+#define ERROR_MISSING_LOCAL_NAME        "%s\nnote: you may've forgot to name your local during declaration."
+
+// Function object without initial identifier.
+#define ERROR_UNFINISHED_FUNCTION       "%s\nnote: You may've forgot to name your function during declaration.\n      Functions must be associated with names when they're declared.\n      Here's an example inside the PIL: https://www.lua.org/pil/5.html"
+
+// Unfinished if statement, missing TK_THEN token.
+#define ERROR_UNFINISHED_IF_STATEMENT   "%s\nnote: You forgot to finish your condition with 'then'.\n      Pluto requires this symbol to append each condition.\n      If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html"
+
 /* }================================================================== */
 #endif
