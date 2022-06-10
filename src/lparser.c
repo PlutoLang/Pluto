@@ -116,8 +116,8 @@ static l_noret error_expected (LexState *ls, int token) {
       const char *text = ls->t.token == '('  ? format_line_error(ls, err, "function ()")
                                              : format_line_error(ls, err, luaX_token2str_noq(ls, ls->t.token));
       switch (ls->t.token) {
-        case '=': text = luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text);
-        case '(': text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text);
+        case '=': text = luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text); break;
+        case '(': text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text); break;
       }
       throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
