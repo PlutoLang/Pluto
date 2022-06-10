@@ -66,12 +66,6 @@ static void statement (LexState *ls);
 static void expr (LexState *ls, expdesc *v);
 
 
-static l_noret error_expected (LexState *ls, int token) {
-  luaX_syntaxerror(ls,
-      luaO_pushfstring(ls->L, "%s expected", luaX_token2str(ls, token)));
-}
-
-
 static const char *format_line_error (LexState *ls, const char *msg) {
   const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
   if (ls->linenumber < 10)
@@ -90,6 +84,35 @@ static void throw_format_error (LexState *ls, int originalStackSize, int errcode
   luaD_throw(ls->L, errcode);
   lua_settop(ls->L, originalStackSize);
 } 
+
+
+static l_noret error_expected (LexState *ls, int token) {
+  switch (token) {
+    case TK_NAME: {
+      int top = lua_gettop(ls->L);
+      const char *text = format_line_error(ls, "syntax error: expected a <name> to perform as an identifier.");
+      switch (ls->t.token) {
+        case '=': {
+          text = luaO_pushfstring(ls->L, "%s\nnote: you may've forgot to name your local during declaration.", text);
+          break;
+        }
+        case '(': {
+          text = luaO_pushfstring(ls->L,
+                    "%s\nnote: You may've forgot to name your function during declaration. "
+                    "\n      Functions must be associated with names when they're declared. "
+                    "\n      Here's an example inside the PIL: https://www.lua.org/pil/5.html",
+                    text);
+          break;
+        }
+      }
+      throw_format_error(ls, top, LUA_ERRSYNTAX);
+    }
+    default: {
+      luaX_syntaxerror(ls,
+        luaO_pushfstring(ls->L, "%s expected", luaX_token2str(ls, token)));
+    }
+  }
+}
 
 
 static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
