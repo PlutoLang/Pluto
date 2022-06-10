@@ -181,7 +181,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     f->locvars[oldsize++].varname = NULL;
   f->locvars[fs->ndebugvars].varname = varname;
   f->locvars[fs->ndebugvars].startpc = fs->pc;
-  f->locvars[fs->ndebugvars].line = ls->linenumber - 1; /* previous line was the declaration */
+  f->locvars[fs->ndebugvars].line = ls->linenumber - 1;
   luaC_objbarrier(ls->L, f, varname);
   return fs->ndebugvars++;
 }
@@ -198,18 +198,36 @@ static int new_localvar (LexState *ls, TString *name) {
   Vardesc *var;
 #ifdef PLUTO_PARSER_WARNING_LOCALDEF
   /* compile-time warnings for duplicate local declarations */
-  for (int i = fs->firstlocal; i < dyd->actvar.n; i++) {
+  for (int i = 1; i < dyd->actvar.n; i++) {
     LocVar *local = &fs->f->locvars[dyd->actvar.arr[i].vd.ridx];
     if (local && (name == local->varname)) {
       int top = lua_gettop(L);
       lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
-      if (lua_toboolean(ls->L, -1) == 1) { /* only issue warnings when '-D' is passed */
+      if (lua_toboolean(ls->L, -1) == 1) { // only issue warnings when '-D' is passed
         const char* loc = getstr(name);
-        const char *text = luaG_addinfo(ls->L, "", ls->source, ls->linenumber); /* filename:line: */
-        fprintf(stderr, PLUTO_PARSER_WARNINGS_LOCALDEF_MESSAGE, text, ls->linenumber, loc, loc, local->line, loc);
+        const char *text = luaG_addinfo(ls->L, "", ls->source, ls->linenumber); // filename:line:
+        if (local->line < 10 && ls->linenumber < 10) {  // both declarations below line 10
+          fprintf(stderr,
+                  "%swarning: duplicate local declaration [-D]\n"
+                  "\t%d |\tlocal %s = ...\n\t  |\nnote: '%s' initially declared here:\n"
+                  "\t%d |\tlocal %s = ...\n\t  |\n",
+                  text, ls->linenumber, loc, loc, local->line, loc);
+        } else if (ls->linenumber >= 10 && local->line < 10) { // initial declaration below line 10
+          fprintf(stderr,
+                  "%swarning: duplicate local declaration [-D]\n"
+                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
+                  "\t%d |\tlocal %s = ...\n\t  |\n",
+                  text, ls->linenumber, loc, loc, local->line, loc);
+        } else { // both declarations above line 10
+          fprintf(stderr, 
+                  "%swarning: duplicate local declaration [-D]\n"
+                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
+                  "\t%d |\tlocal %s = ...\n\t   |\n",
+                  text, ls->linenumber, loc, loc, local->line, loc);        
+        }
         fflush(stderr);
       }
-      lua_settop(L, top); /* reset stack */
+      lua_settop(L, top); // reset stack
     }
   }
 #endif
