@@ -66,12 +66,12 @@ static void statement (LexState *ls);
 static void expr (LexState *ls, expdesc *v);
 
 
-static const char *format_line_error (LexState *ls, const char *msg) {
+static const char *format_line_error (LexState *ls, const char *msg, const char *token) {
   const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
   if (ls->linenumber < 10)
-    text = luaO_pushfstring(ls->L, "%s\n\t%d | %c\n\t  | ^ here\n\t  |", text, ls->linenumber, ls->t.token);
+    text = luaO_pushfstring(ls->L, "%s\n\t%d | %s\n\t  | ^ here\n\t  |", text, ls->linenumber, token);
   else
-    text = luaO_pushfstring(ls->L, "%s\n\t%d | %c\n\t   | ^ here\n\t   |", text, ls->linenumber, ls->t.token);
+    text = luaO_pushfstring(ls->L, "%s\n\t%d | %s\n\t   | ^ here\n\t   |", text, ls->linenumber, token);
   return text;
 }
 
@@ -88,22 +88,21 @@ static void throw_format_error (LexState *ls, int originalStackSize, int errcode
 
 static l_noret error_expected (LexState *ls, int token) {
   switch (token) {
+    case TK_THEN: {
+      int top = lua_gettop(ls->L);
+      const char *err = "syntax error: expected 'then' to match preceding 'if' statement.";
+      const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "if ... %s", ls->buff->buffer));
+      text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_IF_STATEMENT, text);
+      throw_format_error(ls, top, LUA_ERRSYNTAX);
+    }
     case TK_NAME: {
       int top = lua_gettop(ls->L);
-      const char *text = format_line_error(ls, "syntax error: expected a <name> to perform as an identifier.");
+      const char *err = "syntax error: expected <name> to perform as an identifier.";
+      const char *text = ls->t.token == '('  ? format_line_error(ls, err, "function ()")
+                                             : format_line_error(ls, err, luaX_token2str_noq(ls, ls->t.token));
       switch (ls->t.token) {
-        case '=': {
-          text = luaO_pushfstring(ls->L, "%s\nnote: you may've forgot to name your local during declaration.", text);
-          break;
-        }
-        case '(': {
-          text = luaO_pushfstring(ls->L,
-                    "%s\nnote: You may've forgot to name your function during declaration. "
-                    "\n      Functions must be associated with names when they're declared. "
-                    "\n      Here's an example inside the PIL: https://www.lua.org/pil/5.html",
-                    text);
-          break;
-        }
+        case '=': text = luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text);
+        case '(': text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text);
       }
       throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
@@ -149,8 +148,10 @@ static int testnext (LexState *ls, int c) {
 ** Check that next token is 'c'.
 */
 static void check (LexState *ls, int c) {
-  if (ls->t.token != c)
+  if (ls->t.token != c) {
+    // if (c == TK_THEN) printf("ABC ERROE EXPECTED");
     error_expected(ls, c);
+  }
 }
 
 
@@ -1204,7 +1205,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       luaX_syntaxerror(ls, "unexpected symbol");
 #else
       int top = lua_gettop(ls->L);
-      const char *text = format_line_error(ls, "syntax error: unexpected symbol");
+      const char *text = format_line_error(ls, "syntax error: unexpected symbol", luaX_token2str(ls, ls->t.token));
       switch (ls->t.token) {
         case '}':
         case '{': {
