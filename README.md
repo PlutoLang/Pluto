@@ -109,17 +109,19 @@ note: You may've forgot to name your function during declaration.
       Functions must be associated with names when they're declared.
       Here's an example inside the PIL: https://www.lua.org/pil/5.html
 ```
-This error also propagates to local definitions without identifiers:
-```
-local = 5
+This error also propagates to missing tokens:
+```lua
+if true return 5 end
 ```
 Produces the following result:
 ```
-file.plu:1: syntax error: expected a <name> to perform as an identifier.
-        1 | =
+file.plu:1: syntax error: expected 'then' to match preceding 'if' statement.
+        1 | if ... return
           | ^ here
           |
-note: you may've forgot to name your local during declaration.
+note: You forgot to finish your condition with 'then'.
+      Pluto requires this symbol to append each condition.
+      If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html
 ```
 This may be particularly helpful for people who are very new to programming as a whole. The coverage of these detailed errors will most certainly be expanded.
 
