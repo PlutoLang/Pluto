@@ -1156,8 +1156,38 @@ static void primaryexp (LexState *ls, expdesc *v) {
       return;
     }
     default: {
+#ifndef stderr
       luaX_syntaxerror(ls, "unexpected symbol");
+#else
+      int top = lua_gettop(ls->L);
+      const char *text = luaG_addinfo(ls->L, "syntax error: unexpected symbol", ls->source, ls->linenumber);
+      if (ls->linenumber < 10)
+        text = luaO_pushfstring(ls->L, "%s\n\t%d | %c\n\t  | ^ here\n\t  |", text, ls->linenumber, ls->t.token);
+      else
+        text = luaO_pushfstring(ls->L, "%s\n\t%d | %c\n\t   | ^ here\n\t   |", text, ls->linenumber, ls->t.token);
+      /* we may be able to attach a mildly helpful reminder for very new programmers */
+      switch (ls->t.token) {
+        case '}':
+        case '{': {
+          text = luaO_pushfstring(ls->L, "%s\nnote: did you forget a matching bracket?", text);
+          break;
+        }
+        case '^':
+        case '&': case '~':
+        case '-': case '|':
+        case '*': case '%':
+        case '+': case '/': {
+          text = luaO_pushfstring(ls->L,
+                                  "%s\nnote: '%c' is used often in expressions (i.e, a = 1 %c 2). "
+                                  "Did you forget to finish the expression?",
+                                  text, ls->t.token, ls->t.token);
+          break;
+        }
+      }
+      luaD_throw(ls->L, LUA_ERRSYNTAX);
+      lua_settop(ls->L, top);
     }
+#endif
   }
 }
 
