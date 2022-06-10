@@ -10,6 +10,7 @@
 #include "lprefix.h"
 
 
+#include <stdio.h>
 #include <limits.h>
 #include <string.h>
 
@@ -69,7 +70,6 @@ static l_noret error_expected (LexState *ls, int token) {
   luaX_syntaxerror(ls,
       luaO_pushfstring(ls->L, "%s expected", luaX_token2str(ls, token)));
 }
-
 
 static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
   lua_State *L = fs->ls->L;
@@ -181,29 +181,11 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     f->locvars[oldsize++].varname = NULL;
   f->locvars[fs->ndebugvars].varname = varname;
   f->locvars[fs->ndebugvars].startpc = fs->pc;
+  // f->locvars[fs->ndebugvars].line = f->linedefined;
   luaC_objbarrier(ls->L, f, varname);
   return fs->ndebugvars++;
 }
 
-
-/*
-** Create a new local variable with the given 'name'. Return its index
-** in the function.
-*/
-static int new_localvar (LexState *ls, TString *name) {
-  lua_State *L = ls->L;
-  FuncState *fs = ls->fs;
-  Dyndata *dyd = ls->dyd;
-  Vardesc *var;
-  checklimit(fs, dyd->actvar.n + 1 - fs->firstlocal,
-                 MAXVARS, "local variables");
-  luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
-                  dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
-  var = &dyd->actvar.arr[dyd->actvar.n++];
-  var->vd.kind = VDKREG;  /* default */
-  var->vd.name = name;
-  return dyd->actvar.n - 1 - fs->firstlocal;
-}
 
 #define new_localvarliteral(ls,v) \
     new_localvar(ls,  \
@@ -257,6 +239,63 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
     lua_assert(idx < fs->ndebugvars);
     return &fs->f->locvars[idx];
   }
+}
+
+
+/*
+** Create a new local variable with the given 'name'. Return its index
+** in the function.
+*/
+static int new_localvar (LexState *ls, TString *name) {
+  lua_State *L = ls->L;
+  FuncState *fs = ls->fs;
+  Dyndata *dyd = ls->dyd;
+  Vardesc *var;
+#ifdef PLUTO_PARSER_WARNING_LOCALDEF
+  int locals = luaY_nvarstack(fs);
+  for (int i = fs->firstlocal; i < locals; i++) {
+    Vardesc *desc = getlocalvardesc(fs,  i);
+    LocVar *local = localdebuginfo(fs, i);
+    if (desc && local && (local->varname == name)) {
+      int top = lua_gettop(L);
+      lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
+      if (lua_toboolean(ls->L, -1) == 1) { // only issue warnings when '-D' is passed
+        const char* loc = getstr(name);
+        const char *text = luaG_addinfo(ls->L, "", ls->source, ls->linenumber); // filename:line:
+        if (desc->vd.linenumber < 10 && ls->linenumber < 10) {  // both declarations below line 10
+          fprintf(stderr,
+                  "%swarning: duplicate local declaration [-D]\n"
+                  "\t%d |\tlocal %s = ...\n\t  |\nnote: '%s' initially declared here:\n"
+                  "\t%d |\tlocal %s = ...\n\t  |\n",
+                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);
+        } else if (ls->linenumber >= 10 && desc->vd.linenumber < 10) { // initial declaration below line 10
+          fprintf(stderr,
+                  "%swarning: duplicate local declaration [-D]\n"
+                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
+                  "\t%d |\tlocal %s = ...\n\t  |\n",
+                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);
+        } else { // both declarations above line 10
+          fprintf(stderr, 
+                  "%swarning: duplicate local declaration [-D]\n"
+                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
+                  "\t%d |\tlocal %s = ...\n\t   |\n",
+                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);        
+        }
+        fflush(stderr);
+      }
+      lua_settop(L, top);
+    }
+  }
+#endif
+  checklimit(fs, dyd->actvar.n + 1 - fs->firstlocal,
+                 MAXVARS, "local variables");
+  luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
+                  dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
+  var = &dyd->actvar.arr[dyd->actvar.n++];
+  var->vd.kind = VDKREG;  /* default */
+  var->vd.name = name;
+  var->vd.linenumber = ls->linenumber;
+  return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
 
