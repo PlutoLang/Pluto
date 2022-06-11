@@ -102,7 +102,7 @@ This code would normally return an error like, "expected `<name>` on line 98". O
 ```
 file.plu:1: syntax error: expected <name> to perform as an identifier.
         1 | function ()
-          | ^ here
+          |         ^ here
           |
 note: You may've forgot to name your function during declaration. 
       Functions must be associated with names when they're declared.
@@ -116,13 +116,13 @@ Produces the following result:
 ```
 file.plu:1: syntax error: expected 'then' to delimit 'if' condition.
            1 | if ... return
-             | ^ here
+             |       ^ here
              |
 note: You forgot to finish your condition with 'then'.
       Pluto requires this symbol to append each condition.
       If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html
 ```
-These colors also support ANSI color codes, however this is disabled by default in order to encourage portability. For example, ANSI color codes do not work on most Windows command prompts. Define the `PLUTO_USE_COLORED_OUTPUT` macro in `luaconf.h` to enable colored error messages — they look quite nice.
+This also supports ANSI color codes, however this is disabled by default in order to encourage portability. For example, ANSI color codes do not work on most Windows command prompts. Define the `PLUTO_USE_COLORED_OUTPUT` macro in `luaconf.h` to enable colored error messages — they look quite nice.
 
 ## Standard Library Additions
 ### `_G`
