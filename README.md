@@ -122,7 +122,7 @@ note: You forgot to finish your condition with 'then'.
       Pluto requires this symbol to append each condition.
       If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html
 ```
-This particularly may be helpful for people who are very new to programming as a whole. The coverage of these detailed errors will most certainly be expanded.
+These colors also support ANSI color codes, however this is disabled by default in order to encourage portability. For example, ANSI color codes do not work on most Windows command prompts. Define the `PLUTO_USE_COLORED_OUTPUT` macro in `luaconf.h` to enable colored error messages — they look quite nice.
 
 ## Standard Library Additions
 ### `_G`
