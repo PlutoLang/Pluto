@@ -58,7 +58,6 @@ The following augmented operators have been added:
 - Exponent: `^=`
 - Bitwise OR: `|=`
 - Subtraction: `-=`
-- Bitwise NOT: `~=`
 - Bitshift left: `<<=`
 - Bitwise AND: `&=`
 - Float division: `/=`
