@@ -792,6 +792,17 @@
 #define ERROR_DEFAULT_HERE					"^ here"
 #endif
 
+// Duplicate local declaration warning messages.
+#ifdef PLUTO_USE_COLORED_OUTPUT
+#define WARN_DUPLICATE_LOCAL				"\e[0;33m""warning\e[0;37m:\e[1;37m duplicate local declaration\e[0m [-D]"
+#define WARN_DUPLICATE_LOCAL_HERE			"\e[0;31m      %s duplicate declaration, this shadows the value of the initial declaration.\e[0;37m"
+#define WARN_DUPLICATE_LOCAL_VICTIM			"\e[0;31m  %s the value of this local is now being shadowed by line %d.\e[0;37m"
+#else
+#define WARN_DUPLICATE_LOCAL				"warning: duplicate local declaration [-D]"
+#define WARN_DUPLICATE_LOCAL_HERE			"      %s duplicate declaration, this shadows the value of the initial declaration."
+#define WARN_DUPLICATE_LOCAL_VICTIM			"  %s the value of this local is now being shadowed by line %d."
+#endif
+
 // Unexpected symbol error messages.
 #ifdef PLUTO_USE_COLORED_OUTPUT
 #define ERROR_UNEXPECTED_SYMBOL				"\e[0;31msyntax error\e[0;37m: \e[1;37munexpected symbol\e[0;37m"
