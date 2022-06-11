@@ -36,20 +36,15 @@ assert(inc_str == "234")
 ### Compiler Warnings
 Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
 ```lua
-local a = "hello world"
+local variable = "hello world"
 do
-    local a = "shadowed"
+    local variable = "shadowed"
 end
 ```
 Given you run the file like this: `pluto -D file.plu`, the parser will emit the following message to standard error output:
-```
-file.plu:3: warning: duplicate local declaration [-D]
-        3 |    local a = ...
-          |
-note: 'a' initially declared here:
-        1 |    local a = ...
-          |
-```
+
+![This image failed to load.](https://i.imgur.com/V1fPEqq.png)
+
 This feature can be removed from Pluto via the `PLUTO_PARSER_WARNING_LOCALDEF` macro in `luaconf.h`.
 ### Augmented Operators
 The following augmented operators have been added:
@@ -123,6 +118,8 @@ note: You forgot to finish your condition with 'then'.
       If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html
 ```
 This also supports ANSI color codes, however this is disabled by default in order to encourage portability. For example, ANSI color codes do not work on most Windows command prompts. Define the `PLUTO_USE_COLORED_OUTPUT` macro in `luaconf.h` to enable colored error messages — they look quite nice.
+- For most Windows 10 users, you can enable ANSI color code support with this shell command:
+  - `REG ADD HKCU\CONSOLE /f /v VirtualTerminalLevel /t REG_DWORD /d 1`
 
 ## Standard Library Additions
 ### `_G`
