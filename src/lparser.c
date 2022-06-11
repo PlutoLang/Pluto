@@ -82,6 +82,15 @@ static char* calc_format_padding(int line) {
 }
 
 
+/* Creates a temporary string of '^' characters for padding. Result must manually be freed. */
+static char* calc_format_padding_indicator(int n) {
+  char *buffer = malloc(n + 1);
+  memset(buffer, '^', n);
+  buffer[n] = '\0';
+  return buffer;
+}
+
+
 static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here) {
   if (here[0] == '\0') {
     here = ERROR_DEFAULT_HERE;
@@ -349,32 +358,18 @@ static int new_localvar (LexState *ls, TString *name) {
     Vardesc *desc = getlocalvardesc(fs,  i);
     LocVar *local = localdebuginfo(fs, i);
     if (desc && local && (local->varname == name)) {
-      int top = lua_gettop(L);
-      lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
-      if (lua_toboolean(ls->L, -1) == 1) { // only issue warnings when '-D' is passed
-        const char* loc = getstr(name);
-        const char *text = luaG_addinfo(ls->L, "", ls->source, ls->linenumber); // filename:line:
-        if (desc->vd.linenumber < 10 && ls->linenumber < 10) {  // both declarations below line 10
-          fprintf(stderr,
-                  "%swarning: duplicate local declaration [-D]\n"
-                  "\t%d |\tlocal %s = ...\n\t  |\nnote: '%s' initially declared here:\n"
-                  "\t%d |\tlocal %s = ...\n\t  |\n",
-                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);
-        } else if (ls->linenumber >= 10 && desc->vd.linenumber < 10) { // initial declaration below line 10
-          fprintf(stderr,
-                  "%swarning: duplicate local declaration [-D]\n"
-                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
-                  "\t%d |\tlocal %s = ...\n\t  |\n",
-                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);
-        } else { // both declarations above line 10
-          fprintf(stderr, 
-                  "%swarning: duplicate local declaration [-D]\n"
-                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
-                  "\t%d |\tlocal %s = ...\n\t   |\n",
-                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);        
-        }
-        fflush(stderr);
-      }
+      int top = lua_gettop(ls->L);
+      char *chrpad = calc_format_padding_indicator(desc->vd.name->shrlen);
+      char *emppad = calc_format_padding(desc->vd.linenumber);
+      const char *loc = luaO_pushfstring(ls->L, "local %s = ...", getstr(name));
+      const char *here = luaO_pushfstring(ls->L, WARN_DUPLICATE_LOCAL_HERE, chrpad);
+      const char *text = format_line_error(ls, WARN_DUPLICATE_LOCAL, loc, here);
+      const char *victim_here = luaO_pushfstring(ls->L, WARN_DUPLICATE_LOCAL_VICTIM, chrpad, ls->linenumber);
+      printf("%s\nnote: '%s' initially declared here:\n", text, getstr(name));
+      printf("\t%s%d | local %s = ...\n\t%s%s  |     %s\n\t%s%s  |\n", emppad,
+             desc->vd.linenumber, getstr(name), emppad, emppad, victim_here, emppad, emppad);
+      free(chrpad);
+      free(emppad);
       lua_settop(L, top);
     }
   }
