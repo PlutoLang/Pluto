@@ -98,6 +98,24 @@ const char *luaX_token2str (LexState *ls, int token) {
 }
 
 
+/* Same as above, but doesn't format in quotes. */
+const char *luaX_token2str_noq (LexState *ls, int token) {
+  if (token < FIRST_RESERVED) {  /* single-byte symbols? */
+    if (lisprint(token))
+      return luaO_pushfstring(ls->L, "%c", token);
+    else  /* control character */
+      return luaO_pushfstring(ls->L, "'<\\%d>'", token);
+  }
+  else {
+    const char *s = luaX_tokens[token - FIRST_RESERVED];
+    if (token < TK_EOS)  /* fixed format (symbols and reserved words)? */
+      return luaO_pushfstring(ls->L, "%s", s);
+    else  /* names, strings, and numerals */
+      return s;
+  }
+}
+
+
 static const char *txtToken (LexState *ls, int token) {
   switch (token) {
     case TK_NAME: case TK_STRING:

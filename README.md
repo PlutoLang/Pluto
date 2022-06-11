@@ -92,6 +92,39 @@ pairs: next, table, nil, nil
 ipairs: ipairsaux, table, integer, nil
 ```
 When the latter `nil` TBC variable is never accessed, this optimization will occur.
+## QoL Improvements
+These are modifications that don't really add something new, but improve existing behavior. Certain syntax errors now have more descriptive error messages, and some include a guide on how to correctly use Pluto's syntax. For example:
+```lua
+function ()
+    return 10
+end
+```
+This code would normally return an error like, "expected `<name>` on line 98". Of course, this is plenty of information to solve the problem. However, here is the new error message:
+```
+file.plu:1: syntax error: expected <name> to perform as an identifier.
+        1 | function ()
+          | ^ here
+          |
+note: You may've forgot to name your function during declaration. 
+      Functions must be associated with names when they're declared.
+      Here's an example inside the PIL: https://www.lua.org/pil/5.html
+```
+Another example: 
+```lua
+if true return 5 end
+```
+Produces the following result:
+```
+file.plu:1: syntax error: expected 'then' to delimit 'if' condition.
+           1 | if ... return
+             | ^ here
+             |
+note: You forgot to finish your condition with 'then'.
+      Pluto requires this symbol to append each condition.
+      If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html
+```
+This particularly may be helpful for people who are very new to programming as a whole. The coverage of these detailed errors will most certainly be expanded.
+
 ## Standard Library Additions
 ### `_G`
 - `newuserdata` function.

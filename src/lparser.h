@@ -11,6 +11,10 @@
 #include "lobject.h"
 #include "lzio.h"
 
+/* Sets a string then appends a 'break'.
+** For usage in the expansive control structures related to detailed errors.
+*/
+#define setcasestr(toset, setas) (toset = setas); break;
 
 /*
 ** Expression and variable descriptor.

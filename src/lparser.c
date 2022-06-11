@@ -10,7 +10,9 @@
 #include "lprefix.h"
 
 
+#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <limits.h>
 #include <string.h>
 
@@ -28,6 +30,7 @@
 #include "lstate.h"
 #include "lstring.h"
 #include "ltable.h"
+#include "lauxlib.h"
 
 
 
@@ -65,11 +68,66 @@ typedef struct BlockCnt {
 static void statement (LexState *ls);
 static void expr (LexState *ls, expdesc *v);
 
+/* Creates a temporary string of white-space characters for padding. Result must manually be freed. */
+static char* calc_format_padding(int line) {
+  lua_Integer n = 0;
+  while (line >= 10) {
+    n++;
+    line = l_floor(line / 10);
+  }
+  char *buffer = malloc(n + 1);
+  memset(buffer, ' ', n);
+  buffer[n] = '\0';
+  return buffer;
+}
+
+
+static const char *format_line_error (LexState *ls, const char *msg, const char *token) {
+  char* pad = calc_format_padding(ls->linenumber);
+  const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
+  text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s  | ^ here\n\t%s%s  |", text, pad, ls->linenumber, token, pad, pad, pad, pad);
+  free(pad);
+  return text;
+}
+
+
+/*
+** Throws a formatted error message (by Pluto), with the message at the top of the stack.
+** Afterwards, this resets the stack back to its original size, provided by originalStackSize.
+*/
+static void throw_format_error (LexState *ls, int originalStackSize, int errcode) {
+  luaD_throw(ls->L, errcode);
+  lua_settop(ls->L, originalStackSize);
+} 
+
 
 static l_noret error_expected (LexState *ls, int token) {
-  luaX_syntaxerror(ls,
-      luaO_pushfstring(ls->L, "%s expected", luaX_token2str(ls, token)));
+  switch (token) {
+    case TK_THEN: {
+      int top = lua_gettop(ls->L);
+      const char *err = "syntax error: expected 'then' to delimit 'if' condition.";
+      const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "if ... %s", ls->buff->buffer));
+      text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_IF_STATEMENT, text);
+      throw_format_error(ls, top, LUA_ERRSYNTAX);
+    }
+    case TK_NAME: {
+      int top = lua_gettop(ls->L);
+      const char *err = "syntax error: expected <name> to perform as an identifier.";
+      const char *text = ls->t.token == '(' ? format_line_error(ls, err, "function ()")
+                                            : format_line_error(ls, err, luaX_token2str_noq(ls, ls->t.token));
+      switch (ls->t.token) {
+        case '=': text = luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text); break;
+        case '(': text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text); break;
+      }
+      throw_format_error(ls, top, LUA_ERRSYNTAX);
+    }
+    default: {
+      luaX_syntaxerror(ls,
+        luaO_pushfstring(ls->L, "%s expected", luaX_token2str(ls, token)));
+    }
+  }
 }
+
 
 static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
   lua_State *L = fs->ls->L;
@@ -105,8 +163,10 @@ static int testnext (LexState *ls, int c) {
 ** Check that next token is 'c'.
 */
 static void check (LexState *ls, int c) {
-  if (ls->t.token != c)
+  if (ls->t.token != c) {
+    // if (c == TK_THEN) printf("ABC ERROE EXPECTED");
     error_expected(ls, c);
+  }
 }
 
 
@@ -132,9 +192,37 @@ static void check_match (LexState *ls, int what, int who, int where) {
     if (where == ls->linenumber)  /* all in the same line? */
       error_expected(ls, what);  /* do not need a complex message */
     else {
-      luaX_syntaxerror(ls, luaO_pushfstring(ls->L,
-             "%s expected (to close %s at line %d)",
-              luaX_token2str(ls, what), luaX_token2str(ls, who), where));
+      switch (what) {
+        case TK_END: {
+          int top = lua_gettop(ls->L);
+          const char *err;
+          switch (who) {
+            case TK_IF: setcasestr(err, "syntax error: expected 'end' to terminate 'if' structure");
+            case TK_DO: setcasestr(err, "syntax error: expected 'end' to terminate 'do' structure");
+            case TK_FOR: setcasestr(err, "syntax error: expected 'end' to terminate 'for' structure");
+            case TK_WHILE: setcasestr(err, "syntax error: expected 'end' to terminate 'while' structure");
+            case TK_FUNCTION: setcasestr(err, "syntax error: expected 'end' to terminate 'function' structure");
+            default: {
+              err = "syntax error: expected 'end' to terminate control structure";
+            }
+          }
+          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer));
+          text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_END, text);
+          throw_format_error(ls, top, LUA_ERRSYNTAX);
+        }
+        case TK_UNTIL: {
+          int top = lua_gettop(ls->L);
+          const char *err = "syntax error: expected 'until' to terminate 'repeat' structure";
+          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer));
+          text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_UNT, text);
+          throw_format_error(ls, top, LUA_ERRSYNTAX);
+        }
+        default: {
+          luaX_syntaxerror(ls, luaO_pushfstring(ls->L,
+                "%s expected (to close %s at line %d)",
+                  luaX_token2str(ls, what), luaX_token2str(ls, who), where));
+        }
+      }
     }
   }
 }
@@ -1156,8 +1244,32 @@ static void primaryexp (LexState *ls, expdesc *v) {
       return;
     }
     default: {
+#ifndef stderr
       luaX_syntaxerror(ls, "unexpected symbol");
+#else
+      int top = lua_gettop(ls->L);
+      const char *text = format_line_error(ls, "syntax error: unexpected symbol", luaX_token2str(ls, ls->t.token));
+      switch (ls->t.token) {
+        case '}':
+        case '{': {
+          text = luaO_pushfstring(ls->L, "%s\nnote: did you forget a matching bracket?", text);
+          break;
+        }
+        case '^':
+        case '&': case '~':
+        case '-': case '|':
+        case '*': case '%':
+        case '+': case '/': {
+          text = luaO_pushfstring(ls->L,
+                                  "%s\nnote: '%c' is used often in expressions (i.e, a = 1 %c 2). "
+                                  "Did you forget to finish the expression?",
+                                  text, ls->t.token, ls->t.token);
+          break;
+        }
+      }
+      throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
+#endif
   }
 }
 
