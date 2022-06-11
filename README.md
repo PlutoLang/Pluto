@@ -43,7 +43,7 @@ end
 ```
 Given you run the file like this: `pluto -D file.plu`, the parser will emit the following message to standard error output:
 
-![This image failed to load.](https://i.imgur.com/V1fPEqq.png)
+![This image failed to load.](https://i.imgur.com/cyQpvjB.png)
 
 This feature can be removed from Pluto via the `PLUTO_PARSER_WARNING_LOCALDEF` macro in `luaconf.h`.
 ### Augmented Operators
