@@ -82,10 +82,14 @@ static char* calc_format_padding(int line) {
 }
 
 
-static const char *format_line_error (LexState *ls, const char *msg, const char *token) {
+static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here) {
+  if (here[0] == '\0') {
+    here = ERROR_DEFAULT_HERE;
+  }
   char* pad = calc_format_padding(ls->linenumber);
   const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
-  text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s  | ^ here\n\t%s%s  |", text, pad, ls->linenumber, token, pad, pad, pad, pad);
+  text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s  | %s\n\t%s%s  |",
+                          text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
   free(pad);
   return text;
 }
@@ -105,19 +109,21 @@ static l_noret error_expected (LexState *ls, int token) {
   switch (token) {
     case TK_THEN: {
       int top = lua_gettop(ls->L);
-      const char *err = "syntax error: expected 'then' to delimit 'if' condition.";
-      const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "if ... %s", ls->buff->buffer));
+      const char *err = ERROR_UNFINISHED_IF_STATEMENT_SYN;
+      const char *here = ERROR_UNFINISHED_IF_STATEMENT_HERE;
+      const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "if ... %s", ls->buff->buffer), here);
       text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_IF_STATEMENT, text);
       throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
     case TK_NAME: {
       int top = lua_gettop(ls->L);
-      const char *err = "syntax error: expected <name> to perform as an identifier.";
-      const char *text = ls->t.token == '(' ? format_line_error(ls, err, "function ()")
-                                            : format_line_error(ls, err, luaX_token2str_noq(ls, ls->t.token));
+      const char *err = ERROR_UNFINISHED_FUNCTION_SYN;
+      const char *here = ERROR_UNFINISHED_FUNCTION_HERE;
+      const char *text = ls->t.token == '(' ? format_line_error(ls, err, "function ()", here)
+                                            : format_line_error(ls, err, t2s(ls, ls->t.token), ERROR_DEFAULT_HERE);
       switch (ls->t.token) {
-        case '=': text = luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text); break;
-        case '(': text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text); break;
+        case '=': setcasestr(text, luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text));
+        case '(': setcasestr(text, luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text));
       }
       throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
@@ -196,24 +202,23 @@ static void check_match (LexState *ls, int what, int who, int where) {
         case TK_END: {
           int top = lua_gettop(ls->L);
           const char *err;
+          const char *here = ERROR_UNFINISHED_STRUCTURE_END_HERE;
           switch (who) {
-            case TK_IF: setcasestr(err, "syntax error: expected 'end' to terminate 'if' structure");
-            case TK_DO: setcasestr(err, "syntax error: expected 'end' to terminate 'do' structure");
-            case TK_FOR: setcasestr(err, "syntax error: expected 'end' to terminate 'for' structure");
-            case TK_WHILE: setcasestr(err, "syntax error: expected 'end' to terminate 'while' structure");
-            case TK_FUNCTION: setcasestr(err, "syntax error: expected 'end' to terminate 'function' structure");
-            default: {
-              err = "syntax error: expected 'end' to terminate control structure";
-            }
+            case TK_IF: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_IF);
+            case TK_DO: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_DO);
+            case TK_FOR: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_FOR);
+            case TK_WHILE: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_WHILE);
+            case TK_FUNCTION: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_FUNCTION);
+            default: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_DEFAULT);
           }
-          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer));
+          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer), here);
           text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_END, text);
           throw_format_error(ls, top, LUA_ERRSYNTAX);
         }
         case TK_UNTIL: {
           int top = lua_gettop(ls->L);
           const char *err = "syntax error: expected 'until' to terminate 'repeat' structure";
-          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer));
+          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer), "");
           text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_UNT, text);
           throw_format_error(ls, top, LUA_ERRSYNTAX);
         }
@@ -1248,7 +1253,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       luaX_syntaxerror(ls, "unexpected symbol");
 #else
       int top = lua_gettop(ls->L);
-      const char *text = format_line_error(ls, "syntax error: unexpected symbol", luaX_token2str(ls, ls->t.token));
+      const char *text = format_line_error(ls, "syntax error: unexpected symbol", luaX_token2str(ls, ls->t.token), "");
       switch (ls->t.token) {
         case '}':
         case '{': {
