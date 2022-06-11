@@ -170,7 +170,6 @@ static int testnext (LexState *ls, int c) {
 */
 static void check (LexState *ls, int c) {
   if (ls->t.token != c) {
-    // if (c == TK_THEN) printf("ABC ERROE EXPECTED");
     error_expected(ls, c);
   }
 }
@@ -1253,11 +1252,11 @@ static void primaryexp (LexState *ls, expdesc *v) {
       luaX_syntaxerror(ls, "unexpected symbol");
 #else
       int top = lua_gettop(ls->L);
-      const char *text = format_line_error(ls, "syntax error: unexpected symbol", luaX_token2str(ls, ls->t.token), "");
+      const char *text = format_line_error(ls, ERROR_UNEXPECTED_SYMBOL, t2s(ls, ls->t.token), "");
       switch (ls->t.token) {
         case '}':
         case '{': {
-          text = luaO_pushfstring(ls->L, "%s\nnote: did you forget a matching bracket?", text);
+          text = luaO_pushfstring(ls->L, ERROR_UNEXPECTED_BRACKET, text);
           break;
         }
         case '^':

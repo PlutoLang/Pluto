@@ -792,6 +792,15 @@
 #define ERROR_DEFAULT_HERE					"^ here"
 #endif
 
+// Unexpected symbol error messages.
+#ifdef PLUTO_USE_COLORED_OUTPUT
+#define ERROR_UNEXPECTED_SYMBOL				"\e[0;31msyntax error\e[0;37m: \e[1;37munexpected symbol\e[0;37m"
+#define ERROR_UNEXPECTED_BRACKET			"\e[0;33m%s\n\e[0;32mnote: did you forget a matching bracket?\e[0;37m"
+#else
+#define ERROR_UNEXPECTED_SYMBOL				"syntax error: unexpected symbol"
+#define ERROR_UNEXPECTED_BRACKET			"%s\ndid you forget a matching bracket?"
+#endif
+
 // Missing identifier for local message.
 #ifdef PLUTO_USE_COLORED_OUTPUT
 #define ERROR_MISSING_LOCAL_NAME        	"\n\e[0;33m%s\n\e[0;32mnote: you may've forgot to name your local during declaration.\e[0;37m"
