@@ -9,7 +9,7 @@ This is a learner's project concerning the internals of Lua. I will often add an
 ## Breaking changes:
 - None.
 
-Pluto is fully backwards-compatible with Lua 5.4 & any other Lua code compatible with Lua 5.4. This also applies to the C ABI.
+Pluto is fully backwards-compatible (inc. C-ABI) with Lua 5.4.
 ## New Features:
 ### Dedicated Exponent Operator
 The `**` operator has been implemented into the operator set. It's roughly an alternative to `^` now.
