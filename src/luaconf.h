@@ -798,7 +798,7 @@
 #define ERROR_UNEXPECTED_BRACKET			"\e[0;33m%s\n\e[0;32mnote: did you forget a matching bracket?\e[0;37m"
 #else
 #define ERROR_UNEXPECTED_SYMBOL				"syntax error: unexpected symbol"
-#define ERROR_UNEXPECTED_BRACKET			"%s\ndid you forget a matching bracket?"
+#define ERROR_UNEXPECTED_BRACKET			"%s\nnote: did you forget a matching bracket?"
 #endif
 
 // Missing identifier for local message.
