@@ -102,7 +102,7 @@ This code would normally return an error like, "expected `<name>` on line 98". O
 ```
 file.plu:1: syntax error: expected <name> to perform as an identifier.
         1 | function ()
-          |         ^ here
+          |         ^ here: missing function name.
           |
 note: You may've forgot to name your function during declaration. 
       Functions must be associated with names when they're declared.
@@ -116,7 +116,7 @@ Produces the following result:
 ```
 file.plu:1: syntax error: expected 'then' to delimit 'if' condition.
            1 | if ... return
-             |       ^ here
+             |       ^ here: missing 'then' symbol.
              |
 note: You forgot to finish your condition with 'then'.
       Pluto requires this symbol to append each condition.
