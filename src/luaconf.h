@@ -796,9 +796,11 @@
 #ifdef PLUTO_USE_COLORED_OUTPUT
 #define ERROR_UNEXPECTED_SYMBOL				"\e[0;31msyntax error\e[0;37m: \e[1;37munexpected symbol\e[0;37m"
 #define ERROR_UNEXPECTED_BRACKET			"\e[0;33m%s\n\e[0;32mnote: did you forget a matching bracket?\e[0;37m"
+#define ERROR_UNEXPECTED_ARITHMETIC			"\e[0;33m%s\n\e[0;32mnote: '%c' is used often in expressions (i.e, a = 1 %c 2). Did you forget to finish the expression?\e[0;37m"
 #else
 #define ERROR_UNEXPECTED_SYMBOL				"syntax error: unexpected symbol"
 #define ERROR_UNEXPECTED_BRACKET			"%s\nnote: did you forget a matching bracket?"
+#define ERROR_UNEXPECTED_ARITHMETIC			"%s\nnote: '%c' is used often in expressions (i.e, a = 1 %c 2). Did you forget to finish the expression?"
 #endif
 
 // Missing identifier for local message.

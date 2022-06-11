@@ -1256,19 +1256,15 @@ static void primaryexp (LexState *ls, expdesc *v) {
       switch (ls->t.token) {
         case '}':
         case '{': {
-          text = luaO_pushfstring(ls->L, ERROR_UNEXPECTED_BRACKET, text);
+          setcasestr(text, luaO_pushfstring(ls->L, ERROR_UNEXPECTED_BRACKET, text));
           break;
         }
         case '^':
         case '&': case '~':
         case '-': case '|':
         case '*': case '%':
-        case '+': case '/': {
-          text = luaO_pushfstring(ls->L,
-                                  "%s\nnote: '%c' is used often in expressions (i.e, a = 1 %c 2). "
-                                  "Did you forget to finish the expression?",
-                                  text, ls->t.token, ls->t.token);
-          break;
+        case '+': case '/': { 
+          setcasestr(text, luaO_pushfstring(ls->L, ERROR_UNEXPECTED_ARITHMETIC, text, ls->t.token, ls->t.token));
         }
       }
       throw_format_error(ls, top, LUA_ERRSYNTAX);
