@@ -1,56 +1,71 @@
--- [[ +=  augmented add ]] --
-local a = 5
-a += 20
-assert(a == 25)
+a, b = 1, 2
+a += 1
+b += 1
+assert(a == 2)
+assert(b == 3)
 
--- [[ -=  augmented sub ]] --
-local b = 100
-b -= 200
-assert(b == -100, b)
+a, b = 1, 2
+a -= 1
+b -= 1
+assert(a == 0)
+assert(b == 1)
 
--- [[ %=  augmented mod ]] --
-local c = 5
-c %= 2
-assert(c == 1)
+a, b = 1, 2
+a *= 2
+b *= 2
+assert(a == 2)
+assert(b == 4)
 
--- [[ ^=  augmented xor ]] --
-local d = 5
-d ^= 2
-assert(d == 7)
+a, b = 1, 2
+a %= 2
+b %= 2
+assert(a == 1)
+assert(b == 0)
 
--- [[ |=  augmented OR ]] --
-local e = 5
-e |= 2
-assert(e == 7)
+a, b = 1, 2
+a ^= 2
+b ^= 2
+assert(a == 1.0)
+assert(b == 4.0)
 
--- [[ <<=  augmented shift left ]] --
-local f = 5
-f <<= 2
-assert(f == 20)
+a, b = 1, 2
+a **= 2
+b **= 2
+assert(a == 1.0)
+assert(b == 4.0)
 
--- [[ &=  augmented AND ]] --
-local g = 5
-g &= 6
-assert(g == 4)
+a, b = 1, 2
+a |= 1
+b |= 1
+assert(a == 1)
+assert(b == 3)
 
--- [[ /=  augmented float div ]] --
-local h = 20
-h /= 5
-assert(h == 4.0)
+a, b = 1, 2
+a &= 1
+b &= 1
+assert(a == 1)
+assert(b == 0)
 
--- [[ >>=  augmented shift right ]] --
-local i = 5
-i >>= 1
-assert(i == 2)
+a, b = 1, 2
+a /= 1
+b /= 2
+assert(a == 1.0)
+assert(b == 1.0)
 
--- [[ *=  augmented mul ]] --
-local j = 5
-j *= 4
-assert(j == 20)
+a, b = 1, 2
+a //= 1
+b //= 2
+assert(a == 1)
+assert(b == 1)
 
--- [[ //=  augmented integer div ]] --
-local k = 20
-k //= 5
-assert(k == 4)
+a, b = 1, 2
+a <<= 1
+b <<= 1
+assert(a == 2)
+assert(b == 4)
 
-print("Successful test.")
+a, b = 1, 2
+a >>= 1
+b >>= 1
+assert(a == 0)
+assert(b == 1)
