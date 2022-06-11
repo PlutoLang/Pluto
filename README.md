@@ -7,12 +7,10 @@ Pluto will not have a heavy focus on light-weight and embeddability, but it'll b
 This is a learner's project concerning the internals of Lua. I will often add and change things simply to learn more about my environment. As a result, there will be breaking changes very often. There may be bugs, and there will be design choices that people probably don't agree with. However, this will become a good base to write more Lua patches from. I do welcome other people in using Pluto as a reference for their own Lua patches — because Pluto offers some neat improvements over Lua already.
 
 ## Breaking changes:
-- `!=` is the new inequality operator.
-- The `^` operator now performs bitwise XOR instead of exponentiation.
-- The former `~=` inequality operator has been changed to an augmented bitwise NOT assignment.
+- None.
 ## New Features:
 ### Dedicated Exponent Operator
-The `**` operator has been implemented into the operator set. It has replaced the previous use of '^'.
+The `**` operator has been implemented into the operator set. It's roughly an alternative to `^` now.
 ### Arbitrary Characters in Numeral Literals
 Long numbers can get confusing to read for some people. `1_000_000` is now a valid alternative to `1000000`.
 ### String Indexing
@@ -55,9 +53,9 @@ This feature can be removed from Pluto via the `PLUTO_PARSER_WARNING_LOCALDEF` m
 The following augmented operators have been added:
 - Modulo: `%=`
 - Addition: `+=`
+- Exponent: `^=`
 - Bitwise OR: `|=`
 - Subtraction: `-=`
-- Bitwise XOR: `^=`
 - Bitwise NOT: `~=`
 - Bitshift left: `<<=`
 - Bitwise AND: `&=`

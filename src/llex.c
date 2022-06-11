@@ -482,7 +482,7 @@ static int llex_augmented (LexState *ls, int c) {
       return 1;
     }
     case '^': {
-      ls->lasttoken = TK_CBXOR;
+      ls->lasttoken = TK_CPOW;
       return 1;
     }
     case '|': {
@@ -492,9 +492,6 @@ static int llex_augmented (LexState *ls, int c) {
     case '&': {
       ls->lasttoken = TK_CBAND;
       return 1;
-    }
-    case '~': {
-      ls->lasttoken = TK_CBNOT;
     }
     default: {
       return 0;  /* failure */
@@ -644,11 +641,11 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           } else return '_';  /* this is a normal underscore */
         }
       }
-      case '!': {  /* != inequality */
+      case '~': {
         next(ls);
         if (check_next1(ls, '=')) {
           return TK_NE;
-        } else return '!';
+        } else return '~';
       }
       case '*': {  /* special case compound, need to support mul, exponent, and augmented mul */
         next(ls);
@@ -666,7 +663,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         else return '*';
       }
       /* compound support */
-      case '~': case '+':
+      case '+':
       case '^': case '%':
       case '|': case '&': { 
         int c = ls->current;
