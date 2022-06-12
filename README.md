@@ -33,6 +33,21 @@ assert(inc_str == "234")
 ```
 - The '|' token was chosen because it's not commonly used as an unary operator in programming.
 - The '->' arrow syntax looked better and didn't resemble any operators. It also plays along with common lambda tokens.
+### Ternary Expressions
+Ternary expressions allow seamless implementation of short statements which may assign falsy values. It also allows shorter, and more concise logic. Here is an example.
+```lua
+local max
+if a > b then
+  max = a
+else
+  max = b
+end
+```
+Can be translated into this:
+```lua
+local max = if a > b then a else b
+```
+Essentially, `if` symbols inside expressions are ternary. Otherwise, they are statements. Ternary expressions don't accept `end` as a termination, the control structure will jump to evaluate the sub-expression and assign the evaluated value to the register which belongs to `correct`. Sub-expressions are evaluated on a need-to-know basis, such that the `else` block will never run if the preceding logic is true.
 ### Compiler Warnings
 Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
 ```lua
