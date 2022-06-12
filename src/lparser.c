@@ -358,18 +358,19 @@ static int new_localvar (LexState *ls, TString *name) {
     Vardesc *desc = getlocalvardesc(fs,  i);
     LocVar *local = localdebuginfo(fs, i);
     if (desc && local && (local->varname == name)) {
-      int top = lua_gettop(ls->L);
-      char *chrpad = calc_format_padding_indicator(desc->vd.name->shrlen);
-      char *emppad = calc_format_padding(desc->vd.linenumber);
-      const char *loc = luaO_pushfstring(ls->L, "local %s = ...", getstr(name));
-      const char *here = luaO_pushfstring(ls->L, WARN_DUPLICATE_LOCAL_HERE, chrpad);
+      int top = lua_gettop(L);
+      int locline = desc->vd.linenumber;
+      char *whtpad = calc_format_padding(locline); /* "    " */
+      char *chrpad = calc_format_padding_indicator(desc->vd.name->shrlen); /* "^^^^" */
+      const char *loc = luaO_pushfstring(L, "local %s = ...", getstr(name));
+      const char *here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_HERE, chrpad);
       const char *text = format_line_error(ls, WARN_DUPLICATE_LOCAL, loc, here);
-      const char *victim_here = luaO_pushfstring(ls->L, WARN_DUPLICATE_LOCAL_VICTIM, chrpad, ls->linenumber);
+      const char *victim_here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_VICTIM, chrpad, ls->linenumber);
       printf("%s\nnote: '%s' initially declared here:\n", text, getstr(name));
-      printf("\t%s%d | local %s = ...\n\t%s%s  |     %s\n\t%s%s  |\n", emppad,
-             desc->vd.linenumber, getstr(name), emppad, emppad, victim_here, emppad, emppad);
+      printf("\t%s%d | local %s = ...\n\t%s%s  |     %s\n\t%s%s  |\n", whtpad,
+             locline, getstr(name), whtpad, whtpad, victim_here, whtpad, whtpad);
       free(chrpad);
-      free(emppad);
+      free(whtpad);
       lua_settop(L, top);
     }
   }
