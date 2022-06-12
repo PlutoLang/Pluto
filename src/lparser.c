@@ -1696,7 +1696,6 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       return;  /* avoid default */
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
-      check_condition(ls, testnext(ls, TK_THEN), "unsupported tuple assignment");
       int nexps = explist(ls, &e);
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
