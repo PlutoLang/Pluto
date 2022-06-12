@@ -11,10 +11,16 @@
 #include "lobject.h"
 #include "lzio.h"
 
-/* Sets a string then appends a 'break'.
+/* 
+** Sets a string then appends a 'break'.
 ** For usage in the expansive control structures related to detailed errors.
 */
 #define setcasestr(toset, setas) (toset = setas); break;
+
+/*
+** Shorthand for converting a token into a non-quoted string.
+*/
+#define t2s(lex, token) (luaX_token2str_noq(lex, token))
 
 /*
 ** Expression and variable descriptor.

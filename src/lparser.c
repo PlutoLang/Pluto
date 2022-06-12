@@ -82,10 +82,23 @@ static char* calc_format_padding(int line) {
 }
 
 
-static const char *format_line_error (LexState *ls, const char *msg, const char *token) {
+/* Creates a temporary string of '^' characters for padding. Result must manually be freed. */
+static char* calc_format_padding_indicator(int n) {
+  char *buffer = malloc(n + 1);
+  memset(buffer, '^', n);
+  buffer[n] = '\0';
+  return buffer;
+}
+
+
+static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here) {
+  if (here[0] == '\0') {
+    here = ERROR_DEFAULT_HERE;
+  }
   char* pad = calc_format_padding(ls->linenumber);
   const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
-  text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s  | ^ here\n\t%s%s  |", text, pad, ls->linenumber, token, pad, pad, pad, pad);
+  text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s  | %s\n\t%s%s  |",
+                          text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
   free(pad);
   return text;
 }
@@ -105,19 +118,21 @@ static l_noret error_expected (LexState *ls, int token) {
   switch (token) {
     case TK_THEN: {
       int top = lua_gettop(ls->L);
-      const char *err = "syntax error: expected 'then' to delimit 'if' condition.";
-      const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "if ... %s", ls->buff->buffer));
+      const char *err = ERROR_UNFINISHED_IF_STATEMENT_SYN;
+      const char *here = ERROR_UNFINISHED_IF_STATEMENT_HERE;
+      const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "if ... %s", ls->buff->buffer), here);
       text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_IF_STATEMENT, text);
       throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
     case TK_NAME: {
       int top = lua_gettop(ls->L);
-      const char *err = "syntax error: expected <name> to perform as an identifier.";
-      const char *text = ls->t.token == '(' ? format_line_error(ls, err, "function ()")
-                                            : format_line_error(ls, err, luaX_token2str_noq(ls, ls->t.token));
+      const char *err = ERROR_UNFINISHED_FUNCTION_SYN;
+      const char *here = ERROR_UNFINISHED_FUNCTION_HERE;
+      const char *text = ls->t.token == '(' ? format_line_error(ls, err, "function ()", here)
+                                            : format_line_error(ls, err, t2s(ls, ls->t.token), ERROR_DEFAULT_HERE);
       switch (ls->t.token) {
-        case '=': text = luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text); break;
-        case '(': text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text); break;
+        case '=': setcasestr(text, luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text));
+        case '(': setcasestr(text, luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text));
       }
       throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
@@ -164,7 +179,6 @@ static int testnext (LexState *ls, int c) {
 */
 static void check (LexState *ls, int c) {
   if (ls->t.token != c) {
-    // if (c == TK_THEN) printf("ABC ERROE EXPECTED");
     error_expected(ls, c);
   }
 }
@@ -196,24 +210,23 @@ static void check_match (LexState *ls, int what, int who, int where) {
         case TK_END: {
           int top = lua_gettop(ls->L);
           const char *err;
+          const char *here = ERROR_UNFINISHED_STRUCTURE_END_HERE;
           switch (who) {
-            case TK_IF: setcasestr(err, "syntax error: expected 'end' to terminate 'if' structure");
-            case TK_DO: setcasestr(err, "syntax error: expected 'end' to terminate 'do' structure");
-            case TK_FOR: setcasestr(err, "syntax error: expected 'end' to terminate 'for' structure");
-            case TK_WHILE: setcasestr(err, "syntax error: expected 'end' to terminate 'while' structure");
-            case TK_FUNCTION: setcasestr(err, "syntax error: expected 'end' to terminate 'function' structure");
-            default: {
-              err = "syntax error: expected 'end' to terminate control structure";
-            }
+            case TK_IF: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_IF);
+            case TK_DO: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_DO);
+            case TK_FOR: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_FOR);
+            case TK_WHILE: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_WHILE);
+            case TK_FUNCTION: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_FUNCTION);
+            default: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_DEFAULT);
           }
-          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer));
+          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer), here);
           text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_END, text);
           throw_format_error(ls, top, LUA_ERRSYNTAX);
         }
         case TK_UNTIL: {
           int top = lua_gettop(ls->L);
           const char *err = "syntax error: expected 'until' to terminate 'repeat' structure";
-          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer));
+          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer), "");
           text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_UNT, text);
           throw_format_error(ls, top, LUA_ERRSYNTAX);
         }
@@ -346,32 +359,19 @@ static int new_localvar (LexState *ls, TString *name) {
     LocVar *local = localdebuginfo(fs, i);
     if (desc && local && (local->varname == name)) {
       int top = lua_gettop(L);
-      lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
-      if (lua_toboolean(ls->L, -1) == 1) { // only issue warnings when '-D' is passed
-        const char* loc = getstr(name);
-        const char *text = luaG_addinfo(ls->L, "", ls->source, ls->linenumber); // filename:line:
-        if (desc->vd.linenumber < 10 && ls->linenumber < 10) {  // both declarations below line 10
-          fprintf(stderr,
-                  "%swarning: duplicate local declaration [-D]\n"
-                  "\t%d |\tlocal %s = ...\n\t  |\nnote: '%s' initially declared here:\n"
-                  "\t%d |\tlocal %s = ...\n\t  |\n",
-                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);
-        } else if (ls->linenumber >= 10 && desc->vd.linenumber < 10) { // initial declaration below line 10
-          fprintf(stderr,
-                  "%swarning: duplicate local declaration [-D]\n"
-                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
-                  "\t%d |\tlocal %s = ...\n\t  |\n",
-                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);
-        } else { // both declarations above line 10
-          fprintf(stderr, 
-                  "%swarning: duplicate local declaration [-D]\n"
-                  "\t%d |\tlocal %s = ...\n\t   |\nnote: '%s' initially declared here:\n"
-                  "\t%d |\tlocal %s = ...\n\t   |\n",
-                  text, ls->linenumber, loc, loc, desc->vd.linenumber, loc);        
-        }
-        fflush(stderr);
-      }
-      lua_settop(L, top);
+      int locline = desc->vd.linenumber; /* line number of initial declaration */
+      char *whtpad = calc_format_padding(locline); /* "    " */
+      char *chrpad = calc_format_padding_indicator(desc->vd.name->shrlen); /* "^^^^" */
+      const char *loc = luaO_pushfstring(L, "local %s = ...", getstr(name));
+      const char *here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_HERE, chrpad);
+      const char *text = format_line_error(ls, WARN_DUPLICATE_LOCAL, loc, here);
+      const char *victim_here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_VICTIM, chrpad, ls->linenumber);
+      printf("%s\nnote: '%s' initially declared here:\n", text, getstr(name));
+      printf("\t%s%d | local %s = ...\n\t%s%s  |     %s\n\t%s%s  |\n", whtpad,
+             locline, getstr(name), whtpad, whtpad, victim_here, whtpad, whtpad);
+      free(chrpad);
+      free(whtpad);
+      lua_settop(L, top); /* reset stack to original state */
     }
   }
 #endif
@@ -1248,23 +1248,19 @@ static void primaryexp (LexState *ls, expdesc *v) {
       luaX_syntaxerror(ls, "unexpected symbol");
 #else
       int top = lua_gettop(ls->L);
-      const char *text = format_line_error(ls, "syntax error: unexpected symbol", luaX_token2str(ls, ls->t.token));
+      const char *text = format_line_error(ls, ERROR_UNEXPECTED_SYMBOL, t2s(ls, ls->t.token), "");
       switch (ls->t.token) {
         case '}':
         case '{': {
-          text = luaO_pushfstring(ls->L, "%s\nnote: did you forget a matching bracket?", text);
+          setcasestr(text, luaO_pushfstring(ls->L, ERROR_UNEXPECTED_BRACKET, text));
           break;
         }
         case '^':
         case '&': case '~':
         case '-': case '|':
         case '*': case '%':
-        case '+': case '/': {
-          text = luaO_pushfstring(ls->L,
-                                  "%s\nnote: '%c' is used often in expressions (i.e, a = 1 %c 2). "
-                                  "Did you forget to finish the expression?",
-                                  text, ls->t.token, ls->t.token);
-          break;
+        case '+': case '/': { 
+          setcasestr(text, luaO_pushfstring(ls->L, ERROR_UNEXPECTED_ARITHMETIC, text, ls->t.token, ls->t.token));
         }
       }
       throw_format_error(ls, top, LUA_ERRSYNTAX);

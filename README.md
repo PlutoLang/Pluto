@@ -1,7 +1,7 @@
 # Pluto
 Pluto is a fork of the Lua 5.4.4 programming language. Internally, it's mostly PUC-Rio Lua 5.4, but as I continue to make small modifications, over time it'll be its own little thing. This is why I ascribed the name 'Pluto', because it'll always be something small & neat. The main changes right now are expansions to Lua's syntax, but performance optimizations and QoL features like optional compile-time warnings are under development too.
 
-Pluto will not have a heavy focus on light-weight and embeddability, but it'll be kept in mind. I intend on adding features to this that'll make Lua (or in this case, Pluto) more general-purpose and bring more attention to the Lua programming language, which I deeply love. Pluto will not grow to the enormous size of Python, obviously, but the standard library will most definitely be expanded. So far, many operators have been added & overhauled. There are new virtual machine optimizations, new syntax such as lambda expressions & string indexing, and more that you can read below.
+Pluto will retain a heavy focus on portability, but it will be larger & less light-weight than Lua. I intend on adding features to this that'll make Lua (or in this case, Pluto) more general-purpose and bring more attention to the Lua programming language, which I deeply love. Pluto will not grow to the enormous size of Python, obviously, but the standard library will most definitely be expanded. So far, many operators have been added & overhauled. There are new virtual machine optimizations, new syntax such as lambda expressions & string indexing, and more that you can read below.
 
 ### Note
 This is a learner's project concerning the internals of Lua. I will often add and change things simply to learn more about my environment. As a result, there will be breaking changes very often. There may be bugs, and there will be design choices that people probably don't agree with. However, this will become a good base to write more Lua patches from. I do welcome other people in using Pluto as a reference for their own Lua patches — because Pluto offers some neat improvements over Lua already.
@@ -36,20 +36,15 @@ assert(inc_str == "234")
 ### Compiler Warnings
 Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
 ```lua
-local a = "hello world"
+local variable = "hello world"
 do
-    local a = "shadowed"
+    local variable = "shadowed"
 end
 ```
 Given you run the file like this: `pluto -D file.plu`, the parser will emit the following message to standard error output:
-```
-file.plu:3: warning: duplicate local declaration [-D]
-        3 |    local a = ...
-          |
-note: 'a' initially declared here:
-        1 |    local a = ...
-          |
-```
+
+![This image failed to load.](https://i.imgur.com/cyQpvjB.png)
+
 This feature can be removed from Pluto via the `PLUTO_PARSER_WARNING_LOCALDEF` macro in `luaconf.h`.
 ### Augmented Operators
 The following augmented operators have been added:
@@ -102,7 +97,7 @@ This code would normally return an error like, "expected `<name>` on line 98". O
 ```
 file.plu:1: syntax error: expected <name> to perform as an identifier.
         1 | function ()
-          | ^ here
+          |         ^ here: missing function name.
           |
 note: You may've forgot to name your function during declaration. 
       Functions must be associated with names when they're declared.
@@ -116,13 +111,15 @@ Produces the following result:
 ```
 file.plu:1: syntax error: expected 'then' to delimit 'if' condition.
            1 | if ... return
-             | ^ here
+             |       ^ here: missing 'then' symbol.
              |
 note: You forgot to finish your condition with 'then'.
       Pluto requires this symbol to append each condition.
       If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html
 ```
-This particularly may be helpful for people who are very new to programming as a whole. The coverage of these detailed errors will most certainly be expanded.
+This also supports ANSI color codes, however this is disabled by default in order to encourage portability. For example, ANSI color codes do not work on most Windows command prompts. Define the `PLUTO_USE_COLORED_OUTPUT` macro in `luaconf.h` to enable colored error messages — they look quite nice.
+- For most Windows 10 users, you can enable ANSI color code support with this shell command:
+  - `REG ADD HKCU\CONSOLE /f /v VirtualTerminalLevel /t REG_DWORD /d 1`
 
 ## Standard Library Additions
 ### `_G`
