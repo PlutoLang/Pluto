@@ -359,7 +359,7 @@ static int new_localvar (LexState *ls, TString *name) {
     LocVar *local = localdebuginfo(fs, i);
     if (desc && local && (local->varname == name)) {
       int top = lua_gettop(L);
-      int locline = desc->vd.linenumber;
+      int locline = desc->vd.linenumber; /* line number of initial declaration */
       char *whtpad = calc_format_padding(locline); /* "    " */
       char *chrpad = calc_format_padding_indicator(desc->vd.name->shrlen); /* "^^^^" */
       const char *loc = luaO_pushfstring(L, "local %s = ...", getstr(name));
@@ -371,7 +371,7 @@ static int new_localvar (LexState *ls, TString *name) {
              locline, getstr(name), whtpad, whtpad, victim_here, whtpad, whtpad);
       free(chrpad);
       free(whtpad);
-      lua_settop(L, top);
+      lua_settop(L, top); /* reset stack to original state */
     }
   }
 #endif
