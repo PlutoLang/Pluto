@@ -131,8 +131,14 @@ static l_noret error_expected (LexState *ls, int token) {
       const char *text = ls->t.token == '(' ? format_line_error(ls, err, "function ()", here)
                                             : format_line_error(ls, err, t2s(ls, ls->t.token), ERROR_DEFAULT_HERE);
       switch (ls->t.token) {
-        case '=': setcasestr(text, luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text));
-        case '(': setcasestr(text, luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text));
+        case '=': {
+          text = luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text);
+          break;
+        }
+        case '(': {
+          text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text);
+          break;
+        }
       }
       throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
@@ -212,12 +218,30 @@ static void check_match (LexState *ls, int what, int who, int where) {
           const char *err;
           const char *here = ERROR_UNFINISHED_STRUCTURE_END_HERE;
           switch (who) {
-            case TK_IF: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_IF);
-            case TK_DO: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_DO);
-            case TK_FOR: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_FOR);
-            case TK_WHILE: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_WHILE);
-            case TK_FUNCTION: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_FUNCTION);
-            default: setcasestr(err, ERROR_UNFINISHED_STRUCTURE_DEFAULT);
+            case TK_IF: {
+              err = ERROR_UNFINISHED_STRUCTURE_IF;
+              break;
+            }
+            case TK_DO: {
+              err = ERROR_UNFINISHED_STRUCTURE_DO;
+              break;
+            }
+            case TK_FOR: {
+              err = ERROR_UNFINISHED_STRUCTURE_FOR;
+              break;
+            }
+            case TK_WHILE: {
+              err = ERROR_UNFINISHED_STRUCTURE_WHILE;
+              break;
+            }
+            case TK_FUNCTION: {
+              err = ERROR_UNFINISHED_STRUCTURE_FUNCTION;
+              break;
+            }
+            default: {
+              err = ERROR_UNFINISHED_STRUCTURE_DEFAULT;
+              break;
+            }
           }
           const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer), here);
           text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_END, text);
@@ -1252,7 +1276,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       switch (ls->t.token) {
         case '}':
         case '{': {
-          setcasestr(text, luaO_pushfstring(ls->L, ERROR_UNEXPECTED_BRACKET, text));
+          text = luaO_pushfstring(ls->L, ERROR_UNEXPECTED_BRACKET, text);
           break;
         }
         case '^':
@@ -1260,7 +1284,8 @@ static void primaryexp (LexState *ls, expdesc *v) {
         case '-': case '|':
         case '*': case '%':
         case '+': case '/': { 
-          setcasestr(text, luaO_pushfstring(ls->L, ERROR_UNEXPECTED_ARITHMETIC, text, ls->t.token, ls->t.token));
+          text = luaO_pushfstring(ls->L, ERROR_UNEXPECTED_ARITHMETIC, text, ls->t.token, ls->t.token);
+          break;
         }
       }
       throw_format_error(ls, top, LUA_ERRSYNTAX);
