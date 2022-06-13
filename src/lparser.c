@@ -1308,6 +1308,29 @@ static void suffixedexp (LexState *ls, expdesc *v) {
 }
 
 
+int cond (LexState *ls);
+static void ifexpr (LexState *ls, expdesc *v) {
+  /*
+  ** Patch published by Ryota Hirose.
+  */
+  FuncState *fs = ls->fs;
+  int condition;
+  int escape = NO_JUMP;
+  int reg;
+  luaX_next(ls);			
+  condition = cond(ls);
+  checknext(ls, TK_THEN);
+  expr(ls, v);					
+  reg = luaK_exp2anyreg(fs, v);			
+  luaK_concat(fs, &escape, luaK_jump(fs));
+  luaK_patchtohere(fs, condition);
+  checknext(ls, TK_ELSE);
+  expr(ls, v);
+  luaK_exp2reg(fs, v, reg);
+  luaK_patchtohere(fs, escape);
+}
+
+
 static void simpleexp (LexState *ls, expdesc *v) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
@@ -1443,6 +1466,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     subexpr(ls, v, UNARY_PRIORITY);
     luaK_prefix(ls->fs, uop, v, line);
   }
+  else if (ls->t.token == TK_IF) ifexpr(ls, v);
   else simpleexp(ls, v);
   /* expand while operators have priorities higher than 'limit' */
   op = getbinopr(ls->t.token);
@@ -1686,7 +1710,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
   luaK_storevar(ls->fs, &lh->v, &e);
 }
 
-static int cond (LexState *ls) {
+int cond (LexState *ls) {
   /* cond -> exp */
   expdesc v;
   expr(ls, &v);  /* read condition */

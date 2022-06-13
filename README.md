@@ -33,6 +33,23 @@ assert(inc_str == "234")
 ```
 - The '|' token was chosen because it's not commonly used as an unary operator in programming.
 - The '->' arrow syntax looked better and didn't resemble any operators. It also plays along with common lambda tokens.
+### Ternary Expressions
+Ternary expressions allow seamless implementation of short statements which may assign falsy values. It also allows shorter, and more concise logic. Here is an example.
+```lua
+local max
+if a > b then
+  max = a
+else
+  max = b
+end
+```
+Can be translated into this:
+```lua
+local max = if a > b then a else b
+```
+Essentially, `if` symbols inside expressions are ternary. Otherwise, they are statements. Ternary expressions don't accept `end` as a termination, the control structure will jump to evaluate the sub-expression and assign the evaluated value to the register which belongs to `correct`. Sub-expressions are evaluated on a need-to-know basis, such that the `else` block will never run if the preceding logic is true.
+
+Traditionally, this would be possible with the `and` symbol, however I personally dislike this syntax because it's inconsistent with other languages. Until informed otherwise, people will assume `and` exclusively returns booleans. It's not immediately obvious — in fact, I meet many good Lua programmers who are unaware — that `and` can be used to emulate ternary expressions. The `if/then/else` syntax is imperfect, but I believe it's better. Not only visually, but also in functionality; such that `and` depends on the truthyness of its operands.
 ### Compiler Warnings
 Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
 ```lua
