@@ -98,7 +98,7 @@ const char *luaX_token2str (LexState *ls, int token) {
 }
 
 
-/* Same as above, but doesn't format in quotes. */
+/* Converts a token into a string, same as luaX_token2str (but it doesn't quote the token). */
 const char *luaX_token2str_noq (LexState *ls, int token) {
   if (token < FIRST_RESERVED) {  /* single-byte symbols? */
     if (lisprint(token))
