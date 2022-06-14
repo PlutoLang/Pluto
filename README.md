@@ -79,7 +79,7 @@ local i = 0
 repeat
     i = i + 1
     if i == 6 then
-        goto :;cont::
+        goto ::cont::
     end
     local a
     print(i - 1)
@@ -93,12 +93,11 @@ local i = 0
 repeat
     i = i + 1
     if i == 6 then
-        goto :;cont::
+        continue
     end
     local a
     print(i - 1)
     local b
-    ::cont::
 until i > 10
 ```
 Works fine, because `continue` doesn't need to prepare for an edge case where a jump is performed before logic.
