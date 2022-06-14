@@ -116,6 +116,14 @@ static void throw_format_error (LexState *ls, int originalStackSize, int errcode
 
 static l_noret error_expected (LexState *ls, int token) {
   switch (token) {
+    case TK_IN: {
+      int top = lua_gettop(ls->L);
+      const char *err = ERROR_MISSING_IN_SYM;
+      const char *here = ERROR_MISSING_IN_SYM_HERE;
+      const char *buff = ls->buff->buffer;
+      format_line_error(ls, err, luaO_pushfstring(ls->L, "for ... %s(...) do", buff), here);
+      throw_format_error(ls, top, LUA_ERRSYNTAX);
+    }
     case TK_THEN: {
       int top = lua_gettop(ls->L);
       const char *err = ERROR_UNFINISHED_IF_STATEMENT_SYN;
@@ -1960,7 +1968,9 @@ static void forstat (LexState *ls, int line) {
   switch (ls->t.token) {
     case '=': fornum(ls, varname, line); break;
     case ',': case TK_IN: forlist(ls, varname); break;
-    default: luaX_syntaxerror(ls, "'=' or 'in' expected");
+    default:  {
+      luaX_syntaxerror(ls, "'=' or 'in' expected");
+    }
   }
   check_match(ls, TK_END, TK_FOR, line);
   leaveblock(fs);  /* loop scope ('break' jumps to this point) */

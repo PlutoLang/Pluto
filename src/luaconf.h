@@ -776,7 +776,7 @@
 */
 
 #define PLUTO_USE_COLORED_OUTPUT
-#undef PLUTO_USE_COLORED_OUTPUT
+// #undef PLUTO_USE_COLORED_OUTPUT
 
 #define PLUTO_PARSER_ENABLE_WARNIGNS
 // #undef PLUTO_PARSER_ENABLE_WARNIGNS
@@ -816,19 +816,19 @@
 
 // Missing identifier for local message.
 #ifdef PLUTO_USE_COLORED_OUTPUT
-#define ERROR_MISSING_LOCAL_NAME        	"\n\e[0;33m%s\n\e[0;32mnote: you may've forgot to name your local during declaration.\e[0;37m"
+#define ERROR_MISSING_LOCAL_NAME        	"\n\e[0;33m%s\n\e[0;32mnote: 'local' is not a valid identifier.\e[0;37m"
 #else
-#define ERROR_MISSING_LOCAL_NAME        	"%s\nnote: you may've forgot to name your local during declaration."
+#define ERROR_MISSING_LOCAL_NAME        	"%s\nnote: 'local' is not a valid identifier."
 #endif
 
 // Function object without initial identifier.
 #ifdef PLUTO_USE_COLORED_OUTPUT
 #define ERROR_UNFINISHED_FUNCTION       	"\n\e[0;33m%s\n\e[0;32mnote: You may've forgot to name your function during declaration.\n      Functions must be associated with names when they're declared.\n      Here's an example inside the PIL: https://www.lua.org/pil/5.html\e[0;37m"
-#define ERROR_UNFINISHED_FUNCTION_SYN		"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected <name> to perform as an identifier.\e[0;37m"
+#define ERROR_UNFINISHED_FUNCTION_SYN		"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected an identifier.\e[0;37m"
 #define ERROR_UNFINISHED_FUNCTION_HERE		"\e[0;31m        ^ here: missing function name.\e[0;37m"
 #else
 #define ERROR_UNFINISHED_FUNCTION       	"%s\nnote: You may've forgot to name your function during declaration.\n      Functions must be associated with names when they're declared.\n      Here's an example inside the PIL: https://www.lua.org/pil/5.html"
-#define ERROR_UNFINISHED_FUNCTION_SYN		"syntax error: expected <name> to perform as an identifier."
+#define ERROR_UNFINISHED_FUNCTION_SYN		"syntax error: expected an identifier."
 #define ERROR_UNFINISHED_FUNCTION_HERE		"        ^ here: missing function name."
 #endif
 
@@ -862,6 +862,14 @@
 #define ERROR_UNFINISHED_STRUCTURE_DEFAULT	"syntax error: expected 'end' to terminate control structure."
 #define ERROR_UNFINISHED_STRUCTURE_END		"%s\nnote: You forgot to close your control structure with 'end'.\n      Pluto requires this symbol to append each control structure.\n      If needed, here's an example of how to delimit control structures: https://www.lua.org/pil/4.3.html"
 #define ERROR_UNFINISHED_STRUCTURE_END_HERE "^ after this"
+#endif
+
+#ifdef PLUTO_USE_COLORED_OUTPUT
+#define ERROR_MISSING_IN_SYM				"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'in' near loop statement.\e[0;37m"
+#define ERROR_MISSING_IN_SYM_HERE			"\e[0;31m       ^ missing 'in' symbol.\e[0;37m"
+#else
+#define ERROR_MISSING_IN_SYM				"syntax error: expected 'in' near loop statement."
+#define ERROR_MISSING_IN_SYM_HERE			"       ^ missing 'in' symbol."
 #endif
 
 // Control structure (i.e, do) doesn't end with 'end'.
