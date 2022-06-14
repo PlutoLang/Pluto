@@ -776,7 +776,7 @@
 */
 
 #define PLUTO_USE_COLORED_OUTPUT
-// #undef PLUTO_USE_COLORED_OUTPUT
+#undef PLUTO_USE_COLORED_OUTPUT
 
 #define PLUTO_PARSER_ENABLE_WARNIGNS
 // #undef PLUTO_PARSER_ENABLE_WARNIGNS
@@ -870,6 +870,14 @@
 #else
 #define ERROR_MISSING_IN_SYM				"syntax error: expected 'in' near loop statement."
 #define ERROR_MISSING_IN_SYM_HERE			"       ^ missing 'in' symbol."
+#endif
+
+#ifdef PLUTO_USE_COLORED_OUTPUT
+#define ERROR_MISPLACED_CONTINUE			"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'continue' within a loop block.\e[0;37m"
+#define ERROR_MISPLACED_CONTINUE_HERE		"\e[0;31m^^^^^^^^ here: this is not within a loop.\e[0;37m"
+#else
+#define ERROR_MISPLACED_CONTINUE			"syntax error: expected 'continue' within a loop block."
+#define ERROR_MISPLACED_CONTINUE_HERE		"^^^^^^^^ here: this is not within a loop."
 #endif
 
 // Control structure (i.e, do) doesn't end with 'end'.

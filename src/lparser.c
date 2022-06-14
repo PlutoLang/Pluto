@@ -153,8 +153,8 @@ static l_noret error_expected (LexState *ls, int token) {
     }
     case TK_CONTINUE: {
       int top = lua_gettop(ls->L);
-      const char *err = "syntax error: expected 'continue' within a loop block.";
-      const char *here = "^^^^^^^^ here: this is not within a loop.";
+      const char *err = ERROR_MISPLACED_CONTINUE;
+      const char *here = ERROR_MISPLACED_CONTINUE_HERE;
       format_line_error(ls, err, "continue", here);
       throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
