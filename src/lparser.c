@@ -52,6 +52,7 @@
 */
 typedef struct BlockCnt {
   struct BlockCnt *previous;  /* chain */
+  int scopeend;  /* delimits the end of this scope, for 'continue' to jump before. */
   int firstlabel;  /* index of first label in this block */
   int firstgoto;  /* index of first pending goto in this block */
   lu_byte nactvar;  /* # active locals outside the block */
@@ -148,6 +149,13 @@ static l_noret error_expected (LexState *ls, int token) {
           break;
         }
       }
+      throw_format_error(ls, top, LUA_ERRSYNTAX);
+    }
+    case TK_CONTINUE: {
+      int top = lua_gettop(ls->L);
+      const char *err = "syntax error: expected 'continue' within a loop block.";
+      const char *here = "^^^^^^^^ here: this is not within a loop.";
+      format_line_error(ls, err, "continue", here);
       throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
     default: {
@@ -799,6 +807,7 @@ static void movegotosout (FuncState *fs, BlockCnt *bl) {
 
 static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
   bl->isloop = isloop;
+  bl->scopeend = NO_JUMP;
   bl->nactvar = fs->nactvar;
   bl->firstlabel = fs->ls->dyd->label.n;
   bl->firstgoto = fs->ls->dyd->gt.n;
@@ -1783,6 +1792,27 @@ static void breakstat (LexState *ls) {
 
 
 /*
+** Continue statement. Semantically similar to "goto continue".
+** Unlike break, this doesn't use labels. It tracks where to jump via BlockCnt.scopeend;
+*/
+static void continuestat(LexState *ls) {
+  FuncState *fs = ls->fs;
+  BlockCnt *bl = fs->bl;
+  int upval = 0;
+  luaX_next(ls); /* skip TK_CONTINUE */
+  while (bl && !bl->isloop) {
+    upval |= bl->upval; /* amend upvalues for closing. */
+    bl = bl->previous; /* jump back current blocks to find the loop */
+  }
+  if (bl) {
+    if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
+    luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
+  }
+  else error_expected(ls, TK_CONTINUE);
+}
+
+
+/*
 ** Check whether there is already a label with the given 'name'.
 */
 static void checkrepeated (LexState *ls, TString *name) {
@@ -1817,7 +1847,7 @@ static void whilestat (LexState *ls, int line) {
   enterblock(fs, &bl, 1);
   checknext(ls, TK_DO);
   block(ls);
-  luaK_jumpto(fs, whileinit);
+  luaK_patchlist(fs, bl.scopeend, whileinit);
   check_match(ls, TK_END, TK_WHILE, line);
   leaveblock(fs);
   luaK_patchtohere(fs, condexit);  /* false conditions finish the loop */
@@ -1834,6 +1864,7 @@ static void repeatstat (LexState *ls, int line) {
   enterblock(fs, &bl2, 0);  /* scope block */
   luaX_next(ls);  /* skip REPEAT */
   statlist(ls);
+  luaK_patchtohere(fs, bl1.scopeend);
   check_match(ls, TK_UNTIL, TK_REPEAT, line);
   condexit = cond(ls);  /* read condition (inside scope block) */
   leaveblock(fs);  /* finish scope */
@@ -1900,6 +1931,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen) {
     luaK_codeABC(fs, OP_TFORCALL, base, 0, nvars);
     luaK_fixline(fs, line);
   }
+  luaK_patchtohere(fs, bl.previous->scopeend);
   endfor = luaK_codeABx(fs, forloop[isgen], base, 0);
   fixforjump(fs, endfor, prep + 1, 1);
   luaK_fixline(fs, line);
@@ -2238,6 +2270,10 @@ static void statement (LexState *ls) {
     }
     case TK_BREAK: {  /* stat -> breakstat */
       breakstat(ls);
+      break;
+    }
+    case TK_CONTINUE: {  /* stat -> continuestat */
+      continuestat(ls);
       break;
     }
     case TK_GOTO: {  /* stat -> 'goto' NAME */
