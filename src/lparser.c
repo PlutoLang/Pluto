@@ -397,7 +397,7 @@ static int new_localvar (LexState *ls, TString *name) {
   for (int i = fs->firstlocal; i < locals; i++) {
     Vardesc *desc = getlocalvardesc(fs,  i);
     LocVar *local = localdebuginfo(fs, i);
-    if (desc && local && (local->varname == name)) {
+    if (desc && local && (local->varname == name) && strcmp(getstr(name), "(for state)") != 0) {
       int top = lua_gettop(L);
       int locline = desc->vd.linenumber; /* line number of initial declaration */
       char *whtpad = calc_format_padding(locline); /* "    " */
