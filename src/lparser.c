@@ -1795,7 +1795,7 @@ static void breakstat (LexState *ls) {
 ** Continue statement. Semantically similar to "goto continue".
 ** Unlike break, this doesn't use labels. It tracks where to jump via BlockCnt.scopeend;
 */
-static void continuestat(LexState *ls) {
+static void continuestat (LexState *ls) {
   FuncState *fs = ls->fs;
   BlockCnt *bl = fs->bl;
   int upval = 0;
@@ -1847,6 +1847,7 @@ static void whilestat (LexState *ls, int line) {
   enterblock(fs, &bl, 1);
   checknext(ls, TK_DO);
   block(ls);
+  luaK_jumpto(fs, whileinit);
   luaK_patchlist(fs, bl.scopeend, whileinit);
   check_match(ls, TK_END, TK_WHILE, line);
   leaveblock(fs);
