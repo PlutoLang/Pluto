@@ -50,6 +50,57 @@ local max = if a > b then a else b
 Essentially, `if` symbols inside expressions are ternary. Otherwise, they are statements. Ternary expressions don't accept `end` as a termination, the control structure will jump to evaluate the sub-expression and assign the evaluated value to the register which belongs to `correct`. Sub-expressions are evaluated on a need-to-know basis, such that the `else` block will never run if the preceding logic is true.
 
 Traditionally, this would be possible with the `and` symbol, however I personally dislike this syntax because it's inconsistent with other languages. Until informed otherwise, people will assume `and` exclusively returns booleans. It's not immediately obvious — in fact, I meet many good Lua programmers who are unaware — that `and` can be used to emulate ternary expressions. The `if/then/else` syntax is imperfect, but I believe it's better. Not only visually, but also in functionality; such that `and` depends on the truthyness of its operands.
+### Continue Statement
+Although very similar to goto usage, the continue statement has been implemented into Pluto. Usage follows:
+```lua
+local i = 0
+repeat
+    i = i + 1
+    if i == 6 then
+        continue
+    end
+    print(i - 1)
+until i > 10
+```
+This will print every number besides 5, because `continue` will skip towards the next iteration of the loop. It's nearly identical to this:
+```lua
+repeat
+    i = i + 1
+    if i == 6 then
+        goto continue
+    end
+    print(i - 1)
+    ::continue::
+until i > 10
+```
+However, the dedicated statement doesn't complicate pre-defined goto labels, aligns with other language routines, and is slightly more user-friendly. The `continue` statement also isn't limited by the negatives a label would imply, such that:
+```lua
+local i = 0
+repeat
+    i = i + 1
+    if i == 6 then
+        goto ::cont::
+    end
+    local a
+    print(i - 1)
+    local b
+    ::cont::
+until i > 10
+```
+Would error, since `::cont::` jumps into a new local scope. However,
+```lua
+local i = 0
+repeat
+    i = i + 1
+    if i == 6 then
+        continue
+    end
+    local a
+    print(i - 1)
+    local b
+until i > 10
+```
+Works fine, because `continue` doesn't need to prepare for an edge case where a jump is performed before logic.
 ### Compiler Warnings
 Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
 ```lua
