@@ -5,4 +5,4 @@
 /src/*.a
 /tbytecode.script
 /luac.out
-/tests/quick.plu
+/tests/quick.lua
