@@ -53,54 +53,26 @@ Traditionally, this would be possible with the `and` symbol, however I personall
 ### Continue Statement
 Although very similar to goto usage, the continue statement has been implemented into Pluto. Usage follows:
 ```lua
-local i = 0
-repeat
-    i = i + 1
-    if i == 6 then
+-- Print every number besides five.
+for i = 1, 10 do
+    if i == 5 then
         continue
     end
-    print(i - 1)
-until i > 10
+    print(i)
+    -- continue jumps here.
+end
 ```
-This will print every number besides 5, because `continue` will skip towards the next iteration of the loop. It's nearly identical to this:
+The new statement will jump to the end of the loop, so it may proceed to the next iteration. For all intents and purposes, it's the same as this:
 ```lua
-repeat
-    i = i + 1
-    if i == 6 then
+for i = 1, 10 do
+    if i == 5 then
         goto continue
     end
-    print(i - 1)
+    print(i)
     ::continue::
-until i > 10
+end
 ```
-However, the dedicated statement doesn't complicate pre-defined goto labels, aligns with other language routines, and is slightly more user-friendly. The `continue` statement also isn't limited by the negatives a label would imply, such that:
-```lua
-local i = 0
-repeat
-    i = i + 1
-    if i == 6 then
-        goto ::cont::
-    end
-    local a
-    print(i - 1)
-    local b
-    ::cont::
-until i > 10
-```
-Would error, since `::cont::` jumps into a new local scope. However,
-```lua
-local i = 0
-repeat
-    i = i + 1
-    if i == 6 then
-        continue
-    end
-    local a
-    print(i - 1)
-    local b
-until i > 10
-```
-Works fine, because `continue` doesn't need to prepare for an edge case where a jump is performed before logic.
+However, the dedicated statement doesn't complicate pre-defined goto labels, aligns with other language routines, and is slightly more user-friendly. The `continue` statement also isn't limited by the negatives a label would imply, so you don't need to manage local scopes and other pedantry like you would a label. It's important to note, this new statement will jump over any code neccesary to end the loop. Meaning, if you jump over vital code that determines the conditional for your loop, then you will produce a bug.
 ### Compiler Warnings
 Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
 ```lua
