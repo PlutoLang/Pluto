@@ -47,7 +47,7 @@ Can be translated into this:
 ```lua
 local max = if a > b then a else b
 ```
-Essentially, `if` symbols inside expressions are ternary. Otherwise, they are statements. Ternary expressions don't accept `end` as a termination, the control structure will jump to evaluate the sub-expression. Sub-expressions are evaluated on a need-to-know basis, such that the `else` block will never run if the preceding logic is true.
+Essentially, `if` symbols inside expressions are ternary. Otherwise, they are statements. Ternary expressions don't accept `end` as a termination, the control structure will jump to evaluate the sub-expression. Sub-expressions are evaluated on a need-to-know basis, such that the `else` block will never run if the preceding logic is true. Unlike the `if` statement, ternary expressions do not support of `else if`, this is outside the purpose of ternary expressions in C.
 
 Traditionally, this would be possible with the `and` symbol, however I personally dislike this syntax because it's inconsistent with other languages. Until informed otherwise, people will assume `and` exclusively returns booleans. It's not immediately obvious — in fact, I meet many good Lua programmers who are unaware — that `and` can be used to emulate ternary expressions. The `if/then/else` syntax is imperfect, but I believe it's better. Not only visually, but also in functionality; such that `and` depends on the truthyness of its operands.
 ### Continue Statement
