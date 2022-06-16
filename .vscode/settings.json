@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "*.plu": "lua",
+        "bit": "c",
+        "compare": "c",
+        "cstddef": "c",
+        "iterator": "c",
+        "limits": "c",
+        "memory": "c",
+        "system_error": "c",
+        "type_traits": "c",
+        "xiosbase": "c",
+        "xlocale": "c",
+        "xutility": "c"
+    }
+}
