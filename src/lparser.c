@@ -976,6 +976,16 @@ static void statlist (LexState *ls) {
 }
 
 
+static void caselist (LexState *ls, int iselse) {
+  /* caselist -> { stat [`;'] } */
+  while (ls->t.token != TK_DEFAULT && ls->t.token != TK_CASE && ls->t.token != TK_END) {
+    if (iselse && ls->t.token == TK_BREAK && luaX_lookahead(ls) == TK_END)
+      luaX_next(ls);
+    else statement(ls);
+  }
+}
+
+
 static void fieldsel (LexState *ls, expdesc *v) {
   /* fieldsel -> ['.' | ':'] NAME */
   FuncState *fs = ls->fs;
@@ -1813,6 +1823,53 @@ static void continuestat (LexState *ls) {
 }
 
 
+static void switchstat (LexState *ls, int line) {
+  FuncState *fs = ls->fs;
+  BlockCnt sbl, cbl; /* switch & case blocks */
+  expdesc crtl, save, test, lcase;
+  luaX_next(ls); /* skip switch statement */
+  testnext(ls, '(');
+  expr(ls, &crtl);
+  luaK_exp2nextreg(ls->fs, &crtl);
+  init_exp(&save, VLOCAL, crtl.u.info);
+  testnext(ls, ')');
+  checknext(ls, TK_DO);
+  new_localvarliteral(ls, "(switch)");
+  adjustlocalvars(ls, 1); 
+  enterblock(fs, &sbl, 1);
+  do {
+    checknext(ls, TK_CASE);
+    switch (ls->t.token) {
+      case TK_FLT: /* avoid warnings */
+      case TK_INT: case TK_STRING: 
+      case TK_TRUE: case TK_FALSE: case TK_NIL: { /* expressions must be constant */
+        simpleexp(ls, &lcase);
+        break;
+      }
+      default: {
+        luaX_syntaxerror(ls, "Case expressions must contain constant values.");
+      }
+    }
+    checknext(ls, ':');
+    enterblock(fs, &cbl, 0);
+    test = save;
+    luaK_infix(fs, OPR_NE, &test);
+    luaK_posfix(fs, OPR_NE, &test, &lcase, line);
+    caselist(ls, 0);
+    leaveblock(fs);
+    luaK_patchtohere(fs, test.u.info);
+  } while (ls->t.token != TK_END && ls->t.token != TK_DEFAULT);
+  if (testnext(ls, TK_DEFAULT)) { /* default case */
+    checknext(ls, ':');
+    enterblock(fs, &cbl, 0);
+    caselist(ls, 1);
+    leaveblock(fs);
+  }
+  check_match(ls, TK_END, TK_SWITCH, line);
+  leaveblock(fs);
+}
+
+
 /*
 ** Check whether there is already a label with the given 'name'.
 */
@@ -2281,6 +2338,13 @@ static void statement (LexState *ls) {
     case TK_GOTO: {  /* stat -> 'goto' NAME */
       luaX_next(ls);  /* skip 'goto' */
       gotostat(ls);
+      break;
+    }
+    case TK_CASE: {
+      luaX_syntaxerror(ls, "'case' statement may only be used within a switch block.");
+    }
+    case TK_SWITCH: {  /* stat -> switchstat */
+      switchstat(ls, line);
       break;
     }
     default: {  /* stat -> func | assignment */
