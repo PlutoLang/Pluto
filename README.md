@@ -9,7 +9,7 @@ This is a learner's project concerning the internals of Lua. I will often add an
 ## Breaking changes:
 - None.
 
-Pluto is fully backwards-compatible (inc. C-ABI) with Lua 5.4.
+Pluto is fully backwards-compatible (inc. C-ABI) with Lua 5.4. This includes compiled bytecode, because Pluto does not implement any new opcodes, or alter the fundamental behavior of any opcodes.
 ## New Features:
 ### Dedicated Exponent Operator
 The `**` operator has been implemented into the operator set. It's roughly an alternative to `^` now.
@@ -22,7 +22,7 @@ local str = "hello world"
 assert(str[5] == "o")
 assert(str[200] == nil)
 ```
-This is a very nice addition because it avoids a lookup and function call for each character. Things like (i.e, hash algorithms) will significantly benefit from this change.
+This is a very nice addition because it avoids a lookup and function call for each character. Things like (i.e, hash algorithms) will significantly benefit from this change. Furthermore, it's friendly with normal instance lookups. So, things like `str["char"]` still work fine. String indexing is invoked whenever a string index is invoked with an integer.
 ### Lambda Expressions
 Without the size constraint of Lua, there's no need to hold weary of shorthand expressions.
 Here's example usage of the new lambda expressions:
