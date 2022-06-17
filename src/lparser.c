@@ -398,18 +398,20 @@ static int new_localvar (LexState *ls, TString *name) {
     LocVar *local = localdebuginfo(fs, i);
     if (desc && local && (local->varname == name) && strcmp(getstr(name), "(for state)") != 0) {
       int top = lua_gettop(L);
-      int locline = desc->vd.linenumber; /* line number of initial declaration */
-      char *whtpad = calc_format_padding(locline); /* "    " */
-      char *chrpad = calc_format_padding_indicator(desc->vd.name->shrlen); /* "^^^^" */
-      const char *loc = luaO_pushfstring(L, "local %s = ...", getstr(name));
-      const char *here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_HERE, chrpad);
-      const char *text = format_line_error(ls, WARN_DUPLICATE_LOCAL, loc, here);
-      const char *victim_here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_VICTIM, chrpad, ls->linenumber);
-      printf("%s\nnote: '%s' initially declared here:\n", text, getstr(name));
-      printf("\t%s%d | local %s = ...\n\t%s%s  |     %s\n\t%s%s  |\n", whtpad,
-             locline, getstr(name), whtpad, whtpad, victim_here, whtpad, whtpad);
-      free(chrpad);
-      free(whtpad);
+      if (lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT")) {
+        int locline = desc->vd.linenumber; /* line number of initial declaration */
+        char *whtpad = calc_format_padding(locline); /* "    " */
+        char *chrpad = calc_format_padding_indicator(desc->vd.name->shrlen); /* "^^^^" */
+        const char *loc = luaO_pushfstring(L, "local %s = ...", getstr(name));
+        const char *here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_HERE, chrpad);
+        const char *text = format_line_error(ls, WARN_DUPLICATE_LOCAL, loc, here);
+        const char *victim_here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_VICTIM, chrpad, ls->linenumber);
+        printf("%s\nnote: '%s' initially declared here:\n", text, getstr(name));
+        printf("\t%s%d | local %s = ...\n\t%s%s  |     %s\n\t%s%s  |\n", whtpad,
+              locline, getstr(name), whtpad, whtpad, victim_here, whtpad, whtpad);
+        free(chrpad);
+        free(whtpad);
+      }
       lua_settop(L, top); /* reset stack to original state */
     }
   }
