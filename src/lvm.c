@@ -288,10 +288,11 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
                       const TValue *slot) {
   int loop;  /* counter to avoid infinite loops */
   const TValue *tm;  /* metamethod */
+  int isValueString = ttisstring(t) && ttisinteger(key);
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
     if (slot == NULL) {  /* 't' is not a table? */
       lua_assert(!ttistable(t));
-      if (ttisstring(t) && ttisinteger(key)) { /* index for character of string */
+      if (isValueString) { /* index for character of string */
         lua_Integer index = ivalue(key);
         if ((vslen(t) < index) || (index < 1)) { /* invalid index */
           setnilvalue(s2v(val));
