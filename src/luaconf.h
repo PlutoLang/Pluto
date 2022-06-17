@@ -776,7 +776,7 @@
 */
 
 #define PLUTO_USE_COLORED_OUTPUT
-#undef PLUTO_USE_COLORED_OUTPUT
+// #undef PLUTO_USE_COLORED_OUTPUT
 
 #define PLUTO_PARSER_ENABLE_WARNIGNS
 // #undef PLUTO_PARSER_ENABLE_WARNIGNS
@@ -881,7 +881,10 @@
 #endif
 
 // Control structure (i.e, do) doesn't end with 'end'.
-#define ERROR_UNFINISHED_STRUCTURE_UNT		"%s\nnote: You forgot to close your 'repeat' structure with 'until'.\n      This conditional delimits the loop's behavior & terminates the structure.\n      If needed, here's an example of how to delimit control structures: https://www.lua.org/pil/4.3.html"
-
+#ifdef PLUTO_USE_COLORED_OUTPUT
+#define ERROR_UNFINISHED_REPEAT_SYN			"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'until' to terminate 'repeat' structure.\e[0;37m"
+#else
+#define ERROR_UNFINISHED_REPEAT_SYN			"syntax error: expected 'until' to terminate 'repeat' structure."
+#endif
 /* }================================================================== */
 #endif

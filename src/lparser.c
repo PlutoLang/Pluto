@@ -265,9 +265,8 @@ static void check_match (LexState *ls, int what, int who, int where) {
         }
         case TK_UNTIL: {
           int top = lua_gettop(ls->L);
-          const char *err = "syntax error: expected 'until' to terminate 'repeat' structure";
-          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer), "");
-          text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_UNT, text);
+          const char *err = "\n"ERROR_UNFINISHED_REPEAT_SYN;
+          format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer), "");
           throw_format_error(ls, top, LUA_ERRSYNTAX);
         }
         default: {
