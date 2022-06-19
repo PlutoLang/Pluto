@@ -7,9 +7,6 @@
 #define lauxlib_c
 #define LUA_LIB
 
-#include "lprefix.h"
-
-
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -23,7 +20,7 @@
 */
 
 #include "lua.h"
-
+#include "lprefix.h"
 #include "lauxlib.h"
 
 

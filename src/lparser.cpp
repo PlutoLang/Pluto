@@ -10,6 +10,7 @@
 #include "lprefix.h"
 
 
+#include <string>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +18,6 @@
 #include <string.h>
 
 #include "lua.h"
-
 #include "lcode.h"
 #include "ldebug.h"
 #include "ldo.h"
@@ -69,94 +69,76 @@ typedef struct BlockCnt {
 static void statement (LexState *ls);
 static void expr (LexState *ls, expdesc *v);
 
-/* Creates a temporary string of white-space characters for padding. Result must manually be freed. */
-static char* calc_format_padding(int line) {
-  lua_Integer n = 0;
-  while (line >= 10) {
-    n++;
-    line = l_floor(line / 10);
-  }
-  char *buffer = malloc(n + 1);
-  memset(buffer, ' ', n);
-  buffer[n] = '\0';
-  return buffer;
-}
 
-
-/* Creates a temporary string of '^' characters for padding. Result must manually be freed. */
-static char* calc_format_padding_indicator(int n) {
-  char *buffer = malloc(n + 1);
-  memset(buffer, '^', n);
-  buffer[n] = '\0';
-  return buffer;
-}
-
-
+/*
+** Formats an error with the appropriate source code snippet.
+*/
 static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here) {
-  if (here[0] == '\0') {
-    here = ERROR_DEFAULT_HERE;
-  }
-  char* pad = calc_format_padding(ls->linenumber);
+  const char *pad = std::string(std::to_string(ls->linenumber).length(), ' ').c_str();
   const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
-  text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s  | %s\n\t%s%s  |",
+#ifndef PLUTO_USE_COLORED_OUTPUT
+  text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
                           text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
-  free(pad);
+#else
+  text = luaO_pushfstring(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
+                          YEL, text, RESET, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+#endif
   return text;
 }
 
 
 /*
-** Throws a formatted error message (by Pluto), with the message at the top of the stack.
-** Afterwards, this resets the stack back to its original size, provided by originalStackSize.
+** Applies coloring (if permitted) to 's'.
 */
-static void throw_format_error (LexState *ls, int originalStackSize, int errcode) {
-  luaD_throw(ls->L, errcode);
-  lua_settop(ls->L, originalStackSize);
-} 
+static std::string make_here(LexState *ls, const char *s) noexcept {
+  std::string here = std::string(ls->linebuff.length(), '^');
+#ifdef PLUTO_USE_COLORED_OUTPUT
+  here.insert(0, std::string(RED));
+  here.append(s);
+  here.append(RESET);
+#else
+  here.append(s);
+#endif
+  return here;
+}
+
+
+/*
+** Applies coloring (if permitted) to an invalid synax error message.
+*/
+static std::string make_err(const char *s) noexcept {
+  std::string error = std::string(s);
+  error.insert(0, "syntax error: ");
+#ifdef PLUTO_USE_COLORED_OUTPUT
+  error.insert(0, std::string(RED));
+  error.insert(19, std::string(BWHT));
+  error.append(RESET);
+#endif
+  return error;
+}
+
+
+/*
+** Throws an exception into Lua, which will promptly close the program.
+** This is only called for vital errors, like lexer and/or syntax problems.
+*/
+static l_noret throwerr (LexState *ls, const char *err, const char *here) {
+  std::string error = make_err(err);
+  std::string rhere = make_here(ls, here);
+  format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str());
+  luaD_throw(ls->L, LUA_ERRSYNTAX);
+}
 
 
 static l_noret error_expected (LexState *ls, int token) {
   switch (token) {
-    case TK_IN: {
-      int top = lua_gettop(ls->L);
-      const char *err = ERROR_MISSING_IN_SYM;
-      const char *here = ERROR_MISSING_IN_SYM_HERE;
-      const char *buff = ls->buff->buffer;
-      format_line_error(ls, err, luaO_pushfstring(ls->L, "for ... %s(...) do", buff), here);
-      throw_format_error(ls, top, LUA_ERRSYNTAX);
-    }
-    case TK_THEN: {
-      int top = lua_gettop(ls->L);
-      const char *err = ERROR_UNFINISHED_IF_STATEMENT_SYN;
-      const char *here = ERROR_UNFINISHED_IF_STATEMENT_HERE;
-      const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "if ... %s", ls->buff->buffer), here);
-      text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_IF_STATEMENT, text);
-      throw_format_error(ls, top, LUA_ERRSYNTAX);
-    }
-    case TK_NAME: {
-      int top = lua_gettop(ls->L);
-      const char *err = ERROR_UNFINISHED_FUNCTION_SYN;
-      const char *here = ERROR_UNFINISHED_FUNCTION_HERE;
-      const char *text = ls->t.token == '(' ? format_line_error(ls, err, "function ()", here)
-                                            : format_line_error(ls, err, t2s(ls, ls->t.token), ERROR_DEFAULT_HERE);
-      switch (ls->t.token) {
-        case '=': {
-          text = luaO_pushfstring(ls->L, ERROR_MISSING_LOCAL_NAME, text);
-          break;
-        }
-        case '(': {
-          text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_FUNCTION, text);
-          break;
-        }
-      }
-      throw_format_error(ls, top, LUA_ERRSYNTAX);
-    }
+    case TK_IN: throwerr(ls, "expected 'in' to delimit loop iterator.", " here: expected 'in' symbol.");
+    case TK_THEN: throwerr(ls, "expected 'then' to delimit condition.", " here: expected 'then' symbol.");
+    case TK_NAME: throwerr(ls, "expected an identifier.", " here: this needs a name.");
     case TK_CONTINUE: {
-      int top = lua_gettop(ls->L);
-      const char *err = ERROR_MISPLACED_CONTINUE;
-      const char *here = ERROR_MISPLACED_CONTINUE_HERE;
-      format_line_error(ls, err, "continue", here);
-      throw_format_error(ls, top, LUA_ERRSYNTAX);
+      ls->linebuff.clear();
+      ls->linebuff.append("continue"); /* buffer may've escaped to a newline */
+      throwerr(ls, "expected 'continue' inside a loop.", " here: this is not within a loop.");
     }
     default: {
       luaX_syntaxerror(ls,
@@ -228,53 +210,12 @@ static void check_match (LexState *ls, int what, int who, int where) {
     if (where == ls->linenumber)  /* all in the same line? */
       error_expected(ls, what);  /* do not need a complex message */
     else {
-      switch (what) {
-        case TK_END: {
-          int top = lua_gettop(ls->L);
-          const char *err;
-          const char *here = ERROR_UNFINISHED_STRUCTURE_END_HERE;
-          switch (who) {
-            case TK_IF: {
-              err = ERROR_UNFINISHED_STRUCTURE_IF;
-              break;
-            }
-            case TK_DO: {
-              err = ERROR_UNFINISHED_STRUCTURE_DO;
-              break;
-            }
-            case TK_FOR: {
-              err = ERROR_UNFINISHED_STRUCTURE_FOR;
-              break;
-            }
-            case TK_WHILE: {
-              err = ERROR_UNFINISHED_STRUCTURE_WHILE;
-              break;
-            }
-            case TK_FUNCTION: {
-              err = ERROR_UNFINISHED_STRUCTURE_FUNCTION;
-              break;
-            }
-            default: {
-              err = ERROR_UNFINISHED_STRUCTURE_DEFAULT;
-              break;
-            }
-          }
-          const char *text = format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer), here);
-          text = luaO_pushfstring(ls->L, ERROR_UNFINISHED_STRUCTURE_END, text);
-          throw_format_error(ls, top, LUA_ERRSYNTAX);
-        }
-        case TK_UNTIL: {
-          int top = lua_gettop(ls->L);
-          const char *err = "\n"ERROR_UNFINISHED_REPEAT_SYN;
-          format_line_error(ls, err, luaO_pushfstring(ls->L, "%s", ls->buff->buffer), "");
-          throw_format_error(ls, top, LUA_ERRSYNTAX);
-        }
-        default: {
-          luaX_syntaxerror(ls, luaO_pushfstring(ls->L,
-                "%s expected (to close %s at line %d)",
-                  luaX_token2str(ls, what), luaX_token2str(ls, who), where));
-        }
-      }
+      luaX_syntaxerror(ls,
+                       luaO_pushfstring(ls->L,
+                                        "%s expected (to close %s at line %d)",
+                                        luaX_token2str(ls, what),
+                                        luaX_token2str(ls, who),
+                                        where));
     }
   }
 }
@@ -399,9 +340,10 @@ static int new_localvar (LexState *ls, TString *name) {
     if (desc && local && (local->varname == name) && strcmp(getstr(name), "(for state)") != 0) {
       int top = lua_gettop(L);
       if (lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT")) {
-        int locline = desc->vd.linenumber; /* line number of initial declaration */
-        char *whtpad = calc_format_padding(locline); /* "    " */
-        char *chrpad = calc_format_padding_indicator(desc->vd.name->shrlen); /* "^^^^" */
+        /*
+        int locline = desc->vd.linenumber;
+        char *whtpad = calc_format_padding(locline);
+        char *chrpad = calc_format_padding_indicator(desc->vd.name->shrlen);
         const char *loc = luaO_pushfstring(L, "local %s = ...", getstr(name));
         const char *here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_HERE, chrpad);
         const char *text = format_line_error(ls, WARN_DUPLICATE_LOCAL, loc, here);
@@ -411,6 +353,7 @@ static int new_localvar (LexState *ls, TString *name) {
               locline, getstr(name), whtpad, whtpad, victim_here, whtpad, whtpad);
         free(chrpad);
         free(whtpad);
+        */
       }
       lua_settop(L, top); /* reset stack to original state */
     }
@@ -1296,29 +1239,8 @@ static void primaryexp (LexState *ls, expdesc *v) {
       return;
     }
     default: {
-#ifndef stderr
       luaX_syntaxerror(ls, "unexpected symbol");
-#else
-      int top = lua_gettop(ls->L);
-      const char *text = format_line_error(ls, ERROR_UNEXPECTED_SYMBOL, t2s(ls, ls->t.token), "");
-      switch (ls->t.token) {
-        case '}':
-        case '{': {
-          text = luaO_pushfstring(ls->L, ERROR_UNEXPECTED_BRACKET, text);
-          break;
-        }
-        case '^':
-        case '&': case '~':
-        case '-': case '|':
-        case '*': case '%':
-        case '+': case '/': { 
-          text = luaO_pushfstring(ls->L, ERROR_UNEXPECTED_ARITHMETIC, text, ls->t.token, ls->t.token);
-          break;
-        }
-      }
-      throw_format_error(ls, top, LUA_ERRSYNTAX);
     }
-#endif
   }
 }
 
@@ -1671,10 +1593,6 @@ static int getcompoundop (LexState *ls, BinOpr *op) {
     }
     case TK_CSHR: {
       *op = OPR_SHR;  /* shift right */
-      return 1;
-    }
-    case TK_CBNOT: {
-      *op = OPR_BNOT;  /* bitwise NOT */
       return 1;
     }
     default: {

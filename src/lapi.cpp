@@ -7,15 +7,12 @@
 #define lapi_c
 #define LUA_CORE
 
-#include "lprefix.h"
-
-
 #include <limits.h>
 #include <stdarg.h>
 #include <string.h>
 
+#include "lprefix.h"
 #include "lua.h"
-
 #include "lapi.h"
 #include "ldebug.h"
 #include "ldo.h"

@@ -7,6 +7,7 @@
 #ifndef llex_h
 #define llex_h
 
+#include <string>
 #include <limits.h>
 
 #include "lobject.h"
@@ -84,6 +85,7 @@ typedef struct LexState {
   struct lua_State *L;
   ZIO *z;  /* input stream */
   Mbuffer *buff;  /* buffer for tokens */
+  std::string linebuff; /* buffer for lines */
   Table *h;  /* to avoid collection/reuse strings */
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
