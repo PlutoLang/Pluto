@@ -515,7 +515,10 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           ** Remove leading spaces, due to indentation.
           ** This messes with the "^^^" string that's generated for each syntax error.
           */
-          ls->lastlinebuff = ls->lastlinebuff.substr(ls->lastlinebuff.find_first_not_of(" "));
+          size_t index = ls->lastlinebuff.find_first_not_of(" \t");
+          if (index != std::string::npos) {
+            ls->lastlinebuff = ls->lastlinebuff.substr(index);
+          }
           /*
           ** Finally, employ a hard-lock on the largest string length.
           ** This avoids excessively long errors, since we buffer the entire line.
@@ -527,7 +530,9 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         break;
       }
       case ' ': case '\f': case '\t': case '\v': {  /* spaces */
-        ls->linebuff += ls->current;
+        if (ls->linebuff.find_first_not_of(ls->current) != std::string::npos) {
+          ls->linebuff += ls->current;
+        }
         next(ls);
         break;
       }
@@ -576,7 +581,10 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           ls->linebuff += "==";
           return TK_EQ;  /* '==' */
         }
-        else return '=';
+        else {
+          ls->linebuff += '=';
+          return '=';
+        }
       }
       case '<': {
         next(ls);
