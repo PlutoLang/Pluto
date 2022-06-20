@@ -167,3 +167,16 @@ This also supports ANSI color codes, however this is disabled by default in orde
 ### `string`
 - `endswith` function.
 - `startswith` function.
+
+## Building Pluto
+Lua, and hence Pluto is very easy to build. Pluto was built on C++17, with no backwards-compatibility ensured.
+### Windows
+- Install `MSYS` & add it to path.
+- Install `chocolatey` & add it to path.
+- Run `make` in the root directory of Pluto.
+```
+git clone https://github.com/well-in-that-case/Pluto.git
+make
+```
+
+For other platforms, use `make PLAT=xxx` where `xxx` is a valid platform, found inside the makefile configuration.
