@@ -779,11 +779,12 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           if (llex_augmented(ls, c) != 1) {
             lexerror(ls, "unsupported augmented assignment", c);
           } else {
-            ls->linebuff += std::to_string(c) + '=';
+            ls->linebuff += c;
+            ls->linebuff += '=';
             return '=';
           }
         } else {
-          ls->linebuff += std::to_string(c);
+          ls->linebuff += c;
           return c;
         }
       }
