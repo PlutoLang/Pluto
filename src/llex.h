@@ -86,6 +86,8 @@ typedef struct LexState {
   ZIO *z;  /* input stream */
   Mbuffer *buff;  /* buffer for tokens */
   std::string linebuff; /* buffer for lines */
+  std::string lastlinebuff; /* buffer for the last line */
+  int lastlinebuffnum; /* last line number for lastlinebuff */
   Table *h;  /* to avoid collection/reuse strings */
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */

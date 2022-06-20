@@ -505,9 +505,25 @@ static int llex (LexState *ls, SemInfo *seminfo) {
   luaZ_resetbuffer(ls->buff);
   for (;;) {
     switch (ls->current) {
-      case '\n': case '\r': {  /* line breaks */
+      case '\n': case '\r': {  /* Line breaks. */
         inclinenumber(ls);
-        ls->linebuff.clear();
+        if (ls->linebuff.length() > 1) { /* Remember the last statement to avoid empty lines in any debug info. */
+          ls->lastlinebuffnum = ls->linenumber - 1;
+          ls->lastlinebuff = ls->linebuff;
+          ls->linebuff.clear();
+          /*
+          ** Remove leading spaces, due to indentation.
+          ** This messes with the "^^^" string that's generated for each syntax error.
+          */
+          ls->lastlinebuff = ls->lastlinebuff.substr(ls->lastlinebuff.find_first_not_of(" "));
+          /*
+          ** Finally, employ a hard-lock on the largest string length.
+          ** This avoids excessively long errors, since we buffer the entire line.
+          */
+          if (ls->lastlinebuff.length() > 50) {
+            ls->lastlinebuff = ls->lastlinebuff.substr(0, 50) + "...";
+          }
+        }
         break;
       }
       case ' ': case '\f': case '\t': case '\v': {  /* spaces */
