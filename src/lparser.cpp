@@ -1308,7 +1308,32 @@ static void primaryexp (LexState *ls, expdesc *v) {
       return;
     }
     default: {
-      luaX_syntaxerror(ls, "unexpected symbol");
+      switch (ls->t.token) {
+        case '}':
+        case '{': { // Unfinished table constructors.
+          if (ls->t.token == '{') {
+            throwerr(ls, "unfinished table constructor", "did you mean to close with '}'?");
+          }
+          else {
+            throwerr(ls, "unfinished table constructor", "did you mean to enter with '{'?");
+          }
+          return;
+        }
+        case '|': { // Mistyped lambda expressions. People may confuse '->' with '=>'.
+          luaX_lookahead(ls); // Skip next '|' character.
+          if (luaX_lookahead(ls) == '=') {
+            throwerr(ls, "unexpected symbol", "did you mean to construct a lambda (|...| -> expr)?");
+          }
+          else {
+            throwerr(ls, "unexpected symbol near '|'", "unexpected symbol.");
+          }
+          return;
+        }
+        default: {
+          const char *token = luaX_token2str(ls, ls->t.token);
+          throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+        }
+      }
     }
   }
 }
