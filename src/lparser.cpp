@@ -11,6 +11,8 @@
 
 
 #include <string>
+#include <iostream>
+#include <string_view>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +47,9 @@
 /* because all strings are unified by the scanner, the parser
    can use pointer equality for string equality */
 #define eqstr(a,b)	((a) == (b))
+
+
+#define luaO_fmt luaO_pushfstring
 
 
 /*
@@ -120,6 +125,22 @@ static std::string make_err(const char *s) {
 
 
 /*
+** Applies coloring (if permitted) to a warning message.
+*/
+static std::string make_warn(const char *s) {
+  std::string error = std::string(s);
+  error.insert(0, "warning: ");
+#ifdef PLUTO_USE_COLORED_OUTPUT
+  error.insert(0, std::string(RED));
+  error.insert(error.find("warning:") + 8, std::string(BWHT));
+  error.append(RESET);
+  error.append(" [-D]");
+#endif
+  return error;
+}
+
+
+/*
 ** Throws an exception into Lua, which will promptly close the program.
 ** This is only called for vital errors, like lexer and/or syntax problems.
 */
@@ -128,6 +149,16 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here) {
   std::string rhere = make_here(ls, here);
   format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str());
   luaD_throw(ls->L, LUA_ERRSYNTAX);
+}
+
+
+/*
+** Throws an warning into standard output, which will not close the program.
+*/
+static void throw_warn (LexState *ls, const char *err, const char *here) {
+  std::string error = make_warn(err);
+  std::string rhere = make_here(ls, here);
+  std::cout << format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()) << std::endl;
 }
 
 
@@ -229,16 +260,27 @@ static void check_match (LexState *ls, int what, int who, int where) {
     else {
       switch (what) {
         case TK_END: {
+          /*
+          ** We need the previous buffers.
+          ** The error is only thrown after meeting a new line.
+          */
+          ls->linebuff = ls->lastlinebuff; // Line of last statement.
+          ls->linenumber = ls->lastlinebuffnum; // Line number of last statement.
           switch (who) {
             case TK_IF: {
-              ls->linebuff = ls->lastlinebuff; /* last statement */
-              ls->linenumber = ls->lastlinebuffnum; /* line number of last statement */
               throwerr(ls, "missing 'end' to terminate 'if' statement.", "this was the last statement.");
             }
             case TK_DO: {
-              ls->linebuff = ls->lastlinebuff;
-              ls->linenumber = ls->lastlinebuffnum;
               throwerr(ls, "missing 'end' to terminate 'do' block.", "this was the last statement.");
+            }
+            case TK_FOR: {
+              throwerr(ls, "missing 'end' to terminate 'for' block.", "this was the last statement.");
+            }
+            case TK_WHILE: {
+              throwerr(ls, "missing 'end' to terminate 'while' block.", "this was the last statement.");
+            }
+            case TK_FUNCTION: {
+              throwerr(ls, "missing 'end' to terminate 'function' block.", "this was the last statement.");
             }
             default: {
               throwerr(ls, "missing 'end' to terminate block.", "missing termination.");
@@ -246,10 +288,10 @@ static void check_match (LexState *ls, int what, int who, int where) {
           }
         }
         default: {
-          const char *text = "%s expected (to close %s at line %d)";
-          const char *swho = luaX_token2str(ls, who);
+          const char *text  = make_err("%s expected (to close %s at line %d)").c_str();
+          const char *swho  = luaX_token2str(ls, who);
           const char *swhat = luaX_token2str(ls, what);
-          luaX_syntaxerror(ls, luaO_pushfstring(ls->L, text, swhat, swho, where));
+          luaK_semerror(ls, luaO_fmt(ls->L, text, swhat, swho, where));
         }
       }
     }
@@ -298,7 +340,6 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     f->locvars[oldsize++].varname = NULL;
   f->locvars[fs->ndebugvars].varname = varname;
   f->locvars[fs->ndebugvars].startpc = fs->pc;
-  // f->locvars[fs->ndebugvars].line = f->linedefined;
   luaC_objbarrier(ls->L, f, varname);
   return fs->ndebugvars++;
 }
@@ -373,25 +414,16 @@ static int new_localvar (LexState *ls, TString *name) {
   for (int i = fs->firstlocal; i < locals; i++) {
     Vardesc *desc = getlocalvardesc(fs,  i);
     LocVar *local = localdebuginfo(fs, i);
-    if (desc && local && (local->varname == name) && strcmp(getstr(name), "(for state)") != 0) {
+    std::string n = std::string(getstr(name));
+    if ((n != "(for state)" && n != "(switch)") && (local && local->varname == name)) { // Got a match.
       int top = lua_gettop(L);
+      int line = desc->vd.linenumber; // Line number of initial declaration.
       if (lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT")) {
-        /*
-        int locline = desc->vd.linenumber;
-        char *whtpad = calc_format_padding(locline);
-        char *chrpad = calc_format_padding_indicator(desc->vd.name->shrlen);
-        const char *loc = luaO_pushfstring(L, "local %s = ...", getstr(name));
-        const char *here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_HERE, chrpad);
-        const char *text = format_line_error(ls, WARN_DUPLICATE_LOCAL, loc, here);
-        const char *victim_here = luaO_pushfstring(L, WARN_DUPLICATE_LOCAL_VICTIM, chrpad, ls->linenumber);
-        printf("%s\nnote: '%s' initially declared here:\n", text, getstr(name));
-        printf("\t%s%d | local %s = ...\n\t%s%s  |     %s\n\t%s%s  |\n", whtpad,
-              locline, getstr(name), whtpad, whtpad, victim_here, whtpad, whtpad);
-        free(chrpad);
-        free(whtpad);
-        */
+        const char *err = "duplicate local declaration";
+        const char *here = luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", line);
+        throw_warn(ls, err, here);
       }
-      lua_settop(L, top); /* reset stack to original state */
+      lua_settop(L, top); // Reset stack to original state.
     }
   }
 #endif
@@ -445,9 +477,9 @@ static void check_readonly (LexState *ls, expdesc *e) {
       return;  /* other cases cannot be read-only */
   }
   if (varname) {
-    const char *msg = luaO_pushfstring(ls->L,
-       "attempt to assign to const variable '%s'", getstr(varname));
-    luaK_semerror(ls, msg);  /* error */
+    const char *msg = luaO_pushfstring(ls->L, "attempt to reassign constant '%s'", getstr(varname));
+    const char *here = "this variable is constant, and cannot be reassigned.";
+    throwerr(ls, luaO_pushfstring(ls->L, msg, getstr(varname)), here);
   }
 }
 
@@ -2011,9 +2043,15 @@ static void forstat (LexState *ls, int line) {
   luaX_next(ls);  /* skip 'for' */
   varname = str_checkname(ls);  /* first variable name */
   switch (ls->t.token) {
-    case '=': fornum(ls, varname, line); break;
-    case ',': case TK_IN: forlist(ls, varname); break;
-    default:  {
+    case '=': {
+      fornum(ls, varname, line);
+      break;
+    }
+    case ',': case TK_IN: {
+      forlist(ls, varname);
+      break;
+    }
+    default: {
       luaX_syntaxerror(ls, "'=' or 'in' expected");
     }
   }
