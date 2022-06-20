@@ -1807,12 +1807,12 @@ static void continuestat (LexState *ls) {
   else error_expected(ls, TK_CONTINUE);
 }
 
-
+/*
 static void switchstat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
-  BlockCnt sbl, cbl; /* switch & case blocks */
+  BlockCnt sbl, cbl; // Switch & case blocks.
   expdesc crtl, save, test, lcase;
-  luaX_next(ls); /* skip switch statement */
+  luaX_next(ls); // Skip switch statement.
   testnext(ls, '(');
   expr(ls, &crtl);
   luaK_exp2nextreg(ls->fs, &crtl);
@@ -1825,9 +1825,9 @@ static void switchstat (LexState *ls, int line) {
   do {
     checknext(ls, TK_CASE);
     switch (ls->t.token) {
-      case TK_FLT: /* avoid warnings */
+      case TK_FLT: // Avoid warnings.
       case TK_INT: case TK_STRING: 
-      case TK_TRUE: case TK_FALSE: case TK_NIL: { /* expressions must be constant */
+      case TK_TRUE: case TK_FALSE: case TK_NIL: { // Expressions must be constant.
         simpleexp(ls, &lcase);
         break;
       }
@@ -1844,7 +1844,7 @@ static void switchstat (LexState *ls, int line) {
     leaveblock(fs);
     luaK_patchtohere(fs, test.u.info);
   } while (ls->t.token != TK_END && ls->t.token != TK_DEFAULT);
-  if (testnext(ls, TK_DEFAULT)) { /* default case */
+  if (testnext(ls, TK_DEFAULT)) { // Default case.
     checknext(ls, ':');
     enterblock(fs, &cbl, 0);
     caselist(ls, 1);
@@ -1853,6 +1853,7 @@ static void switchstat (LexState *ls, int line) {
   check_match(ls, TK_END, TK_SWITCH, line);
   leaveblock(fs);
 }
+*/
 
 
 /*
@@ -2331,13 +2332,15 @@ static void statement (LexState *ls) {
       gotostat(ls);
       break;
     }
+    /*
     case TK_CASE: {
       luaX_syntaxerror(ls, "'case' statement may only be used within a switch block.");
     }
-    case TK_SWITCH: {  /* stat -> switchstat */
+    case TK_SWITCH: {  // stat -> switchstat
       switchstat(ls, line);
       break;
     }
+    */
     default: {  /* stat -> func | assignment */
       exprstat(ls);
       break;
