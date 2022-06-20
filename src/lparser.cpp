@@ -12,7 +12,6 @@
 
 #include <string>
 #include <iostream>
-#include <string_view>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
