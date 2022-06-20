@@ -235,8 +235,13 @@ static void check_match (LexState *ls, int what, int who, int where) {
               ls->linenumber = ls->lastlinebuffnum; /* line number of last statement */
               throwerr(ls, "missing 'end' to terminate 'if' statement.", "this was the last statement.");
             }
+            case TK_DO: {
+              ls->linebuff = ls->lastlinebuff;
+              ls->linenumber = ls->lastlinebuffnum;
+              throwerr(ls, "missing 'end' to terminate 'do' block.", "this was the last statement.");
+            }
             default: {
-              throwerr(ls, "missing 'end' to terminate control structure.", "missing termination");
+              throwerr(ls, "missing 'end' to terminate block.", "missing termination.");
             }
           }
         }
