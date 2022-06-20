@@ -90,8 +90,9 @@ static const char *format_line_error (LexState *ls, const char *msg, const char 
 /*
 ** Applies coloring (if permitted) to 's'.
 */
-static std::string make_here(LexState *ls, const char *s) noexcept {
+static std::string make_here(LexState *ls, const char *s) {
   std::string here = std::string(ls->linebuff.length(), '^');
+  here.append(" here: ");
 #ifdef PLUTO_USE_COLORED_OUTPUT
   here.insert(0, std::string(RED));
   here.append(s);
@@ -106,7 +107,7 @@ static std::string make_here(LexState *ls, const char *s) noexcept {
 /*
 ** Applies coloring (if permitted) to an invalid synax error message.
 */
-static std::string make_err(const char *s) noexcept {
+static std::string make_err(const char *s) {
   std::string error = std::string(s);
   error.insert(0, "syntax error: ");
 #ifdef PLUTO_USE_COLORED_OUTPUT
@@ -130,15 +131,31 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here) {
 }
 
 
+/*
+** This function will throw an exception and terminate the program.
+*/
 static l_noret error_expected (LexState *ls, int token) {
   switch (token) {
-    case TK_IN: throwerr(ls, "expected 'in' to delimit loop iterator.", " here: expected 'in' symbol.");
-    case TK_THEN: throwerr(ls, "expected 'then' to delimit condition.", " here: expected 'then' symbol.");
-    case TK_NAME: throwerr(ls, "expected an identifier.", " here: this needs a name.");
+    case TK_IN: {
+      throwerr(ls, "expected 'in' to delimit loop iterator.", "expected 'in' symbol.");
+    }
+    case TK_DO: {
+      ls->linebuff = ls->lastlinebuff;
+      ls->linenumber = ls->lastlinebuffnum;
+      throwerr(ls, "expected 'do' to establish block.", "you need to append this with the 'do' symbol.");
+    }
+    case TK_THEN: {
+      ls->linebuff = ls->lastlinebuff;
+      ls->linenumber = ls->lastlinebuffnum;
+      throwerr(ls, "expected 'then' to delimit condition.", "expected 'then' symbol.");
+    }
+    case TK_NAME: {
+      throwerr(ls, "expected an identifier.", "this needs a name.");
+    }
     case TK_CONTINUE: {
-      ls->linebuff.clear();
-      ls->linebuff.append("continue"); /* buffer may've escaped to a newline */
-      throwerr(ls, "expected 'continue' inside a loop.", " here: this is not within a loop.");
+      ls->linebuff = ls->lastlinebuff;
+      ls->linenumber = ls->lastlinebuffnum;
+      throwerr(ls, "expected 'continue' inside a loop.", "this is not within a loop.");
     }
     default: {
       luaX_syntaxerror(ls,
@@ -210,12 +227,26 @@ static void check_match (LexState *ls, int what, int who, int where) {
     if (where == ls->linenumber)  /* all in the same line? */
       error_expected(ls, what);  /* do not need a complex message */
     else {
-      luaX_syntaxerror(ls,
-                       luaO_pushfstring(ls->L,
-                                        "%s expected (to close %s at line %d)",
-                                        luaX_token2str(ls, what),
-                                        luaX_token2str(ls, who),
-                                        where));
+      switch (what) {
+        case TK_END: {
+          switch (who) {
+            case TK_IF: {
+              ls->linebuff = ls->lastlinebuff; /* last statement */
+              ls->linenumber = ls->lastlinebuffnum; /* line number of last statement */
+              throwerr(ls, "missing 'end' to terminate 'if' statement.", "this was the last statement.");
+            }
+            default: {
+              throwerr(ls, "missing 'end' to terminate control structure.", "missing termination");
+            }
+          }
+        }
+        default: {
+          const char *text = "%s expected (to close %s at line %d)";
+          const char *swho = luaX_token2str(ls, who);
+          const char *swhat = luaX_token2str(ls, what);
+          luaX_syntaxerror(ls, luaO_pushfstring(ls->L, text, swhat, swho, where));
+        }
+      }
     }
   }
 }
