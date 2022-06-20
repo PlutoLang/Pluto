@@ -36,12 +36,12 @@ RM= rm -f
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
 # Convenience platforms targets.
-PLATS= guess aix bsd c89 freebsd generic linux linux-readline macosx mingw posix solaris
+PLATS= mingw
 
 # What to install.
-TO_BIN= lua luac
+TO_BIN= pluto plutoc
 TO_INC= lua.h luaconf.h lualib.h lauxlib.h lua.hpp
-TO_LIB= liblua.a
+TO_LIB= libpluto.a
 TO_MAN= lua.1 luac.1
 
 # Lua version and release.
