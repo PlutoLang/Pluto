@@ -986,14 +986,16 @@ static void statlist (LexState *ls) {
 }
 
 
+/*
 static void caselist (LexState *ls, int iselse) {
-  /* caselist -> { stat [`;'] } */
+  // caselist -> { stat [`;'] }
   while (ls->t.token != TK_DEFAULT && ls->t.token != TK_CASE && ls->t.token != TK_END) {
     if (iselse && ls->t.token == TK_BREAK && luaX_lookahead(ls) == TK_END)
       luaX_next(ls);
     else statement(ls);
   }
 }
+*/
 
 
 static void fieldsel (LexState *ls, expdesc *v) {
