@@ -146,13 +146,13 @@ pluto: tests/quick.lua:1: syntax error: expected 'then' to delimit condition.
 ```
 Another example, with a mistyped lambda expression:
 ```lua
-|| => true
+local fn = |a, b, c| => (a == b and a < c)
 ```
 Emits this message:
 ```
-pluto: tests/quick.lua:1: syntax error: unexpected symbol
-         1 | || =>
-           | ^^^^^ here: did you mean to construct a lambda (|...| -> expr)?
+pluto: tests/quick.lua:4: syntax error: impromper lambda definition
+         4 | local b = |a, b, c| =>
+           | ^^^^^^^^^^^^^^^^^^^^^^ here: expected '->' arrow syntax for lambda expression.
            |
 ```
 This also supports ANSI color codes, however this is disabled by default in order to encourage portability. For example, ANSI color codes do not work on most Windows command prompts. Define the `PLUTO_USE_COLORED_OUTPUT` macro in `luaconf.h` to enable colored error messages — they look quite nice.
