@@ -7,16 +7,13 @@
 #define lbaselib_c
 #define LUA_LIB
 
-#include "lprefix.h"
-
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "lua.h"
-
+#include "lprefix.h"
 #include "lauxlib.h"
 #include "lualib.h"
 
@@ -507,6 +504,8 @@ static int luaB_tostring (lua_State *L) {
 
 static int luaB_newuserdata (lua_State *L) {
   lua_newuserdata(L, 0);
+  lua_newtable(L);
+  lua_setmetatable(L, -2);
   return 1;
 }
 

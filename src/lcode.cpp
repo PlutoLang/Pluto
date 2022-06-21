@@ -7,16 +7,13 @@
 #define lcode_c
 #define LUA_CORE
 
-#include "lprefix.h"
-
-
 #include <float.h>
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
 
 #include "lua.h"
-
+#include "lprefix.h"
 #include "lcode.h"
 #include "ldebug.h"
 #include "ldo.h"

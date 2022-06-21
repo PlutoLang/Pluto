@@ -776,7 +776,7 @@
 */
 
 #define PLUTO_USE_COLORED_OUTPUT
-#undef PLUTO_USE_COLORED_OUTPUT
+// #undef PLUTO_USE_COLORED_OUTPUT
 
 #define PLUTO_PARSER_ENABLE_WARNIGNS
 // #undef PLUTO_PARSER_ENABLE_WARNIGNS
@@ -786,105 +786,79 @@
 // #undef PLUTO_PARSER_WARNING_LOCALDEF
 #endif
 
-#ifdef PLUTO_USE_COLORED_OUTPUT
-#define ERROR_DEFAULT_HERE					"\e[0;31m^ here\e[0;37m"
-#else
-#define ERROR_DEFAULT_HERE					"^ here"
-#endif
+#define BLK "\e[0;30m"
+#define RED "\e[0;31m"
+#define GRN "\e[0;32m"
+#define YEL "\e[0;33m"
+#define BLU "\e[0;34m"
+#define MAG "\e[0;35m"
+#define CYN "\e[0;36m"
+#define WHT "\e[0;37m"
 
-// Duplicate local declaration warning messages.
-#ifdef PLUTO_USE_COLORED_OUTPUT
-#define WARN_DUPLICATE_LOCAL				"\e[0;33m""warning\e[0;37m:\e[1;37m duplicate local declaration\e[0m [-D]"
-#define WARN_DUPLICATE_LOCAL_HERE			"\e[0;31m      %s duplicate declaration, this shadows the value of the initial declaration.\e[0;37m"
-#define WARN_DUPLICATE_LOCAL_VICTIM			"\e[0;31m  %s the value of this local is now being shadowed by line %d.\e[0;37m"
-#else
-#define WARN_DUPLICATE_LOCAL				"warning: duplicate local declaration [-D]"
-#define WARN_DUPLICATE_LOCAL_HERE			"      %s duplicate declaration, this shadows the value of the initial declaration."
-#define WARN_DUPLICATE_LOCAL_VICTIM			"  %s the value of this local is now being shadowed by line %d."
-#endif
+//Regular bold text
+#define BBLK "\e[1;30m"
+#define BRED "\e[1;31m"
+#define BGRN "\e[1;32m"
+#define BYEL "\e[1;33m"
+#define BBLU "\e[1;34m"
+#define BMAG "\e[1;35m"
+#define BCYN "\e[1;36m"
+#define BWHT "\e[1;37m"
 
-// Unexpected symbol error messages.
-#ifdef PLUTO_USE_COLORED_OUTPUT
-#define ERROR_UNEXPECTED_SYMBOL				"\e[0;31msyntax error\e[0;37m: \e[1;37munexpected symbol\e[0;37m"
-#define ERROR_UNEXPECTED_BRACKET			"\e[0;33m%s\n\e[0;32mnote: did you forget a matching bracket?\e[0;37m"
-#define ERROR_UNEXPECTED_ARITHMETIC			"\e[0;33m%s\n\e[0;32mnote: '%c' is used often in expressions (i.e, a = 1 %c 2). Did you forget to finish the expression?\e[0;37m"
-#else
-#define ERROR_UNEXPECTED_SYMBOL				"syntax error: unexpected symbol"
-#define ERROR_UNEXPECTED_BRACKET			"%s\nnote: did you forget a matching bracket?"
-#define ERROR_UNEXPECTED_ARITHMETIC			"%s\nnote: '%c' is used often in expressions (i.e, a = 1 %c 2). Did you forget to finish the expression?"
-#endif
+//Regular underline text
+#define UBLK "\e[4;30m"
+#define URED "\e[4;31m"
+#define UGRN "\e[4;32m"
+#define UYEL "\e[4;33m"
+#define UBLU "\e[4;34m"
+#define UMAG "\e[4;35m"
+#define UCYN "\e[4;36m"
+#define UWHT "\e[4;37m"
 
-// Missing identifier for local message.
-#ifdef PLUTO_USE_COLORED_OUTPUT
-#define ERROR_MISSING_LOCAL_NAME        	"\n\e[0;33m%s\n\e[0;32mnote: 'local' is not a valid identifier.\e[0;37m"
-#else
-#define ERROR_MISSING_LOCAL_NAME        	"%s\nnote: 'local' is not a valid identifier."
-#endif
+//Regular background
+#define BLKB "\e[40m"
+#define REDB "\e[41m"
+#define GRNB "\e[42m"
+#define YELB "\e[43m"
+#define BLUB "\e[44m"
+#define MAGB "\e[45m"
+#define CYNB "\e[46m"
+#define WHTB "\e[47m"
 
-// Function object without initial identifier.
-#ifdef PLUTO_USE_COLORED_OUTPUT
-#define ERROR_UNFINISHED_FUNCTION       	"\n\e[0;33m%s\n\e[0;32mnote: You may've forgot to name your function during declaration.\n      Functions must be associated with names when they're declared.\n      Here's an example inside the PIL: https://www.lua.org/pil/5.html\e[0;37m"
-#define ERROR_UNFINISHED_FUNCTION_SYN		"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected an identifier.\e[0;37m"
-#define ERROR_UNFINISHED_FUNCTION_HERE		"\e[0;31m        ^ here: missing function name.\e[0;37m"
-#else
-#define ERROR_UNFINISHED_FUNCTION       	"%s\nnote: You may've forgot to name your function during declaration.\n      Functions must be associated with names when they're declared.\n      Here's an example inside the PIL: https://www.lua.org/pil/5.html"
-#define ERROR_UNFINISHED_FUNCTION_SYN		"syntax error: expected an identifier."
-#define ERROR_UNFINISHED_FUNCTION_HERE		"        ^ here: missing function name."
-#endif
+//High intensty background 
+#define BLKHB "\e[0;100m"
+#define REDHB "\e[0;101m"
+#define GRNHB "\e[0;102m"
+#define YELHB "\e[0;103m"
+#define BLUHB "\e[0;104m"
+#define MAGHB "\e[0;105m"
+#define CYNHB "\e[0;106m"
+#define WHTHB "\e[0;107m"
 
-// Unfinished if statement, missing TK_THEN token.
-#ifdef PLUTO_USE_COLORED_OUTPUT
-#define ERROR_UNFINISHED_IF_STATEMENT   	"\n\e[0;33m%s\n\e[0;32mnote: You forgot to finish your condition with 'then'.\n      Pluto requires this symbol to append each condition.\n      If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html\e[0;37m"
-#define ERROR_UNFINISHED_IF_STATEMENT_SYN 	"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'then' to delimit 'if' condition.\e[0;37m"
-#define ERROR_UNFINISHED_IF_STATEMENT_HERE  "\e[0;31m      ^ here: missing 'then' symbol.\e[0;37m";
-#else
-#define ERROR_UNFINISHED_IF_STATEMENT   	"%s\nnote: You forgot to finish your condition with 'then'.\n      Pluto requires this symbol to append each condition.\n      If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html"
-#define ERROR_UNFINISHED_IF_STATEMENT_SYN 	"syntax error: expected 'then' to delimit 'if' condition."
-#define ERROR_UNFINISHED_IF_STATEMENT_HERE  "      ^ here: missing 'then' symbol.";
-#endif
+//High intensty text
+#define HBLK "\e[0;90m"
+#define HRED "\e[0;91m"
+#define HGRN "\e[0;92m"
+#define HYEL "\e[0;93m"
+#define HBLU "\e[0;94m"
+#define HMAG "\e[0;95m"
+#define HCYN "\e[0;96m"
+#define HWHT "\e[0;97m"
 
-// Control structure (i.e, do) doesn't end with 'end'.
-#ifdef PLUTO_USE_COLORED_OUTPUT
-#define ERROR_UNFINISHED_STRUCTURE_IF 		"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'end' to terminate 'if' structure.\e[0;37m"
-#define ERROR_UNFINISHED_STRUCTURE_DO		"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'end' to terminate 'do' structure.\e[0;37m"
-#define ERROR_UNFINISHED_STRUCTURE_FOR		"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'end' to terminate 'for' structure.\e[0;37m"
-#define ERROR_UNFINISHED_STRUCTURE_WHILE	"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'end' to terminate 'while' structure.\e[0;37m"
-#define ERROR_UNFINISHED_STRUCTURE_FUNCTION	"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'end' to terminate 'function' structure.\e[0;37m"
-#define ERROR_UNFINISHED_STRUCTURE_DEFAULT	"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'end' to terminate control structure.\e[0;37m"
-#define ERROR_UNFINISHED_STRUCTURE_END		"\e[0;33m%s\n\e[0;32mnote: You forgot to close your control structure with 'end'.\n      Pluto requires this symbol to append each control structure.\n      If needed, here's an example of how to delimit control structures: https://www.lua.org/pil/4.3.html\e[0;37m"
-#define ERROR_UNFINISHED_STRUCTURE_END_HERE "\e[0;31m^ after this\e[0;37m"
-#else
-#define ERROR_UNFINISHED_STRUCTURE_IF 		"syntax error: expected 'end' to terminate 'if' structure."
-#define ERROR_UNFINISHED_STRUCTURE_DO		"syntax error: expected 'end' to terminate 'do' structure."
-#define ERROR_UNFINISHED_STRUCTURE_FOR		"syntax error: expected 'end' to terminate 'for' structure."
-#define ERROR_UNFINISHED_STRUCTURE_WHILE	"syntax error: expected 'end' to terminate 'while' structure."
-#define ERROR_UNFINISHED_STRUCTURE_FUNCTION	"syntax error: expected 'end' to terminate 'function' structure."
-#define ERROR_UNFINISHED_STRUCTURE_DEFAULT	"syntax error: expected 'end' to terminate control structure."
-#define ERROR_UNFINISHED_STRUCTURE_END		"%s\nnote: You forgot to close your control structure with 'end'.\n      Pluto requires this symbol to append each control structure.\n      If needed, here's an example of how to delimit control structures: https://www.lua.org/pil/4.3.html"
-#define ERROR_UNFINISHED_STRUCTURE_END_HERE "^ after this"
-#endif
+//Bold high intensity text
+#define BHBLK "\e[1;90m"
+#define BHRED "\e[1;91m"
+#define BHGRN "\e[1;92m"
+#define BHYEL "\e[1;93m"
+#define BHBLU "\e[1;94m"
+#define BHMAG "\e[1;95m"
+#define BHCYN "\e[1;96m"
+#define BHWHT "\e[1;97m"
 
-#ifdef PLUTO_USE_COLORED_OUTPUT
-#define ERROR_MISSING_IN_SYM				"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'in' near loop statement.\e[0;37m"
-#define ERROR_MISSING_IN_SYM_HERE			"\e[0;31m       ^ missing 'in' symbol.\e[0;37m"
-#else
-#define ERROR_MISSING_IN_SYM				"syntax error: expected 'in' near loop statement."
-#define ERROR_MISSING_IN_SYM_HERE			"       ^ missing 'in' symbol."
-#endif
+//Reset
+#define RESET "\e[0m"
+#define CRESET "\e[0m"
+#define COLOR_RESET "\e[0m"
 
-#ifdef PLUTO_USE_COLORED_OUTPUT
-#define ERROR_MISPLACED_CONTINUE			"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'continue' within a loop block.\e[0;37m"
-#define ERROR_MISPLACED_CONTINUE_HERE		"\e[0;31m^^^^^^^^ here: this is not within a loop.\e[0;37m"
-#else
-#define ERROR_MISPLACED_CONTINUE			"syntax error: expected 'continue' within a loop block."
-#define ERROR_MISPLACED_CONTINUE_HERE		"^^^^^^^^ here: this is not within a loop."
-#endif
-
-// Control structure (i.e, do) doesn't end with 'end'.
-#ifdef PLUTO_USE_COLORED_OUTPUT
-#define ERROR_UNFINISHED_REPEAT_SYN			"\e[0;31msyntax error\e[0;37m: \e[1;37mexpected 'until' to terminate 'repeat' structure.\e[0;37m"
-#else
-#define ERROR_UNFINISHED_REPEAT_SYN			"syntax error: expected 'until' to terminate 'repeat' structure."
-#endif
 /* }================================================================== */
 #endif

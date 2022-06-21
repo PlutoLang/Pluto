@@ -1206,7 +1206,13 @@ static void addliteral (lua_State *L, luaL_Buffer *b, int arg) {
   }
 }
 
-
+/*
+** This is to guard against more serious errors in C implementations of sprintf.
+** They don't handle large field widths well. Lua used to pass the format as-is.
+** But if the host didn't support the format it would give incorrect results without raising an error.
+** Or worse, could cause data corruption or out-of-bounds memory writes. That's a recipe for security exploits.
+** Lua validates the format string then to permit only a limited and "safer" subset of what sprintf may do.
+*/
 static const char *get2digits (const char *s) {
   if (isdigit(uchar(*s))) {
     s++;

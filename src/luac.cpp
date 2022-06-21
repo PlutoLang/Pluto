@@ -316,7 +316,7 @@ static void PrintConstant(const Proto* f, int i)
 	break;
 	}
   case LUA_VNUMINT:
-	printf(LUA_INTEGER_FMT,ivalue(o));
+	printf(LUA_INTEGER_FMT, ivalue(o));
 	break;
   case LUA_VSHRSTR:
   case LUA_VLNGSTR:

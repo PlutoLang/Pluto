@@ -43,6 +43,7 @@ static const char *const luaX_tokens [] = {
     "and", "break", "continue", "do", "else", "elseif",
     "end", "false", "for", "function", "goto", "if",
     "in", "local", "nil", "not", "or", "repeat",
+    // "switch", "case", "default",
     "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=",
     "<<", ">>", "::", "<eof>",
@@ -186,6 +187,7 @@ static void inclinenumber (LexState *ls) {
 
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
                     int firstchar) {
+  ls->linebuff = std::string();
   ls->t.token = 0;
   ls->lasttoken = 0;
   ls->L = L;
@@ -503,22 +505,49 @@ static int llex (LexState *ls, SemInfo *seminfo) {
   luaZ_resetbuffer(ls->buff);
   for (;;) {
     switch (ls->current) {
-      case '\n': case '\r': {  /* line breaks */
+      case '\n': case '\r': {  /* Line breaks. */
         inclinenumber(ls);
+        if (ls->linebuff.length() > 1) { /* Remember the last statement to avoid empty lines in any debug info. */
+          ls->lastlinebuffnum = ls->linenumber - 1;
+          ls->lastlinebuff = ls->linebuff;
+          ls->linebuff.clear();
+          /*
+          ** Remove leading spaces, due to indentation.
+          ** This messes with the "^^^" string that's generated for each syntax error.
+          */
+          size_t index = ls->lastlinebuff.find_first_not_of(" \t");
+          if (index != std::string::npos) {
+            ls->lastlinebuff = ls->lastlinebuff.substr(index);
+          }
+          /*
+          ** Finally, employ a hard-lock on the largest string length.
+          ** This avoids excessively long errors, since we buffer the entire line.
+          */
+          if (ls->lastlinebuff.length() > 50) {
+            ls->lastlinebuff = ls->lastlinebuff.substr(0, 50) + "...";
+          }
+        }
         break;
       }
       case ' ': case '\f': case '\t': case '\v': {  /* spaces */
+        if (ls->linebuff.find_first_not_of(ls->current) != std::string::npos) {
+          ls->linebuff += ls->current;
+        }
         next(ls);
         break;
       }
       case '-': {  /* '-' or '--' (comment) */
         next(ls);
         if (check_next1(ls, '=')) { /* compound op */
+          ls->linebuff += "-=";
           ls->lasttoken = TK_CSUB;
           return '=';
         }
         else {
-          if (ls->current != '-') return '-';
+          if (ls->current != '-') {
+            ls->linebuff += '-';
+            return '-';
+          }
           /* else is a comment */
           next(ls);
           if (ls->current == '[') {  /* long comment? */
@@ -548,77 +577,134 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       }
       case '=': {
         next(ls);
-        if (check_next1(ls, '=')) return TK_EQ;  /* '==' */
-        else return '=';
+        if (check_next1(ls, '=')) {
+          ls->linebuff += "==";
+          return TK_EQ;  /* '==' */
+        }
+        else {
+          ls->linebuff += '=';
+          return '=';
+        }
       }
       case '<': {
         next(ls);
         if (check_next1(ls, '=')) {
+          ls->linebuff += "<=";
           return TK_LE;  /* '<=' */
         }
         else if (check_next1(ls, '<')) {
           if (check_next1(ls, '=')) {  /* compound support */
+            ls->linebuff += "<<=";
             ls->lasttoken = TK_CSHL;  /* <<= */
             return '=';
           }
-          else return TK_SHL;  /* '<<' */
+          else {
+            ls->linebuff += "<<";
+            return TK_SHL;  /* '<<' */
+          }
         }
-        else return '<';
+        else {
+          ls->linebuff += '<';
+          return '<';
+        }
       }
       case '>': {
         next(ls);
         if (check_next1(ls, '=')) {
+          ls->linebuff += ">=";
           return TK_GE;  /* '>=' */
         }
         else if (check_next1(ls, '>')) {
           if (check_next1(ls, '=')) {  /* compound support */
+            ls->linebuff += ">>=";
             ls->lasttoken = TK_CSHR;  /* >>= */
             return '=';
           }
-          else return TK_SHR;  /* '>>' */
+          else {
+            ls->linebuff += ">>";
+            return TK_SHR;  /* '>>' */
+          }
         }
-        else return '>';
+        else {
+          ls->linebuff += '>';
+          return '>';
+        }
       }
       case '/': {
         next(ls);
         if (check_next1(ls, '=')) {  /* compound support */
+          ls->linebuff += "/=";
           ls->lasttoken = TK_CDIV;
           return '=';
         } else {
           if (check_next1(ls, '/')) {
             if (!check_next1(ls, '=')) {
+              ls->linebuff += "//";
               return TK_IDIV;  /* '//' */
             }
             else {  /* floor division compound support */
+              ls->linebuff += "//=";
               ls->lasttoken = TK_CIDIV;
               return '=';
             }
           }
-          else return '/';
+          else {
+            ls->linebuff += '/';
+            return '/';
+          }
         }
       }
       case ':': {
         next(ls);
-        if (check_next1(ls, ':')) return TK_DBCOLON;  /* '::' */
-        else return ':';
+        if (check_next1(ls, ':')) {
+          ls->linebuff += "::";
+          return TK_DBCOLON;  /* '::' */
+        }
+        else {
+          ls->linebuff += ':';
+          return ':';
+        }
       }
       case '"': case '\'': {  /* short literal strings */
         read_string(ls, ls->current, seminfo);
+        ls->linebuff += "\"";
+        ls->linebuff += ls->t.seminfo.ts->contents;
+        ls->linebuff += "\"";
         return TK_STRING;
       }
       case '.': {  /* '.', '..', '...', or number */
         save_and_next(ls);
         if (check_next1(ls, '.')) {
-          if (check_next1(ls, '.'))
+          if (check_next1(ls, '.')) {
+            ls->linebuff += "...";
             return TK_DOTS;   /* '...' */
-          else return TK_CONCAT;   /* '..' */
+          }
+          else {
+            ls->linebuff += "..";
+            return TK_CONCAT;   /* '..' */
+          }
         }
-        else if (!lisdigit(ls->current)) return '.';
-        else return read_numeral(ls, seminfo);
+        else if (!lisdigit(ls->current)) {
+          ls->linebuff += '.';
+          return '.';
+        }
+        else {
+          int ret = read_numeral(ls, seminfo);
+          if (ret == TK_INT)
+            ls->linebuff += std::to_string(seminfo->i);
+          else
+            ls->linebuff += std::to_string(seminfo->r);
+          return ret;
+        }
       }
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9': {
-        return read_numeral(ls, seminfo);
+        int ret = read_numeral(ls, seminfo);
+        if (ret == TK_INT)
+          ls->linebuff += std::to_string(seminfo->i);
+        else
+          ls->linebuff += std::to_string(seminfo->r);
+        return ret;
       }
       case '_': {  /* arbitrary underscores for more readable long numbers */
         if (lislalpha(ls->current)) {
@@ -629,6 +715,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
                                   luaZ_bufflen(ls->buff));
           seminfo->ts = ts;
+          ls->linebuff += ts->contents;
           if (isreserved(ts))
             return ts->extra - 1 + FIRST_RESERVED;
           else {
@@ -637,30 +724,50 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         } else {  /* needed to emulate default check because _ is fairly multi-purpose. */
           next(ls);
           if (lisdigit(ls->current)) {
-            return read_numeral(ls, seminfo);  /* arbitrary character detected in numeral */
-          } else return '_';  /* this is a normal underscore */
+            int ret = read_numeral(ls, seminfo);
+            if (ret == TK_INT)
+              ls->linebuff += std::to_string(seminfo->i);
+            else
+              ls->linebuff += std::to_string(seminfo->r);
+            return ret;  /* arbitrary character detected in numeral */
+          } else {
+            ls->linebuff += '_';
+            return '_';  /* this is a normal underscore */
+          }
         }
       }
       case '~': {
         next(ls);
         if (check_next1(ls, '=')) {
+          ls->linebuff += "~=";
           return TK_NE;
-        } else return '~';
+        } else {
+          ls->linebuff += '~';
+          return '~';
+        }
       }
       case '*': {  /* special case compound, need to support mul, exponent, and augmented mul */
         next(ls);
         if (check_next1(ls, '=')) {
+          ls->linebuff += "*=";
           ls->lasttoken = TK_CMUL;
           return '=';  /* '*=' */
         }
         else if (check_next1(ls, '*')) { /*  got '**' */  
           if (check_next1(ls, '=')) {  /* compound support; **= */
+            ls->linebuff += "**=";
             ls->lasttoken = TK_CPOW;
             return '=';
           }
-          else return TK_POW;  /* '**' */
+          else {
+            ls->linebuff += "**";
+            return TK_POW;  /* '**' */
+          }
         }
-        else return '*';
+        else {
+          ls->linebuff += '*';
+          return '*';
+        }
       }
       /* compound support */
       case '+':
@@ -671,8 +778,15 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         if (check_next1(ls, '=')) {
           if (llex_augmented(ls, c) != 1) {
             lexerror(ls, "unsupported augmented assignment", c);
-          } else return '=';
-        } else return c;
+          } else {
+            ls->linebuff += c;
+            ls->linebuff += '=';
+            return '=';
+          }
+        } else {
+          ls->linebuff += c;
+          return c;
+        }
       }
       /* end of compound support */
       case EOZ: {
@@ -687,6 +801,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
                                   luaZ_bufflen(ls->buff));
           seminfo->ts = ts;
+          ls->linebuff += ts->contents;
           if (isreserved(ts))  /* reserved word? */
             return ts->extra - 1 + FIRST_RESERVED;
           else {
@@ -696,6 +811,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         else {  /* single-char tokens ('+', '*', '%', '{', '}', ...) */
           int c = ls->current;
           next(ls);
+          ls->linebuff += c;
           return c;
         }
       }
