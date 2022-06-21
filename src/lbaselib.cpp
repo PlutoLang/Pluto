@@ -504,6 +504,8 @@ static int luaB_tostring (lua_State *L) {
 
 static int luaB_newuserdata (lua_State *L) {
   lua_newuserdata(L, 0);
+  lua_newtable(L);
+  lua_setmetatable(L, -2);
   return 1;
 }
 
