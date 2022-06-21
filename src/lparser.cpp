@@ -175,16 +175,20 @@ static l_noret error_expected (LexState *ls, int token) {
       throwerr(ls, "expected 'do' to establish block.", "you need to append this with the 'do' symbol.");
     }
     case TK_THEN: {
-      ls->linebuff = ls->lastlinebuff;
-      ls->linenumber = ls->lastlinebuffnum;
+      if (ls->lastlinebuffnum != 0) {
+        ls->linebuff = ls->lastlinebuff;
+        ls->linenumber = ls->lastlinebuffnum;
+      }
       throwerr(ls, "expected 'then' to delimit condition.", "expected 'then' symbol.");
     }
     case TK_NAME: {
       throwerr(ls, "expected an identifier.", "this needs a name.");
     }
     case TK_CONTINUE: {
-      ls->linebuff = ls->lastlinebuff;
-      ls->linenumber = ls->lastlinebuffnum;
+      if (ls->lastlinebuffnum != 0) {
+        ls->linebuff = ls->lastlinebuff;
+        ls->linenumber = ls->lastlinebuffnum;
+      }
       throwerr(ls, "expected 'continue' inside a loop.", "this is not within a loop.");
     }
     default: {
@@ -1203,7 +1207,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line) {
 ** Lambda implementation.
 ** Shorthands lambda expressions into `function (...) return ... end`.
 ** The '|' token was chosen because it's not commonly used as an unary operator in programming.
-** The '=>' arrow syntax looked more visually appealing than a colon. It also plays along with common lambda tokens.
+** The '->' arrow syntax looked more visually appealing than a colon. It also plays along with common lambda tokens.
 */
 static void lambdabody (LexState *ls, expdesc *e, int line) {
   FuncState new_fs;
