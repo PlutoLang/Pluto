@@ -81,10 +81,13 @@ do
     local variable = "shadowed"
 end
 ```
-Given you run the file like this: `pluto -D file.plu`, the parser will emit the following message to standard error output:
-
-![This image failed to load.](https://i.imgur.com/cyQpvjB.png)
-
+Given you run the file like this: `pluto -D file.plu`, the parser will emit the following message:
+```
+tests/quick.lua:3: warning: duplicate local declaration [-D]
+         3 | local variable =
+           | ^^^^^^^^^^^^^^^^ here: this shadows the value of the initial declaration on line 1.
+           |
+```
 This feature can be removed from Pluto via the `PLUTO_PARSER_WARNING_LOCALDEF` macro in `luaconf.h`.
 ### Augmented Operators
 The following augmented operators have been added:
@@ -127,35 +130,30 @@ ipairs: ipairsaux, table, integer, nil
 ```
 When the latter `nil` TBC variable is never accessed, this optimization will occur.
 ## QoL Improvements
-These are modifications that don't really add something new, but improve existing behavior. Certain syntax errors now have more descriptive error messages, and some include a guide on how to correctly use Pluto's syntax. For example:
+These are modifications that don't really add something new, but improve existing behavior.
+
+### Syntax Errors
+Certain syntax errors now have more descriptive error messages. For example:
 ```lua
-function ()
-    return 10
-end
-```
-This code would normally return an error like, "expected `<name>` on line 98". Of course, this is plenty of information to solve the problem. However, here is the new error message:
-```
-file.plu:1: syntax error: expected <name> to perform as an identifier.
-        1 | function ()
-          |         ^ here: missing function name.
-          |
-note: You may've forgot to name your function during declaration. 
-      Functions must be associated with names when they're declared.
-      Here's an example inside the PIL: https://www.lua.org/pil/5.html
-```
-Another example: 
-```lua
-if true return 5 end
+if a < b and t == 5 return "Gottem" end
 ```
 Produces the following result:
 ```
-file.plu:1: syntax error: expected 'then' to delimit 'if' condition.
-           1 | if ... return
-             |       ^ here: missing 'then' symbol.
-             |
-note: You forgot to finish your condition with 'then'.
-      Pluto requires this symbol to append each condition.
-      If needed, here's an example of how to use the 'if' statement: https://www.lua.org/pil/4.3.1.html
+pluto: tests/quick.lua:1: syntax error: expected 'then' to delimit condition.
+         1 | if a < b and t == 5 return
+           | ^^^^^^^^^^^^^^^^^^^^^^^^^^ here: expected 'then' symbol.
+           |
+```
+Another example, with a mistyped lambda expression:
+```lua
+|| => true
+```
+Emits this message:
+```
+pluto: tests/quick.lua:1: syntax error: unexpected symbol
+         1 | || =>
+           | ^^^^^ here: did you mean to construct a lambda (|...| -> expr)?
+           |
 ```
 This also supports ANSI color codes, however this is disabled by default in order to encourage portability. For example, ANSI color codes do not work on most Windows command prompts. Define the `PLUTO_USE_COLORED_OUTPUT` macro in `luaconf.h` to enable colored error messages — they look quite nice.
 - For most Windows 10 users, you can enable ANSI color code support with this shell command:

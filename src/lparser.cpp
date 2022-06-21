@@ -166,6 +166,19 @@ static void throw_warn (LexState *ls, const char *err, const char *here) {
 */
 static l_noret error_expected (LexState *ls, int token) {
   switch (token) {
+    case '|': {
+      throwerr(ls,
+        "expected '|' to control parameters.",
+        "expected '|' to begin & terminate the lambda's paramater list.");
+    }
+    case '-': {
+      if (luaX_lookahead(ls) == '>') {
+        throwerr(ls,
+          "impromper lambda definition",
+          "expected '->' arrow syntax for lambda expression.");
+      }
+      goto _default; // Run-through default case, no more work to be done.
+    }
     case TK_IN: {
       throwerr(ls, "expected 'in' to delimit loop iterator.", "expected 'in' symbol.");
     }
@@ -192,8 +205,8 @@ static l_noret error_expected (LexState *ls, int token) {
       throwerr(ls, "expected 'continue' inside a loop.", "this is not within a loop.");
     }
     default: {
-      luaX_syntaxerror(ls,
-        luaO_pushfstring(ls->L, "%s expected", luaX_token2str(ls, token)));
+      _default:
+      throwerr(ls, luaO_fmt(ls->L, "%s expected", luaX_token2str(ls, token)), "this is invalid syntax.");
     }
   }
 }
@@ -1323,14 +1336,9 @@ static void primaryexp (LexState *ls, expdesc *v) {
           }
           return;
         }
-        case '|': { // Mistyped lambda expressions. People may confuse '->' with '=>'.
-          luaX_lookahead(ls); // Skip next '|' character.
-          if (luaX_lookahead(ls) == '=') {
-            throwerr(ls, "unexpected symbol", "did you mean to construct a lambda (|...| -> expr)?");
-          }
-          else {
-            throwerr(ls, "unexpected symbol near '|'", "unexpected symbol.");
-          }
+        case '|': { // Potentially mistyped lambda expression. People may confuse '->' with '=>'.
+          while (testnext(ls, '|') || testnext(ls, TK_NAME) || testnext(ls, ','));
+          throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
           return;
         }
         default: {
