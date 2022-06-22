@@ -132,6 +132,11 @@ When the latter `nil` TBC variable is never accessed, this optimization will occ
 ## QoL Improvements
 These are modifications that don't really add something new, but improve existing behavior.
 
+### Excessive Iteration Prevention
+This is an optional, but fairly simple heuristic that limits the amount of backward-jumps performed prior to a forward-jump, which applies to loops. Every backward-jump is usually a new iteration, and forward jumps are usually escaping statements. Taking advantage of this circumstance, Pluto can bottleneck the amount of backward-jumps permitted to avoid excessive iterations — which are usually problematic for blocking game threads — and prevent the operation of infinite loops, or loops which may crash the game thread.
+
+This supports a statically-defined bottleneck — `MAX_LOOP_ITERATIONS` in `luaconf.h` — which defines the amount of permitted iterations. This also supports hooking the `OP_CALL` opcode, and preventing loop termination if a certain function is called. This was implemented because game threads usually force users to call some sort of `yield` mechanism to prevent a crash — `FUNCTION_NAME_TO_HOOK` in `luaconf.h` — but, the function must be avalible in the Pluto runtime. `ERROR_FOR_PREVENTION` can also be enabled to throw a runtime error during exception, otherwise Pluto will simply break out of the loop.
+
 ### Syntax Errors
 Certain syntax errors now have more descriptive error messages. For example:
 ```lua

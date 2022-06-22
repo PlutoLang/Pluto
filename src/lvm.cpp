@@ -1177,6 +1177,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   StkId base;
   const Instruction *pc;
   int trap;
+#ifdef INFINITE_LOOP_PREVENTION
+  int sequentialJumps = 0;
+#endif
 #if LUA_USE_JUMPTABLE
 #include "ljumptab.h"
 #endif
@@ -1592,7 +1595,22 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
       vmcase(OP_JMP) {
-        dojump(ci, i, 0);
+        int offset = GETARG_sJ(i);
+#ifdef INFINITE_LOOP_PREVENTION
+        if (offset <= 0) {
+          sequentialJumps++;
+        }
+        else sequentialJumps = 0;
+        if (sequentialJumps >= MAX_LOOP_ITERATIONS) {
+          sequentialJumps = 0;
+#if ERROR_FOR_PREVENTION
+          luaG_runerror(L, "infinite loop detected (exceeded max iterations: %d)", MAX_LOOP_ITERATIONS);
+#endif
+          vmbreak;
+        }
+#endif // INFINITE_LOOP_PREVENTION
+        pc += offset;
+        updatetrap(ci);
         vmbreak;
       }
       vmcase(OP_EQ) {
@@ -1668,6 +1686,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           L->top = ra + b;  /* top signals number of arguments */
         /* else previous instruction set top */
         savepc(L);  /* in case of errors */
+#ifdef FUNCTION_NAME_TO_HOOK
+        if (fvalue(s2v(ra)) == FUNCTION_NAME_TO_HOOK) sequentialJumps = 0;
+#endif
         if ((newci = luaD_precall(L, ra, nresults)) == NULL)
           updatetrap(ci);  /* C call; nothing else to be done */
         else {  /* Lua call: run function in this same C frame */

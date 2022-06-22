@@ -860,5 +860,23 @@
 #define CRESET "\e[0m"
 #define COLOR_RESET "\e[0m"
 
+// Infinite Loop Prevention
+#define INFINITE_LOOP_PREVENTION
+#undef INFINITE_LOOP_PREVENTION
+#ifdef INFINITE_LOOP_PREVENTION
+/*
+** This is the maximum amount of backward jumps permitted in a singular loop block.
+** If this exceeds MAX_LOOP_ITERATIONS, the backward jump is ignored to escape the loop.
+**
+** This is only useful in game regions, where a long loop may block the main thread and crash the game.
+** These places usually implement a yield (or wait) function, which can be detected and hooked to reset iterations.
+*/
+#define MAX_LOOP_ITERATIONS			1000000
+// If you want (i.e) `luaB_next` to reset iteration counters, define as `luaB_next`.
+// #define FUNCTION_NAME_TO_HOOK		luaB_next
+// Throw an error instead of breaking out of the loop.
+#define ERROR_FOR_PREVENTION		1
+#endif // INFINITE_LOOP_PREVENTION
+
 /* }================================================================== */
 #endif
