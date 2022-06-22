@@ -293,7 +293,7 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
     if (slot == NULL) {  /* 't' is not a table? */
       lua_assert(!ttistable(t));
       if (isValueString) { /* index for character of string */
-        lua_Integer index = ivalue(key);
+        long long unsigned int index = ivalue(key);
         if ((vslen(t) < index) || (index < 1)) { /* invalid index */
           setnilvalue(s2v(val));
           return;
