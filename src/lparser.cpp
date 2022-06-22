@@ -37,7 +37,7 @@
 
 /* maximum number of local variables per function (must be smaller
    than 250, due to the bytecode format) */
-#define MAXVARS		200
+#define MAXVARS		249
 
 
 #define hasmultret(k)		((k) == VCALL || (k) == VVARARG)
