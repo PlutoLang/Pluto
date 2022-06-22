@@ -1493,7 +1493,7 @@ static void codebitwise (FuncState *fs, BinOpr opr,
     return;
   }
   v2 = e2->u.info;  /* index in K array */
-  op = cast(OpCode, (int)opr + (int)OP_ADDK);
+  op = cast(OpCode, static_cast<int>(opr) + static_cast<int>(OP_ADDK));
   lua_assert(ttisinteger(&fs->f->k[v2]));
   finishbinexpval(fs, e1, e2, op, v2, flip, line, OP_MMBINK,
                   cast(TMS, static_cast<int>(opr) + static_cast<int>(TM_ADD)));
