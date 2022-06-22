@@ -1440,14 +1440,14 @@ static void swapexps (expdesc *e1, expdesc *e2) {
 */
 static void codearith (FuncState *fs, BinOpr opr,
                        expdesc *e1, expdesc *e2, int flip, int line) {
-  TMS event = cast(TMS, opr + TM_ADD);
+  TMS event = cast(TMS, static_cast<int>(opr) + static_cast<int>(TM_ADD));
   if (tonumeral(e2, NULL) && luaK_exp2K(fs, e2)) {  /* K operand? */
     int v2 = e2->u.info;  /* K index */
-    OpCode op = cast(OpCode, opr + OP_ADDK);
+    OpCode op = cast(OpCode, static_cast<int>(opr) + static_cast<int>(OP_ADDK));
     finishbinexpval(fs, e1, e2, op, v2, flip, line, OP_MMBINK, event);
   }
   else {  /* 'e2' is neither an immediate nor a K operand */
-    OpCode op = cast(OpCode, opr + OP_ADD);
+    OpCode op = cast(OpCode, static_cast<int>(opr) + static_cast<int>(OP_ADD));
     if (flip)
       swapexps(e1, e2);  /* back to original order */
     codebinexpval(fs, op, e1, e2, line);  /* use standard operators */
@@ -1488,15 +1488,15 @@ static void codebitwise (FuncState *fs, BinOpr opr,
     flip = 1;
   }
   else if (!(e2->k == VKINT && luaK_exp2RK(fs, e2))) {  /* no constants? */
-    op = cast(OpCode, opr + OP_ADD);
+    op = cast(OpCode, static_cast<int>(opr) + static_cast<int>(OP_ADD));
     codebinexpval(fs, op, e1, e2, line);  /* all-register opcodes */
     return;
   }
   v2 = e2->u.info;  /* index in K array */
-  op = cast(OpCode, opr + OP_ADDK);
+  op = cast(OpCode, static_cast<int>(opr) + static_cast<int>(OP_ADDK));
   lua_assert(ttisinteger(&fs->f->k[v2]));
   finishbinexpval(fs, e1, e2, op, v2, flip, line, OP_MMBINK,
-                  cast(TMS, opr + TM_ADD));
+                  cast(TMS, static_cast<int>(opr) + static_cast<int>(TM_ADD)));
 }
 
 
@@ -1574,7 +1574,7 @@ void luaK_prefix (FuncState *fs, UnOpr op, expdesc *e, int line) {
         break;
       /* else */ /* FALLTHROUGH */
     case OPR_LEN:
-      codeunexpval(fs, cast(OpCode, op + OP_UNM), e, line);
+      codeunexpval(fs, cast(OpCode, static_cast<int>(op) + static_cast<int>(OP_UNM)), e, line);
       break;
     case OPR_NOT: codenot(fs, e); break;
     default: lua_assert(0);
