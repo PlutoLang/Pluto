@@ -130,9 +130,7 @@ ipairs: ipairsaux, table, integer, nil
 ```
 When the latter `nil` TBC variable is never accessed, this optimization will occur.
 ### Table Length
-The length of tables (`#mytable`) is now automatically cached by Pluto after you request it for the first time. The cache is updated whenever a change is made to the table. Following this optimization, fetching table length is roughly twice as fast.
-
-The `table.getn` function has been provided in case a bug appears with the cache. However, it's unlikely a bug will appear.
+The length of tables (`#mytable`) is now automatically cached by Pluto after you request it for the first time. The cache is updated whenever a change is made to the table. Following this optimization, fetching table length is roughly twice as fast. The `table.getn` function has been provided in case a bug appears with the cache. However, it's unlikely a bug will appear.
 ## QoL Improvements
 These are modifications that don't really add something new, but improve existing behavior.
 
