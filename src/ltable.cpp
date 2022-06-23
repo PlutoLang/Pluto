@@ -928,6 +928,7 @@ lua_Unsigned luaH_getn (Table *t) {
         t->alimit = limit - 1;
         setnorealasize(t);  /* now 'alimit' is not the real size */
       }
+      t->length = limit - 1;
       return limit - 1;
     }
     else {  /* must search for a boundary in [0, limit] */
@@ -937,14 +938,17 @@ lua_Unsigned luaH_getn (Table *t) {
         t->alimit = boundary;  /* use it as the new limit */
         setnorealasize(t);
       }
+      t->length = boundary;
       return boundary;
     }
   }
   /* 'limit' is zero or present in table */
   if (!limitequalsasize(t)) {  /* (2)? */
     /* 'limit' > 0 and array has more elements after 'limit' */
-    if (isempty(&t->array[limit]))  /* 'limit + 1' is empty? */
+    if (isempty(&t->array[limit])) {  /* 'limit + 1' is empty? */
+      t->length = limit;
       return limit;  /* this is the boundary */
+    }
     /* else, try last element in the array */
     limit = luaH_realasize(t);
     if (isempty(&t->array[limit - 1])) {  /* empty? */
@@ -952,6 +956,7 @@ lua_Unsigned luaH_getn (Table *t) {
          and it must be a valid new limit */
       unsigned int boundary = binsearch(t->array, t->alimit, limit);
       t->alimit = boundary;
+      t->length = boundary;
       return boundary;
     }
     /* else, new limit is present in the table; check the hash part */
@@ -959,10 +964,14 @@ lua_Unsigned luaH_getn (Table *t) {
   /* (3) 'limit' is the last element and either is zero or present in table */
   lua_assert(limit == luaH_realasize(t) &&
              (limit == 0 || !isempty(&t->array[limit - 1])));
-  if (isdummy(t) || isempty(luaH_getint(t, cast(lua_Integer, limit + 1))))
+  if (isdummy(t) || isempty(luaH_getint(t, cast(lua_Integer, limit + 1)))) {
+    t->length = limit;
     return limit;  /* 'limit + 1' is absent */
-  else  /* 'limit + 1' is also present */
-    return hash_search(t, limit);
+  }
+  else { /* 'limit + 1' is also present */
+    t->length = hash_search(t, limit);
+    return t->length;
+  }
 }
 
 
