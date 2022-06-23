@@ -409,6 +409,13 @@ static int sort (lua_State *L) {
   return 0;
 }
 
+
+static int getn (lua_State *L) {
+  lua_pushinteger(aux_getn(L, 1, TAB_RW));
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
@@ -420,6 +427,7 @@ static const luaL_Reg tab_funcs[] = {
   {"remove", tremove},
   {"move", tmove},
   {"sort", sort},
+  {"getn", getn},
   {NULL, NULL}
 };
 
