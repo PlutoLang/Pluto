@@ -929,6 +929,16 @@ LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {
 }
 
 
+LUA_API void lua_setcachelen (lua_State *L, lua_Unsigned len, int idx) {
+  Table *t;
+  lua_lock(L);
+  api_checknelems(L, 1);
+  t = gettable(L, idx);
+  t->length = len;
+  lua_unlock(L);
+}
+
+
 LUA_API int lua_setmetatable (lua_State *L, int objindex) {
   TValue *obj;
   Table *mt;

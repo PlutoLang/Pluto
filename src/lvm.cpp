@@ -1349,6 +1349,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaV_finishset(L, s2v(ra), rb, rc, slot));
+        hvalue(s2v(ra))->length = 0; /* reset cache on modification */
         vmbreak;
       }
       vmcase(OP_SETI) {
