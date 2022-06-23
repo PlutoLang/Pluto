@@ -1333,8 +1333,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
           luaV_finishfastset(L, upval, slot, rc);
         }
-        else
+        else {
+          hvalue(s2v(ra))->length = 0;
           Protect(luaV_finishset(L, upval, rb, rc, slot));
+        }
         vmbreak;
       }
       vmcase(OP_SETTABLE) {
