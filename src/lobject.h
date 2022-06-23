@@ -733,7 +733,7 @@ typedef struct Table {
   Node *lastfree;  /* any free position is before this position */
   struct Table *metatable;
   GCObject *gclist;
-  unsigned int length;
+  lua_Unsigned length;  /* cached length of this table, as returned by luaH_getn */
 } Table;
 
 
