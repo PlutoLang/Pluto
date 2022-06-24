@@ -169,25 +169,25 @@ LUALIB_API void luaL_traceback (lua_State *L, lua_State *L1,
 ** =======================================================
 */
 
-LUALIB_API int luaL_argerror (lua_State *L, int arg, const char *extramsg) {
+LUALIB_API void luaL_argerror (lua_State *L, int arg, const char *extramsg) {
   lua_Debug ar;
   if (!lua_getstack(L, 0, &ar))  /* no stack frame? */
-    return luaL_error(L, "bad argument #%d (%s)", arg, extramsg);
+    luaL_error(L, "bad argument #%d (%s)", arg, extramsg);
   lua_getinfo(L, "n", &ar);
   if (strcmp(ar.namewhat, "method") == 0) {
     arg--;  /* do not count 'self' */
     if (arg == 0)  /* error is in the self argument itself? */
-      return luaL_error(L, "calling '%s' on bad self (%s)",
+      luaL_error(L, "calling '%s' on bad self (%s)",
                            ar.name, extramsg);
   }
   if (ar.name == NULL)
     ar.name = (pushglobalfuncname(L, &ar)) ? lua_tostring(L, -1) : "?";
-  return luaL_error(L, "bad argument #%d to '%s' (%s)",
+  luaL_error(L, "bad argument #%d to '%s' (%s)",
                         arg, ar.name, extramsg);
 }
 
 
-LUALIB_API int luaL_typeerror (lua_State *L, int arg, const char *tname) {
+LUALIB_API void luaL_typeerror (lua_State *L, int arg, const char *tname) {
   const char *msg;
   const char *typearg;  /* name for the type of the actual argument */
   if (luaL_getmetafield(L, arg, "__name") == LUA_TSTRING)
@@ -197,11 +197,11 @@ LUALIB_API int luaL_typeerror (lua_State *L, int arg, const char *tname) {
   else
     typearg = luaL_typename(L, arg);  /* standard name */
   msg = lua_pushfstring(L, "%s expected, got %s", tname, typearg);
-  return luaL_argerror(L, arg, msg);
+  luaL_argerror(L, arg, msg);
 }
 
 
-static void tag_error (lua_State *L, int arg, int tag) {
+[[noreturn]] static void tag_error (lua_State *L, int arg, int tag) {
   luaL_typeerror(L, arg, lua_typename(L, tag));
 }
 
@@ -228,14 +228,14 @@ LUALIB_API void luaL_where (lua_State *L, int level) {
 ** not need reserved stack space when called. (At worst, it generates
 ** an error with "stack overflow" instead of the given message.)
 */
-LUALIB_API int luaL_error (lua_State *L, const char *fmt, ...) {
+LUALIB_API void luaL_error (lua_State *L, const char *fmt, ...) {
   va_list argp;
   va_start(argp, fmt);
   luaL_where(L, 1);
   lua_pushvfstring(L, fmt, argp);
   va_end(argp);
   lua_concat(L, 2);
-  return lua_error(L);
+  lua_error(L);
 }
 
 
@@ -362,8 +362,7 @@ LUALIB_API int luaL_checkoption (lua_State *L, int arg, const char *def,
   for (i=0; lst[i]; i++)
     if (strcmp(lst[i], name) == 0)
       return i;
-  return luaL_argerror(L, arg,
-                       lua_pushfstring(L, "invalid option '%s'", name));
+  luaL_argerror(L, arg, lua_pushfstring(L, "invalid option '%s'", name));
 }
 
 
@@ -428,7 +427,7 @@ LUALIB_API lua_Number luaL_optnumber (lua_State *L, int arg, lua_Number def) {
 }
 
 
-static void interror (lua_State *L, int arg) {
+[[noreturn]] static void interror (lua_State *L, int arg) {
   if (lua_isnumber(L, arg))
     luaL_argerror(L, arg, "number has no integer representation");
   else
@@ -528,7 +527,7 @@ static void newbox (lua_State *L) {
 static size_t newbuffsize (luaL_Buffer *B, size_t sz) {
   size_t newsize = B->size * 2;  /* double buffer size */
   if (l_unlikely(MAX_SIZET - sz < B->n))  /* overflow in (B->n + sz)? */
-    return luaL_error(B->L, "buffer too large");
+    luaL_error(B->L, "buffer too large");
   if (newsize < B->n + sz)  /* double is not big enough? */
     newsize = B->n + sz;
   return newsize;

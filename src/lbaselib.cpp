@@ -108,7 +108,7 @@ static int luaB_tonumber (lua_State *L) {
 }
 
 
-static int luaB_error (lua_State *L) {
+[[noreturn]] static int luaB_error (lua_State *L) {
   int level = (int)luaL_optinteger(L, 2, 1);
   lua_settop(L, 1);
   if (lua_type(L, 1) == LUA_TSTRING && level > 0) {
@@ -116,7 +116,7 @@ static int luaB_error (lua_State *L) {
     lua_pushvalue(L, 1);
     lua_concat(L, 2);
   }
-  return lua_error(L);
+  lua_error(L);
 }
 
 
@@ -136,7 +136,7 @@ static int luaB_setmetatable (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_argexpected(L, t == LUA_TNIL || t == LUA_TTABLE, 2, "nil or table");
   if (l_unlikely(luaL_getmetafield(L, 1, "__metatable") != LUA_TNIL))
-    return luaL_error(L, "cannot change a protected metatable");
+    luaL_error(L, "cannot change a protected metatable");
   lua_settop(L, 2);
   lua_setmetatable(L, 1);
   return 1;
@@ -415,7 +415,7 @@ static int luaB_dofile (lua_State *L) {
   const char *fname = luaL_optstring(L, 1, NULL);
   lua_settop(L, 1);
   if (l_unlikely(luaL_loadfile(L, fname) != LUA_OK))
-    return lua_error(L);
+    lua_error(L);
   lua_callk(L, 0, LUA_MULTRET, 0, dofilecont);
   return dofilecont(L, 0, 0);
 }
@@ -429,7 +429,7 @@ static int luaB_assert (lua_State *L) {
     lua_remove(L, 1);  /* remove it */
     lua_pushliteral(L, "assertion failed!");  /* default message */
     lua_settop(L, 1);  /* leave only message (default if no other one) */
-    return luaB_error(L);  /* call 'error' */
+    luaB_error(L);  /* call 'error' */
   }
 }
 

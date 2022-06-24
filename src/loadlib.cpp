@@ -537,7 +537,7 @@ static int checkload (lua_State *L, int stat, const char *filename) {
     return 2;  /* return open function and file name */
   }
   else
-    return luaL_error(L, "error loading module '%s' from file '%s':\n\t%s",
+    luaL_error(L, "error loading module '%s' from file '%s':\n\t%s",
                           lua_tostring(L, 1), filename, lua_tostring(L, -1));
 }
 

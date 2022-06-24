@@ -86,7 +86,7 @@ static int luaB_auxwrap (lua_State *L) {
       lua_insert(L, -2);
       lua_concat(L, 2);
     }
-    return lua_error(L);  /* propagate error */
+    lua_error(L);  /* propagate error */
   }
   return r;
 }
@@ -184,7 +184,7 @@ static int luaB_close (lua_State *L) {
       }
     }
     default:  /* normal or running coroutine */
-      return luaL_error(L, "cannot close a %s coroutine", statname[status]);
+      luaL_error(L, "cannot close a %s coroutine", statname[status]);
   }
 }
 

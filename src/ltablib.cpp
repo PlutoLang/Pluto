@@ -80,7 +80,7 @@ static int tinsert (lua_State *L) {
       break;
     }
     default: {
-      return luaL_error(L, "wrong number of arguments to 'insert'");
+      luaL_error(L, "wrong number of arguments to 'insert'");
     }
   }
   lua_seti(L, 1, pos);  /* t[pos] = v */
@@ -200,7 +200,7 @@ static int tunpack (lua_State *L) {
   n = (lua_Unsigned)e - i;  /* number of elements minus 1 (avoid overflows) */
   if (l_unlikely(n >= (unsigned int)INT_MAX  ||
                  !lua_checkstack(L, (int)(++n))))
-    return luaL_error(L, "too many results to unpack");
+    luaL_error(L, "too many results to unpack");
   for (; i < e; i++) {  /* push arg[i..e - 1] (to avoid overflows) */
     lua_geti(L, 1, i);
   }

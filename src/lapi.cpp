@@ -1243,7 +1243,7 @@ LUA_API int lua_gc (lua_State *L, int what, ...) {
 */
 
 
-LUA_API int lua_error (lua_State *L) {
+LUA_API void lua_error (lua_State *L) {
   TValue *errobj;
   lua_lock(L);
   errobj = s2v(L->top - 1);
@@ -1253,8 +1253,6 @@ LUA_API int lua_error (lua_State *L) {
     luaM_error(L);  /* raise a memory error */
   else
     luaG_errormsg(L);  /* raise a regular error */
-  /* code unreachable; will unlock when control actually leaves the kernel */
-  return 0;  /* to avoid warnings */
 }
 
 

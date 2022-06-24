@@ -155,7 +155,7 @@ static int str_rep (lua_State *L) {
   if (n <= 0)
     lua_pushliteral(L, "");
   else if (l_unlikely(l + lsep < l || l + lsep > MAXSIZE / n))
-    return luaL_error(L, "resulting string too large");
+    luaL_error(L, "resulting string too large");
   else {
     size_t totallen = (size_t)n * l + (size_t)(n - 1) * lsep;
     luaL_Buffer b;
@@ -183,7 +183,7 @@ static int str_byte (lua_State *L) {
   int n, i;
   if (posi > pose) return 0;  /* empty interval; return no values */
   if (l_unlikely(pose - posi >= (size_t)INT_MAX))  /* arithmetic overflow? */
-    return luaL_error(L, "string slice too long");
+    luaL_error(L, "string slice too long");
   n = (int)(pose -  posi) + 1;
   luaL_checkstack(L, n, "string slice too long");
   for (i=0; i<n; i++)
@@ -237,7 +237,7 @@ static int str_dump (lua_State *L) {
   lua_settop(L, 1);  /* ensure function is on the top of the stack */
   state.init = 0;
   if (l_unlikely(lua_dump(L, writer, &state, strip) != 0))
-    return luaL_error(L, "unable to dump given function");
+    luaL_error(L, "unable to dump given function");
   luaL_pushresult(&state.B);
   return 1;
 }
@@ -387,7 +387,7 @@ static int check_capture (MatchState *ms, int l) {
   l -= '1';
   if (l_unlikely(l < 0 || l >= ms->level ||
                  ms->capture[l].len == CAP_UNFINISHED))
-    return luaL_error(ms->L, "invalid capture index %%%d", l + 1);
+    luaL_error(ms->L, "invalid capture index %%%d", l + 1);
   return l;
 }
 
@@ -396,7 +396,7 @@ static int capture_to_close (MatchState *ms) {
   int level = ms->level;
   for (level--; level>=0; level--)
     if (ms->capture[level].len == CAP_UNFINISHED) return level;
-  return luaL_error(ms->L, "invalid pattern capture");
+  luaL_error(ms->L, "invalid pattern capture");
 }
 
 
@@ -930,8 +930,7 @@ static int add_value (MatchState *ms, luaL_Buffer *b, const char *s,
     return 0;  /* no changes */
   }
   else if (l_unlikely(!lua_isstring(L, -1)))
-    return luaL_error(L, "invalid replacement value (a %s)",
-                         luaL_typename(L, -1));
+    luaL_error(L, "invalid replacement value (a %s)", luaL_typename(L, -1));
   else {
     luaL_addvalue(b);  /* add result to accumulator */
     return 1;  /* something changed */
@@ -1062,7 +1061,7 @@ static int lua_number2strx (lua_State *L, char *buff, int sz,
       buff[i] = toupper(uchar(buff[i]));
   }
   else if (l_unlikely(fmt[SIZELENMOD] != 'a'))
-    return luaL_error(L, "modifiers for format '%%a'/'%%A' not implemented");
+    luaL_error(L, "modifiers for format '%%a'/'%%A' not implemented");
   return n;
 }
 
@@ -1297,7 +1296,7 @@ static int str_format (lua_State *L) {
       char *buff = luaL_prepbuffsize(&b, maxitem);  /* to put result */
       int nb = 0;  /* number of bytes in result */
       if (++arg > top)
-        return luaL_argerror(L, arg, "no value");
+        luaL_argerror(L, arg, "no value");
       strfrmt = getformat(L, strfrmt, form);
       switch (*strfrmt++) {
         case 'c': {
@@ -1349,7 +1348,7 @@ static int str_format (lua_State *L) {
         }
         case 'q': {
           if (form[2] != '\0')  /* modifiers? */
-            return luaL_error(L, "specifier '%%q' cannot have modifiers");
+            luaL_error(L, "specifier '%%q' cannot have modifiers");
           addliteral(L, &b, arg);
           break;
         }
@@ -1373,7 +1372,7 @@ static int str_format (lua_State *L) {
           break;
         }
         default: {  /* also treat cases 'pnLlh' */
-          return luaL_error(L, "invalid conversion '%s' to 'format'", form);
+          luaL_error(L, "invalid conversion '%s' to 'format'", form);
         }
       }
       lua_assert(nb < maxitem);
@@ -1473,7 +1472,7 @@ static int getnum (const char **fmt, int df) {
 static int getnumlimit (Header *h, const char **fmt, int df) {
   int sz = getnum(fmt, df);
   if (l_unlikely(sz > MAXINTSIZE || sz <= 0))
-    return luaL_error(h->L, "integral size (%d) out of limits [1,%d]",
+    luaL_error(h->L, "integral size (%d) out of limits [1,%d]",
                             sz, MAXINTSIZE);
   return sz;
 }
