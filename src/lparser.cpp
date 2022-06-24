@@ -78,14 +78,16 @@ static void expr (LexState *ls, expdesc *v);
 ** Formats an error with the appropriate source code snippet.
 */
 static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here) {
-  const char *pad = std::string(std::to_string(ls->linenumber).length(), ' ').c_str();
+  std::string pad = std::string(std::to_string(ls->linenumber).length(), ' ');
   const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
 #ifndef PLUTO_USE_COLORED_OUTPUT
   text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+                          text, pad.c_str(), ls->linenumber, token,
+                          pad.c_str(), pad.c_str(), here, pad.c_str(), pad.c_str();
 #else
   text = luaO_pushfstring(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          YEL, text, RESET, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+                          YEL, text, RESET, pad.c_str(), ls->linenumber, token,
+                          pad.c_str(), pad.c_str(), here, pad.c_str(), pad.c_str());
 #endif
   return text;
 }
