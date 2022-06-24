@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\ltm.cpp" />
+    <ClCompile Include="src\lua.cpp" />
+    <ClCompile Include="src\lundump.cpp" />
+    <ClCompile Include="src\lutf8lib.cpp" />
+    <ClCompile Include="src\lvm.cpp" />
+    <ClCompile Include="src\lzio.cpp" />
+    <ClCompile Include="src\lapi.cpp" />
+    <ClCompile Include="src\lauxlib.cpp" />
+    <ClCompile Include="src\lbaselib.cpp" />
+    <ClCompile Include="src\lcode.cpp" />
+    <ClCompile Include="src\lcorolib.cpp" />
+    <ClCompile Include="src\lctype.cpp" />
+    <ClCompile Include="src\ldblib.cpp" />
+    <ClCompile Include="src\ldebug.cpp" />
+    <ClCompile Include="src\ldo.cpp" />
+    <ClCompile Include="src\ldump.cpp" />
+    <ClCompile Include="src\lfunc.cpp" />
+    <ClCompile Include="src\lgc.cpp" />
+    <ClCompile Include="src\linit.cpp" />
+    <ClCompile Include="src\liolib.cpp" />
+    <ClCompile Include="src\llex.cpp" />
+    <ClCompile Include="src\lmathlib.cpp" />
+    <ClCompile Include="src\lmem.cpp" />
+    <ClCompile Include="src\loadlib.cpp" />
+    <ClCompile Include="src\lobject.cpp" />
+    <ClCompile Include="src\lopcodes.cpp" />
+    <ClCompile Include="src\loslib.cpp" />
+    <ClCompile Include="src\lparser.cpp" />
+    <ClCompile Include="src\lstate.cpp" />
+    <ClCompile Include="src\lstring.cpp" />
+    <ClCompile Include="src\lstrlib.cpp" />
+    <ClCompile Include="src\ltable.cpp" />
+    <ClCompile Include="src\ltablib.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\ltm.h" />
+    <ClInclude Include="src\lua.h" />
+    <ClInclude Include="src\lua.hpp" />
+    <ClInclude Include="src\luaconf.h" />
+    <ClInclude Include="src\lualib.h" />
+    <ClInclude Include="src\lundump.h" />
+    <ClInclude Include="src\lvm.h" />
+    <ClInclude Include="src\lzio.h" />
+    <ClInclude Include="src\lapi.h" />
+    <ClInclude Include="src\lauxlib.h" />
+    <ClInclude Include="src\lcode.h" />
+    <ClInclude Include="src\lctype.h" />
+    <ClInclude Include="src\ldebug.h" />
+    <ClInclude Include="src\ldo.h" />
+    <ClInclude Include="src\lfunc.h" />
+    <ClInclude Include="src\lgc.h" />
+    <ClInclude Include="src\ljumptab.h" />
+    <ClInclude Include="src\llex.h" />
+    <ClInclude Include="src\llimits.h" />
+    <ClInclude Include="src\lmem.h" />
+    <ClInclude Include="src\lobject.h" />
+    <ClInclude Include="src\lopcodes.h" />
+    <ClInclude Include="src\lopnames.h" />
+    <ClInclude Include="src\lparser.h" />
+    <ClInclude Include="src\lprefix.h" />
+    <ClInclude Include="src\lstate.h" />
+    <ClInclude Include="src\lstring.h" />
+    <ClInclude Include="src\ltable.h" />
+  </ItemGroup>
+</Project>

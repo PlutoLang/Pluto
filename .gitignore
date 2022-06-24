@@ -6,4 +6,11 @@
 /tbytecode.script
 /luac.out
 /tests/quick.lua
+
+# VS Code
 /.vscode/
+
+# Visual Studio
+.vs/
+int/
+out/
