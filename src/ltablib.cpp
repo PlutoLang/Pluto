@@ -411,7 +411,7 @@ static int sort (lua_State *L) {
 
 
 static int getn (lua_State *L) {
-  lua_pushinteger(aux_getn(L, 1, TAB_RW));
+  lua_pushinteger(L, aux_getn(L, 1, TAB_RW));
   return 1;
 }
 
