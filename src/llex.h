@@ -72,9 +72,14 @@ typedef struct Token {
 } Token;
 
 
-/* state of the lexer plus state of the parser when shared by all
-   functions */
-typedef struct LexState {
+/*
+** State of the lexer plus state of the parser when shared by all functions.
+** Suppression of C26495 (uninitalized member), because it's initialized elsewhere. 
+*/
+#if defined(_MSC_VER) && _MSC_VER && !__INTEL_COMPILER
+#pragma warning( disable: 26495 )
+#endif
+struct LexState {
   int current;  /* current character (charint) */
   int linenumber;  /* input line counter */
   int lastline;  /* line of last token 'consumed' */
@@ -92,7 +97,10 @@ typedef struct LexState {
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
-} LexState;
+};
+#if defined(_MSC_VER) && _MSC_VER && !__INTEL_COMPILER
+#pragma warning( default: 26495 )
+#endif
 
 
 LUAI_FUNC void luaX_init (lua_State *L);

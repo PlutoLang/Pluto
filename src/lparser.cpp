@@ -842,7 +842,7 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
   bl->firstlabel = fs->ls->dyd->label.n;
   bl->firstgoto = fs->ls->dyd->gt.n;
   bl->upval = 0;
-  bl->insidetbc = (fs->bl != NULL && fs->bl->insidetbc);
+  bl->insidetbc = static_cast<lu_byte>(fs->bl != NULL && fs->bl->insidetbc);
   bl->previous = fs->bl;
   fs->bl = bl;
   lua_assert(fs->freereg == luaY_nvarstack(fs));
