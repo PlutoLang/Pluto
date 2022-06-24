@@ -174,14 +174,21 @@ This also supports ANSI color codes, however this is disabled by default in orde
 - `startswith` function.
 
 ## Building Pluto
-Lua, and hence Pluto is very easy to build. Pluto was built on C++17, with no backwards-compatibility ensured.
+Pluto was built on C++17, with no backwards-compatibility ensured. Any C++ compiler capable of supporting that feature set should compile fine.
 ### Windows
+#### GCC
 - Install `MSYS` & add it to path.
 - Install `chocolatey` & add it to path.
 - Run `make` in the root directory of Pluto.
-```
-git clone https://github.com/well-in-that-case/Pluto.git
-make
-```
+- `git clone https://github.com/well-in-that-case/Pluto.git`
+- `cd Pluto`
+- `make`
 
-For other platforms, use `make PLAT=xxx` where `xxx` is a valid platform, found inside the makefile configuration.
+#### Visual Studio
+Pluto utilizes v123 build tools, which means you'll probably need Visual Studio 2022.
+- `git clone https://github.com/well-in-that-case/Pluto.git`
+- `cd Pluto`
+- Open the solution file.
+- Press build, obviously.
+
+For other platforms, use `make PLAT=xxx` where `xxx` is a valid platform, found inside the makefile configuration. Furthermore, you'll need your compiler on your PATH variable for the makefile to locate it.
