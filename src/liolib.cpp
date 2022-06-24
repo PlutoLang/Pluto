@@ -598,7 +598,7 @@ static int g_read (lua_State *L, FILE *f, int first) {
             success = 1; /* always success */
             break;
           default:
-            return luaL_argerror(L, n, "invalid format");
+            luaL_argerror(L, n, "invalid format");
         }
       }
     }
@@ -631,7 +631,7 @@ static int io_readline (lua_State *L) {
   int i;
   int n = (int)lua_tointeger(L, lua_upvalueindex(2));
   if (isclosed(p))  /* file is already closed? */
-    return luaL_error(L, "file is already closed");
+    luaL_error(L, "file is already closed");
   lua_settop(L , 1);
   luaL_checkstack(L, n, "too many arguments");
   for (i = 1; i <= n; i++)  /* push arguments to 'g_read' */
@@ -643,7 +643,7 @@ static int io_readline (lua_State *L) {
   else {  /* first result is false: EOF or error */
     if (n > 1) {  /* is there error information? */
       /* 2nd result is error message */
-      return luaL_error(L, "%s", lua_tostring(L, -n + 1));
+      luaL_error(L, "%s", lua_tostring(L, -n + 1));
     }
     if (lua_toboolean(L, lua_upvalueindex(3))) {  /* generator created file? */
       lua_settop(L, 0);  /* clear stack */

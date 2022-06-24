@@ -171,7 +171,7 @@ static int os_tmpname (lua_State *L) {
   int err;
   lua_tmpnam(buff, err);
   if (l_unlikely(err))
-    return luaL_error(L, "unable to generate a unique filename");
+    luaL_error(L, "unable to generate a unique filename");
   lua_pushstring(L, buff);
   return 1;
 }
@@ -254,16 +254,16 @@ static int getfield (lua_State *L, const char *key, int d, int delta) {
   lua_Integer res = lua_tointegerx(L, -1, &isnum);
   if (!isnum) {  /* field is not an integer? */
     if (l_unlikely(t != LUA_TNIL))  /* some other value? */
-      return luaL_error(L, "field '%s' is not an integer", key);
+      luaL_error(L, "field '%s' is not an integer", key);
     else if (l_unlikely(d < 0))  /* absent field; no default? */
-      return luaL_error(L, "field '%s' missing in date table", key);
+      luaL_error(L, "field '%s' missing in date table", key);
     res = d;
   }
   else {
     /* unsigned avoids overflow when lua_Integer has 32 bits */
     if (!(res >= 0 ? (lua_Unsigned)res <= (lua_Unsigned)INT_MAX + delta
                    : (lua_Integer)INT_MIN + delta <= res))
-      return luaL_error(L, "field '%s' is out-of-bound", key);
+      luaL_error(L, "field '%s' is out-of-bound", key);
     res -= delta;
   }
   lua_pop(L, 1);
@@ -314,8 +314,7 @@ static int os_date (lua_State *L) {
   else
     stm = l_localtime(&t, &tmr);
   if (stm == NULL)  /* invalid date? */
-    return luaL_error(L,
-                 "date result cannot be represented in this installation");
+    luaL_error(L, "date result cannot be represented in this installation");
   if (strcmp(s, "*t") == 0) {
     lua_createtable(L, 0, 9);  /* 9 = number of fields */
     setallfields(L, stm);
@@ -362,8 +361,7 @@ static int os_time (lua_State *L) {
     setallfields(L, &ts);  /* update fields with normalized values */
   }
   if (t != (time_t)(l_timet)t || t == (time_t)(-1))
-    return luaL_error(L,
-                  "time result cannot be represented in this installation");
+    luaL_error(L, "time result cannot be represented in this installation");
   l_pushtime(L, t);
   return 1;
 }

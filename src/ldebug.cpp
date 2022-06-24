@@ -730,7 +730,7 @@ static const char *varinfo (lua_State *L, const TValue *o) {
 /*
 ** Raise a type error
 */
-static l_noret typeerror (lua_State *L, const TValue *o, const char *op,
+[[noreturn]] static void typeerror (lua_State *L, const TValue *o, const char *op,
                           const char *extra) {
   const char *t = luaT_objtypename(L, o);
   luaG_runerror(L, "attempt to %s a %s value%s", op, t, extra);
@@ -741,7 +741,7 @@ static l_noret typeerror (lua_State *L, const TValue *o, const char *op,
 ** Raise a type error with "standard" information about the faulty
 ** object 'o' (using 'varinfo').
 */
-l_noret luaG_typeerror (lua_State *L, const TValue *o, const char *op) {
+void luaG_typeerror (lua_State *L, const TValue *o, const char *op) {
   typeerror(L, o, op, varinfo(L, o));
 }
 
@@ -751,7 +751,7 @@ l_noret luaG_typeerror (lua_State *L, const TValue *o, const char *op) {
 ** for the object based on how it was called ('funcnamefromcall'); if it
 ** cannot get a name there, try 'varinfo'.
 */
-l_noret luaG_callerror (lua_State *L, const TValue *o) {
+void luaG_callerror (lua_State *L, const TValue *o) {
   CallInfo *ci = L->ci;
   const char *name = NULL;  /* to avoid warnings */
   const char *kind = funcnamefromcall(L, ci, &name);
@@ -760,19 +760,19 @@ l_noret luaG_callerror (lua_State *L, const TValue *o) {
 }
 
 
-l_noret luaG_forerror (lua_State *L, const TValue *o, const char *what) {
+void luaG_forerror (lua_State *L, const TValue *o, const char *what) {
   luaG_runerror(L, "bad 'for' %s (number expected, got %s)",
                    what, luaT_objtypename(L, o));
 }
 
 
-l_noret luaG_concaterror (lua_State *L, const TValue *p1, const TValue *p2) {
+void luaG_concaterror (lua_State *L, const TValue *p1, const TValue *p2) {
   if (ttisstring(p1) || cvt2str(p1)) p1 = p2;
   luaG_typeerror(L, p1, "concatenate");
 }
 
 
-l_noret luaG_opinterror (lua_State *L, const TValue *p1,
+void luaG_opinterror (lua_State *L, const TValue *p1,
                          const TValue *p2, const char *msg) {
   if (!ttisnumber(p1))  /* first operand is wrong? */
     p2 = p1;  /* now second is wrong */
@@ -783,7 +783,7 @@ l_noret luaG_opinterror (lua_State *L, const TValue *p1,
 /*
 ** Error when both values are convertible to numbers, but not to integers
 */
-l_noret luaG_tointerror (lua_State *L, const TValue *p1, const TValue *p2) {
+void luaG_tointerror (lua_State *L, const TValue *p1, const TValue *p2) {
   lua_Integer temp;
   if (!luaV_tointegerns(p1, &temp, LUA_FLOORN2I))
     p2 = p1;
@@ -791,7 +791,7 @@ l_noret luaG_tointerror (lua_State *L, const TValue *p1, const TValue *p2) {
 }
 
 
-l_noret luaG_ordererror (lua_State *L, const TValue *p1, const TValue *p2) {
+void luaG_ordererror (lua_State *L, const TValue *p1, const TValue *p2) {
   const char *t1 = luaT_objtypename(L, p1);
   const char *t2 = luaT_objtypename(L, p2);
   if (strcmp(t1, t2) == 0)
@@ -814,7 +814,7 @@ const char *luaG_addinfo (lua_State *L, const char *msg, TString *src,
 }
 
 
-l_noret luaG_errormsg (lua_State *L) {
+void luaG_errormsg (lua_State *L) {
   if (L->errfunc != 0) {  /* is there an error handling function? */
     StkId errfunc = restorestack(L, L->errfunc);
     lua_assert(ttisfunction(s2v(errfunc)));
@@ -827,7 +827,7 @@ l_noret luaG_errormsg (lua_State *L) {
 }
 
 
-l_noret luaG_runerror (lua_State *L, const char *fmt, ...) {
+void luaG_runerror (lua_State *L, const char *fmt, ...) {
   CallInfo *ci = L->ci;
   const char *msg;
   va_list argp;
