@@ -701,7 +701,8 @@ void luaV_objlen (lua_State *L, StkId ra, const TValue *rb) {
       Table *h = hvalue(rb);
       tm = fasttm(L, h->metatable, TM_LEN);
       if (tm) break;  /* metamethod? break switch to call it */
-      setivalue(s2v(ra), luaH_getn(h));  /* else primitive len */
+      if (!h->length) h->length = luaH_getn(h);  /* cache length */
+      setivalue(s2v(ra), h->length);
       return;
     }
     case LUA_VSHRSTR: {
@@ -1330,8 +1331,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
           luaV_finishfastset(L, upval, slot, rc);
         }
-        else
+        else {
+          hvalue(s2v(ra))->length = 0;
           Protect(luaV_finishset(L, upval, rb, rc, slot));
+        }
         vmbreak;
       }
       vmcase(OP_SETTABLE) {
@@ -1346,6 +1349,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaV_finishset(L, s2v(ra), rb, rc, slot));
+        hvalue(s2v(ra))->length = 0; /* reset cache on modification */
         vmbreak;
       }
       vmcase(OP_SETI) {
