@@ -3,11 +3,29 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32328.378
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Pluto", "Pluto.vcxproj", "{9E471705-98E3-4DF5-855C-E624805A9FEB}"
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Debug|x64.ActiveCfg = Debug|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Debug|x64.Build.0 = Debug|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Debug|x86.ActiveCfg = Debug|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Debug|x86.Build.0 = Debug|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Release|x64.ActiveCfg = Release|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Release|x64.Build.0 = Release|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Release|x86.ActiveCfg = Release|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {3526570D-9840-4DE1-942F-62EFF6CD881A}
+		SolutionGuid = {614672F8-E304-4F9F-ABBC-963DA3A8C5C9}
 	EndGlobalSection
 EndGlobal
