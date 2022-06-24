@@ -179,7 +179,6 @@ Pluto was built on C++17, with no backwards-compatibility ensured. Any C++ compi
 #### GCC
 - Install `MSYS` & add it to path.
 - Install `chocolatey` & add it to path.
-- Run `make` in the root directory of Pluto.
 - `git clone https://github.com/well-in-that-case/Pluto.git`
 - `cd Pluto`
 - `make`
