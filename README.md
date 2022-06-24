@@ -185,7 +185,7 @@ Pluto was built on C++17, with no backwards-compatibility ensured. Any C++ compi
 - `make`
 
 #### Visual Studio
-Pluto utilizes v123 build tools, which means you'll probably need Visual Studio 2022.
+Pluto utilizes v143 build tools as the platform toolset, which means you'll probably need Visual Studio 2022.
 - `git clone https://github.com/well-in-that-case/Pluto.git`
 - `cd Pluto`
 - Open the solution file.
