@@ -78,16 +78,15 @@ static void expr (LexState *ls, expdesc *v);
 ** Formats an error with the appropriate source code snippet.
 */
 static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here) {
-  std::string pad = std::string(std::to_string(ls->linenumber).length(), ' ');
+  std::string pad_str(std::to_string(ls->linenumber).length(), ' ');
+  const char *pad = pad_str.c_str();
   const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
 #ifndef PLUTO_USE_COLORED_OUTPUT
   text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          text, pad.c_str(), ls->linenumber, token,
-                          pad.c_str(), pad.c_str(), here, pad.c_str(), pad.c_str();
+                          text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
 #else
   text = luaO_pushfstring(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          YEL, text, RESET, pad.c_str(), ls->linenumber, token,
-                          pad.c_str(), pad.c_str(), here, pad.c_str(), pad.c_str());
+                          YEL, text, RESET, pad, ls->linenumber, token, pad, pad, here, pad, pad);
 #endif
   return text;
 }
@@ -306,7 +305,8 @@ static void check_match (LexState *ls, int what, int who, int where) {
           }
         }
         default: {
-          const char *text  = make_err("%s expected (to close %s at line %d)").c_str();
+          std::string text_str = make_err("%s expected (to close %s at line %d)");
+	      const char* text = text_str.c_str();
           const char *swho  = luaX_token2str(ls, who);
           const char *swhat = luaX_token2str(ls, what);
           luaK_semerror(ls, luaO_fmt(ls->L, text, swhat, swho, where));
