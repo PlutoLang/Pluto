@@ -144,7 +144,7 @@ static std::string make_warn(const char *s) {
 ** Throws an exception into Lua, which will promptly close the program.
 ** This is only called for vital errors, like lexer and/or syntax problems.
 */
-static l_noret throwerr (LexState *ls, const char *err, const char *here) {
+[[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here) {
   std::string error = make_err(err);
   std::string rhere = make_here(ls, here);
   format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str());
@@ -165,7 +165,7 @@ static void throw_warn (LexState *ls, const char *err, const char *here) {
 /*
 ** This function will throw an exception and terminate the program.
 */
-static l_noret error_expected (LexState *ls, int token) {
+[[noreturn]] static void error_expected (LexState *ls, int token) {
   switch (token) {
     case '|': {
       throwerr(ls,
@@ -213,7 +213,7 @@ static l_noret error_expected (LexState *ls, int token) {
 }
 
 
-static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
+[[noreturn]] static void errorlimit (FuncState *fs, int limit, const char *what) {
   lua_State *L = fs->ls->L;
   const char *msg;
   int line = fs->f->linedefined;
@@ -707,7 +707,7 @@ static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
 ** Generates an error that a goto jumps into the scope of some
 ** local variable.
 */
-static l_noret jumpscopeerror (LexState *ls, Labeldesc *gt) {
+[[noreturn]] static void jumpscopeerror (LexState *ls, Labeldesc *gt) {
   const char *varname = getstr(getlocalvardesc(ls->fs, gt->nactvar)->vd.name);
   const char *msg = "<goto %s> at line %d jumps into the scope of local '%s'";
   msg = luaO_pushfstring(ls->L, msg, getstr(gt->name), gt->line, varname);
@@ -852,7 +852,7 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
 /*
 ** generates an error for an undefined 'goto'.
 */
-static l_noret undefgoto (LexState *ls, Labeldesc *gt) {
+[[noreturn]] static void undefgoto (LexState *ls, Labeldesc *gt) {
   const char *msg;
   if (eqstr(gt->name, luaS_newliteral(ls->L, "break"))) {
     msg = "break outside loop at line %d";
