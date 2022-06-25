@@ -99,7 +99,7 @@ rawset(Frozen, "key", "value") -- Fails.
 ```
 This action will dissallow new elements and keys from being assigned. It'll also prevent modification of existing elements and keys.
 
-If you intend on using this for sandboxing, ensure you call `table.freeze` before any users access the Lua environment, as they may be able to hook the function and replace it with something malicious or useless. Furthermore, local variables can still be reassigned since freezing only applies to the value. In this situation, you can take advantage of the `<const>` declaration modifier which will forbid local reasssignment.
+If you intend on using this for sandboxing, ensure you call `table.freeze` before any users access the Lua environment, as they may be able to hook the function and replace it with something malicious or useless. Furthermore, local variables can still be reassigned since freezing only applies to the value. In this situation, you can take advantage of the `<const>` declaration modifier which will forbid local reassignment.
 
 Alternatively, if you intend on creating a "true constant" with a table, such that the local can neither be reassigned or have its table manipulated, then this is fine too. There's hardly any overhead associated with freezing a table, because the action merely swaps a boolean around.
 
@@ -204,6 +204,12 @@ This also supports ANSI color codes, however this is disabled by default in orde
 - `table.isfrozen` function.
 - `string.endswith` function.
 - `string.startswith` function.
+
+## C API Additions
+- `lua_setcachelen` function.
+- `lua_freezetable` function.
+- `lua_erriffrozen` function.
+- `lua_istablefrozen` function.
 
 ## Building Pluto
 Pluto was built on C++17, with no backwards-compatibility ensured. Any C++ compiler capable of supporting that feature set should compile fine.
