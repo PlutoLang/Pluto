@@ -939,6 +939,30 @@ LUA_API void lua_setcachelen (lua_State *L, lua_Unsigned len, int idx) {
 }
 
 
+LUA_API void lua_freezetable (lua_State *L, int idx) {
+  Table *t;
+  lua_lock(L);
+  t = gettable(L, idx);
+  if (t) t->isfrozen = true;
+  lua_unlock(L);
+}
+
+
+LUA_API int lua_istablefrozen (lua_State *L, int idx) {
+  lua_lock(L);
+  Table *t = gettable(L, idx);
+  lua_unlock(L);
+  return t ? t->isfrozen : false;
+}
+
+
+LUA_API void lua_erriffrozen (lua_State *L, int idx) {
+  lua_lock(L);
+  if (lua_istablefrozen(L, idx)) luaG_runerror(L, "attempted to modify frozen table.");
+  lua_unlock(L);
+}
+
+
 LUA_API int lua_setmetatable (lua_State *L, int objindex) {
   TValue *obj;
   Table *mt;

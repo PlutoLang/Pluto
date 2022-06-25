@@ -73,6 +73,27 @@ for i = 1, 10 do
 end
 ```
 However, the dedicated statement doesn't complicate pre-defined goto labels, aligns with other language routines, and is slightly more user-friendly. The `continue` statement also isn't limited by the negatives a label would imply, so you don't need to manage local scopes and other pedantry like you would a label. It's important to note, this new statement will jump over any code neccesary to end the loop. Meaning, if you jump over vital code that determines the conditional for your loop, then you will produce a bug.
+### Table Immutability
+Tables can now be frozen at their current state to forbid any future modification. This action is irreversible and permanent for the lifespan of the table.
+```lua
+-- Disallowing any edits to the global environment table.
+table.freeze(_G)
+
+-- Performing edits, then freezing the resultant table.
+local MyTable = {}
+MyTable.key1 = "value 1"
+MyTable.key2 = "value 2"
+table.freeze(MyTable)
+
+-- Freezing upvalue tables.
+table.freeze(_ENV)
+```
+This action will dissallow new elements and keys from being assigned. It'll also prevent modification of existing elements and keys.
+
+If you intend on using this for sandboxing, ensure you call `table.freeze` before any users access the Lua environment, as they may be able to hook the function and replace it with something malicious or useless. Furthermore, local variables can still be reassigned since freezing only applies to the value. In this situation, you can take advantage of the `<const>` declaration modifier which will forbid local reasssignment.
+
+This change also implements the `table.isfrozen` function which takes a table, and returns a boolean.
+
 ### Compiler Warnings
 Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
 ```lua
@@ -167,11 +188,11 @@ This also supports ANSI color codes, however this is disabled by default in orde
   - `REG ADD HKCU\CONSOLE /f /v VirtualTerminalLevel /t REG_DWORD /d 1`
 
 ## Standard Library Additions
-### `_G`
 - `newuserdata` function.
-### `string`
-- `endswith` function.
-- `startswith` function.
+- `table.freeze` function.
+- `table.isfrozen` function.
+- `string.endswith` function.
+- `string.startswith` function.
 
 ## Building Pluto
 Pluto was built on C++17, with no backwards-compatibility ensured. Any C++ compiler capable of supporting that feature set should compile fine.

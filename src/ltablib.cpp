@@ -416,10 +416,31 @@ static int getn (lua_State *L) {
 }
 
 
+static int tfreeze (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  if (lua_gettop(L) > 1) {
+    luaL_error(L, "more argumented than expected to table.freeze");
+  }
+  else {
+    lua_freezetable(L, 1);
+  }
+  return 1;
+}
+
+
+static int tisfrozen (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  lua_pushboolean(L, lua_istablefrozen(L, 1));
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"isfrozen", tisfrozen},
+  {"freeze", tfreeze},
   {"concat", tconcat},
   {"insert", tinsert},
   {"pack", tpack},
