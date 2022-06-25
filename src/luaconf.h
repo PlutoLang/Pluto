@@ -880,5 +880,10 @@
 #define ERROR_FOR_PREVENTION		1
 #endif // INFINITE_LOOP_PREVENTION
 
+#ifdef _WIN32
+#define USE_SEH_EXCEPTION_HANDLER // Undef to remove custom Pluto handler.
+// #undef USE_SEH_EXCEPTION_HANDLER
+#endif
+
 /* }================================================================== */
 #endif

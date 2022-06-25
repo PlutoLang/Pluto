@@ -1172,12 +1172,40 @@ LUAI_FUNC int luaB_next (lua_State *L);
 LUAI_FUNC int luaB_ipairsaux (lua_State *L);
 
 
+#ifdef USE_SEH_EXCEPTION_HANDLER
+#define WIN32_LEAN_AND_MEAN
+#include <iostream>
+#include <windows.h>
+#include "lopnames.h"
+static Instruction lastpc;
+LONG WINAPI VectoredErrHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+  /*
+  ** Very simple SEH signal hook for Windows.
+  ** No runtime performance impact observed with lastpc.
+  ** Apparent GCC bug:
+  **    - Inappropriate lastpc values. Works fine on MSVC.
+  **    - Intentional segfaults on OP_SETTABUP result in OP_VARARGPREP.
+  */
+  const DWORD code = pExceptionInfo->ExceptionRecord->ExceptionCode;
+  const PVOID addr = pExceptionInfo->ExceptionRecord->ExceptionAddress;
+  std::cout << "Pluto threw a critical exception with code: 0x" << std::hex << code << std::endl;
+  std::cout << "\tLast Opcode: OP_" << opnames[lastpc] << std::endl;
+  std::cout << "\tException Address: 0x" << reinterpret_cast<intptr_t>(addr) << std::endl;
+  std::cout << "\tReport this issue at: https://github.com/well-in-that-case/Pluto/issues" << std::endl;
+  return code;
+}
+#endif
+
+
 void luaV_execute (lua_State *L, CallInfo *ci) {
   LClosure *cl;
   TValue *k;
   StkId base;
   const Instruction *pc;
   int trap;
+#ifdef USE_SEH_EXCEPTION_HANDLER
+  AddVectoredExceptionHandler(1, VectoredErrHandler);
+#endif
 #ifdef INFINITE_LOOP_PREVENTION
   int sequentialJumps = 0;
 #endif
@@ -1213,6 +1241,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
     lua_assert(base <= L->top && L->top < L->stack_last);
     /* invalidate top for instructions not expecting it */
     lua_assert(isIT(i) || (cast_void(L->top = base), 1));
+#ifdef USE_SEH_EXCEPTION_HANDLER
+    lastpc = GET_OPCODE(i);
+#endif
     vmdispatch (GET_OPCODE(i)) {
       vmcase(OP_MOVE) {
         setobjs2s(L, ra, RB(i));
@@ -1332,7 +1363,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           luaV_finishfastset(L, upval, slot, rc);
         }
         else {
-          if (ttistable(s2v(ra))) hvalue(s2v(ra))->length = 0;  // R(A) may not be a table.
+          // if (ttistable(s2v(ra)))
+          hvalue(s2v(ra))->length = 0;  // R(A) may not be a table.
           Protect(luaV_finishset(L, upval, rb, rc, slot));
         }
         vmbreak;
