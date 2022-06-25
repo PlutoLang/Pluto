@@ -78,19 +78,30 @@ Tables can now be frozen at their current state to forbid any future modificatio
 ```lua
 -- Disallowing any edits to the global environment table.
 table.freeze(_G)
+_G.string = {} -- Fails, raises an error.
 
 -- Performing edits, then freezing the resultant table.
 local MyTable = {}
 MyTable.key1 = "value 1"
 MyTable.key2 = "value 2"
 table.freeze(MyTable)
+MyTable.key3 = "value 3" -- Fails, raises an error.
+MyTable.key2 = "new value 2" -- Fails, raises an error.
 
 -- Freezing upvalue tables.
 table.freeze(_ENV)
+
+-- Creating a constant local that's associated with a frozen table.
+local Frozen <const> = table.freeze({ 1, 2, 3 })
+Frozen = {} -- Fails.
+Frozen[1] = "new value" -- Fails.
+rawset(Frozen, "key", "value") -- Fails.
 ```
 This action will dissallow new elements and keys from being assigned. It'll also prevent modification of existing elements and keys.
 
 If you intend on using this for sandboxing, ensure you call `table.freeze` before any users access the Lua environment, as they may be able to hook the function and replace it with something malicious or useless. Furthermore, local variables can still be reassigned since freezing only applies to the value. In this situation, you can take advantage of the `<const>` declaration modifier which will forbid local reasssignment.
+
+Alternatively, if you intend on creating a "true constant" with a table, such that the local can neither be reassigned or have its table manipulated, then this is fine too. There's hardly any overhead associated with freezing a table, because the action merely swaps a boolean around.
 
 This change also implements the `table.isfrozen` function which takes a table, and returns a boolean.
 
