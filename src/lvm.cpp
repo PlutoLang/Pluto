@@ -1332,7 +1332,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           luaV_finishfastset(L, upval, slot, rc);
         }
         else {
-          hvalue(s2v(ra))->length = 0;
+          if (ttistable(s2v(ra))) hvalue(s2v(ra))->length = 0;  // R(A) may not be a table.
           Protect(luaV_finishset(L, upval, rb, rc, slot));
         }
         vmbreak;
