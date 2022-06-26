@@ -943,7 +943,10 @@ LUA_API void lua_freezetable (lua_State *L, int idx) {
   Table *t;
   lua_lock(L);
   t = gettable(L, idx);
-  if (t) t->isfrozen = true;
+  if (t) {
+    t->isfrozen = true;
+    if (!t->length) t->length = luaH_getn(t); // May as well if modification is no longer permitted.
+  }
   lua_unlock(L);
 }
 
