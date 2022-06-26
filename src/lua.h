@@ -274,6 +274,9 @@ LUA_API void  (lua_rawsetp) (lua_State *L, int idx, const void *p);
 LUA_API int   (lua_setmetatable) (lua_State *L, int objindex);
 LUA_API int   (lua_setiuservalue) (lua_State *L, int idx, int n);
 LUA_API void  (lua_setcachelen) (lua_State *L, lua_Unsigned len, int idx);
+LUA_API void  (lua_freezetable) (lua_State *L, int idx);
+LUA_API int   (lua_istablefrozen) (lua_State *L, int idx);
+LUA_API void  (lua_erriffrozen) (lua_State *L, int idx);
 
 
 /*

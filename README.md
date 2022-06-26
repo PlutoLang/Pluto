@@ -73,6 +73,46 @@ for i = 1, 10 do
 end
 ```
 However, the dedicated statement doesn't complicate pre-defined goto labels, aligns with other language routines, and is slightly more user-friendly. The `continue` statement also isn't limited by the negatives a label would imply, so you don't need to manage local scopes and other pedantry like you would a label. It's important to note, this new statement will jump over any code neccesary to end the loop. Meaning, if you jump over vital code that determines the conditional for your loop, then you will produce a bug.
+### Table Immutability
+Tables can now be frozen at their current state to forbid any future modification. This action is irreversible and permanent for the lifespan of the table.
+```lua
+-- Disallowing any edits to the global environment table.
+table.freeze(_G)
+_G.string = {} -- Fails, raises an error.
+
+-- Performing edits, then freezing the resultant table.
+local MyTable = {}
+MyTable.key1 = "value 1"
+MyTable.key2 = "value 2"
+table.freeze(MyTable)
+MyTable.key3 = "value 3" -- Fails, raises an error.
+MyTable.key2 = "new value 2" -- Fails, raises an error.
+
+-- Freezing upvalue tables.
+table.freeze(_ENV)
+
+-- Creating a constant local that's associated with a frozen table.
+local Frozen <const> = table.freeze({ 1, 2, 3 })
+Frozen = {} -- Fails.
+Frozen[1] = "new value" -- Fails.
+rawset(Frozen, "key", "value") -- Fails.
+
+--- Trying to swap the value with the debug library.
+for i = 1, 249 do
+  local name, value = debug.getlocal(1, i)
+  if name == "Frozen" then
+    debug.setlocal(1, i, { ["key"] = "hello world" }) -- Fails.
+  end
+end
+```
+This action will dissallow new elements and keys from being assigned. It'll also prevent modification of existing elements and keys. Furthermore, this prevents modification of the local's value via `debug.setlocal`, which can also be used to bypass const-ness.
+
+If you intend on using this for sandboxing, ensure you call `table.freeze` before any users access the Lua environment, as they may be able to hook the function and replace it with something malicious or useless. Furthermore, local variables can still be reassigned since freezing only applies to the value. In this situation, you can take advantage of the `<const>` declaration modifier which will forbid local reassignment.
+
+Alternatively, if you intend on creating a "true constant" with a table, such that the local can neither be reassigned or have its table manipulated, then this is fine too. There's hardly any overhead associated with freezing a table, because the action merely swaps a boolean around.
+
+This change also implements the `table.isfrozen` function which takes a table, and returns a boolean.
+
 ### Compiler Warnings
 Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
 ```lua
@@ -167,11 +207,17 @@ This also supports ANSI color codes, however this is disabled by default in orde
   - `REG ADD HKCU\CONSOLE /f /v VirtualTerminalLevel /t REG_DWORD /d 1`
 
 ## Standard Library Additions
-### `_G`
 - `newuserdata` function.
-### `string`
-- `endswith` function.
-- `startswith` function.
+- `table.freeze` function.
+- `table.isfrozen` function.
+- `string.endswith` function.
+- `string.startswith` function.
+
+## C API Additions
+- `lua_setcachelen` function.
+- `lua_freezetable` function.
+- `lua_erriffrozen` function.
+- `lua_istablefrozen` function.
 
 ## Building Pluto
 Pluto was built on C++17, with no backwards-compatibility ensured. Any C++ compiler capable of supporting that feature set should compile fine.

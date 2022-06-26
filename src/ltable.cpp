@@ -628,6 +628,8 @@ Table *luaH_new (lua_State *L) {
   t->flags = cast_byte(maskflags);  /* table has no metamethod fields */
   t->array = NULL;
   t->alimit = 0;
+  t->length = 0;
+  t->isfrozen = false;
   setnodevector(L, t, 0);
   return t;
 }

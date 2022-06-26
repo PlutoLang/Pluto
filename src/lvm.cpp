@@ -1328,11 +1328,15 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = KB(i);
         TValue *rc = RKC(i);
         TString *key = tsvalue(rb);  /* key must be a string */
+        if (ttistable(upval)) {  // R(A) may not be a table.
+          Table *t = hvalue(upval);
+          t->length = 0;
+          if (t->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+        }
         if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
           luaV_finishfastset(L, upval, slot, rc);
         }
         else {
-          if (ttistable(s2v(ra))) hvalue(s2v(ra))->length = 0;  // R(A) may not be a table.
           Protect(luaV_finishset(L, upval, rb, rc, slot));
         }
         vmbreak;
@@ -1342,6 +1346,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = vRB(i);  /* key (table is in 'ra') */
         TValue *rc = RKC(i);  /* value */
         lua_Unsigned n;
+        Table *t = hvalue(s2v(ra));
+        if (t->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
         if (ttisinteger(rb)  /* fast track for integers? */
             ? (cast_void(n = ivalue(rb)), luaV_fastgeti(L, s2v(ra), n, slot))
             : luaV_fastget(L, s2v(ra), rb, slot, luaH_get)) {
@@ -1349,13 +1355,14 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaV_finishset(L, s2v(ra), rb, rc, slot));
-        hvalue(s2v(ra))->length = 0; /* reset cache on modification */
+        t->length = 0; // Reset table length cache.
         vmbreak;
       }
       vmcase(OP_SETI) {
         const TValue *slot;
         int c = GETARG_B(i);
         TValue *rc = RKC(i);
+        if (hvalue(s2v(ra))->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
         if (luaV_fastgeti(L, s2v(ra), c, slot)) {
           luaV_finishfastset(L, s2v(ra), slot, rc);
         }
@@ -1371,6 +1378,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = KB(i);
         TValue *rc = RKC(i);
         TString *key = tsvalue(rb);  /* key must be a string */
+        if (hvalue(s2v(ra))->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
         if (luaV_fastget(L, s2v(ra), key, slot, luaH_getshortstr)) {
           luaV_finishfastset(L, s2v(ra), slot, rc);
         }
