@@ -96,6 +96,14 @@ local Frozen <const> = table.freeze({ 1, 2, 3 })
 Frozen = {} -- Fails.
 Frozen[1] = "new value" -- Fails.
 rawset(Frozen, "key", "value") -- Fails.
+
+--- Trying to swap the value with the debug library.
+for i = 1, 249 do
+  local name, value = debug.getlocal(1, i)
+  if name == "Freeze" then
+    debug.setlocal(1, i, { ["key"] = "hello world" }) -- Fails.
+  end
+end
 ```
 This action will dissallow new elements and keys from being assigned. It'll also prevent modification of existing elements and keys.
 
