@@ -100,12 +100,12 @@ rawset(Frozen, "key", "value") -- Fails.
 --- Trying to swap the value with the debug library.
 for i = 1, 249 do
   local name, value = debug.getlocal(1, i)
-  if name == "Freeze" then
+  if name == "Frozen" then
     debug.setlocal(1, i, { ["key"] = "hello world" }) -- Fails.
   end
 end
 ```
-This action will dissallow new elements and keys from being assigned. It'll also prevent modification of existing elements and keys.
+This action will dissallow new elements and keys from being assigned. It'll also prevent modification of existing elements and keys. Furthermore, this prevents modification of the local's value via `debug.setlocal`, which can also be used to bypass const-ness.
 
 If you intend on using this for sandboxing, ensure you call `table.freeze` before any users access the Lua environment, as they may be able to hook the function and replace it with something malicious or useless. Furthermore, local variables can still be reassigned since freezing only applies to the value. In this situation, you can take advantage of the `<const>` declaration modifier which will forbid local reassignment.
 
