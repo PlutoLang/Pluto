@@ -1012,7 +1012,11 @@ static void caselist (LexState *ls, int iselse) {
   while (ls->t.token != TK_DEFAULT && ls->t.token != TK_CASE && ls->t.token != TK_END) {
     if (iselse && ls->t.token == TK_BREAK && luaX_lookahead(ls) == TK_END)
       luaX_next(ls);
-    else statement(ls);
+    else {
+      if (ls->t.token == TK_CONTINUE) {
+        throwerr(ls, "'continue' outside of loop.", "'case' statements are not loops.");
+      } else statement(ls);
+    }
   }
 }
 
