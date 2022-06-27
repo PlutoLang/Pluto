@@ -207,7 +207,9 @@ static void throw_warn (LexState *ls, const char *err, const char *here) {
     }
     default: {
       _default:
-      throwerr(ls, luaO_fmt(ls->L, "%s expected", luaX_token2str(ls, token)), "this is invalid syntax.");
+      throwerr(ls,
+        luaO_fmt(ls->L, "%s expected (got %s)",
+          luaX_token2str(ls, token), luaX_token2str(ls, ls->t.token)), "this is invalid syntax.");
     }
   }
 }
@@ -1846,6 +1848,20 @@ static void continuestat (LexState *ls) {
   else error_expected(ls, TK_CONTINUE);
 }
 
+static const char* expandexpr (LexState *ls) {
+  switch (ls->t.token) {
+    case '{': {
+      return "{}";
+    }
+    case TK_FUNCTION: {
+      return "function (";
+    }
+    default: {
+      return getstr(ls->t.seminfo.ts);
+    }
+  }
+}
+
 static void switchstat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   BlockCnt sbl, cbl; // Switch & case blocks.
@@ -1861,6 +1877,7 @@ static void switchstat (LexState *ls, int line) {
   adjustlocalvars(ls, 1); 
   enterblock(fs, &sbl, 1);
   do {
+    const int caseline = ls->linenumber; // Needed for errors.
     checknext(ls, TK_CASE);
     if (testnext(ls, '-')) { // Probably a negative constant.
       simpleexp(ls, &lcase);
@@ -1874,11 +1891,21 @@ static void switchstat (LexState *ls, int line) {
           break;
         }
         default: { // Why is there a unary '-' on a non-numeral type?
-          throwerr(ls, "unexpected symbol in 'case' expression.", "unrecognized symbol.");
+          throwerr(ls, "unexpected symbol in 'case' expression.", "unary '-' on non-numeral type.");
         }
       }
     }
-    else simpleexp(ls, &lcase); // Normal constant, no inversion needed.
+    else {
+      const auto expr = expandexpr(ls); // Raw text of the expression before the lexer skips tokens.
+      simpleexp(ls, &lcase);
+      if (lcase.k < VNIL || lcase.k > VKSTR) { // Expression exceeds constant range.
+        ls->linebuff.clear();
+        ls->linebuff += "case ";
+        ls->linebuff += expr;
+        ls->linenumber = caseline;
+        throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.");
+      }
+    }
     checknext(ls, ':');
     enterblock(fs, &cbl, 0);
     test = save;
