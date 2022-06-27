@@ -1007,15 +1007,19 @@ static void statlist (LexState *ls) {
 }
 
 
-static void caselist (LexState *ls, int iselse) {
-  // caselist -> { stat [`;'] }
+/* Switch logic partially inspired by Paige Marie DePol from the Lua mailing list. */
+static void caselist (LexState *ls, bool isdefault) {
   while (ls->t.token != TK_DEFAULT && ls->t.token != TK_CASE && ls->t.token != TK_END) {
-    if (iselse && ls->t.token == TK_BREAK && luaX_lookahead(ls) == TK_END)
+    if (isdefault && ls->t.token == TK_BREAK && luaX_lookahead(ls) == TK_END) {
       luaX_next(ls);
+    }
     else {
       if (ls->t.token == TK_CONTINUE) {
         throwerr(ls, "'continue' outside of loop.", "'case' statements are not loops.");
-      } else statement(ls);
+      }
+      else {
+        statement(ls);
+      }
     }
   }
 }
@@ -1915,7 +1919,7 @@ static void switchstat (LexState *ls, int line) {
     test = save;
     luaK_infix(fs, OPR_NE, &test);
     luaK_posfix(fs, OPR_NE, &test, &lcase, line);
-    caselist(ls, 0);
+    caselist(ls, false);
     leaveblock(fs);
     if (ls->t.token == TK_CASE) {
       luaK_code(fs, CREATE_sJ(OP_JMP, (2 + OFFSET_sJ), false)); // Fall-through.
@@ -1925,7 +1929,7 @@ static void switchstat (LexState *ls, int line) {
   if (testnext(ls, TK_DEFAULT)) { // Default case.
     checknext(ls, ':');
     enterblock(fs, &cbl, 0);
-    caselist(ls, 1);
+    caselist(ls, true);
     leaveblock(fs);
   }
   check_match(ls, TK_END, TK_SWITCH, line);

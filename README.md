@@ -144,6 +144,36 @@ The following augmented operators have been added:
 - Integer division: `//=`
 
 These are all syntactic sugar for the usual binary operation & manual assignment, as such they produce nearly the same bytecode. In some instances, Pluto's augmented operators are faster than Lua. This happens because augmented operators temporarily store the left-hand operand inside of a register & share the value to the expression, whereas Lua would request the value twice.
+### Switch/Case Statement
+Pluto now offers switch/case statement syntax that meets the C standard. Which means, case expressions must be compile-time constants, and proper fall-through is supported. Lua's `<const>` declaration modifier is not included as a constant expression.
+
+The supported constant types are as follows:
+- `nil`
+- `string`
+- `number`
+- `boolean`
+
+Here's an example:
+```lua
+local value = 3
+switch (value) do
+  case 1:
+  case 2:
+  case 3:
+  case 4:
+  case 5:
+    print "Got 1-5."
+    break
+  default:
+    print "Value is greater than 5."
+end
+-- Break jumps here.
+```
+The `default` case runs if no break — or any other escape mechanism, like `return` or `goto` — is encountered throughout the entire structure.
+
+Case blocks do not support an enclosed scope like `function` or `while` declarations do. Instead, they'll include every statement until a `break`, `end`, `default`, or `case` symbol is discovered. Breaking out of a switch/case statement will jump to a pre-defined label defined just outside of the block, like any normal loop. This statement does not support jump tables yet, but it's significantly faster than creating a lookup table. It's also slightly faster than a chain of `if` statements. Either way, it's significantly more readable.
+
+The parenthesis around the control variable — in this case, `value` — are entirely optional. Colons are required to terminate every case expression, and are also required to terminate the `default` symbol. As seen above, switch blocks must enclose themselves with `do` & `end`, respectively.
 ## Optimizations:
 ### For Loops
 Xmilia Hermit discovered an interesting for loop optimization on June 7th, 2022. It has been implemented in Pluto.
