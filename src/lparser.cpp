@@ -1005,7 +1005,6 @@ static void statlist (LexState *ls) {
 }
 
 
-/*
 static void caselist (LexState *ls, int iselse) {
   // caselist -> { stat [`;'] }
   while (ls->t.token != TK_DEFAULT && ls->t.token != TK_CASE && ls->t.token != TK_END) {
@@ -1014,7 +1013,6 @@ static void caselist (LexState *ls, int iselse) {
     else statement(ls);
   }
 }
-*/
 
 
 static void fieldsel (LexState *ls, expdesc *v) {
@@ -1848,7 +1846,6 @@ static void continuestat (LexState *ls) {
   else error_expected(ls, TK_CONTINUE);
 }
 
-/*
 static void switchstat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   BlockCnt sbl, cbl; // Switch & case blocks.
@@ -1860,22 +1857,28 @@ static void switchstat (LexState *ls, int line) {
   init_exp(&save, VLOCAL, crtl.u.info);
   testnext(ls, ')');
   checknext(ls, TK_DO);
-  new_localvarliteral(ls, "(switch)");
+  new_localvarliteral(ls, "(switch)"); // Save control value into a local.
   adjustlocalvars(ls, 1); 
   enterblock(fs, &sbl, 1);
   do {
     checknext(ls, TK_CASE);
-    switch (ls->t.token) {
-      case TK_FLT: // Avoid warnings.
-      case TK_INT: case TK_STRING: 
-      case TK_TRUE: case TK_FALSE: case TK_NIL: { // Expressions must be constant.
-        simpleexp(ls, &lcase);
-        break;
-      }
-      default: {
-        luaX_syntaxerror(ls, "Case expressions must contain constant values.");
+    if (testnext(ls, '-')) { // Probably a negative constant.
+      simpleexp(ls, &lcase);
+      switch (lcase.k) {
+        case VKINT: {
+          lcase.u.ival *= -1;
+          break;
+        }
+        case VKFLT: {
+          lcase.u.nval *= -1;
+          break;
+        }
+        default: { // Why is there a unary '-' on a non-numeral type?
+          throwerr(ls, "unexpected symbol in 'case' expression.", "unrecognized symbol.");
+        }
       }
     }
+    else simpleexp(ls, &lcase); // Normal constant, no inversion needed.
     checknext(ls, ':');
     enterblock(fs, &cbl, 0);
     test = save;
@@ -1883,7 +1886,10 @@ static void switchstat (LexState *ls, int line) {
     luaK_posfix(fs, OPR_NE, &test, &lcase, line);
     caselist(ls, 0);
     leaveblock(fs);
-    luaK_patchtohere(fs, test.u.info);
+    if (ls->t.token == TK_CASE) {
+      luaK_code(fs, CREATE_sJ(OP_JMP, (2 + OFFSET_sJ), false)); // Fall-through.
+    }
+    luaK_patchtohere(fs, test.u.info); // Jump statements if OP_NE, otherwise continue.
   } while (ls->t.token != TK_END && ls->t.token != TK_DEFAULT);
   if (testnext(ls, TK_DEFAULT)) { // Default case.
     checknext(ls, ':');
@@ -1894,7 +1900,6 @@ static void switchstat (LexState *ls, int line) {
   check_match(ls, TK_END, TK_SWITCH, line);
   leaveblock(fs);
 }
-*/
 
 
 /*
@@ -2373,15 +2378,13 @@ static void statement (LexState *ls) {
       gotostat(ls);
       break;
     }
-    /*
     case TK_CASE: {
-      luaX_syntaxerror(ls, "'case' statement may only be used within a switch block.");
+      throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
     }
-    case TK_SWITCH: {  // stat -> switchstat
+    case TK_SWITCH: {
       switchstat(ls, line);
       break;
     }
-    */
     default: {  /* stat -> func | assignment */
       exprstat(ls);
       break;

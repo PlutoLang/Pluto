@@ -86,6 +86,93 @@ assert(#t == 900, #t)
 local metatest = setmetatable({}, { __len = function () return 5 end })
 assert(#metatest == 5, #metatest)
 
+print "Testing switch statement."
+local value = 5
+switch (value) do
+    case 5:
+        break
+    default:
+        error()
+end
+value = 3
+switch value do
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+        break
+    default:
+        error()
+end
+value = "foo"
+switch (value) do
+    case "foo":
+        break
+    default:
+        error()
+end
+switch (value) do
+    case "abc":
+    case "124":
+    case nil:
+    case false:
+    case true:
+    case "23420948239":
+    case "foo":
+    case 1238123:
+    case -2409384029842:
+    case "awweee":
+        break
+    default:
+        error()
+end
+value = nil
+switch (value) do
+    case -1:
+    case nil:
+    case -2:
+        break
+    default:
+        error()
+end
+value = -24389
+switch (value) do
+    case "aawdkawmlwadmlaw":
+    case "q49324932":
+    case nil:
+    case "130-91230921":
+    case false:
+    case 231923:
+    case true:
+    case -234234:
+    case -24389:
+    case 23429:
+    case "bar":
+    case "foobar":
+    case "barfoo":
+        break
+    default: 
+        error()
+end
+value = -1
+switch (value) do
+    case "aawdkawmlwadmlaw":
+    case "q49324932":
+    case nil:
+    case "130-91230921":
+    case false:
+    case 231923:
+    case true:
+    case -234234:
+    case -24389:
+    case 23429:
+    case "bar":
+    case "foobar":
+    case "barfoo":
+        error()
+end
+
 print "Testing table freezing."
 t = table.freeze({ 1, 2, 3, "hello", "world" })
 local status, _ = pcall(function () t.key = "abc" end)
