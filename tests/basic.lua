@@ -172,6 +172,82 @@ switch (value) do
     case "barfoo":
         error()
 end
+value = -3.14
+switch (value) do
+    case "aawdkawmlwadmlaw":
+    case "q49324932":
+    case nil:
+    case "130-91230921":
+    case false:
+    case -3.14:
+    case true:
+    case -234234:
+    case -24389:
+    case 23429:
+    case "bar":
+    case "foobar":
+    case "barfoo":
+        break
+end
+value = -3.3
+switch (value) do
+    case "aawdkawmlwadmlaw":
+    case "q49324932":
+    case nil:
+    case "130-91230921":
+    case false:
+    case -3.15:
+    case true:
+    case -234234:
+    case -24389:
+    case 23429:
+    case "bar":
+    case "foobar":
+    case "barfoo":
+        error()
+end
+t = 0
+value = -3.15
+switch (value) do
+    case "aawdkawmlwadmlaw":
+    case "q49324932":
+    case nil:
+    case "130-91230921":
+    case false:
+    case -3.15:
+    case true:
+    case -234234:
+    case -24389:
+    case 23429:
+    case "bar":
+    case "foobar":
+    case "barfoo":
+        t = true
+end
+assert(t == true)
+
+t = 0
+value = -3.15
+switch (value) do
+    case "aawdkawmlwadmlaw":
+    case "q49324932":
+    case nil:
+    case "130-91230921":
+    case false:
+    case -3.15:
+    case true:
+    case -234234:
+    case -24389:
+    case 23429:
+    case "bar":
+    case "foobar":
+    case "barfoo":
+        t = true
+        break
+    default:
+        t = false
+end
+assert(t == true)
 
 print "Testing table freezing."
 t = table.freeze({ 1, 2, 3, "hello", "world" })
