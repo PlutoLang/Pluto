@@ -79,7 +79,9 @@ typedef struct Token {
 #if defined(_MSC_VER) && _MSC_VER && !__INTEL_COMPILER
 #pragma warning( disable: 26495 )
 #endif
-struct LexState {
+
+class LexState {
+public:
   int current;  /* current character (charint) */
   int linenumber;  /* input line counter */
   int lastline;  /* line of last token 'consumed' */
@@ -97,7 +99,28 @@ struct LexState {
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
+
+  // Return the last non-whitespace line.
+  const char *GetLatestLine() {
+    if (linebuff.find_first_not_of(" \t") == std::string::npos) {
+      if (lastlinebuff.find_first_not_of(" \t") != std::string::npos) {
+        return lastlinebuff.c_str();
+      }
+    }
+    return linebuff.c_str();
+  }
+
+  // Return the line number of the last latest line (see above).
+  lua_Unsigned GetLastLineNumber() {
+    if (linebuff.find_first_not_of(" \t") == std::string::npos) {
+      if (lastlinebuff.find_first_not_of(" \t") != std::string::npos) {
+        return lastlinebuffnum;
+      }
+    }
+    return linenumber;
+  }
 };
+
 #if defined(_MSC_VER) && _MSC_VER && !__INTEL_COMPILER
 #pragma warning( default: 26495 )
 #endif

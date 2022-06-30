@@ -145,9 +145,10 @@ static std::string make_warn(const char *s) {
 ** This is only called for vital errors, like lexer and/or syntax problems.
 */
 [[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here) {
+  ls->linenumber = ls->GetLastLineNumber();
   std::string error = make_err(err);
   std::string rhere = make_here(ls, here);
-  format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str());
+  format_line_error(ls, error.c_str(), ls->GetLatestLine(), rhere.c_str());
   luaD_throw(ls->L, LUA_ERRSYNTAX);
 }
 
@@ -181,29 +182,28 @@ static void throw_warn (LexState *ls, const char *err, const char *here) {
       goto _default; // Run-through default case, no more work to be done.
     }
     case TK_IN: {
-      throwerr(ls, "expected 'in' to delimit loop iterator.", "expected 'in' symbol.");
+      throwerr(ls,
+        "expected 'in' to delimit loop iterator.", "expected 'in' symbol.");
     }
     case TK_DO: {
-      ls->linebuff = ls->lastlinebuff;
-      ls->linenumber = ls->lastlinebuffnum;
-      throwerr(ls, "expected 'do' to establish block.", "you need to append this with the 'do' symbol.");
+      throwerr(ls,
+        "expected 'do' to establish block.", "you need to append this with the 'do' symbol.");
+    }
+    case TK_END: {
+      throwerr(ls,
+        "expected 'end' to terminate block.", "expected 'end' symbol after or on this line.");
     }
     case TK_THEN: {
-      if (ls->lastlinebuffnum != 0) {
-        ls->linebuff = ls->lastlinebuff;
-        ls->linenumber = ls->lastlinebuffnum;
-      }
-      throwerr(ls, "expected 'then' to delimit condition.", "expected 'then' symbol.");
+      throwerr(ls,
+        "expected 'then' to delimit condition.", "expected 'then' symbol.");
     }
     case TK_NAME: {
-      throwerr(ls, "expected an identifier.", "this needs a name.");
+      throwerr(ls,
+        "expected an identifier.", "this needs a name.");
     }
     case TK_CONTINUE: {
-      if (ls->lastlinebuffnum != 0) {
-        ls->linebuff = ls->lastlinebuff;
-        ls->linenumber = ls->lastlinebuffnum;
-      }
-      throwerr(ls, "expected 'continue' inside a loop.", "this is not within a loop.");
+      throwerr(ls,
+        "expected 'continue' inside a loop.", "this is not within a loop.");
     }
     default: {
       _default:
@@ -287,31 +287,36 @@ static void check_match (LexState *ls, int what, int who, int where) {
           ls->linenumber = ls->lastlinebuffnum; // Line number of last statement.
           switch (who) {
             case TK_IF: {
-              throwerr(ls, "missing 'end' to terminate 'if' statement.", "this was the last statement.");
+              throwerr(ls,
+                "missing 'end' to terminate 'if' statement.", "this was the last statement.");
             }
             case TK_DO: {
-              throwerr(ls, "missing 'end' to terminate 'do' block.", "this was the last statement.");
+              throwerr(ls,
+                "missing 'end' to terminate 'do' block.", "this was the last statement.");
             }
             case TK_FOR: {
-              throwerr(ls, "missing 'end' to terminate 'for' block.", "this was the last statement.");
+              throwerr(ls,
+                "missing 'end' to terminate 'for' block.", "this was the last statement.");
             }
             case TK_WHILE: {
-              throwerr(ls, "missing 'end' to terminate 'while' block.", "this was the last statement.");
+              throwerr(ls,
+                "missing 'end' to terminate 'while' block.", "this was the last statement.");
             }
             case TK_FUNCTION: {
-              throwerr(ls, "missing 'end' to terminate 'function' block.", "this was the last statement.");
+              throwerr(ls,
+                "missing 'end' to terminate 'function' block.", "this was the last statement.");
             }
             default: {
-              throwerr(ls, "missing 'end' to terminate block.", "missing termination.");
+              throwerr(ls,
+                "missing 'end' to terminate block.", "missing termination.");
             }
           }
         }
         default: {
-          std::string text_str = make_err("%s expected (to close %s at line %d)");
-	      const char* text = text_str.c_str();
-          const char *swho  = luaX_token2str(ls, who);
-          const char *swhat = luaX_token2str(ls, what);
-          luaK_semerror(ls, luaO_fmt(ls->L, text, swhat, swho, where));
+          std::string err = make_err("%s expected (to close %s at line %d)");
+          luaK_semerror(ls,
+            luaO_fmt(ls->L, err.c_str(),
+              luaX_token2str(ls, what), luaX_token2str(ls, who), where));
         }
       }
     }
@@ -436,14 +441,13 @@ static int new_localvar (LexState *ls, TString *name) {
     LocVar *local = localdebuginfo(fs, i);
     std::string n = std::string(getstr(name));
     if ((n != "(for state)" && n != "(switch)") && (local && local->varname == name)) { // Got a match.
-      int top = lua_gettop(L);
-      int line = desc->vd.linenumber; // Line number of initial declaration.
-      if (lua_getfield(ls->L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT")) {
-        const char *err = "duplicate local declaration";
-        const char *here = luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", line);
-        throw_warn(ls, err, here);
+      L->SaveStackSize();
+      if (L->reg.GetBoolKey("PLUTO_DBGOUT")) {
+        throw_warn(ls,
+          "duplicate local declaration",
+            luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.linenumber));
       }
-      lua_settop(L, top); // Reset stack to original state.
+      L->RestoreStack();
     }
   }
 #endif
@@ -497,9 +501,9 @@ static void check_readonly (LexState *ls, expdesc *e) {
       return;  /* other cases cannot be read-only */
   }
   if (varname) {
-    const char *msg = luaO_pushfstring(ls->L, "attempt to reassign constant '%s'", getstr(varname));
+    const char *msg = luaO_fmt(ls->L, "attempt to reassign constant '%s'", getstr(varname));
     const char *here = "this variable is constant, and cannot be reassigned.";
-    throwerr(ls, luaO_pushfstring(ls->L, msg, getstr(varname)), here);
+    throwerr(ls, luaO_fmt(ls->L, msg, getstr(varname)), here);
   }
 }
 

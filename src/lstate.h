@@ -297,11 +297,32 @@ typedef struct global_State {
   void *ud_warn;         /* auxiliary data to 'warnf' */
 } global_State;
 
+class Registry {
+public:
+  lua_State *state;
+
+  // Fetch a string value from the internal registry.
+  inline const char *GetStrKey(const char *key) {
+    if (lua_getfield(state, LUA_REGISTRYINDEX, key)) {
+      return lua_tostring(state, -1);
+    } else return nullptr;
+  }
+
+  // Fetch a boolean value from the internal registry.
+  inline bool GetBoolKey(const char *key) {
+    return lua_getfield(state, LUA_REGISTRYINDEX, key);
+  }
+
+  Registry(lua_State *L) {
+    state = L;
+  }
+};
 
 /*
 ** 'per thread' state
 */
-struct lua_State {
+class lua_State {
+public:
   CommonHeader;
   lu_byte status;
   lu_byte allowhook;
@@ -323,7 +344,22 @@ struct lua_State {
   int oldpc;  /* last pc traced */
   int basehookcount;
   int hookcount;
+  int lastStackSize;  /* last saved stack size, for restoration */
+  Registry reg;  /* Lua registry abstration. */
   volatile l_signalT hookmask;
+
+  // Save the size of the stack at this time.
+  inline void SaveStackSize() {
+    lastStackSize = lua_gettop(this);
+  }
+
+  // Reset the size of the stack to the last save.
+  inline void RestoreStack() {
+    if (lastStackSize >= 0) {
+      lua_settop(this, lastStackSize);
+      lastStackSize = -1;  // Avoid double-restoration on a potentially unknown value.
+    }
+  }
 };
 
 
