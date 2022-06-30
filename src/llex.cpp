@@ -406,8 +406,8 @@ static int readdecesc (LexState *ls) {
 }
 
 
-static void read_string (LexState *ls, int del, SemInfo *seminfo) {
-  save_and_next(ls);  /* keep delimiter (for error messages) */
+static bool read_string (LexState *ls, int del, SemInfo *seminfo) {
+  next(ls);  /* keep delimiter (for error messages) */
   while (ls->current != del) {
     switch (ls->current) {
       case EOZ:
@@ -463,9 +463,12 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
         save_and_next(ls);
     }
   }
-  save_and_next(ls);  /* skip delimiter */
-  seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 1,
-                                   luaZ_bufflen(ls->buff) - 2);
+  next(ls);  /* skip delimiter */
+  seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
+  if (ls->current == del) {  // Chained, implicit string literal concatenation.
+    read_string(ls, del, seminfo);
+  }
+  return false;
 }
 
 /* assigns a reserved augmentation symbol to the lexer state token (ls->lasttoken) */
