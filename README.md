@@ -7,12 +7,27 @@ Pluto will retain a heavy focus on portability, but it will be larger & less lig
 Thanks to everyone who's provided a star towards Pluto. I do notice every single person that does so, and it provides me excellent motivation to continue working on Pluto. On this note, please do send PRs and plenty of bug reports if you stumble upon any. All help is appreciated.
 
 ## Breaking changes:
-Pluto is fully backwards-compatible (inc. C-ABI) with Lua 5.4. This includes compiled bytecode, because Pluto does not implement any new opcodes, or alter the fundamental behavior of any opcodes.
+Pluto is largely backwards-compatible with Lua 5.4. This includes compiled bytecode, because Pluto does not implement any new opcodes, or alter the fundamental behavior of any opcodes. However, Pluto does add several new syntaxes which, in rare circumstances, may invalidate previously valid Lua identifiers. This includes the following identifiers:
+- `case`
+- `switch`
+- `default`
+- `continue`
 
-However, does Pluto add new keywords that might make currently-valid table keys and goto labels invalid, especially `continue` and `default`.
+If you use these as tables keys, then you can use bracket syntax for compatibility:
+```lua
+local t = {
+  default = 5 -- Error.
+  ["default"] = 5 -- Works fine.
+}
+
+print(t.default) -- Error.
+print(t["default"]) -- Works fine.
+```
+Otherwise, you must manually refactor these identifiers.
 ## New Features:
-### Dedicated Exponent Operator
-The `**` operator has been implemented into the operator set. It's roughly an alternative to `^` now.
+### Alternative Operators
+- `**` is a valid alternative to `^`, the power operator.
+- `!=` is a valid alternative to `~=`, the inequality operator.
 ### Arbitrary Characters in Numeral Literals
 Long numbers can get confusing to read for some people. `1_000_000` is now a valid alternative to `1000000`.
 ### String Indexing
@@ -144,8 +159,6 @@ The following augmented operators have been added:
 - Integer division: `//=`
 
 These are all syntactic sugar for the usual binary operation & manual assignment, as such they produce nearly the same bytecode. In some instances, Pluto's augmented operators are faster than Lua. This happens because augmented operators temporarily store the left-hand operand inside of a register & share the value to the expression, whereas Lua would request the value twice.
-### Not Equals Operator
-Pluto supports using `!=` as an alternative to `~=`.
 ### Switch/Case Statement
 Pluto now offers switch/case statement syntax that meets the C standard. Which means, case expressions must be compile-time constants, and proper fall-through is supported. Lua's `<const>` declaration modifier is not included as a constant expression.
 
