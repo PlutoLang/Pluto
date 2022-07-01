@@ -879,6 +879,7 @@ LUA_API void lua_seti (lua_State *L, int idx, lua_Integer n) {
   lua_lock(L);
   api_checknelems(L, 1);
   t = index2value(L, idx);
+  if (ttistable(t)) hvalue(t)->length = 0;
   if (luaV_fastgeti(L, t, n, slot)) {
     luaV_finishfastset(L, t, slot, s2v(L->top - 1));
   }
@@ -898,6 +899,7 @@ static void aux_rawset (lua_State *L, int idx, TValue *key, int n) {
   api_checknelems(L, n);
   t = gettable(L, idx);
   luaH_set(L, t, key, s2v(L->top - 1));
+  t->length = 0; // Reset length cache.
   invalidateTMcache(t);
   luaC_barrierback(L, obj2gco(t), s2v(L->top - 1));
   L->top -= n;
@@ -922,6 +924,7 @@ LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {
   lua_lock(L);
   api_checknelems(L, 1);
   t = gettable(L, idx);
+  t->length = 0; // Reset length cache.
   luaH_setint(L, t, n, s2v(L->top - 1));
   luaC_barrierback(L, obj2gco(t), s2v(L->top - 1));
   L->top--;

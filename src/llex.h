@@ -32,10 +32,13 @@
 */
 enum RESERVED {
   /* terminal symbols denoted by reserved words */
-  TK_AND = FIRST_RESERVED, TK_BREAK, TK_CONTINUE,
+  TK_AND = FIRST_RESERVED, TK_BREAK,
   TK_DO, TK_ELSE, TK_ELSEIF, TK_END, TK_FALSE, TK_FOR, TK_FUNCTION,
   TK_GOTO, TK_IF, TK_IN, TK_LOCAL, TK_NIL, TK_NOT, TK_OR, TK_REPEAT,
-  TK_SWITCH, TK_CASE, TK_DEFAULT,  // Switch statement
+  TK_PSWITCH, TK_PCASE, TK_PDEFAULT, TK_PCONTINUE, // New compatibility keywords.
+#ifndef PLUTO_COMPATIBLE_MODE
+  TK_SWITCH, TK_CASE, TK_DEFAULT, TK_CONTINUE,  // New non-compatible keywords.
+#endif
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
   TK_IDIV, TK_CONCAT,
@@ -54,6 +57,7 @@ enum RESERVED {
   TK_CIDIV, TK_CDIV,    /* integer and float division  */
   TK_CPOW, TK_POW       /* exponents / power           */
 };
+
 
 /* number of reserved words */
 #define NUM_RESERVED	(cast_int(TK_WHILE-FIRST_RESERVED + 1))

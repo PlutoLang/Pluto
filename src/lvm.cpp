@@ -1378,7 +1378,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = KB(i);
         TValue *rc = RKC(i);
         TString *key = tsvalue(rb);  /* key must be a string */
-        if (hvalue(s2v(ra))->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+        if (ttistable(s2v(ra)) && hvalue(s2v(ra))->isfrozen) {
+          luaG_runerror(L, "attempt to modify frozen table.");
+        }
         if (luaV_fastget(L, s2v(ra), key, slot, luaH_getshortstr)) {
           luaV_finishfastset(L, s2v(ra), slot, rc);
         }

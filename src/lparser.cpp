@@ -81,13 +81,19 @@ static const char *format_line_error (LexState *ls, const char *msg, const char 
   std::string pad_str(std::to_string(ls->linenumber).length(), ' ');
   const char *pad = pad_str.c_str();
   const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
-#ifndef PLUTO_USE_COLORED_OUTPUT
-  text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
-#else
-  text = luaO_pushfstring(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          YEL, text, RESET, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+#ifdef PLUTO_SHORT_ERRORS
+#ifdef PLUTO_USE_COLORED_OUTPUT
+  text = luaO_fmt(ls->L, "%s%s%s", YEL, text, RESET);
+#endif // PLUTO_USE_COLORED_OUTPUT
+  return text;
 #endif
+#ifndef PLUTO_USE_COLORED_OUTPUT
+  text = luaO_fmt(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
+                          text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+#else // PLUTO_USE_COLORED_OUTPUT
+  text = luaO_fmt(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
+                          YEL, text, RESET, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+#endif // PLUTO_USED_COLORED_OUTPUT
   return text;
 }
 
@@ -1011,14 +1017,24 @@ static void statlist (LexState *ls) {
 }
 
 
+inline int gett(LexState *ls) {
+  return ls->t.token;
+}
+
+
 /* Switch logic partially inspired by Paige Marie DePol from the Lua mailing list. */
 static void caselist (LexState *ls, bool isdefault) {
-  while (ls->t.token != TK_DEFAULT && ls->t.token != TK_CASE && ls->t.token != TK_END) {
-    if (isdefault && ls->t.token == TK_BREAK && luaX_lookahead(ls) == TK_END) {
+  while (gett(ls) != TK_DEFAULT &&
+         gett(ls) != TK_CASE    &&
+         gett(ls) != TK_END     &&
+         gett(ls) != TK_PCASE   &&
+         gett(ls) != TK_PDEFAULT
+    ) {
+    if (isdefault && gett(ls) == TK_BREAK && luaX_lookahead(ls) == TK_END) {
       luaX_next(ls);
     }
     else {
-      if (ls->t.token == TK_CONTINUE) {
+      if (gett(ls) == TK_CONTINUE || gett(ls) == TK_PCONTINUE) {
         throwerr(ls, "'continue' outside of loop.", "'case' statements are not loops.");
       }
       else {
@@ -1860,6 +1876,13 @@ static void continuestat (LexState *ls) {
   else error_expected(ls, TK_CONTINUE);
 }
 
+
+// Test the next token to see if it's either 'token1' or 'token2'.
+inline bool testnext2 (LexState *ls, int token1, int token2) {
+  return testnext(ls, token1) || testnext(ls, token2);
+}
+
+
 static const char* expandexpr (LexState *ls) {
   switch (ls->t.token) {
     case '{': {
@@ -1878,6 +1901,7 @@ static void switchstat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   BlockCnt sbl, cbl; // Switch & case blocks.
   expdesc crtl, save, test, lcase;
+  int switchToken = gett(ls);
   luaX_next(ls); // Skip switch statement.
   testnext(ls, '(');
   expr(ls, &crtl);
@@ -1890,7 +1914,13 @@ static void switchstat (LexState *ls, int line) {
   enterblock(fs, &sbl, 1);
   do {
     const int caseline = ls->linenumber; // Needed for errors.
-    checknext(ls, TK_CASE);
+    if (!testnext2(ls, TK_CASE, TK_PCASE)) {
+#ifdef PLUTO_COMPATIBLE_MODE
+      error_expected(ls, TK_PCASE);
+#else
+      error_expected(ls, TK_CASE);
+#endif // PLUTO_COMPATIBLE_MODE
+    }
     if (testnext(ls, '-')) { // Probably a negative constant.
       simpleexp(ls, &lcase);
       switch (lcase.k) {
@@ -1925,18 +1955,18 @@ static void switchstat (LexState *ls, int line) {
     luaK_posfix(fs, OPR_NE, &test, &lcase, line);
     caselist(ls, false);
     leaveblock(fs);
-    if (ls->t.token == TK_CASE) {
+    if (gett(ls) == TK_CASE || gett(ls) == TK_PCASE) {
       luaK_code(fs, CREATE_sJ(OP_JMP, (2 + OFFSET_sJ), false)); // Fall-through.
     }
     luaK_patchtohere(fs, test.u.info); // Jump statements if OP_NE, otherwise continue.
-  } while (ls->t.token != TK_END && ls->t.token != TK_DEFAULT);
-  if (testnext(ls, TK_DEFAULT)) { // Default case.
+  } while (gett(ls) != TK_END && (gett(ls) != TK_PDEFAULT && gett(ls) != TK_DEFAULT));
+  if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) { // Default case.
     checknext(ls, ':');
     enterblock(fs, &cbl, 0);
     caselist(ls, true);
     leaveblock(fs);
   }
-  check_match(ls, TK_END, TK_SWITCH, line);
+  check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
 }
 
@@ -2408,7 +2438,10 @@ static void statement (LexState *ls) {
       breakstat(ls);
       break;
     }
-    case TK_CONTINUE: {  /* stat -> continuestat */
+#ifndef PLUTO_COMPATIBLE_MODE
+    case TK_PCONTINUE:
+#endif
+    case TK_CONTINUE: {
       continuestat(ls);
       break;
     }
@@ -2417,9 +2450,15 @@ static void statement (LexState *ls) {
       gotostat(ls);
       break;
     }
+#ifndef PLUTO_COMPATIBLE_MODE
+    case TK_PCASE:
+#endif
     case TK_CASE: {
       throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
     }
+#ifndef PLUTO_COMPATIBLE_MODE
+    case TK_PSWITCH:
+#endif
     case TK_SWITCH: {
       switchstat(ls, line);
       break;
