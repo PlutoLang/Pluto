@@ -864,6 +864,12 @@
 // If defined, Pluto will attempt to prevent infinite loops.
 //#define INFINITE_LOOP_PREVENTION
 
+// If defined, Pluto will exclude code snippets from error messages to make them shorter.
+//#define PLUTO_SHORT_ERRORS
+
+// If defined, Pluto will prefix 'pluto_' to new keywords which break previously valid Lua identifiers.
+//#define PLUTO_COMPATIBLE_MODE
+
 #ifdef INFINITE_LOOP_PREVENTION
 /*
 ** This is the maximum amount of backward jumps permitted in a singular loop block.

@@ -81,13 +81,19 @@ static const char *format_line_error (LexState *ls, const char *msg, const char 
   std::string pad_str(std::to_string(ls->linenumber).length(), ' ');
   const char *pad = pad_str.c_str();
   const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
-#ifndef PLUTO_USE_COLORED_OUTPUT
-  text = luaO_pushfstring(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
-#else
-  text = luaO_pushfstring(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          YEL, text, RESET, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+#ifdef PLUTO_SHORT_ERRORS
+#ifdef PLUTO_USE_COLORED_OUTPUT
+  text = luaO_fmt(ls->L, "%s%s%s", YEL, text, RESET);
+#endif // PLUTO_USE_COLORED_OUTPUT
+  return text;
 #endif
+#ifndef PLUTO_USE_COLORED_OUTPUT
+  text = luaO_fmt(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
+                          text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+#else // PLUTO_USE_COLORED_OUTPUT
+  text = luaO_fmt(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
+                          YEL, text, RESET, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+#endif // PLUTO_USED_COLORED_OUTPUT
   return text;
 }
 
