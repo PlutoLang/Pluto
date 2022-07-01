@@ -50,7 +50,7 @@ enum RESERVED {
   TK_CSHR, TK_CBAND,    /* shift right & bitwise AND   */
   TK_CADD, TK_CMUL,     /* addition and multiplication */
   TK_CMOD, TK_CBOR,     /* modulo and bitwise OR       */
-  TK_CBXOR, TK_CBNOT,   /* bitwise XOR and bitwise NOT */
+  TK_CBXOR,             /* bitwise XOR                 */
   TK_CIDIV, TK_CDIV,    /* integer and float division  */
   TK_CPOW, TK_POW       /* exponents / power           */
 };
