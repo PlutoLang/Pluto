@@ -86,6 +86,19 @@ assert(#t == 900, #t)
 local metatest = setmetatable({}, { __len = function () return 5 end })
 assert(#metatest == 5, #metatest)
 
+t = {}
+for i = 1, 1000 do
+    table.insert(t, "Hello")
+    table.insert(t, "World")
+end
+assert(#t == 2000)
+
+t = {}
+for i = 1, 1000 do
+    rawset(t, i, "Hello")
+end
+assert(#t == 1000)
+
 print "Testing switch statement."
 local value = 5
 switch (value) do
