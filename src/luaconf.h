@@ -851,7 +851,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration macros.
+** Pluto configuration
 ** =====================================================================}
 */
 
@@ -860,9 +860,6 @@
 
 // If defined, Pluto errors will use ANSI color codes.
 //#define PLUTO_USE_COLORED_OUTPUT
-
-// If defined, Pluto will attempt to prevent infinite loops.
-//#define INFINITE_LOOP_PREVENTION
 
 // If defined, Pluto will exclude code snippets from error messages to make them shorter.
 //#define PLUTO_SHORT_ERRORS
@@ -876,20 +873,35 @@
 //     - Keywords like 'continue' will now be 'pluto_continue'.
 //#define PLUTO_COMPATIBLE_MODE
 
-#ifdef INFINITE_LOOP_PREVENTION
+
 /*
-** This is the maximum amount of backward jumps permitted in a singular loop block.
-** If this exceeds MAX_LOOP_ITERATIONS, the backward jump is ignored to escape the loop.
+** {====================================================================
+** Pluto configuration: Infinite Loop Prevention (ILP)
 **
 ** This is only useful in game regions, where a long loop may block the main thread and crash the game.
 ** These places usually implement a yield (or wait) function, which can be detected and hooked to reset iterations.
+** =====================================================================}
 */
-#define MAX_LOOP_ITERATIONS			1000000
+
+// If defined, Pluto will attempt to prevent infinite loops.
+//#define PLUTO_ILP_ENABLE
+
+#ifdef PLUTO_ILP_ENABLE
+/*
+** This is the maximum amount of backward jumps permitted in a singular loop block.
+** If exceeded, the backward jump is ignored to escape the loop.
+*/
+#ifndef PLUTO_ILP_MAX_ITERATIONS
+#define PLUTO_ILP_MAX_ITERATIONS			1000000
+#endif
+
 // If you want (i.e) `luaB_next` to reset iteration counters, define as `luaB_next`.
-// #define FUNCTION_NAME_TO_HOOK		luaB_next
-// Throw an error instead of breaking out of the loop.
-#define ERROR_FOR_PREVENTION		1
-#endif // INFINITE_LOOP_PREVENTION
+// #define PLUTO_ILP_HOOK_FUNCTION		luaB_next
+
+// If defined, Pluto won't throw an error and instead just break out of the loop.
+//#define PLUTO_ILP_SILENT_BREAK
+
+#endif // PLUTO_ILP_ENABLE
 
 /* }================================================================== */
 #endif
