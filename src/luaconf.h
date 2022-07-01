@@ -867,8 +867,10 @@
 // If defined, Pluto will exclude code snippets from error messages to make them shorter.
 //#define PLUTO_SHORT_ERRORS
 
-// If defined, Pluto will prefix 'pluto_' to new keywords which break previously valid Lua identifiers.
-//#define PLUTO_COMPATIBLE_MODE
+// If defined, Pluto will assign 'pluto_' to new keywords which break previously valid Lua identifiers.
+// If you decide to leave this undefined, then both 'pluto_switch' and 'switch' are valid syntaxes for Pluto.
+// If you decide to define this, then only 'pluto_switch' will be valid. 'switch' will not exist.
+// #define PLUTO_COMPATIBLE_MODE
 
 #ifdef INFINITE_LOOP_PREVENTION
 /*

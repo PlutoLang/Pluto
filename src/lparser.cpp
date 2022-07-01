@@ -1017,14 +1017,24 @@ static void statlist (LexState *ls) {
 }
 
 
+inline int gett(LexState *ls) {
+  return ls->t.token;
+}
+
+
 /* Switch logic partially inspired by Paige Marie DePol from the Lua mailing list. */
 static void caselist (LexState *ls, bool isdefault) {
-  while (ls->t.token != TK_DEFAULT && ls->t.token != TK_CASE && ls->t.token != TK_END) {
-    if (isdefault && ls->t.token == TK_BREAK && luaX_lookahead(ls) == TK_END) {
+  while (gett(ls) != TK_DEFAULT &&
+         gett(ls) != TK_CASE    &&
+         gett(ls) != TK_END     &&
+         gett(ls) != TK_PCASE   &&
+         gett(ls) != TK_PDEFAULT
+    ) {
+    if (isdefault && gett(ls) == TK_BREAK && luaX_lookahead(ls) == TK_END) {
       luaX_next(ls);
     }
     else {
-      if (ls->t.token == TK_CONTINUE) {
+      if (gett(ls) == TK_CONTINUE || gett(ls) == TK_PCONTINUE) {
         throwerr(ls, "'continue' outside of loop.", "'case' statements are not loops.");
       }
       else {
@@ -1884,6 +1894,7 @@ static void switchstat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   BlockCnt sbl, cbl; // Switch & case blocks.
   expdesc crtl, save, test, lcase;
+  int switchToken = gett(ls);
   luaX_next(ls); // Skip switch statement.
   testnext(ls, '(');
   expr(ls, &crtl);
@@ -1896,7 +1907,9 @@ static void switchstat (LexState *ls, int line) {
   enterblock(fs, &sbl, 1);
   do {
     const int caseline = ls->linenumber; // Needed for errors.
-    checknext(ls, TK_CASE);
+    if (!testnext(ls, TK_CASE) && !testnext(ls, TK_PCASE)) {
+      error_expected(ls, TK_CASE == TK_PCASE ? TK_PCASE : TK_CASE);
+    }
     if (testnext(ls, '-')) { // Probably a negative constant.
       simpleexp(ls, &lcase);
       switch (lcase.k) {
@@ -1931,18 +1944,18 @@ static void switchstat (LexState *ls, int line) {
     luaK_posfix(fs, OPR_NE, &test, &lcase, line);
     caselist(ls, false);
     leaveblock(fs);
-    if (ls->t.token == TK_CASE) {
+    if (gett(ls) == TK_CASE || gett(ls) == TK_PCASE) {
       luaK_code(fs, CREATE_sJ(OP_JMP, (2 + OFFSET_sJ), false)); // Fall-through.
     }
     luaK_patchtohere(fs, test.u.info); // Jump statements if OP_NE, otherwise continue.
-  } while (ls->t.token != TK_END && ls->t.token != TK_DEFAULT);
-  if (testnext(ls, TK_DEFAULT)) { // Default case.
+  } while (gett(ls) != TK_END && (gett(ls) != TK_PDEFAULT && gett(ls) != TK_DEFAULT));
+  if (testnext(ls, TK_PDEFAULT) || testnext(ls, TK_DEFAULT)) { // Default case.
     checknext(ls, ':');
     enterblock(fs, &cbl, 0);
     caselist(ls, true);
     leaveblock(fs);
   }
-  check_match(ls, TK_END, TK_SWITCH, line);
+  check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
 }
 
@@ -2414,7 +2427,10 @@ static void statement (LexState *ls) {
       breakstat(ls);
       break;
     }
-    case TK_CONTINUE: {  /* stat -> continuestat */
+#ifndef TK_CONTINUE
+    case TK_CONTINUE:
+#endif
+    case TK_PCONTINUE: {  /* stat -> continuestat */
       continuestat(ls);
       break;
     }
@@ -2423,10 +2439,16 @@ static void statement (LexState *ls) {
       gotostat(ls);
       break;
     }
-    case TK_CASE: {
+#ifndef TK_CASE
+    case TK_CASE:
+#endif
+    case TK_PCASE: {
       throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
     }
-    case TK_SWITCH: {
+#ifndef TK_SWITCH
+    case TK_SWITCH:
+#endif
+    case TK_PSWITCH: {
       switchstat(ls, line);
       break;
     }

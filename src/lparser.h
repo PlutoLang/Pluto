@@ -18,6 +18,14 @@
 #define t2s(lex, token) (luaX_token2str_noq(lex, token))
 
 
+#ifdef PLUTO_COMPATIBLE_MODE
+#define TK_SWITCH   TK_PSWITCH
+#define TK_CASE     TK_PCASE 
+#define TK_DEFAULT  TK_PDEFAULT
+#define TK_CONTINUE TK_PCONTINUE
+#endif
+
+
 /*
 ** Expression and variable descriptor.
 ** Code generation for variables and expressions can be delayed to allow
