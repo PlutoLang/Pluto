@@ -111,7 +111,7 @@ public:
   }
 
   // Return the line number of the last latest line (see above).
-  lua_Unsigned GetLastLineNumber() {
+  int GetLastLineNumber() {
     if (linebuff.find_first_not_of(" \t") == std::string::npos) {
       if (lastlinebuff.find_first_not_of(" \t") != std::string::npos) {
         return lastlinebuffnum;
