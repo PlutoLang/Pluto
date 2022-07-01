@@ -7,9 +7,9 @@ Pluto will retain a heavy focus on portability, but it will be larger & less lig
 Thanks to everyone who's provided a star towards Pluto. I do notice every single person that does so, and it provides me excellent motivation to continue working on Pluto. On this note, please do send PRs and plenty of bug reports if you stumble upon any. All help is appreciated.
 
 ## Breaking changes:
-- None.
-
 Pluto is fully backwards-compatible (inc. C-ABI) with Lua 5.4. This includes compiled bytecode, because Pluto does not implement any new opcodes, or alter the fundamental behavior of any opcodes.
+
+However, does Pluto add new keywords that might make currently-valid table keys and goto labels invalid, especially `continue` and `default`.
 ## New Features:
 ### Dedicated Exponent Operator
 The `**` operator has been implemented into the operator set. It's roughly an alternative to `^` now.
