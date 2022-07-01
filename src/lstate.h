@@ -344,8 +344,12 @@ struct lua_State {
   int basehookcount;
   int hookcount;
   int lastStackSize;  /* last saved stack size, for restoration */
-  Registry reg;  /* Lua registry abstration. */
   volatile l_signalT hookmask;
+
+  // Lua registry abstration.
+  [[nodiscard]] inline Registry GetReg() {
+      return this;
+  }
 
   // Save the size of the stack at this time.
   inline void SaveStackSize() {
