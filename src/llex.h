@@ -80,8 +80,7 @@ typedef struct Token {
 #pragma warning( disable: 26495 )
 #endif
 
-class LexState {
-public:
+struct LexState {
   int current;  /* current character (charint) */
   int linenumber;  /* input line counter */
   int lastline;  /* line of last token 'consumed' */
