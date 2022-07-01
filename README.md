@@ -171,7 +171,7 @@ The supported constant types are as follows:
 Here's an example:
 ```lua
 local value = 3
-switch (value) do
+switch value do
   case 1:
   case 2:
   case 3:
