@@ -315,9 +315,7 @@ public:
     return lua_getfield(state, LUA_REGISTRYINDEX, key);
   }
 
-  Registry(lua_State *L) {
-    state = L;
-  }
+  Registry(lua_State *L) : state(L) {}
 };
 
 /*
