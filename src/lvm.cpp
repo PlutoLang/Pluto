@@ -1346,8 +1346,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = vRB(i);  /* key (table is in 'ra') */
         TValue *rc = RKC(i);  /* value */
         lua_Unsigned n;
-        Table *t = hvalue(s2v(ra));
-        if (t->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+        if (ttistable(s2v(ra))) {
+          Table *t = hvalue(s2v(ra));
+          t->length = 0; // Reset length cache.
+          if (t->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+        }
         if (ttisinteger(rb)  /* fast track for integers? */
             ? (cast_void(n = ivalue(rb)), luaV_fastgeti(L, s2v(ra), n, slot))
             : luaV_fastget(L, s2v(ra), rb, slot, luaH_get)) {
@@ -1355,14 +1358,17 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaV_finishset(L, s2v(ra), rb, rc, slot));
-        t->length = 0; // Reset table length cache.
         vmbreak;
       }
       vmcase(OP_SETI) {
         const TValue *slot;
         int c = GETARG_B(i);
         TValue *rc = RKC(i);
-        if (hvalue(s2v(ra))->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+        if (ttistable(s2v(ra))) {
+          Table *t = hvalue(s2v(ra));
+          if (t->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+          t->length = 0; // Reset length cache.
+        }
         if (luaV_fastgeti(L, s2v(ra), c, slot)) {
           luaV_finishfastset(L, s2v(ra), slot, rc);
         }
