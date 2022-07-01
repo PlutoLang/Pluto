@@ -434,7 +434,7 @@ static int new_localvar (LexState *ls, TString *name) {
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
   Vardesc *var;
-#ifdef PLUTO_PARSER_WARNING_LOCALDEF
+#ifndef PLUTO_NO_PARSER_WARNINGS
   int locals = luaY_nvarstack(fs);
   for (int i = fs->firstlocal; i < locals; i++) {
     Vardesc *desc = getlocalvardesc(fs,  i);

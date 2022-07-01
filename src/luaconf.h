@@ -767,24 +767,11 @@
 
 /* }================================================================== */
 
-
 /*
 ** {====================================================================
-** Pluto configuration macros.
-** If a macro is followed by a commented-out undef, you can toggle it.
+** Pluto color macros.
 ** =====================================================================}
 */
-
-#define PLUTO_USE_COLORED_OUTPUT
-// #undef PLUTO_USE_COLORED_OUTPUT
-
-#define PLUTO_PARSER_ENABLE_WARNIGNS
-// #undef PLUTO_PARSER_ENABLE_WARNIGNS
-
-#ifdef PLUTO_PARSER_ENABLE_WARNIGNS
-#define PLUTO_PARSER_WARNING_LOCALDEF
-// #undef PLUTO_PARSER_WARNING_LOCALDEF
-#endif
 
 #define ESC "\x1B"
 
@@ -862,9 +849,21 @@
 #define CRESET ESC "[0m"
 #define COLOR_RESET ESC "[0m"
 
-// Infinite Loop Prevention
-#define INFINITE_LOOP_PREVENTION
-#undef INFINITE_LOOP_PREVENTION
+/*
+** {====================================================================
+** Pluto configuration macros.
+** =====================================================================}
+*/
+
+// If defined, Pluto won't emit parser warnings.
+//#define PLUTO_NO_PARSER_WARNINGS
+
+// If defined, Pluto errors will use ANSI color codes.
+//#define PLUTO_USE_COLORED_OUTPUT
+
+// If defined, Pluto will attempt to prevent infinite loops.
+//#define INFINITE_LOOP_PREVENTION
+
 #ifdef INFINITE_LOOP_PREVENTION
 /*
 ** This is the maximum amount of backward jumps permitted in a singular loop block.

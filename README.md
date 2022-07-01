@@ -128,7 +128,7 @@ tests/quick.lua:3: warning: duplicate local declaration [-D]
            | ^^^^^^^^^^^^^^^^ here: this shadows the value of the initial declaration on line 1.
            |
 ```
-This feature can be removed from Pluto via the `PLUTO_PARSER_WARNING_LOCALDEF` macro in `luaconf.h`.
+This feature can be removed from Pluto by defining the `PLUTO_NO_PARSER_WARNINGS` macro in `luaconf.h` or your build config.
 ### Augmented Operators
 The following augmented operators have been added:
 - Modulo: `%=`
@@ -205,7 +205,7 @@ The length of tables (`#mytable`) is now automatically cached by Pluto after you
 These are modifications that don't really add something new, but improve existing behavior.
 
 ### Excessive Iteration Prevention (For Game Developers)
-This is an optional, but fairly simple heuristic that limits the amount of backward-jumps performed prior to a forward-jump, which applies to loops. Every backward-jump is usually a new iteration, and forward jumps are usually escaping statements. Taking advantage of this circumstance, Pluto can bottleneck the amount of backward-jumps permitted to avoid excessive iterations — which are usually problematic for blocking game threads — and prevent the operation of infinite loops, or loops which may crash the game thread.
+This is an optional, but fairly simple heuristic that limits the amount of backward-jumps performed prior to a forward-jump, which applies to loops. Every backward-jump is usually a new iteration, and forward jumps are usually escaping statements. Taking advantage of this circumstance, Pluto can bottleneck the amount of backward-jumps permitted to avoid excessive iterations — which are usually problematic for blocking game threads — and prevent the operation of infinite loops, or loops which may crash the game thread. You can enable this feature by defining the `INFINITE_LOOP_PREVENTION` macro in `luaconf.h` or your build config.
 
 This supports a statically-defined bottleneck — `MAX_LOOP_ITERATIONS` in `luaconf.h` — which defines the amount of permitted iterations. This also supports hooking the `OP_CALL` opcode, and preventing loop termination if a certain function is called. This was implemented because game threads usually force users to call some sort of `yield` mechanism to prevent a crash — `FUNCTION_NAME_TO_HOOK` in `luaconf.h` — but, the function must be avalible in the Pluto runtime. `ERROR_FOR_PREVENTION` can also be enabled to throw a runtime error during exception, otherwise Pluto will simply break out of the loop.
 
@@ -232,7 +232,7 @@ pluto: tests/quick.lua:4: syntax error: impromper lambda definition
            | ^^^^^^^^^^^^^^^^^^^^^^ here: expected '->' arrow syntax for lambda expression.
            |
 ```
-This also supports ANSI color codes, however this is disabled by default in order to encourage portability. For example, ANSI color codes do not work on most Windows command prompts. Define the `PLUTO_USE_COLORED_OUTPUT` macro in `luaconf.h` to enable colored error messages — they look quite nice.
+This also supports ANSI color codes, however this is disabled by default in order to encourage portability. For example, ANSI color codes do not work on most Windows command prompts. Define the `PLUTO_USE_COLORED_OUTPUT` macro in `luaconf.h` or your build config to enable colored error messages — they look quite nice.
 - For most Windows 10 users, you can enable ANSI color code support with this shell command:
   - `REG ADD HKCU\CONSOLE /f /v VirtualTerminalLevel /t REG_DWORD /d 1`
 
