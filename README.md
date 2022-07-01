@@ -23,7 +23,10 @@ local t = {
 print(t.default) -- Error.
 print(t["default"]) -- Works fine.
 ```
-Otherwise, you must manually refactor these identifiers.
+Otherwise, you have two options:
+  1. Refactor your code.
+  2. Compile Pluto in compatibility mode.
+If you wish to compile Pluto in compatibility mode, all new keywords will be prefixed with 'pluto_' to avoid breaking existing identifiers. Toggle the `PLUTO_COMPATIBLE_MODE` macro in `luaconf.h`. More information can also be found in that file.
 ## New Features:
 ### Alternative Operators
 - `**` is a valid alternative to `^`, the power operator.
