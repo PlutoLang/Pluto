@@ -144,6 +144,8 @@ The following augmented operators have been added:
 - Integer division: `//=`
 
 These are all syntactic sugar for the usual binary operation & manual assignment, as such they produce nearly the same bytecode. In some instances, Pluto's augmented operators are faster than Lua. This happens because augmented operators temporarily store the left-hand operand inside of a register & share the value to the expression, whereas Lua would request the value twice.
+### Not Equals Operator
+Pluto supports using `!=` as an alternative to `~=`.
 ### Switch/Case Statement
 Pluto now offers switch/case statement syntax that meets the C standard. Which means, case expressions must be compile-time constants, and proper fall-through is supported. Lua's `<const>` declaration modifier is not included as a constant expression.
 
