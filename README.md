@@ -248,6 +248,7 @@ This also supports ANSI color codes, however this is disabled by default in orde
 - `lua_freezetable` function.
 - `lua_erriffrozen` function.
 - `lua_istablefrozen` function.
+- `L->l_G->user_data` member for custom data per `luaL_newstate`.
 
 ## Building Pluto
 Pluto was built on C++17, with no backwards-compatibility ensured. Any C++ compiler capable of supporting that feature set should compile fine.
