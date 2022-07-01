@@ -321,8 +321,7 @@ public:
 /*
 ** 'per thread' state
 */
-class lua_State {
-public:
+struct lua_State {
   CommonHeader;
   lu_byte status;
   lu_byte allowhook;
