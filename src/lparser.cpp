@@ -1876,6 +1876,13 @@ static void continuestat (LexState *ls) {
   else error_expected(ls, TK_CONTINUE);
 }
 
+
+// Test the next token to see if it's either 'token1' or 'token2'.
+inline bool testnext2 (LexState *ls, int token1, int token2) {
+  return testnext(ls, token1) || testnext(ls, token2);
+}
+
+
 static const char* expandexpr (LexState *ls) {
   switch (ls->t.token) {
     case '{': {
@@ -1907,8 +1914,12 @@ static void switchstat (LexState *ls, int line) {
   enterblock(fs, &sbl, 1);
   do {
     const int caseline = ls->linenumber; // Needed for errors.
-    if (!testnext(ls, TK_CASE) && !testnext(ls, TK_PCASE)) {
-      error_expected(ls, TK_CASE == TK_PCASE ? TK_PCASE : TK_CASE);
+    if (!testnext2(ls, TK_CASE, TK_PCASE)) {
+#ifdef PLUTO_COMPATIBLE_MODE
+      error_expected(ls, TK_PCASE);
+#else
+      error_expected(ls, TK_CASE);
+#endif // PLUTO_COMPATIBLE_MODE
     }
     if (testnext(ls, '-')) { // Probably a negative constant.
       simpleexp(ls, &lcase);
@@ -1949,7 +1960,7 @@ static void switchstat (LexState *ls, int line) {
     }
     luaK_patchtohere(fs, test.u.info); // Jump statements if OP_NE, otherwise continue.
   } while (gett(ls) != TK_END && (gett(ls) != TK_PDEFAULT && gett(ls) != TK_DEFAULT));
-  if (testnext(ls, TK_PDEFAULT) || testnext(ls, TK_DEFAULT)) { // Default case.
+  if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) { // Default case.
     checknext(ls, ':');
     enterblock(fs, &cbl, 0);
     caselist(ls, true);
@@ -2427,10 +2438,10 @@ static void statement (LexState *ls) {
       breakstat(ls);
       break;
     }
-#ifndef TK_CONTINUE
-    case TK_CONTINUE:
+#ifndef PLUTO_COMPATIBLE_MODE
+    case TK_PCONTINUE:
 #endif
-    case TK_PCONTINUE: {  /* stat -> continuestat */
+    case TK_CONTINUE: {
       continuestat(ls);
       break;
     }
@@ -2439,16 +2450,16 @@ static void statement (LexState *ls) {
       gotostat(ls);
       break;
     }
-#ifndef TK_CASE
-    case TK_CASE:
+#ifndef PLUTO_COMPATIBLE_MODE
+    case TK_PCASE:
 #endif
-    case TK_PCASE: {
+    case TK_CASE: {
       throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
     }
-#ifndef TK_SWITCH
-    case TK_SWITCH:
+#ifndef PLUTO_COMPATIBLE_MODE
+    case TK_PSWITCH:
 #endif
-    case TK_PSWITCH: {
+    case TK_SWITCH: {
       switchstat(ls, line);
       break;
     }

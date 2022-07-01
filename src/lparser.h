@@ -10,6 +10,7 @@
 #include "llimits.h"
 #include "lobject.h"
 #include "lzio.h"
+#include "llex.h"
 
 
 /*
@@ -19,10 +20,13 @@
 
 
 #ifdef PLUTO_COMPATIBLE_MODE
-#define TK_SWITCH   TK_PSWITCH
-#define TK_CASE     TK_PCASE 
-#define TK_DEFAULT  TK_PDEFAULT
-#define TK_CONTINUE TK_PCONTINUE
+// Compatibility mode, these represent 'pluto_' keywords.
+enum ALIASES {
+  TK_SWITCH = TK_PSWITCH,
+  TK_CASE,
+  TK_DEFAULT,
+  TK_CONTINUE
+};
 #endif
 
 
