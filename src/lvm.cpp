@@ -1178,7 +1178,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   StkId base;
   const Instruction *pc;
   int trap;
-#ifdef INFINITE_LOOP_PREVENTION
+#ifdef PLUTO_ILP_ENABLE
   int sequentialJumps = 0;
 #endif
 #if LUA_USE_JUMPTABLE
@@ -1616,19 +1616,19 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_JMP) {
         int offset = GETARG_sJ(i);
-#ifdef INFINITE_LOOP_PREVENTION
+#ifdef PLUTO_ILP_ENABLE
         if (offset <= 0) {
           sequentialJumps++;
         }
         else sequentialJumps = 0;
-        if (sequentialJumps >= MAX_LOOP_ITERATIONS) {
+        if (sequentialJumps >= PLUTO_ILP_MAX_ITERATIONS) {
           sequentialJumps = 0;
-#if ERROR_FOR_PREVENTION
-          luaG_runerror(L, "infinite loop detected (exceeded max iterations: %d)", MAX_LOOP_ITERATIONS);
+#ifndef PLUTO_ILP_SILENT_BREAK
+          luaG_runerror(L, "infinite loop detected (exceeded max iterations: %d)", PLUTO_ILP_MAX_ITERATIONS);
 #endif
           vmbreak;
         }
-#endif // INFINITE_LOOP_PREVENTION
+#endif // PLUTO_ILP_ENABLE
         pc += offset;
         updatetrap(ci);
         vmbreak;
@@ -1706,8 +1706,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           L->top = ra + b;  /* top signals number of arguments */
         /* else previous instruction set top */
         savepc(L);  /* in case of errors */
-#ifdef FUNCTION_NAME_TO_HOOK
-        if (fvalue(s2v(ra)) == FUNCTION_NAME_TO_HOOK) sequentialJumps = 0;
+#ifdef PLUTO_ILP_HOOK_FUNCTION
+        if (fvalue(s2v(ra)) == PLUTO_ILP_HOOK_FUNCTION) sequentialJumps = 0;
 #endif
         if ((newci = luaD_precall(L, ra, nresults)) == NULL)
           updatetrap(ci);  /* C call; nothing else to be done */
