@@ -17,6 +17,7 @@ jobs:
             src/libpluto.dll
             src/libpluto.a
       - run: src/pluto tests/basic.lua
+      - run: src/pluto tests/compat.lua
   macos-pluto:
     runs-on: macos-latest
     steps:
@@ -33,6 +34,7 @@ jobs:
             src/libpluto.dll
             src/libpluto.a
       - run: src/pluto tests/basic.lua
+      - run: src/pluto tests/compat.lua
   windows-pluto:
     runs-on: windows-latest
     steps:
@@ -52,3 +54,4 @@ jobs:
             src/libpluto.dll
             src/libpluto.a
       - run: src/pluto.exe tests/basic.lua
+      - run: src/pluto.exe tests/compat.lua
