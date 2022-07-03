@@ -6,7 +6,7 @@
 # Your platform. See PLATS for possible values.
 PLAT= mingw
 
-CC= g++ -std=c++20
+CC= g++ -std=c++2a
 CXXFLAGS= -O3 -Wall -Wextra -DLUA_COMPAT_5_3 $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm $(SYSLIBS) $(MYLIBS)
