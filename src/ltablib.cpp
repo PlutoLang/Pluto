@@ -445,10 +445,9 @@ static int tcontains(lua_State* L) {
   lua_pushnil(L);
   while (lua_next(L, -2)) {
     lua_pushvalue(L, -2);
-    bool eq = lua_compare(L, 2, -2, LUA_OPEQ);
+    contains = lua_compare(L, 2, -2, LUA_OPEQ);
     lua_pop(L, 2);
-    if (eq) {
-      contains = 1;
+    if (contains) {
       break;
     }
   }
