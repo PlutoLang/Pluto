@@ -1,5 +1,9 @@
 name: Builds
-on: [push]
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 jobs:
   linux-pluto:
     runs-on: ubuntu-latest
