@@ -11,7 +11,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: pluto-linux
-          path:  | 
+          path: |
             src/pluto
             src/plutoc
             src/libpluto.dll
@@ -26,7 +26,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: pluto-macos
-          path:  | 
+          path: |
             src/pluto
             src/plutoc
             src/libpluto.dll
@@ -44,7 +44,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: pluto-windows
-          path:  | 
+          path: |
             src/pluto.exe
             src/plutoc.exe
             src/libpluto.dll
