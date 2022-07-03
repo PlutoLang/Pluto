@@ -16,7 +16,7 @@ jobs:
             src/plutoc
             src/libpluto.dll
             src/libpluto.a
-  macos-minivm:
+  macos-pluto:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
