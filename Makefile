@@ -36,7 +36,7 @@ RM= rm -f
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
 # Convenience platforms targets.
-PLATS= mingw linux
+PLATS= mingw linux macos
 
 # What to install.
 TO_BIN= pluto plutoc

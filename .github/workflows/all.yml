@@ -12,8 +12,23 @@ jobs:
         with:
           name: pluto-linux
           path:  | 
-            src/pluto.exe
-            src/plutoc.exe
+            src/pluto
+            src/plutoc
+            src/libpluto.dll
+            src/libpluto.a
+  macos-minivm:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=macos all
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pluto-macos
+          path:  | 
+            src/pluto
+            src/plutoc
             src/libpluto.dll
             src/libpluto.a
   windows-pluto:

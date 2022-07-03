@@ -40,7 +40,7 @@ BASE_O= $(CORE_O) $(LIB_O) $(MYOBJS)
 LUA_T=	pluto
 LUA_O=	lua.o
 
-LUAC_T=	luac
+LUAC_T=	plutoc
 LUAC_O=	luac.o
 
 ALL_O= $(BASE_O) $(LUA_O) $(LUAC_O)
