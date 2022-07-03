@@ -419,7 +419,7 @@ static int getn (lua_State *L) {
 static int tfreeze (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   if (lua_gettop(L) > 1) {
-    luaL_error(L, "more argumented than expected to table.freeze");
+    luaL_error(L, "more arguments than expected to table.freeze");
   }
   else {
     lua_freezetable(L, 1);
