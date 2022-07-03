@@ -28,7 +28,7 @@ jobs:
       - run: make -Bj CXXFLAGS+=-fms-extensions all
       - uses: actions/upload-artifact@v2
         with:
-          name: pluto-linux
+          name: pluto-windows
           path:  | 
             src/pluto.exe
             src/plutoc.exe
