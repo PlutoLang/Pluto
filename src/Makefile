@@ -6,7 +6,7 @@
 # Your platform. See PLATS for possible values.
 PLAT= mingw
 
-CC= g++ -std=c++20
+CXX= g++ -std=c++2a
 CXXFLAGS= -O3 -Wall -Wextra -DLUA_COMPAT_5_3 $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm $(SYSLIBS) $(MYLIBS)
@@ -30,7 +30,7 @@ CMCFLAGS= -O3
 
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
-PLATS= guess aix bsd c89 freebsd generic linux linux-readline macosx mingw posix solaris
+PLATS= guess aix bsd freebsd generic linux linux-readline macosx mingw posix solaris
 
 LUA_A=	libpluto.a
 CORE_O=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o
@@ -40,7 +40,7 @@ BASE_O= $(CORE_O) $(LIB_O) $(MYOBJS)
 LUA_T=	pluto
 LUA_O=	lua.o
 
-LUAC_T=	luac
+LUAC_T=	plutoc
 LUAC_O=	luac.o
 
 ALL_O= $(BASE_O) $(LUA_O) $(LUAC_O)
@@ -61,10 +61,10 @@ $(LUA_A): $(BASE_O)
 	$(RANLIB) $@
 
 $(LUA_T): $(LUA_O) $(LUA_A)
-	$(CC) -o $@ $(LDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
+	$(CXX) -o $@ $(LDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
 
 $(LUAC_T): $(LUAC_O) $(LUA_A)
-	$(CC) -o $@ $(LDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS)
+	$(CXX) -o $@ $(LDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS)
 
 test:
 	./$(LUA_T) -v
@@ -73,11 +73,11 @@ clean:
 	$(RM) $(ALL_T) $(ALL_O)
 
 depend:
-	@$(CC) $(CXXFLAGS) -MM l*.cpp
+	@$(CXX) $(CXXFLAGS) -MM l*.cpp
 
 echo:
 	@echo "PLAT= $(PLAT)"
-	@echo "CC= $(CC)"
+	@echo "CXX= $(CXX)"
 	@echo "CFLAGS= $(CXXFLAGS)"
 	@echo "LDFLAGS= $(LDFLAGS)"
 	@echo "LIBS= $(LIBS)"
@@ -99,38 +99,30 @@ guess:
 	@$(MAKE) `$(UNAME)`
 
 AIX aix:
-	$(MAKE) $(ALL) CC="xlc" CFLAGS="-O2 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-ldl" SYSLDFLAGS="-brtl -bexpall"
+	$(MAKE) $(ALL) CXX="xlc" CFLAGS="-O2 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-ldl" SYSLDFLAGS="-brtl -bexpall"
 
 bsd:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-Wl,-E"
 
-c89:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_C89" CC="gcc -std=c89"
-	@echo ''
-	@echo '*** C89 does not guarantee 64-bit integers for Lua.'
-	@echo '*** Make sure to compile all external Lua libraries'
-	@echo '*** with LUA_USE_C89 to ensure consistency'
-	@echo ''
-
 FreeBSD NetBSD OpenBSD freebsd:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE -I/usr/include/edit" SYSLIBS="-Wl,-E -ledit" CC="cc"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE -I/usr/include/edit" SYSLIBS="-ledit" CC="cc"
 
 generic: $(ALL)
 
 Linux linux:	linux-noreadline
 
 linux-noreadline:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX" SYSLIBS="-Wl,-E -ldl"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX" SYSLIBS="-ldl"
 
 linux-readline:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE" SYSLIBS="-Wl,-E -ldl -lreadline"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE" SYSLIBS="-ldl -lreadline"
 
 Darwin macos macosx:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX -DLUA_USE_READLINE" SYSLIBS="-lreadline"
 
 mingw:
 	$(MAKE) "LUA_A=libpluto.dll" "LUA_T=pluto.exe" \
-	"AR=$(CC) -shared -o" "RANLIB=strip --strip-unneeded" \
+	"AR=$(CXX) -shared -o" "RANLIB=strip --strip-unneeded" \
 	"SYSCFLAGS=-DLUA_BUILD_AS_DLL" "SYSLIBS=" "SYSLDFLAGS=-s" pluto.exe
 	$(MAKE) "LUAC_T=plutoc.exe" plutoc.exe
 
@@ -145,13 +137,13 @@ SunOS solaris:
 
 # Compiler modules may use special flags.
 llex.o:
-	$(CC) $(CXXFLAGS) $(CMCFLAGS) -c llex.cpp
+	$(CXX) $(CXXFLAGS) $(CMCFLAGS) -c llex.cpp
 
 lparser.o:
-	$(CC) $(CXXFLAGS) $(CMCFLAGS) -c lparser.cpp
+	$(CXX) $(CXXFLAGS) $(CMCFLAGS) -c lparser.cpp
 
 lcode.o:
-	$(CC) $(CXXFLAGS) $(CMCFLAGS) -c lcode.cpp
+	$(CXX) $(CXXFLAGS) $(CMCFLAGS) -c lcode.cpp
 
 # DO NOT DELETE
 
