@@ -8,8 +8,7 @@
 #define LUA_LIB
 
 #include "lprefix.h"
-
-
+#include <string>
 #include <ctype.h>
 #include <float.h>
 #include <limits.h>
@@ -1831,7 +1830,7 @@ static int str_unpack (lua_State *L) {
 }
 
 
-static int str_startswith(lua_State *L) {
+static int str_startswith (lua_State *L) {
   size_t len;
   const char *str = luaL_checkstring(L, 1);
   const char *prefix = luaL_checklstring(L, 2, &len);
@@ -1840,7 +1839,7 @@ static int str_startswith(lua_State *L) {
 }
 
 
-static int str_endswith(lua_State *L) {
+static int str_endswith (lua_State *L) {
   size_t len;
   size_t suffixlen;
   const char *str = luaL_checklstring(L, 1, &len);
@@ -1850,10 +1849,60 @@ static int str_endswith(lua_State *L) {
 }
 
 
+static int str_partition (lua_State *L) {
+  size_t sepsize, sepindex;
+  std::string str = luaL_checkstring(L, 1);
+  const char *sep = luaL_checklstring(L, 2, &sepsize);
+
+  if (lua_toboolean(L, 3)) {
+    sepindex = str.rfind(sep);
+  }
+  else {
+    sepindex = str.find(sep);
+  }
+
+  if (sepindex != std::string::npos) {
+    lua_pushstring(L, str.substr(0, sepindex).c_str());
+    lua_pushstring(L, str.substr(sepindex + sepsize).c_str());
+  }
+  else {
+    lua_pushnil(L);
+    lua_pushnil(L);
+  }
+
+  return 2;
+}
+
+
+static int str_split (lua_State *L) {
+  size_t pos, len, sepsize;
+  std::string str = luaL_checkstring(L, 1);
+  const char* sep = luaL_checklstring(L, 2, &sepsize);
+
+  pos = 0;  // Last position of sep.
+  len = 0;  // Length of Lua table.
+
+  lua_newtable(L);
+  while ((pos = str.find(sep)) != std::string::npos && pos < str.length()) {
+    lua_pushstring(L, str.substr(0, pos).c_str());
+    lua_rawseti(L, -2, ++len);
+    str.erase(0, pos + sepsize);
+  }
+  
+  lua_pushstring(L, str.c_str());  // Push remaining word.
+  lua_rawseti(L, -2, ++len);
+  lua_setcachelen(L, len, -1);  // Cache table length.
+
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"split", str_split},
+  {"partition", str_partition},
   {"endswith", str_endswith},
   {"startswith", str_startswith},
   {"byte", str_byte},
