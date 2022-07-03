@@ -49,10 +49,12 @@ Here's example usage of the new lambda expressions:
 ```lua
 local str = "123"
 local inc_str = str:gsub(".", |c| -> tonumber(c) + 1)
-assert(inc_str == "234")
+print(inc_str) -- "234"
 ```
 - The '|' token was chosen because it's not commonly used as an unary operator in programming.
 - The '->' arrow syntax looked better and didn't resemble any operators. It also plays along with common lambda tokens.
+
+<a href="https://plutolang.github.io/#code=local%20str%20%3D%20%22123%22%0D%0Alocal%20inc_str%20%3D%20str%3Agsub(%22.%22%2C%20%7Cc%7C%20-%3E%20tonumber(c)%20%2B%201)%0D%0Aprint(inc_str)%20--%20%22234%22">Try it yourself!</a>
 ### Ternary Expressions
 Ternary expressions allow seamless implementation of short statements which may assign falsy values. It also allows shorter, and more concise logic. Here is an example.
 ```lua
