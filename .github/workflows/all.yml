@@ -1,0 +1,36 @@
+name: Builds
+on: [push]
+jobs:
+  linux-pluto:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - run: make -Bj CXXFLAGS+=-fms-extensions all
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pluto-linux
+          path:  | 
+            src/pluto.exe
+            src/plutoc.exe
+            src/libpluto.dll
+            src/libpluto.a
+  windows-pluto:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+      - run: make -Bj CXXFLAGS+=-fms-extensions all
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pluto-linux
+          path:  | 
+            src/pluto.exe
+            src/plutoc.exe
+            src/libpluto.dll
+            src/libpluto.a
