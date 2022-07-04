@@ -71,6 +71,15 @@ b >>= 1
 assert(a == 0)
 assert(b == 1)
 
+print "Testing string indexing."
+local str = "abc"
+assert(str[1] == "a")
+assert(str[2] == "b")
+assert(str[3] == "c")
+assert(str[-1] == "c")
+assert(str[-2] == "b")
+assert(str[-3] == "a")
+
 print "Testing table length cache."
 local t = {}
 for i = 1, 1000 do

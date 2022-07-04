@@ -39,10 +39,11 @@ String indexing makes character-intensive tasks nearly 3x faster. The syntax is 
 local str = "hello world"
 print(str[5]) -- "o"
 print(str[200]) -- nil
+print(str[-1]) -- "d"
 ```
 This is a very nice addition because it avoids a lookup and function call for each character. Things like (i.e, hash algorithms) will significantly benefit from this change. Furthermore, it's friendly with normal instance lookups. So, things like `str["char"]` still work fine. String indexing is invoked whenever a string index is invoked with an integer.
 
-<a href="https://plutolang.github.io/#code=local%20str%20%3D%20%22hello%20world%22%0D%0Aprint(str%5B5%5D)%20--%20%22o%22%0D%0Aprint(str%5B200%5D)%20--%20nil">Try it yourself!</a>
+<a href="https://plutolang.github.io/#code=local%20str%20%3D%20%22hello%20world%22%0D%0Aprint(str%5B5%5D)%20--%20%22o%22%0D%0Aprint(str%5B200%5D)%20--%20nil%0D%0Aprint(str%5B-1%5D)%20--%20%22d%22">Try it yourself!</a>
 ### Lambda Expressions
 Without the size constraint of Lua, there's no need to hold weary of shorthand expressions.
 Here's example usage of the new lambda expressions:
