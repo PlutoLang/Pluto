@@ -272,6 +272,10 @@ This also supports ANSI color codes, however this is disabled by default in orde
 - `table.contains` function.
 - `string.endswith` function.
 - `string.startswith` function.
+- `os.unixseconds` function. Returns seconds since UNIX epoch.
+- `os.seconds` function. Returns seconds since implementation-specific epoch.
+- `os.millis` function. Returns milliseconds since implementation-specific epoch.
+- `os.nanos` function. Returns nanoseconds since implementation-specific epoch.
 
 ## C API Additions
 - `lua_setcachelen` function.
