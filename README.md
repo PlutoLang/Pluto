@@ -269,6 +269,7 @@ This also supports ANSI color codes, however this is disabled by default in orde
 - `newuserdata` function.
 - `table.freeze` function.
 - `table.isfrozen` function.
+- `table.contains` function.
 - `string.endswith` function.
 - `string.startswith` function.
 

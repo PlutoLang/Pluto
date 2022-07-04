@@ -311,4 +311,16 @@ assert(status == false, "expected error")
 status, _ = pcall(function () _ENV[function () end] = "abc" end)
 assert(status == false, "expected error")
 
+print "Testing standard library additions."
+local t = {}
+table.insert(t, 0)
+table.insert(t, "Hello")
+table.insert(t, true)
+assert(table.contains(t, "Hello") == true)
+assert(table.contains(t, "World") == false)
+assert(table.contains(t, true) == true)
+assert(table.contains(t, false) == false)
+assert(table.contains(t, 0) == true)
+assert(table.contains(t, 1) == false)
+
 print "Finished."
