@@ -297,7 +297,7 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
         if (index < 0) { /* negative index, index from end of string */
           index += vslen(t) + 1;
         }
-        if (((lua_Integer)vslen(t) < index) || (index == 0)) { /* invalid index */
+        if (((lua_Integer)vslen(t) < index) || (index < 1)) { /* invalid index */
           setnilvalue(s2v(val));
           return;
         }

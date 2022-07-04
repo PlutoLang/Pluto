@@ -73,12 +73,17 @@ assert(b == 1)
 
 print "Testing string indexing."
 local str = "abc"
+assert(str[0] == nil)
 assert(str[1] == "a")
 assert(str[2] == "b")
 assert(str[3] == "c")
+assert(str[4] == nil)
+assert(str[5] == nil)
 assert(str[-1] == "c")
 assert(str[-2] == "b")
 assert(str[-3] == "a")
+assert(str[-4] == nil)
+assert(str[-5] == nil)
 
 print "Testing table length cache."
 local t = {}
