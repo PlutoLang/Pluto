@@ -383,20 +383,20 @@ static int os_unixseconds(lua_State *L) {
 
 
 static int os_seconds(lua_State* L) {
-	lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
-	return 1;
+  lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+  return 1;
 }
 
 
 static int os_millis(lua_State* L) {
-	lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
-	return 1;
+  lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+  return 1;
 }
 
 
 static int os_nanos(lua_State* L) {
-	lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
-	return 1;
+  lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+  return 1;
 }
 
 /* }====================================================== */
