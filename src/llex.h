@@ -55,7 +55,8 @@ enum RESERVED {
   TK_CMOD, TK_CBOR,     /* modulo and bitwise OR       */
   TK_CBXOR,             /* bitwise XOR                 */
   TK_CIDIV, TK_CDIV,    /* integer and float division  */
-  TK_CPOW, TK_POW       /* exponents / power           */
+  TK_CPOW, TK_POW,      /* exponents / power           */
+  TK_CCAT,              /* concatenation               */
 };
 
 

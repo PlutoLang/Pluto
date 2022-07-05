@@ -1692,6 +1692,10 @@ static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
 */
 static int getcompoundop (LexState *ls, BinOpr *op) {
   switch (ls->lasttoken) {
+    case TK_CCAT: {
+      *op = OPR_CONCAT;
+      return 1;       /* concatenation */
+    }
     case TK_CADD: {
       *op = OPR_ADD;  /* addition */
       return 1;

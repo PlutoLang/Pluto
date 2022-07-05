@@ -169,6 +169,7 @@ The following augmented operators have been added:
 - Float division: `/=`
 - Bitshift right: `>>=`
 - Multiplication: `*=`
+- Concatenation: `..=`
 - Integer division: `//=`
 
 These are all syntactic sugar for the usual binary operation & manual assignment, as such they produce nearly the same bytecode. In some instances, Pluto's augmented operators are faster than Lua. This happens because augmented operators temporarily store the left-hand operand inside of a register & share the value to the expression, whereas Lua would request the value twice.

@@ -686,8 +686,14 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             return TK_DOTS;   /* '...' */
           }
           else {
-            ls->linebuff += "..";
-            return TK_CONCAT;   /* '..' */
+            if (check_next1(ls, '=')) {
+              ls->linebuff += "..=";
+              ls->lasttoken = TK_CCAT;
+              return '=';
+            } else {
+              ls->linebuff += "..";
+              return TK_CONCAT;   /* '..' */
+            }
           }
         }
         else if (!lisdigit(ls->current)) {
