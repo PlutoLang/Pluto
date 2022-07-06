@@ -1,12 +1,9 @@
+#pragma once
 /*
 ** $Id: lapi.h $
 ** Auxiliary functions from Lua API
 ** See Copyright Notice in lua.h
 */
-
-#ifndef lapi_h
-#define lapi_h
-
 
 #include "llimits.h"
 #include "lstate.h"
@@ -45,5 +42,3 @@
 /* Map [-1, inf) (range of 'nresults') into (-inf, -2] */
 #define codeNresults(n)		(-(n) - 3)
 #define decodeNresults(n)	(-(n) - 3)
-
-#endif

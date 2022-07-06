@@ -1,12 +1,9 @@
+#pragma once
 /*
 ** $Id: luaconf.h $
 ** Configuration file for Lua
 ** See Copyright Notice in lua.h
 */
-
-
-#ifndef luaconf_h
-#define luaconf_h
 
 #include <limits.h>
 #include <stddef.h>
@@ -904,4 +901,3 @@
 #endif // PLUTO_ILP_ENABLE
 
 /* }================================================================== */
-#endif
