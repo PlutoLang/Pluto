@@ -1,0 +1,61 @@
+name: Builds
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  linux-pluto:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=linux all
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pluto-linux
+          path: |
+            src/pluto
+            src/plutoc
+            src/libpluto.dll
+            src/libpluto.a
+      - run: src/pluto tests/basic.lua
+      - run: src/pluto tests/compat.lua
+  macos-pluto:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=macos all
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pluto-macos
+          path: |
+            src/pluto
+            src/plutoc
+            src/libpluto.dll
+            src/libpluto.a
+      - run: src/pluto tests/basic.lua
+      - run: src/pluto tests/compat.lua
+  windows-pluto:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+      - run: make -Bj CXXFLAGS+=-fms-extensions all
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pluto-windows
+          path: |
+            src/pluto.exe
+            src/plutoc.exe
+            src/libpluto.dll
+            src/libpluto.a
+      - run: src/pluto.exe tests/basic.lua
+      - run: src/pluto.exe tests/compat.lua

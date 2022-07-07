@@ -1,12 +1,9 @@
+#pragma once
 /*
 ** $Id: ldo.h $
 ** Stack and Call structure of Lua
 ** See Copyright Notice in lua.h
 */
-
-#ifndef ldo_h
-#define ldo_h
-
 
 #include "lobject.h"
 #include "lstate.h"
@@ -82,5 +79,3 @@ LUAI_FUNC void luaD_inctop (lua_State *L);
 
 [[noreturn]] LUAI_FUNC void luaD_throw (lua_State *L, int errcode);
 LUAI_FUNC int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud);
-
-#endif

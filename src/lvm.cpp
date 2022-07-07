@@ -293,8 +293,11 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
     if (slot == NULL) {  /* 't' is not a table? */
       lua_assert(!ttistable(t));
       if (isValueString) { /* index for character of string */
-        long long unsigned int index = ivalue(key);
-        if ((vslen(t) < index) || (index < 1)) { /* invalid index */
+        lua_Integer index = ivalue(key);
+        if (index < 0) { /* negative index, index from end of string */
+          index += vslen(t) + 1;
+        }
+        if (((lua_Integer)vslen(t) < index) || (index < 1)) { /* invalid index */
           setnilvalue(s2v(val));
           return;
         }
@@ -1685,6 +1688,20 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_TEST) {
         int cond = !l_isfalse(s2v(ra));
+#ifdef PLUTO_ILP_ENABLE
+        int offset = GETARG_sJ(i);
+        if (offset <= 0) {
+          sequentialJumps++;
+        }
+        else sequentialJumps = 0;
+        if (sequentialJumps >= PLUTO_ILP_MAX_ITERATIONS) {
+          sequentialJumps = 0;
+#ifndef PLUTO_ILP_SILENT_BREAK
+          luaG_runerror(L, "infinite loop detected (exceeded max iterations: %d)", PLUTO_ILP_MAX_ITERATIONS);
+#endif
+          vmbreak;
+        }
+#endif // PLUTO_ILP_ENABLE
         docondjump();
         vmbreak;
       }

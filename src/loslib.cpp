@@ -10,6 +10,7 @@
 #include "lprefix.h"
 
 
+#include <chrono>
 #include <errno.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -374,6 +375,30 @@ static int os_difftime (lua_State *L) {
   return 1;
 }
 
+
+static int os_unixseconds(lua_State *L) {
+  lua_pushinteger(L, (lua_Integer)std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+  return 1;
+}
+
+
+static int os_seconds(lua_State* L) {
+  lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+  return 1;
+}
+
+
+static int os_millis(lua_State* L) {
+  lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+  return 1;
+}
+
+
+static int os_nanos(lua_State* L) {
+  lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+  return 1;
+}
+
 /* }====================================================== */
 
 
@@ -403,17 +428,21 @@ static int os_exit (lua_State *L) {
 
 
 static const luaL_Reg syslib[] = {
-  {"clock",     os_clock},
-  {"date",      os_date},
-  {"difftime",  os_difftime},
-  {"execute",   os_execute},
-  {"exit",      os_exit},
-  {"getenv",    os_getenv},
-  {"remove",    os_remove},
-  {"rename",    os_rename},
-  {"setlocale", os_setlocale},
-  {"time",      os_time},
-  {"tmpname",   os_tmpname},
+  {"clock",       os_clock},
+  {"date",        os_date},
+  {"difftime",    os_difftime},
+  {"execute",     os_execute},
+  {"exit",        os_exit},
+  {"getenv",      os_getenv},
+  {"remove",      os_remove},
+  {"rename",      os_rename},
+  {"setlocale",   os_setlocale},
+  {"time",        os_time},
+  {"tmpname",     os_tmpname},
+  {"unixseconds", os_unixseconds},
+  {"seconds",     os_seconds},
+  {"millis",      os_millis},
+  {"nanos",       os_nanos},
   {NULL, NULL}
 };
 

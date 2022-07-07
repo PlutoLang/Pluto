@@ -11,7 +11,6 @@
 
 
 #include <string>
-#include <iostream>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -160,12 +159,22 @@ static std::string make_warn(const char *s) {
 
 
 /*
+** Invokes the lua_writestring macro with a std::string.
+*/
+static void write_std_string(const std::string& msg)
+{
+  lua_writestring(msg.data(), msg.size());
+}
+
+
+/*
 ** Throws an warning into standard output, which will not close the program.
 */
 static void throw_warn (LexState *ls, const char *err, const char *here) {
   std::string error = make_warn(err);
   std::string rhere = make_here(ls, here);
-  std::cout << format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()) << std::endl;
+  write_std_string(format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()));
+  lua_writeline();
 }
 
 
@@ -1683,6 +1692,10 @@ static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
 */
 static int getcompoundop (LexState *ls, BinOpr *op) {
   switch (ls->lasttoken) {
+    case TK_CCAT: {
+      *op = OPR_CONCAT;
+      return 1;       /* concatenation */
+    }
     case TK_CADD: {
       *op = OPR_ADD;  /* addition */
       return 1;

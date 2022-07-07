@@ -71,6 +71,14 @@ b >>= 1
 assert(a == 0)
 assert(b == 1)
 
+local str = "a"
+str ..= "b"
+assert(str == "ab")
+str ..= "c"
+assert(str == "abc")
+
+assert("ab".."c" == "abc")
+
 print "Testing table length cache."
 local t = {}
 for i = 1, 1000 do

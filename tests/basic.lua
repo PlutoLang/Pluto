@@ -71,6 +71,20 @@ b >>= 1
 assert(a == 0)
 assert(b == 1)
 
+print "Testing string indexing."
+local str = "abc"
+assert(str[0] == nil)
+assert(str[1] == "a")
+assert(str[2] == "b")
+assert(str[3] == "c")
+assert(str[4] == nil)
+assert(str[5] == nil)
+assert(str[-1] == "c")
+assert(str[-2] == "b")
+assert(str[-3] == "a")
+assert(str[-4] == nil)
+assert(str[-5] == nil)
+
 print "Testing table length cache."
 local t = {}
 for i = 1, 1000 do
@@ -310,5 +324,17 @@ status, _ = pcall(function () _ENV[66] = "abc" end)
 assert(status == false, "expected error")
 status, _ = pcall(function () _ENV[function () end] = "abc" end)
 assert(status == false, "expected error")
+
+print "Testing standard library additions."
+local t = {}
+table.insert(t, 0)
+table.insert(t, "Hello")
+table.insert(t, true)
+assert(table.contains(t, "Hello") == true)
+assert(table.contains(t, "World") == false)
+assert(table.contains(t, true) == true)
+assert(table.contains(t, false) == false)
+assert(table.contains(t, 0) == true)
+assert(table.contains(t, 1) == false)
 
 print "Finished."

@@ -1,11 +1,9 @@
+#pragma once
 /*
 ** $Id: llex.h $
 ** Lexical Analyzer
 ** See Copyright Notice in lua.h
 */
-
-#ifndef llex_h
-#define llex_h
 
 #include <string>
 #include <limits.h>
@@ -55,7 +53,8 @@ enum RESERVED {
   TK_CMOD, TK_CBOR,     /* modulo and bitwise OR       */
   TK_CBXOR,             /* bitwise XOR                 */
   TK_CIDIV, TK_CDIV,    /* integer and float division  */
-  TK_CPOW, TK_POW       /* exponents / power           */
+  TK_CPOW, TK_POW,      /* exponents / power           */
+  TK_CCAT,              /* concatenation               */
 };
 
 
@@ -138,6 +137,3 @@ LUAI_FUNC int luaX_lookahead (LexState *ls);
 [[noreturn]] LUAI_FUNC void luaX_syntaxerror (LexState *ls, const char *s);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);
-
-
-#endif
