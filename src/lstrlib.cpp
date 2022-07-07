@@ -2013,11 +2013,29 @@ static int str_casefold (lua_State *L) {
 }
 
 
+static int str_lstrip (lua_State *L) {
+  std::string s = luaL_checkstring(L, 1);
+  const char *delim = luaL_checkstring(L, 2);
+  s.erase(0, s.find_first_not_of(delim));
+  lua_pushstring(L, s.c_str());
+  return 1;
+}
+
+static int str_rstrip (lua_State *L) {
+  std::string s = luaL_checkstring(L, 1);
+  const char *delim = luaL_checkstring(L, 2);
+  s.erase(s.find_last_not_of(delim) + 1);
+  lua_pushstring(L, s.c_str());
+  return 1;
+}
+
 
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"rstrip", str_rstrip},
+  {"lstrip", str_lstrip},
   {"casefold", str_casefold},
   {"contains", str_contains},
   {"isascii", str_isascii},
