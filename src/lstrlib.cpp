@@ -1897,7 +1897,7 @@ static int str_split (lua_State *L) {
 }
 
 
-static int str_islower(lua_State* L) {
+static int str_islower (lua_State* L) {
   size_t len;
   const char* str = luaL_checklstring(L, 1, &len);
   int retval = 1;
@@ -1911,7 +1911,7 @@ static int str_islower(lua_State* L) {
   return 1;
 }
 
-static int str_isupper(lua_State* L) {
+static int str_isupper (lua_State* L) {
   size_t len;
   const char* str = luaL_checklstring(L, 1, &len);
   int retval = 1;
@@ -1925,7 +1925,7 @@ static int str_isupper(lua_State* L) {
   return 1;
 }
 
-static int str_isalpha(lua_State* L) {
+static int str_isalpha (lua_State* L) {
   size_t len;
   const char* str = luaL_checklstring(L, 1, &len);
   int retval = 1;
@@ -1939,7 +1939,7 @@ static int str_isalpha(lua_State* L) {
   return 1;
 }
 
-static int str_isalnum(lua_State* L) {
+static int str_isalnum (lua_State* L) {
   size_t len;
   const char* str = luaL_checklstring(L, 1, &len);
   int retval = 1;
@@ -1953,10 +1953,43 @@ static int str_isalnum(lua_State* L) {
   return 1;
 }
 
+
+static int str_iswhitespace (lua_State *L) {
+  size_t len;
+  const char* str = luaL_checklstring(L, 1, &len);
+  int retval = 1;
+  for (size_t i = 0; i != len; ++i) {
+    retval = std::isspace(str[i]);
+    if (!retval) {
+      break;
+    }
+  }
+  lua_pushboolean(L, retval);
+  return 1;
+}
+
+
+static int str_isascii (lua_State* L) {
+  size_t len;
+  const char* str = luaL_checklstring(L, 1, &len);
+  int retval = 1;
+  for (size_t i = 0; i != len; ++i) {
+    retval = isascii(static_cast<unsigned char>(str[i]));
+    if (!retval) {
+      break;
+    }
+  }
+  lua_pushboolean(L, retval);
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"isascii", str_isascii},
+  {"iswhitespace", str_iswhitespace},
   {"isalnum", str_isalnum},
   {"isalpha", str_isalpha},
   {"isupper", str_isupper},
