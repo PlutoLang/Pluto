@@ -1984,10 +1984,42 @@ static int str_isascii (lua_State* L) {
 }
 
 
+static int str_contains (lua_State *L) {
+  std::string s = luaL_checkstring(L, 1);
+  lua_pushboolean(L, s.find(luaL_checkstring(L, 2)) != std::string::npos);
+  return 1;
+}
+
+
+static int str_casefold (lua_State *L) {
+  size_t len1, len2;
+  const char *s1 = luaL_checklstring(L, 1, &len1);
+  const char *s2 = luaL_checklstring(L, 2, &len2);
+
+  if (len1 != len2) {
+    lua_pushboolean(L, false);
+    return 1;
+  }
+
+  for (size_t i = 0; i != len1; ++i) {
+    if (std::tolower(s1[i]) != std::tolower(s2[i])) {
+      lua_pushboolean(L, false);
+      return 1;
+    }
+  }
+
+  lua_pushboolean(L, true);
+  return 1;
+}
+
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"casefold", str_casefold},
+  {"contains", str_contains},
   {"isascii", str_isascii},
   {"iswhitespace", str_iswhitespace},
   {"isalnum", str_isalnum},
