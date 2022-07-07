@@ -1,11 +1,9 @@
+#pragma once
 /*
 ** $Id: lopcodes.h $
 ** Opcodes for Lua virtual machine
 ** See Copyright Notice in lua.h
 */
-
-#ifndef lopcodes_h
-#define lopcodes_h
 
 #include "llimits.h"
 
@@ -401,5 +399,3 @@ LUAI_DDEC(const lu_byte luaP_opmodes[NUM_OPCODES];)
 
 /* number of list items to accumulate before a SETLIST instruction */
 #define LFIELDS_PER_FLUSH	50
-
-#endif

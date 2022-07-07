@@ -1,12 +1,9 @@
+#pragma once
 /*
 ** $Id: lmem.h $
 ** Interface to Memory Manager
 ** See Copyright Notice in lua.h
 */
-
-#ifndef lmem_h
-#define lmem_h
-
 
 #include <stddef.h>
 
@@ -88,6 +85,3 @@ LUAI_FUNC void *luaM_growaux_ (lua_State *L, void *block, int nelems,
 LUAI_FUNC void *luaM_shrinkvector_ (lua_State *L, void *block, int *nelem,
                                     int final_n, int size_elem);
 LUAI_FUNC void *luaM_malloc_ (lua_State *L, size_t size, int tag);
-
-#endif
-

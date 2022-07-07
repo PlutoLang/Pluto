@@ -1,13 +1,9 @@
+#pragma once
 /*
 ** $Id: lobject.h $
 ** Type definitions for Lua objects
 ** See Copyright Notice in lua.h
 */
-
-
-#ifndef lobject_h
-#define lobject_h
-
 
 #include <stdarg.h>
 
@@ -804,7 +800,3 @@ LUAI_FUNC const char *luaO_pushvfstring (lua_State *L, const char *fmt,
                                                        va_list argp);
 LUAI_FUNC const char *luaO_pushfstring (lua_State *L, const char *fmt, ...);
 LUAI_FUNC void luaO_chunkid (char *out, const char *source, size_t srclen);
-
-
-#endif
-

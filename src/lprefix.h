@@ -1,12 +1,9 @@
+#pragma once
 /*
 ** $Id: lprefix.h $
 ** Definitions for Lua code that must come before any other header file
 ** See Copyright Notice in lua.h
 */
-
-#ifndef lprefix_h
-#define lprefix_h
-
 
 /*
 ** Allows POSIX/XSI stuff
@@ -40,6 +37,3 @@
 #endif
 
 #endif			/* } */
-
-#endif
-

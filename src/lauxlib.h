@@ -1,13 +1,9 @@
+#pragma once
 /*
 ** $Id: lauxlib.h $
 ** Auxiliary functions for building Lua libraries
 ** See Copyright Notice in lua.h
 */
-
-
-#ifndef lauxlib_h
-#define lauxlib_h
-
 
 #include <stddef.h>
 #include <stdio.h>
@@ -291,9 +287,3 @@ typedef struct luaL_Stream {
 
 #endif
 /* }============================================================ */
-
-
-
-#endif
-
-
