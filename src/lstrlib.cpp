@@ -1897,10 +1897,70 @@ static int str_split (lua_State *L) {
 }
 
 
+static int str_islower(lua_State* L) {
+  size_t len;
+  const char* str = luaL_checklstring(L, 1, &len);
+  int retval = 1;
+  for (size_t i = 0; i != len; ++i) {
+    retval = std::islower(str[i]);
+    if (!retval) {
+      break;
+    }
+  }
+  lua_pushboolean(L, retval);
+  return 1;
+}
+
+static int str_isupper(lua_State* L) {
+  size_t len;
+  const char* str = luaL_checklstring(L, 1, &len);
+  int retval = 1;
+  for (size_t i = 0; i != len; ++i) {
+    retval = std::isupper(str[i]);
+    if (!retval) {
+      break;
+    }
+  }
+  lua_pushboolean(L, retval);
+  return 1;
+}
+
+static int str_isalpha(lua_State* L) {
+  size_t len;
+  const char* str = luaL_checklstring(L, 1, &len);
+  int retval = 1;
+  for (size_t i = 0; i != len; ++i) {
+    retval = std::isalpha(str[i]);
+    if (!retval) {
+      break;
+    }
+  }
+  lua_pushboolean(L, retval);
+  return 1;
+}
+
+static int str_isalnum(lua_State* L) {
+  size_t len;
+  const char* str = luaL_checklstring(L, 1, &len);
+  int retval = 1;
+  for (size_t i = 0; i != len; ++i) {
+    retval = std::isalnum(str[i]);
+    if (!retval) {
+      break;
+    }
+  }
+  lua_pushboolean(L, retval);
+  return 1;
+}
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"isalnum", str_isalnum},
+  {"isalpha", str_isalpha},
+  {"isupper", str_isupper},
+  {"islower", str_islower},
   {"split", str_split},
   {"partition", str_partition},
   {"endswith", str_endswith},
