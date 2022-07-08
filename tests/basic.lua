@@ -378,5 +378,8 @@ assert(before == "hello.wor")
 assert(after == "ld")
 assert(string.casefold("HELLO WORLD", "hello world") == true)
 assert(string.casefold("HELLO WORLD", "hello worlz") == false)
+assert(string.lfind("hello world", "wor") == (string.find("hello world", "wor", 1, true)))
+assert(string.rfind("world hello world", "world") == 13)
+assert(string.rfind("hello x", "world") == nil)
 
 print "Finished."
