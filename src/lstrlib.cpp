@@ -2075,10 +2075,82 @@ static int str_lfind (lua_State *L) {
 }
 
 
+static int str_find_first_of (lua_State *L) {
+  size_t pos;
+  std::string s = luaL_checkstring(L, 1);
+  const char *d = luaL_checkstring(L, 2);
+
+  pos = s.find_first_of(d);
+  if (pos != std::string::npos) {
+    lua_pushinteger(L, ++pos);
+  }
+  else {
+    lua_pushnil(L);
+  }
+
+  return 1;
+}
+
+
+static int str_find_first_not_of (lua_State *L) {
+  size_t pos;
+  std::string s = luaL_checkstring(L, 1);
+  const char *d = luaL_checkstring(L, 2);
+
+  pos = s.find_first_not_of(d);
+  if (pos != std::string::npos) {
+    lua_pushinteger(L, ++pos);
+  }
+  else {
+    lua_pushnil(L);
+  }
+
+  return 1;
+}
+
+
+static int str_find_last_of (lua_State *L) {
+  size_t pos;
+  std::string s = luaL_checkstring(L, 1);
+  const char *d = luaL_checkstring(L, 2);
+
+  pos = s.find_last_of(d);
+  if (pos != std::string::npos) {
+    lua_pushinteger(L, ++pos);
+  }
+  else {
+    lua_pushnil(L);
+  }
+
+  return 1;
+}
+
+
+static int str_find_last_not_of (lua_State *L) {
+  size_t pos;
+  std::string s = luaL_checkstring(L, 1);
+  const char *d = luaL_checkstring(L, 2);
+
+  pos = s.find_last_not_of(d);
+  if (pos != std::string::npos) {
+    lua_pushinteger(L, ++pos);
+  }
+  else {
+    lua_pushnil(L);
+  }
+
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"find_last_not_of", str_find_last_not_of},
+  {"find_last_of", str_find_last_of},
+  {"find_first_not_of", str_find_first_not_of},
+  {"find_first_of", str_find_first_of},
   {"lfind", str_lfind},
   {"rfind", str_rfind},
   {"strip", str_strip},

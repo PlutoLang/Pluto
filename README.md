@@ -292,6 +292,10 @@ This also supports ANSI color codes, however this is disabled by default in orde
 - `string.iswhitespace` function.
 - `string.split` function.
 - `string.partition` function.
+- `string.first_first_of` function,
+- `string.find_first_not_of` function.
+- `string.find_last_of` function.
+- `string.find_last_not_of` function.
 
 ## C API Additions
 - `lua_setcachelen` function.

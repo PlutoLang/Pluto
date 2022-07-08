@@ -381,5 +381,11 @@ assert(string.casefold("HELLO WORLD", "hello worlz") == false)
 assert(string.lfind("hello world", "wor") == (string.find("hello world", "wor", 1, true)))
 assert(string.rfind("world hello world", "world") == 13)
 assert(string.rfind("hello x", "world") == nil)
+assert(string.find_first_of("hello world", "?[[w") == 7)
+assert(string.find_first_of("hello world", "?[[z") == nil)
+assert(string.find_first_not_of("hello world", "hello") == 6)
+assert(string.find_first_not_of("hello world", "hello world") == nil)
+assert(string.find_last_of("orld hello world cccc", "orld") == 16)
+
 
 print "Finished."
