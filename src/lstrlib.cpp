@@ -2041,10 +2041,46 @@ static int str_strip (lua_State *L) {
 }
 
 
+static int str_rfind (lua_State *L) {
+  size_t pos;
+  std::string s = luaL_checkstring(L, 1);
+  const char *sub = luaL_checkstring(L, 2);
+  
+  pos = s.rfind(sub);
+  if (pos != std::string::npos) {
+    lua_pushinteger(L, pos + 1);
+  }
+  else {
+    lua_pushnil(L);
+  }
+
+  return 1;
+}
+
+
+static int str_lfind (lua_State *L) {
+  size_t pos;
+  std::string s = luaL_checkstring(L, 1);
+  const char *sub = luaL_checkstring(L, 2);
+  
+  pos = s.find(sub);
+  if (pos != std::string::npos) {
+    lua_pushinteger(L, pos + 1);
+  }
+  else {
+    lua_pushnil(L);
+  }
+
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"lfind", str_lfind},
+  {"rfind", str_rfind},
   {"strip", str_strip},
   {"rstrip", str_rstrip},
   {"lstrip", str_lstrip},
