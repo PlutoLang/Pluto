@@ -916,6 +916,7 @@ void luaV_finishOp (lua_State *L) {
 ** operation, 'fop' is the float operation.
 */
 #define op_arithI(L,iop,fop) {  \
+  savepc(L);  \
   TValue *v1 = vRB(i);  \
   int imm = GETARG_sC(i);  \
   if (ttisinteger(v1)) {  \
@@ -944,6 +945,7 @@ void luaV_finishOp (lua_State *L) {
 ** Arithmetic operations over floats and others with register operands.
 */
 #define op_arithf(L,fop) {  \
+  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = vRC(i);  \
   op_arithf_aux(L, v1, v2, fop); }
@@ -953,6 +955,7 @@ void luaV_finishOp (lua_State *L) {
 ** Arithmetic operations with K operands for floats.
 */
 #define op_arithfK(L,fop) {  \
+  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = KC(i); lua_assert(ttisnumber(v2));  \
   op_arithf_aux(L, v1, v2, fop); }
@@ -973,6 +976,7 @@ void luaV_finishOp (lua_State *L) {
 ** Arithmetic operations with register operands.
 */
 #define op_arith(L,iop,fop) {  \
+  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = vRC(i);  \
   op_arith_aux(L, v1, v2, iop, fop); }
@@ -982,6 +986,7 @@ void luaV_finishOp (lua_State *L) {
 ** Arithmetic operations with K operands.
 */
 #define op_arithK(L,iop,fop) {  \
+  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = KC(i); lua_assert(ttisnumber(v2));  \
   op_arith_aux(L, v1, v2, iop, fop); }
@@ -991,6 +996,7 @@ void luaV_finishOp (lua_State *L) {
 ** Bitwise operations with constant operand.
 */
 #define op_bitwiseK(L,op) {  \
+  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = KC(i);  \
   lua_Integer i1;  \
@@ -1004,6 +1010,7 @@ void luaV_finishOp (lua_State *L) {
 ** Bitwise operations with register operands.
 */
 #define op_bitwise(L,op) {  \
+  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = vRC(i);  \
   lua_Integer i1; lua_Integer i2;  \
@@ -1334,7 +1341,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if (ttistable(upval)) {  // R(A) may not be a table.
           Table *t = hvalue(upval);
           t->length = 0;
-          if (t->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+          if (t->isfrozen) {
+            savepc(L);
+            luaG_runerror(L, "attempt to modify frozen table.");
+          }
         }
         if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
           luaV_finishfastset(L, upval, slot, rc);
@@ -1352,7 +1362,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if (ttistable(s2v(ra))) {
           Table *t = hvalue(s2v(ra));
           t->length = 0; // Reset length cache.
-          if (t->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+          if (t->isfrozen) {
+            savepc(L);
+            luaG_runerror(L, "attempt to modify frozen table.");
+          }
         }
         if (ttisinteger(rb)  /* fast track for integers? */
             ? (cast_void(n = ivalue(rb)), luaV_fastgeti(L, s2v(ra), n, slot))
@@ -1369,7 +1382,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rc = RKC(i);
         if (ttistable(s2v(ra))) {
           Table *t = hvalue(s2v(ra));
-          if (t->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+          if (t->isfrozen) {
+            savepc(L);
+            luaG_runerror(L, "attempt to modify frozen table.");
+          }
           t->length = 0; // Reset length cache.
         }
         if (luaV_fastgeti(L, s2v(ra), c, slot)) {
@@ -1388,6 +1404,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rc = RKC(i);
         TString *key = tsvalue(rb);  /* key must be a string */
         if (ttistable(s2v(ra)) && hvalue(s2v(ra))->isfrozen) {
+          savepc(L);
           luaG_runerror(L, "attempt to modify frozen table.");
         }
         if (luaV_fastget(L, s2v(ra), key, slot, luaH_getshortstr)) {
