@@ -43,7 +43,7 @@ print(str[-1]) -- "d"
 ```
 This is a very nice addition because it avoids a lookup and function call for each character. Things like (i.e, hash algorithms) will significantly benefit from this change. Furthermore, it's friendly with normal instance lookups. So, things like `str["char"]` still work fine. String indexing is invoked whenever a string index is invoked with an integer.
 
-<a href="https://plutolang.github.io/#code=local%20str%20%3D%20%22hello%20world%22%0D%0Aprint(str%5B5%5D)%20--%20%22o%22%0D%0Aprint(str%5B200%5D)%20--%20nil%0D%0Aprint(str%5B-1%5D)%20--%20%22d%22">Try it yourself!</a>
+<a href="https://plutolang.github.io/web/#code=local%20str%20%3D%20%22hello%20world%22%0D%0Aprint(str%5B5%5D)%20--%20%22o%22%0D%0Aprint(str%5B200%5D)%20--%20nil%0D%0Aprint(str%5B-1%5D)%20--%20%22d%22">Try it yourself!</a>
 ### Lambda Expressions
 Without the size constraint of Lua, there's no need to hold weary of shorthand expressions.
 Here's example usage of the new lambda expressions:
@@ -55,7 +55,7 @@ print(inc_str) -- "234"
 - The '|' token was chosen because it's not commonly used as an unary operator in programming.
 - The '->' arrow syntax looked better and didn't resemble any operators. It also plays along with common lambda tokens.
 
-<a href="https://plutolang.github.io/#code=local%20str%20%3D%20%22123%22%0D%0Alocal%20inc_str%20%3D%20str%3Agsub(%22.%22%2C%20%7Cc%7C%20-%3E%20tonumber(c)%20%2B%201)%0D%0Aprint(inc_str)%20--%20%22234%22">Try it yourself!</a>
+<a href="https://plutolang.github.io/web/#code=local%20str%20%3D%20%22123%22%0D%0Alocal%20inc_str%20%3D%20str%3Agsub(%22.%22%2C%20%7Cc%7C%20-%3E%20tonumber(c)%20%2B%201)%0D%0Aprint(inc_str)%20--%20%22234%22">Try it yourself!</a>
 ### Ternary Expressions
 Ternary expressions allow seamless implementation of short statements which may assign falsy values. It also allows shorter, and more concise logic. Here is an example.
 ```lua
@@ -74,7 +74,7 @@ Essentially, `if` symbols inside expressions are ternary. Otherwise, they are st
 
 Traditionally, this would be possible with the `and` symbol, however I personally dislike this syntax because it's inconsistent with other languages. Until informed otherwise, people will assume `and` exclusively returns booleans. It's not immediately obvious — in fact, I meet many good Lua programmers who are unaware — that `and` can be used to emulate ternary expressions. The `if/then/else` syntax is imperfect, but I believe it's better. Not only visually, but also in functionality; such that `and` depends on the truthyness of its operands.
 
-<a href="https://plutolang.github.io/#code=local%20a%20%3D%206%0Alocal%20b%20%3D%209%0A%0Alocal%20max%20%3D%20if%20a%20%3E%20b%20then%20a%20else%20b%0A%0Aprint(max)">Try it yourself!</a>
+<a href="https://plutolang.github.io/web/#code=local%20a%20%3D%206%0Alocal%20b%20%3D%209%0A%0Alocal%20max%20%3D%20if%20a%20%3E%20b%20then%20a%20else%20b%0A%0Aprint(max)">Try it yourself!</a>
 ### Continue Statement
 Although very similar to goto usage, the continue statement has been implemented into Pluto. Usage follows:
 ```lua
@@ -99,7 +99,7 @@ end
 ```
 However, the dedicated statement doesn't complicate pre-defined goto labels, aligns with other language routines, and is slightly more user-friendly. The `continue` statement also isn't limited by the negatives a label would imply, so you don't need to manage local scopes and other pedantry like you would a label. It's important to note, this new statement will jump over any code neccesary to end the loop. Meaning, if you jump over vital code that determines the conditional for your loop, then you will produce a bug.
 
-<a href="https://plutolang.github.io/#code=--%20Print%20every%20number%20besides%20five.%0D%0Afor%20i%20%3D%201%2C%2010%20do%0D%0A%20%20%20%20if%20i%20%3D%3D%205%20then%0D%0A%20%20%20%20%20%20%20%20continue%0D%0A%20%20%20%20end%0D%0A%20%20%20%20print(i)%0D%0A%20%20%20%20--%20continue%20jumps%20here.%0D%0Aend">Try it yourself!</a>
+<a href="https://plutolang.github.io/web/#code=--%20Print%20every%20number%20besides%20five.%0D%0Afor%20i%20%3D%201%2C%2010%20do%0D%0A%20%20%20%20if%20i%20%3D%3D%205%20then%0D%0A%20%20%20%20%20%20%20%20continue%0D%0A%20%20%20%20end%0D%0A%20%20%20%20print(i)%0D%0A%20%20%20%20--%20continue%20jumps%20here.%0D%0Aend">Try it yourself!</a>
 ### Table Immutability
 Tables can now be frozen at their current state to forbid any future modification. This action is irreversible and permanent for the lifespan of the table.
 ```lua
@@ -140,7 +140,7 @@ Alternatively, if you intend on creating a "true constant" with a table, such th
 
 This change also implements the `table.isfrozen` function which takes a table, and returns a boolean.
 
-<a href="https://plutolang.github.io/#code=--%20Disallowing%20any%20edits%20to%20the%20global%20environment%20table.%0D%0Atable.freeze(_G)%0D%0A_G.string%20%3D%20%7B%7D%20--%20Fails%2C%20raises%20an%20error.%0D%0A%0D%0A--%20Performing%20edits%2C%20then%20freezing%20the%20resultant%20table.%0D%0Alocal%20MyTable%20%3D%20%7B%7D%0D%0AMyTable.key1%20%3D%20%22value%201%22%0D%0AMyTable.key2%20%3D%20%22value%202%22%0D%0Atable.freeze(MyTable)%0D%0AMyTable.key3%20%3D%20%22value%203%22%20--%20Fails%2C%20raises%20an%20error.%0D%0AMyTable.key2%20%3D%20%22new%20value%202%22%20--%20Fails%2C%20raises%20an%20error.%0D%0A%0D%0A--%20Freezing%20upvalue%20tables.%0D%0Atable.freeze(_ENV)%0D%0A%0D%0A--%20Creating%20a%20constant%20local%20that's%20associated%20with%20a%20frozen%20table.%0D%0Alocal%20Frozen%20%3D%20table.freeze(%7B%201%2C%202%2C%203%20%7D)%0D%0AFrozen%20%3D%20%7B%7D%20--%20Fails.%0D%0AFrozen%5B1%5D%20%3D%20%22new%20value%22%20--%20Fails.%0D%0Arawset(Frozen%2C%20%22key%22%2C%20%22value%22)%20--%20Fails.%0D%0A%0D%0A---%20Trying%20to%20swap%20the%20value%20with%20the%20debug%20library.%0D%0Afor%20i%20%3D%201%2C%20249%20do%0D%0A%20%20local%20name%2C%20value%20%3D%20debug.getlocal(1%2C%20i)%0D%0A%20%20if%20name%20%3D%3D%20%22Frozen%22%20then%0D%0A%20%20%20%20debug.setlocal(1%2C%20i%2C%20%7B%20%5B%22key%22%5D%20%3D%20%22hello%20world%22%20%7D)%20--%20Fails.%0D%0A%20%20end%0D%0Aend">Try it yourself!</a>
+<a href="https://plutolang.github.io/web/#code=--%20Disallowing%20any%20edits%20to%20the%20global%20environment%20table.%0D%0Atable.freeze(_G)%0D%0A_G.string%20%3D%20%7B%7D%20--%20Fails%2C%20raises%20an%20error.%0D%0A%0D%0A--%20Performing%20edits%2C%20then%20freezing%20the%20resultant%20table.%0D%0Alocal%20MyTable%20%3D%20%7B%7D%0D%0AMyTable.key1%20%3D%20%22value%201%22%0D%0AMyTable.key2%20%3D%20%22value%202%22%0D%0Atable.freeze(MyTable)%0D%0AMyTable.key3%20%3D%20%22value%203%22%20--%20Fails%2C%20raises%20an%20error.%0D%0AMyTable.key2%20%3D%20%22new%20value%202%22%20--%20Fails%2C%20raises%20an%20error.%0D%0A%0D%0A--%20Freezing%20upvalue%20tables.%0D%0Atable.freeze(_ENV)%0D%0A%0D%0A--%20Creating%20a%20constant%20local%20that's%20associated%20with%20a%20frozen%20table.%0D%0Alocal%20Frozen%20%3D%20table.freeze(%7B%201%2C%202%2C%203%20%7D)%0D%0AFrozen%20%3D%20%7B%7D%20--%20Fails.%0D%0AFrozen%5B1%5D%20%3D%20%22new%20value%22%20--%20Fails.%0D%0Arawset(Frozen%2C%20%22key%22%2C%20%22value%22)%20--%20Fails.%0D%0A%0D%0A---%20Trying%20to%20swap%20the%20value%20with%20the%20debug%20library.%0D%0Afor%20i%20%3D%201%2C%20249%20do%0D%0A%20%20local%20name%2C%20value%20%3D%20debug.getlocal(1%2C%20i)%0D%0A%20%20if%20name%20%3D%3D%20%22Frozen%22%20then%0D%0A%20%20%20%20debug.setlocal(1%2C%20i%2C%20%7B%20%5B%22key%22%5D%20%3D%20%22hello%20world%22%20%7D)%20--%20Fails.%0D%0A%20%20end%0D%0Aend">Try it yourself!</a>
 ### Compiler Warnings
 Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
 ```lua
@@ -204,7 +204,7 @@ Case blocks do not support an enclosed scope like `function` or `while` declarat
 
 The parenthesis around the control variable — in this case, `value` — are entirely optional. Colons are required to terminate every case expression, and are also required to terminate the `default` symbol. As seen above, switch blocks must enclose themselves with `do` & `end`, respectively.
 
-<a href="https://plutolang.github.io/#code=local%20value%20%3D%203%0D%0Aswitch%20value%20do%0D%0A%20%20case%201%3A%0D%0A%20%20case%202%3A%0D%0A%20%20case%203%3A%0D%0A%20%20case%204%3A%0D%0A%20%20case%205%3A%0D%0A%20%20%20%20print%20%22Got%201-5.%22%0D%0A%20%20%20%20break%0D%0A%20%20default%3A%0D%0A%20%20%20%20print%20%22Value%20is%20greater%20than%205.%22%0D%0Aend%0D%0A--%20Break%20jumps%20here.">Try it yourself!</a>
+<a href="https://plutolang.github.io/web/#code=local%20value%20%3D%203%0D%0Aswitch%20value%20do%0D%0A%20%20case%201%3A%0D%0A%20%20case%202%3A%0D%0A%20%20case%203%3A%0D%0A%20%20case%204%3A%0D%0A%20%20case%205%3A%0D%0A%20%20%20%20print%20%22Got%201-5.%22%0D%0A%20%20%20%20break%0D%0A%20%20default%3A%0D%0A%20%20%20%20print%20%22Value%20is%20greater%20than%205.%22%0D%0Aend%0D%0A--%20Break%20jumps%20here.">Try it yourself!</a>
 ## Optimizations:
 ### For Loops
 Xmilia Hermit discovered an interesting for loop optimization on June 7th, 2022. It has been implemented in Pluto.
