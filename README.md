@@ -142,14 +142,14 @@ This change also implements the `table.isfrozen` function which takes a table, a
 
 <a href="https://plutolang.github.io/web/#code=--%20Disallowing%20any%20edits%20to%20the%20global%20environment%20table.%0D%0Atable.freeze(_G)%0D%0A_G.string%20%3D%20%7B%7D%20--%20Fails%2C%20raises%20an%20error.%0D%0A%0D%0A--%20Performing%20edits%2C%20then%20freezing%20the%20resultant%20table.%0D%0Alocal%20MyTable%20%3D%20%7B%7D%0D%0AMyTable.key1%20%3D%20%22value%201%22%0D%0AMyTable.key2%20%3D%20%22value%202%22%0D%0Atable.freeze(MyTable)%0D%0AMyTable.key3%20%3D%20%22value%203%22%20--%20Fails%2C%20raises%20an%20error.%0D%0AMyTable.key2%20%3D%20%22new%20value%202%22%20--%20Fails%2C%20raises%20an%20error.%0D%0A%0D%0A--%20Freezing%20upvalue%20tables.%0D%0Atable.freeze(_ENV)%0D%0A%0D%0A--%20Creating%20a%20constant%20local%20that's%20associated%20with%20a%20frozen%20table.%0D%0Alocal%20Frozen%20%3D%20table.freeze(%7B%201%2C%202%2C%203%20%7D)%0D%0AFrozen%20%3D%20%7B%7D%20--%20Fails.%0D%0AFrozen%5B1%5D%20%3D%20%22new%20value%22%20--%20Fails.%0D%0Arawset(Frozen%2C%20%22key%22%2C%20%22value%22)%20--%20Fails.%0D%0A%0D%0A---%20Trying%20to%20swap%20the%20value%20with%20the%20debug%20library.%0D%0Afor%20i%20%3D%201%2C%20249%20do%0D%0A%20%20local%20name%2C%20value%20%3D%20debug.getlocal(1%2C%20i)%0D%0A%20%20if%20name%20%3D%3D%20%22Frozen%22%20then%0D%0A%20%20%20%20debug.setlocal(1%2C%20i%2C%20%7B%20%5B%22key%22%5D%20%3D%20%22hello%20world%22%20%7D)%20--%20Fails.%0D%0A%20%20end%0D%0Aend">Try it yourself!</a>
 ### Compiler Warnings
-Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. Compiler warnings need to be explicity enabled with the `-D` flag, which is optimal for developers and users alike. For an example, see this code:
+Pluto now offers optional compiler warnings for certain misbehaviors. Currently, this is applied only to duplicated local definitions. These internal checks are faster, and more reliable than analytical third-party software. For an example, see this code:
 ```lua
 local variable = "hello world"
 do
     local variable = "shadowed"
 end
 ```
-Given you run the file like this: `pluto -D file.plu`, the parser will emit the following message:
+The parser will emit the following message:
 ```
 tests/quick.lua:3: warning: duplicate local declaration [-D]
          3 | local variable =

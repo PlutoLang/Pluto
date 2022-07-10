@@ -96,7 +96,6 @@ static void print_usage (const char *badoption) {
   "  -v        show version information\n"
   "  -E        ignore environment variables\n"
   "  -W        turn run-time warnings on\n"
-  "  -D        turn compile-time warnings on\n"
   "  --        stop handling options\n"
   "  -         stop handling options and execute stdin\n"
   ,
@@ -265,7 +264,6 @@ static int handle_script (lua_State *L, char **argv) {
 #define has_v		4	/* -v */
 #define has_e		8	/* -e */
 #define has_E		16	/* -E */
-#define has_D   32 /* -D */
 
 
 /*
@@ -305,10 +303,6 @@ static int collectargs (char **argv, int *first) {
           return has_error;  /* invalid option */
         args |= has_v;
         break;
-      case 'D': { /* '-D' debug output flag */
-        args |= has_D;
-        break;
-      }
       case 'e':
         args |= has_e;  /* FALLTHROUGH */
       case 'l':  /* both options need an argument */
@@ -626,10 +620,6 @@ static int pmain (lua_State *L) {
   if (args & has_E) {  /* option '-E'? */
     lua_pushboolean(L, 1);  /* signal for libraries to ignore env. vars. */
     lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
-  }
-  if (args & has_D) {
-    lua_pushboolean(L, 1);  /* enable compile-time warnings */
-    lua_setfield(L, LUA_REGISTRYINDEX, "PLUTO_DBGOUT");
   }
   luaL_openlibs(L);  /* open standard libraries */
   createargtable(L, argv, argc, script);  /* create table 'arg' */
