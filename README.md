@@ -278,6 +278,24 @@ This also supports ANSI color codes, however this is disabled by default in orde
 - `os.seconds` function. Returns seconds since implementation-specific epoch.
 - `os.millis` function. Returns milliseconds since implementation-specific epoch.
 - `os.nanos` function. Returns nanoseconds since implementation-specific epoch.
+- `string.lfind` function.
+- `string.rfind` function.
+- `string.rstrip` function.
+- `string.lstrip` function.
+- `string.strip` function.
+- `string.casefold` function.
+- `string.islower` function.
+- `string.isupper` function.
+- `string.isascii` function.
+- `string.isalpha` function.
+- `string.isalnum` function.
+- `string.iswhitespace` function.
+- `string.split` function.
+- `string.partition` function.
+- `string.first_first_of` function,
+- `string.find_first_not_of` function.
+- `string.find_last_of` function.
+- `string.find_last_not_of` function.
 
 ## C API Additions
 - `lua_setcachelen` function.
