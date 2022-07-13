@@ -1505,6 +1505,14 @@ static void simpleexp (LexState *ls, expdesc *v) {
     }
   }
   luaX_next(ls);
+  if (testnext(ls, ':')) {
+    expdesc key;
+    FuncState *fs = ls->fs;
+    int line = ls->linenumber;
+    codestring(&key, str_checkname(ls));
+    luaK_self(fs, v, &key);
+    funcargs(ls, v, line);
+  }
 }
 
 
