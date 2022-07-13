@@ -1,6 +1,6 @@
 <?php
 require __DIR__."/common.php";
-
+check_compiler();
 for_each_obj(function($file)
 {
 	echo "$file\n";

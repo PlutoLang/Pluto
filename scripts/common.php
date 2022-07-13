@@ -1,32 +1,36 @@
 <?php
-// Check argument
-if(empty($argv[1]))
-{
-	die("Syntax: php {$argv[0]} <compiler>");
-}
+chdir(__DIR__."/.."); // Ensure working directory is repository root
 
-// Set $compiler based on argument
-if(defined("PHP_WINDOWS_VERSION_MAJOR"))
-{
-	$compiler = escapeshellarg(system("where ".escapeshellarg($argv[1])));
-	$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
-}
-else
-{
-	$compiler = escapeshellarg(system("which ".escapeshellarg($argv[1])));
-}
-$compiler .= " -std=c++17";
-
-// Ensure working directory is repository root
-chdir(__DIR__."/..");
-
-// Ensure "int" dir exists
 if(!is_dir("int"))
 {
 	mkdir("int");
 }
 
-// Define common functions
+function check_compiler()
+{
+	if(empty($argv[1]))
+	{
+		die("Syntax: php {$argv[0]} <compiler>");
+	}
+
+	global $compiler;
+	$compiler = resolve_installed_program($argv[1]);
+	$compiler .= " -std=c++17";
+	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
+	{
+		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
+	}
+}
+
+function resolve_installed_program($exe)
+{
+	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
+	{
+		return escapeshellarg(system("where ".escapeshellarg($exe)));
+	}
+	return escapeshellarg(system("which ".escapeshellarg($exe)));
+}
+
 function for_each_obj($f)
 {
 	foreach(scandir("src") as $file)

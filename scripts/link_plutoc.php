@@ -1,5 +1,6 @@
 <?php
 require __DIR__."/common.php";
+check_compiler();
 
 $cmd = $compiler." -o src/plutoc.exe";
 

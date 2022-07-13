@@ -1,5 +1,6 @@
 <?php
 require __DIR__."/common.php";
+check_compiler();
 
 $cmd = $compiler." -dynamic -o src/libpluto.dll";
 
