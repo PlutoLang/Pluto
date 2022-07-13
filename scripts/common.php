@@ -21,6 +21,7 @@ function check_compiler()
 	{
 		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
 	}
+	$compiler .= " -D PLUTO_FORCE_JUMPTABLE";
 }
 
 function resolve_installed_program($exe)
