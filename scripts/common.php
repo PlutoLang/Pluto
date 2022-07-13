@@ -20,6 +20,13 @@ $compiler .= " -std=c++17";
 // Ensure working directory is repository root
 chdir(__DIR__."/..");
 
+// Ensure "int" dir exists
+if(!is_dir("int"))
+{
+	mkdir("int");
+}
+
+// Define common functions
 function for_each_obj($f)
 {
 	foreach(scandir("src") as $file)
