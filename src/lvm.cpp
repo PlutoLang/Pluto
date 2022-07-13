@@ -31,16 +31,11 @@
 #include "lvm.h"
 
 
-/*
-** By default, use jump tables in the main interpreter loop on gcc
-** and compatible compilers.
-*/
-#if !defined(LUA_USE_JUMPTABLE)
-#if defined(__GNUC__)
+/* Use jump tables unless compiling with MSVC to avoid killing compile times. */
+#if !defined(_MSC_VER)
 #define LUA_USE_JUMPTABLE	1
 #else
 #define LUA_USE_JUMPTABLE	0
-#endif
 #endif
 
 
@@ -1181,6 +1176,9 @@ void luaV_finishOp (lua_State *L) {
 LUAI_FUNC int luaB_next (lua_State *L);
 LUAI_FUNC int luaB_ipairsaux (lua_State *L);
 
+#if LUA_USE_JUMPTABLE
+#include "ljumptab.h"
+#endif
 
 void luaV_execute (lua_State *L, CallInfo *ci) {
   LClosure *cl;
@@ -1190,9 +1188,6 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   int trap;
 #ifdef PLUTO_ILP_ENABLE
   int sequentialJumps = 0;
-#endif
-#if LUA_USE_JUMPTABLE
-#include "ljumptab.h"
 #endif
  startfunc:
   trap = L->hookmask;
