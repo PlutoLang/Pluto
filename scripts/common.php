@@ -8,12 +8,13 @@ if(!is_dir("int"))
 
 function check_compiler()
 {
+	global $argv, $compiler;
+
 	if(empty($argv[1]))
 	{
 		die("Syntax: php {$argv[0]} <compiler>");
 	}
 
-	global $compiler;
 	$compiler = resolve_installed_program($argv[1]);
 	$compiler .= " -std=c++17";
 	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
