@@ -1192,7 +1192,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   int sequentialJumps = 0;
 #endif
 #if LUA_USE_JUMPTABLE
-#include "ljumptab.h"
+#include "ljumptabgcc.h"
 #endif
  startfunc:
   trap = L->hookmask;
