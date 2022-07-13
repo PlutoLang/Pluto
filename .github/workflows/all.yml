@@ -8,8 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: true
       - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=linux all
       - uses: actions/upload-artifact@v2
         with:
@@ -24,8 +22,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: true
       - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=macos all
       - uses: actions/upload-artifact@v2
         with:
@@ -40,8 +36,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: true
       - uses: egor-tensin/setup-mingw@v2
         with:
           platform: x64
