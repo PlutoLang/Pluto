@@ -39,6 +39,8 @@ jobs:
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
+      - run: php scripts/link_dynamic.php clang
+      - run: php scripts/link_static.php clang
       - uses: actions/upload-artifact@v2
         with:
           name: pluto-windows
