@@ -2,7 +2,7 @@
 require __DIR__."/common.php";
 check_compiler();
 
-$cmd = $compiler." -dynamic -o src/libpluto.dll";
+$cmd = $compiler." -shared -o src/libpluto.dll";
 
 for_each_obj(function($file)
 {
