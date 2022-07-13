@@ -5,7 +5,7 @@ $cmd = $compiler." -o src/plutoc.exe";
 
 for_each_obj(function($file)
 {
-	if($file != "luac")
+	if($file != "lua")
 	{
 		global $cmd;
 		$cmd .= " int/{$file}.o";
