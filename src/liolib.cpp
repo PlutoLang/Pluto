@@ -9,7 +9,7 @@
 
 #include "lprefix.h"
 
-
+#include <filesystem>
 #include <ctype.h>
 #include <errno.h>
 #include <locale.h>
@@ -735,10 +735,73 @@ static int f_flush (lua_State *L) {
 }
 
 
+static int isdir (lua_State *L) {
+  auto dir = luaL_checkstring(L, 1);
+  lua_pushboolean(L, std::filesystem::is_directory(dir));
+  return 1;
+}
+
+
+static int isfile (lua_State *L) {
+  auto dir = luaL_checkstring(L, 1);
+  lua_pushboolean(L, std::filesystem::is_regular_file(dir));
+  return 1;
+}
+
+
+static int filesize (lua_State *L) {
+  auto f = luaL_checkstring(L, 1);
+  if (std::filesystem::is_regular_file(f)) {
+    lua_pushnumber(L, std::filesystem::file_size(f));
+  }
+  else {
+    lua_pushstring(L, "Argument 1 did not lead towards a valid file.");
+    lua_error(L);
+  }
+  return 1;
+}
+
+
+static int exists (lua_State *L) {
+  auto f = luaL_checkstring(L, 1);
+  lua_pushboolean(L, std::filesystem::exists(f));
+  return 1;
+}
+
+
+static int copyto (lua_State *L) {
+  auto from = luaL_checkstring(L, 1);
+  auto to = luaL_checkstring(L, 2);
+  lua_pushboolean(L, std::filesystem::copy_file(from, to));
+  return 1;
+}
+
+
+static int absolute (lua_State *L) {
+  auto f = luaL_checkstring(L, 1);
+  lua_pushstring(L, std::filesystem::absolute(f).generic_string().c_str());
+  return 1;
+}
+
+
+static int makedir (lua_State *L) {
+  auto f = luaL_checkstring(L, 1);
+  lua_pushboolean(L, std::filesystem::create_directory(f));
+  return 1;
+}
+
+
 /*
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
+  {"makedir", makedir},
+  {"absolute", absolute},
+  {"copyto", copyto},
+  {"exists", exists},
+  {"filesize", filesize},
+  {"isfile", isfile},
+  {"isdir", isdir},
   {"close", io_close},
   {"flush", io_flush},
   {"input", io_input},
