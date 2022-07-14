@@ -929,4 +929,23 @@
 
 #endif // PLUTO_ILP_ENABLE
 
+/*
+** {====================================================================
+** Pluto configuration: VM Dump
+** =====================================================================}
+*/
+
+// If defined, Pluto will print every VM instruction that is ran.
+// Note that you can modify lua_writestring to redirect output.
+//#define PLUTO_VMDUMP
+
+#ifdef PLUTO_VMDUMP
+
+// Defines under what circumstances the VM Dump is active.
+#ifndef PLUTO_VMDUMP_COND
+#define PLUTO_VMDUMP_COND(L) true
+#endif
+
+#endif // PLUTO_VMDUMP
+
 /* }================================================================== */

@@ -19,6 +19,11 @@
 
 
 static int luaB_print (lua_State *L) {
+#ifdef PLUTO_VMDUMP
+  if (PLUTO_VMDUMP_COND(L)) {
+    lua_writestring("<OUTPUT> ", 9);
+  }
+#endif
   int n = lua_gettop(L);  /* number of arguments */
   int i;
   for (i = 1; i <= n; i++) {  /* for each argument */
