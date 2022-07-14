@@ -865,6 +865,10 @@
 // This will generally improve runtime performance but can add minutes to compile time, depending on the setup.
 //#define PLUTO_FORCE_JUMPTABLE
 
+// If defined, Pluto will use C++ exceptions to implement Lua longjumps.
+// This is generally slower and complicates exception handling.
+//#define PLUTO_USE_THROW
+
 /*
 ** {====================================================================
 ** Pluto configuration: Compatible Mode
