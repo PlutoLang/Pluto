@@ -64,5 +64,6 @@
     <ClInclude Include="src\lstate.h" />
     <ClInclude Include="src\lstring.h" />
     <ClInclude Include="src\ltable.h" />
+    <ClInclude Include="src\ljumptab.h" />
   </ItemGroup>
 </Project>
