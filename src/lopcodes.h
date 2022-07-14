@@ -111,7 +111,7 @@ enum OpMode {iABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
 
 #define GET_OPCODE(i)	(cast(OpCode, ((i)>>POS_OP) & MASK1(SIZE_OP,0)))
 #define SET_OPCODE(i,o)	((i) = (((i)&MASK0(SIZE_OP,POS_OP)) | \
-		((cast(Instruction, o)<<POS_OP)&MASK1(SIZE_OP,POS_OP))))
+        ((cast(Instruction, o)<<POS_OP)&MASK1(SIZE_OP,POS_OP))))
 
 #define checkopm(i,m)	(getOpMode(GET_OPCODE(i)) == m)
 
@@ -142,31 +142,31 @@ enum OpMode {iABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
 #define SETARG_Ax(i,v)	setarg(i, v, POS_Ax, SIZE_Ax)
 
 #define GETARG_sBx(i)  \
-	check_exp(checkopm(i, iAsBx), getarg(i, POS_Bx, SIZE_Bx) - OFFSET_sBx)
+    check_exp(checkopm(i, iAsBx), getarg(i, POS_Bx, SIZE_Bx) - OFFSET_sBx)
 #define SETARG_sBx(i,b)	SETARG_Bx((i),cast_uint((b)+OFFSET_sBx))
 
 #define GETARG_sJ(i)  \
-	check_exp(checkopm(i, isJ), getarg(i, POS_sJ, SIZE_sJ) - OFFSET_sJ)
+    check_exp(checkopm(i, isJ), getarg(i, POS_sJ, SIZE_sJ) - OFFSET_sJ)
 #define SETARG_sJ(i,j) \
-	setarg(i, cast_uint((j)+OFFSET_sJ), POS_sJ, SIZE_sJ)
+    setarg(i, cast_uint((j)+OFFSET_sJ), POS_sJ, SIZE_sJ)
 
 
 #define CREATE_ABCk(o,a,b,c,k)	((cast(Instruction, o)<<POS_OP) \
-			| (cast(Instruction, a)<<POS_A) \
-			| (cast(Instruction, b)<<POS_B) \
-			| (cast(Instruction, c)<<POS_C) \
-			| (cast(Instruction, k)<<POS_k))
+            | (cast(Instruction, a)<<POS_A) \
+            | (cast(Instruction, b)<<POS_B) \
+            | (cast(Instruction, c)<<POS_C) \
+            | (cast(Instruction, k)<<POS_k))
 
 #define CREATE_ABx(o,a,bc)	((cast(Instruction, o)<<POS_OP) \
-			| (cast(Instruction, a)<<POS_A) \
-			| (cast(Instruction, bc)<<POS_Bx))
+            | (cast(Instruction, a)<<POS_A) \
+            | (cast(Instruction, bc)<<POS_Bx))
 
 #define CREATE_Ax(o,a)		((cast(Instruction, o)<<POS_OP) \
-			| (cast(Instruction, a)<<POS_Ax))
+            | (cast(Instruction, a)<<POS_Ax))
 
 #define CREATE_sJ(o,j,k)	((cast(Instruction, o) << POS_OP) \
-			| (cast(Instruction, j) << POS_sJ) \
-			| (cast(Instruction, k) << POS_k))
+            | (cast(Instruction, j) << POS_sJ) \
+            | (cast(Instruction, k) << POS_k))
 
 
 #if !defined(MAXINDEXRK)  /* (for debugging only) */
@@ -387,7 +387,7 @@ LUAI_DDEC(const lu_byte luaP_opmodes[NUM_OPCODES];)
 
 /* "out top" (set top for next instruction) */
 #define isOT(i)  \
-	((testOTMode(GET_OPCODE(i)) && GETARG_C(i) == 0) || \
+    ((testOTMode(GET_OPCODE(i)) && GETARG_C(i) == 0) || \
           GET_OPCODE(i) == OP_TAILCALL)
 
 /* "in top" (uses top from previous instruction) */

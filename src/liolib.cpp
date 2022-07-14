@@ -74,9 +74,9 @@ static int l_checkmode (const char *mode) {
 
 /* ISO C definitions */
 #define l_popen(L,c,m)  \
-	  ((void)c, (void)m, \
-	  luaL_error(L, "'popen' not supported"), \
-	  (FILE*)0)
+      ((void)c, (void)m, \
+      luaL_error(L, "'popen' not supported"), \
+      (FILE*)0)
 #define l_pclose(L,file)		((void)L, (void)file, -1)
 
 #endif				/* } */

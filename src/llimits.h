@@ -342,5 +342,5 @@ typedef l_uint32 Instruction;
 #define condchangemem(L,pre,pos)	((void)0)
 #else
 #define condchangemem(L,pre,pos)  \
-	{ if (gcrunning(G(L))) { pre; luaC_fullgc(L, 0); pos; } }
+    { if (gcrunning(G(L))) { pre; luaC_fullgc(L, 0); pos; } }
 #endif

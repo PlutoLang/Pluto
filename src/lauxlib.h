@@ -41,7 +41,7 @@ typedef struct luaL_Reg {
 
 LUALIB_API void (luaL_checkversion_) (lua_State *L, lua_Number ver, size_t sz);
 #define luaL_checkversion(L)  \
-	  luaL_checkversion_(L, LUA_VERSION_NUM, LUAL_NUMSIZES)
+      luaL_checkversion_(L, LUA_VERSION_NUM, LUAL_NUMSIZES)
 
 LUALIB_API int (luaL_getmetafield) (lua_State *L, int obj, const char *e);
 LUALIB_API int (luaL_callmeta) (lua_State *L, int obj, const char *e);
@@ -136,10 +136,10 @@ LUALIB_API void (luaL_requiref) (lua_State *L, const char *modname,
 #define luaL_typename(L,i)	lua_typename(L, lua_type(L,(i)))
 
 #define luaL_dofile(L, fn) \
-	(luaL_loadfile(L, fn) || lua_pcall(L, 0, LUA_MULTRET, 0))
+    (luaL_loadfile(L, fn) || lua_pcall(L, 0, LUA_MULTRET, 0))
 
 #define luaL_dostring(L, s) \
-	(luaL_loadstring(L, s) || lua_pcall(L, 0, LUA_MULTRET, 0))
+    (luaL_loadstring(L, s) || lua_pcall(L, 0, LUA_MULTRET, 0))
 
 #define luaL_getmetatable(L,n)	(lua_getfield(L, LUA_REGISTRYINDEX, (n)))
 
@@ -153,7 +153,7 @@ LUALIB_API void (luaL_requiref) (lua_State *L, const char *modname,
 ** semantics, as the Lua core does.
 */
 #define luaL_intop(op,v1,v2)  \
-	((lua_Integer)((lua_Unsigned)(v1) op (lua_Unsigned)(v2)))
+    ((lua_Integer)((lua_Unsigned)(v1) op (lua_Unsigned)(v2)))
 
 
 /* push the value used to represent failure/error */
@@ -277,7 +277,7 @@ typedef struct luaL_Stream {
 
 #define luaL_checkunsigned(L,a)	((lua_Unsigned)luaL_checkinteger(L,a))
 #define luaL_optunsigned(L,a,d)	\
-	((lua_Unsigned)luaL_optinteger(L,a,(lua_Integer)(d)))
+    ((lua_Unsigned)luaL_optinteger(L,a,(lua_Integer)(d)))
 
 #define luaL_checkint(L,n)	((int)luaL_checkinteger(L, (n)))
 #define luaL_optint(L,n,d)	((int)luaL_optinteger(L, (n), (d)))

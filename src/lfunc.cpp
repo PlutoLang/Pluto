@@ -160,7 +160,7 @@ static void prepcallclosemth (lua_State *L, StkId level, int status, int yy) {
 ** is used.)
 */
 #define MAXDELTA  \
-	((256ul << ((sizeof(L->stack->tbclist.delta) - 1) * 8)) - 1)
+    ((256ul << ((sizeof(L->stack->tbclist.delta) - 1) * 8)) - 1)
 
 
 /*

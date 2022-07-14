@@ -100,8 +100,8 @@ typedef struct TValue {
 ** macros using this one to be used where L is not available.
 */
 #define checkliveness(L,obj) \
-	((void)L, lua_longassert(!iscollectable(obj) || \
-		(righttt(obj) && (L == NULL || !isdead(G(L),gcvalue(obj))))))
+    ((void)L, lua_longassert(!iscollectable(obj) || \
+        (righttt(obj) && (L == NULL || !isdead(G(L),gcvalue(obj))))))
 
 
 /* Macros to set values */
@@ -112,9 +112,9 @@ typedef struct TValue {
 
 /* main macro to copy values (from 'obj2' to 'obj1') */
 #define setobj(L,obj1,obj2) \
-	{ TValue *io1=(obj1); const TValue *io2=(obj2); \
+    { TValue *io1=(obj1); const TValue *io2=(obj2); \
           io1->value_ = io2->value_; settt_(io1, io2->tt_); \
-	  checkliveness(L,io1); lua_assert(!isnonstrictnil(io1)); }
+      checkliveness(L,io1); lua_assert(!isnonstrictnil(io1)); }
 
 /*
 ** Different types of assignments, according to source and destination.
@@ -313,7 +313,7 @@ typedef struct GCObject {
 #define ttisinteger(o)		checktag((o), LUA_VNUMINT)
 
 #define nvalue(o)	check_exp(ttisnumber(o), \
-	(ttisinteger(o) ? cast_num(ivalue(o)) : fltvalue(o)))
+    (ttisinteger(o) ? cast_num(ivalue(o)) : fltvalue(o)))
 #define fltvalue(o)	check_exp(ttisfloat(o), val_(o).n)
 #define ivalue(o)	check_exp(ttisinteger(o), val_(o).i)
 
@@ -473,7 +473,7 @@ typedef struct Udata0 {
 
 /* compute the offset of the memory area of a userdata */
 #define udatamemoffset(nuv) \
-	((nuv) == 0 ? offsetof(Udata0, bindata)  \
+    ((nuv) == 0 ? offsetof(Udata0, bindata)  \
                     : offsetof(Udata, uv) + (sizeof(UValue) * (nuv)))
 
 /* get the address of the memory block inside 'Udata' */
@@ -627,7 +627,7 @@ typedef struct UpVal {
 
 
 #define ClosureHeader \
-	CommonHeader; lu_byte nupvalues; GCObject *gclist
+    CommonHeader; lu_byte nupvalues; GCObject *gclist
 
 typedef struct CClosure {
   ClosureHeader;
@@ -694,16 +694,16 @@ typedef union Node {
 
 /* copy a value into a key */
 #define setnodekey(L,node,obj) \
-	{ Node *n_=(node); const TValue *io_=(obj); \
-	  n_->u.key_val = io_->value_; n_->u.key_tt = io_->tt_; \
-	  checkliveness(L,io_); }
+    { Node *n_=(node); const TValue *io_=(obj); \
+      n_->u.key_val = io_->value_; n_->u.key_tt = io_->tt_; \
+      checkliveness(L,io_); }
 
 
 /* copy a value from a key */
 #define getnodekey(L,obj,node) \
-	{ TValue *io_=(obj); const Node *n_=(node); \
-	  io_->value_ = n_->u.key_val; io_->tt_ = n_->u.key_tt; \
-	  checkliveness(L,io_); }
+    { TValue *io_=(obj); const Node *n_=(node); \
+      io_->value_ = n_->u.key_val; io_->tt_ = n_->u.key_tt; \
+      checkliveness(L,io_); }
 
 
 /*
@@ -777,7 +777,7 @@ typedef struct Table {
 ** 'module' operation for hashing (size is always a power of 2)
 */
 #define lmod(s,size) \
-	(check_exp((size&(size-1))==0, (cast_int((s) & ((size)-1)))))
+    (check_exp((size&(size-1))==0, (cast_int((s) & ((size)-1)))))
 
 
 #define twoto(x)	(int)(1<<(x))
