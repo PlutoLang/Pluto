@@ -752,7 +752,7 @@ static int isfile (lua_State *L) {
 static int filesize (lua_State *L) {
   auto f = luaL_checkstring(L, 1);
   if (std::filesystem::is_regular_file(f)) {
-    lua_pushnumber(L, std::filesystem::file_size(f));
+    lua_pushinteger(L, (lua_Integer)std::filesystem::file_size(f));
   }
   else {
     lua_pushstring(L, "Argument 1 did not lead towards a valid file.");
