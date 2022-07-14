@@ -1453,7 +1453,7 @@ static void ifexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v) {
+static void simpleexp (LexState *ls, expdesc *v, bool caseexpr) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
@@ -1509,6 +1509,12 @@ static void simpleexp (LexState *ls, expdesc *v) {
     }
   }
   luaX_next(ls);
+  if (!caseexpr && testnext(ls, ':')) {
+    expdesc key;
+    codename(ls, &key);
+    luaK_self(ls->fs, v, &key);
+    funcargs(ls, v, ls->linenumber);
+  }
 }
 
 
@@ -1589,7 +1595,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     luaK_prefix(ls->fs, uop, v, line);
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
-  else simpleexp(ls, v);
+  else simpleexp(ls, v, false);
   /* expand while operators have priorities higher than 'limit' */
   op = getbinopr(ls->t.token);
   while (op != OPR_NOBINOPR && priority[op].left > limit) {
@@ -1937,7 +1943,7 @@ static void switchstat (LexState *ls, int line) {
 #endif // PLUTO_COMPATIBLE_MODE
     }
     if (testnext(ls, '-')) { // Probably a negative constant.
-      simpleexp(ls, &lcase);
+      simpleexp(ls, &lcase, true);
       switch (lcase.k) {
         case VKINT: {
           lcase.u.ival *= -1;
@@ -1954,7 +1960,7 @@ static void switchstat (LexState *ls, int line) {
     }
     else {
       const auto expr = expandexpr(ls); // Raw text of the expression before the lexer skips tokens.
-      simpleexp(ls, &lcase);
+      simpleexp(ls, &lcase, true);
       if (lcase.k < VNIL || lcase.k > VKSTR) { // Expression exceeds constant range.
         ls->linebuff.clear();
         ls->linebuff += "case ";
