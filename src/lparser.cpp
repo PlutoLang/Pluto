@@ -1507,11 +1507,9 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr) {
   luaX_next(ls);
   if (!caseexpr && testnext(ls, ':')) {
     expdesc key;
-    FuncState *fs = ls->fs;
-    int line = ls->linenumber;
-    codestring(&key, str_checkname(ls));
-    luaK_self(fs, v, &key);
-    funcargs(ls, v, line);
+    codename(ls, &key);
+    luaK_self(ls->fs, v, &key);
+    funcargs(ls, v, ls->linenumber);
   }
 }
 
