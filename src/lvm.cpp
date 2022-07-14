@@ -31,20 +31,6 @@
 #include "lvm.h"
 
 
-/*
-** By default, use jump tables in the main interpreter loop on gcc
-** and compatible compilers.
-*/
-#if !defined(LUA_USE_JUMPTABLE)
-#if defined(__GNUC__)
-#define LUA_USE_JUMPTABLE	1
-#else
-#define LUA_USE_JUMPTABLE	0
-#endif
-#endif
-
-
-
 /* limit for table tag-method chains (to avoid infinite loops) */
 #define MAXTAGLOOP	2000
 
@@ -1181,6 +1167,9 @@ void luaV_finishOp (lua_State *L) {
 LUAI_FUNC int luaB_next (lua_State *L);
 LUAI_FUNC int luaB_ipairsaux (lua_State *L);
 
+#if !defined(__GNUC__) && defined(PLUTO_FORCE_JUMPTABLE)
+#include "ljumptab.h"
+#endif
 
 void luaV_execute (lua_State *L, CallInfo *ci) {
   LClosure *cl;
@@ -1191,8 +1180,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
 #ifdef PLUTO_ILP_ENABLE
   int sequentialJumps = 0;
 #endif
-#if LUA_USE_JUMPTABLE
-#include "ljumptab.h"
+#if defined(__GNUC__)
+#include "ljumptabgcc.h"
 #endif
  startfunc:
   trap = L->hookmask;

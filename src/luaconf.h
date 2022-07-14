@@ -870,6 +870,9 @@
 //     - Keywords like 'continue' will now be 'pluto_continue'.
 //#define PLUTO_COMPATIBLE_MODE
 
+// If defined, Pluto will use a jumptable in the VM even if not compiled via GCC.
+// This will generally improve runtime performance but can add minutes to compile time, depending on the setup.
+//#define PLUTO_FORCE_JUMPTABLE
 
 /*
 ** {====================================================================
