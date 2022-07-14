@@ -885,6 +885,7 @@
 //#define PLUTO_COMPATIBLE_MODE
 
 #ifdef PLUTO_COMPATIBLE_MODE
+
 // If defined, only 'pluto_switch' will be valid. 'switch' will not exist.
 #define PLUTO_COMPATIBLE_SWITCH
 
@@ -896,7 +897,8 @@
 #define PLUTO_COMPATIBLE_CONTINUE
 
 #define PLUTO_COMPATIBLE_WHEN
-#endif
+
+#endif // PLUTO_COMPATIBLE_MODE
 
 /*
 ** {====================================================================
