@@ -1939,7 +1939,7 @@ static void switchstat (LexState *ls, int line) {
   testnext(ls, ')');
   checknext(ls, TK_DO);
   new_localvarliteral(ls, "(switch)"); // Save control value into a local.
-  adjustlocalvars(ls, 1); 
+  adjustlocalvars(ls, 1);
   enterblock(fs, &sbl, 1);
   do {
     const int caseline = ls->linenumber; // Needed for errors.
