@@ -1892,7 +1892,7 @@ static void continuestat (LexState *ls) {
   }
   if (bl) {
     if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
-    luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
+    luaK_code(fs, CREATE_sJ(OP_JMP, (bl->scopeend + OFFSET_sJ + 4), false));
   }
   else error_expected(ls, TK_CONTINUE);
 }
