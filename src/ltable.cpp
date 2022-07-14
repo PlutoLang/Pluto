@@ -241,7 +241,7 @@ static int equalkey (const TValue *k1, const Node *n2, int deadok) {
 ** part of table 't'. (Otherwise, the array part must be larger than
 ** 'alimit'.)
 */
-#define limitequalsasize(t)	(isrealasize(t) || ispow2((t)->alimit))
+#define limitequalsasize(t)	(isrealasize(t) || luaispow2((t)->alimit))
 
 
 /*
@@ -262,7 +262,7 @@ LUAI_FUNC unsigned int luaH_realasize (const Table *t) {
     size |= (size >> 32);  /* unsigned int has more than 32 bits */
 #endif
     size++;
-    lua_assert(ispow2(size) && size/2 < t->alimit && t->alimit < size);
+    lua_assert(luaispow2(size) && size/2 < t->alimit && t->alimit < size);
     return size;
   }
 }
@@ -274,7 +274,7 @@ LUAI_FUNC unsigned int luaH_realasize (const Table *t) {
 ** without changing the real size.)
 */
 static int ispow2realasize (const Table *t) {
-  return (!isrealasize(t) || ispow2(t->alimit));
+  return (!isrealasize(t) || luaispow2(t->alimit));
 }
 
 
@@ -926,7 +926,7 @@ lua_Unsigned luaH_getn (Table *t) {
     /* there must be a boundary before 'limit' */
     if (limit >= 2 && !isempty(&t->array[limit - 2])) {
       /* 'limit - 1' is a boundary; can it be a new limit? */
-      if (ispow2realasize(t) && !ispow2(limit - 1)) {
+      if (ispow2realasize(t) && !luaispow2(limit - 1)) {
         t->alimit = limit - 1;
         setnorealasize(t);  /* now 'alimit' is not the real size */
       }

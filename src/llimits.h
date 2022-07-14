@@ -60,7 +60,7 @@ typedef signed char ls_byte;
 /*
 ** test whether an unsigned value is a power of 2 (or zero)
 */
-#define ispow2(x)	(((x) & ((x) - 1)) == 0)
+#define luaispow2(x)	(((x) & ((x) - 1)) == 0)
 
 
 /* number of chars of a literal string without the ending \0 */
