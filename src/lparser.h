@@ -23,7 +23,8 @@ enum ALIASES {
   TK_SWITCH = TK_PSWITCH,
   TK_CASE,
   TK_DEFAULT,
-  TK_CONTINUE
+  TK_CONTINUE,
+  TK_WHEN
 };
 #endif
 

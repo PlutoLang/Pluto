@@ -1006,6 +1006,10 @@ static int block_follow (LexState *ls, int withuntil) {
     case TK_ELSE: case TK_ELSEIF:
     case TK_END: case TK_EOS:
       return 1;
+#ifndef PLUTO_COMPATIBLE_MODE
+    case TK_PWHEN:
+#endif
+    case TK_WHEN:
     case TK_UNTIL: return withuntil;
     default: return 0;
   }
@@ -2042,8 +2046,18 @@ static void repeatstat (LexState *ls, int line) {
   luaX_next(ls);  /* skip REPEAT */
   statlist(ls);
   luaK_patchtohere(fs, bl1.scopeend);
-  check_match(ls, TK_UNTIL, TK_REPEAT, line);
-  condexit = cond(ls);  /* read condition (inside scope block) */
+  if (testnext(ls, TK_UNTIL)) {
+    condexit = cond(ls);  /* read condition (inside scope block) */
+  } else if (testnext2(ls, TK_WHEN, TK_PWHEN)) {
+    expdesc v;
+    expr(ls, &v);  /* read condition */
+    if (v.k == VNIL) v.k = VFALSE;  /* 'falses' are all equal here */
+    luaK_goiffalse(ls->fs, &v);
+    condexit = v.t;
+  }
+  else {
+    error_expected(ls, TK_UNTIL);
+  }
   leaveblock(fs);  /* finish scope */
   if (bl2.upval) {  /* upvalues? */
     int exit = luaK_jump(fs);  /* normal exit must jump over fix */
