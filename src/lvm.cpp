@@ -1211,14 +1211,14 @@ LUAI_FUNC int luaB_ipairsaux (lua_State *L);
   return str;
 }
 
-static void vmdump_log_impl(lua_State* L, CallInfo* ci, std::string&& str)
+static void vmdump_log_impl(lua_State* L, CallInfo* ci, LClosure* cl, const Instruction* pc, std::string&& str)
 {
   lua_Debug ar;
   ar.i_ci = ci;
   lua_getinfo(L, "Sl", &ar);
   if (ar.currentline > 0) {
     str.insert(0, "] ");
-    str.insert(0, std::to_string(ar.currentline));
+    str.insert(0, std::to_string(luaG_getfuncline(cl->p, pcRel(pc, cl->p))));
     str.insert(0, 1, ':');
     str.insert(0, ar.short_src);
     str.insert(0, 1, '[');
@@ -1227,7 +1227,7 @@ static void vmdump_log_impl(lua_State* L, CallInfo* ci, std::string&& str)
   lua_writeline();
 }
 
-#define vmdump_log(str) vmdump_log_impl(L, ci, str);
+#define vmdump_log(str) vmdump_log_impl(L, ci, cl, pc, str);
 #endif
 
 #if !defined(__GNUC__) && defined(PLUTO_FORCE_JUMPTABLE)
