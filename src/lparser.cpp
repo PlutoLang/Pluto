@@ -216,7 +216,7 @@ static void throw_warn (LexState *ls, const char *err, const char *here) {
       throwerr(ls,
         "expected an identifier.", "this needs a name.");
     }
-    case TK_CONTINUE: {
+    case TK_PCONTINUE: {
       throwerr(ls,
         "expected 'continue' inside a loop.", "this is not within a loop.");
     }
@@ -1006,10 +1006,10 @@ static int block_follow (LexState *ls, int withuntil) {
     case TK_ELSE: case TK_ELSEIF:
     case TK_END: case TK_EOS:
       return 1;
-#ifndef PLUTO_COMPATIBLE_MODE
     case TK_PWHEN:
-#endif
+#ifndef PLUTO_COMPATIBLE_WHEN
     case TK_WHEN:
+#endif
     case TK_UNTIL: return withuntil;
     default: return 0;
   }
@@ -1035,17 +1035,25 @@ inline int gett(LexState *ls) {
 
 /* Switch logic partially inspired by Paige Marie DePol from the Lua mailing list. */
 static void caselist (LexState *ls, bool isdefault) {
-  while (gett(ls) != TK_DEFAULT &&
-         gett(ls) != TK_CASE    &&
-         gett(ls) != TK_END     &&
-         gett(ls) != TK_PCASE   &&
-         gett(ls) != TK_PDEFAULT
+  while (gett(ls) != TK_PDEFAULT
+      && gett(ls) != TK_PCASE
+      && gett(ls) != TK_END
+#ifndef PLUTO_COMPATIBLE_DEFAULT
+      && gett(ls) != TK_DEFAULT
+#endif
+#ifndef PLUTO_COMPATIBLE_CASE
+      && gett(ls) != TK_CASE
+#endif
     ) {
     if (isdefault && gett(ls) == TK_BREAK && luaX_lookahead(ls) == TK_END) {
       luaX_next(ls);
     }
     else {
-      if (gett(ls) == TK_CONTINUE || gett(ls) == TK_PCONTINUE) {
+      if (gett(ls) == TK_PCONTINUE
+#ifndef PLUTO_COMPATIBLE_CONTINUE
+          || gett(ls) == TK_CONTINUE
+#endif
+          ) {
         throwerr(ls, "'continue' outside of loop.", "'case' statements are not loops.");
       }
       else {
@@ -1894,7 +1902,7 @@ static void continuestat (LexState *ls) {
     if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
     luaK_code(fs, CREATE_sJ(OP_JMP, (bl->scopeend + OFFSET_sJ + 4), false));
   }
-  else error_expected(ls, TK_CONTINUE);
+  else error_expected(ls, TK_PCONTINUE);
 }
 
 
@@ -1935,12 +1943,16 @@ static void switchstat (LexState *ls, int line) {
   enterblock(fs, &sbl, 1);
   do {
     const int caseline = ls->linenumber; // Needed for errors.
-    if (!testnext2(ls, TK_CASE, TK_PCASE)) {
-#ifdef PLUTO_COMPATIBLE_MODE
+#ifdef PLUTO_COMPATIBLE_CASE
+    if (!testnext(ls, TK_PCASE)) {
+#else
+    if (!testnext2(ls, TK_PCASE, TK_CASE)) {
+#endif
+#ifdef PLUTO_COMPATIBLE_CASE
       error_expected(ls, TK_PCASE);
 #else
       error_expected(ls, TK_CASE);
-#endif // PLUTO_COMPATIBLE_MODE
+#endif
     }
     if (testnext(ls, '-')) { // Probably a negative constant.
       simpleexp(ls, &lcase, true);
@@ -1976,12 +1988,24 @@ static void switchstat (LexState *ls, int line) {
     luaK_posfix(fs, OPR_NE, &test, &lcase, line);
     caselist(ls, false);
     leaveblock(fs);
-    if (gett(ls) == TK_CASE || gett(ls) == TK_PCASE) {
+    if (gett(ls) == TK_PCASE
+#ifndef PLUTO_COMPATIBLE_CASE
+        || gett(ls) == TK_CASE
+#endif
+        ) {
       luaK_code(fs, CREATE_sJ(OP_JMP, (2 + OFFSET_sJ), false)); // Fall-through.
     }
     luaK_patchtohere(fs, test.u.info); // Jump statements if OP_NE, otherwise continue.
-  } while (gett(ls) != TK_END && (gett(ls) != TK_PDEFAULT && gett(ls) != TK_DEFAULT));
+  } while (gett(ls) != TK_END && (gett(ls) != TK_PDEFAULT
+#ifndef PLUTO_COMPATIBLE_DEFAULT
+      && gett(ls) != TK_DEFAULT
+#endif
+      ));
+#ifdef PLUTO_COMPATIBLE_DEFAULT
+  if (testnext(ls, TK_PDEFAULT)) { // Default case.
+#else
   if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) { // Default case.
+#endif
     checknext(ls, ':');
     enterblock(fs, &cbl, 0);
     caselist(ls, true);
@@ -2048,7 +2072,11 @@ static void repeatstat (LexState *ls, int line) {
   luaK_patchtohere(fs, bl1.scopeend);
   if (testnext(ls, TK_UNTIL)) {
     condexit = cond(ls);  /* read condition (inside scope block) */
-  } else if (testnext2(ls, TK_WHEN, TK_PWHEN)) {
+#ifdef PLUTO_COMPATIBLE_WHEN
+  } else if (testnext(ls, TK_PWHEN)) {
+#else
+  } else if (testnext2(ls, TK_PWHEN, TK_WHEN)) {
+#endif
     expdesc v;
     expr(ls, &v);  /* read condition */
     if (v.k == VNIL) v.k = VFALSE;  /* 'falses' are all equal here */
@@ -2469,10 +2497,10 @@ static void statement (LexState *ls) {
       breakstat(ls);
       break;
     }
-#ifndef PLUTO_COMPATIBLE_MODE
-    case TK_PCONTINUE:
+#ifndef PLUTO_COMPATIBLE_CONTINUE
+    case TK_CONTINUE:
 #endif
-    case TK_CONTINUE: {
+    case TK_PCONTINUE: {
       continuestat(ls);
       break;
     }
@@ -2481,16 +2509,16 @@ static void statement (LexState *ls) {
       gotostat(ls);
       break;
     }
-#ifndef PLUTO_COMPATIBLE_MODE
-    case TK_PCASE:
+#ifndef PLUTO_COMPATIBLE_CASE
+    case TK_CASE:
 #endif
-    case TK_CASE: {
+    case TK_PCASE: {
       throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
     }
-#ifndef PLUTO_COMPATIBLE_MODE
-    case TK_PSWITCH:
+#ifndef PLUTO_COMPATIBLE_SWITCH
+    case TK_SWITCH:
 #endif
-    case TK_SWITCH: {
+    case TK_PSWITCH: {
       switchstat(ls, line);
       break;
     }

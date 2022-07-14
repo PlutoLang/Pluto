@@ -861,6 +861,16 @@
 // If defined, Pluto will exclude code snippets from error messages to make them shorter.
 //#define PLUTO_SHORT_ERRORS
 
+// If defined, Pluto will use a jumptable in the VM even if not compiled via GCC.
+// This will generally improve runtime performance but can add minutes to compile time, depending on the setup.
+//#define PLUTO_FORCE_JUMPTABLE
+
+/*
+** {====================================================================
+** Pluto configuration: Compatible Mode
+** =====================================================================}
+*/
+
 // If defined, Pluto will assign 'pluto_' to new keywords which break previously valid Lua identifiers.
 // If you decide to leave this undefined:
 //     - Both 'pluto_switch' and 'switch' are valid syntaxes for Pluto.
@@ -870,9 +880,19 @@
 //     - Keywords like 'continue' will now be 'pluto_continue'.
 //#define PLUTO_COMPATIBLE_MODE
 
-// If defined, Pluto will use a jumptable in the VM even if not compiled via GCC.
-// This will generally improve runtime performance but can add minutes to compile time, depending on the setup.
-//#define PLUTO_FORCE_JUMPTABLE
+#ifdef PLUTO_COMPATIBLE_MODE
+// If defined, only 'pluto_switch' will be valid. 'switch' will not exist.
+#define PLUTO_COMPATIBLE_SWITCH
+
+// If defined, only 'pluto_... you get the idea.
+#define PLUTO_COMPATIBLE_CASE
+
+#define PLUTO_COMPATIBLE_DEFAULT
+
+#define PLUTO_COMPATIBLE_CONTINUE
+
+#define PLUTO_COMPATIBLE_WHEN
+#endif
 
 /*
 ** {====================================================================

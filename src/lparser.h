@@ -17,18 +17,6 @@
 #define t2s(lex, token) (luaX_token2str_noq(lex, token))
 
 
-#ifdef PLUTO_COMPATIBLE_MODE
-// Compatibility mode, these represent 'pluto_' keywords.
-enum ALIASES {
-  TK_SWITCH = TK_PSWITCH,
-  TK_CASE,
-  TK_DEFAULT,
-  TK_CONTINUE,
-  TK_WHEN
-};
-#endif
-
-
 /*
 ** Expression and variable descriptor.
 ** Code generation for variables and expressions can be delayed to allow
