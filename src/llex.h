@@ -70,9 +70,10 @@ enum RESERVED {
   TK_CCAT,              /* concatenation               */
 };
 
+#define LAST_RESERVED TK_WHILE
 
 /* number of reserved words */
-#define NUM_RESERVED	(cast_int(TK_WHILE-FIRST_RESERVED + 1))
+#define NUM_RESERVED	(cast_int(LAST_RESERVED-FIRST_RESERVED + 1))
 
 
 typedef union {
@@ -82,10 +83,18 @@ typedef union {
 } SemInfo;  /* semantics information */
 
 
-typedef struct Token {
+struct Token {
   int token;
   SemInfo seminfo;
-} Token;
+
+  [[nodiscard]] bool IsReserved() const noexcept {
+    return token >= FIRST_RESERVED && token <= LAST_RESERVED;
+  }
+
+  [[nodiscard]] bool IsReservedNonValue() const noexcept {
+	return IsReserved() && token != TK_TRUE && token != TK_FALSE;
+  }
+};
 
 
 /*
@@ -150,3 +159,4 @@ LUAI_FUNC int luaX_lookahead (LexState *ls);
 [[noreturn]] LUAI_FUNC void luaX_syntaxerror (LexState *ls, const char *s);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);
+LUAI_FUNC const char *luaX_reserved2str (LexState *ls, int token);
