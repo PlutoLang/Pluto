@@ -2557,6 +2557,12 @@ static void statement (LexState *ls) {
     case TK_PCASE: {
       throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
     }
+#ifndef PLUTO_COMPATIBLE_DEFAULT
+    case TK_DEFAULT:
+#endif
+    case TK_PDEFAULT: {
+      throwerr(ls, "inappropriate 'default' statement.", "outside of 'switch' block.");
+    }
 #ifndef PLUTO_COMPATIBLE_SWITCH
     case TK_SWITCH:
 #endif
