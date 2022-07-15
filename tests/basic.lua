@@ -105,6 +105,22 @@ for i = 1, 10 do
 end
 assert(sum == 50)
 
+local lines = {
+    "This",
+    "Is",
+    "Some",
+    "Lines",
+}
+
+for index, line in ipairs(lines) do
+    if index == 1 and line == "This" then
+        continue
+    elseif index == #lines and line == "Lines" then
+        continue
+    end
+    assert(line != "This" and line != "Lines")
+end
+
 print "Testing table length cache."
 local t = {}
 for i = 1, 1000 do
