@@ -1172,7 +1172,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 }
 
 
-void body (LexState *ls, expdesc *e, int ismethod, int line);
+static void body (LexState *ls, expdesc *e, int ismethod, int line);
 static void funcfield (LexState *ls, struct ConsControl *cc) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
@@ -1289,7 +1289,7 @@ static void parlist (LexState *ls) {
 }
 
 
-void body (LexState *ls, expdesc *e, int ismethod, int line) {
+static void body (LexState *ls, expdesc *e, int ismethod, int line) {
   /* body ->  '(' parlist ')' block END */
   FuncState new_fs;
   BlockCnt bl;
