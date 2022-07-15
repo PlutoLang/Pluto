@@ -49,7 +49,6 @@ typedef union Value {
   lua_Integer i;   /* integer numbers */
   lua_Number n;    /* float numbers */
   unsigned int it; /* iterator index */
-  lu_byte ub; /* avoid warnings */
 } Value;
 
 
