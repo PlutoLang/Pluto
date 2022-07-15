@@ -92,7 +92,7 @@ struct Token {
   }
 
   [[nodiscard]] bool IsReservedNonValue() const noexcept {
-	return IsReserved() && token != TK_TRUE && token != TK_FALSE;
+    return IsReserved() && token != TK_TRUE && token != TK_FALSE;
   }
 };
 
