@@ -1987,6 +1987,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       vmcase(OP_TFORPREP) {
         const Instruction* callpc = pc + GETARG_Bx(i);
         i = *callpc;
+        if ((!ttisfunction(s2v(ra)))) {
+          setobjs2s(L, ra + 1, ra);
+          setfvalue(s2v(ra), luaB_next);
+        }
         if (ttypetag(s2v(ra)) == LUA_VLCF
               && ttistable(s2v(ra+1))
               && ttisnil(s2v(ra+3))
