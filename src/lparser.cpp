@@ -1892,7 +1892,7 @@ static void continuestat (LexState *ls) {
   }
   if (bl) {
     if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
-    luaK_code(fs, CREATE_sJ(OP_JMP, (bl->scopeend + OFFSET_sJ + 4), false));
+    luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
   }
   else error_expected(ls, TK_CONTINUE);
 }
@@ -2118,11 +2118,11 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen) {
   block(ls);
   leaveblock(fs);  /* end of scope for declared variables */
   fixforjump(fs, prep, luaK_getlabel(fs), 0);
+  luaK_patchtohere(fs, bl.previous->scopeend);
   if (isgen) {  /* generic for? */
     luaK_codeABC(fs, OP_TFORCALL, base, 0, nvars);
     luaK_fixline(fs, line);
   }
-  luaK_patchtohere(fs, bl.previous->scopeend);
   endfor = luaK_codeABx(fs, forloop[isgen], base, 0);
   fixforjump(fs, endfor, prep + 1, 1);
   luaK_fixline(fs, line);
