@@ -341,7 +341,9 @@ static void check_match (LexState *ls, int what, int who, int where) {
 
 static TString *str_checkname (LexState *ls) {
   TString *ts;
-  check(ls, TK_NAME);
+  if (ls->t.token != TK_NAME && !ls->t.IsReservedNonValue()) {
+    error_expected(ls, TK_NAME);
+  }
   ts = ls->t.seminfo.ts;
   luaX_next(ls);
   return ts;
