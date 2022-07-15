@@ -190,6 +190,11 @@ TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
 }
 
 
+LUAI_FUNC TString* luaX_newstring (LexState *ls, const char *str) {
+  return luaX_newstring(ls, str, strlen(str));
+}
+
+
 /*
 ** increment line number and skips newline sequence (any of
 ** \n, \r, \n\r, or \r\n)
