@@ -1156,8 +1156,25 @@ static void listfield (LexState *ls, ConsControl *cc) {
 }
 
 
+void body (LexState *ls, expdesc *e, int ismethod, int line);
+static void funcfield (LexState *ls, struct ConsControl *cc) {
+  /* funcfield -> function NAME funcargs */
+  FuncState *fs = ls->fs;
+  int reg = ls->fs->freereg;
+  expdesc tab, key, val;
+  cc->nh++;
+  luaX_next(ls); /* skip TK_FUNCTION */
+  codename(ls, &key);
+  tab = *cc->t;
+  luaK_indexed(fs, &tab, &key);
+  body(ls, &val, true, ls->linenumber);
+  luaK_storevar(fs, &tab, &val);
+  fs->freereg = reg;  /* free registers */
+}
+
+
 static void field (LexState *ls, ConsControl *cc) {
-  /* field -> listfield | recfield */
+  /* field -> listfield | recfield | funcfield */
   switch(ls->t.token) {
     case TK_NAME: {  /* may be 'listfield' or 'recfield' */
       if (luaX_lookahead(ls) != '=')  /* expression? */
@@ -1168,6 +1185,15 @@ static void field (LexState *ls, ConsControl *cc) {
     }
     case '[': {
       recfield(ls, cc);
+      break;
+    }
+    case TK_FUNCTION: {
+      if (luaX_lookahead(ls) == '(') {
+        listfield(ls, cc);
+      }
+      else {
+        funcfield(ls, cc);
+      }
       break;
     }
     default: {
@@ -1243,7 +1269,7 @@ static void parlist (LexState *ls) {
 }
 
 
-static void body (LexState *ls, expdesc *e, int ismethod, int line) {
+void body (LexState *ls, expdesc *e, int ismethod, int line) {
   /* body ->  '(' parlist ')' block END */
   FuncState new_fs;
   BlockCnt bl;
