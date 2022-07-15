@@ -1419,28 +1419,24 @@ static void primaryexp (LexState *ls, expdesc *v) {
       singlevar(ls, v);
       return;
     }
+    case '}':
+    case '{': { // Unfinished table constructors.
+       if (ls->t.token == '{') {
+         throwerr(ls, "unfinished table constructor", "did you mean to close with '}'?");
+       }
+       else {
+         throwerr(ls, "unfinished table constructor", "did you mean to enter with '{'?");
+       }
+       return;
+    }
+    case '|': { // Potentially mistyped lambda expression. People may confuse '->' with '=>'.
+      while (testnext(ls, '|') || testnext(ls, TK_NAME) || testnext(ls, ','));
+      throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
+      return;
+    }
     default: {
-      switch (ls->t.token) {
-        case '}':
-        case '{': { // Unfinished table constructors.
-          if (ls->t.token == '{') {
-            throwerr(ls, "unfinished table constructor", "did you mean to close with '}'?");
-          }
-          else {
-            throwerr(ls, "unfinished table constructor", "did you mean to enter with '{'?");
-          }
-          return;
-        }
-        case '|': { // Potentially mistyped lambda expression. People may confuse '->' with '=>'.
-          while (testnext(ls, '|') || testnext(ls, TK_NAME) || testnext(ls, ','));
-          throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
-          return;
-        }
-        default: {
-          const char *token = luaX_token2str(ls, ls->t.token);
-          throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
-        }
-      }
+      const char *token = luaX_token2str(ls, ls->t.token);
+      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
   }
 }
