@@ -1120,6 +1120,20 @@ static void recfield (LexState *ls, ConsControl *cc) {
   fs->freereg = reg;  /* free registers */
 }
 
+static void prenamedfield(LexState* ls, ConsControl* cc, const char* name) {
+  FuncState* fs = ls->fs;
+  int reg = ls->fs->freereg;
+  expdesc tab, key, val;
+  codestring(&key, luaX_newstring(ls, name, strlen(name)));
+  cc->nh++;
+  luaX_next(ls); /* skip name token */
+  checknext(ls, '=');
+  tab = *cc->t;
+  luaK_indexed(fs, &tab, &key);
+  expr(ls, &val);
+  luaK_storevar(fs, &tab, &val);
+  fs->freereg = reg;  /* free registers */
+}
 
 static void closelistfield (FuncState *fs, ConsControl *cc) {
   if (cc->v.k == VVOID) return;  /* there is no list item */
@@ -1197,7 +1211,11 @@ static void field (LexState *ls, ConsControl *cc) {
       break;
     }
     default: {
-      listfield(ls, cc);
+      if (ls->t.IsReservedNonValue()) {
+        prenamedfield(ls, cc, luaX_reserved2str(ls, ls->t.token));
+      } else {
+        listfield(ls, cc);
+      }
       break;
     }
   }
