@@ -26,10 +26,10 @@
 ** avoiding this warning but also this optimization.)
 */
 #define luaM_testsize(n,e)  \
-	(sizeof(n) >= sizeof(size_t) && cast_sizet((n)) + 1 > MAX_SIZET/(e))
+    (sizeof(n) >= sizeof(size_t) && cast_sizet((n)) + 1 > MAX_SIZET/(e))
 
 #define luaM_checksize(L,n,e)  \
-	(luaM_testsize(n,e) ? luaM_toobig(L) : cast_void(0))
+    (luaM_testsize(n,e) ? luaM_toobig(L) : cast_void(0))
 
 
 /*
@@ -61,7 +61,7 @@
 #define luaM_newobject(L,tag,s)	luaM_malloc_(L, (s), tag)
 
 #define luaM_growvector(L,v,nelems,size,t,limit,e) \
-	((v)=cast(t *, luaM_growaux_(L,v,nelems,&(size),sizeof(t), \
+    ((v)=cast(t *, luaM_growaux_(L,v,nelems,&(size),sizeof(t), \
                          luaM_limitN(limit,t),e)))
 
 #define luaM_reallocvector(L, v,oldn,n,t) \

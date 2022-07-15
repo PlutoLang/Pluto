@@ -19,6 +19,11 @@
 
 
 static int luaB_print (lua_State *L) {
+#ifdef PLUTO_VMDUMP
+  if (PLUTO_VMDUMP_COND(L)) {
+    lua_writestring("<OUTPUT> ", 9);
+  }
+#endif
   int n = lua_gettop(L);  /* number of arguments */
   int i;
   for (i = 1; i <= n; i++) {  /* for each argument */
@@ -552,6 +557,9 @@ LUAMOD_API int luaopen_base (lua_State *L) {
   /* set global _VERSION */
   lua_pushliteral(L, LUA_VERSION);
   lua_setfield(L, -2, "_VERSION");
+  /* set global _PVERSION */
+  lua_pushliteral(L, PLUTO_VERSION);
+  lua_setfield(L, -2, "_PVERSION");
   return 1;
 }
 

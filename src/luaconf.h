@@ -199,17 +199,17 @@
 
 #if !defined(LUA_PATH_DEFAULT)
 #define LUA_PATH_DEFAULT  \
-		LUA_LDIR"?.lua;"  LUA_LDIR"?\\init.lua;" \
-		LUA_CDIR"?.lua;"  LUA_CDIR"?\\init.lua;" \
-		LUA_SHRDIR"?.lua;" LUA_SHRDIR"?\\init.lua;" \
-		".\\?.lua;" ".\\?\\init.lua"
+        LUA_LDIR"?.lua;"  LUA_LDIR"?\\init.lua;" \
+        LUA_CDIR"?.lua;"  LUA_CDIR"?\\init.lua;" \
+        LUA_SHRDIR"?.lua;" LUA_SHRDIR"?\\init.lua;" \
+        ".\\?.lua;" ".\\?\\init.lua"
 #endif
 
 #if !defined(LUA_CPATH_DEFAULT)
 #define LUA_CPATH_DEFAULT \
-		LUA_CDIR"?.dll;" \
-		LUA_CDIR"..\\lib\\lua\\" LUA_VDIR "\\?.dll;" \
-		LUA_CDIR"loadall.dll;" ".\\?.dll"
+        LUA_CDIR"?.dll;" \
+        LUA_CDIR"..\\lib\\lua\\" LUA_VDIR "\\?.dll;" \
+        LUA_CDIR"loadall.dll;" ".\\?.dll"
 #endif
 
 #else			/* }{ */
@@ -220,14 +220,14 @@
 
 #if !defined(LUA_PATH_DEFAULT)
 #define LUA_PATH_DEFAULT  \
-		LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
-		LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua;" \
-		"./?.lua;" "./?/init.lua"
+        LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
+        LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua;" \
+        "./?.lua;" "./?/init.lua"
 #endif
 
 #if !defined(LUA_CPATH_DEFAULT)
 #define LUA_CPATH_DEFAULT \
-		LUA_CDIR"?.so;" LUA_CDIR"loadall.so;" "./?.so"
+        LUA_CDIR"?.so;" LUA_CDIR"loadall.so;" "./?.so"
 #endif
 
 #endif			/* } */
@@ -400,7 +400,7 @@
 #define l_floor(x)		(l_mathop(floor)(x))
 
 #define lua_number2str(s,sz,n)  \
-	l_sprintf((s), sz, LUA_NUMBER_FMT, (LUAI_UACNUMBER)(n))
+    l_sprintf((s), sz, LUA_NUMBER_FMT, (LUAI_UACNUMBER)(n))
 
 /*
 @@ lua_numbertointeger converts a float number with an integral value
@@ -493,7 +493,7 @@
 #define LUAI_UACINT		LUA_INTEGER
 
 #define lua_integer2str(s,sz,n)  \
-	l_sprintf((s), sz, LUA_INTEGER_FMT, (LUAI_UACINT)(n))
+    l_sprintf((s), sz, LUA_INTEGER_FMT, (LUAI_UACINT)(n))
 
 /*
 ** use LUAI_UACINT here to avoid problems with promotions (which
@@ -608,7 +608,7 @@
 */
 #if !defined(LUA_USE_C89)
 #define lua_number2strx(L,b,sz,f,n)  \
-	((void)L, l_sprintf(b,sz,f,(LUAI_UACNUMBER)(n)))
+    ((void)L, l_sprintf(b,sz,f,(LUAI_UACNUMBER)(n)))
 #endif
 
 
@@ -861,6 +861,20 @@
 // If defined, Pluto will exclude code snippets from error messages to make them shorter.
 //#define PLUTO_SHORT_ERRORS
 
+// If defined, Pluto will use a jumptable in the VM even if not compiled via GCC.
+// This will generally improve runtime performance but can add minutes to compile time, depending on the setup.
+//#define PLUTO_FORCE_JUMPTABLE
+
+// If defined, Pluto will use C++ exceptions to implement Lua longjumps.
+// This is generally slower and complicates exception handling.
+//#define PLUTO_USE_THROW
+
+/*
+** {====================================================================
+** Pluto configuration: Compatible Mode
+** =====================================================================}
+*/
+
 // If defined, Pluto will assign 'pluto_' to new keywords which break previously valid Lua identifiers.
 // If you decide to leave this undefined:
 //     - Both 'pluto_switch' and 'switch' are valid syntaxes for Pluto.
@@ -870,9 +884,21 @@
 //     - Keywords like 'continue' will now be 'pluto_continue'.
 //#define PLUTO_COMPATIBLE_MODE
 
-// If defined, Pluto will use a jumptable in the VM even if not compiled via GCC.
-// This will generally improve runtime performance but can add minutes to compile time, depending on the setup.
-//#define PLUTO_FORCE_JUMPTABLE
+#ifdef PLUTO_COMPATIBLE_MODE
+
+// If defined, only 'pluto_switch' will be valid. 'switch' will not exist.
+#define PLUTO_COMPATIBLE_SWITCH
+
+// If defined, only 'pluto_... you get the idea.
+#define PLUTO_COMPATIBLE_CASE
+
+#define PLUTO_COMPATIBLE_DEFAULT
+
+#define PLUTO_COMPATIBLE_CONTINUE
+
+#define PLUTO_COMPATIBLE_WHEN
+
+#endif // PLUTO_COMPATIBLE_MODE
 
 /*
 ** {====================================================================
@@ -902,5 +928,24 @@
 //#define PLUTO_ILP_SILENT_BREAK
 
 #endif // PLUTO_ILP_ENABLE
+
+/*
+** {====================================================================
+** Pluto configuration: VM Dump
+** =====================================================================}
+*/
+
+// If defined, Pluto will print every VM instruction that is ran.
+// Note that you can modify lua_writestring to redirect output.
+//#define PLUTO_VMDUMP
+
+#ifdef PLUTO_VMDUMP
+
+// Defines under what circumstances the VM Dump is active.
+#ifndef PLUTO_VMDUMP_COND
+#define PLUTO_VMDUMP_COND(L) true
+#endif
+
+#endif // PLUTO_VMDUMP
 
 /* }================================================================== */

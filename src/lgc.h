@@ -37,7 +37,7 @@
 
 
 #define issweepphase(g)  \
-	(GCSswpallgc <= (g)->gcstate && (g)->gcstate <= GCSswpend)
+    (GCSswpallgc <= (g)->gcstate && (g)->gcstate <= GCSswpend)
 
 
 /*
@@ -84,7 +84,7 @@
 #define iswhite(x)      testbits((x)->marked, WHITEBITS)
 #define isblack(x)      testbit((x)->marked, BLACKBIT)
 #define isgray(x)  /* neither white nor black */  \
-	(!testbits((x)->marked, WHITEBITS | bitmask(BLACKBIT)))
+    (!testbits((x)->marked, WHITEBITS | bitmask(BLACKBIT)))
 
 #define tofinalize(x)	testbit((x)->marked, FINALIZEDBIT)
 
@@ -94,7 +94,7 @@
 
 #define changewhite(x)	((x)->marked ^= WHITEBITS)
 #define nw2black(x)  \
-	check_exp(!iswhite(x), l_setbit((x)->marked, BLACKBIT))
+    check_exp(!iswhite(x), l_setbit((x)->marked, BLACKBIT))
 
 #define luaC_white(g)	cast_byte((g)->currentwhite & WHITEBITS)
 
@@ -115,7 +115,7 @@
 #define isold(o)	(getage(o) > G_SURVIVAL)
 
 #define changeage(o,f,t)  \
-	check_exp(getage(o) == (f), (o)->marked ^= ((f)^(t)))
+    check_exp(getage(o) == (f), (o)->marked ^= ((f)^(t)))
 
 
 /* Default Values for GC parameters */
@@ -162,24 +162,24 @@
 ** GC cycle on every opportunity)
 */
 #define luaC_condGC(L,pre,pos) \
-	{ if (G(L)->GCdebt > 0) { pre; luaC_step(L); pos;}; \
-	  condchangemem(L,pre,pos); }
+    { if (G(L)->GCdebt > 0) { pre; luaC_step(L); pos;}; \
+      condchangemem(L,pre,pos); }
 
 /* more often than not, 'pre'/'pos' are empty */
 #define luaC_checkGC(L)		luaC_condGC(L,(void)0,(void)0)
 
 
 #define luaC_barrier(L,p,v) (  \
-	(iscollectable(v) && isblack(p) && iswhite(gcvalue(v))) ?  \
-	luaC_barrier_(L,obj2gco(p),gcvalue(v)) : cast_void(0))
+    (iscollectable(v) && isblack(p) && iswhite(gcvalue(v))) ?  \
+    luaC_barrier_(L,obj2gco(p),gcvalue(v)) : cast_void(0))
 
 #define luaC_barrierback(L,p,v) (  \
-	(iscollectable(v) && isblack(p) && iswhite(gcvalue(v))) ? \
-	luaC_barrierback_(L,p) : cast_void(0))
+    (iscollectable(v) && isblack(p) && iswhite(gcvalue(v))) ? \
+    luaC_barrierback_(L,p) : cast_void(0))
 
 #define luaC_objbarrier(L,p,o) (  \
-	(isblack(p) && iswhite(o)) ? \
-	luaC_barrier_(L,obj2gco(p),obj2gco(o)) : cast_void(0))
+    (isblack(p) && iswhite(o)) ? \
+    luaC_barrier_(L,obj2gco(p),obj2gco(o)) : cast_void(0))
 
 LUAI_FUNC void luaC_fix (lua_State *L, GCObject *o);
 LUAI_FUNC void luaC_freeallobjects (lua_State *L);

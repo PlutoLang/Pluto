@@ -659,7 +659,7 @@ l_sinline int auxgetstr (lua_State *L, const TValue *t, const char *k) {
 ** part of the registry.
 */
 #define getGtable(L)  \
-	(&hvalue(&G(L)->l_registry)->array[LUA_RIDX_GLOBALS - 1])
+    (&hvalue(&G(L)->l_registry)->array[LUA_RIDX_GLOBALS - 1])
 
 
 LUA_API int lua_getglobal (lua_State *L, const char *name) {
@@ -1036,7 +1036,7 @@ LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {
 
 #define checkresults(L,na,nr) \
      api_check(L, (nr) == LUA_MULTRET || (L->ci->top - L->top >= (nr) - (na)), \
-	"results from function overflow current stack size")
+    "results from function overflow current stack size")
 
 
 LUA_API void lua_callk (lua_State *L, int nargs, int nresults,

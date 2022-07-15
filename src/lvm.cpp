@@ -30,6 +30,13 @@
 #include "ltm.h"
 #include "lvm.h"
 
+#ifdef PLUTO_VMDUMP
+#include <string>
+
+#include "lauxlib.h" // lua_writestring
+#include "lopnames.h"
+#endif
+
 
 /* limit for table tag-method chains (to avoid infinite loops) */
 #define MAXTAGLOOP	2000
@@ -51,7 +58,7 @@
 ** sizeof(long) == 32.)
 */
 #if ((((LUA_MAXINTEGER >> (NBM / 4)) >> (NBM / 4)) >> (NBM / 4)) \
-	>> (NBM - (3 * (NBM / 4))))  >  0
+    >> (NBM - (3 * (NBM / 4))))  >  0
 
 /* limit for integers that fit in a float */
 #define MAXINTFITSF	((lua_Unsigned)1 << NBM)
@@ -619,7 +626,7 @@ int luaV_equalobj (lua_State *L, const TValue *t1, const TValue *t2) {
 
 /* macro used by 'luaV_concat' to ensure that element at 'o' is a string */
 #define tostring(L,o)  \
-	(ttisstring(o) || (cvt2str(o) && (luaO_tostring(L, o), 1)))
+    (ttisstring(o) || (cvt2str(o) && (luaO_tostring(L, o), 1)))
 
 #define isemptystr(o)	(ttisshrstring(o) && tsvalue(o)->shrlen == 0)
 
@@ -1076,7 +1083,7 @@ void luaV_finishOp (lua_State *L) {
 
 
 #define updatestack(ci)  \
-	{ if (l_unlikely(trap)) { updatebase(ci); ra = RA(i); } }
+    { if (l_unlikely(trap)) { updatebase(ci); ra = RA(i); } }
 
 
 /*
@@ -1127,7 +1134,7 @@ void luaV_finishOp (lua_State *L) {
 
 /* 'c' is the limit of live values in the stack */
 #define checkGC(L,c)  \
-	{ luaC_condGC(L, (savepc(L), L->top = (c)), \
+    { luaC_condGC(L, (savepc(L), L->top = (c)), \
                          updatetrap(ci)); \
            luai_threadyield(L); }
 
@@ -1167,6 +1174,62 @@ void luaV_finishOp (lua_State *L) {
 LUAI_FUNC int luaB_next (lua_State *L);
 LUAI_FUNC int luaB_ipairsaux (lua_State *L);
 
+#ifdef PLUTO_VMDUMP
+[[nodiscard]] static std::string stringify_ttype(lu_byte t)
+{
+  switch (t)
+  {
+  case LUA_TNIL: return "nil";
+  case LUA_TBOOLEAN: return "boolean";
+  case LUA_TLIGHTUSERDATA: return "lightuserdata";
+  case LUA_TNUMBER: return "number";
+  case LUA_TSTRING: return "string";
+  case LUA_TTABLE: return "table";
+  case LUA_TFUNCTION: return "function";
+  case LUA_TUSERDATA: return "userdata";
+  case LUA_TTHREAD: return "thread";
+  }
+  std::string str = "invalid type (";
+  str.append(std::to_string(t));
+  str.push_back(')');
+  return str;
+}
+
+[[nodiscard]] static std::string stringify_tvalue(TValue* o)
+{
+  std::string str(1, '{');
+  str.append(stringify_ttype(ttype(o)));
+  switch (ttype(o))
+  {
+  case LUA_TSTRING:
+    str.append(" \"");
+    str.append(svalue(o));
+    str.push_back('"');
+    break;
+  }
+  str.push_back('}');
+  return str;
+}
+
+static void vmdump_log_impl(lua_State* L, CallInfo* ci, LClosure* cl, const Instruction* pc, std::string&& str)
+{
+  lua_Debug ar;
+  ar.i_ci = ci;
+  lua_getinfo(L, "Sl", &ar);
+  if (ar.currentline > 0) {
+    str.insert(0, "] ");
+    str.insert(0, std::to_string(luaG_getfuncline(cl->p, pcRel(pc, cl->p))));
+    str.insert(0, 1, ':');
+    str.insert(0, ar.short_src);
+    str.insert(0, 1, '[');
+  }
+  lua_writestring(str.data(), str.size());
+  lua_writeline();
+}
+
+#define vmdump_log(str) vmdump_log_impl(L, ci, cl, pc, str);
+#endif
+
 #if !defined(__GNUC__) && defined(PLUTO_FORCE_JUMPTABLE)
 #include "ljumptab.h"
 #endif
@@ -1204,6 +1267,25 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
     Instruction i;  /* instruction being executed */
     StkId ra;  /* instruction's A register */
     vmfetch();
+#ifdef PLUTO_VMDUMP
+    if (PLUTO_VMDUMP_COND(L))
+    {
+      switch (GET_OPCODE(i))
+      {
+      case OP_LOADI:
+      case OP_LOADF:
+      case OP_LOADK:
+      case OP_GETTABUP:
+      case OP_GETFIELD:
+      case OP_EQK:
+      case OP_EQI:
+        break;
+
+      default:
+        vmdump_log(opnames[GET_OPCODE(i)]);
+      }
+    }
+#endif
     #if 0
       /* low-level line tracing for debugging Lua */
       printf("line: %d\n", luaG_getfuncline(cl->p, pcRel(pc, cl->p)));
@@ -1219,16 +1301,37 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_LOADI) {
         lua_Integer b = GETARG_sBx(i);
+#ifdef PLUTO_VMDUMP
+        if (PLUTO_VMDUMP_COND(L)) {
+          std::string msg = "LOADI ";
+          msg.append(std::to_string(b));
+          vmdump_log(std::move(msg));
+        }
+#endif
         setivalue(s2v(ra), b);
         vmbreak;
       }
       vmcase(OP_LOADF) {
         int b = GETARG_sBx(i);
+#ifdef PLUTO_VMDUMP
+        if (PLUTO_VMDUMP_COND(L)) {
+          std::string msg = "LOADF ";
+          msg.append(std::to_string(b));
+          vmdump_log(std::move(msg));
+        }
+#endif
         setfltvalue(s2v(ra), cast_num(b));
         vmbreak;
       }
       vmcase(OP_LOADK) {
         TValue *rb = k + GETARG_Bx(i);
+#ifdef PLUTO_VMDUMP
+        if (PLUTO_VMDUMP_COND(L)) {
+          std::string msg = "LOADK ";
+          msg.append(stringify_tvalue(rb));
+          vmdump_log(std::move(msg));
+        }
+#endif
         setobj2s(L, ra, rb);
         vmbreak;
       }
@@ -1274,6 +1377,13 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *upval = cl->upvals[GETARG_B(i)]->v;
         TValue *rc = KC(i);
         TString *key = tsvalue(rc);  /* key must be a string */
+#ifdef PLUTO_VMDUMP
+        if (PLUTO_VMDUMP_COND(L)) {
+          std::string msg = "GETTABUP ";
+          msg.append(key->contents);
+          vmdump_log(std::move(msg));
+        }
+#endif
         if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
           setobj2s(L, ra, slot);
         }
@@ -1314,6 +1424,13 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = vRB(i);
         TValue *rc = KC(i);
         TString *key = tsvalue(rc);  /* key must be a string */
+#ifdef PLUTO_VMDUMP
+        if (PLUTO_VMDUMP_COND(L)) {
+          std::string msg = "GETFIELD ";
+          msg.append(key->contents);
+          vmdump_log(std::move(msg));
+        }
+#endif
         if (luaV_fastget(L, rb, key, slot, luaH_getshortstr)) {
           setobj2s(L, ra, slot);
         }
@@ -1659,6 +1776,13 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_EQK) {
         TValue *rb = KB(i);
+#ifdef PLUTO_VMDUMP
+        if (PLUTO_VMDUMP_COND(L)) {
+          std::string msg = "EQK ";
+          msg.append(stringify_tvalue(rb));
+          vmdump_log(std::move(msg));
+        }
+#endif
         /* basic types do not use '__eq'; we can use raw equality */
         int cond = luaV_rawequalobj(s2v(ra), rb);
         docondjump();
@@ -1667,6 +1791,13 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       vmcase(OP_EQI) {
         int cond;
         int im = GETARG_sB(i);
+#ifdef PLUTO_VMDUMP
+        if (PLUTO_VMDUMP_COND(L)) {
+          std::string msg = "EQI ";
+          msg.append(std::to_string(im));
+          vmdump_log(std::move(msg));
+        }
+#endif
         if (ttisinteger(s2v(ra)))
           cond = (ivalue(s2v(ra)) == im);
         else if (ttisfloat(s2v(ra)))

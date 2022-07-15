@@ -13,6 +13,8 @@
 #include "luaconf.h"
 
 
+#define PLUTO_VERSION "Pluto 0.2.1"
+
 #define LUA_VERSION_MAJOR	"5"
 #define LUA_VERSION_MINOR	"4"
 #define LUA_VERSION_RELEASE	"4"
@@ -22,8 +24,8 @@
 
 #define LUA_VERSION	"Lua " LUA_VERSION_MAJOR "." LUA_VERSION_MINOR
 #define LUA_RELEASE	LUA_VERSION "." LUA_VERSION_RELEASE
-#define LUA_COPYRIGHT	LUA_RELEASE "  Copyright (C) 1994-2022 Lua.org, PUC-Rio"
-#define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
+#define LUA_COPYRIGHT	PLUTO_VERSION " Copyright (C) 2022 Ryan Starrett, based on " LUA_RELEASE " Copyright (C) 1994-2022 Lua.org, PUC-Rio"
+#define LUA_AUTHORS	"R. Starrett, R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
 
 
 /* mark for precompiled code ('<esc>Lua') */
@@ -383,7 +385,7 @@ LUA_API void (lua_closeslot) (lua_State *L, int idx);
 #define lua_pushliteral(L, s)	lua_pushstring(L, "" s)
 
 #define lua_pushglobaltable(L)  \
-	((void)lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS))
+    ((void)lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS))
 
 #define lua_tostring(L,i)	lua_tolstring(L, (i), NULL)
 
