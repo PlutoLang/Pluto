@@ -85,6 +85,26 @@ assert(str[-3] == "a")
 assert(str[-4] == nil)
 assert(str[-5] == nil)
 
+print "Testing continue statement."
+local t = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+local sum = 0
+for index, value in ipairs(t) do
+    if value == 5 then
+        continue
+    end
+    sum += value
+end
+assert(sum == 40)
+
+local sum = 0
+for i = 1, 10 do
+    if i == 5 then
+        continue
+    end
+    sum += i
+end
+assert(sum == 50)
+
 print "Testing table length cache."
 local t = {}
 for i = 1, 1000 do
