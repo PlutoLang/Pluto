@@ -149,6 +149,32 @@ for i = 1, 1000 do
 end
 assert(#t == 1000)
 
+print "Testing null coalescing operator."
+_G.zz = false
+z = _G.zz
+a = z
+b = "hello"
+c = a ?? b
+assert(c == false)
+_G.zz = nil
+z = _G.zz
+a = z
+b = "hello"
+c = a ?? b
+assert(c == "hello")
+local zz = false
+local z = zz
+local a = z
+local b = "hello"
+local c = a ?? b
+assert(c == false)
+zz = nil
+z = zz
+a = z
+b = "hello"
+c = a ?? b
+assert(c == "hello")
+
 print "Testing switch statement."
 local value = 5
 pluto_switch (value) do

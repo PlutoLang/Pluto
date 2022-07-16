@@ -785,6 +785,11 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         if (check_next1(ls, '=')) return TK_NE;  /* '!=' */
         else return '!';
       }
+      case '?': {
+        next(ls);
+        if (check_next1(ls, '?')) return TK_COAL; /* ?? */
+        else return '?';
+      }
       case '*': {  /* special case compound, need to support mul, exponent, and augmented mul */
         next(ls);
         if (check_next1(ls, '=')) {

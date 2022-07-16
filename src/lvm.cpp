@@ -1843,12 +1843,24 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
       vmcase(OP_TESTSET) {
-        TValue *rb = vRB(i);
-        if (l_isfalse(rb) == GETARG_k(i))
-          pc++;
+        if (GETARG_C(i) == NULL_COALESCE) { /* R(C) is used as an identifier, as it was previously unused. */
+          TValue *rb = vRB(i);
+          if (ttisnil(rb)) {
+            pc++;
+          }
+          else {
+            setobj2s(L, ra, rb);
+            donextjump(ci);
+          }
+        }
         else {
-          setobj2s(L, ra, rb);
-          donextjump(ci);
+          TValue *rb = vRB(i);
+          if (l_isfalse(rb) == GETARG_k(i))
+            pc++;
+          else {
+            setobj2s(L, ra, rb);
+            donextjump(ci);
+          }
         }
         vmbreak;
       }
