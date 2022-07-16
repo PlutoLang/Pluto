@@ -67,7 +67,7 @@ enum RESERVED {
   TK_CBXOR,             /* bitwise XOR                 */
   TK_CIDIV, TK_CDIV,    /* integer and float division  */
   TK_CPOW, TK_POW,      /* exponents / power           */
-  TK_CCAT,              /* concatenation               */
+  TK_CCAT, TK_COAL,     /* concatenation & null coal.  */
 };
 
 #define LAST_RESERVED TK_WHILE

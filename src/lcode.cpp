@@ -257,7 +257,7 @@ static int patchtestreg (FuncState *fs, int node, int reg) {
   Instruction *i = getjumpcontrol(fs, node);
   if (GET_OPCODE(*i) != OP_TESTSET)
     return 0;  /* cannot patch other instructions */
-  if (reg != NO_REG && reg != GETARG_B(*i))
+  if ((reg != NO_REG && reg != GETARG_B(*i)) || GETARG_C(*i) == NULL_COALESCE) /* Prevent NULL_COALESCE from being turned into OP_TEST. */
     SETARG_A(*i, reg);
   else {
      /* no register to put value or register already has the value;
@@ -1177,6 +1177,23 @@ void luaK_goiffalse (FuncState *fs, expdesc *e) {
 }
 
 
+
+/*
+** Emit code to go through if 'e' is nil, jump otherwise.
+*/
+void luaK_goifnil (FuncState *fs, expdesc *e) {
+  int pc;  /* pc of new jump */
+  luaK_dischargevars(fs, e);
+  discharge2anyreg(fs, e);
+  freeexp(fs, e);
+  luaK_codeABCk(fs, OP_TESTSET, NO_REG, e->u.info, NULL_COALESCE, 1);
+  pc = luaK_jump(fs);
+  luaK_concat(fs, &e->t, pc);  /* insert new jump in 't' list */
+  luaK_patchtohere(fs, e->f);  /* false list jumps to here (to go through) */
+  e->f = NO_JUMP;
+}
+
+
 /*
 ** Code 'not e', doing constant folding.
 */
@@ -1597,6 +1614,10 @@ void luaK_infix (FuncState *fs, BinOpr op, expdesc *v) {
       luaK_goiffalse(fs, v);  /* go ahead only if 'v' is false */
       break;
     }
+    case OPR_COAL: {
+      luaK_goifnil(fs, v);
+      break;
+    }
     case OPR_CONCAT: {
       luaK_exp2nextreg(fs, v);  /* operand must be on the stack */
       break;
@@ -1663,6 +1684,12 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
     case OPR_AND: {
       lua_assert(e1->t == NO_JUMP);  /* list closed by 'luaK_infix' */
       luaK_concat(fs, &e2->f, e1->f);
+      *e1 = *e2;
+      break;
+    }
+    case OPR_COAL: {
+      lua_assert(e1->f == NO_JUMP);  /* list closed by 'luaK_infix' */
+      luaK_concat(fs, &e2->t, e1->t);
       *e1 = *e2;
       break;
     }
