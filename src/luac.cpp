@@ -626,6 +626,11 @@ static void PrintCode(const Proto* f)
 	printf("%d %d",a,bx);
 	printf(COMMENT "to %d",pc+bx+2);
 	break;
+   case OP_IN: {
+	printf("%d %d %d", a, b, c);
+	printf(COMMENT "substr/table search (if %d contains %d)", b, a);
+	break;
+   }
    case OP_TFORCALL:
 	printf("%d %d",a,c);
 	break;

@@ -193,6 +193,10 @@ T.K = {}
 T.K.Z = {}
 assert(T?.K?.Z == T.K.Z)
 
+print "Testing new 'in' expressions."
+if ("hel" in "hello") != true then error() end
+if ("abc" in "hello") != false then error() end
+
 print "Testing switch statement."
 local value = 5
 pluto_switch (value) do

@@ -1631,6 +1631,17 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr) {
 }
 
 
+static void inexpr (LexState *ls, expdesc *v) {
+  simpleexp(ls, v, false);
+  expdesc v2;
+  checknext(ls, TK_IN);
+  expr(ls, &v2);
+  luaK_exp2nextreg(ls->fs, v);
+  luaK_exp2nextreg(ls->fs, &v2);
+  luaK_codeABC(ls->fs, OP_IN, v->u.info, v2.u.info, 0);
+}
+
+
 static UnOpr getunopr (int op) {
   switch (op) {
     case TK_NOT: return OPR_NOT;
@@ -1708,6 +1719,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     subexpr(ls, v, UNARY_PRIORITY);
     luaK_prefix(ls->fs, uop, v, line);
   }
+  else if (luaX_lookahead(ls) == TK_IN) inexpr(ls, v);
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
   else simpleexp(ls, v, false);
   /* expand while operators have priorities higher than 'limit' */
