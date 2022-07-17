@@ -32,7 +32,6 @@ static const char *const opnames[] = {
   "SETFIELD",
   "NEWTABLE",
   "SELF",
-  "IN",
   "ADDI",
   "ADDK",
   "SUBK",
@@ -95,5 +94,8 @@ static const char *const opnames[] = {
   "VARARG",
   "VARARGPREP",
   "EXTRAARG",
+  // end of lua opcodes
+  "IN",
+  // end of pluto opcodes
   NULL
 };

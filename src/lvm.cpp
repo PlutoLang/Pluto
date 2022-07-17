@@ -1552,20 +1552,6 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           Protect(luaV_finishget(L, rb, rc, ra, slot));
         vmbreak;
       }
-      vmcase(OP_IN) {
-        TValue *a = s2v(RA(i));
-        TValue *b = vRB(i);
-        if (ttisstring(a) && ttisstring(b)) {
-          if (strstr(svalue(b), svalue(a)) != nullptr)
-            setbtvalue(s2v(ra));
-          else
-            setbfvalue(s2v(ra));
-        }
-        else {
-          luaG_runerror(L, "invalid type of operands to 'in' expression. (got %s & %s)", lua_typename(L, ttypetag(a)), lua_typename(L, ttypetag(b)));
-        }
-        vmbreak;
-      }
       vmcase(OP_ADDI) {
         op_arithI(L, l_addi, luai_numadd);
         vmbreak;
@@ -2164,6 +2150,20 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_EXTRAARG) {
         lua_assert(0);
+        vmbreak;
+      }
+      vmcase(OP_IN) {
+        TValue *a = s2v(RA(i));
+        TValue *b = vRB(i);
+        if (ttisstring(a) && ttisstring(b)) {
+          if (strstr(svalue(b), svalue(a)) != nullptr)
+            setbtvalue(s2v(ra));
+          else
+            setbfvalue(s2v(ra));
+        }
+        else {
+          luaG_runerror(L, "invalid type of operands to 'in' expression. (got %s & %s)", lua_typename(L, ttypetag(a)), lua_typename(L, ttypetag(b)));
+        }
         vmbreak;
       }
     }
