@@ -2160,9 +2160,22 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
             setbtvalue(s2v(ra));
           else
             setbfvalue(s2v(ra));
-        }
-        else {
-          luaG_runerror(L, "invalid type of operands to 'in' expression. (got %s & %s)", lua_typename(L, ttypetag(a)), lua_typename(L, ttypetag(b)));
+        } else {
+          /* fetch table key */
+          const TValue* slot;
+          lua_Integer n;
+          if (ttisinteger(a)
+              ? (cast_void(n = ivalue(a)), luaV_fastgeti(L, b, n, slot))
+              : luaV_fastget(L, b, a, slot, luaH_get)) {
+            setobj2s(L, ra, slot);
+          }
+          else
+            Protect(luaV_finishget(L, b, a, ra, slot));
+          /* check if nil */
+          if (ttisnil(s2v(ra)))
+            setbfvalue(s2v(ra));
+          else
+            setbtvalue(s2v(ra));
         }
         vmbreak;
       }
