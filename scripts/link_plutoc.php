@@ -2,7 +2,11 @@
 require __DIR__."/common.php";
 check_compiler();
 
-$cmd = $compiler." -o src/plutoc.exe";
+$cmd = $compiler." -o src/plutoc";
+if(defined("PHP_WINDOWS_VERSION_MAJOR"))
+{
+	$cmd .= ".exe";
+}
 
 for_each_obj(function($file)
 {
