@@ -226,6 +226,7 @@ OP_SETFIELD,/*	A B C	R[A][K[B]:string] := RK(C)			*/
 OP_NEWTABLE,/*	A B C k	R[A] := {}					*/
 
 OP_SELF,/*	A B C	R[A+1] := R[B]; R[A] := R[B][RK(C):string]	*/
+OP_IN,
 
 OP_ADDI,/*	A B sC	R[A] := R[B] + sC				*/
 

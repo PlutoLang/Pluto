@@ -1173,6 +1173,7 @@ void luaV_finishOp (lua_State *L) {
 */
 LUAI_FUNC int luaB_next (lua_State *L);
 LUAI_FUNC int luaB_ipairsaux (lua_State *L);
+LUAI_FUNC int tcontains(lua_State* L);
 
 #ifdef PLUTO_VMDUMP
 [[nodiscard]] static std::string stringify_ttype(lu_byte t)
@@ -1549,6 +1550,20 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaV_finishget(L, rb, rc, ra, slot));
+        vmbreak;
+      }
+      vmcase(OP_IN) {
+        TValue *a = s2v(RA(i));
+        TValue *b = vRB(i);
+        if (ttisstring(a) && ttisstring(b)) {
+          if (strstr(svalue(b), svalue(a)) != nullptr)
+            setbtvalue(s2v(ra));
+          else
+            setbfvalue(s2v(ra));
+        }
+        else {
+          luaG_runerror(L, "invalid type of operands to 'in' expression. (got %s & %s)", lua_typename(L, ttypetag(a)), lua_typename(L, ttypetag(b)));
+        }
         vmbreak;
       }
       vmcase(OP_ADDI) {
