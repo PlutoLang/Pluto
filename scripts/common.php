@@ -16,12 +16,15 @@ function check_compiler()
 	}
 
 	$compiler = resolve_installed_program($argv[1]);
-	$compiler .= " -std=c++17";
+	$compiler .= " -std=c++17 -D PLUTO_FORCE_JUMPTABLE";
 	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 	{
 		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
 	}
-	$compiler .= " -D PLUTO_FORCE_JUMPTABLE";
+	else
+	{
+		$compiler .= " -fuse-ld=lld -lm -lstdc++ -lstdc++fs";
+	}
 }
 
 function resolve_installed_program($exe)
