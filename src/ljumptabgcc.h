@@ -46,7 +46,6 @@ static const void *const disptab[NUM_OPCODES] = {
 &&L_OP_SETFIELD,
 &&L_OP_NEWTABLE,
 &&L_OP_SELF,
-&&L_OP_IN,
 &&L_OP_ADDI,
 &&L_OP_ADDK,
 &&L_OP_SUBK,
@@ -108,6 +107,7 @@ static const void *const disptab[NUM_OPCODES] = {
 &&L_OP_CLOSURE,
 &&L_OP_VARARG,
 &&L_OP_VARARGPREP,
-&&L_OP_EXTRAARG
+&&L_OP_EXTRAARG,
+&&L_OP_IN,
 
 };
