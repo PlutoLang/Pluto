@@ -2201,8 +2201,8 @@ static void whilestat (LexState *ls, int line) {
 }
 
 
-static void repeatstat (LexState *ls, int line) {
-  /* repeatstat -> REPEAT block UNTIL cond */
+static void repeatstat (LexState *ls) {
+  /* repeatstat -> REPEAT block ( UNTIL | WHEN ) cond */
   int condexit;
   FuncState *fs = ls->fs;
   int repeat_init = luaK_getlabel(fs);
@@ -2619,7 +2619,7 @@ static void statement (LexState *ls) {
       break;
     }
     case TK_REPEAT: {  /* stat -> repeatstat */
-      repeatstat(ls, line);
+      repeatstat(ls);
       break;
     }
     case TK_FUNCTION: {  /* stat -> funcstat */
