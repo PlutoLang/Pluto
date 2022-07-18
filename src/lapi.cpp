@@ -879,8 +879,11 @@ LUA_API void lua_seti (lua_State *L, int idx, lua_Integer n) {
   lua_lock(L);
   api_checknelems(L, 1);
   t = index2value(L, idx);
-  if (ttistable(t)) hvalue(t)->length = 0;
-  if (hvalue(t)->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+  if (ttistable(t)) {
+    Table *tab = hvalue(t);
+    tab->length = 0;
+    if (tab->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+  } 
   if (luaV_fastgeti(L, t, n, slot)) {
     luaV_finishfastset(L, t, slot, s2v(L->top - 1));
   }
