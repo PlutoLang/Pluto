@@ -2348,6 +2348,15 @@ static int getlocalattribute (LexState *ls) {
       return RDKCONST;  /* read-only variable */
     else if (strcmp(attr, "close") == 0)
       return RDKTOCLOSE;  /* to-be-closed variable */
+    else if (strcmp(attr, "number") == 0   ||
+             strcmp(attr, "table") == 0    ||
+             strcmp(attr, "string") == 0   ||
+             strcmp(attr, "userdata") == 0 ||
+             strcmp(attr, "boolean") == 0  ||
+             strcmp(attr, "nil") == 0      ||
+             strcmp(attr, "function") == 0) {
+      return VDKREG;
+    }
     else
       luaK_semerror(ls,
         luaO_pushfstring(ls->L, "unknown attribute '%s'", attr));
