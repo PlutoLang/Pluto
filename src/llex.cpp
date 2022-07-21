@@ -686,7 +686,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       case '"': case '\'': {  /* short literal strings */
         read_string(ls, ls->current, seminfo);
         ls->linebuff += "\"";
-        ls->linebuff += ls->t.seminfo.ts->contents;
+        ls->linebuff += seminfo->ts->contents;
         ls->linebuff += "\"";
         return TK_STRING;
       }
