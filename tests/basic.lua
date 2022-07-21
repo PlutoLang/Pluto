@@ -182,6 +182,17 @@ a = nil
 a ??= b
 assert(a == "hello")
 
+print "Testing safe navigation."
+local a = A?.B?.C?.D
+assert(a == nil)
+a = A?["B"]?["C"]?["D"]
+assert(a == nil)
+a = A?["B"]?["C"]?["D"]?[-5]?[0]
+local T = {}
+T.K = {}
+T.K.Z = {}
+assert(T?.K?.Z == T.K.Z)
+
 print "Testing switch statement."
 local value = 5
 pluto_switch (value) do

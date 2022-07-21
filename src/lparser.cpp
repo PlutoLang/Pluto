@@ -1404,6 +1404,65 @@ static void funcargs (LexState *ls, expdesc *f, int line) {
 */
 
 
+/*
+** Safe navigation is entirely accredited to SvenOlsen.
+** http://lua-users.org/wiki/SvenOlsen
+*/
+static void safe_navigation(LexState *ls, expdesc *v) {
+  FuncState *fs = ls->fs;
+  luaX_next(ls);
+  luaK_exp2nextreg(fs, v);
+  luaK_codeABC(fs, OP_TEST, v->u.info, NO_REG, 0 );
+  {
+    int old_free = fs->freereg;             
+    int vreg = v->u.info;
+    int j = luaK_codeAsBx(fs, OP_JMP, 0, NO_JUMP);
+    expdesc key;
+    switch(ls->t.token) {
+      case '[': {
+        luaX_next(ls);  /* skip the '[' */
+        if (ls->t.token == '-') {
+          expr(ls, &key);
+          switch (key.k) {
+            case VKINT: {
+              key.u.ival *= -1;
+              break;
+            }
+            case VKFLT: {
+              key.u.nval *= -1;
+              break;
+            }
+            default: {
+              throwerr(ls, "unexpected symbol during navigation.", "unary '-' on non-numeral type.");
+            }
+          }
+        }
+        else expr(ls, &key);
+        checknext(ls, ']');
+        luaK_indexed(fs, v, &key);
+        break; 
+      }       
+      case '.': {
+        luaX_next(ls);
+        codename(ls, &key);
+        luaK_indexed(fs, v, &key);
+        break;
+      }
+      default: {
+        luaX_syntaxerror(ls, "unexpected symbol");
+      }
+    }
+    luaK_exp2nextreg(fs, v);
+    fs->freereg = old_free;
+    if (v->u.info != vreg) {
+      luaK_codeABC(fs, OP_MOVE, vreg, v->u.info, 0);
+      v->u.info = vreg;
+    }
+    SETARG_sBx(fs->f->code[j], fs->pc-j - 1);
+  }
+}
+
+
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
   switch (ls->t.token) {
@@ -1434,6 +1493,9 @@ static void primaryexp (LexState *ls, expdesc *v) {
       throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
       return;
     }
+    case '?': { /* safe navigation */
+      return;
+    }
     default: {
       const char *token = luaX_token2str(ls, ls->t.token);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
@@ -1450,6 +1512,10 @@ static void suffixedexp (LexState *ls, expdesc *v) {
   primaryexp(ls, v);
   for (;;) {
     switch (ls->t.token) {
+      case '?': {  /* safe navigation */
+        safe_navigation(ls, v);
+        break;
+      }
       case '.': {  /* fieldsel */
         fieldsel(ls, v);
         break;
