@@ -1720,7 +1720,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     subexpr(ls, v, UNARY_PRIORITY);
     luaK_prefix(ls->fs, uop, v, line);
   }
-  else if (luaX_lookahead(ls) == TK_IN) inexpr(ls, v);
+  else if (luaX_lookahead_noskip(ls) == TK_IN) inexpr(ls, v);
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
   else simpleexp(ls, v, false);
   /* expand while operators have priorities higher than 'limit' */

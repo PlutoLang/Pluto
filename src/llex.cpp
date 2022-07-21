@@ -886,3 +886,15 @@ int luaX_lookahead (LexState *ls) {
   return ls->lookahead.token;
 }
 
+int luaX_lookahead_noskip(LexState* ls)
+{
+    LexState cpy = *ls;
+
+    ZIO z = *ls->z;
+    cpy.z = &z;
+
+    Mbuffer buf = *ls->buff;
+    cpy.buff = &buf;
+
+    return luaX_lookahead(&cpy);
+}
