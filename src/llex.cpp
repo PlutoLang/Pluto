@@ -421,7 +421,7 @@ static int readdecesc (LexState *ls) {
 }
 
 
-static bool read_string (LexState *ls, int del, SemInfo *seminfo) {
+static void read_string (LexState *ls, int del, SemInfo *seminfo) {
   next(ls);  /* keep delimiter (for error messages) */
   while (ls->current != del) {
     switch (ls->current) {
@@ -483,7 +483,6 @@ static bool read_string (LexState *ls, int del, SemInfo *seminfo) {
   if (ls->current == del) {  // Chained, implicit string literal concatenation.
     read_string(ls, del, seminfo);
   }
-  return false;
 }
 
 /* assigns a reserved augmentation symbol to the lexer state token (ls->lasttoken) */
