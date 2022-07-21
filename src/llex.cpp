@@ -132,7 +132,7 @@ const char *luaX_token2str_noq (LexState *ls, int token) {
 }
 
 
-const char* luaX_reserved2str (LexState *ls, int token) {
+const char* luaX_reserved2str (int token) {
   return luaX_tokens[token - FIRST_RESERVED];
 }
 
@@ -786,7 +786,12 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       }
       case '?': {
         next(ls);
-        if (check_next1(ls, '?')) return TK_COAL; /* ?? */
+        if (check_next1(ls, '?')) {
+          if (check_next1(ls, '=')) {
+            ls->lasttoken = TK_COAL;
+            return '=';
+          } else return TK_COAL; /* ?? */
+        }
         else return '?';
       }
       case '*': {  /* special case compound, need to support mul, exponent, and augmented mul */

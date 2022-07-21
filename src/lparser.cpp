@@ -1214,7 +1214,7 @@ static void field (LexState *ls, ConsControl *cc) {
     }
     default: {
       if (ls->t.IsReservedNonValue()) {
-        prenamedfield(ls, cc, luaX_reserved2str(ls, ls->t.token));
+        prenamedfield(ls, cc, luaX_reserved2str(ls->t.token));
       } else {
         listfield(ls, cc);
       }
@@ -1801,6 +1801,10 @@ static int getcompoundop (LexState *ls, BinOpr *op) {
     }
     case TK_CSHR: {
       *op = OPR_SHR;  /* shift right */
+      return 1;
+    }
+    case TK_COAL: {
+      *op = OPR_COAL;
       return 1;
     }
     default: {

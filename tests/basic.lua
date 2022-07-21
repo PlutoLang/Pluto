@@ -174,6 +174,13 @@ a = z
 b = "hello"
 c = a ?? b
 assert(c == "hello")
+local a = false
+local b = "hello"
+a ??= b
+assert(a == false)
+a = nil
+a ??= b
+assert(a == "hello")
 
 print "Testing switch statement."
 local value = 5
