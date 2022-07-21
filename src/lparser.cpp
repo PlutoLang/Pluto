@@ -1936,7 +1936,7 @@ static void continuestat (LexState *ls) {
   BlockCnt *bl = fs->bl;
   int upval = 0;
   luaX_next(ls); /* skip TK_CONTINUE */
-  int backwards = 1;
+  lua_Integer backwards = 1;
   if (ls->t.token == TK_INT) {
     backwards = ls->t.seminfo.i;
     luaX_next(ls);
