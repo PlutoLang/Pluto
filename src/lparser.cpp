@@ -1960,7 +1960,11 @@ static void continuestat (LexState *ls) {
     if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
     luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
   }
+#ifndef PLUTO_COMPATIBLE_CONTINUE
   else error_expected(ls, TK_CONTINUE);
+#else
+  else error_expected(ls, TK_PCONTINUE);
+#endif
 }
 
 // Test the next token to see if it's either 'token1' or 'token2'.
