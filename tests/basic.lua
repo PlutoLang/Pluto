@@ -423,5 +423,11 @@ assert(string.find_first_not_of("hello world", "hello") == 6)
 assert(string.find_first_not_of("hello world", "hello world") == nil)
 assert(string.find_last_of("orld hello world cccc", "orld") == 16)
 
+print "Testing compatibility."
+local a = "Hi"
+local t = {a}
+assert(t[1] == "Hi")
+local t = {["func"]=function(p1,p2)end}
+assert(t["func"] ~= nil)
 
 print "Finished."
