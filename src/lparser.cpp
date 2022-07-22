@@ -2445,29 +2445,55 @@ static void localfunc (LexState *ls) {
 }
 
 
-static int getlocalattribute (LexState *ls) {
+struct LocalAttribute
+{
+    lu_byte kind;
+    lu_byte typehint = 0xFF;
+};
+
+
+[[nodiscard]] static bool vk_typehint_normalise(lu_byte kind) noexcept
+{
+  if (kind == VKFLT) return VKINT; /* normalise 'number' */
+  if (kind == VFALSE) return VTRUE; /* normalise 'boolean' */
+  return kind;
+}
+
+
+[[nodiscard]] static bool vk_typehint_equals(lu_byte a, lu_byte b) noexcept
+{
+  return vk_typehint_normalise(a) == vk_typehint_normalise(b);
+}
+
+
+[[nodiscard]] static LocalAttribute getlocalattribute (LexState *ls) {
   /* ATTRIB -> ['<' Name '>'] */
   if (testnext(ls, '<')) {
     const char *attr = getstr(str_checkname(ls));
     checknext(ls, '>');
     if (strcmp(attr, "const") == 0)
-      return RDKCONST;  /* read-only variable */
+      return { RDKCONST };  /* read-only variable */
     else if (strcmp(attr, "close") == 0)
-      return RDKTOCLOSE;  /* to-be-closed variable */
-    else if (strcmp(attr, "number") == 0   ||
-             strcmp(attr, "table") == 0    ||
-             strcmp(attr, "string") == 0   ||
-             strcmp(attr, "userdata") == 0 ||
-             strcmp(attr, "boolean") == 0  ||
-             strcmp(attr, "nil") == 0      ||
-             strcmp(attr, "function") == 0) {
-      return VDKREG;
-    }
+      return { RDKTOCLOSE };  /* to-be-closed variable */
+    else if (strcmp(attr, "number") == 0)
+      return { VDKREG, VKINT };
+    else if (strcmp(attr, "table") == 0)
+      return { VDKREG, VNONRELOC };
+    else if (strcmp(attr, "string") == 0)
+      return { VDKREG, VKSTR };
+    else if (strcmp(attr, "userdata") == 0)
+      return { VDKREG };
+    else if (strcmp(attr, "boolean") == 0)
+      return { VDKREG, VTRUE };
+    else if (strcmp(attr, "nil") == 0)
+      return { VDKREG, VNIL };
+    else if (strcmp(attr, "function") == 0)
+      return { VDKREG };
     else
       luaK_semerror(ls,
         luaO_pushfstring(ls->L, "unknown attribute '%s'", attr));
   }
-  return VDKREG;  /* regular variable */
+  return { VDKREG };  /* regular variable */
 }
 
 
@@ -2484,15 +2510,18 @@ static void localstat (LexState *ls) {
   FuncState *fs = ls->fs;
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
-  int vidx, kind;  /* index and kind of last variable */
+  int vidx;  /* index of last variable */
+  LocalAttribute attr{};
   int nvars = 0;
   int nexps;
   expdesc e;
   do {
     vidx = new_localvar(ls, str_checkname(ls));
-    kind = getlocalattribute(ls);
-    getlocalvardesc(fs, vidx)->vd.kind = kind;
-    if (kind == RDKTOCLOSE) {  /* to-be-closed? */
+    attr = getlocalattribute(ls);
+    var = getlocalvardesc(fs, vidx);
+    var->vd.kind = attr.kind;
+    var->vd.typehint = attr.typehint;
+    if (attr.kind == RDKTOCLOSE) {  /* to-be-closed? */
       if (toclose != -1)  /* one already present? */
         luaK_semerror(ls, "multiple to-be-closed variables in local list");
       toclose = fs->nactvar + nvars;
@@ -2514,6 +2543,12 @@ static void localstat (LexState *ls) {
     fs->nactvar++;  /* but count it */
   }
   else {
+    if (nexps == 1 &&
+        attr.typehint != -1 && /* has type hint? */
+        vk_is_const(e.k) && /* assigning constant value? */
+        !vk_typehint_equals(e.k, attr.typehint)) { /* type mismatch? */
+      throw_warn(ls, "assigned value does not match hinted type", "type mismatch");
+    }
     adjust_assign(ls, nvars, nexps, &e);
     adjustlocalvars(ls, nvars);
   }
