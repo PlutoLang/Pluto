@@ -170,6 +170,7 @@ static void throw_warn (LexState *ls, const char *err, const char *here) {
   std::string error = make_warn(err);
   std::string rhere = make_here(ls, here);
   lua_warning(ls->L, format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()), 0);
+  ls->L->top -= 2; /* remove warning from stack */
 }
 
 
