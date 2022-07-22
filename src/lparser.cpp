@@ -2067,6 +2067,13 @@ static const char* expandexpr (LexState *ls) {
   }
 }
 
+
+[[nodiscard]] static bool vk_is_const(lu_byte kind) noexcept
+{
+  return kind >= VNIL && kind <= VKSTR;
+}
+
+
 static void switchstat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   BlockCnt sbl, cbl; // Switch & case blocks.
@@ -2114,7 +2121,7 @@ static void switchstat (LexState *ls, int line) {
     else {
       const auto expr = expandexpr(ls); // Raw text of the expression before the lexer skips tokens.
       simpleexp(ls, &lcase, true);
-      if (lcase.k < VNIL || lcase.k > VKSTR) { // Expression exceeds constant range.
+      if (!vk_is_const(lcase.k)) {
         ls->linebuff.clear();
         ls->linebuff += "case ";
         ls->linebuff += expr;
