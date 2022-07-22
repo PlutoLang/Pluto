@@ -1780,7 +1780,7 @@ struct LHS_assign {
 }
 
 
-[[nodiscard]] static bool vk_typehint_normalise(lu_byte kind) noexcept
+[[nodiscard]] static lu_byte vk_typehint_normalise(lu_byte kind) noexcept
 {
   if (kind == VKFLT) return VKINT; /* normalise 'number' */
   if (kind == VFALSE) return VTRUE; /* normalise 'boolean' */
