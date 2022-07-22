@@ -475,6 +475,8 @@ print "Testing compatibility."
 local a = "Hi"
 local t = {a}
 assert(t[1] == "Hi")
+local t = {a, nil}
+assert(t[1] == "Hi")
 local t = {["func"]=function(p1,p2)end}
 assert(t["func"] ~= nil)
 
