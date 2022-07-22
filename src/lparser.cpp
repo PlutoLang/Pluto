@@ -2520,7 +2520,7 @@ static void localstat (LexState *ls) {
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
   int vidx;  /* index of last variable */
-  LocalAttribute attr{};
+  LocalAttribute attr;
   int nvars = 0;
   int nexps;
   expdesc e;
