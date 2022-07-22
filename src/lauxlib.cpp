@@ -1076,7 +1076,6 @@ static void warnfcont (void *ud, const char *message, int tocont) {
 static void warnfon (void *ud, const char *message, int tocont) {
   if (checkcontrol((lua_State *)ud, message, tocont))  /* control message? */
     return;  /* nothing else to be done */
-  lua_writestringerror("%s", "Lua warning: ");  /* start a new warning */
   warnfcont(ud, message, tocont);  /* finish processing */
 }
 
@@ -1085,7 +1084,7 @@ LUALIB_API lua_State *luaL_newstate (void) {
   lua_State *L = lua_newstate(l_alloc, NULL);
   if (l_likely(L)) {
     lua_atpanic(L, &panic);
-    lua_setwarnf(L, warnfoff, L);  /* default is warnings off */
+    lua_setwarnf(L, warnfon, L);  /* unlike lua, warnings are enabled by default in pluto */
   }
   return L;
 }

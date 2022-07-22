@@ -42,6 +42,12 @@
 #define hasmultret(k)		((k) == VCALL || (k) == VVARARG)
 
 
+/*
+** Invokes the lua_writestring macro with a std::string.
+*/
+#define write_std_string(std_string) lua_writestring(std_string.data(), std_string.size())
+
+
 /* because all strings are unified by the scanner, the parser
    can use pointer equality for string equality */
 #define eqstr(a,b)	((a) == (b))
@@ -139,7 +145,6 @@ static std::string make_warn(const char *s) {
   error.insert(0, std::string(RED));
   error.insert(error.find("warning:") + 8, std::string(BWHT));
   error.append(RESET);
-  error.append(" [-D]");
 #endif
   return error;
 }
@@ -159,22 +164,12 @@ static std::string make_warn(const char *s) {
 
 
 /*
-** Invokes the lua_writestring macro with a std::string.
-*/
-static void write_std_string(const std::string& msg)
-{
-  lua_writestring(msg.data(), msg.size());
-}
-
-
-/*
 ** Throws an warning into standard output, which will not close the program.
 */
 static void throw_warn (LexState *ls, const char *err, const char *here) {
   std::string error = make_warn(err);
   std::string rhere = make_here(ls, here);
-  write_std_string(format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()));
-  lua_writeline();
+  lua_warning(ls->L, format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()), 0);
 }
 
 

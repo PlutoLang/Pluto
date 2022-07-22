@@ -95,7 +95,7 @@ static void print_usage (const char *badoption) {
   "  -l g=mod  require library 'mod' into global 'g'\n"
   "  -v        show version information\n"
   "  -E        ignore environment variables\n"
-  "  -W        turn run-time warnings on\n"
+  "  -W        turn warnings off\n"
   "  --        stop handling options\n"
   "  -         stop handling options and execute stdin\n"
   ,
@@ -344,7 +344,7 @@ static int runargs (lua_State *L, char **argv, int n) {
         break;
       }
       case 'W':
-        lua_warning(L, "@on", 0);  /* warnings on */
+        lua_warning(L, "@off", 0);  /* warnings off */
         break;
     }
   }
