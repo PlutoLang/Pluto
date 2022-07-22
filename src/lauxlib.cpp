@@ -1085,7 +1085,7 @@ LUALIB_API lua_State *luaL_newstate (void) {
   lua_State *L = lua_newstate(l_alloc, NULL);
   if (l_likely(L)) {
     lua_atpanic(L, &panic);
-    lua_setwarnf(L, warnfoff, L);  /* default is warnings off */
+    lua_setwarnf(L, warnfon, L);  /* unlike lua, warnings are enabled by default in pluto */
   }
   return L;
 }
