@@ -1978,6 +1978,14 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
         adjust_assign(ls, nvars, nexps, &e);
       else {
         luaK_setoneret(ls->fs, &e);  /* close last expression */
+        if (lh->v.k == VLOCAL && /* assigning to a local variable? */
+            vk_is_const(e.k)) { /* assigning a constant value? */
+          auto vardesc = getlocalvardesc(ls->fs, lh->v.u.var.vidx);
+          if (vardesc->vd.typehint != 0xFF && /* local variable has type hint? */
+              !vk_typehint_equals(vardesc->vd.typehint, e.k)) { /* type mismatch? */
+            throw_warn(ls, "assigned value does not match hinted type", "type mismatch");
+          }
+        }
         luaK_storevar(ls->fs, &lh->v, &e);
         return;  /* avoid default */
       }
