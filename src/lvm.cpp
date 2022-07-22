@@ -2179,11 +2179,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         vmbreak;
       }
-#ifdef __clang__
       vmcase(NUM_OPCODES) {
         vmbreak;
       }
-#endif
     }
   }
 }

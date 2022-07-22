@@ -657,12 +657,12 @@ static void PrintCode(const Proto* f)
    case OP_EXTRAARG:
     printf("%d",ax);
     break;
-#if 0
    default:
+#if 0
     printf("%d %d %d",a,b,c);
     printf(COMMENT "not handled");
-    break;
 #endif
+    break;
   }
   printf("\n");
  }
