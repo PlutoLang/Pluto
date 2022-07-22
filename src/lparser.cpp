@@ -2483,7 +2483,7 @@ struct LocalAttribute
       return { VDKREG, VKSTR };
     else if (strcmp(attr, "userdata") == 0)
       return { VDKREG };
-    else if (strcmp(attr, "boolean") == 0)
+    else if (strcmp(attr, "boolean") == 0 || strcmp(attr, "bool") == 0)
       return { VDKREG, VTRUE };
     else if (strcmp(attr, "nil") == 0)
       return { VDKREG, VNIL };
