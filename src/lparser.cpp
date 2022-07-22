@@ -1798,6 +1798,30 @@ struct LHS_assign {
 }
 
 
+[[nodiscard]] static const char* vk_typehint_toString(lu_byte kind) noexcept {
+  switch (kind)
+  {
+  case VKINT: case VKFLT: return "number";
+  case VNONRELOC: return "table";
+  case VKSTR: return "string";
+  case VTRUE: case VFALSE: return "boolean";
+  case VNIL: return "nil";
+  }
+  return "ERROR";
+}
+
+
+static void throw_typehint(LexState* ls, const Vardesc* vd, lu_byte assignment) {
+  std::string err = vd->vd.name->toCpp();
+  err.append(" was type-hinted as ");
+  err.append(vk_typehint_toString(vd->vd.typehint));
+  err.append(" but is assigned a ");
+  err.append(vk_typehint_toString(assignment));
+  err.append(" value");
+  throw_warn(ls, err.c_str(), "type mismatch");
+}
+
+
 /*
 ** check whether, in an assignment to an upvalue/local variable, the
 ** upvalue/local variable is begin used in a previous assignment to a
@@ -1987,7 +2011,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
           auto vardesc = getlocalvardesc(ls->fs, lh->v.u.var.vidx);
           if (vardesc->vd.typehint != 0xFF && /* local variable has type hint? */
               !vk_typehint_equals(vardesc->vd.typehint, e.k)) { /* type mismatch? */
-            throw_warn(ls, "assigned value does not match hinted type", "type mismatch");
+            throw_typehint(ls, vardesc, e.k);
           }
         }
         luaK_storevar(ls->fs, &lh->v, &e);
@@ -2558,7 +2582,7 @@ static void localstat (LexState *ls) {
         attr.typehint != 0xFF && /* has type hint? */
         vk_is_const(e.k) && /* assigning constant value? */
         !vk_typehint_equals(e.k, attr.typehint)) { /* type mismatch? */
-      throw_warn(ls, "assigned value does not match hinted type", "type mismatch");
+      throw_typehint(ls, var, e.k);
     }
     adjust_assign(ls, nvars, nexps, &e);
     adjustlocalvars(ls, nvars);
