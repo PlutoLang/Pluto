@@ -1775,22 +1775,19 @@ struct LHS_assign {
 };
 
 
-[[nodiscard]] static bool vk_is_const(lu_byte kind) noexcept
-{
+[[nodiscard]] static bool vk_is_const(lu_byte kind) noexcept {
   return kind >= VNIL && kind <= VKSTR;
 }
 
 
-[[nodiscard]] static lu_byte vk_typehint_normalise(lu_byte kind) noexcept
-{
+[[nodiscard]] static lu_byte vk_typehint_normalise(lu_byte kind) noexcept {
   if (kind == VKFLT) return VKINT; /* normalise 'number' */
   if (kind == VFALSE) return VTRUE; /* normalise 'boolean' */
   return kind;
 }
 
 
-[[nodiscard]] static bool vk_typehint_equals(lu_byte a, lu_byte b) noexcept
-{
+[[nodiscard]] static bool vk_typehint_equals(lu_byte a, lu_byte b) noexcept {
   return vk_typehint_normalise(a) == vk_typehint_normalise(b);
 }
 
