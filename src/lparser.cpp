@@ -1774,6 +1774,26 @@ struct LHS_assign {
 };
 
 
+[[nodiscard]] static bool vk_is_const(lu_byte kind) noexcept
+{
+  return kind >= VNIL && kind <= VKSTR;
+}
+
+
+[[nodiscard]] static bool vk_typehint_normalise(lu_byte kind) noexcept
+{
+  if (kind == VKFLT) return VKINT; /* normalise 'number' */
+  if (kind == VFALSE) return VTRUE; /* normalise 'boolean' */
+  return kind;
+}
+
+
+[[nodiscard]] static bool vk_typehint_equals(lu_byte a, lu_byte b) noexcept
+{
+  return vk_typehint_normalise(a) == vk_typehint_normalise(b);
+}
+
+
 /*
 ** check whether, in an assignment to an upvalue/local variable, the
 ** upvalue/local variable is begin used in a previous assignment to a
@@ -2065,12 +2085,6 @@ static const char* expandexpr (LexState *ls) {
       return getstr(ls->t.seminfo.ts);
     }
   }
-}
-
-
-[[nodiscard]] static bool vk_is_const(lu_byte kind) noexcept
-{
-  return kind >= VNIL && kind <= VKSTR;
 }
 
 
@@ -2450,20 +2464,6 @@ struct LocalAttribute
     lu_byte kind;
     lu_byte typehint = 0xFF;
 };
-
-
-[[nodiscard]] static bool vk_typehint_normalise(lu_byte kind) noexcept
-{
-  if (kind == VKFLT) return VKINT; /* normalise 'number' */
-  if (kind == VFALSE) return VTRUE; /* normalise 'boolean' */
-  return kind;
-}
-
-
-[[nodiscard]] static bool vk_typehint_equals(lu_byte a, lu_byte b) noexcept
-{
-  return vk_typehint_normalise(a) == vk_typehint_normalise(b);
-}
 
 
 [[nodiscard]] static LocalAttribute getlocalattribute (LexState *ls) {
