@@ -67,7 +67,7 @@ enum RESERVED {
   TK_CBXOR,             /* bitwise XOR                 */
   TK_CIDIV, TK_CDIV,    /* integer and float division  */
   TK_CPOW, TK_POW,      /* exponents / power           */
-  TK_CCAT,              /* concatenation               */
+  TK_CCAT, TK_COAL,     /* concatenation & null coal.  */
 };
 
 #define LAST_RESERVED TK_WHILE
@@ -160,4 +160,4 @@ LUAI_FUNC int luaX_lookahead (LexState *ls);
 [[noreturn]] LUAI_FUNC void luaX_syntaxerror (LexState *ls, const char *s);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);
-LUAI_FUNC const char *luaX_reserved2str (LexState *ls, int token);
+LUAI_FUNC const char *luaX_reserved2str (int token);
