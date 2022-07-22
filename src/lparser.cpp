@@ -42,6 +42,12 @@
 #define hasmultret(k)		((k) == VCALL || (k) == VVARARG)
 
 
+/*
+** Invokes the lua_writestring macro with a std::string.
+*/
+#define write_std_string(std_string) lua_writestring(std_string.data(), std_string.size())
+
+
 /* because all strings are unified by the scanner, the parser
    can use pointer equality for string equality */
 #define eqstr(a,b)	((a) == (b))
@@ -154,15 +160,6 @@ static std::string make_warn(const char *s) {
   std::string rhere = make_here(ls, here);
   format_line_error(ls, error.c_str(), ls->GetLatestLine(), rhere.c_str());
   luaD_throw(ls->L, LUA_ERRSYNTAX);
-}
-
-
-/*
-** Invokes the lua_writestring macro with a std::string.
-*/
-static void write_std_string(const std::string& msg)
-{
-  lua_writestring(msg.data(), msg.size());
 }
 
 
