@@ -2552,7 +2552,7 @@ static void localstat (LexState *ls) {
   }
   else {
     if (nexps == 1 &&
-        attr.typehint != -1 && /* has type hint? */
+        attr.typehint != 0xFF && /* has type hint? */
         vk_is_const(e.k) && /* assigning constant value? */
         !vk_typehint_equals(e.k, attr.typehint)) { /* type mismatch? */
       throw_warn(ls, "assigned value does not match hinted type", "type mismatch");
