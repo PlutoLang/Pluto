@@ -452,7 +452,7 @@ static int new_localvar (LexState *ls, TString *name) {
   for (int i = fs->firstlocal; i < locals; i++) {
     Vardesc *desc = getlocalvardesc(fs,  i);
     LocVar *local = localdebuginfo(fs, i);
-    std::string n = std::string(getstr(name));
+    std::string n = name->toCpp();
     if ((n != "(for state)" && n != "(switch)") && (local && local->varname == name)) { // Got a match.
       L->SaveStackSize();
       throw_warn(ls,
