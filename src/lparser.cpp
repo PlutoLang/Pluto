@@ -1493,9 +1493,6 @@ static void primaryexp (LexState *ls, expdesc *v) {
       throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
       return;
     }
-    case '?': { /* safe navigation */
-      return;
-    }
     default: {
       const char *token = luaX_token2str(ls, ls->t.token);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
