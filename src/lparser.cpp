@@ -139,7 +139,6 @@ static std::string make_warn(const char *s) {
   error.insert(0, std::string(RED));
   error.insert(error.find("warning:") + 8, std::string(BWHT));
   error.append(RESET);
-  error.append(" [-D]");
 #endif
   return error;
 }
