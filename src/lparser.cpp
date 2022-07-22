@@ -1967,6 +1967,7 @@ static void continuestat (LexState *ls) {
 #endif
 }
 
+
 // Test the next token to see if it's either 'token1' or 'token2'.
 inline bool testnext2 (LexState *ls, int token1, int token2) {
   return testnext(ls, token1) || testnext(ls, token2);
