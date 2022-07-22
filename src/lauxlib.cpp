@@ -1076,7 +1076,6 @@ static void warnfcont (void *ud, const char *message, int tocont) {
 static void warnfon (void *ud, const char *message, int tocont) {
   if (checkcontrol((lua_State *)ud, message, tocont))  /* control message? */
     return;  /* nothing else to be done */
-  lua_writestringerror("%s", "Lua warning: ");  /* start a new warning */
   warnfcont(ud, message, tocont);  /* finish processing */
 }
 
