@@ -436,23 +436,24 @@ static int tisfrozen (lua_State *L) {
 
 
 static int tcontains(lua_State* L) {
-  if (lua_gettop(L) != 2) {
-    luaL_error(L, "table.contains expected 2 arguments");
-  }
   luaL_checktype(L, 1, LUA_TTABLE);
-  int contains = 0;
+  luaL_checkany(L, 2);
+
   lua_pushvalue(L, 1);
   lua_pushnil(L);
   while (lua_next(L, -2)) {
     lua_pushvalue(L, -2);
-    contains = lua_compare(L, 2, -2, LUA_OPEQ);
-    lua_pop(L, 2);
-    if (contains) {
-      break;
+    if (lua_compare(L, 2, -2, LUA_OPEQ)) {
+      lua_pushinteger(L, lua_tointeger(L, -1));
+      return 1;
+    }
+    else {
+      lua_pop(L, 2);
     }
   }
+  
   lua_pop(L, 1);
-  lua_pushboolean(L, contains);
+  lua_pushnil(L);
   return 1;
 }
 
