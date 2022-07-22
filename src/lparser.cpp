@@ -427,7 +427,7 @@ int luaY_nvarstack (FuncState *fs) {
 ** Get the debug-information entry for current variable 'vidx'.
 */
 static LocVar *localdebuginfo (FuncState *fs, int vidx) {
-  Vardesc *vd = getlocalvardesc(fs,  vidx);
+  Vardesc *vd = getlocalvardesc(fs, vidx);
   if (vd->vd.kind == RDKCTC)
     return NULL;  /* no debug info. for constants */
   else {
