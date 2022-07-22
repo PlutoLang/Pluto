@@ -1936,15 +1936,35 @@ static void continuestat (LexState *ls) {
   BlockCnt *bl = fs->bl;
   int upval = 0;
   luaX_next(ls); /* skip TK_CONTINUE */
-  while (bl && !bl->isloop) {
-    upval |= bl->upval; /* amend upvalues for closing. */
-    bl = bl->previous; /* jump back current blocks to find the loop */
+  lua_Integer backwards = 1;
+  if (ls->t.token == TK_INT) {
+    backwards = ls->t.seminfo.i;
+    luaX_next(ls);
+  }
+  while (bl) {
+    if (!bl->isloop) { /* not a loop, continue search */
+      upval |= bl->upval; /* amend upvalues for closing. */
+      bl = bl->previous; /* jump back current blocks to find the loop */
+    }
+    else { /* found a loop */
+      if (--backwards == 0) { /* this is our loop */
+        break;
+      }
+      else { /* continue search */
+        upval |= bl->upval;
+        bl = bl->previous;
+      }
+    };
   }
   if (bl) {
     if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
     luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
   }
+#ifndef PLUTO_COMPATIBLE_CONTINUE
+  else error_expected(ls, TK_CONTINUE);
+#else
   else error_expected(ls, TK_PCONTINUE);
+#endif
 }
 
 
