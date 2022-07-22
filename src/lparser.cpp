@@ -173,8 +173,7 @@ static void write_std_string(const std::string& msg)
 static void throw_warn (LexState *ls, const char *err, const char *here) {
   std::string error = make_warn(err);
   std::string rhere = make_here(ls, here);
-  write_std_string(format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()));
-  lua_writeline();
+  lua_warning(ls->L, format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()), 0);
 }
 
 
