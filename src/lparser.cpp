@@ -173,6 +173,12 @@ static void throw_warn (LexState *ls, const char *err, const char *here) {
   ls->L->top -= 2; /* remove warning from stack */
 }
 
+static void throw_warn(LexState* ls, const char* err) {
+  auto msg = luaG_addinfo(ls->L, err, ls->source, ls->linenumber);
+  lua_warning(ls->L, msg, 0);
+  ls->L->top -= 1; /* remove warning from stack */
+}
+
 
 /*
 ** This function will throw an exception and terminate the program.
