@@ -170,6 +170,7 @@ static void throw_warn (LexState *ls, const char *err, const char *here) {
   std::string error = make_warn(err);
   std::string rhere = make_here(ls, here);
   lua_warning(ls->L, format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()), 0);
+  ls->L->top -= 2; /* remove warning from stack */
 }
 
 
@@ -426,7 +427,7 @@ int luaY_nvarstack (FuncState *fs) {
 ** Get the debug-information entry for current variable 'vidx'.
 */
 static LocVar *localdebuginfo (FuncState *fs, int vidx) {
-  Vardesc *vd = getlocalvardesc(fs,  vidx);
+  Vardesc *vd = getlocalvardesc(fs, vidx);
   if (vd->vd.kind == RDKCTC)
     return NULL;  /* no debug info. for constants */
   else {
@@ -1774,6 +1775,26 @@ struct LHS_assign {
 };
 
 
+[[nodiscard]] static bool vk_is_const(lu_byte kind) noexcept
+{
+  return kind >= VNIL && kind <= VKSTR;
+}
+
+
+[[nodiscard]] static lu_byte vk_typehint_normalise(lu_byte kind) noexcept
+{
+  if (kind == VKFLT) return VKINT; /* normalise 'number' */
+  if (kind == VFALSE) return VTRUE; /* normalise 'boolean' */
+  return kind;
+}
+
+
+[[nodiscard]] static bool vk_typehint_equals(lu_byte a, lu_byte b) noexcept
+{
+  return vk_typehint_normalise(a) == vk_typehint_normalise(b);
+}
+
+
 /*
 ** check whether, in an assignment to an upvalue/local variable, the
 ** upvalue/local variable is begin used in a previous assignment to a
@@ -1958,6 +1979,14 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
         adjust_assign(ls, nvars, nexps, &e);
       else {
         luaK_setoneret(ls->fs, &e);  /* close last expression */
+        if (lh->v.k == VLOCAL && /* assigning to a local variable? */
+            vk_is_const(e.k)) { /* assigning a constant value? */
+          auto vardesc = getlocalvardesc(ls->fs, lh->v.u.var.vidx);
+          if (vardesc->vd.typehint != 0xFF && /* local variable has type hint? */
+              !vk_typehint_equals(vardesc->vd.typehint, e.k)) { /* type mismatch? */
+            throw_warn(ls, "assigned value does not match hinted type", "type mismatch");
+          }
+        }
         luaK_storevar(ls->fs, &lh->v, &e);
         return;  /* avoid default */
       }
@@ -2067,6 +2096,7 @@ static const char* expandexpr (LexState *ls) {
   }
 }
 
+
 static void switchstat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   BlockCnt sbl, cbl; // Switch & case blocks.
@@ -2114,7 +2144,7 @@ static void switchstat (LexState *ls, int line) {
     else {
       const auto expr = expandexpr(ls); // Raw text of the expression before the lexer skips tokens.
       simpleexp(ls, &lcase, true);
-      if (lcase.k < VNIL || lcase.k > VKSTR) { // Expression exceeds constant range.
+      if (!vk_is_const(lcase.k)) {
         ls->linebuff.clear();
         ls->linebuff += "case ";
         ls->linebuff += expr;
@@ -2438,29 +2468,41 @@ static void localfunc (LexState *ls) {
 }
 
 
-static int getlocalattribute (LexState *ls) {
+struct LocalAttribute
+{
+    lu_byte kind;
+    lu_byte typehint = 0xFF;
+};
+
+
+[[nodiscard]] static LocalAttribute getlocalattribute (LexState *ls) {
   /* ATTRIB -> ['<' Name '>'] */
   if (testnext(ls, '<')) {
     const char *attr = getstr(str_checkname(ls));
     checknext(ls, '>');
     if (strcmp(attr, "const") == 0)
-      return RDKCONST;  /* read-only variable */
+      return { RDKCONST };  /* read-only variable */
     else if (strcmp(attr, "close") == 0)
-      return RDKTOCLOSE;  /* to-be-closed variable */
-    else if (strcmp(attr, "number") == 0   ||
-             strcmp(attr, "table") == 0    ||
-             strcmp(attr, "string") == 0   ||
-             strcmp(attr, "userdata") == 0 ||
-             strcmp(attr, "boolean") == 0  ||
-             strcmp(attr, "nil") == 0      ||
-             strcmp(attr, "function") == 0) {
-      return VDKREG;
-    }
+      return { RDKTOCLOSE };  /* to-be-closed variable */
+    else if (strcmp(attr, "number") == 0)
+      return { VDKREG, VKINT };
+    else if (strcmp(attr, "table") == 0)
+      return { VDKREG, VNONRELOC };
+    else if (strcmp(attr, "string") == 0)
+      return { VDKREG, VKSTR };
+    else if (strcmp(attr, "userdata") == 0)
+      return { VDKREG };
+    else if (strcmp(attr, "boolean") == 0 || strcmp(attr, "bool") == 0)
+      return { VDKREG, VTRUE };
+    else if (strcmp(attr, "nil") == 0)
+      return { VDKREG, VNIL };
+    else if (strcmp(attr, "function") == 0)
+      return { VDKREG };
     else
       luaK_semerror(ls,
         luaO_pushfstring(ls->L, "unknown attribute '%s'", attr));
   }
-  return VDKREG;  /* regular variable */
+  return { VDKREG };  /* regular variable */
 }
 
 
@@ -2477,15 +2519,18 @@ static void localstat (LexState *ls) {
   FuncState *fs = ls->fs;
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
-  int vidx, kind;  /* index and kind of last variable */
+  int vidx;  /* index of last variable */
+  LocalAttribute attr;
   int nvars = 0;
   int nexps;
   expdesc e;
   do {
     vidx = new_localvar(ls, str_checkname(ls));
-    kind = getlocalattribute(ls);
-    getlocalvardesc(fs, vidx)->vd.kind = kind;
-    if (kind == RDKTOCLOSE) {  /* to-be-closed? */
+    attr = getlocalattribute(ls);
+    var = getlocalvardesc(fs, vidx);
+    var->vd.kind = attr.kind;
+    var->vd.typehint = attr.typehint;
+    if (attr.kind == RDKTOCLOSE) {  /* to-be-closed? */
       if (toclose != -1)  /* one already present? */
         luaK_semerror(ls, "multiple to-be-closed variables in local list");
       toclose = fs->nactvar + nvars;
@@ -2498,7 +2543,6 @@ static void localstat (LexState *ls) {
     e.k = VVOID;
     nexps = 0;
   }
-  var = getlocalvardesc(fs, vidx);  /* get last variable */
   if (nvars == nexps &&  /* no adjustments? */
       var->vd.kind == RDKCONST &&  /* last variable is const? */
       luaK_exp2const(fs, &e, &var->k)) {  /* compile-time constant? */
@@ -2507,6 +2551,12 @@ static void localstat (LexState *ls) {
     fs->nactvar++;  /* but count it */
   }
   else {
+    if (nexps == 1 &&
+        attr.typehint != 0xFF && /* has type hint? */
+        vk_is_const(e.k) && /* assigning constant value? */
+        !vk_typehint_equals(e.k, attr.typehint)) { /* type mismatch? */
+      throw_warn(ls, "assigned value does not match hinted type", "type mismatch");
+    }
     adjust_assign(ls, nvars, nexps, &e);
     adjustlocalvars(ls, nvars);
   }
