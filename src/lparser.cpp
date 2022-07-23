@@ -1073,6 +1073,22 @@ static int block_follow (LexState *ls, int withuntil) {
 }
 
 
+static void propagate_return_type(LexState* ls, TypeDesc* prop, TypeDesc ret) {
+  if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
+    if (prop->getType() == VT_NIL) {
+      ret.setNullable();
+      *prop = ret;
+    }
+    else if (!prop->isCompatibleWith(ret)) {
+      *prop = VT_MIXED; /* set return type to mixed */
+      prop = nullptr; /* and don't update it again */
+    }
+  }
+  else {
+    *prop = ret; /* save return type */
+  }
+}
+
 static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
   /* statlist -> { stat [';'] } */
   bool ret = false;
@@ -1082,25 +1098,13 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
     statement(ls, &p);
     if (prop && /* do we need to propagate the return type? */
         p.getType() != VT_DUNNO) { /* is there a return path here? */
-      if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
-        if (prop->getType() == VT_NIL) {
-          p.setNullable();
-          *prop = p;
-        }
-        else if (!prop->isCompatibleWith(p)) {
-          *prop = VT_MIXED; /* set return type to mixed */
-          prop = nullptr; /* and don't update it again */
-        }
-      }
-      else {
-        *prop = p; /* save return type */
-      }
+      propagate_return_type(ls, prop, p.getType());
     }
     if (ret) break;
   }
   if (prop && /* do we need to propagate the return type? */
       !ret) { /* had no return statement? */
-    *prop = VT_NIL; /* report that it returns nil */
+    propagate_return_type(ls, prop, VT_NIL); /* implied nil return */
   }
 }
 
