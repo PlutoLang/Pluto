@@ -75,8 +75,8 @@ typedef struct BlockCnt {
 /*
 ** prototypes for recursive non-terminal functions
 */
-static void statement (LexState *ls);
-static void expr (LexState *ls, expdesc *v);
+static void statement (LexState *ls, lu_byte *prop = nullptr);
+static void expr (LexState *ls, expdesc *v, lu_byte *prop = nullptr);
 
 
 /*
@@ -429,18 +429,7 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
 }
 
 
-[[nodiscard]] static lu_byte exp_ret_type(LexState* ls, const expdesc& e) {
-  if (vkisconst(e.k)) /* constant value? */
-    return vk_normalise(e.k);
-  if (e.k == VLOCAL) /* local variable? */
-    return getlocalvardesc(ls->fs, e.u.var.vidx)->vd.typeprop;
-  return 0xFF; /* dunno */
-}
-
-
-static void process_assign(LexState* ls, Vardesc* var, const expdesc& e) {
-  auto k = exp_ret_type(ls, e);
-
+static void process_assign(LexState* ls, Vardesc* var, lu_byte k) {
   if (var->vd.typehint != 0xFF && /* var has type hint? */
       k != 0xFF && /* e has known return type? */
       var->vd.typehint != k /* type mismatch? */
@@ -1074,14 +1063,16 @@ static int block_follow (LexState *ls, int withuntil) {
 }
 
 
-static void statlist (LexState *ls) {
+static void statlist (LexState *ls, lu_byte *prop = nullptr) {
   /* statlist -> { stat [';'] } */
   while (!block_follow(ls, 1)) {
     if (ls->t.token == TK_RETURN) {
-      statement(ls);
+      statement(ls, prop);
       return;  /* 'return' must be last statement */
     }
-    statement(ls);
+    lu_byte p = 0xFE;
+    statement(ls, &p);
+    if (p != 0xFE) prop = nullptr; /* multiple return paths, don't propagate return type */
   }
 }
 
@@ -1228,7 +1219,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 }
 
 
-static void body (LexState *ls, expdesc *e, int ismethod, int line);
+static void body (LexState *ls, expdesc *e, int ismethod, int line, lu_byte *prop = nullptr);
 static void funcfield (LexState *ls, struct ConsControl *cc) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
@@ -1345,7 +1336,7 @@ static void parlist (LexState *ls) {
 }
 
 
-static void body (LexState *ls, expdesc *e, int ismethod, int line) {
+static void body (LexState *ls, expdesc *e, int ismethod, int line, lu_byte *prop) {
   /* body ->  '(' parlist ')' block END */
   FuncState new_fs;
   BlockCnt bl;
@@ -1359,7 +1350,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line) {
   }
   parlist(ls);
   checknext(ls, ')');
-  statlist(ls);
+  statlist(ls, prop);
   new_fs.f->lastlinedefined = ls->linenumber;
   check_match(ls, TK_END, TK_FUNCTION, line);
   codeclosure(ls, e);
@@ -1392,10 +1383,10 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
 }
 
 
-static int explist (LexState *ls, expdesc *v) {
+static int explist (LexState *ls, expdesc *v, lu_byte *prop = nullptr) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
-  expr(ls, v);
+  expr(ls, v, prop);
   while (testnext(ls, ',')) {
     luaK_exp2nextreg(ls->fs, v);
     expr(ls, v);
@@ -1557,7 +1548,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
-static void suffixedexp (LexState *ls, expdesc *v) {
+static void suffixedexp (LexState *ls, expdesc *v, lu_byte *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   FuncState *fs = ls->fs;
@@ -1589,6 +1580,8 @@ static void suffixedexp (LexState *ls, expdesc *v) {
         break;
       }
       case '(': case TK_STRING: case '{': {  /* funcargs */
+        if (v->k == VLOCAL)
+          *prop = getlocalvardesc(ls->fs, v->u.var.vidx)->vd.typeprop;
         luaK_exp2nextreg(fs, v);
         funcargs(ls, v, line);
         break;
@@ -1622,33 +1615,39 @@ static void ifexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, bool caseexpr) {
+static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, lu_byte *prop = nullptr) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
     case TK_FLT: {
+      if (prop) *prop = VKINT;
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       break;
     }
     case TK_INT: {
+      if (prop) *prop = VKINT;
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       break;
     }
     case TK_STRING: {
+      if (prop) *prop = VKSTR;
       codestring(v, ls->t.seminfo.ts);
       break;
     }
     case TK_NIL: {
+      if (prop) *prop = VNIL;
       init_exp(v, VNIL, 0);
       break;
     }
     case TK_TRUE: {
+      if (prop) *prop = VTRUE;
       init_exp(v, VTRUE, 0);
       break;
     }
     case TK_FALSE: {
+      if (prop) *prop = VTRUE;
       init_exp(v, VFALSE, 0);
       break;
     }
@@ -1665,7 +1664,7 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr) {
     }
     case TK_FUNCTION: {
       luaX_next(ls);
-      body(ls, v, 0, ls->linenumber);
+      body(ls, v, 0, ls->linenumber, prop);
       return;
     }
     case '|': {
@@ -1673,7 +1672,7 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr) {
       return;
     }
     default: {
-      suffixedexp(ls, v);
+      suffixedexp(ls, v, prop);
       return;
     }
   }
@@ -1764,7 +1763,7 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, lu_byte *prop = nullptr) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
@@ -1777,9 +1776,10 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
   else {
-    simpleexp(ls, v, false);
+    simpleexp(ls, v, false, prop);
     if (ls->t.token == TK_IN) {
       inexpr(ls, v);
+      if (prop) *prop = VTRUE;
     }
   }
   /* expand while operators have priorities higher than 'limit' */
@@ -1800,8 +1800,8 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
 }
 
 
-static void expr (LexState *ls, expdesc *v) {
-  subexpr(ls, v, 0);
+static void expr (LexState *ls, expdesc *v, lu_byte *prop) {
+  subexpr(ls, v, 0, prop);
 }
 
 /* }==================================================================== */
@@ -2014,13 +2014,14 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       return;  /* avoid default */
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
-      int nexps = explist(ls, &e);
+      lu_byte prop;
+      int nexps = explist(ls, &e, &prop);
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
       else {
         luaK_setoneret(ls->fs, &e);  /* close last expression */
         if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
-          process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), e);
+          process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), prop);
         }
         luaK_storevar(ls->fs, &lh->v, &e);
         return;  /* avoid default */
@@ -2440,7 +2441,7 @@ static void forstat (LexState *ls, int line) {
 }
 
 
-static void test_then_block (LexState *ls, int *escapelist) {
+static void test_then_block (LexState *ls, int *escapelist, lu_byte *prop) {
   /* test_then_block -> [IF | ELSEIF] cond THEN block */
   BlockCnt bl;
   FuncState *fs = ls->fs;
@@ -2468,7 +2469,7 @@ static void test_then_block (LexState *ls, int *escapelist) {
     enterblock(fs, &bl, 0);
     jf = v.f;
   }
-  statlist(ls);  /* 'then' part */
+  statlist(ls, prop);  /* 'then' part */
   leaveblock(fs);
   if (ls->t.token == TK_ELSE ||
       ls->t.token == TK_ELSEIF)  /* followed by 'else'/'elseif'? */
@@ -2477,13 +2478,13 @@ static void test_then_block (LexState *ls, int *escapelist) {
 }
 
 
-static void ifstat (LexState *ls, int line) {
+static void ifstat (LexState *ls, int line, lu_byte *prop = nullptr) {
   /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
   FuncState *fs = ls->fs;
   int escapelist = NO_JUMP;  /* exit list for finished parts */
-  test_then_block(ls, &escapelist);  /* IF cond THEN block */
+  test_then_block(ls, &escapelist, prop);  /* IF cond THEN block */
   while (ls->t.token == TK_ELSEIF)
-    test_then_block(ls, &escapelist);  /* ELSEIF cond THEN block */
+    test_then_block(ls, &escapelist, prop);  /* ELSEIF cond THEN block */
   if (testnext(ls, TK_ELSE))
     block(ls);  /* 'else' part */
   check_match(ls, TK_END, TK_IF, line);
@@ -2497,7 +2498,7 @@ static void localfunc (LexState *ls) {
   int fvar = fs->nactvar;  /* function's variable index */
   new_localvar(ls, str_checkname(ls));  /* new local variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
-  body(ls, &b, 0, ls->linenumber);  /* function created in next register */
+  body(ls, &b, 0, ls->linenumber, &getlocalvardesc(fs, fvar)->vd.typeprop);  /* function created in next register */
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
 }
@@ -2572,8 +2573,9 @@ static void localstat (LexState *ls) {
     }
     nvars++;
   } while (testnext(ls, ','));
+  lu_byte prop = 0xFF;
   if (testnext(ls, '='))
-    nexps = explist(ls, &e);
+    nexps = explist(ls, &e, &prop);
   else {
     e.k = VVOID;
     nexps = 0;
@@ -2587,7 +2589,7 @@ static void localstat (LexState *ls) {
   }
   else {
     if (nexps == 1) {
-      process_assign(ls, var, e);
+      process_assign(ls, var, prop);
     }
     adjust_assign(ls, nvars, nexps, &e);
     adjustlocalvars(ls, nvars);
@@ -2641,7 +2643,7 @@ static void exprstat (LexState *ls) {
 }
 
 
-static void retstat (LexState *ls) {
+static void retstat (LexState *ls, lu_byte *prop) {
   /* stat -> RETURN [explist] [';'] */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -2650,7 +2652,7 @@ static void retstat (LexState *ls) {
   if (block_follow(ls, 1) || ls->t.token == ';')
     nret = 0;  /* return no values */
   else {
-    nret = explist(ls, &e);  /* optional return values */
+    nret = explist(ls, &e, prop);  /* optional return values */
     if (hasmultret(e.k)) {
       luaK_setmultret(fs, &e);
       if (e.k == VCALL && nret == 1 && !fs->bl->insidetbc) {  /* tail call? */
@@ -2673,7 +2675,7 @@ static void retstat (LexState *ls) {
 }
 
 
-static void statement (LexState *ls) {
+static void statement (LexState *ls, lu_byte *prop) {
   int line = ls->linenumber;  /* may be needed for error messages */
   enterlevel(ls);
   switch (ls->t.token) {
@@ -2682,7 +2684,7 @@ static void statement (LexState *ls) {
       break;
     }
     case TK_IF: {  /* stat -> ifstat */
-      ifstat(ls, line);
+      ifstat(ls, line, prop);
       break;
     }
     case TK_WHILE: {  /* stat -> whilestat */
@@ -2722,7 +2724,7 @@ static void statement (LexState *ls) {
     }
     case TK_RETURN: {  /* stat -> retstat */
       luaX_next(ls);  /* skip RETURN */
-      retstat(ls);
+      retstat(ls, prop);
       break;
     }
     case TK_BREAK: {  /* stat -> breakstat */
