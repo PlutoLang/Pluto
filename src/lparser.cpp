@@ -345,9 +345,9 @@ static void check_match (LexState *ls, int what, int who, int where) {
 }
 
 
-static TString *str_checkname (LexState *ls) {
+static TString *str_checkname (LexState *ls, bool strict = false) {
   TString *ts;
-  if (ls->t.token != TK_NAME && !ls->t.IsReservedNonValue()) {
+  if (ls->t.token != TK_NAME && (strict || !ls->t.IsReservedNonValue())) {
     error_expected(ls, TK_NAME);
   }
   ts = ls->t.seminfo.ts;
@@ -1334,7 +1334,7 @@ static void parlist (LexState *ls) {
     do {
       switch (ls->t.token) {
         case TK_NAME: {
-          new_localvar(ls, str_checkname(ls));
+          new_localvar(ls, str_checkname(ls, true));
           nparams++;
           break;
         }
@@ -2526,7 +2526,7 @@ static void localfunc (LexState *ls) {
   expdesc b;
   FuncState *fs = ls->fs;
   int fvar = fs->nactvar;  /* function's variable index */
-  new_localvar(ls, str_checkname(ls));  /* new local variable */
+  new_localvar(ls, str_checkname(ls, true));  /* new local variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
   body(ls, &b, 0, ls->linenumber, &getlocalvardesc(fs, fvar)->vd.typeprop);  /* function created in next register */
   /* debug information will only see the variable after this point! */
@@ -2570,7 +2570,7 @@ static void localstat (LexState *ls) {
   int nexps;
   expdesc e;
   do {
-    vidx = new_localvar(ls, str_checkname(ls));
+    vidx = new_localvar(ls, str_checkname(ls, true));
     typehint = gettypehint(ls);
     kind = getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
