@@ -1356,7 +1356,8 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   TypeDesc p = HT_MIXED;
   statlist(ls, &p);
   if (rethint.getType() != HT_MIXED && /* has type hint for return type? */
-      p.getType() != HT_MIXED) { /* return type is known? */
+      p.getType() != HT_MIXED && /* return type is known? */
+      !rethint.isCompatibleWith(p)) { /* incompatible? */
     std::string err = "function was hinted to return ";
     err.append(rethint.toString());
     err.append(" but actually returns ");
