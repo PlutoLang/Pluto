@@ -1068,13 +1068,22 @@ static int block_follow (LexState *ls, int withuntil) {
 static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
   /* statlist -> { stat [';'] } */
   while (!block_follow(ls, 1)) {
-    if (ls->t.token == TK_RETURN) {
-      statement(ls, prop);
-      return;  /* 'return' must be last statement */
-    }
+    const bool is_ret = (ls->t.token == TK_RETURN);
     TypeDesc p = HT_MIXED;
     statement(ls, &p);
-    if (p.getType() != HT_MIXED) prop = nullptr; /* multiple return paths, don't propagate return type */
+    if (prop && /* do we need to propagate the return type? */
+        p.getType() != HT_MIXED) { /* is there a return path here? */
+      if (prop->getType() != HT_MIXED) { /* had previous return path(s)? */
+        if (!prop->isCompatibleWith(p)) { /* incompatible with previous return path(s)? */
+          *prop = HT_MIXED; /* set return type to mixed */
+          prop = nullptr; /* and don't update it again */
+        }
+      }
+      else {
+        *prop = p; /* save return type */
+      }
+    }
+    if (is_ret) break;
   }
 }
 
