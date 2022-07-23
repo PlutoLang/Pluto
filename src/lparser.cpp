@@ -1806,11 +1806,21 @@ struct LHS_assign {
 }
 
 
-static void process_assign(LexState* ls, Vardesc* var, lu_byte k) {
-  k = vk_normalise(k);
+[[nodiscard]] static lu_byte exp_ret_type(LexState* ls, const expdesc& e) {
+  if (vkisconst(e.k)) /* constant value? */
+    return vk_normalise(e.k);
+  if (e.k == VLOCAL) /* local variable? */
+    return getlocalvardesc(ls->fs, e.u.var.vidx)->vd.typeprop;
+  return 0xFF; /* dunno */
+}
 
-  if (var->vd.typehint != 0xFF /* has type hint? */
-      && var->vd.typehint != k /* type mismatch? */
+
+static void process_assign(LexState* ls, Vardesc* var, const expdesc& e) {
+  auto k = exp_ret_type(ls, e);
+
+  if (var->vd.typehint != 0xFF && /* var has type hint? */
+      k != 0xFF && /* e has known return type? */
+      var->vd.typehint != k /* type mismatch? */
       ) {
     std::string err = var->vd.name->toCpp();
     err.append(" was type-hinted as ");
@@ -1822,21 +1832,6 @@ static void process_assign(LexState* ls, Vardesc* var, lu_byte k) {
   }
 
   var->vd.typeprop = k; /* propagate type */
-}
-
-static void process_assign(LexState* ls, Vardesc* var, const expdesc& e) {
-  if (vkisconst(e.k)) { /* assigning a constant value? */
-    process_assign(ls, var, e.k);
-  }
-  else if (e.k == VLOCAL) { /* assigning value of another local variable? */
-	auto b = getlocalvardesc(ls->fs, e.u.var.vidx);
-	if (b->vd.typeprop != 0xFF) {
-      process_assign(ls, var, b->vd.typeprop);
-	}
-  }
-  else {
-    var->vd.typeprop = 0xFF; /* dunno, reset propagated type */
-  }
 }
 
 
