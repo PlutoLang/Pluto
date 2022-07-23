@@ -409,6 +409,55 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
 }
 
 
+[[nodiscard]] static lu_byte vk_normalise(lu_byte kind) noexcept {
+    if (kind == VKFLT) return VKINT; /* normalise 'number' */
+    if (kind == VFALSE) return VTRUE; /* normalise 'boolean' */
+    return kind;
+}
+
+
+[[nodiscard]] static const char* vk_toTypeString(lu_byte kind) noexcept {
+  switch (kind)
+  {
+  case VKINT: case VKFLT: return "number";
+  case VNONRELOC: return "table";
+  case VKSTR: return "string";
+  case VTRUE: case VFALSE: return "boolean";
+  case VNIL: return "nil";
+  }
+  return "ERROR";
+}
+
+
+[[nodiscard]] static lu_byte exp_ret_type(LexState* ls, const expdesc& e) {
+  if (vkisconst(e.k)) /* constant value? */
+    return vk_normalise(e.k);
+  if (e.k == VLOCAL) /* local variable? */
+    return getlocalvardesc(ls->fs, e.u.var.vidx)->vd.typeprop;
+  return 0xFF; /* dunno */
+}
+
+
+static void process_assign(LexState* ls, Vardesc* var, const expdesc& e) {
+  auto k = exp_ret_type(ls, e);
+
+  if (var->vd.typehint != 0xFF && /* var has type hint? */
+      k != 0xFF && /* e has known return type? */
+      var->vd.typehint != k /* type mismatch? */
+      ) {
+    std::string err = var->vd.name->toCpp();
+    err.append(" was type-hinted as ");
+    err.append(vk_toTypeString(var->vd.typehint));
+    err.append(" but is assigned a ");
+    err.append(vk_toTypeString(k));
+    err.append(" value");
+    throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
+  }
+
+  var->vd.typeprop = k; /* propagate type */
+}
+
+
 /*
 ** Convert 'nvar', a compiler index level, to its corresponding
 ** register. For that, search for the highest variable below that level
@@ -1784,55 +1833,6 @@ struct LHS_assign {
   struct LHS_assign *prev, *next; /* previous & next lhs objects */
   expdesc v;  /* variable (global, local, upvalue, or indexed) */
 };
-
-
-[[nodiscard]] static lu_byte vk_normalise(lu_byte kind) noexcept {
-  if (kind == VKFLT) return VKINT; /* normalise 'number' */
-  if (kind == VFALSE) return VTRUE; /* normalise 'boolean' */
-  return kind;
-}
-
-
-[[nodiscard]] static const char* vk_toTypeString(lu_byte kind) noexcept {
-  switch (kind)
-  {
-  case VKINT: case VKFLT: return "number";
-  case VNONRELOC: return "table";
-  case VKSTR: return "string";
-  case VTRUE: case VFALSE: return "boolean";
-  case VNIL: return "nil";
-  }
-  return "ERROR";
-}
-
-
-[[nodiscard]] static lu_byte exp_ret_type(LexState* ls, const expdesc& e) {
-  if (vkisconst(e.k)) /* constant value? */
-    return vk_normalise(e.k);
-  if (e.k == VLOCAL) /* local variable? */
-    return getlocalvardesc(ls->fs, e.u.var.vidx)->vd.typeprop;
-  return 0xFF; /* dunno */
-}
-
-
-static void process_assign(LexState* ls, Vardesc* var, const expdesc& e) {
-  auto k = exp_ret_type(ls, e);
-
-  if (var->vd.typehint != 0xFF && /* var has type hint? */
-      k != 0xFF && /* e has known return type? */
-      var->vd.typehint != k /* type mismatch? */
-      ) {
-    std::string err = var->vd.name->toCpp();
-    err.append(" was type-hinted as ");
-    err.append(vk_toTypeString(var->vd.typehint));
-    err.append(" but is assigned a ");
-    err.append(vk_toTypeString(k));
-    err.append(" value");
-    throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
-  }
-
-  var->vd.typeprop = k; /* propagate type */
-}
 
 
 /*
