@@ -341,25 +341,11 @@ struct lua_State {
   int oldpc;  /* last pc traced */
   int basehookcount;
   int hookcount;
-  int lastStackSize;  /* last saved stack size, for restoration */
   volatile l_signalT hookmask;
 
   // Lua registry abstration.
   [[nodiscard]] inline Registry GetReg() {
       return this;
-  }
-
-  // Save the size of the stack at this time.
-  inline void SaveStackSize() {
-    lastStackSize = lua_gettop(this);
-  }
-
-  // Reset the size of the stack to the last save.
-  inline void RestoreStack() {
-    if (lastStackSize >= 0) {
-      lua_settop(this, lastStackSize);
-      lastStackSize = -1;  // Avoid double-restoration on a potentially unknown value.
-    }
   }
 };
 

@@ -460,11 +460,10 @@ static int new_localvar (LexState *ls, TString *name) {
     LocVar *local = localdebuginfo(fs, i);
     std::string n = name->toCpp();
     if ((n != "(for state)" && n != "(switch)") && (local && local->varname == name)) { // Got a match.
-      L->SaveStackSize();
       throw_warn(ls,
         "duplicate local declaration",
           luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.linenumber));
-      L->RestoreStack();
+      L->top--; /* pop result of luaO_fmt */
     }
   }
 #endif
