@@ -443,6 +443,13 @@ static void process_assign(LexState* ls, Vardesc* var, TypeDesc td) {
     err.append(" but is assigned a ");
     err.append(td.toString());
     err.append(" value");
+    if (td.getType() == VT_NIL) {
+      err.append(" (you possibly meant to type-hint ");
+      err.append(var->vd.name->toCpp());
+      err.append(" as ?");
+      err.append(var->vd.hint.toString());
+      err.push_back(')');
+    }
     throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
   }
 
@@ -1068,8 +1075,9 @@ static int block_follow (LexState *ls, int withuntil) {
 
 static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
   /* statlist -> { stat [';'] } */
+  bool ret = false;
   while (!block_follow(ls, 1)) {
-    const bool is_ret = (ls->t.token == TK_RETURN);
+    ret = (ls->t.token == TK_RETURN);
     TypeDesc p = VT_DUNNO;
     statement(ls, &p);
     if (prop && /* do we need to propagate the return type? */
@@ -1088,7 +1096,11 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
         *prop = p; /* save return type */
       }
     }
-    if (is_ret) break;
+    if (ret) break;
+  }
+  if (prop && /* do we need to propagate the return type? */
+      !ret) { /* had no return statement? */
+    *prop = VT_NIL; /* report that it returns nil */
   }
 }
 
@@ -2602,6 +2614,7 @@ static void localstat (LexState *ls) {
   else {
     e.k = VVOID;
     nexps = 0;
+    process_assign(ls, var, VT_NIL);
   }
   if (nvars == nexps &&  /* no adjustments? */
       var->vd.kind == RDKCONST &&  /* last variable is const? */
