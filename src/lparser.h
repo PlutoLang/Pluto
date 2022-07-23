@@ -135,7 +135,7 @@ class TypeDesc
 private:
   /*
   ** 4 bits for type. if function, another 4 bits for return type.
-  ** type consists of 3 bits for ValType, and 
+  ** type consists of 3 bits for ValType, and 1 bit for nullable.
   */
   lu_byte data;
   static_assert((NUL_VAL_TYPES - 1) <= 0b111);
