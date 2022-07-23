@@ -1679,6 +1679,8 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, TypeDesc *prop =
     case TK_FUNCTION: {
       luaX_next(ls);
       body(ls, v, 0, ls->linenumber, prop);
+      if (prop != nullptr)
+        prop->setFunction(prop->getType());
       return;
     }
     case '|': {

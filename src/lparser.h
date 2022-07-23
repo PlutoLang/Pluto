@@ -113,10 +113,26 @@ enum ValType : lu_byte {
   NUM_HINTABLE_TYPES
 };
 
+[[nodiscard]] inline const char* vt_toString(ValType vt) noexcept {
+   switch (vt)
+   {
+   case HT_MIXED: return "mixed";
+   case HT_NIL: return "nil";
+   case HT_NUMBER: return "number";
+   case HT_BOOL: return "boolean";
+   case HT_STR: return "string";
+   case HT_TABLE: return "table";
+   case HT_FUNC: return "function";
+   case NUM_HINTABLE_TYPES: break;
+   }
+   return "ERROR";
+}
+
 class TypeDesc
 {
 private:
   lu_byte data;
+  static_assert((NUM_HINTABLE_TYPES - 1) <= 0b111); // 3 bits for type, 3 bits for return type if function
 
 public:
   TypeDesc(ValType typ)
@@ -124,29 +140,38 @@ public:
   {
   }
 
+  void setFunction(ValType ret_typ) noexcept {
+    data = ((ret_typ << 3) | HT_FUNC);
+  }
+
+  void setFunction(TypeDesc ret_typ) noexcept {
+    setFunction(getType());
+  }
+
   [[nodiscard]] ValType getType() const noexcept {
-    return (ValType)data;
-    //return (ValType)(data & 0b111);
-    //static_assert((NUM_HINTABLE_TYPES - 1) <= 0b111);
+    return (ValType)(data & 0b111);
+  }
+
+  [[nodiscard]] ValType getReturnType() const noexcept {
+    return (ValType)((data >> 3) & 0b111);
   }
 
   [[nodiscard]] bool isCompatibleWith(TypeDesc b) const noexcept {
-    return data == b.data;
+    return getType() == b.getType();
   }
 
-  [[nodiscard]] const char* toString() const noexcept {
-    switch (getType())
-    {
-    case HT_MIXED: return "mixed";
-    case HT_NIL: return "nil";
-    case HT_NUMBER: return "number";
-    case HT_BOOL: return "boolean";
-    case HT_STR: return "string";
-    case HT_TABLE: return "table";
-    case HT_FUNC: return "function";
-    default: break;
+  [[nodiscard]] std::string toString() const {
+    auto vt = getType();
+    std::string str = vt_toString(vt);
+    if (vt == HT_FUNC) {
+      auto rt = getReturnType();
+      if (rt != HT_MIXED) {
+        str.push_back('(');
+        str.append(vt_toString(rt));
+        str.push_back(')');
+      }
     }
-    return "ERROR";
+    return str;
   }
 };
 
