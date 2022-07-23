@@ -409,13 +409,6 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
 }
 
 
-[[nodiscard]] static lu_byte vk_normalise(lu_byte kind) noexcept {
-    if (kind == VKFLT) return VKINT; /* normalise 'number' */
-    if (kind == VFALSE) return VTRUE; /* normalise 'boolean' */
-    return kind;
-}
-
-
 [[nodiscard]] static const char* vk_toTypeString(lu_byte kind) noexcept {
   switch (kind)
   {
