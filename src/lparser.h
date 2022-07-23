@@ -65,6 +65,9 @@ typedef enum {
   VVARARG  /* vararg expression; info = instruction pc */
 } expkind;
 
+[[nodiscard]] constexpr bool vkisconst(lu_byte k) noexcept {
+  return k >= VNIL && k <= VKSTR;
+}
 
 #define vkisvar(k)	(VLOCAL <= (k) && (k) <= VINDEXSTR)
 #define vkisindexed(k)	(VINDEXED <= (k) && (k) <= VINDEXSTR)
@@ -103,6 +106,7 @@ typedef union Vardesc {
     TValuefields;  /* constant value (if it is a compile-time constant) */
     lu_byte kind;
     lu_byte typehint;
+    lu_byte typeprop; /* type propagation */
     lu_byte ridx;  /* register holding the variable */
     short pidx;  /* index of the variable in the Proto's 'locvars' array */
     TString *name;  /* variable name */
