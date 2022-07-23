@@ -106,6 +106,11 @@ struct Token {
 #endif
 
 struct LexState {
+  enum SourceInfoStrategy : lu_byte {
+    CURRENT = 0,
+    LAST,
+  };
+
   int current;  /* current character (charint) */
   int linenumber;  /* input line counter */
   int lastline;  /* line of last token 'consumed' */
@@ -142,6 +147,14 @@ struct LexState {
       }
     }
     return linenumber;
+  }
+
+  [[nodiscard]] const std::string& GetLineBuff(SourceInfoStrategy strat) const noexcept {
+    return strat == current ? linebuff : lastlinebuff;
+  }
+
+  [[nodiscard]] int GetLineNumber(SourceInfoStrategy strat) const noexcept {
+    return strat == CURRENT ? linenumber : lastline;
   }
 };
 

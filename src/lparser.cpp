@@ -82,10 +82,12 @@ static void expr (LexState *ls, expdesc *v);
 /*
 ** Formats an error with the appropriate source code snippet.
 */
-static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here) {
-  std::string pad_str(std::to_string(ls->linenumber).length(), ' ');
+static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here,
+                                      LexState::SourceInfoStrategy strat = LexState::CURRENT) {
+  const auto linenumber = ls->GetLineNumber(strat);
+  std::string pad_str(std::to_string(linenumber).length(), ' ');
   const char *pad = pad_str.c_str();
-  const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
+  const char *text = luaG_addinfo(ls->L, msg, ls->source, linenumber);
 #ifdef PLUTO_SHORT_ERRORS
 #ifdef PLUTO_USE_COLORED_OUTPUT
   text = luaO_fmt(ls->L, "%s%s%s", YEL, text, RESET);
@@ -94,10 +96,10 @@ static const char *format_line_error (LexState *ls, const char *msg, const char 
 #endif
 #ifndef PLUTO_USE_COLORED_OUTPUT
   text = luaO_fmt(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+                          text, pad, linenumber, token, pad, pad, here, pad, pad);
 #else // PLUTO_USE_COLORED_OUTPUT
   text = luaO_fmt(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          YEL, text, RESET, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+                          YEL, text, RESET, pad, linenumber, token, pad, pad, here, pad, pad);
 #endif // PLUTO_USED_COLORED_OUTPUT
   return text;
 }
@@ -106,8 +108,8 @@ static const char *format_line_error (LexState *ls, const char *msg, const char 
 /*
 ** Applies coloring (if permitted) to 's'.
 */
-static std::string make_here(LexState *ls, const char *s) {
-  std::string here = std::string(ls->linebuff.length(), '^');
+static std::string make_here(const std::string& linebuff, const char *s) {
+  std::string here = std::string(linebuff.size(), '^');
   here.append(" here: ");
 #ifdef PLUTO_USE_COLORED_OUTPUT
   here.insert(0, std::string(RED));
@@ -156,9 +158,10 @@ static std::string make_warn(const char *s) {
 */
 [[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here) {
   ls->linenumber = ls->GetLastLineNumber();
+  const std::string& linebuff = ls->GetLatestLine();
   std::string error = make_err(err);
-  std::string rhere = make_here(ls, here);
-  format_line_error(ls, error.c_str(), ls->GetLatestLine(), rhere.c_str());
+  std::string rhere = make_here(linebuff, here);
+  format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str());
   luaD_throw(ls->L, LUA_ERRSYNTAX);
 }
 
@@ -166,10 +169,11 @@ static std::string make_warn(const char *s) {
 /*
 ** Throws an warning into standard output, which will not close the program.
 */
-static void throw_warn (LexState *ls, const char *err, const char *here) {
+static void throw_warn (LexState *ls, const char *err, const char *here, LexState::SourceInfoStrategy strat = LexState::CURRENT) {
+  const std::string& linebuff = ls->GetLineBuff(strat);
   std::string error = make_warn(err);
-  std::string rhere = make_here(ls, here);
-  lua_warning(ls->L, format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()), 0);
+  std::string rhere = make_here(linebuff, here);
+  lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), strat), 0);
   ls->L->top -= 2; /* remove warning from stack */
 }
 
@@ -1817,7 +1821,7 @@ static void throw_typehint(LexState* ls, const Vardesc* vd, lu_byte assignment) 
   err.append(" but is assigned a ");
   err.append(vk_typehint_toString(assignment));
   err.append(" value");
-  throw_warn(ls, err.c_str(), "type mismatch");
+  throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
 }
 
 
