@@ -1372,8 +1372,8 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, lu_byte *pro
   lu_byte rethint = gettypehint(ls);
   lu_byte p = 0xFF;
   statlist(ls, &p);
-  if (p != 0xFF && /* return type is known? */
-      rethint != 0xFF) { /* has type hint for return type? */
+  if (rethint != 0xFF && /* has type hint for return type? */
+      p != 0xFF) { /* return type is known? */
     std::string err = "function was hinted to return ";
     err.append(vk_toTypeString(rethint));
     err.append(" but actually returns ");
