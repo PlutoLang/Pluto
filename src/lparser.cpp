@@ -500,7 +500,7 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
 */
-static int new_localvar (LexState *ls, TString *name) {
+static int new_localvar (LexState *ls, TString *name, TypeDesc hint = VT_DUNNO) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -525,7 +525,7 @@ static int new_localvar (LexState *ls, TString *name) {
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
-  var->vd.hint = VT_DUNNO;
+  var->vd.hint = hint;
   var->vd.prop = VT_DUNNO;
   var->vd.name = name;
   var->vd.linenumber = ls->linenumber;
@@ -1343,7 +1343,9 @@ static void parlist (LexState *ls) {
     do {
       switch (ls->t.token) {
         case TK_NAME: {
-          new_localvar(ls, str_checkname(ls, true));
+          auto parname = str_checkname(ls, true);
+          auto parhint = gettypehint(ls);
+          new_localvar(ls, parname, parhint);
           nparams++;
           break;
         }
