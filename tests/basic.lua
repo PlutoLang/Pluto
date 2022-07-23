@@ -255,6 +255,14 @@ do
     assert(sum == 5)
 end
 
+do
+    while true do
+        if true then
+            break
+        end
+    end
+end
+
 print "Testing switch statement."
 do
     local value = 5

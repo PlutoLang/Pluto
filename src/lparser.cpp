@@ -958,6 +958,8 @@ static void leaveblock (FuncState *fs) {
   LexState *ls = fs->ls;
   int hasclose = 0;
   int stklevel = reglevel(fs, bl->nactvar);  /* level outside the block */
+  if (bl->isloop)  /* fix pending breaks? */
+    hasclose = createlabel(ls, luaS_newliteral(ls->L, "break"), 0, 0);
   if (!hasclose && bl->previous && bl->upval)
     luaK_codeABC(fs, OP_CLOSE, stklevel, 0, 0);
   fs->bl = bl->previous;
@@ -2096,7 +2098,7 @@ static void gotostat (LexState *ls) {
 ** Break statement. Very similiar to `continue` usage, but it jumps slightly more forward.
 **
 ** Implementation Detail:
-**   Unlike normal Lua, it has been reverted from a label implementation back into a patchlist implementation.
+**   Unlike normal Lua, it has been reverted from a label implementation back into a mix between a label & patchlist implementation.
 **   This allows reusage of the existing "continue" implementation, which has been time-tested extensively by now.
 */
 static void breakstat (LexState *ls) {
