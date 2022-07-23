@@ -478,6 +478,7 @@ static int new_localvar (LexState *ls, TString *name) {
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
   var->vd.typehint = 0xFF;
+  var->vd.typeprop = 0xFF;
   var->vd.name = name;
   var->vd.linenumber = ls->linenumber;
   return dyd->actvar.n - 1 - fs->firstlocal;
@@ -1785,24 +1786,14 @@ struct LHS_assign {
 };
 
 
-[[nodiscard]] static bool vk_is_const(lu_byte kind) noexcept {
-  return kind >= VNIL && kind <= VKSTR;
-}
-
-
-[[nodiscard]] static lu_byte vk_typehint_normalise(lu_byte kind) noexcept {
+[[nodiscard]] static lu_byte vk_normalise(lu_byte kind) noexcept {
   if (kind == VKFLT) return VKINT; /* normalise 'number' */
   if (kind == VFALSE) return VTRUE; /* normalise 'boolean' */
   return kind;
 }
 
 
-[[nodiscard]] static bool vk_typehint_equals(lu_byte a, lu_byte b) noexcept {
-  return vk_typehint_normalise(a) == vk_typehint_normalise(b);
-}
-
-
-[[nodiscard]] static const char* vk_typehint_toString(lu_byte kind) noexcept {
+[[nodiscard]] static const char* vk_toTypeString(lu_byte kind) noexcept {
   switch (kind)
   {
   case VKINT: case VKFLT: return "number";
@@ -1815,29 +1806,36 @@ struct LHS_assign {
 }
 
 
-static void throw_typehint(LexState* ls, const Vardesc* vd, lu_byte assignment) {
-  std::string err = vd->vd.name->toCpp();
-  err.append(" was type-hinted as ");
-  err.append(vk_typehint_toString(vd->vd.typehint));
-  err.append(" but is assigned a ");
-  err.append(vk_typehint_toString(assignment));
-  err.append(" value");
-  throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
+static void process_assign(LexState* ls, Vardesc* var, lu_byte k) {
+  k = vk_normalise(k);
+
+  if (var->vd.typehint != 0xFF /* has type hint? */
+      && var->vd.typehint != k /* type mismatch? */
+      ) {
+    std::string err = var->vd.name->toCpp();
+    err.append(" was type-hinted as ");
+    err.append(vk_toTypeString(var->vd.typehint));
+    err.append(" but is assigned a ");
+    err.append(vk_toTypeString(k));
+    err.append(" value");
+    throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
+  }
+
+  var->vd.typeprop = k; /* propagate type */
 }
 
-
-static void process_assign_to_typehinted(LexState* ls, const Vardesc* var, const expdesc& e) {
-  if (vk_is_const(e.k)) { /* assigning a constant value? */
-    if (!vk_typehint_equals(var->vd.typehint, e.k)) { /* type mismatch? */
-      throw_typehint(ls, var, e.k);
-    }
+static void process_assign(LexState* ls, Vardesc* var, const expdesc& e) {
+  if (vkisconst(e.k)) { /* assigning a constant value? */
+    process_assign(ls, var, e.k);
   }
   else if (e.k == VLOCAL) { /* assigning value of another local variable? */
-    auto b = getlocalvardesc(ls->fs, e.u.var.vidx);
-    if (b->vd.typehint != 0xFF && /* other local variable has type hint? */
-        !vk_typehint_equals(var->vd.typehint, b->vd.typehint)) { /* type mismatch? */
-      throw_typehint(ls, var, b->vd.typehint);
-    }
+	auto b = getlocalvardesc(ls->fs, e.u.var.vidx);
+	if (b->vd.typeprop != 0xFF) {
+      process_assign(ls, var, b->vd.typeprop);
+	}
+  }
+  else {
+    var->vd.typeprop = 0xFF; /* dunno, reset propagated type */
   }
 }
 
@@ -2027,10 +2025,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       else {
         luaK_setoneret(ls->fs, &e);  /* close last expression */
         if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
-          auto vardesc = getlocalvardesc(ls->fs, lh->v.u.var.vidx);
-          if (vardesc->vd.typehint != 0xFF) { /* local variable has type hint? */
-            process_assign_to_typehinted(ls, vardesc, e);
-          }
+          process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), e);
         }
         luaK_storevar(ls->fs, &lh->v, &e);
         return;  /* avoid default */
@@ -2189,7 +2184,7 @@ static void switchstat (LexState *ls, int line) {
     else {
       const auto expr = expandexpr(ls); // Raw text of the expression before the lexer skips tokens.
       simpleexp(ls, &lcase, true);
-      if (!vk_is_const(lcase.k)) {
+      if (!vkisconst(lcase.k)) {
         ls->linebuff.clear();
         ls->linebuff += "case ";
         ls->linebuff += expr;
@@ -2596,9 +2591,8 @@ static void localstat (LexState *ls) {
     fs->nactvar++;  /* but count it */
   }
   else {
-    if (nexps == 1 &&
-        attr.typehint != 0xFF) { /* has type hint? */
-      process_assign_to_typehinted(ls, var, e);
+    if (nexps == 1) {
+      process_assign(ls, var, e);
     }
     adjust_assign(ls, nvars, nexps, &e);
     adjustlocalvars(ls, nvars);
