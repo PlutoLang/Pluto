@@ -102,30 +102,30 @@ typedef struct expdesc {
 
 /* types of values, for type hinting and propagation */
 enum ValType : lu_byte {
-  HT_DUNNO = 0,
-  HT_MIXED,
-  HT_NIL,
-  HT_NUMBER,
-  HT_BOOL,
-  HT_STR,
-  HT_TABLE,
-  HT_FUNC,
+  VT_DUNNO = 0,
+  VT_MIXED,
+  VT_NIL,
+  VT_NUMBER,
+  VT_BOOL,
+  VT_STR,
+  VT_TABLE,
+  VT_FUNC,
 
-  NUM_HINTABLE_TYPES
+  NUL_VAL_TYPES
 };
 
 [[nodiscard]] inline const char* vt_toString(ValType vt) noexcept {
    switch (vt)
    {
-   case HT_DUNNO: return "dunno";
-   case HT_MIXED: return "mixed";
-   case HT_NIL: return "nil";
-   case HT_NUMBER: return "number";
-   case HT_BOOL: return "boolean";
-   case HT_STR: return "string";
-   case HT_TABLE: return "table";
-   case HT_FUNC: return "function";
-   case NUM_HINTABLE_TYPES: break;
+   case VT_DUNNO: return "dunno";
+   case VT_MIXED: return "mixed";
+   case VT_NIL: return "nil";
+   case VT_NUMBER: return "number";
+   case VT_BOOL: return "boolean";
+   case VT_STR: return "string";
+   case VT_TABLE: return "table";
+   case VT_FUNC: return "function";
+   case NUL_VAL_TYPES: break;
    }
    return "ERROR";
 }
@@ -138,7 +138,7 @@ private:
   ** type consists of 3 bits for ValType, and 
   */
   lu_byte data;
-  static_assert((NUM_HINTABLE_TYPES - 1) <= 0b111);
+  static_assert((NUL_VAL_TYPES - 1) <= 0b111);
 
 public:
   TypeDesc(ValType vt, bool nullable = false)
@@ -147,7 +147,7 @@ public:
   }
 
   void setFunction(ValType ret_typ) noexcept {
-    data = ((ret_typ << 4) | HT_FUNC);
+    data = ((ret_typ << 4) | VT_FUNC);
   }
 
   void setFunction(TypeDesc ret_typ) noexcept {
@@ -174,7 +174,7 @@ public:
     const auto b_t = b.getType();
     return (getType() == b_t)
         ? (isNullable() || !b.isNullable()) /* if same type, b can't be nullable if a isn't nullable */
-        : (b_t == HT_NIL && isNullable()) /* if different type, b might still be compatible if a is nullable and b is nil */
+        : (b_t == VT_NIL && isNullable()) /* if different type, b might still be compatible if a is nullable and b is nil */
         ;
   }
 
@@ -185,9 +185,9 @@ public:
       str.push_back('?');
     }
     str.append(vt_toString(vt));
-    if (vt == HT_FUNC) {
+    if (vt == VT_FUNC) {
       auto rt = getReturnType();
-      if (rt != HT_DUNNO) {
+      if (rt != VT_DUNNO) {
         str.push_back('(');
         str.append(vt_toString(rt));
         str.push_back(')');

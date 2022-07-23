@@ -415,26 +415,26 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
     const bool nullable = testnext(ls, '?');
     const char* tname = getstr(str_checkname(ls));
     if (strcmp(tname, "number") == 0)
-      return { HT_NUMBER, nullable };
+      return { VT_NUMBER, nullable };
     else if (strcmp(tname, "table") == 0)
-      return { HT_TABLE, nullable };
+      return { VT_TABLE, nullable };
     else if (strcmp(tname, "string") == 0)
-      return { HT_STR, nullable };
+      return { VT_STR, nullable };
     else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
-      return { HT_BOOL, nullable };
+      return { VT_BOOL, nullable };
     else if (strcmp(tname, "function") == 0)
-      return { HT_FUNC, nullable };
+      return { VT_FUNC, nullable };
     else if (strcmp(tname, "userdata") != 0)
       luaK_semerror(ls,
         luaO_pushfstring(ls->L, "unknown type hint '%s'", tname));
   }
-  return HT_DUNNO;
+  return VT_DUNNO;
 }
 
 
 static void process_assign(LexState* ls, Vardesc* var, TypeDesc td) {
-  if (var->vd.hint.getType() != HT_DUNNO && /* var has type hint? */
-      td.getType() != HT_DUNNO && /* assigned value is known? */
+  if (var->vd.hint.getType() != VT_DUNNO && /* var has type hint? */
+      td.getType() != VT_DUNNO && /* assigned value is known? */
       !var->vd.hint.isCompatibleWith(td) /* incompatible? */
       ) {
     std::string err = var->vd.name->toCpp();
@@ -518,8 +518,8 @@ static int new_localvar (LexState *ls, TString *name) {
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
-  var->vd.hint = HT_DUNNO;
-  var->vd.prop = HT_DUNNO;
+  var->vd.hint = VT_DUNNO;
+  var->vd.prop = VT_DUNNO;
   var->vd.name = name;
   var->vd.linenumber = ls->linenumber;
   return dyd->actvar.n - 1 - fs->firstlocal;
@@ -1070,17 +1070,17 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
   /* statlist -> { stat [';'] } */
   while (!block_follow(ls, 1)) {
     const bool is_ret = (ls->t.token == TK_RETURN);
-    TypeDesc p = HT_DUNNO;
+    TypeDesc p = VT_DUNNO;
     statement(ls, &p);
     if (prop && /* do we need to propagate the return type? */
-        p.getType() != HT_DUNNO) { /* is there a return path here? */
-      if (prop->getType() != HT_DUNNO) { /* had previous return path(s)? */
-        if (prop->getType() == HT_NIL) {
+        p.getType() != VT_DUNNO) { /* is there a return path here? */
+      if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
+        if (prop->getType() == VT_NIL) {
           p.setNullable();
           *prop = p;
         }
         else if (!prop->isCompatibleWith(p)) {
-          *prop = HT_MIXED; /* set return type to mixed */
+          *prop = VT_MIXED; /* set return type to mixed */
           prop = nullptr; /* and don't update it again */
         }
       }
@@ -1367,10 +1367,10 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   parlist(ls);
   checknext(ls, ')');
   TypeDesc rethint = gettypehint(ls);
-  TypeDesc p = HT_DUNNO;
+  TypeDesc p = VT_DUNNO;
   statlist(ls, &p);
-  if (rethint.getType() != HT_DUNNO && /* has type hint for return type? */
-      p.getType() != HT_DUNNO && /* return type is known? */
+  if (rethint.getType() != VT_DUNNO && /* has type hint for return type? */
+      p.getType() != VT_DUNNO && /* return type is known? */
       !rethint.isCompatibleWith(p)) { /* incompatible? */
     std::string err = "function was hinted to return ";
     err.append(rethint.toString());
@@ -1648,34 +1648,34 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, TypeDesc *prop =
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
     case TK_FLT: {
-      if (prop) *prop = HT_NUMBER;
+      if (prop) *prop = VT_NUMBER;
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       break;
     }
     case TK_INT: {
-      if (prop) *prop = HT_NUMBER;
+      if (prop) *prop = VT_NUMBER;
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       break;
     }
     case TK_STRING: {
-      if (prop) *prop = HT_STR;
+      if (prop) *prop = VT_STR;
       codestring(v, ls->t.seminfo.ts);
       break;
     }
     case TK_NIL: {
-      if (prop) *prop = HT_NIL;
+      if (prop) *prop = VT_NIL;
       init_exp(v, VNIL, 0);
       break;
     }
     case TK_TRUE: {
-      if (prop) *prop = HT_BOOL;
+      if (prop) *prop = VT_BOOL;
       init_exp(v, VTRUE, 0);
       break;
     }
     case TK_FALSE: {
-      if (prop) *prop = HT_BOOL;
+      if (prop) *prop = VT_BOOL;
       init_exp(v, VFALSE, 0);
       break;
     }
@@ -1821,7 +1821,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
     simpleexp(ls, v, false, prop);
     if (ls->t.token == TK_IN) {
       inexpr(ls, v);
-      if (prop) *prop = HT_BOOL;
+      if (prop) *prop = VT_BOOL;
     }
   }
   /* expand while operators have priorities higher than 'limit' */
@@ -2056,7 +2056,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       return;  /* avoid default */
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
-      TypeDesc prop = HT_DUNNO;
+      TypeDesc prop = VT_DUNNO;
       int nexps = explist(ls, &e, &prop);
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
@@ -2578,7 +2578,7 @@ static void localstat (LexState *ls) {
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
   int vidx, kind;  /* index and kind of last variable */
-  TypeDesc hint = HT_DUNNO;
+  TypeDesc hint = VT_DUNNO;
   int nvars = 0;
   int nexps;
   expdesc e;
@@ -2596,7 +2596,7 @@ static void localstat (LexState *ls) {
     }
     nvars++;
   } while (testnext(ls, ','));
-  TypeDesc prop = HT_DUNNO;
+  TypeDesc prop = VT_DUNNO;
   if (testnext(ls, '='))
     nexps = explist(ls, &e, &prop);
   else {
