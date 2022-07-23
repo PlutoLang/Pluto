@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <thread>
+#include <chrono>
+
 #include "lua.h"
 #include "lprefix.h"
 #include "lauxlib.h"
@@ -515,7 +518,16 @@ static int luaB_newuserdata (lua_State *L) {
   return 1;
 }
 
+
+static int luaB_sleep (lua_State *L) {
+  std::chrono::milliseconds timespan(luaL_checkinteger(L, 1));
+  std::this_thread::sleep_for(timespan);
+  return 0;
+}
+
+
 static const luaL_Reg base_funcs[] = {
+  {"sleep", luaB_sleep},
   {"newuserdata", luaB_newuserdata},
   {"assert", luaB_assert},
   {"collectgarbage", luaB_collectgarbage},
