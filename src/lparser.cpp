@@ -412,17 +412,18 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
 [[nodiscard]] static TypeDesc gettypehint(LexState *ls) noexcept {
   /* TYPEHINT -> [':' Typedesc] */
   if (testnext(ls, ':')) {
+    const bool nullable = testnext(ls, '?');
     const char* tname = getstr(str_checkname(ls));
     if (strcmp(tname, "number") == 0)
-      return HT_NUMBER;
+      return { HT_NUMBER, nullable };
     else if (strcmp(tname, "table") == 0)
-      return HT_TABLE;
+      return { HT_TABLE, nullable };
     else if (strcmp(tname, "string") == 0)
-      return HT_STR;
+      return { HT_STR, nullable };
     else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
-      return HT_BOOL;
+      return { HT_BOOL, nullable };
     else if (strcmp(tname, "function") == 0)
-      return HT_FUNC;
+      return { HT_FUNC, nullable };
     else if (strcmp(tname, "userdata") != 0)
       luaK_semerror(ls,
         luaO_pushfstring(ls->L, "unknown type hint '%s'", tname));
@@ -1074,7 +1075,11 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
     if (prop && /* do we need to propagate the return type? */
         p.getType() != HT_DUNNO) { /* is there a return path here? */
       if (prop->getType() != HT_DUNNO) { /* had previous return path(s)? */
-        if (!prop->isCompatibleWith(p)) { /* incompatible with previous return path(s)? */
+        if (prop->getType() == HT_NIL) {
+          p.setNullable();
+          *prop = p;
+        }
+        else if (!prop->isCompatibleWith(p)) {
           *prop = HT_MIXED; /* set return type to mixed */
           prop = nullptr; /* and don't update it again */
         }

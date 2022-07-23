@@ -133,17 +133,21 @@ enum ValType : lu_byte {
 class TypeDesc
 {
 private:
+  /*
+  ** 4 bits for type. if function, another 4 bits for return type.
+  ** type consists of 3 bits for ValType, and 
+  */
   lu_byte data;
-  static_assert((NUM_HINTABLE_TYPES - 1) <= 0b111); // 3 bits for type, 3 bits for return type if function
+  static_assert((NUM_HINTABLE_TYPES - 1) <= 0b111);
 
 public:
-  TypeDesc(ValType typ)
-    : data(typ)
+  TypeDesc(ValType vt, bool nullable = false)
+    : data(vt | (nullable << 3))
   {
   }
 
   void setFunction(ValType ret_typ) noexcept {
-    data = ((ret_typ << 3) | HT_FUNC);
+    data = ((ret_typ << 4) | HT_FUNC);
   }
 
   void setFunction(TypeDesc ret_typ) noexcept {
@@ -154,17 +158,33 @@ public:
     return (ValType)(data & 0b111);
   }
 
+  [[nodiscard]] bool isNullable() const noexcept {
+    return (data >> 3) & 1;
+  }
+
+  void setNullable() noexcept {
+    data |= (1 << 3);
+  }
+
   [[nodiscard]] ValType getReturnType() const noexcept {
-    return (ValType)((data >> 3) & 0b111);
+    return (ValType)((data >> 4) & 0b111);
   }
 
   [[nodiscard]] bool isCompatibleWith(TypeDesc b) const noexcept {
-    return getType() == b.getType();
+    const auto b_t = b.getType();
+    return (getType() == b_t)
+        ? (isNullable() || !b.isNullable()) /* if same type, b can't be nullable if a isn't nullable */
+        : (b_t == HT_NIL && isNullable()) /* if different type, b might still be compatible if a is nullable and b is nil */
+        ;
   }
 
   [[nodiscard]] std::string toString() const {
     auto vt = getType();
-    std::string str = vt_toString(vt);
+    std::string str{};
+    if (isNullable()) {
+      str.push_back('?');
+    }
+    str.append(vt_toString(vt));
     if (vt == HT_FUNC) {
       auto rt = getReturnType();
       if (rt != HT_DUNNO) {
