@@ -177,8 +177,8 @@ static void throw_warn (LexState *ls, const char *err, const char *here, LexStat
   ls->L->top -= 2; /* remove warning from stack */
 }
 
-static void throw_warn(LexState* ls, const char* err) {
-  auto msg = luaG_addinfo(ls->L, err, ls->source, ls->linenumber);
+static void throw_warn(LexState* ls, const char* err, int linenumber) {
+  auto msg = luaG_addinfo(ls->L, err, ls->source, linenumber);
   lua_warning(ls->L, msg, 0);
   ls->L->top -= 1; /* remove warning from stack */
 }
@@ -1369,7 +1369,18 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, lu_byte *pro
   }
   parlist(ls);
   checknext(ls, ')');
-  statlist(ls, prop);
+  lu_byte rethint = gettypehint(ls);
+  lu_byte p = 0xFF;
+  statlist(ls, &p);
+  if (p != 0xFF && /* return type is known? */
+      rethint != 0xFF) { /* has type hint for return type? */
+    std::string err = "function was hinted to return ";
+    err.append(vk_toTypeString(rethint));
+    err.append(" but actually returns ");
+    err.append(vk_toTypeString(p));
+    throw_warn(ls, err.c_str(), line);
+  }
+  if (prop) *prop = p; /* propagate return type */
   new_fs.f->lastlinedefined = ls->linenumber;
   check_match(ls, TK_END, TK_FUNCTION, line);
   codeclosure(ls, e);
