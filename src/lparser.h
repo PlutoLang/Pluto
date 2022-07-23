@@ -151,7 +151,7 @@ public:
   }
 
   void setFunction(TypeDesc ret_typ) noexcept {
-    setFunction(getType());
+    setFunction(ret_typ.getType());
   }
 
   [[nodiscard]] ValType getType() const noexcept {

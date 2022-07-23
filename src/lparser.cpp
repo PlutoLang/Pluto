@@ -432,6 +432,13 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
 }
 
 
+static void exp_propagate(LexState* ls, const expdesc& e, TypeDesc& t) noexcept {
+  if (e.k == VLOCAL) {
+    t = getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop;
+  }
+}
+
+
 static void process_assign(LexState* ls, Vardesc* var, TypeDesc td) {
   if (var->vd.hint.getType() != VT_DUNNO && /* var has type hint? */
       td.getType() != VT_DUNNO && /* assigned value is known? */
@@ -1629,8 +1636,12 @@ static void suffixedexp (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
         break;
       }
       case '(': case TK_STRING: case '{': {  /* funcargs */
-        if (prop != nullptr && v->k == VLOCAL)
-          *prop = getlocalvardesc(ls->fs, v->u.var.vidx)->vd.prop;
+        if (prop != nullptr && v->k == VLOCAL) {
+          auto fvar = getlocalvardesc(ls->fs, v->u.var.vidx);
+          if (fvar->vd.prop.getType() == VT_FUNC) { /* just in case... */
+            *prop = fvar->vd.prop.getReturnType();
+          }
+        }
         luaK_exp2nextreg(fs, v);
         funcargs(ls, v, line);
         break;
@@ -2562,7 +2573,9 @@ static void localfunc (LexState *ls) {
   int fvar = fs->nactvar;  /* function's variable index */
   new_localvar(ls, str_checkname(ls, true));  /* new local variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
-  body(ls, &b, 0, ls->linenumber, &getlocalvardesc(fs, fvar)->vd.prop);  /* function created in next register */
+  TypeDesc ret = VT_DUNNO;
+  body(ls, &b, 0, ls->linenumber, &ret);  /* function created in next register */
+  getlocalvardesc(fs, fvar)->vd.prop.setFunction(ret);
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
 }
@@ -2634,6 +2647,7 @@ static void localstat (LexState *ls) {
   }
   else {
     if (nexps == 1) {
+      exp_propagate(ls, e, prop);
       process_assign(ls, var, prop);
     }
     adjust_assign(ls, nvars, nexps, &e);
