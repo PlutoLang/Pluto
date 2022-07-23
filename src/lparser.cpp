@@ -1825,6 +1825,22 @@ static void throw_typehint(LexState* ls, const Vardesc* vd, lu_byte assignment) 
 }
 
 
+static void process_assign_to_typehinted(LexState* ls, const Vardesc* var, const expdesc& e) {
+  if (vk_is_const(e.k)) { /* assigning a constant value? */
+    if (!vk_typehint_equals(var->vd.typehint, e.k)) { /* type mismatch? */
+      throw_typehint(ls, var, e.k);
+    }
+  }
+  else if (e.k == VLOCAL) { /* assigning value of another local variable? */
+    auto b = getlocalvardesc(ls->fs, e.u.var.vidx);
+    if (b->vd.typehint != 0xFF && /* other local variable has type hint? */
+        !vk_typehint_equals(var->vd.typehint, b->vd.typehint)) { /* type mismatch? */
+      throw_typehint(ls, var, b->vd.typehint);
+    }
+  }
+}
+
+
 /*
 ** check whether, in an assignment to an upvalue/local variable, the
 ** upvalue/local variable is begin used in a previous assignment to a
@@ -2012,18 +2028,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
         if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
           auto vardesc = getlocalvardesc(ls->fs, lh->v.u.var.vidx);
           if (vardesc->vd.typehint != 0xFF) { /* local variable has type hint? */
-            if (vk_is_const(e.k)) { /* assigning a constant value? */
-              if (!vk_typehint_equals(vardesc->vd.typehint, e.k)) { /* type mismatch? */
-                throw_typehint(ls, vardesc, e.k);
-              }
-            }
-            else if (e.k == VLOCAL) { /* assigning value of another local variable? */
-              auto b = getlocalvardesc(ls->fs, e.u.var.vidx);
-              if (b->vd.typehint != 0xFF && /* other local variable has type hint? */
-                  !vk_typehint_equals(vardesc->vd.typehint, b->vd.typehint)) { /* type mismatch? */
-                throw_typehint(ls, vardesc, b->vd.typehint);
-              }
-            }
+            process_assign_to_typehinted(ls, vardesc, e);
           }
         }
         luaK_storevar(ls->fs, &lh->v, &e);
@@ -2591,10 +2596,8 @@ static void localstat (LexState *ls) {
   }
   else {
     if (nexps == 1 &&
-        attr.typehint != 0xFF && /* has type hint? */
-        vk_is_const(e.k) && /* assigning constant value? */
-        !vk_typehint_equals(e.k, attr.typehint)) { /* type mismatch? */
-      throw_typehint(ls, var, e.k);
+        attr.typehint != 0xFF) { /* has type hint? */
+      process_assign_to_typehinted(ls, var, e);
     }
     adjust_assign(ls, nvars, nexps, &e);
     adjustlocalvars(ls, nvars);
