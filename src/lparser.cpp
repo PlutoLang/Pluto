@@ -82,10 +82,12 @@ static void expr (LexState *ls, expdesc *v);
 /*
 ** Formats an error with the appropriate source code snippet.
 */
-static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here) {
-  std::string pad_str(std::to_string(ls->linenumber).length(), ' ');
+static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here,
+                                      LexState::SourceInfoStrategy strat = LexState::CURRENT) {
+  const auto linenumber = ls->GetLineNumber(strat);
+  std::string pad_str(std::to_string(linenumber).length(), ' ');
   const char *pad = pad_str.c_str();
-  const char *text = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
+  const char *text = luaG_addinfo(ls->L, msg, ls->source, linenumber);
 #ifdef PLUTO_SHORT_ERRORS
 #ifdef PLUTO_USE_COLORED_OUTPUT
   text = luaO_fmt(ls->L, "%s%s%s", YEL, text, RESET);
@@ -94,10 +96,10 @@ static const char *format_line_error (LexState *ls, const char *msg, const char 
 #endif
 #ifndef PLUTO_USE_COLORED_OUTPUT
   text = luaO_fmt(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          text, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+                          text, pad, linenumber, token, pad, pad, here, pad, pad);
 #else // PLUTO_USE_COLORED_OUTPUT
   text = luaO_fmt(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          YEL, text, RESET, pad, ls->linenumber, token, pad, pad, here, pad, pad);
+                          YEL, text, RESET, pad, linenumber, token, pad, pad, here, pad, pad);
 #endif // PLUTO_USED_COLORED_OUTPUT
   return text;
 }
@@ -106,8 +108,8 @@ static const char *format_line_error (LexState *ls, const char *msg, const char 
 /*
 ** Applies coloring (if permitted) to 's'.
 */
-static std::string make_here(LexState *ls, const char *s) {
-  std::string here = std::string(ls->linebuff.length(), '^');
+static std::string make_here(const std::string& linebuff, const char *s) {
+  std::string here = std::string(linebuff.size(), '^');
   here.append(" here: ");
 #ifdef PLUTO_USE_COLORED_OUTPUT
   here.insert(0, std::string(RED));
@@ -156,9 +158,10 @@ static std::string make_warn(const char *s) {
 */
 [[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here) {
   ls->linenumber = ls->GetLastLineNumber();
+  const std::string& linebuff = ls->GetLatestLine();
   std::string error = make_err(err);
-  std::string rhere = make_here(ls, here);
-  format_line_error(ls, error.c_str(), ls->GetLatestLine(), rhere.c_str());
+  std::string rhere = make_here(linebuff, here);
+  format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str());
   luaD_throw(ls->L, LUA_ERRSYNTAX);
 }
 
@@ -166,11 +169,18 @@ static std::string make_warn(const char *s) {
 /*
 ** Throws an warning into standard output, which will not close the program.
 */
-static void throw_warn (LexState *ls, const char *err, const char *here) {
+static void throw_warn (LexState *ls, const char *err, const char *here, LexState::SourceInfoStrategy strat = LexState::CURRENT) {
+  const std::string& linebuff = ls->GetLineBuff(strat);
   std::string error = make_warn(err);
-  std::string rhere = make_here(ls, here);
-  lua_warning(ls->L, format_line_error(ls, error.c_str(), ls->linebuff.c_str(), rhere.c_str()), 0);
+  std::string rhere = make_here(linebuff, here);
+  lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), strat), 0);
   ls->L->top -= 2; /* remove warning from stack */
+}
+
+static void throw_warn(LexState* ls, const char* err) {
+  auto msg = luaG_addinfo(ls->L, err, ls->source, ls->linenumber);
+  lua_warning(ls->L, msg, 0);
+  ls->L->top -= 1; /* remove warning from stack */
 }
 
 
@@ -452,13 +462,12 @@ static int new_localvar (LexState *ls, TString *name) {
   for (int i = fs->firstlocal; i < locals; i++) {
     Vardesc *desc = getlocalvardesc(fs,  i);
     LocVar *local = localdebuginfo(fs, i);
-    std::string n = std::string(getstr(name));
+    std::string n = name->toCpp();
     if ((n != "(for state)" && n != "(switch)") && (local && local->varname == name)) { // Got a match.
-      L->SaveStackSize();
       throw_warn(ls,
         "duplicate local declaration",
           luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.linenumber));
-      L->RestoreStack();
+      L->top--; /* pop result of luaO_fmt */
     }
   }
 #endif
@@ -468,6 +477,7 @@ static int new_localvar (LexState *ls, TString *name) {
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
+  var->vd.typehint = 0xFF;
   var->vd.name = name;
   var->vd.linenumber = ls->linenumber;
   return dyd->actvar.n - 1 - fs->firstlocal;
@@ -1792,6 +1802,46 @@ struct LHS_assign {
 }
 
 
+[[nodiscard]] static const char* vk_typehint_toString(lu_byte kind) noexcept {
+  switch (kind)
+  {
+  case VKINT: case VKFLT: return "number";
+  case VNONRELOC: return "table";
+  case VKSTR: return "string";
+  case VTRUE: case VFALSE: return "boolean";
+  case VNIL: return "nil";
+  }
+  return "ERROR";
+}
+
+
+static void throw_typehint(LexState* ls, const Vardesc* vd, lu_byte assignment) {
+  std::string err = vd->vd.name->toCpp();
+  err.append(" was type-hinted as ");
+  err.append(vk_typehint_toString(vd->vd.typehint));
+  err.append(" but is assigned a ");
+  err.append(vk_typehint_toString(assignment));
+  err.append(" value");
+  throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
+}
+
+
+static void process_assign_to_typehinted(LexState* ls, const Vardesc* var, const expdesc& e) {
+  if (vk_is_const(e.k)) { /* assigning a constant value? */
+    if (!vk_typehint_equals(var->vd.typehint, e.k)) { /* type mismatch? */
+      throw_typehint(ls, var, e.k);
+    }
+  }
+  else if (e.k == VLOCAL) { /* assigning value of another local variable? */
+    auto b = getlocalvardesc(ls->fs, e.u.var.vidx);
+    if (b->vd.typehint != 0xFF && /* other local variable has type hint? */
+        !vk_typehint_equals(var->vd.typehint, b->vd.typehint)) { /* type mismatch? */
+      throw_typehint(ls, var, b->vd.typehint);
+    }
+  }
+}
+
+
 /*
 ** check whether, in an assignment to an upvalue/local variable, the
 ** upvalue/local variable is begin used in a previous assignment to a
@@ -1976,12 +2026,10 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
         adjust_assign(ls, nvars, nexps, &e);
       else {
         luaK_setoneret(ls->fs, &e);  /* close last expression */
-        if (lh->v.k == VLOCAL && /* assigning to a local variable? */
-            vk_is_const(e.k)) { /* assigning a constant value? */
+        if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
           auto vardesc = getlocalvardesc(ls->fs, lh->v.u.var.vidx);
-          if (vardesc->vd.typehint != 0xFF && /* local variable has type hint? */
-              !vk_typehint_equals(vardesc->vd.typehint, e.k)) { /* type mismatch? */
-            throw_warn(ls, "assigned value does not match hinted type", "type mismatch");
+          if (vardesc->vd.typehint != 0xFF) { /* local variable has type hint? */
+            process_assign_to_typehinted(ls, vardesc, e);
           }
         }
         luaK_storevar(ls->fs, &lh->v, &e);
@@ -2549,10 +2597,8 @@ static void localstat (LexState *ls) {
   }
   else {
     if (nexps == 1 &&
-        attr.typehint != 0xFF && /* has type hint? */
-        vk_is_const(e.k) && /* assigning constant value? */
-        !vk_typehint_equals(e.k, attr.typehint)) { /* type mismatch? */
-      throw_warn(ls, "assigned value does not match hinted type", "type mismatch");
+        attr.typehint != 0xFF) { /* has type hint? */
+      process_assign_to_typehinted(ls, var, e);
     }
     adjust_assign(ls, nvars, nexps, &e);
     adjustlocalvars(ls, nvars);
