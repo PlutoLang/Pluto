@@ -1079,6 +1079,9 @@ static void propagate_return_type(LexState* ls, TypeDesc* prop, TypeDesc ret) {
       ret.setNullable();
       *prop = ret;
     }
+    else if (ret.getType() == VT_NIL) {
+      prop->setNullable();
+    }
     else if (!prop->isCompatibleWith(ret)) {
       *prop = VT_MIXED; /* set return type to mixed */
       prop = nullptr; /* and don't update it again */
