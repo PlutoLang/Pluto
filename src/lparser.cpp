@@ -1573,7 +1573,7 @@ static void suffixedexp (LexState *ls, expdesc *v, lu_byte *prop = nullptr) {
         break;
       }
       case '(': case TK_STRING: case '{': {  /* funcargs */
-        if (v->k == VLOCAL)
+        if (prop != nullptr && v->k == VLOCAL)
           *prop = getlocalvardesc(ls->fs, v->u.var.vidx)->vd.typeprop;
         luaK_exp2nextreg(fs, v);
         funcargs(ls, v, line);
