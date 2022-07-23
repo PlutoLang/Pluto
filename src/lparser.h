@@ -130,6 +130,8 @@ enum ValType : lu_byte {
    return "ERROR";
 }
 
+union Vardesc;
+
 class TypeDesc
 {
 private:
@@ -140,18 +142,20 @@ private:
   lu_byte data;
   static_assert((NUL_VAL_TYPES - 1) <= 0b111);
 
+  /* parameter info for functions */
+  int numparams;
+  int firstlocal;
+
 public:
   TypeDesc(ValType vt, bool nullable = false)
     : data(vt | (nullable << 3))
   {
   }
 
-  void setFunction(ValType ret_typ) noexcept {
-    data = ((ret_typ << 4) | VT_FUNC);
-  }
-
-  void setFunction(TypeDesc ret_typ) noexcept {
-    setFunction(ret_typ.getType());
+  void setFunction(int numparams, int firstlocal, ValType ret_typ) noexcept {
+    this->data = ((ret_typ << 4) | VT_FUNC);
+    this->numparams = numparams;
+    this->firstlocal = firstlocal;
   }
 
   [[nodiscard]] ValType getType() const noexcept {
@@ -169,6 +173,12 @@ public:
   [[nodiscard]] ValType getReturnType() const noexcept {
     return (ValType)((data >> 4) & 0b111);
   }
+
+  [[nodiscard]] int getNumParams() const noexcept {
+      return numparams;
+  }
+
+  [[nodiscard]] Vardesc& getParam(LexState* ls, int i) const noexcept;
 
   [[nodiscard]] bool isCompatibleWith(TypeDesc b) const noexcept {
     const auto b_t = b.getType();

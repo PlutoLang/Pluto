@@ -1406,7 +1406,9 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     err.append(p.toString());
     throw_warn(ls, err.c_str(), line);
   }
-  if (prop) *prop = p; /* propagate return type */
+  if (prop) { /* propagate type of function */
+    prop->setFunction(new_fs.f->numparams, new_fs.firstlocal, p.getType());
+  }
   new_fs.f->lastlinedefined = ls->linenumber;
   check_match(ls, TK_END, TK_FUNCTION, line);
   codeclosure(ls, e);
@@ -1725,8 +1727,6 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, TypeDesc *prop =
     case TK_FUNCTION: {
       luaX_next(ls);
       body(ls, v, 0, ls->linenumber, prop);
-      if (prop != nullptr)
-        prop->setFunction(prop->getType());
       return;
     }
     case '|': {
@@ -2573,9 +2573,7 @@ static void localfunc (LexState *ls) {
   int fvar = fs->nactvar;  /* function's variable index */
   new_localvar(ls, str_checkname(ls, true));  /* new local variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
-  TypeDesc ret = VT_DUNNO;
-  body(ls, &b, 0, ls->linenumber, &ret);  /* function created in next register */
-  getlocalvardesc(fs, fvar)->vd.prop.setFunction(ret);
+  body(ls, &b, 0, ls->linenumber, &getlocalvardesc(fs, fvar)->vd.prop);  /* function created in next register */
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
 }
@@ -2883,3 +2881,7 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   return cl;  /* closure is on the stack, too */
 }
 
+
+Vardesc& TypeDesc::getParam(LexState* ls, int i) const noexcept {
+  return ls->dyd->actvar.arr[firstlocal + i];
+}
