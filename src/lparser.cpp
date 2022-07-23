@@ -423,8 +423,6 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
       return 0xFF;
     else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
       return VTRUE;
-    else if (strcmp(tname, "nil") == 0)
-      return VNIL;
     else if (strcmp(tname, "function") == 0)
       return 0xFF;
     else
@@ -442,7 +440,6 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
   case VNONRELOC: return "table";
   case VKSTR: return "string";
   case VTRUE: case VFALSE: return "boolean";
-  case VNIL: return "nil";
   }
   return "ERROR";
 }
