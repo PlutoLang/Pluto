@@ -409,6 +409,32 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
 }
 
 
+[[nodiscard]] static lu_byte gettypehint(LexState *ls) noexcept {
+  /* TYPEHINT -> [':' Typename] */
+  if (testnext(ls, ':')) {
+    const char* tname = getstr(str_checkname(ls));
+    if (strcmp(tname, "number") == 0)
+      return VKINT ;
+    else if (strcmp(tname, "table") == 0)
+      return VNONRELOC;
+    else if (strcmp(tname, "string") == 0)
+      return VKSTR;
+    else if (strcmp(tname, "userdata") == 0)
+      return 0xFF;
+    else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
+      return VTRUE;
+    else if (strcmp(tname, "nil") == 0)
+      return VNIL;
+    else if (strcmp(tname, "function") == 0)
+      return 0xFF;
+    else
+      luaK_semerror(ls,
+        luaO_pushfstring(ls->L, "unknown type hint '%s'", tname));
+  }
+  return 0xFF;
+}
+
+
 [[nodiscard]] static const char* vk_toTypeString(lu_byte kind) noexcept {
   switch (kind)
   {
@@ -2494,32 +2520,6 @@ static void localfunc (LexState *ls) {
   body(ls, &b, 0, ls->linenumber, &getlocalvardesc(fs, fvar)->vd.typeprop);  /* function created in next register */
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
-}
-
-
-[[nodiscard]] static lu_byte gettypehint(LexState *ls) noexcept {
-  /* TYPEHINT -> [':' Typename] */
-  if (testnext(ls, ':')) {
-    const char* tname = getstr(str_checkname(ls));
-    if (strcmp(tname, "number") == 0)
-      return VKINT ;
-    else if (strcmp(tname, "table") == 0)
-      return VNONRELOC;
-    else if (strcmp(tname, "string") == 0)
-      return VKSTR;
-    else if (strcmp(tname, "userdata") == 0)
-      return 0xFF;
-    else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
-      return VTRUE;
-    else if (strcmp(tname, "nil") == 0)
-      return VNIL;
-    else if (strcmp(tname, "function") == 0)
-      return 0xFF;
-    else
-      luaK_semerror(ls,
-        luaO_pushfstring(ls->L, "unknown type hint '%s'", tname));
-  }
-  return 0xFF;
 }
 
 
