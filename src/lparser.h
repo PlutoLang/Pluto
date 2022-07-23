@@ -102,7 +102,8 @@ typedef struct expdesc {
 
 /* types of values, for type hinting and propagation */
 enum ValType : lu_byte {
-  HT_MIXED = 0,
+  HT_DUNNO = 0,
+  HT_MIXED,
   HT_NIL,
   HT_NUMBER,
   HT_BOOL,
@@ -116,6 +117,7 @@ enum ValType : lu_byte {
 [[nodiscard]] inline const char* vt_toString(ValType vt) noexcept {
    switch (vt)
    {
+   case HT_DUNNO: return "dunno";
    case HT_MIXED: return "mixed";
    case HT_NIL: return "nil";
    case HT_NUMBER: return "number";
@@ -165,7 +167,7 @@ public:
     std::string str = vt_toString(vt);
     if (vt == HT_FUNC) {
       auto rt = getReturnType();
-      if (rt != HT_MIXED) {
+      if (rt != HT_DUNNO) {
         str.push_back('(');
         str.append(vt_toString(rt));
         str.push_back(')');

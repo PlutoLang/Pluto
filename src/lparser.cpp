@@ -427,13 +427,13 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
       luaK_semerror(ls,
         luaO_pushfstring(ls->L, "unknown type hint '%s'", tname));
   }
-  return HT_MIXED;
+  return HT_DUNNO;
 }
 
 
 static void process_assign(LexState* ls, Vardesc* var, TypeDesc td) {
-  if (var->vd.hint.getType() != HT_MIXED && /* var has type hint? */
-      td.getType() != HT_MIXED && /* assigned value is known? */
+  if (var->vd.hint.getType() != HT_DUNNO && /* var has type hint? */
+      td.getType() != HT_DUNNO && /* assigned value is known? */
       !var->vd.hint.isCompatibleWith(td) /* incompatible? */
       ) {
     std::string err = var->vd.name->toCpp();
@@ -517,8 +517,8 @@ static int new_localvar (LexState *ls, TString *name) {
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
-  var->vd.hint = HT_MIXED;
-  var->vd.prop = HT_MIXED;
+  var->vd.hint = HT_DUNNO;
+  var->vd.prop = HT_DUNNO;
   var->vd.name = name;
   var->vd.linenumber = ls->linenumber;
   return dyd->actvar.n - 1 - fs->firstlocal;
@@ -1069,11 +1069,11 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
   /* statlist -> { stat [';'] } */
   while (!block_follow(ls, 1)) {
     const bool is_ret = (ls->t.token == TK_RETURN);
-    TypeDesc p = HT_MIXED;
+    TypeDesc p = HT_DUNNO;
     statement(ls, &p);
     if (prop && /* do we need to propagate the return type? */
-        p.getType() != HT_MIXED) { /* is there a return path here? */
-      if (prop->getType() != HT_MIXED) { /* had previous return path(s)? */
+        p.getType() != HT_DUNNO) { /* is there a return path here? */
+      if (prop->getType() != HT_DUNNO) { /* had previous return path(s)? */
         if (!prop->isCompatibleWith(p)) { /* incompatible with previous return path(s)? */
           *prop = HT_MIXED; /* set return type to mixed */
           prop = nullptr; /* and don't update it again */
@@ -1362,10 +1362,10 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   parlist(ls);
   checknext(ls, ')');
   TypeDesc rethint = gettypehint(ls);
-  TypeDesc p = HT_MIXED;
+  TypeDesc p = HT_DUNNO;
   statlist(ls, &p);
-  if (rethint.getType() != HT_MIXED && /* has type hint for return type? */
-      p.getType() != HT_MIXED && /* return type is known? */
+  if (rethint.getType() != HT_DUNNO && /* has type hint for return type? */
+      p.getType() != HT_DUNNO && /* return type is known? */
       !rethint.isCompatibleWith(p)) { /* incompatible? */
     std::string err = "function was hinted to return ";
     err.append(rethint.toString());
@@ -2051,7 +2051,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       return;  /* avoid default */
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
-      TypeDesc prop = HT_MIXED;
+      TypeDesc prop = HT_DUNNO;
       int nexps = explist(ls, &e, &prop);
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
@@ -2573,7 +2573,7 @@ static void localstat (LexState *ls) {
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
   int vidx, kind;  /* index and kind of last variable */
-  TypeDesc hint = HT_MIXED;
+  TypeDesc hint = HT_DUNNO;
   int nvars = 0;
   int nexps;
   expdesc e;
@@ -2591,7 +2591,7 @@ static void localstat (LexState *ls) {
     }
     nvars++;
   } while (testnext(ls, ','));
-  TypeDesc prop = HT_MIXED;
+  TypeDesc prop = HT_DUNNO;
   if (testnext(ls, '='))
     nexps = explist(ls, &e, &prop);
   else {
