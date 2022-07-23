@@ -100,13 +100,63 @@ typedef struct expdesc {
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* compile-time constant */
 
+/* types of values, for type hinting and propagation */
+enum ValType : lu_byte {
+  HT_MIXED = 0,
+  HT_NIL,
+  HT_NUMBER,
+  HT_BOOL,
+  HT_STR,
+  HT_TABLE,
+  HT_FUNC,
+
+  NUM_HINTABLE_TYPES
+};
+
+class TypeDesc
+{
+private:
+  lu_byte data;
+
+public:
+  TypeDesc(ValType typ)
+    : data(typ)
+  {
+  }
+
+  [[nodiscard]] ValType getType() const noexcept {
+    return (ValType)data;
+    //return (ValType)(data & 0b111);
+    //static_assert((NUM_HINTABLE_TYPES - 1) <= 0b111);
+  }
+
+  [[nodiscard]] bool isCompatibleWith(TypeDesc b) const noexcept {
+    return data == b.data;
+  }
+
+  [[nodiscard]] const char* toString() const noexcept {
+    switch (getType())
+    {
+    case HT_MIXED: return "mixed";
+    case HT_NIL: return "nil";
+    case HT_NUMBER: return "number";
+    case HT_BOOL: return "boolean";
+    case HT_STR: return "string";
+    case HT_TABLE: return "table";
+    case HT_FUNC: return "function";
+    default: break;
+    }
+    return "ERROR";
+  }
+};
+
 /* description of an active local variable */
 typedef union Vardesc {
   struct {
     TValuefields;  /* constant value (if it is a compile-time constant) */
     lu_byte kind;
-    lu_byte typehint;
-    lu_byte typeprop; /* type propagation */
+    TypeDesc hint;
+    TypeDesc prop; /* type propagation */
     lu_byte ridx;  /* register holding the variable */
     short pidx;  /* index of the variable in the Proto's 'locvars' array */
     TString *name;  /* variable name */

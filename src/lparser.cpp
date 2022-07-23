@@ -75,8 +75,8 @@ typedef struct BlockCnt {
 /*
 ** prototypes for recursive non-terminal functions
 */
-static void statement (LexState *ls, lu_byte *prop = nullptr);
-static void expr (LexState *ls, expdesc *v, lu_byte *prop = nullptr);
+static void statement (LexState *ls, TypeDesc *prop = nullptr);
+static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr);
 
 
 /*
@@ -409,57 +409,43 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
 }
 
 
-[[nodiscard]] static lu_byte gettypehint(LexState *ls) noexcept {
-  /* TYPEHINT -> [':' Typename] */
+[[nodiscard]] static TypeDesc gettypehint(LexState *ls) noexcept {
+  /* TYPEHINT -> [':' Typedesc] */
   if (testnext(ls, ':')) {
     const char* tname = getstr(str_checkname(ls));
     if (strcmp(tname, "number") == 0)
-      return VKINT ;
+      return HT_NUMBER;
     else if (strcmp(tname, "table") == 0)
-      return VNONRELOC;
+      return HT_TABLE;
     else if (strcmp(tname, "string") == 0)
-      return VKSTR;
-    else if (strcmp(tname, "userdata") == 0)
-      return 0xFF;
+      return HT_STR;
     else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
-      return VTRUE;
+      return HT_BOOL;
     else if (strcmp(tname, "function") == 0)
-      return 0xFF;
-    else
+      return HT_FUNC;
+    else if (strcmp(tname, "userdata") != 0)
       luaK_semerror(ls,
         luaO_pushfstring(ls->L, "unknown type hint '%s'", tname));
   }
-  return 0xFF;
+  return HT_MIXED;
 }
 
 
-[[nodiscard]] static const char* vk_toTypeString(lu_byte kind) noexcept {
-  switch (kind)
-  {
-  case VKINT: case VKFLT: return "number";
-  case VNONRELOC: return "table";
-  case VKSTR: return "string";
-  case VTRUE: case VFALSE: return "boolean";
-  }
-  return "ERROR";
-}
-
-
-static void process_assign(LexState* ls, Vardesc* var, lu_byte k) {
-  if (var->vd.typehint != 0xFF && /* var has type hint? */
-      k != 0xFF && /* e has known return type? */
-      var->vd.typehint != k /* type mismatch? */
+static void process_assign(LexState* ls, Vardesc* var, TypeDesc td) {
+  if (var->vd.hint.getType() != HT_MIXED && /* var has type hint? */
+      td.getType() != HT_MIXED && /* assigned value is known? */
+      !var->vd.hint.isCompatibleWith(td) /* incompatible? */
       ) {
     std::string err = var->vd.name->toCpp();
     err.append(" was type-hinted as ");
-    err.append(vk_toTypeString(var->vd.typehint));
+    err.append(var->vd.hint.toString());
     err.append(" but is assigned a ");
-    err.append(vk_toTypeString(k));
+    err.append(td.toString());
     err.append(" value");
     throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
   }
 
-  var->vd.typeprop = k; /* propagate type */
+  var->vd.prop = td; /* propagate type */
 }
 
 
@@ -531,8 +517,8 @@ static int new_localvar (LexState *ls, TString *name) {
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
-  var->vd.typehint = 0xFF;
-  var->vd.typeprop = 0xFF;
+  var->vd.hint = HT_MIXED;
+  var->vd.prop = HT_MIXED;
   var->vd.name = name;
   var->vd.linenumber = ls->linenumber;
   return dyd->actvar.n - 1 - fs->firstlocal;
@@ -1079,16 +1065,16 @@ static int block_follow (LexState *ls, int withuntil) {
 }
 
 
-static void statlist (LexState *ls, lu_byte *prop = nullptr) {
+static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
   /* statlist -> { stat [';'] } */
   while (!block_follow(ls, 1)) {
     if (ls->t.token == TK_RETURN) {
       statement(ls, prop);
       return;  /* 'return' must be last statement */
     }
-    lu_byte p = 0xFE;
+    TypeDesc p = HT_MIXED;
     statement(ls, &p);
-    if (p != 0xFE) prop = nullptr; /* multiple return paths, don't propagate return type */
+    if (p.getType() != HT_MIXED) prop = nullptr; /* multiple return paths, don't propagate return type */
   }
 }
 
@@ -1235,7 +1221,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 }
 
 
-static void body (LexState *ls, expdesc *e, int ismethod, int line, lu_byte *prop = nullptr);
+static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop = nullptr);
 static void funcfield (LexState *ls, struct ConsControl *cc) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
@@ -1352,7 +1338,7 @@ static void parlist (LexState *ls) {
 }
 
 
-static void body (LexState *ls, expdesc *e, int ismethod, int line, lu_byte *prop) {
+static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop) {
   /* body ->  '(' parlist ')' block END */
   FuncState new_fs;
   BlockCnt bl;
@@ -1366,15 +1352,15 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, lu_byte *pro
   }
   parlist(ls);
   checknext(ls, ')');
-  lu_byte rethint = gettypehint(ls);
-  lu_byte p = 0xFF;
+  TypeDesc rethint = gettypehint(ls);
+  TypeDesc p = HT_MIXED;
   statlist(ls, &p);
-  if (rethint != 0xFF && /* has type hint for return type? */
-      p != 0xFF) { /* return type is known? */
+  if (rethint.getType() != HT_MIXED && /* has type hint for return type? */
+      p.getType() != HT_MIXED) { /* return type is known? */
     std::string err = "function was hinted to return ";
-    err.append(vk_toTypeString(rethint));
+    err.append(rethint.toString());
     err.append(" but actually returns ");
-    err.append(vk_toTypeString(p));
+    err.append(p.toString());
     throw_warn(ls, err.c_str(), line);
   }
   if (prop) *prop = p; /* propagate return type */
@@ -1410,7 +1396,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
 }
 
 
-static int explist (LexState *ls, expdesc *v, lu_byte *prop = nullptr) {
+static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
   expr(ls, v, prop);
@@ -1575,7 +1561,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
-static void suffixedexp (LexState *ls, expdesc *v, lu_byte *prop = nullptr) {
+static void suffixedexp (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   FuncState *fs = ls->fs;
@@ -1608,7 +1594,7 @@ static void suffixedexp (LexState *ls, expdesc *v, lu_byte *prop = nullptr) {
       }
       case '(': case TK_STRING: case '{': {  /* funcargs */
         if (prop != nullptr && v->k == VLOCAL)
-          *prop = getlocalvardesc(ls->fs, v->u.var.vidx)->vd.typeprop;
+          *prop = getlocalvardesc(ls->fs, v->u.var.vidx)->vd.prop;
         luaK_exp2nextreg(fs, v);
         funcargs(ls, v, line);
         break;
@@ -1642,39 +1628,39 @@ static void ifexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, lu_byte *prop = nullptr) {
+static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, TypeDesc *prop = nullptr) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
     case TK_FLT: {
-      if (prop) *prop = VKINT;
+      if (prop) *prop = HT_NUMBER;
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       break;
     }
     case TK_INT: {
-      if (prop) *prop = VKINT;
+      if (prop) *prop = HT_NUMBER;
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       break;
     }
     case TK_STRING: {
-      if (prop) *prop = VKSTR;
+      if (prop) *prop = HT_STR;
       codestring(v, ls->t.seminfo.ts);
       break;
     }
     case TK_NIL: {
-      if (prop) *prop = VNIL;
+      if (prop) *prop = HT_NIL;
       init_exp(v, VNIL, 0);
       break;
     }
     case TK_TRUE: {
-      if (prop) *prop = VTRUE;
+      if (prop) *prop = HT_BOOL;
       init_exp(v, VTRUE, 0);
       break;
     }
     case TK_FALSE: {
-      if (prop) *prop = VTRUE;
+      if (prop) *prop = HT_BOOL;
       init_exp(v, VFALSE, 0);
       break;
     }
@@ -1790,7 +1776,7 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, lu_byte *prop = nullptr) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nullptr) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
@@ -1818,7 +1804,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, lu_byte *prop = null
     simpleexp(ls, v, false, prop);
     if (ls->t.token == TK_IN) {
       inexpr(ls, v);
-      if (prop) *prop = VTRUE;
+      if (prop) *prop = HT_BOOL;
     }
   }
   /* expand while operators have priorities higher than 'limit' */
@@ -1839,7 +1825,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, lu_byte *prop = null
 }
 
 
-static void expr (LexState *ls, expdesc *v, lu_byte *prop) {
+static void expr (LexState *ls, expdesc *v, TypeDesc *prop) {
   subexpr(ls, v, 0, prop);
 }
 
@@ -2053,7 +2039,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       return;  /* avoid default */
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
-      lu_byte prop;
+      TypeDesc prop = HT_MIXED;
       int nexps = explist(ls, &e, &prop);
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
@@ -2481,7 +2467,7 @@ static void forstat (LexState *ls, int line) {
 }
 
 
-static void test_then_block (LexState *ls, int *escapelist, lu_byte *prop) {
+static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
   /* test_then_block -> [IF | ELSEIF] cond THEN block */
   BlockCnt bl;
   FuncState *fs = ls->fs;
@@ -2518,7 +2504,7 @@ static void test_then_block (LexState *ls, int *escapelist, lu_byte *prop) {
 }
 
 
-static void ifstat (LexState *ls, int line, lu_byte *prop = nullptr) {
+static void ifstat (LexState *ls, int line, TypeDesc *prop = nullptr) {
   /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
   FuncState *fs = ls->fs;
   int escapelist = NO_JUMP;  /* exit list for finished parts */
@@ -2538,7 +2524,7 @@ static void localfunc (LexState *ls) {
   int fvar = fs->nactvar;  /* function's variable index */
   new_localvar(ls, str_checkname(ls, true));  /* new local variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
-  body(ls, &b, 0, ls->linenumber, &getlocalvardesc(fs, fvar)->vd.typeprop);  /* function created in next register */
+  body(ls, &b, 0, ls->linenumber, &getlocalvardesc(fs, fvar)->vd.prop);  /* function created in next register */
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
 }
@@ -2575,17 +2561,17 @@ static void localstat (LexState *ls) {
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
   int vidx, kind;  /* index and kind of last variable */
-  lu_byte typehint;
+  TypeDesc hint = HT_MIXED;
   int nvars = 0;
   int nexps;
   expdesc e;
   do {
     vidx = new_localvar(ls, str_checkname(ls, true));
-    typehint = gettypehint(ls);
+    hint = gettypehint(ls);
     kind = getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
-    var->vd.typehint = typehint;
+    var->vd.hint = hint;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
       if (toclose != -1)  /* one already present? */
         luaK_semerror(ls, "multiple to-be-closed variables in local list");
@@ -2593,7 +2579,7 @@ static void localstat (LexState *ls) {
     }
     nvars++;
   } while (testnext(ls, ','));
-  lu_byte prop = 0xFF;
+  TypeDesc prop = HT_MIXED;
   if (testnext(ls, '='))
     nexps = explist(ls, &e, &prop);
   else {
@@ -2663,7 +2649,7 @@ static void exprstat (LexState *ls) {
 }
 
 
-static void retstat (LexState *ls, lu_byte *prop) {
+static void retstat (LexState *ls, TypeDesc *prop) {
   /* stat -> RETURN [explist] [';'] */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -2695,7 +2681,7 @@ static void retstat (LexState *ls, lu_byte *prop) {
 }
 
 
-static void statement (LexState *ls, lu_byte *prop) {
+static void statement (LexState *ls, TypeDesc *prop) {
   int line = ls->linenumber;  /* may be needed for error messages */
   enterlevel(ls);
   switch (ls->t.token) {
