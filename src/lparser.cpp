@@ -477,6 +477,7 @@ static int new_localvar (LexState *ls, TString *name) {
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
+  var->vd.typehint = 0xFF;
   var->vd.name = name;
   var->vd.linenumber = ls->linenumber;
   return dyd->actvar.n - 1 - fs->firstlocal;
