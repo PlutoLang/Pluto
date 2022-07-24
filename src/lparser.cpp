@@ -2237,21 +2237,6 @@ inline bool testnext2 (LexState *ls, int token1, int token2) {
 }
 
 
-static const char* expandexpr (LexState *ls) {
-  switch (ls->t.token) {
-    case '{': {
-      return "{}";
-    }
-    case TK_FUNCTION: {
-      return "function (";
-    }
-    default: {
-      return getstr(ls->t.seminfo.ts);
-    }
-  }
-}
-
-
 static void switchstat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   BlockCnt sbl, cbl; // Switch & case blocks.
