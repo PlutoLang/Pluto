@@ -1531,7 +1531,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
         err.append(param.vd.hint.toString());
         err.append(" but provided with ");
         err.append(arg.toString());
-        throw_warn(ls, err.c_str(), "argument type mismatch");
+        throw_warn(ls, err.c_str(), "argument type mismatch", line);
       }
     }
   }
