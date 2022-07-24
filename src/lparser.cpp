@@ -1099,7 +1099,7 @@ static void propagate_return_type(LexState* ls, TypeDesc* prop, TypeDesc ret) {
   }
 }
 
-static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
+static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implies_nil = false) {
   /* statlist -> { stat [';'] } */
   bool ret = false;
   while (!block_follow(ls, 1)) {
@@ -1113,8 +1113,9 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
     if (ret) break;
   }
   if (prop && /* do we need to propagate the return type? */
-      !ret) { /* had no return statement? */
-    propagate_return_type(ls, prop, VT_NIL); /* implied nil return */
+      !ret && /* had no return statement? */
+      no_ret_implies_nil) { /* does that imply a nil return? */
+    propagate_return_type(ls, prop, VT_NIL); /* propagate */
   }
 }
 
@@ -1396,7 +1397,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   checknext(ls, ')');
   TypeDesc rethint = gettypehint(ls);
   TypeDesc p = VT_DUNNO;
-  statlist(ls, &p);
+  statlist(ls, &p, true);
   if (rethint.getType() != VT_DUNNO && /* has type hint for return type? */
       p.getType() != VT_DUNNO && /* return type is known? */
       !rethint.isCompatibleWith(p)) { /* incompatible? */
