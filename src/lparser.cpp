@@ -10,12 +10,14 @@
 #include "lprefix.h"
 
 
-#include <string>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
+
+#include <string>
+#include <vector>
 
 #include "lua.h"
 #include "lcode.h"
@@ -181,6 +183,10 @@ static void throw_warn(LexState* ls, const char* err, int linenumber) {
   auto msg = luaG_addinfo(ls->L, err, ls->source, linenumber);
   lua_warning(ls->L, msg, 0);
   ls->L->top -= 1; /* remove warning from stack */
+}
+
+static void throw_warn(LexState* ls, const char* err) {
+  return throw_warn(ls, err, ls->linenumber);
 }
 
 
@@ -1442,6 +1448,18 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
 }
 
 
+static int explist (LexState *ls, expdesc *v, std::vector<TypeDesc>& prop) {
+  /* explist -> expr { ',' expr } */
+  int n = 1;  /* at least one expression */
+  expr(ls, v, &prop.emplace_back(VT_DUNNO));
+  while (testnext(ls, ',')) {
+    luaK_exp2nextreg(ls->fs, v);
+    expr(ls, v, &prop.emplace_back(VT_DUNNO));
+    n++;
+  }
+  return n;
+}
+
 static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
@@ -1455,9 +1473,10 @@ static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
 }
 
 
-static void funcargs (LexState *ls, expdesc *f, int line) {
+static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = nullptr) {
   FuncState *fs = ls->fs;
   expdesc args;
+  std::vector<TypeDesc> argdescs;
   int base, nparams;
   switch (ls->t.token) {
     case '(': {  /* funcargs -> '(' [ explist ] ')' */
@@ -1465,7 +1484,7 @@ static void funcargs (LexState *ls, expdesc *f, int line) {
       if (ls->t.token == ')')  /* arg list is empty? */
         args.k = VVOID;
       else {
-        explist(ls, &args);
+        explist(ls, &args, argdescs);
         if (hasmultret(args.k))
           luaK_setmultret(fs, &args);
       }
@@ -1473,16 +1492,36 @@ static void funcargs (LexState *ls, expdesc *f, int line) {
       break;
     }
     case '{': {  /* funcargs -> constructor */
+      argdescs = { TypeDesc{ VT_TABLE } };
       constructor(ls, &args);
       break;
     }
     case TK_STRING: {  /* funcargs -> STRING */
+      argdescs = { TypeDesc{ VT_STR } };
       codestring(&args, ls->t.seminfo.ts);
       luaX_next(ls);  /* must use 'seminfo' before 'next' */
       break;
     }
     default: {
       luaX_syntaxerror(ls, "function arguments expected");
+    }
+  }
+  if (funcdesc) {
+    for (int i = 0; i != funcdesc->getNumParams(); ++i) {
+      Vardesc& param = funcdesc->getParam(ls, i);
+      if (param.vd.hint.getType() == VT_DUNNO) continue; /* skip parameters without type hint */
+      TypeDesc arg = VT_NIL;
+      if (i < argdescs.size())
+        arg = argdescs.at(i);
+      if (!param.vd.hint.isCompatibleWith(arg)) {
+        std::string err = "Function's ";;
+        err.append(param.vd.name->contents, param.vd.name->size());
+        err.append(" parameter was type-hinted as ");
+        err.append(param.vd.hint.toString());
+        err.append(" but provided with ");
+        err.append(arg.toString());
+        throw_warn(ls, err.c_str(), "argument type mismatch");
+      }
     }
   }
   lua_assert(f->k == VNONRELOC);
@@ -1639,14 +1678,18 @@ static void suffixedexp (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
         break;
       }
       case '(': case TK_STRING: case '{': {  /* funcargs */
-        if (prop != nullptr && v->k == VLOCAL) {
+        TypeDesc* funcdesc = nullptr;
+        if (v->k == VLOCAL) {
           auto fvar = getlocalvardesc(ls->fs, v->u.var.vidx);
           if (fvar->vd.prop.getType() == VT_FUNC) { /* just in case... */
-            prop->fromReturn(fvar->vd.prop);
+            funcdesc = &fvar->vd.prop;
+            if (prop) { /* propagate return type */
+              prop->fromReturn(fvar->vd.prop);
+            }
           }
         }
         luaK_exp2nextreg(fs, v);
-        funcargs(ls, v, line);
+        funcargs(ls, v, line, funcdesc);
         break;
       }
       default: return;
