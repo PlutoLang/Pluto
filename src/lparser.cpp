@@ -1459,13 +1459,18 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
 }
 
 
+static void expr_propagate(LexState *ls, expdesc* v, TypeDesc& td) {
+  expr(ls, v, &td);
+  exp_propagate(ls, *v, td);
+}
+
 static int explist (LexState *ls, expdesc *v, std::vector<TypeDesc>& prop) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
-  expr(ls, v, &prop.emplace_back(VT_DUNNO));
+  expr_propagate(ls, v, prop.emplace_back(VT_DUNNO));
   while (testnext(ls, ',')) {
     luaK_exp2nextreg(ls->fs, v);
-    expr(ls, v, &prop.emplace_back(VT_DUNNO));
+    expr_propagate(ls, v, prop.emplace_back(VT_DUNNO));
     n++;
   }
   return n;
