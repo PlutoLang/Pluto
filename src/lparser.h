@@ -114,50 +114,19 @@ enum ValType : lu_byte {
   NUL_VAL_TYPES
 };
 
-[[nodiscard]] inline const char* vt_toString(ValType vt) noexcept {
-   switch (vt)
-   {
-   case VT_DUNNO: return "dunno";
-   case VT_MIXED: return "mixed";
-   case VT_NIL: return "nil";
-   case VT_NUMBER: return "number";
-   case VT_BOOL: return "boolean";
-   case VT_STR: return "string";
-   case VT_TABLE: return "table";
-   case VT_FUNC: return "function";
-   case NUL_VAL_TYPES: break;
-   }
-   return "ERROR";
-}
-
-union Vardesc;
-
-class TypeDesc
-{
-private:
-  /*
-  ** 4 bits for type. if function, another 4 bits for return type.
-  ** type consists of 3 bits for ValType, and 1 bit for nullable.
-  */
+struct PrimitiveType {
+  /* 3 bits for ValType, and 1 bit for nullable. */
   lu_byte data;
   static_assert((NUL_VAL_TYPES - 1) <= 0b111);
 
-  /* parameter info for functions */
-  int numparams;
-  int firstlocal;
-
-public:
-  TypeDesc(ValType vt, bool nullable = false)
-    : data(vt | (nullable << 3))
+  PrimitiveType()
+    : PrimitiveType(VT_DUNNO)
   {
   }
 
-  void setFunction(int numparams, int firstlocal, ValType ret_typ, bool ret_nullable) noexcept {
-    this->data = VT_FUNC;
-    this->data |= (ret_typ << 4);
-    this->data |= (ret_nullable << 7);
-    this->numparams = numparams;
-    this->firstlocal = firstlocal;
+  PrimitiveType(ValType vt, bool nullable = false)
+    : data(vt | (nullable << 3))
+  {
   }
 
   [[nodiscard]] ValType getType() const noexcept {
@@ -172,25 +141,7 @@ public:
     data |= (1 << 3);
   }
 
-  [[nodiscard]] ValType getReturnType() const noexcept {
-    return (ValType)((data >> 4) & 0b111);
-  }
-
-  [[nodiscard]] bool isReturnNullable() const noexcept {
-    return (data >> 7) & 1;
-  }
-
-  [[nodiscard]] int getNumParams() const noexcept {
-      return numparams;
-  }
-
-  void fromReturn(TypeDesc& retdesc) noexcept {
-    data = (retdesc.data >> 4);
-  }
-
-  [[nodiscard]] Vardesc& getParam(LexState* ls, int i) const noexcept;
-
-  [[nodiscard]] bool isCompatibleWith(const TypeDesc& b) const noexcept {
+  [[nodiscard]] bool isCompatibleWith(const PrimitiveType& b) const noexcept {
     const auto b_t = b.getType();
     return (getType() == b_t)
         ? (isNullable() || !b.isNullable()) /* if same type, b can't be nullable if a isn't nullable */
@@ -199,22 +150,87 @@ public:
   }
 
   [[nodiscard]] std::string toString() const {
-    auto vt = getType();
     std::string str{};
-    if (isNullable()) {
+    if (isNullable())
       str.push_back('?');
+    switch (getType())
+    {
+    case VT_DUNNO: str.append("dunno"); break;
+    case VT_MIXED: str.append("mixed"); break;
+    case VT_NIL: str.append("nil"); break;
+    case VT_NUMBER: str.append("number"); break;
+    case VT_BOOL: str.append("boolean"); break;
+    case VT_STR: str.append("string"); break;
+    case VT_TABLE: str.append("table"); break;
+    case VT_FUNC: str.append("function"); break;
+    default: str.append("ERROR"); break;
     }
-    str.append(vt_toString(vt));
-    if (vt == VT_FUNC) {
-      auto rt = getReturnType();
-      if (rt != VT_DUNNO) {
-        str.push_back('(');
-        if (isReturnNullable()) {
-          str.push_back('?');
-        }
-        str.append(vt_toString(rt));
-        str.push_back(')');
-      }
+    return str;
+  }
+};
+
+union Vardesc;
+
+struct TypeDesc
+{
+  PrimitiveType primitive;
+
+  /* function info */
+  PrimitiveType retn;
+  lu_byte numparams;
+  static constexpr int MAX_PARAMS = 10;
+  PrimitiveType params[MAX_PARAMS];
+
+  TypeDesc() = default;
+
+  TypeDesc(ValType vt, bool nullable = false)
+    : primitive(vt, nullable)
+  {
+  }
+
+  TypeDesc(PrimitiveType p)
+    : primitive(p)
+  {
+  }
+
+  [[nodiscard]] ValType getType() const noexcept {
+    return primitive.getType();
+  }
+
+  [[nodiscard]] bool isNullable() const noexcept {
+    return primitive.isNullable();
+  }
+
+  void setNullable() noexcept {
+    primitive.setNullable();
+  }
+
+  [[nodiscard]] ValType getReturnType() const noexcept {
+    return retn.getType();
+  }
+
+  [[nodiscard]] bool isReturnNullable() const noexcept {
+    return retn.isNullable();
+  }
+
+  void setNumParams(int numparams) noexcept {
+    if (numparams > MAX_PARAMS)
+      this->numparams = MAX_PARAMS;
+    else
+      this->numparams = numparams;
+  }
+
+  [[nodiscard]] bool isCompatibleWith(const TypeDesc& b) const noexcept {
+    return primitive.isCompatibleWith(b.primitive);
+  }
+
+  [[nodiscard]] std::string toString() const {
+    std::string str = primitive.toString();
+    if (primitive.getType() == VT_FUNC &&
+        getReturnType() != VT_DUNNO) {
+      str.push_back('(');
+      str.append(retn.toString());
+      str.push_back(')');
     }
     return str;
   }

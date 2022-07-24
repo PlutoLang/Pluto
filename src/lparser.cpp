@@ -1425,7 +1425,14 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     throw_warn(ls, err.c_str(), line);
   }
   if (prop) { /* propagate type of function */
-    prop->setFunction(new_fs.f->numparams, new_fs.firstlocal, p.getType(), p.isNullable());
+    *prop = VT_FUNC;
+    prop->retn = p.primitive;
+    prop->setNumParams(new_fs.f->numparams);
+    int vidx = new_fs.firstlocal;
+    for (int i = 0; i != prop->numparams; ++i) {
+      prop->params[i] = ls->dyd->actvar.arr[vidx].vd.hint.primitive;
+      ++vidx;
+    }
   }
   new_fs.f->lastlinedefined = ls->getLineNumber();
   check_match(ls, TK_END, TK_FUNCTION, line);
@@ -1488,6 +1495,13 @@ static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
   return n;
 }
 
+static std::string format_nth(int i) {
+  if (i == 1) return "first";
+  if (i == 2) return "second";
+  std::string str = std::to_string(i);
+  str.append("th");
+  return str;
+}
 
 static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = nullptr) {
   FuncState *fs = ls->fs;
@@ -1523,9 +1537,9 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
     }
   }
   if (funcdesc) {
-    for (int i = 0; i != funcdesc->getNumParams(); ++i) {
-      Vardesc& param = funcdesc->getParam(ls, i);
-      if (param.vd.hint.getType() == VT_DUNNO)
+    for (int i = 0; i != funcdesc->numparams; ++i) {
+      const PrimitiveType& param_hint = funcdesc->params[i];
+      if (param_hint.getType() == VT_DUNNO)
         continue; /* skip parameters without type hint */
       TypeDesc arg = VT_NIL;
       if (i < (int)argdescs.size()) {
@@ -1533,11 +1547,11 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
         if (arg.getType() == VT_DUNNO)
           continue; /* skip arguments without propagated type */
       }
-      if (!param.vd.hint.isCompatibleWith(arg)) {
+      if (!param_hint.isCompatibleWith(arg.primitive)) {
         std::string err = "Function's ";;
-        err.append(param.vd.name->contents, param.vd.name->size());
+        err.append(format_nth(i + 1));
         err.append(" parameter was type-hinted as ");
-        err.append(param.vd.hint.toString());
+        err.append(param_hint.toString());
         err.append(" but provided with ");
         err.append(arg.toString());
         throw_warn(ls, err.c_str(), "argument type mismatch", line);
@@ -1704,7 +1718,7 @@ static void suffixedexp (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
           if (fvar->vd.prop.getType() == VT_FUNC) { /* just in case... */
             funcdesc = &fvar->vd.prop;
             if (prop) { /* propagate return type */
-              prop->fromReturn(fvar->vd.prop);
+              *prop = fvar->vd.prop.retn;
             }
           }
         }
@@ -2620,7 +2634,9 @@ static void localfunc (LexState *ls) {
   int fvar = fs->nactvar;  /* function's variable index */
   new_localvar(ls, str_checkname(ls, true));  /* new local variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
-  body(ls, &b, 0, ls->getLineNumber(), &getlocalvardesc(fs, fvar)->vd.prop);  /* function created in next register */
+  TypeDesc funcdesc;
+  body(ls, &b, 0, ls->getLineNumber(), &funcdesc);  /* function created in next register */
+  getlocalvardesc(fs, fvar)->vd.prop = std::move(funcdesc);
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
 }
@@ -2936,9 +2952,4 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   lua_assert(dyd->actvar.n == 0 && dyd->gt.n == 0 && dyd->label.n == 0);
   L->top--;  /* remove scanner's table */
   return cl;  /* closure is on the stack, too */
-}
-
-
-Vardesc& TypeDesc::getParam(LexState* ls, int i) const noexcept {
-  return ls->dyd->actvar.arr[firstlocal + i];
 }
