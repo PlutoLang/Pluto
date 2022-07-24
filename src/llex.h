@@ -150,7 +150,7 @@ struct LexState {
   }
 
   [[nodiscard]] const std::string& GetLineBuff(SourceInfoStrategy strat) const noexcept {
-    return strat == current ? linebuff : lastlinebuff;
+    return strat == CURRENT ? linebuff : lastlinebuff;
   }
 
   [[nodiscard]] int GetLineNumber(SourceInfoStrategy strat) const noexcept {
