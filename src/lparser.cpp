@@ -1776,6 +1776,7 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, TypeDesc *prop =
       break;
     }
     case '{': {  /* constructor */
+      if (prop) *prop = VT_TABLE;
       constructor(ls, v);
       return;
     }
