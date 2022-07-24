@@ -215,6 +215,54 @@ print "Testing new 'in' expressions."
 if ("hel" in "hello") != true then error() end
 if ("abc" in "hello") != false then error() end
 
+print "Testing break N syntax."
+do
+    local sum = 0
+    for i = 1, 10 do
+        for ii = 1, 10 do
+            sum = sum + ii + i
+            break 1
+        end
+        sum = sum + i
+    end
+    assert(sum == 120)
+end
+
+do
+    local sum = 0
+    for i = 1, 10 do
+        for ii = 1, 10 do
+            sum = sum + ii + i
+            break 2
+        end
+        sum = sum + i
+    end
+    assert(sum == 2)
+end
+
+do
+    local sum = 0
+    for i = 1, 10 do
+        for ii = 1, 10 do
+            sum = sum + ii + i
+            for iii = 1, 10 do
+                sum = sum + iii + ii + i
+                break 3
+            end
+        end
+        sum = sum + i
+    end
+    assert(sum == 5)
+end
+
+do
+    while true do
+        if true then
+            break
+        end
+    end
+end
+
 print "Testing switch statement."
 do
     local value = 5

@@ -63,6 +63,7 @@
 */
 typedef struct BlockCnt {
   struct BlockCnt *previous;  /* chain */
+  int breaklist;  /* list of jumps out of this loop */
   int scopeend;  /* delimits the end of this scope, for 'continue' to jump before. */
   int firstlabel;  /* index of first label in this block */
   int firstgoto;  /* index of first pending goto in this block */
@@ -936,6 +937,7 @@ static void movegotosout (FuncState *fs, BlockCnt *bl) {
 
 
 static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
+  bl->breaklist = NO_JUMP;
   bl->isloop = isloop;
   bl->scopeend = NO_JUMP;
   bl->nactvar = fs->nactvar;
@@ -986,6 +988,7 @@ static void leaveblock (FuncState *fs) {
     if (bl->firstgoto < ls->dyd->gt.n)  /* pending gotos in outer block? */
       undefgoto(ls, &ls->dyd->gt.arr[bl->firstgoto]);  /* error */
   }
+  luaK_patchtohere(fs, bl->breaklist);
 }
 
 
@@ -2217,12 +2220,42 @@ static void gotostat (LexState *ls) {
 
 
 /*
-** Break statement. Semantically equivalent to "goto break".
+** Break statement. Very similiar to `continue` usage, but it jumps slightly more forward.
+**
+** Implementation Detail:
+**   Unlike normal Lua, it has been reverted from a label implementation back into a mix between a label & patchlist implementation.
+**   This allows reusage of the existing "continue" implementation, which has been time-tested extensively by now.
 */
 static void breakstat (LexState *ls) {
-  int line = ls->getLineNumber();
-  luaX_next(ls);  /* skip break */
-  newgotoentry(ls, luaS_newliteral(ls->L, "break"), line, luaK_jump(ls->fs));
+  FuncState *fs = ls->fs;
+  BlockCnt *bl = fs->bl;
+  int upval = 0;
+  luaX_next(ls); /* skip TK_BREAK */
+  lua_Integer backwards = 1;
+  if (ls->t.token == TK_INT) {
+    backwards = ls->t.seminfo.i;
+    luaX_next(ls);
+  }
+  while (bl) {
+    if (!bl->isloop) { /* not a loop, continue search */
+      upval |= bl->upval; /* amend upvalues for closing. */
+      bl = bl->previous; /* jump back current blocks to find the loop */
+    }
+    else { /* found a loop */
+      if (--backwards == 0) { /* this is our loop */
+        break;
+      }
+      else { /* continue search */
+        upval |= bl->upval;
+        bl = bl->previous;
+      }
+    };
+  }
+  if (bl) {
+    if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
+    luaK_concat(fs, &bl->breaklist, luaK_jump(fs));
+  }
+  else error_expected(ls, TK_BREAK);
 }
 
 
