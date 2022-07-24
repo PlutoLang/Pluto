@@ -2139,6 +2139,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       else {
         luaK_setoneret(ls->fs, &e);  /* close last expression */
         if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
+          exp_propagate(ls, e, prop);
           process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), prop);
         }
         luaK_storevar(ls->fs, &lh->v, &e);
