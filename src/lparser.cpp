@@ -1520,7 +1520,8 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
   if (funcdesc) {
     for (int i = 0; i != funcdesc->getNumParams(); ++i) {
       Vardesc& param = funcdesc->getParam(ls, i);
-      if (param.vd.hint.getType() == VT_DUNNO)continue; /* skip parameters without type hint */
+      if (param.vd.hint.getType() == VT_DUNNO)
+        continue; /* skip parameters without type hint */
       TypeDesc arg = VT_NIL;
       if (i < (int)argdescs.size())
         arg = argdescs.at(i);
