@@ -1501,6 +1501,7 @@ static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
 static std::string format_nth(int i) {
   if (i == 1) return "first";
   if (i == 2) return "second";
+  if (i == 3) return "third";
   std::string str = std::to_string(i);
   str.append("th");
   return str;
