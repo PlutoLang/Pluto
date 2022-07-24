@@ -1523,8 +1523,11 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       if (param.vd.hint.getType() == VT_DUNNO)
         continue; /* skip parameters without type hint */
       TypeDesc arg = VT_NIL;
-      if (i < (int)argdescs.size())
+      if (i < (int)argdescs.size()) {
         arg = argdescs.at(i);
+        if (arg.getType() == VT_DUNNO)
+          continue; /* skip arguments without propagated type */
+      }
       if (!param.vd.hint.isCompatibleWith(arg)) {
         std::string err = "Function's ";;
         err.append(param.vd.name->contents, param.vd.name->size());
