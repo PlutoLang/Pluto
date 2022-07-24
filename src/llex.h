@@ -5,8 +5,10 @@
 ** See Copyright Notice in lua.h
 */
 
-#include <string>
 #include <limits.h>
+
+#include <string>
+#include <vector>
 
 #include "lobject.h"
 #include "lzio.h"
@@ -106,13 +108,8 @@ struct Token {
 #endif
 
 struct LexState {
-  enum SourceInfoStrategy : lu_byte {
-    CURRENT = 0,
-    LAST,
-  };
-
   int current;  /* current character (charint) */
-  int linenumber;  /* input line counter */
+  std::vector<std::string> lines;
   int lastline;  /* line of last token 'consumed' */
   int lasttoken;  /* save the last compound binary operator, if exists */
   Token t;  /* current token */
@@ -121,40 +118,43 @@ struct LexState {
   struct lua_State *L;
   ZIO *z;  /* input stream */
   Mbuffer *buff;  /* buffer for tokens */
-  std::string linebuff; /* buffer for lines */
-  std::string lastlinebuff; /* buffer for the last line */
-  int lastlinebuffnum; /* last line number for lastlinebuff */
   Table *h;  /* to avoid collection/reuse strings */
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
 
-  // Return the last non-whitespace line.
-  const char *GetLatestLine() {
-    if (linebuff.find_first_not_of(" \t") == std::string::npos) {
-      if (lastlinebuff.find_first_not_of(" \t") != std::string::npos) {
-        return lastlinebuff.c_str();
-      }
-    }
-    return linebuff.c_str();
+  LexState()
+    : lines{ std::string{} }
+  {
   }
 
-  // Return the line number of the last latest line (see above).
-  int GetLastLineNumber() {
-    if (linebuff.find_first_not_of(" \t") == std::string::npos) {
-      if (lastlinebuff.find_first_not_of(" \t") != std::string::npos) {
-        return lastlinebuffnum;
-      }
-    }
-    return linenumber;
+  [[nodiscard]] int getLineNumber() const noexcept {
+    return (int)lines.size();
   }
 
-  [[nodiscard]] const std::string& GetLineBuff(SourceInfoStrategy strat) const noexcept {
-    return strat == current ? linebuff : lastlinebuff;
+  [[nodiscard]] int getLineNumberOfLastNonEmptyLine() const noexcept {
+     for (int line = getLineNumber(); line != 0; --line) {
+       if (!getLineString(line).empty()) {
+         return line;
+       }
+     }
+     return getLineNumber();
   }
 
-  [[nodiscard]] int GetLineNumber(SourceInfoStrategy strat) const noexcept {
-    return strat == CURRENT ? linenumber : lastline;
+  [[nodiscard]] const std::string& getLineString(int line) const {
+     return lines.at(line - 1);
+  }
+
+  [[nodiscard]] std::string& getLineBuff() {
+    return lines.back();
+  }
+
+  void appendLineBuff(const std::string& str) {
+    getLineBuff().append(str);
+  }
+
+  void appendLineBuff(char c) {
+    getLineBuff().push_back(c);
   }
 };
 

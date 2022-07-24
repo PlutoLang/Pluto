@@ -283,6 +283,17 @@ do
         pluto_default:
         error()
     end
+    value = +3
+    pluto_switch value do
+        pluto_case +1:
+        pluto_case +2:
+        pluto_case +3:
+        pluto_case +4:
+        pluto_case +5:
+        break
+        pluto_default:
+        error()
+    end
     value = "foo"
     pluto_switch (value) do
         pluto_case "foo":
