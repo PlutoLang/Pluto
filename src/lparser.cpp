@@ -441,6 +441,18 @@ static void exp_propagate(LexState* ls, const expdesc& e, TypeDesc& t) noexcept 
   if (e.k == VLOCAL) {
     t = getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop;
   }
+  else if (e.k == VCONST) {
+    TValue* val = &ls->dyd->actvar.arr[e.u.info].k;
+    switch (ttype(val))
+    {
+    case LUA_TNIL: t = VT_NIL; break;
+    case LUA_TBOOLEAN: t = VT_BOOL; break;
+    case LUA_TNUMBER: t = VT_NUMBER; break;
+    case LUA_TSTRING: t = VT_STR; break;
+    case LUA_TTABLE: t = VT_TABLE; break;
+    case LUA_TFUNCTION: t = VT_FUNC; break;
+    }
+  }
 }
 
 
