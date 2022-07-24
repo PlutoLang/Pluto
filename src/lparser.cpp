@@ -185,9 +185,9 @@ static void throw_warn(LexState* ls, const char* err, int linenumber) {
   ls->L->top -= 1; /* remove warning from stack */
 }
 
-static void throw_warn(LexState* ls, const char* err) {
+/*static void throw_warn(LexState* ls, const char* err) {
   return throw_warn(ls, err, ls->linenumber);
-}
+}*/
 
 
 /*
@@ -446,24 +446,24 @@ static void exp_propagate(LexState* ls, const expdesc& e, TypeDesc& t) noexcept 
 
 
 static void process_assign(LexState* ls, Vardesc* var, TypeDesc td) {
-  if (var->vd.hint.getType() != VT_DUNNO && /* var has type hint? */
-      td.getType() != VT_DUNNO && /* assigned value is known? */
-      !var->vd.hint.isCompatibleWith(td) /* incompatible? */
-      ) {
+  auto hinted = var->vd.hint.getType() != VT_DUNNO;
+  auto knownvalue = td.getType() != VT_DUNNO;
+  auto incompatible = !var->vd.hint.isCompatibleWith(td);
+  if (hinted && knownvalue && incompatible) {
+    const auto hint = var->vd.hint.toString();
     std::string err = var->vd.name->toCpp();
-    err.append(" was type-hinted as ");
-    err.append(var->vd.hint.toString());
-    err.append(" but is assigned a ");
+    err.insert(0, "'");
+    err.append("' was type-hinted as '" + hint);
+    err.append("', but is assigned a ");
     err.append(td.toString());
-    err.append(" value");
-    if (td.getType() == VT_NIL) {
-      err.append(" (you possibly meant to type-hint ");
-      err.append(var->vd.name->toCpp());
-      err.append(" as ?");
-      err.append(var->vd.hint.toString());
-      err.push_back(')');
+    err.append(" value.");
+    if (td.getType() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
+      throw_warn(ls, err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), LexState::LAST);
+      ls->L->top--;
     }
-    throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
+    else {  /* Throw a generic warning. */
+      throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
+    }
   }
 
   var->vd.prop = td; /* propagate type */
@@ -1086,7 +1086,7 @@ static int block_follow (LexState *ls, int withuntil) {
 }
 
 
-static void propagate_return_type(LexState* ls, TypeDesc* prop, TypeDesc ret) {
+static void propagate_return_type(TypeDesc *prop, TypeDesc ret) {
   if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
     if (prop->getType() == VT_NIL) {
       ret.setNullable();
@@ -1114,14 +1114,14 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implie
     statement(ls, &p);
     if (prop && /* do we need to propagate the return type? */
         p.getType() != VT_DUNNO) { /* is there a return path here? */
-      propagate_return_type(ls, prop, p.getType());
+      propagate_return_type(prop, p.getType());
     }
     if (ret) break;
   }
   if (prop && /* do we need to propagate the return type? */
       !ret && /* had no return statement? */
       no_ret_implies_nil) { /* does that imply a nil return? */
-    propagate_return_type(ls, prop, VT_NIL); /* propagate */
+    propagate_return_type(prop, VT_NIL); /* propagate */
   }
 }
 
@@ -1509,9 +1509,9 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
   if (funcdesc) {
     for (int i = 0; i != funcdesc->getNumParams(); ++i) {
       Vardesc& param = funcdesc->getParam(ls, i);
-      if (param.vd.hint.getType() == VT_DUNNO) continue; /* skip parameters without type hint */
+      if (param.vd.hint.getType() == VT_DUNNO)continue; /* skip parameters without type hint */
       TypeDesc arg = VT_NIL;
-      if (i < argdescs.size())
+      if (i < (int)argdescs.size())
         arg = argdescs.at(i);
       if (!param.vd.hint.isCompatibleWith(arg)) {
         std::string err = "Function's ";;
