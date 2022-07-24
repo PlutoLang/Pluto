@@ -6,8 +6,8 @@
 # Your platform. See PLATS for possible values.
 PLAT= mingw
 
-CXX= g++ -std=c++2a
-CXXFLAGS= -O3 -Wall -Wextra -DLUA_COMPAT_5_3 $(SYSCFLAGS) $(MYCFLAGS)
+CXX= g++ -std=c++2a -O3 -flto
+CXXFLAGS= -Wall -Wextra -DLUA_COMPAT_5_3 $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm $(SYSLIBS) $(MYLIBS)
 
@@ -26,7 +26,7 @@ MYLIBS=
 MYOBJS=
 
 # Special flags for compiler modules; -Os reduces code size.
-CMCFLAGS= -O3
+CMCFLAGS=
 
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
