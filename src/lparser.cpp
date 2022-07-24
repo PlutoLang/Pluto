@@ -2221,6 +2221,7 @@ static void switchstat (LexState *ls, int line) {
     }
     else {
       const auto expr = expandexpr(ls); // Raw text of the expression before the lexer skips tokens.
+      testnext(ls, '+'); /* support pseudo-unary '+' */
       simpleexp(ls, &lcase, true);
       if (!vkisconst(lcase.k)) {
         ls->linebuff.clear();
