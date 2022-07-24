@@ -10,12 +10,14 @@
 #include "lprefix.h"
 
 
-#include <string>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
+
+#include <string>
+#include <vector>
 
 #include "lua.h"
 #include "lcode.h"
@@ -75,19 +77,17 @@ typedef struct BlockCnt {
 /*
 ** prototypes for recursive non-terminal functions
 */
-static void statement (LexState *ls, lu_byte *prop = nullptr);
-static void expr (LexState *ls, expdesc *v, lu_byte *prop = nullptr);
+static void statement (LexState *ls, TypeDesc *prop = nullptr);
+static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr);
 
 
 /*
 ** Formats an error with the appropriate source code snippet.
 */
-static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here,
-                                      LexState::SourceInfoStrategy strat = LexState::CURRENT) {
-  const auto linenumber = ls->GetLineNumber(strat);
-  std::string pad_str(std::to_string(linenumber).length(), ' ');
+static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here, int line) {
+  std::string pad_str(std::to_string(line).length(), ' ');
   const char *pad = pad_str.c_str();
-  const char *text = luaG_addinfo(ls->L, msg, ls->source, linenumber);
+  const char *text = luaG_addinfo(ls->L, msg, ls->source, line);
 #ifdef PLUTO_SHORT_ERRORS
 #ifdef PLUTO_USE_COLORED_OUTPUT
   text = luaO_fmt(ls->L, "%s%s%s", YEL, text, RESET);
@@ -96,10 +96,10 @@ static const char *format_line_error (LexState *ls, const char *msg, const char 
 #endif
 #ifndef PLUTO_USE_COLORED_OUTPUT
   text = luaO_fmt(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          text, pad, linenumber, token, pad, pad, here, pad, pad);
+                          text, pad, line, token, pad, pad, here, pad, pad);
 #else // PLUTO_USE_COLORED_OUTPUT
   text = luaO_fmt(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          YEL, text, RESET, pad, linenumber, token, pad, pad, here, pad, pad);
+                          YEL, text, RESET, pad, line, token, pad, pad, here, pad, pad);
 #endif // PLUTO_USED_COLORED_OUTPUT
   return text;
 }
@@ -156,32 +156,43 @@ static std::string make_warn(const char *s) {
 ** Throws an exception into Lua, which will promptly close the program.
 ** This is only called for vital errors, like lexer and/or syntax problems.
 */
-[[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here) {
-  ls->linenumber = ls->GetLastLineNumber();
-  const std::string& linebuff = ls->GetLatestLine();
+[[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here, int line) {
+  const std::string& linebuff = ls->getLineString(line);
   std::string error = make_err(err);
   std::string rhere = make_here(linebuff, here);
-  format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str());
+  format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line);
   luaD_throw(ls->L, LUA_ERRSYNTAX);
+}
+
+[[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here) {
+  throwerr(ls, err, here, ls->getLineNumber());
 }
 
 
 /*
 ** Throws an warning into standard output, which will not close the program.
 */
-static void throw_warn (LexState *ls, const char *err, const char *here, LexState::SourceInfoStrategy strat = LexState::CURRENT) {
-  const std::string& linebuff = ls->GetLineBuff(strat);
+static void throw_warn (LexState *ls, const char *err, const char *here, int line) {
+  const std::string& linebuff = ls->getLineString(line);
   std::string error = make_warn(err);
   std::string rhere = make_here(linebuff, here);
-  lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), strat), 0);
+  lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line), 0);
   ls->L->top -= 2; /* remove warning from stack */
 }
 
-static void throw_warn(LexState* ls, const char* err, int linenumber) {
+static void throw_warn(LexState *ls, const char *err, const char *here) {
+  return throw_warn(ls, err, here, ls->getLineNumber());
+}
+
+static void throw_warn(LexState *ls, const char *err, int linenumber) {
   auto msg = luaG_addinfo(ls->L, err, ls->source, linenumber);
   lua_warning(ls->L, msg, 0);
   ls->L->top -= 1; /* remove warning from stack */
 }
+
+/*static void throw_warn(LexState *ls, const char *err) {
+  return throw_warn(ls, err, ls->getLineNumber());
+}*/
 
 
 /*
@@ -295,41 +306,35 @@ static void checknext (LexState *ls, int c) {
 */
 static void check_match (LexState *ls, int what, int who, int where) {
   if (l_unlikely(!testnext(ls, what))) {
-    if (where == ls->linenumber)  /* all in the same line? */
+    if (where == ls->getLineNumber())  /* all in the same line? */
       error_expected(ls, what);  /* do not need a complex message */
     else {
       switch (what) {
         case TK_END: {
-          /*
-          ** We need the previous buffers.
-          ** The error is only thrown after meeting a new line.
-          */
-          ls->linebuff = ls->lastlinebuff; // Line of last statement.
-          ls->linenumber = ls->lastlinebuffnum; // Line number of last statement.
           switch (who) {
             case TK_IF: {
               throwerr(ls,
-                "missing 'end' to terminate 'if' statement.", "this was the last statement.");
+                "missing 'end' to terminate 'if' statement.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
             }
             case TK_DO: {
               throwerr(ls,
-                "missing 'end' to terminate 'do' block.", "this was the last statement.");
+                "missing 'end' to terminate 'do' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
             }
             case TK_FOR: {
               throwerr(ls,
-                "missing 'end' to terminate 'for' block.", "this was the last statement.");
+                "missing 'end' to terminate 'for' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
             }
             case TK_WHILE: {
               throwerr(ls,
-                "missing 'end' to terminate 'while' block.", "this was the last statement.");
+                "missing 'end' to terminate 'while' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
             }
             case TK_FUNCTION: {
               throwerr(ls,
-                "missing 'end' to terminate 'function' block.", "this was the last statement.");
+                "missing 'end' to terminate 'function' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
             }
             default: {
               throwerr(ls,
-                "missing 'end' to terminate block.", "missing termination.");
+                "missing 'end' to terminate block.", "missing termination.", ls->getLineNumberOfLastNonEmptyLine());
             }
           }
         }
@@ -409,60 +414,70 @@ static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
 }
 
 
-[[nodiscard]] static lu_byte gettypehint(LexState *ls) noexcept {
-  /* TYPEHINT -> [':' Typename] */
+[[nodiscard]] static TypeDesc gettypehint(LexState *ls) noexcept {
+  /* TYPEHINT -> [':' Typedesc] */
   if (testnext(ls, ':')) {
+    const bool nullable = testnext(ls, '?');
     const char* tname = getstr(str_checkname(ls));
     if (strcmp(tname, "number") == 0)
-      return VKINT ;
+      return { VT_NUMBER, nullable };
     else if (strcmp(tname, "table") == 0)
-      return VNONRELOC;
+      return { VT_TABLE, nullable };
     else if (strcmp(tname, "string") == 0)
-      return VKSTR;
-    else if (strcmp(tname, "userdata") == 0)
-      return 0xFF;
+      return { VT_STR, nullable };
     else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
-      return VTRUE;
-    else if (strcmp(tname, "nil") == 0)
-      return VNIL;
+      return { VT_BOOL, nullable };
     else if (strcmp(tname, "function") == 0)
-      return 0xFF;
-    else
+      return { VT_FUNC, nullable };
+    else if (strcmp(tname, "userdata") != 0)
       luaK_semerror(ls,
         luaO_pushfstring(ls->L, "unknown type hint '%s'", tname));
   }
-  return 0xFF;
+  return VT_DUNNO;
 }
 
 
-[[nodiscard]] static const char* vk_toTypeString(lu_byte kind) noexcept {
-  switch (kind)
-  {
-  case VKINT: case VKFLT: return "number";
-  case VNONRELOC: return "table";
-  case VKSTR: return "string";
-  case VTRUE: case VFALSE: return "boolean";
-  case VNIL: return "nil";
+static void exp_propagate(LexState* ls, const expdesc& e, TypeDesc& t) noexcept {
+  if (e.k == VLOCAL) {
+    t = getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop;
   }
-  return "ERROR";
+  else if (e.k == VCONST) {
+    TValue* val = &ls->dyd->actvar.arr[e.u.info].k;
+    switch (ttype(val))
+    {
+    case LUA_TNIL: t = VT_NIL; break;
+    case LUA_TBOOLEAN: t = VT_BOOL; break;
+    case LUA_TNUMBER: t = VT_NUMBER; break;
+    case LUA_TSTRING: t = VT_STR; break;
+    case LUA_TTABLE: t = VT_TABLE; break;
+    case LUA_TFUNCTION: t = VT_FUNC; break;
+    }
+  }
 }
 
 
-static void process_assign(LexState* ls, Vardesc* var, lu_byte k) {
-  if (var->vd.typehint != 0xFF && /* var has type hint? */
-      k != 0xFF && /* e has known return type? */
-      var->vd.typehint != k /* type mismatch? */
-      ) {
+static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int line) {
+  auto hinted = var->vd.hint.getType() != VT_DUNNO;
+  auto knownvalue = td.getType() != VT_DUNNO;
+  auto incompatible = !var->vd.hint.isCompatibleWith(td);
+  if (hinted && knownvalue && incompatible) {
+    const auto hint = var->vd.hint.toString();
     std::string err = var->vd.name->toCpp();
-    err.append(" was type-hinted as ");
-    err.append(vk_toTypeString(var->vd.typehint));
-    err.append(" but is assigned a ");
-    err.append(vk_toTypeString(k));
-    err.append(" value");
-    throw_warn(ls, err.c_str(), "type mismatch", LexState::LAST);
+    err.insert(0, "'");
+    err.append("' was type-hinted as '" + hint);
+    err.append("', but is assigned a ");
+    err.append(td.toString());
+    err.append(" value.");
+    if (td.getType() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
+      throw_warn(ls, err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line);
+      ls->L->top--;
+    }
+    else {  /* Throw a generic warning. */
+      throw_warn(ls, err.c_str(), "type mismatch", line);
+    }
   }
 
-  var->vd.typeprop = k; /* propagate type */
+  var->vd.prop = td; /* propagate type */
 }
 
 
@@ -509,7 +524,7 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
 */
-static int new_localvar (LexState *ls, TString *name) {
+static int new_localvar (LexState *ls, TString *name, const TypeDesc& hint = VT_DUNNO) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -534,10 +549,10 @@ static int new_localvar (LexState *ls, TString *name) {
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
-  var->vd.typehint = 0xFF;
-  var->vd.typeprop = 0xFF;
+  var->vd.hint = hint;
+  var->vd.prop = VT_DUNNO;
   var->vd.name = name;
-  var->vd.linenumber = ls->linenumber;
+  var->vd.linenumber = ls->getLineNumber();
   return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
@@ -1082,16 +1097,42 @@ static int block_follow (LexState *ls, int withuntil) {
 }
 
 
-static void statlist (LexState *ls, lu_byte *prop = nullptr) {
-  /* statlist -> { stat [';'] } */
-  while (!block_follow(ls, 1)) {
-    if (ls->t.token == TK_RETURN) {
-      statement(ls, prop);
-      return;  /* 'return' must be last statement */
+static void propagate_return_type(TypeDesc *prop, TypeDesc&& ret) {
+  if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
+    if (prop->getType() == VT_NIL) {
+      ret.setNullable();
+      *prop = ret;
     }
-    lu_byte p = 0xFE;
+    else if (ret.getType() == VT_NIL) {
+      prop->setNullable();
+    }
+    else if (!prop->isCompatibleWith(ret)) {
+      *prop = VT_MIXED; /* set return type to mixed */
+      prop = nullptr; /* and don't update it again */
+    }
+  }
+  else {
+    *prop = ret; /* save return type */
+  }
+}
+
+static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implies_nil = false) {
+  /* statlist -> { stat [';'] } */
+  bool ret = false;
+  while (!block_follow(ls, 1)) {
+    ret = (ls->t.token == TK_RETURN);
+    TypeDesc p = VT_DUNNO;
     statement(ls, &p);
-    if (p != 0xFE) prop = nullptr; /* multiple return paths, don't propagate return type */
+    if (prop && /* do we need to propagate the return type? */
+        p.getType() != VT_DUNNO) { /* is there a return path here? */
+      propagate_return_type(prop, p.getType());
+    }
+    if (ret) break;
+  }
+  if (prop && /* do we need to propagate the return type? */
+      !ret && /* had no return statement? */
+      no_ret_implies_nil) { /* does that imply a nil return? */
+    propagate_return_type(prop, VT_NIL); /* propagate */
   }
 }
 
@@ -1238,7 +1279,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 }
 
 
-static void body (LexState *ls, expdesc *e, int ismethod, int line, lu_byte *prop = nullptr);
+static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop = nullptr);
 static void funcfield (LexState *ls, struct ConsControl *cc) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
@@ -1249,7 +1290,7 @@ static void funcfield (LexState *ls, struct ConsControl *cc) {
   codename(ls, &key);
   tab = *cc->t;
   luaK_indexed(fs, &tab, &key);
-  body(ls, &val, true, ls->linenumber);
+  body(ls, &val, true, ls->getLineNumber());
   luaK_storevar(fs, &tab, &val);
   fs->freereg = reg;  /* free registers */
 }
@@ -1294,7 +1335,7 @@ static void constructor (LexState *ls, expdesc *t) {
   /* constructor -> '{' [ field { sep field } [sep] ] '}'
      sep -> ',' | ';' */
   FuncState *fs = ls->fs;
-  int line = ls->linenumber;
+  int line = ls->getLineNumber();
   int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
   ConsControl cc;
   luaK_code(fs, 0);  /* space for extra arg. */
@@ -1334,7 +1375,9 @@ static void parlist (LexState *ls) {
     do {
       switch (ls->t.token) {
         case TK_NAME: {
-          new_localvar(ls, str_checkname(ls, true));
+          auto parname = str_checkname(ls, true);
+          auto parhint = gettypehint(ls);
+          new_localvar(ls, parname, parhint);
           nparams++;
           break;
         }
@@ -1355,7 +1398,7 @@ static void parlist (LexState *ls) {
 }
 
 
-static void body (LexState *ls, expdesc *e, int ismethod, int line, lu_byte *prop) {
+static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop) {
   /* body ->  '(' parlist ')' block END */
   FuncState new_fs;
   BlockCnt bl;
@@ -1369,19 +1412,29 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, lu_byte *pro
   }
   parlist(ls);
   checknext(ls, ')');
-  lu_byte rethint = gettypehint(ls);
-  lu_byte p = 0xFF;
-  statlist(ls, &p);
-  if (rethint != 0xFF && /* has type hint for return type? */
-      p != 0xFF) { /* return type is known? */
+  TypeDesc rethint = gettypehint(ls);
+  TypeDesc p = VT_DUNNO;
+  statlist(ls, &p, true);
+  if (rethint.getType() != VT_DUNNO && /* has type hint for return type? */
+      p.getType() != VT_DUNNO && /* return type is known? */
+      !rethint.isCompatibleWith(p)) { /* incompatible? */
     std::string err = "function was hinted to return ";
-    err.append(vk_toTypeString(rethint));
+    err.append(rethint.toString());
     err.append(" but actually returns ");
-    err.append(vk_toTypeString(p));
+    err.append(p.toString());
     throw_warn(ls, err.c_str(), line);
   }
-  if (prop) *prop = p; /* propagate return type */
-  new_fs.f->lastlinedefined = ls->linenumber;
+  if (prop) { /* propagate type of function */
+    *prop = VT_FUNC;
+    prop->retn = p.primitive;
+    prop->setNumParams(new_fs.f->numparams);
+    int vidx = new_fs.firstlocal;
+    for (int i = 0; i != prop->numparams; ++i) {
+      prop->params[i] = ls->dyd->actvar.arr[vidx].vd.hint.primitive;
+      ++vidx;
+    }
+  }
+  new_fs.f->lastlinedefined = ls->getLineNumber();
   check_match(ls, TK_END, TK_FUNCTION, line);
   codeclosure(ls, e);
   close_func(ls);
@@ -1407,13 +1460,30 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
   checknext(ls, '>');
   expr(ls, e);
   luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
-  new_fs.f->lastlinedefined = ls->linenumber;
+  new_fs.f->lastlinedefined = ls->getLineNumber();
   codeclosure(ls, e);
   close_func(ls);
 }
 
 
-static int explist (LexState *ls, expdesc *v, lu_byte *prop = nullptr) {
+static void expr_propagate(LexState *ls, expdesc* v, TypeDesc& td) {
+  expr(ls, v, &td);
+  exp_propagate(ls, *v, td);
+}
+
+static int explist (LexState *ls, expdesc *v, std::vector<TypeDesc>& prop) {
+  /* explist -> expr { ',' expr } */
+  int n = 1;  /* at least one expression */
+  expr_propagate(ls, v, prop.emplace_back(VT_DUNNO));
+  while (testnext(ls, ',')) {
+    luaK_exp2nextreg(ls->fs, v);
+    expr_propagate(ls, v, prop.emplace_back(VT_DUNNO));
+    n++;
+  }
+  return n;
+}
+
+static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
   expr(ls, v, prop);
@@ -1425,10 +1495,18 @@ static int explist (LexState *ls, expdesc *v, lu_byte *prop = nullptr) {
   return n;
 }
 
+static std::string format_nth(int i) {
+  if (i == 1) return "first";
+  if (i == 2) return "second";
+  std::string str = std::to_string(i);
+  str.append("th");
+  return str;
+}
 
-static void funcargs (LexState *ls, expdesc *f, int line) {
+static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = nullptr) {
   FuncState *fs = ls->fs;
   expdesc args;
+  std::vector<TypeDesc> argdescs;
   int base, nparams;
   switch (ls->t.token) {
     case '(': {  /* funcargs -> '(' [ explist ] ')' */
@@ -1436,7 +1514,7 @@ static void funcargs (LexState *ls, expdesc *f, int line) {
       if (ls->t.token == ')')  /* arg list is empty? */
         args.k = VVOID;
       else {
-        explist(ls, &args);
+        explist(ls, &args, argdescs);
         if (hasmultret(args.k))
           luaK_setmultret(fs, &args);
       }
@@ -1444,16 +1522,40 @@ static void funcargs (LexState *ls, expdesc *f, int line) {
       break;
     }
     case '{': {  /* funcargs -> constructor */
+      argdescs = { TypeDesc{ VT_TABLE } };
       constructor(ls, &args);
       break;
     }
     case TK_STRING: {  /* funcargs -> STRING */
+      argdescs = { TypeDesc{ VT_STR } };
       codestring(&args, ls->t.seminfo.ts);
       luaX_next(ls);  /* must use 'seminfo' before 'next' */
       break;
     }
     default: {
       luaX_syntaxerror(ls, "function arguments expected");
+    }
+  }
+  if (funcdesc) {
+    for (int i = 0; i != funcdesc->numparams; ++i) {
+      const PrimitiveType& param_hint = funcdesc->params[i];
+      if (param_hint.getType() == VT_DUNNO)
+        continue; /* skip parameters without type hint */
+      TypeDesc arg = VT_NIL;
+      if (i < (int)argdescs.size()) {
+        arg = argdescs.at(i);
+        if (arg.getType() == VT_DUNNO)
+          continue; /* skip arguments without propagated type */
+      }
+      if (!param_hint.isCompatibleWith(arg.primitive)) {
+        std::string err = "Function's ";;
+        err.append(format_nth(i + 1));
+        err.append(" parameter was type-hinted as ");
+        err.append(param_hint.toString());
+        err.append(" but provided with ");
+        err.append(arg.toString());
+        throw_warn(ls, err.c_str(), "argument type mismatch", line);
+      }
     }
   }
   lua_assert(f->k == VNONRELOC);
@@ -1544,7 +1646,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
   switch (ls->t.token) {
     case '(': {
-      int line = ls->linenumber;
+      int line = ls->getLineNumber();
       luaX_next(ls);
       expr(ls, v);
       check_match(ls, ')', '(', line);
@@ -1578,11 +1680,11 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
-static void suffixedexp (LexState *ls, expdesc *v, lu_byte *prop = nullptr) {
+static void suffixedexp (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   FuncState *fs = ls->fs;
-  int line = ls->linenumber;
+  int line = ls->getLineNumber();
   primaryexp(ls, v);
   for (;;) {
     switch (ls->t.token) {
@@ -1610,10 +1712,18 @@ static void suffixedexp (LexState *ls, expdesc *v, lu_byte *prop = nullptr) {
         break;
       }
       case '(': case TK_STRING: case '{': {  /* funcargs */
-        if (prop != nullptr && v->k == VLOCAL)
-          *prop = getlocalvardesc(ls->fs, v->u.var.vidx)->vd.typeprop;
+        TypeDesc* funcdesc = nullptr;
+        if (v->k == VLOCAL) {
+          auto fvar = getlocalvardesc(ls->fs, v->u.var.vidx);
+          if (fvar->vd.prop.getType() == VT_FUNC) { /* just in case... */
+            funcdesc = &fvar->vd.prop;
+            if (prop) { /* propagate return type */
+              *prop = fvar->vd.prop.retn;
+            }
+          }
+        }
         luaK_exp2nextreg(fs, v);
-        funcargs(ls, v, line);
+        funcargs(ls, v, line, funcdesc);
         break;
       }
       default: return;
@@ -1645,39 +1755,39 @@ static void ifexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, lu_byte *prop = nullptr) {
+static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, TypeDesc *prop = nullptr) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
     case TK_FLT: {
-      if (prop) *prop = VKINT;
+      if (prop) *prop = VT_NUMBER;
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       break;
     }
     case TK_INT: {
-      if (prop) *prop = VKINT;
+      if (prop) *prop = VT_NUMBER;
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       break;
     }
     case TK_STRING: {
-      if (prop) *prop = VKSTR;
+      if (prop) *prop = VT_STR;
       codestring(v, ls->t.seminfo.ts);
       break;
     }
     case TK_NIL: {
-      if (prop) *prop = VNIL;
+      if (prop) *prop = VT_NIL;
       init_exp(v, VNIL, 0);
       break;
     }
     case TK_TRUE: {
-      if (prop) *prop = VTRUE;
+      if (prop) *prop = VT_BOOL;
       init_exp(v, VTRUE, 0);
       break;
     }
     case TK_FALSE: {
-      if (prop) *prop = VTRUE;
+      if (prop) *prop = VT_BOOL;
       init_exp(v, VFALSE, 0);
       break;
     }
@@ -1689,16 +1799,17 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, lu_byte *prop = 
       break;
     }
     case '{': {  /* constructor */
+      if (prop) *prop = VT_TABLE;
       constructor(ls, v);
       return;
     }
     case TK_FUNCTION: {
       luaX_next(ls);
-      body(ls, v, 0, ls->linenumber, prop);
+      body(ls, v, 0, ls->getLineNumber(), prop);
       return;
     }
     case '|': {
-      lambdabody(ls, v, ls->linenumber);
+      lambdabody(ls, v, ls->getLineNumber());
       return;
     }
     default: {
@@ -1711,7 +1822,7 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, lu_byte *prop = 
     expdesc key;
     codename(ls, &key);
     luaK_self(ls->fs, v, &key);
-    funcargs(ls, v, ls->linenumber);
+    funcargs(ls, v, ls->getLineNumber());
   }
 }
 
@@ -1793,13 +1904,13 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, lu_byte *prop = nullptr) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nullptr) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
   uop = getunopr(ls->t.token);
   if (uop != OPR_NOUNOPR) {  /* prefix (unary) operator? */
-    int line = ls->linenumber;
+    int line = ls->getLineNumber();
     luaX_next(ls);  /* skip operator */
     subexpr(ls, v, UNARY_PRIORITY);
     luaK_prefix(ls->fs, uop, v, line);
@@ -1812,7 +1923,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, lu_byte *prop = null
     luaK_infix(ls->fs, OPR_ADD, v);
 
     expdesc v2;
-    int line = ls->linenumber;
+    int line = ls->getLineNumber();
     luaX_next(ls); /* skip '+' */
     subexpr(ls, &v2, priority[OPR_ADD].right);
     luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
@@ -1821,7 +1932,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, lu_byte *prop = null
     simpleexp(ls, v, false, prop);
     if (ls->t.token == TK_IN) {
       inexpr(ls, v);
-      if (prop) *prop = VTRUE;
+      if (prop) *prop = VT_BOOL;
     }
   }
   /* expand while operators have priorities higher than 'limit' */
@@ -1829,7 +1940,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, lu_byte *prop = null
   while (op != OPR_NOBINOPR && priority[op].left > limit) {
     expdesc v2;
     BinOpr nextop;
-    int line = ls->linenumber;
+    int line = ls->getLineNumber();
     luaX_next(ls);  /* skip operator */
     luaK_infix(ls->fs, op, v);
     /* read sub-expression with higher priority */
@@ -1842,7 +1953,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, lu_byte *prop = null
 }
 
 
-static void expr (LexState *ls, expdesc *v, lu_byte *prop) {
+static void expr (LexState *ls, expdesc *v, TypeDesc *prop) {
   subexpr(ls, v, 0, prop);
 }
 
@@ -2000,7 +2111,7 @@ static int getcompoundop (LexState *ls, BinOpr *op) {
 */ 
 static void compoundassign(LexState *ls, expdesc* v, BinOpr op) {
   luaX_next(ls);
-  int line = ls->linenumber;
+  int line = ls->getLineNumber();
   FuncState *fs = ls->fs;
   expdesc e = *v, v2;
   if (v->k != VLOCAL) {  /* complex lvalue, use a temporary register. linear perf incr. with complexity of lvalue */
@@ -2031,6 +2142,7 @@ static void compoundassign(LexState *ls, expdesc* v, BinOpr op) {
   special cases for compound operators via lexer state tokens (ls->lasttoken)
 */
 static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
+  int line = ls->getLineNumber(); /* in case we need to emit a warning */
   expdesc e;
   check_condition(ls, vkisvar(lh->v.k), "syntax error");
   check_readonly(ls, &lh->v);
@@ -2056,14 +2168,15 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       return;  /* avoid default */
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
-      lu_byte prop;
+      TypeDesc prop = VT_DUNNO;
       int nexps = explist(ls, &e, &prop);
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
       else {
         luaK_setoneret(ls->fs, &e);  /* close last expression */
         if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
-          process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), prop);
+          exp_propagate(ls, e, prop);
+          process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), prop, line);
         }
         luaK_storevar(ls->fs, &lh->v, &e);
         return;  /* avoid default */
@@ -2086,7 +2199,7 @@ int cond (LexState *ls) {
 
 static void gotostat (LexState *ls) {
   FuncState *fs = ls->fs;
-  int line = ls->linenumber;
+  int line = ls->getLineNumber();
   TString *name = str_checkname(ls);  /* label's name */
   Labeldesc *lb = findlabel(ls, name);
   if (lb == NULL)  /* no label? */
@@ -2107,7 +2220,7 @@ static void gotostat (LexState *ls) {
 ** Break statement. Semantically equivalent to "goto break".
 */
 static void breakstat (LexState *ls) {
-  int line = ls->linenumber;
+  int line = ls->getLineNumber();
   luaX_next(ls);  /* skip break */
   newgotoentry(ls, luaS_newliteral(ls->L, "break"), line, luaK_jump(ls->fs));
 }
@@ -2160,21 +2273,6 @@ inline bool testnext2 (LexState *ls, int token1, int token2) {
 }
 
 
-static const char* expandexpr (LexState *ls) {
-  switch (ls->t.token) {
-    case '{': {
-      return "{}";
-    }
-    case TK_FUNCTION: {
-      return "function (";
-    }
-    default: {
-      return getstr(ls->t.seminfo.ts);
-    }
-  }
-}
-
-
 static void switchstat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   BlockCnt sbl, cbl; // Switch & case blocks.
@@ -2191,7 +2289,7 @@ static void switchstat (LexState *ls, int line) {
   adjustlocalvars(ls, 1);
   enterblock(fs, &sbl, 1);
   do {
-    const int caseline = ls->linenumber; // Needed for errors.
+    const int caseline = ls->getLineNumber(); // Needed for errors.
 #ifdef PLUTO_COMPATIBLE_CASE
     if (!testnext(ls, TK_PCASE)) {
 #else
@@ -2220,15 +2318,10 @@ static void switchstat (LexState *ls, int line) {
       }
     }
     else {
-      const auto expr = expandexpr(ls); // Raw text of the expression before the lexer skips tokens.
       testnext(ls, '+'); /* support pseudo-unary '+' */
       simpleexp(ls, &lcase, true);
       if (!vkisconst(lcase.k)) {
-        ls->linebuff.clear();
-        ls->linebuff += "case ";
-        ls->linebuff += expr;
-        ls->linenumber = caseline;
-        throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.");
+        throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", caseline);
       }
     }
     checknext(ls, ':');
@@ -2449,7 +2542,7 @@ static void forlist (LexState *ls, TString *indexname) {
     nvars++;
   }
   checknext(ls, TK_IN);
-  line = ls->linenumber;
+  line = ls->getLineNumber();
   adjust_assign(ls, 4, explist(ls, &e), &e);
   adjustlocalvars(ls, 4);  /* control variables */
   marktobeclosed(fs);  /* last control var. must be closed */
@@ -2484,7 +2577,7 @@ static void forstat (LexState *ls, int line) {
 }
 
 
-static void test_then_block (LexState *ls, int *escapelist, lu_byte *prop) {
+static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
   /* test_then_block -> [IF | ELSEIF] cond THEN block */
   BlockCnt bl;
   FuncState *fs = ls->fs;
@@ -2494,7 +2587,7 @@ static void test_then_block (LexState *ls, int *escapelist, lu_byte *prop) {
   expr(ls, &v);  /* read condition */
   checknext(ls, TK_THEN);
   if (ls->t.token == TK_BREAK) {  /* 'if x then break' ? */
-    int line = ls->linenumber;
+    int line = ls->getLineNumber();
     luaK_goiffalse(ls->fs, &v);  /* will jump if condition is true */
     luaX_next(ls);  /* skip 'break' */
     enterblock(fs, &bl, 0);  /* must enter block before 'goto' */
@@ -2521,7 +2614,7 @@ static void test_then_block (LexState *ls, int *escapelist, lu_byte *prop) {
 }
 
 
-static void ifstat (LexState *ls, int line, lu_byte *prop = nullptr) {
+static void ifstat (LexState *ls, int line, TypeDesc *prop = nullptr) {
   /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
   FuncState *fs = ls->fs;
   int escapelist = NO_JUMP;  /* exit list for finished parts */
@@ -2541,7 +2634,9 @@ static void localfunc (LexState *ls) {
   int fvar = fs->nactvar;  /* function's variable index */
   new_localvar(ls, str_checkname(ls, true));  /* new local variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
-  body(ls, &b, 0, ls->linenumber, &getlocalvardesc(fs, fvar)->vd.typeprop);  /* function created in next register */
+  TypeDesc funcdesc;
+  body(ls, &b, 0, ls->getLineNumber(), &funcdesc);  /* function created in next register */
+  getlocalvardesc(fs, fvar)->vd.prop = std::move(funcdesc);
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
 }
@@ -2578,17 +2673,18 @@ static void localstat (LexState *ls) {
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
   int vidx, kind;  /* index and kind of last variable */
-  lu_byte typehint;
+  TypeDesc hint = VT_DUNNO;
   int nvars = 0;
   int nexps;
   expdesc e;
+  int line = ls->getLineNumber(); /* in case we need to emit a warning */
   do {
     vidx = new_localvar(ls, str_checkname(ls, true));
-    typehint = gettypehint(ls);
+    hint = gettypehint(ls);
     kind = getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
-    var->vd.typehint = typehint;
+    var->vd.hint = hint;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
       if (toclose != -1)  /* one already present? */
         luaK_semerror(ls, "multiple to-be-closed variables in local list");
@@ -2596,24 +2692,33 @@ static void localstat (LexState *ls) {
     }
     nvars++;
   } while (testnext(ls, ','));
-  lu_byte prop = 0xFF;
+  std::vector<TypeDesc> tds;
   if (testnext(ls, '='))
-    nexps = explist(ls, &e, &prop);
+    nexps = explist(ls, &e, tds);
   else {
     e.k = VVOID;
     nexps = 0;
+    process_assign(ls, var, VT_NIL, line);
   }
-  if (nvars == nexps &&  /* no adjustments? */
-      var->vd.kind == RDKCONST &&  /* last variable is const? */
-      luaK_exp2const(fs, &e, &var->k)) {  /* compile-time constant? */
-    var->vd.kind = RDKCTC;  /* variable is a compile-time constant */
-    adjustlocalvars(ls, nvars - 1);  /* exclude last variable */
-    fs->nactvar++;  /* but count it */
+  if (nvars == nexps) { /* no adjustments? */
+    if (var->vd.kind == RDKCONST &&  /* last variable is const? */
+        luaK_exp2const(fs, &e, &var->k)) {  /* compile-time constant? */
+      var->vd.kind = RDKCTC;  /* variable is a compile-time constant */
+      adjustlocalvars(ls, nvars - 1);  /* exclude last variable */
+      fs->nactvar++;  /* but count it */
+    }
+    else {
+      vidx = vidx - nvars + 1;
+      for (TypeDesc& td : tds) {
+        exp_propagate(ls, e, td);
+        process_assign(ls, getlocalvardesc(fs, vidx), td, line);
+        ++vidx;
+      }
+      adjust_assign(ls, nvars, nexps, &e);
+      adjustlocalvars(ls, nvars);
+    }
   }
   else {
-    if (nexps == 1) {
-      process_assign(ls, var, prop);
-    }
     adjust_assign(ls, nvars, nexps, &e);
     adjustlocalvars(ls, nvars);
   }
@@ -2666,14 +2771,16 @@ static void exprstat (LexState *ls) {
 }
 
 
-static void retstat (LexState *ls, lu_byte *prop) {
+static void retstat (LexState *ls, TypeDesc *prop) {
   /* stat -> RETURN [explist] [';'] */
   FuncState *fs = ls->fs;
   expdesc e;
   int nret;  /* number of values being returned */
   int first = luaY_nvarstack(fs);  /* first slot to be returned */
-  if (block_follow(ls, 1) || ls->t.token == ';')
+  if (block_follow(ls, 1) || ls->t.token == ';') {
     nret = 0;  /* return no values */
+    if (prop) *prop = VT_NIL;
+  }
   else {
     nret = explist(ls, &e, prop);  /* optional return values */
     if (hasmultret(e.k)) {
@@ -2698,8 +2805,8 @@ static void retstat (LexState *ls, lu_byte *prop) {
 }
 
 
-static void statement (LexState *ls, lu_byte *prop) {
-  int line = ls->linenumber;  /* may be needed for error messages */
+static void statement (LexState *ls, TypeDesc *prop) {
+  int line = ls->getLineNumber();  /* may be needed for error messages */
   enterlevel(ls);
   switch (ls->t.token) {
     case ';': {  /* stat -> ';' (empty statement) */
@@ -2846,4 +2953,3 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   L->top--;  /* remove scanner's table */
   return cl;  /* closure is on the stack, too */
 }
-

@@ -100,13 +100,149 @@ typedef struct expdesc {
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* compile-time constant */
 
+/* types of values, for type hinting and propagation */
+enum ValType : lu_byte {
+  VT_DUNNO = 0,
+  VT_MIXED,
+  VT_NIL,
+  VT_NUMBER,
+  VT_BOOL,
+  VT_STR,
+  VT_TABLE,
+  VT_FUNC,
+
+  NUL_VAL_TYPES
+};
+
+struct PrimitiveType {
+  /* 3 bits for ValType, and 1 bit for nullable. */
+  lu_byte data;
+  static_assert((NUL_VAL_TYPES - 1) <= 0b111);
+
+  PrimitiveType()
+    : PrimitiveType(VT_DUNNO)
+  {
+  }
+
+  PrimitiveType(ValType vt, bool nullable = false)
+    : data(vt | (nullable << 3))
+  {
+  }
+
+  [[nodiscard]] ValType getType() const noexcept {
+    return (ValType)(data & 0b111);
+  }
+
+  [[nodiscard]] bool isNullable() const noexcept {
+    return (data >> 3) & 1;
+  }
+
+  void setNullable() noexcept {
+    data |= (1 << 3);
+  }
+
+  [[nodiscard]] bool isCompatibleWith(const PrimitiveType& b) const noexcept {
+    const auto b_t = b.getType();
+    return (getType() == b_t)
+        ? (isNullable() || !b.isNullable()) /* if same type, b can't be nullable if a isn't nullable */
+        : (b_t == VT_NIL && isNullable()) /* if different type, b might still be compatible if a is nullable and b is nil */
+        ;
+  }
+
+  [[nodiscard]] std::string toString() const {
+    std::string str{};
+    if (isNullable())
+      str.push_back('?');
+    switch (getType())
+    {
+    case VT_DUNNO: str.append("dunno"); break;
+    case VT_MIXED: str.append("mixed"); break;
+    case VT_NIL: str.append("nil"); break;
+    case VT_NUMBER: str.append("number"); break;
+    case VT_BOOL: str.append("boolean"); break;
+    case VT_STR: str.append("string"); break;
+    case VT_TABLE: str.append("table"); break;
+    case VT_FUNC: str.append("function"); break;
+    default: str.append("ERROR"); break;
+    }
+    return str;
+  }
+};
+
+union Vardesc;
+
+struct TypeDesc
+{
+  PrimitiveType primitive;
+
+  /* function info */
+  PrimitiveType retn;
+  lu_byte numparams;
+  static constexpr int MAX_PARAMS = 10;
+  PrimitiveType params[MAX_PARAMS];
+
+  TypeDesc() = default;
+
+  TypeDesc(ValType vt, bool nullable = false)
+    : primitive(vt, nullable)
+  {
+  }
+
+  TypeDesc(PrimitiveType p)
+    : primitive(p)
+  {
+  }
+
+  [[nodiscard]] ValType getType() const noexcept {
+    return primitive.getType();
+  }
+
+  [[nodiscard]] bool isNullable() const noexcept {
+    return primitive.isNullable();
+  }
+
+  void setNullable() noexcept {
+    primitive.setNullable();
+  }
+
+  [[nodiscard]] ValType getReturnType() const noexcept {
+    return retn.getType();
+  }
+
+  [[nodiscard]] bool isReturnNullable() const noexcept {
+    return retn.isNullable();
+  }
+
+  void setNumParams(int numparams) noexcept {
+    if (numparams > MAX_PARAMS)
+      this->numparams = MAX_PARAMS;
+    else
+      this->numparams = numparams;
+  }
+
+  [[nodiscard]] bool isCompatibleWith(const TypeDesc& b) const noexcept {
+    return primitive.isCompatibleWith(b.primitive);
+  }
+
+  [[nodiscard]] std::string toString() const {
+    std::string str = primitive.toString();
+    if (primitive.getType() == VT_FUNC &&
+        getReturnType() != VT_DUNNO) {
+      str.push_back('(');
+      str.append(retn.toString());
+      str.push_back(')');
+    }
+    return str;
+  }
+};
+
 /* description of an active local variable */
 typedef union Vardesc {
   struct {
     TValuefields;  /* constant value (if it is a compile-time constant) */
     lu_byte kind;
-    lu_byte typehint;
-    lu_byte typeprop; /* type propagation */
+    TypeDesc hint;
+    TypeDesc prop; /* type propagation */
     lu_byte ridx;  /* register holding the variable */
     short pidx;  /* index of the variable in the Proto's 'locvars' array */
     TString *name;  /* variable name */
