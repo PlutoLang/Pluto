@@ -152,8 +152,10 @@ public:
   {
   }
 
-  void setFunction(int numparams, int firstlocal, ValType ret_typ) noexcept {
-    this->data = ((ret_typ << 4) | VT_FUNC);
+  void setFunction(int numparams, int firstlocal, ValType ret_typ, bool ret_nullable) noexcept {
+    this->data = VT_FUNC;
+    this->data |= (ret_typ << 4);
+    this->data |= (ret_nullable << 7);
     this->numparams = numparams;
     this->firstlocal = firstlocal;
   }
@@ -174,8 +176,16 @@ public:
     return (ValType)((data >> 4) & 0b111);
   }
 
+  [[nodiscard]] bool isReturnNullable() const noexcept {
+    return (data >> 7) & 1;
+  }
+
   [[nodiscard]] int getNumParams() const noexcept {
       return numparams;
+  }
+
+  void fromReturn(TypeDesc& retdesc) noexcept {
+    data = (retdesc.data >> 4);
   }
 
   [[nodiscard]] Vardesc& getParam(LexState* ls, int i) const noexcept;
@@ -199,6 +209,9 @@ public:
       auto rt = getReturnType();
       if (rt != VT_DUNNO) {
         str.push_back('(');
+        if (isReturnNullable()) {
+          str.push_back('?');
+        }
         str.append(vt_toString(rt));
         str.push_back(')');
       }

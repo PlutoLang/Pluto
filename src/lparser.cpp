@@ -1407,7 +1407,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     throw_warn(ls, err.c_str(), line);
   }
   if (prop) { /* propagate type of function */
-    prop->setFunction(new_fs.f->numparams, new_fs.firstlocal, p.getType());
+    prop->setFunction(new_fs.f->numparams, new_fs.firstlocal, p.getType(), p.isNullable());
   }
   new_fs.f->lastlinedefined = ls->linenumber;
   check_match(ls, TK_END, TK_FUNCTION, line);
@@ -1641,7 +1641,7 @@ static void suffixedexp (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
         if (prop != nullptr && v->k == VLOCAL) {
           auto fvar = getlocalvardesc(ls->fs, v->u.var.vidx);
           if (fvar->vd.prop.getType() == VT_FUNC) { /* just in case... */
-            *prop = fvar->vd.prop.getReturnType();
+            prop->fromReturn(fvar->vd.prop);
           }
         }
         luaK_exp2nextreg(fs, v);
