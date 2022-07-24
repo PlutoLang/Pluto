@@ -2667,26 +2667,33 @@ static void localstat (LexState *ls) {
     }
     nvars++;
   } while (testnext(ls, ','));
-  TypeDesc prop = VT_DUNNO;
+  std::vector<TypeDesc> tds;
   if (testnext(ls, '='))
-    nexps = explist(ls, &e, &prop);
+    nexps = explist(ls, &e, tds);
   else {
     e.k = VVOID;
     nexps = 0;
     process_assign(ls, var, VT_NIL, line);
   }
-  if (nvars == nexps &&  /* no adjustments? */
-      var->vd.kind == RDKCONST &&  /* last variable is const? */
-      luaK_exp2const(fs, &e, &var->k)) {  /* compile-time constant? */
-    var->vd.kind = RDKCTC;  /* variable is a compile-time constant */
-    adjustlocalvars(ls, nvars - 1);  /* exclude last variable */
-    fs->nactvar++;  /* but count it */
+  if (nvars == nexps) { /* no adjustments? */
+    if (var->vd.kind == RDKCONST &&  /* last variable is const? */
+        luaK_exp2const(fs, &e, &var->k)) {  /* compile-time constant? */
+      var->vd.kind = RDKCTC;  /* variable is a compile-time constant */
+      adjustlocalvars(ls, nvars - 1);  /* exclude last variable */
+      fs->nactvar++;  /* but count it */
+    }
+    else {
+      vidx = vidx - nvars + 1;
+      for (TypeDesc& td : tds) {
+        exp_propagate(ls, e, td);
+        process_assign(ls, getlocalvardesc(fs, vidx), td, line);
+        ++vidx;
+      }
+      adjust_assign(ls, nvars, nexps, &e);
+      adjustlocalvars(ls, nvars);
+    }
   }
   else {
-    if (nexps == 1) {
-      exp_propagate(ls, e, prop);
-      process_assign(ls, var, prop, line);
-    }
     adjust_assign(ls, nvars, nexps, &e);
     adjustlocalvars(ls, nvars);
   }
