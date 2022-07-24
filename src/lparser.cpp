@@ -456,7 +456,7 @@ static void exp_propagate(LexState* ls, const expdesc& e, TypeDesc& t) noexcept 
 }
 
 
-static void process_assign(LexState* ls, Vardesc* var, TypeDesc td, int line) {
+static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int line) {
   auto hinted = var->vd.hint.getType() != VT_DUNNO;
   auto knownvalue = td.getType() != VT_DUNNO;
   auto incompatible = !var->vd.hint.isCompatibleWith(td);
@@ -524,7 +524,7 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
 */
-static int new_localvar (LexState *ls, TString *name, TypeDesc hint = VT_DUNNO) {
+static int new_localvar (LexState *ls, TString *name, const TypeDesc& hint = VT_DUNNO) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -1097,7 +1097,7 @@ static int block_follow (LexState *ls, int withuntil) {
 }
 
 
-static void propagate_return_type(TypeDesc *prop, TypeDesc ret) {
+static void propagate_return_type(TypeDesc *prop, TypeDesc&& ret) {
   if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
     if (prop->getType() == VT_NIL) {
       ret.setNullable();

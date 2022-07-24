@@ -190,7 +190,7 @@ public:
 
   [[nodiscard]] Vardesc& getParam(LexState* ls, int i) const noexcept;
 
-  [[nodiscard]] bool isCompatibleWith(TypeDesc b) const noexcept {
+  [[nodiscard]] bool isCompatibleWith(const TypeDesc& b) const noexcept {
     const auto b_t = b.getType();
     return (getType() == b_t)
         ? (isNullable() || !b.isNullable()) /* if same type, b can't be nullable if a isn't nullable */
