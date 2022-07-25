@@ -1145,6 +1145,47 @@ inline int gett(LexState *ls) {
 }
 
 
+/*
+** Continue statement. Semantically similar to "goto continue".
+** Unlike break, this doesn't use labels. It tracks where to jump via BlockCnt.scopeend;
+*/
+static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
+  FuncState *fs = ls->fs;
+  BlockCnt *bl = fs->bl;
+  int upval = 0;
+  luaX_next(ls); /* skip TK_CONTINUE */
+  lua_Integer backwards = (1 + backwards_surplus);
+  if (ls->t.token == TK_INT) {
+    backwards = ls->t.seminfo.i;
+    luaX_next(ls);
+  }
+  while (bl) {
+    if (!bl->isloop) { /* not a loop, continue search */
+      upval |= bl->upval; /* amend upvalues for closing. */
+      bl = bl->previous; /* jump back current blocks to find the loop */
+    }
+    else { /* found a loop */
+      if (--backwards == 0) { /* this is our loop */
+        break;
+      }
+      else { /* continue search */
+        upval |= bl->upval;
+        bl = bl->previous;
+      }
+    };
+  }
+  if (bl) {
+    if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
+    luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
+  }
+#ifndef PLUTO_COMPATIBLE_CONTINUE
+  else error_expected(ls, TK_CONTINUE);
+#else
+  else error_expected(ls, TK_PCONTINUE);
+#endif
+}
+
+
 /* Switch logic partially inspired by Paige Marie DePol from the Lua mailing list. */
 static void caselist (LexState *ls) {
   while (gett(ls) != TK_PDEFAULT
@@ -1162,7 +1203,7 @@ static void caselist (LexState *ls) {
         || gett(ls) == TK_CONTINUE
 #endif
         ) {
-      throwerr(ls, "'continue' outside of loop.", "'case' statements are not loops.");
+      continuestat(ls, 1);
     }
     else {
       statement(ls);
@@ -2255,47 +2296,6 @@ static void breakstat (LexState *ls) {
     luaK_concat(fs, &bl->breaklist, luaK_jump(fs));
   }
   else error_expected(ls, TK_BREAK);
-}
-
-
-/*
-** Continue statement. Semantically similar to "goto continue".
-** Unlike break, this doesn't use labels. It tracks where to jump via BlockCnt.scopeend;
-*/
-static void continuestat (LexState *ls) {
-  FuncState *fs = ls->fs;
-  BlockCnt *bl = fs->bl;
-  int upval = 0;
-  luaX_next(ls); /* skip TK_CONTINUE */
-  lua_Integer backwards = 1;
-  if (ls->t.token == TK_INT) {
-    backwards = ls->t.seminfo.i;
-    luaX_next(ls);
-  }
-  while (bl) {
-    if (!bl->isloop) { /* not a loop, continue search */
-      upval |= bl->upval; /* amend upvalues for closing. */
-      bl = bl->previous; /* jump back current blocks to find the loop */
-    }
-    else { /* found a loop */
-      if (--backwards == 0) { /* this is our loop */
-        break;
-      }
-      else { /* continue search */
-        upval |= bl->upval;
-        bl = bl->previous;
-      }
-    };
-  }
-  if (bl) {
-    if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
-    luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
-  }
-#ifndef PLUTO_COMPATIBLE_CONTINUE
-  else error_expected(ls, TK_CONTINUE);
-#else
-  else error_expected(ls, TK_PCONTINUE);
-#endif
 }
 
 
