@@ -801,10 +801,10 @@ static void singlevar (LexState *ls, expdesc *var) {
   if (gett(ls) == TK_WALRUS) {
     luaX_next(ls);
     new_localvar(ls, varname);
-    expdesc v2;
-    expr(ls, &v2);
-    adjust_assign(ls, 1, 1, &v2);
+    expr(ls, var);
+    adjust_assign(ls, 1, 1, var);
     adjustlocalvars(ls, 1);
+    return;
   }
   FuncState *fs = ls->fs;
   singlevaraux(fs, varname, var, 1);
