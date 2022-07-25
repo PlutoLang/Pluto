@@ -665,6 +665,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           return TK_DBCOLON;  /* '::' */
         }
         else if (check_next1(ls, '=')) {
+          ls->appendLineBuff(":=");
           return TK_WALRUS;
         }
         else {
