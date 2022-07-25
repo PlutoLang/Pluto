@@ -563,6 +563,18 @@ do
     assert(string.find_last_of("orld hello world cccc", "orld") == 16)
 end
 
+print "Testing walrus operator."
+do
+    if a := 3 then
+    else
+        error()
+    end
+
+    if b := nil then
+        error()
+    end
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
