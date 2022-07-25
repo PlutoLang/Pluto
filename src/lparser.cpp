@@ -1146,7 +1146,7 @@ inline int gett(LexState *ls) {
 
 
 /* Switch logic partially inspired by Paige Marie DePol from the Lua mailing list. */
-static void caselist (LexState *ls, bool isdefault) {
+static void caselist (LexState *ls) {
   while (gett(ls) != TK_PDEFAULT
       && gett(ls) != TK_PCASE
       && gett(ls) != TK_END
@@ -1157,20 +1157,15 @@ static void caselist (LexState *ls, bool isdefault) {
       && gett(ls) != TK_CASE
 #endif
     ) {
-    if (isdefault && gett(ls) == TK_BREAK && luaX_lookahead(ls) == TK_END) {
-      luaX_next(ls);
+    if (gett(ls) == TK_PCONTINUE
+#ifndef PLUTO_COMPATIBLE_CONTINUE
+        || gett(ls) == TK_CONTINUE
+#endif
+        ) {
+      throwerr(ls, "'continue' outside of loop.", "'case' statements are not loops.");
     }
     else {
-      if (gett(ls) == TK_PCONTINUE
-#ifndef PLUTO_COMPATIBLE_CONTINUE
-          || gett(ls) == TK_CONTINUE
-#endif
-          ) {
-        throwerr(ls, "'continue' outside of loop.", "'case' statements are not loops.");
-      }
-      else {
-        statement(ls);
-      }
+      statement(ls);
     }
   }
 }
@@ -2201,10 +2196,9 @@ int cond (LexState *ls) {
 }
 
 
-static void gotostat (LexState *ls) {
+static void lgoto(LexState *ls, TString *name) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
-  TString *name = str_checkname(ls);  /* label's name */
   Labeldesc *lb = findlabel(ls, name);
   if (lb == NULL)  /* no label? */
     /* forward jump; will be resolved when the label is declared */
@@ -2217,6 +2211,10 @@ static void gotostat (LexState *ls) {
     /* create jump and link it to the label */
     luaK_patchlist(fs, luaK_jump(fs), lb->pc);
   }
+}
+
+static void gotostat (LexState *ls) {
+  lgoto(ls, str_checkname(ls));
 }
 
 
@@ -2307,87 +2305,115 @@ inline bool testnext2 (LexState *ls, int token1, int token2) {
 }
 
 
+[[nodiscard]] static TString* getCaseLabel(LexState* ls, size_t idx) {
+    std::string str = "pluto_case_";
+    str.append(std::to_string(idx));
+    return luaX_newstring(ls, str.c_str()); /* this is fine, it will reuse existing string */
+}
+
 static void switchstat (LexState *ls, int line) {
-  FuncState *fs = ls->fs;
-  BlockCnt sbl, cbl; // Switch & case blocks.
-  expdesc crtl, save, test, lcase;
   int switchToken = gett(ls);
   luaX_next(ls); // Skip switch statement.
   testnext(ls, '(');
+
+  FuncState* fs = ls->fs;
+  BlockCnt sbl;
+  enterblock(fs, &sbl, 1);
+
+  expdesc crtl, save;
   expr(ls, &crtl);
   luaK_exp2nextreg(ls->fs, &crtl);
   init_exp(&save, VLOCAL, crtl.u.info);
   testnext(ls, ')');
   checknext(ls, TK_DO);
-  new_localvarliteral(ls, "(switch)"); // Save control value into a local.
+  new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
   adjustlocalvars(ls, 1);
-  enterblock(fs, &sbl, 1);
-  do {
-    const int caseline = ls->getLineNumber(); // Needed for errors.
-#ifdef PLUTO_COMPATIBLE_CASE
-    if (!testnext(ls, TK_PCASE)) {
+
+  TString* const begin_switch = luaX_newstring(ls, "pluto_begin_switch");
+  TString* const end_switch = luaX_newstring(ls, "pluto_end_switch");
+  TString* default_case = nullptr;
+  std::vector<expdesc> cases{};
+
+  newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
+
+  while (gett(ls) != TK_END) {
+    auto case_line = ls->getLineNumber();
+#ifdef PLUTO_COMPATIBLE_DEFAULT
+    if (testnext(ls, TK_PDEFAULT)) {
 #else
-    if (!testnext2(ls, TK_PCASE, TK_CASE)) {
-#endif
-#ifdef PLUTO_COMPATIBLE_CASE
-      error_expected(ls, TK_PCASE);
-#else
-      error_expected(ls, TK_CASE);
-#endif
-    }
-    if (testnext(ls, '-')) { // Probably a negative constant.
-      simpleexp(ls, &lcase, true);
-      switch (lcase.k) {
-        case VKINT: {
-          lcase.u.ival *= -1;
-          break;
-        }
-        case VKFLT: {
-          lcase.u.nval *= -1;
-          break;
-        }
-        default: { // Why is there a unary '-' on a non-numeral type?
-          throwerr(ls, "unexpected symbol in 'case' expression.", "unary '-' on non-numeral type.");
-        }
-      }
+    if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) {
+#endif 
+      checknext(ls, ':');
+      if (default_case != nullptr)
+        throwerr(ls, "switch statement already has a default case", "second default case", case_line);
+      default_case = luaX_newstring(ls, "pluto_default_case");
+      createlabel(ls, default_case, ls->getLineNumber(), block_follow(ls, 0));
+      caselist(ls);
     }
     else {
-      testnext(ls, '+'); /* support pseudo-unary '+' */
-      simpleexp(ls, &lcase, true);
-      if (!vkisconst(lcase.k)) {
-        throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", caseline);
+#ifdef PLUTO_COMPATIBLE_CASE
+      if (!testnext(ls, TK_PCASE)) {
+#else
+      if (!testnext2(ls, TK_PCASE, TK_CASE)) {
+#endif
+#ifdef PLUTO_COMPATIBLE_CASE
+        error_expected(ls, TK_PCASE);
+#else
+        error_expected(ls, TK_CASE);
+#endif
       }
+      auto case_label = getCaseLabel(ls, cases.size());
+      expdesc& lcase = cases.emplace_back(expdesc{});
+      if (testnext(ls, '-')) { // Probably a negative constant.
+        simpleexp(ls, &lcase, true);
+        switch (lcase.k) {
+          case VKINT:
+            lcase.u.ival *= -1;
+            break;
+
+          case VKFLT:
+            lcase.u.nval *= -1;
+            break;
+
+          default: // Why is there a unary '-' on a non-numeral type?
+            throwerr(ls, "unexpected symbol in 'case' expression.", "unary '-' on non-numeral type.");
+        }
+      }
+      else {
+        testnext(ls, '+'); /* support pseudo-unary '+' */
+        simpleexp(ls, &lcase, true);
+        if (!vkisconst(lcase.k)) {
+            throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
+        }
+      }
+      createlabel(ls, case_label, ls->getLineNumber(), block_follow(ls, 0));
+      checknext(ls, ':');
+      caselist(ls);
     }
-    checknext(ls, ':');
-    enterblock(fs, &cbl, 0);
+  }
+
+  /* handle possible fallthrough, don't loop infinitely */
+  newgotoentry(ls, end_switch, ls->getLineNumber(), luaK_jump(fs)); // goto end_switch
+
+  createlabel(ls, begin_switch, ls->getLineNumber(), block_follow(ls, 0)); // ::begin_switch::
+
+  expdesc test;
+  for (size_t i = 0; i != cases.size(); ++i) {
     test = save;
     luaK_infix(fs, OPR_NE, &test);
-    luaK_posfix(fs, OPR_NE, &test, &lcase, line);
-    caselist(ls, false);
-    leaveblock(fs);
-    if (gett(ls) == TK_PCASE
-#ifndef PLUTO_COMPATIBLE_CASE
-        || gett(ls) == TK_CASE
-#endif
-        ) {
-      luaK_code(fs, CREATE_sJ(OP_JMP, (2 + OFFSET_sJ), false)); // Fall-through.
+    luaK_posfix(fs, OPR_NE, &test, &cases.at(i), ls->getLineNumber());
+    /* if cond == case */ {
+      lgoto(ls, getCaseLabel(ls, i));
     }
-    luaK_patchtohere(fs, test.u.info); // Jump statements if OP_NE, otherwise continue.
-  } while (gett(ls) != TK_END && (gett(ls) != TK_PDEFAULT
-#ifndef PLUTO_COMPATIBLE_DEFAULT
-      && gett(ls) != TK_DEFAULT
-#endif
-      ));
-#ifdef PLUTO_COMPATIBLE_DEFAULT
-  if (testnext(ls, TK_PDEFAULT)) { // Default case.
-#else
-  if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) { // Default case.
-#endif
-    checknext(ls, ':');
-    enterblock(fs, &cbl, 0);
-    caselist(ls, true);
-    leaveblock(fs);
+    luaK_patchtohere(fs, test.u.info);
   }
+
+  if (default_case != nullptr)
+    lgoto(ls, default_case);
+
+  // ::end_switch::
+  createlabel(ls, end_switch, ls->getLineNumber(), block_follow(ls, 0));
+
   check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
 }
