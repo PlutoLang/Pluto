@@ -2422,11 +2422,11 @@ static void switchstat (LexState *ls, int line) {
   }
 
   expdesc test;
-  for (size_t i = 0; i != cases.size(); ++i) {
+  for (auto& c : cases) {
     test = save;
     luaK_infix(fs, OPR_EQ, &test);
-    luaK_posfix(fs, OPR_EQ, &test, &cases.at(i).first, ls->getLineNumber());
-    luaK_patchlist(fs, test.u.info, cases.at(i).second);
+    luaK_posfix(fs, OPR_EQ, &test, &c.first, ls->getLineNumber());
+    luaK_patchlist(fs, test.u.info, c.second);
   }
 
   if (default_case != nullptr)
