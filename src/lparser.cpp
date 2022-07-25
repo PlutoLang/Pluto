@@ -536,7 +536,7 @@ static int new_localvar (LexState *ls, TString *name, const TypeDesc& hint = VT_
     Vardesc *desc = getlocalvardesc(fs,  i);
     LocVar *local = localdebuginfo(fs, i);
     std::string n = name->toCpp();
-    if ((n != "(for state)" && n != "(switch)") && (local && local->varname == name)) { // Got a match.
+    if ((n != "(for state)" && n != "(switch control value)") && (local && local->varname == name)) { // Got a match.
       throw_warn(ls,
         "duplicate local declaration",
           luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.linenumber));
