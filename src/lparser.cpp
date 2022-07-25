@@ -2359,12 +2359,14 @@ static void switchstat (LexState *ls, int line) {
       || gett(ls) == TK_CASE
 #endif
       ) {
-    luaX_next(ls);
+    int case_line = ls->getLineNumber();
+
+    luaX_next(ls); /* Skip 'case' */
 
     first = save;
 
     expdesc lcase;
-    casecond(ls, ls->getLineNumber(), lcase);
+    casecond(ls, case_line, lcase);
 
     luaK_infix(fs, OPR_NE, &first);
     luaK_posfix(fs, OPR_NE, &first, &lcase, ls->getLineNumber());
