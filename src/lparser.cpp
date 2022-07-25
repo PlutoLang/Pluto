@@ -2305,6 +2305,33 @@ inline bool testnext2 (LexState *ls, int token1, int token2) {
 }
 
 
+static void casecond(LexState* ls, int case_line, expdesc& lcase) {
+  if (testnext(ls, '-')) { // Probably a negative constant.
+    simpleexp(ls, &lcase, true);
+    switch (lcase.k) {
+      case VKINT:
+        lcase.u.ival *= -1;
+        break;
+  
+      case VKFLT:
+        lcase.u.nval *= -1;
+        break;
+  
+      default: // Why is there a unary '-' on a non-numeral type?
+        throwerr(ls, "unexpected symbol in 'case' expression.", "unary '-' on non-numeral type.");
+    }
+  }
+  else {
+    testnext(ls, '+'); /* support pseudo-unary '+' */
+    simpleexp(ls, &lcase, true);
+    if (!vkisconst(lcase.k)) {
+        throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
+    }
+  }
+  checknext(ls, ':');
+}
+
+
 static void switchstat (LexState *ls, int line) {
   int switchToken = gett(ls);
   luaX_next(ls); // Skip switch statement.
@@ -2314,7 +2341,7 @@ static void switchstat (LexState *ls, int line) {
   BlockCnt sbl;
   enterblock(fs, &sbl, 1);
 
-  expdesc crtl, save;
+  expdesc crtl, save, first;
   expr(ls, &crtl);
   luaK_exp2nextreg(ls->fs, &crtl);
   init_exp(&save, VLOCAL, crtl.u.info);
@@ -2326,9 +2353,30 @@ static void switchstat (LexState *ls, int line) {
   TString* const begin_switch = luaX_newstring(ls, "pluto_begin_switch");
   TString* const end_switch = luaX_newstring(ls, "pluto_end_switch");
   TString* default_case = nullptr;
-  std::vector<std::pair<expdesc, int>> cases{};
 
-  newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
+  if (gett(ls) == TK_PCASE
+#ifndef PLUTO_COMPATIBLE_CASE
+      || gett(ls) == TK_CASE
+#endif
+      ) {
+    luaX_next(ls);
+
+    first = save;
+
+    expdesc lcase;
+    casecond(ls, ls->getLineNumber(), lcase);
+
+    luaK_infix(fs, OPR_NE, &first);
+    luaK_posfix(fs, OPR_NE, &first, &lcase, ls->getLineNumber());
+
+    caselist(ls);
+  }
+  else {
+    first.k = VVOID;
+    newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
+  }
+
+  std::vector<std::pair<expdesc, int>> cases{};
 
   while (gett(ls) != TK_END) {
     auto case_line = ls->getLineNumber();
@@ -2356,30 +2404,7 @@ static void switchstat (LexState *ls, int line) {
         error_expected(ls, TK_CASE);
 #endif
       }
-      expdesc& lcase = cases.emplace_back(std::pair<expdesc, int>{ expdesc{}, luaK_getlabel(fs) }).first;
-      if (testnext(ls, '-')) { // Probably a negative constant.
-        simpleexp(ls, &lcase, true);
-        switch (lcase.k) {
-          case VKINT:
-            lcase.u.ival *= -1;
-            break;
-
-          case VKFLT:
-            lcase.u.nval *= -1;
-            break;
-
-          default: // Why is there a unary '-' on a non-numeral type?
-            throwerr(ls, "unexpected symbol in 'case' expression.", "unary '-' on non-numeral type.");
-        }
-      }
-      else {
-        testnext(ls, '+'); /* support pseudo-unary '+' */
-        simpleexp(ls, &lcase, true);
-        if (!vkisconst(lcase.k)) {
-            throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
-        }
-      }
-      checknext(ls, ':');
+      casecond(ls, case_line, cases.emplace_back(std::pair<expdesc, int>{ expdesc{}, luaK_getlabel(fs) }).first);
       caselist(ls);
     }
   }
@@ -2387,7 +2412,12 @@ static void switchstat (LexState *ls, int line) {
   /* handle possible fallthrough, don't loop infinitely */
   newgotoentry(ls, end_switch, ls->getLineNumber(), luaK_jump(fs)); // goto end_switch
 
-  createlabel(ls, begin_switch, ls->getLineNumber(), block_follow(ls, 0)); // ::begin_switch::
+  if (first.k != VVOID) {
+    luaK_patchtohere(fs, first.u.info);
+  }
+  else {
+    createlabel(ls, begin_switch, ls->getLineNumber(), block_follow(ls, 0)); // ::begin_switch::
+  }
 
   expdesc test;
   for (size_t i = 0; i != cases.size(); ++i) {
