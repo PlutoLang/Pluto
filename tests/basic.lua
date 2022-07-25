@@ -562,6 +562,9 @@ do
     assert(t[1] == "Hi")
     t = {["func"]=function(p1,p2)end}
     assert(t["func"] ~= nil)
+
+    local myconst <const> = "consty"
+    assert(myconst == "consty")
 end
 
 print "Finished."
