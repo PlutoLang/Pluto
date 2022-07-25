@@ -536,7 +536,7 @@ static int new_localvar (LexState *ls, TString *name, const TypeDesc& hint = VT_
     Vardesc *desc = getlocalvardesc(fs,  i);
     LocVar *local = localdebuginfo(fs, i);
     std::string n = name->toCpp();
-    if ((n != "(for state)" && n != "(switch)") && (local && local->varname == name)) { // Got a match.
+    if ((n != "(for state)" && n != "(switch control value)") && (local && local->varname == name)) { // Got a match.
       throw_warn(ls,
         "duplicate local declaration",
           luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.linenumber));
@@ -1145,8 +1145,49 @@ inline int gett(LexState *ls) {
 }
 
 
+/*
+** Continue statement. Semantically similar to "goto continue".
+** Unlike break, this doesn't use labels. It tracks where to jump via BlockCnt.scopeend;
+*/
+static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
+  FuncState *fs = ls->fs;
+  BlockCnt *bl = fs->bl;
+  int upval = 0;
+  luaX_next(ls); /* skip TK_CONTINUE */
+  lua_Integer backwards = (1 + backwards_surplus);
+  if (ls->t.token == TK_INT) {
+    backwards = ls->t.seminfo.i;
+    luaX_next(ls);
+  }
+  while (bl) {
+    if (!bl->isloop) { /* not a loop, continue search */
+      upval |= bl->upval; /* amend upvalues for closing. */
+      bl = bl->previous; /* jump back current blocks to find the loop */
+    }
+    else { /* found a loop */
+      if (--backwards == 0) { /* this is our loop */
+        break;
+      }
+      else { /* continue search */
+        upval |= bl->upval;
+        bl = bl->previous;
+      }
+    };
+  }
+  if (bl) {
+    if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
+    luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
+  }
+#ifndef PLUTO_COMPATIBLE_CONTINUE
+  else error_expected(ls, TK_CONTINUE);
+#else
+  else error_expected(ls, TK_PCONTINUE);
+#endif
+}
+
+
 /* Switch logic partially inspired by Paige Marie DePol from the Lua mailing list. */
-static void caselist (LexState *ls, bool isdefault) {
+static void caselist (LexState *ls) {
   while (gett(ls) != TK_PDEFAULT
       && gett(ls) != TK_PCASE
       && gett(ls) != TK_END
@@ -1157,20 +1198,15 @@ static void caselist (LexState *ls, bool isdefault) {
       && gett(ls) != TK_CASE
 #endif
     ) {
-    if (isdefault && gett(ls) == TK_BREAK && luaX_lookahead(ls) == TK_END) {
-      luaX_next(ls);
+    if (gett(ls) == TK_PCONTINUE
+#ifndef PLUTO_COMPATIBLE_CONTINUE
+        || gett(ls) == TK_CONTINUE
+#endif
+        ) {
+      continuestat(ls, 1);
     }
     else {
-      if (gett(ls) == TK_PCONTINUE
-#ifndef PLUTO_COMPATIBLE_CONTINUE
-          || gett(ls) == TK_CONTINUE
-#endif
-          ) {
-        throwerr(ls, "'continue' outside of loop.", "'case' statements are not loops.");
-      }
-      else {
-        statement(ls);
-      }
+      statement(ls);
     }
   }
 }
@@ -2201,10 +2237,9 @@ int cond (LexState *ls) {
 }
 
 
-static void gotostat (LexState *ls) {
+static void lgoto(LexState *ls, TString *name) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
-  TString *name = str_checkname(ls);  /* label's name */
   Labeldesc *lb = findlabel(ls, name);
   if (lb == NULL)  /* no label? */
     /* forward jump; will be resolved when the label is declared */
@@ -2217,6 +2252,10 @@ static void gotostat (LexState *ls) {
     /* create jump and link it to the label */
     luaK_patchlist(fs, luaK_jump(fs), lb->pc);
   }
+}
+
+static void gotostat (LexState *ls) {
+  lgoto(ls, str_checkname(ls));
 }
 
 
@@ -2260,134 +2299,141 @@ static void breakstat (LexState *ls) {
 }
 
 
-/*
-** Continue statement. Semantically similar to "goto continue".
-** Unlike break, this doesn't use labels. It tracks where to jump via BlockCnt.scopeend;
-*/
-static void continuestat (LexState *ls) {
-  FuncState *fs = ls->fs;
-  BlockCnt *bl = fs->bl;
-  int upval = 0;
-  luaX_next(ls); /* skip TK_CONTINUE */
-  lua_Integer backwards = 1;
-  if (ls->t.token == TK_INT) {
-    backwards = ls->t.seminfo.i;
-    luaX_next(ls);
-  }
-  while (bl) {
-    if (!bl->isloop) { /* not a loop, continue search */
-      upval |= bl->upval; /* amend upvalues for closing. */
-      bl = bl->previous; /* jump back current blocks to find the loop */
-    }
-    else { /* found a loop */
-      if (--backwards == 0) { /* this is our loop */
-        break;
-      }
-      else { /* continue search */
-        upval |= bl->upval;
-        bl = bl->previous;
-      }
-    };
-  }
-  if (bl) {
-    if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
-    luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
-  }
-#ifndef PLUTO_COMPATIBLE_CONTINUE
-  else error_expected(ls, TK_CONTINUE);
-#else
-  else error_expected(ls, TK_PCONTINUE);
-#endif
-}
-
-
 // Test the next token to see if it's either 'token1' or 'token2'.
 inline bool testnext2 (LexState *ls, int token1, int token2) {
   return testnext(ls, token1) || testnext(ls, token2);
 }
 
 
+static void casecond(LexState* ls, int case_line, expdesc& lcase) {
+  if (testnext(ls, '-')) { // Probably a negative constant.
+    simpleexp(ls, &lcase, true);
+    switch (lcase.k) {
+      case VKINT:
+        lcase.u.ival *= -1;
+        break;
+  
+      case VKFLT:
+        lcase.u.nval *= -1;
+        break;
+  
+      default: // Why is there a unary '-' on a non-numeral type?
+        throwerr(ls, "unexpected symbol in 'case' expression.", "unary '-' on non-numeral type.");
+    }
+  }
+  else {
+    testnext(ls, '+'); /* support pseudo-unary '+' */
+    simpleexp(ls, &lcase, true);
+    if (!vkisconst(lcase.k)) {
+        throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
+    }
+  }
+  checknext(ls, ':');
+}
+
+
 static void switchstat (LexState *ls, int line) {
-  FuncState *fs = ls->fs;
-  BlockCnt sbl, cbl; // Switch & case blocks.
-  expdesc crtl, save, test, lcase;
   int switchToken = gett(ls);
   luaX_next(ls); // Skip switch statement.
   testnext(ls, '(');
+
+  FuncState* fs = ls->fs;
+  BlockCnt sbl;
+  enterblock(fs, &sbl, 1);
+
+  expdesc crtl, save, first;
   expr(ls, &crtl);
   luaK_exp2nextreg(ls->fs, &crtl);
   init_exp(&save, VLOCAL, crtl.u.info);
   testnext(ls, ')');
   checknext(ls, TK_DO);
-  new_localvarliteral(ls, "(switch)"); // Save control value into a local.
+  new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
   adjustlocalvars(ls, 1);
-  enterblock(fs, &sbl, 1);
-  do {
-    const int caseline = ls->getLineNumber(); // Needed for errors.
-#ifdef PLUTO_COMPATIBLE_CASE
-    if (!testnext(ls, TK_PCASE)) {
-#else
-    if (!testnext2(ls, TK_PCASE, TK_CASE)) {
+
+  TString* const begin_switch = luaX_newstring(ls, "pluto_begin_switch");
+  TString* const end_switch = luaX_newstring(ls, "pluto_end_switch");
+  TString* default_case = nullptr;
+
+  if (gett(ls) == TK_PCASE
+#ifndef PLUTO_COMPATIBLE_CASE
+      || gett(ls) == TK_CASE
 #endif
-#ifdef PLUTO_COMPATIBLE_CASE
-      error_expected(ls, TK_PCASE);
+      ) {
+    int case_line = ls->getLineNumber();
+
+    luaX_next(ls); /* Skip 'case' */
+
+    first = save;
+
+    expdesc lcase;
+    casecond(ls, case_line, lcase);
+
+    luaK_infix(fs, OPR_NE, &first);
+    luaK_posfix(fs, OPR_NE, &first, &lcase, ls->getLineNumber());
+
+    caselist(ls);
+  }
+  else {
+    first.k = VVOID;
+    newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
+  }
+
+  std::vector<std::pair<expdesc, int>> cases{};
+
+  while (gett(ls) != TK_END) {
+    auto case_line = ls->getLineNumber();
+#ifdef PLUTO_COMPATIBLE_DEFAULT
+    if (testnext(ls, TK_PDEFAULT)) {
 #else
-      error_expected(ls, TK_CASE);
-#endif
-    }
-    if (testnext(ls, '-')) { // Probably a negative constant.
-      simpleexp(ls, &lcase, true);
-      switch (lcase.k) {
-        case VKINT: {
-          lcase.u.ival *= -1;
-          break;
-        }
-        case VKFLT: {
-          lcase.u.nval *= -1;
-          break;
-        }
-        default: { // Why is there a unary '-' on a non-numeral type?
-          throwerr(ls, "unexpected symbol in 'case' expression.", "unary '-' on non-numeral type.");
-        }
-      }
+    if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) {
+#endif 
+      checknext(ls, ':');
+      if (default_case != nullptr)
+        throwerr(ls, "switch statement already has a default case", "second default case", case_line);
+      default_case = luaX_newstring(ls, "pluto_default_case");
+      createlabel(ls, default_case, ls->getLineNumber(), block_follow(ls, 0));
+      caselist(ls);
     }
     else {
-      testnext(ls, '+'); /* support pseudo-unary '+' */
-      simpleexp(ls, &lcase, true);
-      if (!vkisconst(lcase.k)) {
-        throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", caseline);
-      }
-    }
-    checknext(ls, ':');
-    enterblock(fs, &cbl, 0);
-    test = save;
-    luaK_infix(fs, OPR_NE, &test);
-    luaK_posfix(fs, OPR_NE, &test, &lcase, line);
-    caselist(ls, false);
-    leaveblock(fs);
-    if (gett(ls) == TK_PCASE
-#ifndef PLUTO_COMPATIBLE_CASE
-        || gett(ls) == TK_CASE
-#endif
-        ) {
-      luaK_code(fs, CREATE_sJ(OP_JMP, (2 + OFFSET_sJ), false)); // Fall-through.
-    }
-    luaK_patchtohere(fs, test.u.info); // Jump statements if OP_NE, otherwise continue.
-  } while (gett(ls) != TK_END && (gett(ls) != TK_PDEFAULT
-#ifndef PLUTO_COMPATIBLE_DEFAULT
-      && gett(ls) != TK_DEFAULT
-#endif
-      ));
-#ifdef PLUTO_COMPATIBLE_DEFAULT
-  if (testnext(ls, TK_PDEFAULT)) { // Default case.
+#ifdef PLUTO_COMPATIBLE_CASE
+      if (!testnext(ls, TK_PCASE)) {
 #else
-  if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) { // Default case.
+      if (!testnext2(ls, TK_PCASE, TK_CASE)) {
 #endif
-    checknext(ls, ':');
-    enterblock(fs, &cbl, 0);
-    caselist(ls, true);
-    leaveblock(fs);
+#ifdef PLUTO_COMPATIBLE_CASE
+        error_expected(ls, TK_PCASE);
+#else
+        error_expected(ls, TK_CASE);
+#endif
+      }
+      casecond(ls, case_line, cases.emplace_back(std::pair<expdesc, int>{ expdesc{}, luaK_getlabel(fs) }).first);
+      caselist(ls);
+    }
   }
+
+  /* handle possible fallthrough, don't loop infinitely */
+  newgotoentry(ls, end_switch, ls->getLineNumber(), luaK_jump(fs)); // goto end_switch
+
+  if (first.k != VVOID) {
+    luaK_patchtohere(fs, first.u.info);
+  }
+  else {
+    createlabel(ls, begin_switch, ls->getLineNumber(), block_follow(ls, 0)); // ::begin_switch::
+  }
+
+  expdesc test;
+  for (auto& c : cases) {
+    test = save;
+    luaK_infix(fs, OPR_EQ, &test);
+    luaK_posfix(fs, OPR_EQ, &test, &c.first, ls->getLineNumber());
+    luaK_patchlist(fs, test.u.info, c.second);
+  }
+
+  if (default_case != nullptr)
+    lgoto(ls, default_case);
+
+  createlabel(ls, end_switch, ls->getLineNumber(), block_follow(ls, 0)); // ::end_switch::
+
   check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
 }

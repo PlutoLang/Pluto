@@ -436,6 +436,16 @@ do
         t = false
     end
     assert(t == true)
+    t = 0
+    value = 3
+    pluto_switch value do
+        pluto_case 1:
+        pluto_default:
+        error()
+        pluto_case 3:
+        t = true
+    end
+    assert(t == true)
 end
 
 print "Testing table freezing."
