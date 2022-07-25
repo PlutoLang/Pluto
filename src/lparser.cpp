@@ -2432,8 +2432,7 @@ static void switchstat (LexState *ls, int line) {
   if (default_case != nullptr)
     lgoto(ls, default_case);
 
-  // ::end_switch::
-  createlabel(ls, end_switch, ls->getLineNumber(), block_follow(ls, 0));
+  createlabel(ls, end_switch, ls->getLineNumber(), block_follow(ls, 0)); // ::end_switch::
 
   check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
