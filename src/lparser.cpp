@@ -2332,7 +2332,7 @@ static void switchstat (LexState *ls, int line) {
   TString* const begin_switch = luaX_newstring(ls, "pluto_begin_switch");
   TString* const end_switch = luaX_newstring(ls, "pluto_end_switch");
   TString* default_case = nullptr;
-  std::vector<expdesc> cases{};
+  std::vector<std::pair<expdesc, int>> cases{};
 
   newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
 
@@ -2362,8 +2362,7 @@ static void switchstat (LexState *ls, int line) {
         error_expected(ls, TK_CASE);
 #endif
       }
-      auto case_label = getCaseLabel(ls, cases.size());
-      expdesc& lcase = cases.emplace_back(expdesc{});
+      expdesc& lcase = cases.emplace_back(std::pair<expdesc, int>{ expdesc{}, luaK_getlabel(fs) }).first;
       if (testnext(ls, '-')) { // Probably a negative constant.
         simpleexp(ls, &lcase, true);
         switch (lcase.k) {
@@ -2386,7 +2385,6 @@ static void switchstat (LexState *ls, int line) {
             throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
         }
       }
-      createlabel(ls, case_label, ls->getLineNumber(), block_follow(ls, 0));
       checknext(ls, ':');
       caselist(ls);
     }
@@ -2400,12 +2398,9 @@ static void switchstat (LexState *ls, int line) {
   expdesc test;
   for (size_t i = 0; i != cases.size(); ++i) {
     test = save;
-    luaK_infix(fs, OPR_NE, &test);
-    luaK_posfix(fs, OPR_NE, &test, &cases.at(i), ls->getLineNumber());
-    /* if cond == case */ {
-      lgoto(ls, getCaseLabel(ls, i));
-    }
-    luaK_patchtohere(fs, test.u.info);
+	luaK_infix(fs, OPR_EQ, &test);
+	luaK_posfix(fs, OPR_EQ, &test, &cases.at(i).first, ls->getLineNumber());
+    luaK_patchlist(fs, test.u.info, cases.at(i).second);
   }
 
   if (default_case != nullptr)
