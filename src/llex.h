@@ -70,6 +70,7 @@ enum RESERVED {
   TK_CIDIV, TK_CDIV,    /* integer and float division  */
   TK_CPOW, TK_POW,      /* exponents / power           */
   TK_CCAT, TK_COAL,     /* concatenation & null coal.  */
+  TK_WALRUS,            /* walrus operator */
 };
 
 #define LAST_RESERVED TK_WHILE
