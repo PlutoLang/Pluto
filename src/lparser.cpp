@@ -2305,12 +2305,6 @@ inline bool testnext2 (LexState *ls, int token1, int token2) {
 }
 
 
-[[nodiscard]] static TString* getCaseLabel(LexState* ls, size_t idx) {
-    std::string str = "pluto_case_";
-    str.append(std::to_string(idx));
-    return luaX_newstring(ls, str.c_str()); /* this is fine, it will reuse existing string */
-}
-
 static void switchstat (LexState *ls, int line) {
   int switchToken = gett(ls);
   luaX_next(ls); // Skip switch statement.
@@ -2398,8 +2392,8 @@ static void switchstat (LexState *ls, int line) {
   expdesc test;
   for (size_t i = 0; i != cases.size(); ++i) {
     test = save;
-	luaK_infix(fs, OPR_EQ, &test);
-	luaK_posfix(fs, OPR_EQ, &test, &cases.at(i).first, ls->getLineNumber());
+    luaK_infix(fs, OPR_EQ, &test);
+    luaK_posfix(fs, OPR_EQ, &test, &cases.at(i).first, ls->getLineNumber());
     luaK_patchlist(fs, test.u.info, cases.at(i).second);
   }
 
