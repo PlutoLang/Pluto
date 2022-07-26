@@ -1150,6 +1150,7 @@ inline int gett(LexState *ls) {
 ** Unlike break, this doesn't use labels. It tracks where to jump via BlockCnt.scopeend;
 */
 static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
+  auto line = ls->getLineNumber();
   FuncState *fs = ls->fs;
   BlockCnt *bl = fs->bl;
   int upval = 0;
@@ -1157,6 +1158,9 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
   lua_Integer backwards = 1;
   if (ls->t.token == TK_INT) {
     backwards = ls->t.seminfo.i;
+    if (backwards == 0) {
+      throwerr(ls, "expected number of blocks to skip, found '0'", "unexpected '0'", line);
+    }
     luaX_next(ls);
   }
   backwards += backwards_surplus;
@@ -1179,11 +1183,9 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
     if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
     luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
   }
-#ifndef PLUTO_COMPATIBLE_CONTINUE
-  else error_expected(ls, TK_CONTINUE);
-#else
-  else error_expected(ls, TK_PCONTINUE);
-#endif
+  else {
+    throwerr(ls, "continue can't skip that many blocks", "try a smaller number", line);
+  }
 }
 
 
@@ -2268,6 +2270,7 @@ static void gotostat (LexState *ls) {
 **   This allows reusage of the existing "continue" implementation, which has been time-tested extensively by now.
 */
 static void breakstat (LexState *ls) {
+  auto line = ls->getLineNumber();
   FuncState *fs = ls->fs;
   BlockCnt *bl = fs->bl;
   int upval = 0;
@@ -2275,6 +2278,9 @@ static void breakstat (LexState *ls) {
   lua_Integer backwards = 1;
   if (ls->t.token == TK_INT) {
     backwards = ls->t.seminfo.i;
+    if (backwards == 0) {
+      throwerr(ls, "expected number of blocks to skip, found '0'", "unexpected '0'", line);
+    }
     luaX_next(ls);
   }
   while (bl) {
@@ -2296,7 +2302,9 @@ static void breakstat (LexState *ls) {
     if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
     luaK_concat(fs, &bl->breaklist, luaK_jump(fs));
   }
-  else error_expected(ls, TK_BREAK);
+  else {
+    throwerr(ls, "break can't skip that many blocks", "try a smaller number", line);
+  }
 }
 
 
