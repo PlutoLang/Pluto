@@ -2390,8 +2390,8 @@ static void switchstat (LexState *ls, int line) {
   new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
   adjustlocalvars(ls, 1);
 
-  TString* const begin_switch = luaX_newstring(ls, "pluto_begin_switch");
-  TString* const end_switch = luaX_newstring(ls, "pluto_end_switch");
+  TString* const begin_switch = luaS_newliteral(ls->L, "pluto_begin_switch");
+  TString* const end_switch = luaS_newliteral(ls->L, "pluto_end_switch");
   TString* default_case = nullptr;
 
   if (gett(ls) == TK_PCASE
@@ -2430,7 +2430,7 @@ static void switchstat (LexState *ls, int line) {
       checknext(ls, ':');
       if (default_case != nullptr)
         throwerr(ls, "switch statement already has a default case", "second default case", case_line);
-      default_case = luaX_newstring(ls, "pluto_default_case");
+      default_case = luaS_newliteral(ls->L, "pluto_default_case");
       createlabel(ls, default_case, ls->getLineNumber(), block_follow(ls, 0));
       caselist(ls);
     }
