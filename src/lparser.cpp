@@ -530,7 +530,7 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
 */
-static int new_localvar (LexState *ls, TString *name, const TypeDesc& hint = VT_DUNNO) {
+static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& hint = VT_DUNNO) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -544,7 +544,7 @@ static int new_localvar (LexState *ls, TString *name, const TypeDesc& hint = VT_
     if ((n != "(for state)" && n != "(switch control value)") && (local && local->varname == name)) { // Got a match.
       throw_warn(ls,
         "duplicate local declaration",
-          luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.linenumber));
+          luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.line));
       L->top--; /* pop result of luaO_fmt */
     }
   }
@@ -558,8 +558,12 @@ static int new_localvar (LexState *ls, TString *name, const TypeDesc& hint = VT_
   var->vd.hint = hint;
   var->vd.prop = VT_DUNNO;
   var->vd.name = name;
-  var->vd.linenumber = ls->getLineNumber();
+  var->vd.line = line;
   return dyd->actvar.n - 1 - fs->firstlocal;
+}
+
+static int new_localvar (LexState *ls, TString *name, const TypeDesc& hint = VT_DUNNO) {
+  return new_localvar(ls, name, ls->getLineNumber(), hint);
 }
 
 
@@ -2798,7 +2802,7 @@ static void localstat (LexState *ls) {
   expdesc e;
   int line = ls->getLineNumber(); /* in case we need to emit a warning */
   do {
-    vidx = new_localvar(ls, str_checkname(ls, true));
+    vidx = new_localvar(ls, str_checkname(ls, true), line);
     hint = gettypehint(ls);
     kind = getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
