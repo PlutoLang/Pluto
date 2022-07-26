@@ -1124,20 +1124,24 @@ static int jumponcond (FuncState *fs, expdesc *e, int cond) {
 }
 
 
+LUAI_FUNC bool luaK_isalwaytrue(expdesc *e) {
+  return e->k == VK || e->k == VKFLT || e->k == VKINT || e->k == VKSTR || e->k == VTRUE;
+}
+
+
 /*
 ** Emit code to go through if 'e' is true, jump otherwise.
 */
 void luaK_goiftrue (FuncState *fs, expdesc *e) {
   int pc;  /* pc of new jump */
   luaK_dischargevars(fs, e);
-  switch (e->k) {
+  if (luaK_isalwaytrue(e)) {
+    pc = NO_JUMP;  /* always true; do nothing */
+  }
+  else switch (e->k) {
     case VJMP: {  /* condition? */
       negatecondition(fs, e);  /* jump when it is false */
       pc = e->u.info;  /* save jump position */
-      break;
-    }
-    case VK: case VKFLT: case VKINT: case VKSTR: case VTRUE: {
-      pc = NO_JUMP;  /* always true; do nothing */
       break;
     }
     default: {
