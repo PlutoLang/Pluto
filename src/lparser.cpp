@@ -1154,11 +1154,12 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
   BlockCnt *bl = fs->bl;
   int upval = 0;
   luaX_next(ls); /* skip TK_CONTINUE */
-  lua_Integer backwards = (1 + backwards_surplus);
+  lua_Integer backwards = 1;
   if (ls->t.token == TK_INT) {
     backwards = ls->t.seminfo.i;
     luaX_next(ls);
   }
+  backwards += backwards_surplus;
   while (bl) {
     if (!bl->isloop) { /* not a loop, continue search */
       upval |= bl->upval; /* amend upvalues for closing. */
