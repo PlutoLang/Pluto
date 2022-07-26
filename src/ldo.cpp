@@ -989,7 +989,7 @@ int luaD_protectedparser (lua_State *L, ZIO *z, const char *name,
   int status;
   incnny(L);  /* cannot yield during parsing */
   p.z = z; p.name = name; p.mode = mode;
-  p.dyd.creating_local = false;
+  p.dyd.creating_variable = false;
   p.dyd.actvar.arr = NULL; p.dyd.actvar.size = 0;
   p.dyd.gt.arr = NULL; p.dyd.gt.size = 0;
   p.dyd.label.arr = NULL; p.dyd.label.size = 0;
