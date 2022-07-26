@@ -113,6 +113,7 @@ struct LexState {
   std::vector<std::string> lines;
   int lastline;  /* line of last token 'consumed' */
   int lasttoken;  /* save the last compound binary operator, if exists */
+  int laststat;  /* the last statement */
   Token t;  /* current token */
   Token lookahead;  /* look ahead token */
   struct FuncState *fs;  /* current function (parser) */

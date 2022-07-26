@@ -348,6 +348,7 @@ static void check_match (LexState *ls, int what, int who, int where) {
       }
     }
   }
+  ls->laststat = what;
 }
 
 
@@ -2688,6 +2689,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
   expr(ls, &v);  /* read condition */
   checknext(ls, TK_THEN);
   if (ls->t.token == TK_BREAK) {  /* 'if x then break' ? */
+    ls->laststat = TK_BREAK;
     int line = ls->getLineNumber();
     luaK_goiffalse(ls->fs, &v);  /* will jump if condition is true */
     luaX_next(ls);  /* skip 'break' */
@@ -2910,6 +2912,10 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 
 
 static void statement (LexState *ls, TypeDesc *prop) {
+  if (ls->laststat == TK_CONTINUE || ls->laststat == TK_BREAK) {
+    throw_warn(ls, "unreachable code", "this code comes after an escaping statement.");
+  }
+  ls->laststat = ls->t.token;
   int line = ls->getLineNumber();  /* may be needed for error messages */
   enterlevel(ls);
   switch (ls->t.token) {
