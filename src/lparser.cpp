@@ -2912,8 +2912,11 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 
 
 static void statement (LexState *ls, TypeDesc *prop) {
-  if (ls->laststat == TK_CONTINUE || ls->laststat == TK_BREAK) {
-    throw_warn(ls, "unreachable code", "this code comes after an escaping statement.");
+  if (ls->laststat == TK_CONTINUE || ls->laststat == TK_BREAK || ls->laststat == TK_GOTO) {
+    throw_warn(ls,
+      "unreachable code",
+        luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat)));
+    ls->L->top -= 2;
   }
   ls->laststat = ls->t.token;
   int line = ls->getLineNumber();  /* may be needed for error messages */
