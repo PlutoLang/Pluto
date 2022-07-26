@@ -793,8 +793,8 @@ static void singlevar (LexState *ls, expdesc *var) {
   TString *varname = str_checkname(ls);
   if (gett(ls) == TK_WALRUS) {
     luaX_next(ls);
-    if (ls->dyd->creating_local)
-      throwerr(ls, "unexpected ':=' in 'local' assignment", "unexpected ':='");
+    if (ls->dyd->creating_variable)
+      throwerr(ls, "unexpected ':=' while creating variable", "unexpected ':='");
     new_localvar(ls, varname);
     expr(ls, var);
     adjust_assign(ls, 1, 1, var);
@@ -2222,7 +2222,9 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
       TypeDesc prop = VT_DUNNO;
+      ls->dyd->creating_variable = true;
       int nexps = explist(ls, &e, &prop);
+      ls->dyd->creating_variable = false;
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
       else {
@@ -2793,9 +2795,9 @@ static void localstat (LexState *ls) {
   } while (testnext(ls, ','));
   std::vector<TypeDesc> tds;
   if (testnext(ls, '=')) {
-    ls->dyd->creating_local = true;
+    ls->dyd->creating_variable = true;
     nexps = explist(ls, &e, tds);
-    ls->dyd->creating_local = false;
+    ls->dyd->creating_variable = false;
   }
   else {
     e.k = VVOID;
