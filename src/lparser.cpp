@@ -2679,6 +2679,27 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
   luaX_next(ls);  /* skip IF or ELSEIF */
   expr(ls, &v);  /* read condition */
   checknext(ls, TK_THEN);
+  if (ls->t.token == TK_GOTO) {  /* 'if x then goto' ? */
+    luaX_next(ls);
+    auto name = str_checkname(ls);
+    if (luaK_isalwaytrue(&v)) { /* unconditional jump */
+      lgoto(ls, name);
+    }
+    else if (auto lb = findlabel(ls, name)) { /* conditional backwards jump */
+      luaK_goiffalse(ls->fs, &v);
+      luaK_patchlist(fs, v.t, lb->pc);
+    }
+    else { /* conditional forwards jump */
+      luaK_goiftrue(ls->fs, &v);
+      lgoto(ls, name);
+      luaK_patchtohere(fs, v.f);
+    }
+    /* there might be more instructions even tho they would never be executed... */
+    enterblock(fs, &bl, 0);
+    statlist(ls);
+    leaveblock(fs);
+    return;
+  }
   if (ls->t.token == TK_BREAK && luaX_lookahead(ls) != TK_INT) {  /* 'if x then break' and not 'if x then break int' ? */
     int line = ls->getLineNumber();
     luaK_goiffalse(ls->fs, &v);  /* will jump if condition is true */
