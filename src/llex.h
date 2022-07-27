@@ -133,16 +133,16 @@ struct LexState {
   }
 
   [[nodiscard]] int getLineNumberOfLastNonEmptyLine() const noexcept {
-     for (int line = getLineNumber(); line != 0; --line) {
-       if (!getLineString(line).empty()) {
-         return line;
-       }
-     }
-     return getLineNumber();
+    for (int line = getLineNumber(); line != 0; --line) {
+      if (!getLineString(line).empty()) {
+        return line;
+      }
+    }
+    return getLineNumber();
   }
 
   [[nodiscard]] const std::string& getLineString(int line) const {
-     return lines.at(line - 1);
+    return lines.at(line - 1);
   }
 
   [[nodiscard]] std::string& getLineBuff() {
