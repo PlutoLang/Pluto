@@ -175,10 +175,13 @@ static std::string make_warn(const char *s) {
 */
 static void throw_warn (LexState *ls, const char *err, const char *here, int line) {
   const std::string& linebuff = ls->getLineString(line);
-  std::string error = make_warn(err);
-  std::string rhere = make_here(linebuff, here);
-  lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line), 0);
-  ls->L->top -= 2; /* remove warning from stack */
+  const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
+  if (!lastattr.find("[[nowarn]]")) {
+    std::string error = make_warn(err);
+    std::string rhere = make_here(linebuff, here);
+    lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line), 0);
+    ls->L->top -= 2; /* remove warning from stack */
+  }
 }
 
 static void throw_warn(LexState *ls, const char *err, const char *here) {

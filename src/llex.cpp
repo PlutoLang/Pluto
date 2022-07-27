@@ -559,13 +559,16 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             luaZ_resetbuffer(ls->buff);  /* 'skip_sep' may dirty the buffer */
             if (sep >= 2) {
               read_long_string(ls, NULL, sep);  /* skip long comment */
+              ls->appendLineBuff(getstr(seminfo->ts));
               luaZ_resetbuffer(ls->buff);  /* previous call may dirty the buff. */
               break;
             }
           }
           /* else short comment */
-          while (!currIsNewline(ls) && ls->current != EOZ)
+          while (!currIsNewline(ls) && ls->current != EOZ) {
+            ls->appendLineBuff(ls->current);
             next(ls);  /* skip until end of line (or end of file) */
+          }
           break;
         }
       }
