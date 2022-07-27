@@ -176,7 +176,7 @@ static std::string make_warn(const char *s) {
 static void throw_warn (LexState *ls, const char *err, const char *here, int line) {
   const std::string& linebuff = ls->getLineString(line);
   const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
-  if (lastattr.find("[[nowarn]]") == std::string::npos) {
+  if (lastattr.find("[[nowarn]]") == std::string::npos && ls->warnings) {
     std::string error = make_warn(err);
     std::string rhere = make_here(linebuff, here);
     lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line), 0);
@@ -2920,14 +2920,17 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 
 
 static void statement (LexState *ls, TypeDesc *prop) {
-  if (ls->laststat == TK_CONTINUE || ls->laststat == TK_BREAK || ls->laststat == TK_GOTO) {
+  int line = ls->getLineNumber();  /* may be needed for error messages */
+  if (ls->laststat == TK_BREAK    ||
+      ls->laststat == TK_CONTINUE ||
+      (ls->laststat == TK_GOTO && ls->findWithinLine(line, getstr(ls->t.seminfo.ts)))) /* Don't warn if this statement is the goto's label. */
+  {
     throw_warn(ls,
       "unreachable code",
         luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat)));
     ls->L->top -= 2;
   }
   ls->laststat = ls->t.token;
-  int line = ls->getLineNumber();  /* may be needed for error messages */
   enterlevel(ls);
   switch (ls->t.token) {
     case ';': {  /* stat -> ';' (empty statement) */
