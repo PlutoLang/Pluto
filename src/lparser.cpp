@@ -1174,6 +1174,7 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
   FuncState *fs = ls->fs;
   BlockCnt *bl = fs->bl;
   int upval = 0;
+  int foundloops = 0;
   luaX_next(ls); /* skip TK_CONTINUE */
   lua_Integer backwards = 1;
   if (ls->t.token == TK_INT) {
@@ -1196,15 +1197,29 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
       else { /* continue search */
         upval |= bl->upval;
         bl = bl->previous;
+        ++foundloops;
       }
-    };
+    }
   }
   if (bl) {
     if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
     luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
   }
   else {
-    throwerr(ls, "continue can't skip that many blocks", "try a smaller number", line);
+    if (foundloops == 0)
+      throwerr(ls, "'continue' outside of a loop","'continue' can only be used inside the context of a loop.", line);
+    else {
+      if (foundloops == 1) {
+        throwerr(ls,
+          "'continue' argument exceeds the amount of enclosing loops",
+            luaO_fmt(ls->L, "there is only 1 enclosing loop.", foundloops));
+      }
+      else {
+        throwerr(ls,
+          "'continue' argument exceeds the amount of enclosing loops",
+            luaO_fmt(ls->L, "there are only %d enclosing loops.", foundloops));
+      }
+    }
   }
 }
 
