@@ -1247,9 +1247,9 @@ static void caselist (LexState *ls) {
     }
     else {
       statement(ls);
-      ls->laststat = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
     }
   }
+  ls->laststat = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
 }
 
 
