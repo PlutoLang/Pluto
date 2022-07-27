@@ -205,6 +205,14 @@ static void inclinenumber (LexState *ls) {
   next(ls);  /* skip '\n' or '\r' */
   if (currIsNewline(ls) && ls->current != old)
     next(ls);  /* skip '\n\r' or '\r\n' */
+
+  auto buff = ls->getLineBuff();
+  
+  if (buff.find("[[pluto_disable_warnings]]") != std::string::npos)
+    ls->warnings = false;
+  else if (buff.find("[[pluto_enable_warnings]]") != std::string::npos)
+    ls->warnings = true;
+
   ls->lines.emplace_back(std::string{});
 }
 
@@ -221,6 +229,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
   ls->fs = NULL;
   ls->source = source;
   ls->envn = luaS_newliteral(L, LUA_ENV);  /* get env name */
+  ls->warnings = true;
   luaZ_resizebuffer(ls->L, ls->buff, LUA_MINBUFFER);  /* initialize buffer */
 }
 
