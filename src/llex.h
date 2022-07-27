@@ -171,6 +171,11 @@ struct LexState {
     return getLineNumber();
   }
 
+  [[nodiscard]] bool findWithinLine(int line, const std::string& substr, int offset = 0) const noexcept {
+    const std::string& str = getLineString(line);
+    return str.find(substr, offset) != std::string::npos;
+  }
+
   [[nodiscard]] const std::string& getLineString(int line) const {
     return lines.at(line - 1);
   }
