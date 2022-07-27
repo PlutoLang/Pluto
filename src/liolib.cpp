@@ -755,8 +755,7 @@ static int filesize (lua_State *L) {
     lua_pushinteger(L, (lua_Integer)std::filesystem::file_size(f));
   }
   else {
-    lua_pushstring(L, "Argument 1 did not lead towards a valid file.");
-    lua_error(L);
+    luaL_error(L, "Argument 1 did not lead towards a valid file.");
   }
   return 1;
 }
@@ -791,10 +790,28 @@ static int makedir (lua_State *L) {
 }
 
 
+static int listdir (lua_State *L) {
+  auto f = luaL_checkstring(L, 1);
+  if (std::filesystem::is_directory(f)) {
+    size_t i = 0;
+    lua_newtable(L);
+    for (auto const& dir_entry : std::filesystem::directory_iterator { f })  {
+      lua_pushstring(L, dir_entry.path().generic_string().c_str());
+      lua_rawseti(L, -2, ++i);
+    }
+  }
+  else {
+    luaL_error(L, "Argument 1 is not a valid path to a directory.");
+  }
+  return 1;
+}
+
+
 /*
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
+  {"listdir", listdir},
   {"makedir", makedir},
   {"absolute", absolute},
   {"copyto", copyto},

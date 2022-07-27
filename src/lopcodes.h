@@ -179,6 +179,11 @@ enum OpMode {iABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
 */
 #define NO_REG		MAXARG_A
 
+/*
+** Identifier used in R(C) for OP_TESTSET, to indicate whether 'false' should be falsy.
+*/
+#define NULL_COALESCE 2
+
 
 /*
 ** R[x] - register
@@ -304,11 +309,12 @@ OP_VARARG,/*	A C	R[A], R[A+1], ..., R[A+C-2] = vararg		*/
 
 OP_VARARGPREP,/*A	(adjust vararg parameters)			*/
 
-OP_EXTRAARG/*	Ax	extra (larger) argument for previous opcode	*/
+OP_EXTRAARG,/*	Ax	extra (larger) argument for previous opcode	*/
+
+OP_IN,
+
+NUM_OPCODES
 } OpCode;
-
-
-#define NUM_OPCODES	((int)(OP_EXTRAARG) + 1)
 
 
 

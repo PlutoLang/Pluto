@@ -6,6 +6,7 @@
 */
 
 #include <stdarg.h>
+#include <string>
 
 
 #include "llimits.h"
@@ -49,7 +50,6 @@ typedef union Value {
   lua_Integer i;   /* integer numbers */
   lua_Number n;    /* float numbers */
   unsigned int it; /* iterator index */
-  lu_byte ub; /* avoid warnings */
 } Value;
 
 
@@ -368,7 +368,7 @@ typedef struct GCObject {
 /*
 ** Header for a string value.
 */
-typedef struct TString {
+struct TString {
   CommonHeader;
   lu_byte extra;  /* reserved words for short strings; "has hash" for longs */
   lu_byte shrlen;  /* length for short strings */
@@ -378,7 +378,19 @@ typedef struct TString {
     struct TString *hnext;  /* linked list for hash table */
   } u;
   char contents[1];
-} TString;
+
+  [[nodiscard]] bool isShort() const noexcept {
+    return tt == LUA_VSHRSTR;
+  }
+
+  [[nodiscard]] size_t size() const noexcept {
+    return isShort() ? shrlen : u.lnglen;
+  }
+
+  [[nodiscard]] std::string toCpp() const {
+    return std::string(contents, size());
+  }
+};
 
 
 

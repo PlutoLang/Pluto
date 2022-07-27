@@ -1173,6 +1173,7 @@ void luaV_finishOp (lua_State *L) {
 */
 LUAI_FUNC int luaB_next (lua_State *L);
 LUAI_FUNC int luaB_ipairsaux (lua_State *L);
+LUAI_FUNC int tcontains(lua_State* L);
 
 #ifdef PLUTO_VMDUMP
 [[nodiscard]] static std::string stringify_ttype(lu_byte t)
@@ -1843,12 +1844,24 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
       vmcase(OP_TESTSET) {
-        TValue *rb = vRB(i);
-        if (l_isfalse(rb) == GETARG_k(i))
-          pc++;
+        if (GETARG_C(i) == NULL_COALESCE) { /* R(C) is used as an identifier, as it was previously unused. */
+          TValue *rb = vRB(i);
+          if (ttisnil(rb)) {
+            pc++;
+          }
+          else {
+            setobj2s(L, ra, rb);
+            donextjump(ci);
+          }
+        }
         else {
-          setobj2s(L, ra, rb);
-          donextjump(ci);
+          TValue *rb = vRB(i);
+          if (l_isfalse(rb) == GETARG_k(i))
+            pc++;
+          else {
+            setobj2s(L, ra, rb);
+            donextjump(ci);
+          }
         }
         vmbreak;
       }
@@ -1987,6 +2000,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       vmcase(OP_TFORPREP) {
         const Instruction* callpc = pc + GETARG_Bx(i);
         i = *callpc;
+        if ((!ttisfunction(s2v(ra)))) {
+          setobjs2s(L, ra + 1, ra);
+          setfvalue(s2v(ra), luaB_next);
+        }
         if (ttypetag(s2v(ra)) == LUA_VLCF
               && ttistable(s2v(ra+1))
               && ttisnil(s2v(ra+3))
@@ -2133,6 +2150,36 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_EXTRAARG) {
         lua_assert(0);
+        vmbreak;
+      }
+      vmcase(OP_IN) {
+        TValue *a = s2v(RA(i));
+        TValue *b = vRB(i);
+        if (ttisstring(a) && ttisstring(b)) {
+          if (strstr(svalue(b), svalue(a)) != nullptr)
+            setbtvalue(s2v(ra));
+          else
+            setbfvalue(s2v(ra));
+        } else {
+          /* fetch table key */
+          const TValue* slot;
+          lua_Integer n;
+          if (ttisinteger(a)
+              ? (cast_void(n = ivalue(a)), luaV_fastgeti(L, b, n, slot))
+              : luaV_fastget(L, b, a, slot, luaH_get)) {
+            setobj2s(L, ra, slot);
+          }
+          else
+            Protect(luaV_finishget(L, b, a, ra, slot));
+          /* check if nil */
+          if (ttisnil(s2v(ra)))
+            setbfvalue(s2v(ra));
+          else
+            setbtvalue(s2v(ra));
+        }
+        vmbreak;
+      }
+      vmcase(NUM_OPCODES) {
         vmbreak;
       }
     }

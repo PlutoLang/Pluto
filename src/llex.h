@@ -5,8 +5,10 @@
 ** See Copyright Notice in lua.h
 */
 
-#include <string>
 #include <limits.h>
+
+#include <string>
+#include <vector>
 
 #include "lobject.h"
 #include "lzio.h"
@@ -67,12 +69,13 @@ enum RESERVED {
   TK_CBXOR,             /* bitwise XOR                 */
   TK_CIDIV, TK_CDIV,    /* integer and float division  */
   TK_CPOW, TK_POW,      /* exponents / power           */
-  TK_CCAT,              /* concatenation               */
+  TK_CCAT, TK_COAL,     /* concatenation & null coal.  */
 };
 
+#define LAST_RESERVED TK_WHILE
 
 /* number of reserved words */
-#define NUM_RESERVED	(cast_int(TK_WHILE-FIRST_RESERVED + 1))
+#define NUM_RESERVED	(cast_int(LAST_RESERVED-FIRST_RESERVED + 1))
 
 
 typedef union {
@@ -82,10 +85,18 @@ typedef union {
 } SemInfo;  /* semantics information */
 
 
-typedef struct Token {
+struct Token {
   int token;
   SemInfo seminfo;
-} Token;
+
+  [[nodiscard]] bool IsReserved() const noexcept {
+    return token >= FIRST_RESERVED && token <= LAST_RESERVED;
+  }
+
+  [[nodiscard]] bool IsReservedNonValue() const noexcept {
+    return IsReserved() && token != TK_TRUE && token != TK_FALSE && token != TK_NIL;
+  }
+};
 
 
 /*
@@ -98,7 +109,7 @@ typedef struct Token {
 
 struct LexState {
   int current;  /* current character (charint) */
-  int linenumber;  /* input line counter */
+  std::vector<std::string> lines;
   int lastline;  /* line of last token 'consumed' */
   int lasttoken;  /* save the last compound binary operator, if exists */
   Token t;  /* current token */
@@ -107,32 +118,43 @@ struct LexState {
   struct lua_State *L;
   ZIO *z;  /* input stream */
   Mbuffer *buff;  /* buffer for tokens */
-  std::string linebuff; /* buffer for lines */
-  std::string lastlinebuff; /* buffer for the last line */
-  int lastlinebuffnum; /* last line number for lastlinebuff */
   Table *h;  /* to avoid collection/reuse strings */
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
 
-  // Return the last non-whitespace line.
-  const char *GetLatestLine() {
-    if (linebuff.find_first_not_of(" \t") == std::string::npos) {
-      if (lastlinebuff.find_first_not_of(" \t") != std::string::npos) {
-        return lastlinebuff.c_str();
-      }
-    }
-    return linebuff.c_str();
+  LexState()
+    : lines{ std::string{} }
+  {
   }
 
-  // Return the line number of the last latest line (see above).
-  int GetLastLineNumber() {
-    if (linebuff.find_first_not_of(" \t") == std::string::npos) {
-      if (lastlinebuff.find_first_not_of(" \t") != std::string::npos) {
-        return lastlinebuffnum;
-      }
-    }
-    return linenumber;
+  [[nodiscard]] int getLineNumber() const noexcept {
+    return (int)lines.size();
+  }
+
+  [[nodiscard]] int getLineNumberOfLastNonEmptyLine() const noexcept {
+     for (int line = getLineNumber(); line != 0; --line) {
+       if (!getLineString(line).empty()) {
+         return line;
+       }
+     }
+     return getLineNumber();
+  }
+
+  [[nodiscard]] const std::string& getLineString(int line) const {
+     return lines.at(line - 1);
+  }
+
+  [[nodiscard]] std::string& getLineBuff() {
+    return lines.back();
+  }
+
+  void appendLineBuff(const std::string& str) {
+    getLineBuff().append(str);
+  }
+
+  void appendLineBuff(char c) {
+    getLineBuff().push_back(c);
   }
 };
 
@@ -145,8 +167,10 @@ LUAI_FUNC void luaX_init (lua_State *L);
 LUAI_FUNC void luaX_setinput (lua_State *L, LexState *ls, ZIO *z,
                               TString *source, int firstchar);
 LUAI_FUNC TString *luaX_newstring (LexState *ls, const char *str, size_t l);
+LUAI_FUNC TString* luaX_newstring (LexState *ls, const char *str);
 LUAI_FUNC void luaX_next (LexState *ls);
 LUAI_FUNC int luaX_lookahead (LexState *ls);
 [[noreturn]] LUAI_FUNC void luaX_syntaxerror (LexState *ls, const char *s);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);
+LUAI_FUNC const char *luaX_reserved2str (int token);
