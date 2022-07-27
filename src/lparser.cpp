@@ -2703,6 +2703,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
   checknext(ls, TK_THEN);
   if (ls->t.token == TK_GOTO) {  /* 'if x then goto' ? */
     luaX_next(ls);
+    enterblock(fs, &bl, 0);
     auto name = str_checkname(ls);
     if (luaK_isalwaytrue(&v)) { /* unconditional jump */
       lgoto(ls, name);
@@ -2717,7 +2718,6 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
       luaK_patchtohere(fs, v.f);
     }
     /* there might be more instructions even tho they would never be executed... */
-    enterblock(fs, &bl, 0);
     statlist(ls);
     leaveblock(fs);
     return;
