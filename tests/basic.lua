@@ -594,6 +594,11 @@ do
 
     local myconst <const> = "consty"
     assert(myconst == "consty")
+
+    if true then
+        goto if_then_goto_test
+        ::if_then_goto_test::
+    end
 end
 
 print "Finished."
