@@ -176,10 +176,10 @@ struct TypeDesc
   PrimitiveType primitive;
 
   /* function info */
+  Proto* proto;
   PrimitiveType retn;
-  lu_byte numparams;
-  static constexpr int MAX_PARAMS = 10;
-  PrimitiveType params[MAX_PARAMS];
+  static constexpr int MAX_TYPED_PARAMS = 10;
+  PrimitiveType params[MAX_TYPED_PARAMS];
 
   TypeDesc() = default;
 
@@ -213,11 +213,15 @@ struct TypeDesc
     return retn.isNullable();
   }
 
-  void setNumParams(int numparams) noexcept {
-    if (numparams > MAX_PARAMS)
-      this->numparams = MAX_PARAMS;
-    else
-      this->numparams = numparams;
+  [[nodiscard]] lu_byte getNumParams() noexcept {
+    return proto->numparams;
+  }
+
+  [[nodiscard]] lu_byte getNumTypedParams() noexcept {
+    auto p = getNumParams();
+    if (p >= MAX_TYPED_PARAMS)
+      p = MAX_TYPED_PARAMS;
+    return p;
   }
 
   [[nodiscard]] bool isCompatibleWith(const TypeDesc& b) const noexcept {

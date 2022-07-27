@@ -1492,10 +1492,10 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
 #endif
   if (prop) { /* propagate type of function */
     *prop = VT_FUNC;
+    prop->proto = new_fs.f;
     prop->retn = p.primitive;
-    prop->setNumParams(new_fs.f->numparams);
     int vidx = new_fs.firstlocal;
-    for (int i = 0; i != prop->numparams; ++i) {
+    for (lu_byte i = 0; i != prop->getNumTypedParams(); ++i) {
       prop->params[i] = ls->dyd->actvar.arr[vidx].vd.hint.primitive;
       ++vidx;
     }
@@ -1561,15 +1561,6 @@ static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
   return n;
 }
 
-static std::string format_nth(int i) {
-  if (i == 1) return "first";
-  if (i == 2) return "second";
-  if (i == 3) return "third";
-  std::string str = std::to_string(i);
-  str.append("th");
-  return str;
-}
-
 static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = nullptr) {
   FuncState *fs = ls->fs;
   expdesc args;
@@ -1605,7 +1596,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
   }
 #ifndef PLUTO_NO_PARSER_WARNINGS
   if (funcdesc) {
-    for (int i = 0; i != funcdesc->numparams; ++i) {
+    for (lu_byte i = 0; i != funcdesc->getNumTypedParams(); ++i) {
       const PrimitiveType& param_hint = funcdesc->params[i];
       if (param_hint.getType() == VT_DUNNO)
         continue; /* skip parameters without type hint */
@@ -1617,7 +1608,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       }
       if (!param_hint.isCompatibleWith(arg.primitive)) {
         std::string err = "Function's ";;
-        err.append(format_nth(i + 1));
+        err.append(funcdesc->proto->locvars[i].varname->contents, funcdesc->proto->locvars[i].varname->size());
         err.append(" parameter was type-hinted as ");
         err.append(param_hint.toString());
         err.append(" but provided with ");
