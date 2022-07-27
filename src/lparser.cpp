@@ -2706,6 +2706,8 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
   int jf;  /* instruction to skip 'then' code (if condition is false) */
   luaX_next(ls);  /* skip IF or ELSEIF */
   expr(ls, &v);  /* read condition */
+  if (v.k == VNIL || v.k == VFALSE)
+    throw_warn(ls, "unreachable code", "this condition will never be truthy.", ls->getLineNumber());
   checknext(ls, TK_THEN);
   if (ls->t.token == TK_GOTO) {  /* 'if x then goto' ? */
     luaX_next(ls);
