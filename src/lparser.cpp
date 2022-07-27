@@ -171,7 +171,7 @@ static std::string make_warn(const char *s) {
 
 
 /*
-** Throws an warning into standard output, which will not close the program.
+** Throws a warning into standard output, which will not close the program.
 */
 static void throw_warn (LexState *ls, const char *err, const char *here, int line) {
   const std::string& linebuff = ls->getLineString(line);
