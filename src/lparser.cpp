@@ -170,6 +170,7 @@ static std::string make_warn(const char *s) {
 }
 
 
+#ifndef PLUTO_NO_PARSER_WARNINGS
 /*
 ** Throws a warning into standard output, which will not close the program.
 */
@@ -194,6 +195,7 @@ static void throw_warn(LexState *ls, const char *err, int linenumber) {
 /*static void throw_warn(LexState *ls, const char *err) {
   return throw_warn(ls, err, ls->getLineNumber());
 }*/
+#endif
 
 
 /*
@@ -458,6 +460,7 @@ static void exp_propagate(LexState* ls, const expdesc& e, TypeDesc& t) noexcept 
 
 
 static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int line) {
+#ifndef PLUTO_NO_PARSER_WARNINGS
   auto hinted = var->vd.hint.getType() != VT_DUNNO;
   auto knownvalue = td.getType() != VT_DUNNO;
   auto incompatible = !var->vd.hint.isCompatibleWith(td);
@@ -477,7 +480,7 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int l
       throw_warn(ls, err.c_str(), "type mismatch", line);
     }
   }
-
+#endif
   var->vd.prop = td; /* propagate type */
 }
 
@@ -1476,6 +1479,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   TypeDesc rethint = gettypehint(ls);
   TypeDesc p = VT_DUNNO;
   statlist(ls, &p, true);
+#ifndef PLUTO_NO_PARSER_WARNINGS
   if (rethint.getType() != VT_DUNNO && /* has type hint for return type? */
       p.getType() != VT_DUNNO && /* return type is known? */
       !rethint.isCompatibleWith(p)) { /* incompatible? */
@@ -1485,6 +1489,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     err.append(p.toString());
     throw_warn(ls, err.c_str(), line);
   }
+#endif
   if (prop) { /* propagate type of function */
     *prop = VT_FUNC;
     prop->retn = p.primitive;
@@ -1598,6 +1603,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       luaX_syntaxerror(ls, "function arguments expected");
     }
   }
+#ifndef PLUTO_NO_PARSER_WARNINGS
   if (funcdesc) {
     for (int i = 0; i != funcdesc->numparams; ++i) {
       const PrimitiveType& param_hint = funcdesc->params[i];
@@ -1620,6 +1626,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       }
     }
   }
+#endif
   lua_assert(f->k == VNONRELOC);
   base = f->u.info;  /* base register for call */
   if (hasmultret(args.k))
