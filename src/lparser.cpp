@@ -177,7 +177,7 @@ static std::string make_warn(const char *s) {
 static void throw_warn (LexState *ls, const char *err, const char *here, int line) {
   const std::string& linebuff = ls->getLineString(line);
   const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
-  if (!lastattr.find("[[nowarn]]")) {
+  if (lastattr.find("[[nowarn]]") == std::string::npos) {
     std::string error = make_warn(err);
     std::string rhere = make_here(linebuff, here);
     lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line), 0);
@@ -189,6 +189,7 @@ static void throw_warn(LexState *ls, const char *err, const char *here) {
   return throw_warn(ls, err, here, ls->getLineNumber());
 }
 
+// TO-DO: Warning suppression attribute support for this overload. Don't know where it's used atm.
 static void throw_warn(LexState *ls, const char *err, int linenumber) {
   auto msg = luaG_addinfo(ls->L, err, ls->source, linenumber);
   lua_warning(ls->L, msg, 0);
@@ -1014,6 +1015,7 @@ static void leaveblock (FuncState *fs) {
       undefgoto(ls, &ls->dyd->gt.arr[bl->firstgoto]);  /* error */
   }
   luaK_patchtohere(fs, bl->breaklist);
+  ls->laststat = TK_EOS;  /* Prevent unreachable code warnings on blocks that don't explicitly check for TK_END. */
 }
 
 
@@ -1245,6 +1247,7 @@ static void caselist (LexState *ls) {
     }
     else {
       statement(ls);
+      ls->laststat = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
     }
   }
 }
