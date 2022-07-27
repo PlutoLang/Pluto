@@ -124,6 +124,7 @@ struct LexState {
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
+  bool warnings;  /* toggable boolean during compilation. */
 
   LexState()
     : lines{ std::string{} }
@@ -141,6 +142,11 @@ struct LexState {
       }
     }
     return getLineNumber();
+  }
+
+  [[nodiscard]] bool findWithinLine(int line, const std::string& substr, int offset = 0) const noexcept {
+    const std::string& str = getLineString(line);
+    return str.find(substr, offset) != std::string::npos;
   }
 
   [[nodiscard]] const std::string& getLineString(int line) const {
