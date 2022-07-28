@@ -2929,9 +2929,8 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 
 static void statement (LexState *ls, TypeDesc *prop) {
   int line = ls->getLineNumber();  /* may be needed for error messages */
-  auto txt = ls->getLineBuff();
   if (ls->laststat.IsEscapingToken() ||
-     (ls->laststat.Is(TK_GOTO) && txt.contains(getstr(ls->t.seminfo.ts)))) /* Don't warn if this statement is the goto's label. */
+     (ls->laststat.Is(TK_GOTO) && ls->findWithinLine(line, getstr(ls->t.seminfo.ts)))) /* Don't warn if this statement is the goto's label. */
   {
     throw_warn(ls,
       "unreachable code",
