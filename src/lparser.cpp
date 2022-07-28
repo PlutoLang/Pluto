@@ -177,7 +177,7 @@ static std::string make_warn(const char *s) {
 static void throw_warn (LexState *ls, const char *err, const char *here, int line) {
   const std::string& linebuff = ls->getLineString(line);
   const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
-  if (lastattr.find("[[nowarn]]") == std::string::npos) {
+  if (lastattr.find("[[nowarn]]") == std::string::npos && ls->warnings) {
     std::string error = make_warn(err);
     std::string rhere = make_here(linebuff, here);
     lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line), 0);
@@ -1015,7 +1015,7 @@ static void leaveblock (FuncState *fs) {
       undefgoto(ls, &ls->dyd->gt.arr[bl->firstgoto]);  /* error */
   }
   luaK_patchtohere(fs, bl->breaklist);
-  ls->laststat = TK_EOS;  /* Prevent unreachable code warnings on blocks that don't explicitly check for TK_END. */
+  ls->laststat.token = TK_EOS;  /* Prevent unreachable code warnings on blocks that don't explicitly check for TK_END. */
 }
 
 
@@ -1249,7 +1249,7 @@ static void caselist (LexState *ls) {
       statement(ls);
     }
   }
-  ls->laststat = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
+  ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
 }
 
 
@@ -1631,6 +1631,12 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
         err.append(arg.toString());
         throw_warn(ls, err.c_str(), "argument type mismatch", line);
       }
+    }
+    if (!funcdesc->proto->is_vararg && funcdesc->getNumParams() < (int)argdescs.size()) {  /* Too many arguments? */
+      throw_warn(ls,
+        "too many arguments",
+          luaO_fmt(ls->L, "expected %d arguments, got %d.", funcdesc->getNumParams(), (int)argdescs.size()));
+      --ls->L->top;
     }
   }
 #endif
@@ -2716,6 +2722,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", ls->getLineNumber());
   checknext(ls, TK_THEN);
   if (ls->t.token == TK_GOTO) {  /* 'if x then goto' ? */
+    ls->laststat.token = TK_GOTO;
     luaX_next(ls);
     enterblock(fs, &bl, 0);
     auto name = str_checkname(ls);
@@ -2737,6 +2744,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
     return;
   }
   if (ls->t.token == TK_BREAK && luaX_lookahead(ls) != TK_INT) {  /* 'if x then break' and not 'if x then break int' ? */
+    ls->laststat.token = TK_BREAK;
     int line = ls->getLineNumber();
     luaK_goiffalse(ls->fs, &v);  /* will jump if condition is true */
     luaX_next(ls);  /* skip 'break' */
@@ -2960,6 +2968,15 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 
 static void statement (LexState *ls, TypeDesc *prop) {
   int line = ls->getLineNumber();  /* may be needed for error messages */
+  if (ls->laststat.IsEscapingToken() ||
+     (ls->laststat.Is(TK_GOTO) && ls->findWithinLine(line, getstr(ls->t.seminfo.ts)))) /* Don't warn if this statement is the goto's label. */
+  {
+    throw_warn(ls,
+      "unreachable code",
+        luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)));
+    ls->L->top -= 2;
+  }
+  ls->laststat.token = ls->t.token;
   enterlevel(ls);
   switch (ls->t.token) {
     case ';': {  /* stat -> ';' (empty statement) */
