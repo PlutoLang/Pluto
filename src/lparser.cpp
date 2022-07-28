@@ -1446,7 +1446,7 @@ static void setvararg (FuncState *fs, int nparams) {
 }
 
 
-static int parlist (LexState *ls) {
+static void parlist (LexState *ls) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -1476,7 +1476,6 @@ static int parlist (LexState *ls) {
   if (isvararg)
     setvararg(fs, f->numparams);  /* declared vararg */
   luaK_reserveregs(fs, fs->nactvar);  /* reserve registers for parameters */
-  return isvararg;
 }
 
 
@@ -1484,7 +1483,6 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   /* body ->  '(' parlist ')' block END */
   FuncState new_fs;
   BlockCnt bl;
-  int isvararg;
   new_fs.f = addprototype(ls);
   new_fs.f->linedefined = line;
   open_func(ls, &new_fs, &bl);
@@ -1493,7 +1491,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     new_localvarliteral(ls, "self");  /* create 'self' parameter */
     adjustlocalvars(ls, 1);
   }
-  isvararg = parlist(ls);
+  parlist(ls);
   checknext(ls, ')');
   TypeDesc rethint = gettypehint(ls);
   TypeDesc p = VT_DUNNO;
@@ -1518,7 +1516,6 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
       prop->params[i] = ls->dyd->actvar.arr[vidx].vd.hint.primitive;
       ++vidx;
     }
-    prop->isvararg = isvararg;
   }
   new_fs.f->lastlinedefined = ls->getLineNumber();
   check_match(ls, TK_END, TK_FUNCTION, line);
@@ -1636,10 +1633,10 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
         throw_warn(ls, err.c_str(), "argument type mismatch", line);
       }
     }
-    if (!funcdesc->isvararg && funcdesc->numparams < (int)argdescs.size()) {  /* Too many arguments? */
+    if (!funcdesc->proto->is_vararg && funcdesc->getNumParams() < (int)argdescs.size()) {  /* Too many arguments? */
       throw_warn(ls,
         "too many arguments",
-          luaO_fmt(ls->L, "expected %d arguments, got %d.", funcdesc->numparams, (int)argdescs.size()));
+          luaO_fmt(ls->L, "expected %d arguments, got %d.", funcdesc->getNumParams(), (int)argdescs.size()));
       --ls->L->top;
     }
   }
