@@ -208,9 +208,9 @@ static void inclinenumber (LexState *ls) {
 
   auto buff = ls->getLineBuff();
   
-  if (buff.contains("[[pluto_disable_warnings]]"))
+  if (buff.find("[[pluto_disable_warnings]]") != std::string::npos)
     ls->warnings = false;
-  else if (buff.contains("[[pluto_enable_warnings]]"))
+  else if (buff.find("[[pluto_enable_warnings]]") != std::string::npos)
     ls->warnings = true;
 
   ls->lines.emplace_back(std::string{});
