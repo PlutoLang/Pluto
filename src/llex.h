@@ -90,11 +90,31 @@ struct Token {
   int token;
   SemInfo seminfo;
 
-  [[nodiscard]] bool IsReserved() const noexcept {
+  /*
+  ** This could be implemented using operator overloading.
+  ** I dislike this approach because it's unnecessarily ambiguous. 
+  ** I tend to avoid overloading as a whole, because it's typically unclear.
+  **
+  ** - Ryan
+  */
+  [[nodiscard]] bool Is(int t) const noexcept
+  {
+    return token == t;
+  }
+
+  [[nodiscard]] bool IsReserved() const noexcept
+  {
     return token >= FIRST_RESERVED && token <= LAST_RESERVED;
   }
 
-  [[nodiscard]] bool IsReservedNonValue() const noexcept {
+  /// Does this token escape control flow? I.e, a TK_BREAK or TK_CONTINUE?
+  [[nodiscard]] bool IsEscapingToken() const noexcept
+  {
+    return token == TK_BREAK || token == TK_CONTINUE;
+  }
+
+  [[nodiscard]] bool IsReservedNonValue() const noexcept
+  {
     return IsReserved() && token != TK_TRUE && token != TK_FALSE && token != TK_NIL;
   }
 };
@@ -108,12 +128,22 @@ struct Token {
 #pragma warning( disable: 26495 )
 #endif
 
+/// Represents source code of a statement, provided by the lexer.
+struct SourceLine : std::string
+{
+  // Does this SourceLine contain the substring?
+  [[nodiscard]] bool contains(const std::string& substr, size_t offset = 0) const noexcept
+  {
+    return find(substr, offset) != std::string::npos;
+  }
+};
+
 struct LexState {
   int current;  /* current character (charint) */
-  std::vector<std::string> lines;
+  std::vector<SourceLine> lines;  /* A vector of all the lines processed by the lexer. */
   int lastline;  /* line of last token 'consumed' */
   int lasttoken;  /* save the last compound binary operator, if exists */
-  int laststat;  /* the last statement */
+  Token laststat;  /* the last statement */
   Token t;  /* current token */
   Token lookahead;  /* look ahead token */
   struct FuncState *fs;  /* current function (parser) */
@@ -127,8 +157,10 @@ struct LexState {
   bool warnings;  /* toggable boolean during compilation. */
 
   LexState()
-    : lines{ std::string{} }
+    : lines { SourceLine {} }
   {
+    laststat = Token {};
+    laststat.token = TK_EOS;
   }
 
   [[nodiscard]] int getLineNumber() const noexcept {
@@ -144,16 +176,11 @@ struct LexState {
     return getLineNumber();
   }
 
-  [[nodiscard]] bool findWithinLine(int line, const std::string& substr, int offset = 0) const noexcept {
-    const std::string& str = getLineString(line);
-    return str.find(substr, offset) != std::string::npos;
-  }
-
-  [[nodiscard]] const std::string& getLineString(int line) const {
+  [[nodiscard]] const SourceLine& getLineString(int line) const {
     return lines.at(line - 1);
   }
 
-  [[nodiscard]] std::string& getLineBuff() {
+  [[nodiscard]] SourceLine& getLineBuff() {
     return lines.back();
   }
 
