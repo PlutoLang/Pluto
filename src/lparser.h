@@ -180,6 +180,7 @@ struct TypeDesc
   lu_byte numparams;
   static constexpr int MAX_PARAMS = 10;
   PrimitiveType params[MAX_PARAMS];
+  int isvararg;
 
   TypeDesc() = default;
 

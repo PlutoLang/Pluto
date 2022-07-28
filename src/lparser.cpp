@@ -352,7 +352,7 @@ static void check_match (LexState *ls, int what, int who, int where) {
       }
     }
   }
-  ls->laststat = what;
+  ls->laststat.token = what;
 }
 
 
@@ -1009,7 +1009,7 @@ static void leaveblock (FuncState *fs) {
       undefgoto(ls, &ls->dyd->gt.arr[bl->firstgoto]);  /* error */
   }
   luaK_patchtohere(fs, bl->breaklist);
-  ls->laststat = TK_EOS;  /* Prevent unreachable code warnings on blocks that don't explicitly check for TK_END. */
+  ls->laststat.token = TK_EOS;  /* Prevent unreachable code warnings on blocks that don't explicitly check for TK_END. */
 }
 
 
@@ -1228,7 +1228,7 @@ static void caselist (LexState *ls) {
       statement(ls);
     }
   }
-  ls->laststat = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
+  ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
 }
 
 
@@ -1424,7 +1424,7 @@ static void setvararg (FuncState *fs, int nparams) {
 }
 
 
-static void parlist (LexState *ls) {
+static int parlist (LexState *ls) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -1454,6 +1454,7 @@ static void parlist (LexState *ls) {
   if (isvararg)
     setvararg(fs, f->numparams);  /* declared vararg */
   luaK_reserveregs(fs, fs->nactvar);  /* reserve registers for parameters */
+  return isvararg;
 }
 
 
@@ -1461,6 +1462,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   /* body ->  '(' parlist ')' block END */
   FuncState new_fs;
   BlockCnt bl;
+  int isvararg;
   new_fs.f = addprototype(ls);
   new_fs.f->linedefined = line;
   open_func(ls, &new_fs, &bl);
@@ -1469,7 +1471,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     new_localvarliteral(ls, "self");  /* create 'self' parameter */
     adjustlocalvars(ls, 1);
   }
-  parlist(ls);
+  isvararg = parlist(ls);
   checknext(ls, ')');
   TypeDesc rethint = gettypehint(ls);
   TypeDesc p = VT_DUNNO;
@@ -1492,6 +1494,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
       prop->params[i] = ls->dyd->actvar.arr[vidx].vd.hint.primitive;
       ++vidx;
     }
+    prop->isvararg = isvararg;
   }
   new_fs.f->lastlinedefined = ls->getLineNumber();
   check_match(ls, TK_END, TK_FUNCTION, line);
@@ -1617,14 +1620,19 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
         throw_warn(ls, err.c_str(), "argument type mismatch", line);
       }
     }
+    if (!funcdesc->isvararg && funcdesc->numparams < (int)argdescs.size()) {  /* Too many arguments? */
+      throw_warn(ls,
+        "too many arguments",
+          luaO_fmt(ls->L, "expected %d arguments, got %d.", funcdesc->numparams, (int)argdescs.size()));
+      --ls->L->top;
+    }
   }
   lua_assert(f->k == VNONRELOC);
   base = f->u.info;  /* base register for call */
   if (hasmultret(args.k))
     nparams = LUA_MULTRET;  /* open call */
   else {
-    if (args.k != VVOID)
-      luaK_exp2nextreg(fs, &args);  /* close last argument */
+    if (args.k != VVOID) luaK_exp2nextreg(fs, &args);  /* close last argument */
     nparams = fs->freereg - (base+1);
   }
   init_exp(f, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams+1, 2));
@@ -2697,7 +2705,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", ls->getLineNumber());
   checknext(ls, TK_THEN);
   if (ls->t.token == TK_BREAK) {  /* 'if x then break' ? */
-    ls->laststat = TK_BREAK;
+    ls->laststat.token = TK_BREAK;
     int line = ls->getLineNumber();
     luaK_goiffalse(ls->fs, &v);  /* will jump if condition is true */
     luaX_next(ls);  /* skip 'break' */
@@ -2921,16 +2929,16 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 
 static void statement (LexState *ls, TypeDesc *prop) {
   int line = ls->getLineNumber();  /* may be needed for error messages */
-  if (ls->laststat == TK_BREAK    ||
-      ls->laststat == TK_CONTINUE ||
-      (ls->laststat == TK_GOTO && ls->findWithinLine(line, getstr(ls->t.seminfo.ts)))) /* Don't warn if this statement is the goto's label. */
+  auto txt = ls->getLineBuff();
+  if (ls->laststat.IsEscapingToken() ||
+     (ls->laststat.Is(TK_GOTO) && txt.contains(getstr(ls->t.seminfo.ts)))) /* Don't warn if this statement is the goto's label. */
   {
     throw_warn(ls,
       "unreachable code",
-        luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat)));
+        luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)));
     ls->L->top -= 2;
   }
-  ls->laststat = ls->t.token;
+  ls->laststat.token = ls->t.token;
   enterlevel(ls);
   switch (ls->t.token) {
     case ';': {  /* stat -> ';' (empty statement) */
