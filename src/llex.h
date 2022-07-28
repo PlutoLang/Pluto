@@ -128,16 +128,6 @@ struct Token {
 #pragma warning( disable: 26495 )
 #endif
 
-/// Represents source code of a statement, provided by the lexer.
-struct SourceLine : std::string
-{
-  // Does this SourceLine contain the substring?
-  [[nodiscard]] bool contains(const std::string& substr, size_t offset = 0) const noexcept
-  {
-    return find(substr, offset) != std::string::npos;
-  }
-};
-
 struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
@@ -181,11 +171,11 @@ struct LexState {
     return getLineNumber();
   }
 
-  [[nodiscard]] const SourceLine& getLineString(int line) const {
+  [[nodiscard]] const std::string& getLineString(int line) const {
     return lines.at(line - 1);
   }
 
-  [[nodiscard]] SourceLine& getLineBuff() {
+  [[nodiscard]] std::string& getLineBuff() {
     return lines.back();
   }
 
