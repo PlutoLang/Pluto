@@ -174,10 +174,10 @@ static std::string make_warn(const char *s) {
 /*
 ** Throws a warning into standard output, which will not close the program.
 */
-static void throw_warn (LexState *ls, const char *err, const char *here, int line) {
+static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
   const std::string& linebuff = ls->getLineString(line);
   const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
-  if (lastattr.find("[[nowarn]]") == std::string::npos && ls->warnings) {
+  if (lastattr.find("@pluto_warnings: disable-next") == std::string::npos && ls->warning.Allowed(warningType)) {
     std::string error = make_warn(err);
     std::string rhere = make_here(linebuff, here);
     lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line), 0);
@@ -185,20 +185,26 @@ static void throw_warn (LexState *ls, const char *err, const char *here, int lin
   }
 }
 
-static void throw_warn(LexState *ls, const char *err, const char *here) {
-  return throw_warn(ls, err, here, ls->getLineNumber());
+static void throw_warn(LexState *ls, const char *err, const char *here, WarningType warningType) {
+  return throw_warn(ls, err, here, ls->getLineNumber(), warningType);
 }
 
 // TO-DO: Warning suppression attribute support for this overload. Don't know where it's used atm.
-static void throw_warn(LexState *ls, const char *err, int linenumber) {
-  auto msg = luaG_addinfo(ls->L, err, ls->source, linenumber);
-  lua_warning(ls->L, msg, 0);
-  ls->L->top -= 1; /* remove warning from stack */
+static void throw_warn(LexState *ls, const char *err, int line, WarningType warningType) {
+  const std::string& linebuff = ls->getLineString(line);
+  const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
+  if (lastattr.find("@pluto_warnings: disable-next") == std::string::npos && ls->warning.Allowed(warningType)) {
+    auto msg = luaG_addinfo(ls->L, err, ls->source, line);
+    lua_warning(ls->L, msg, 0);
+    ls->L->top -= 1; /* remove warning from stack */
+  }
 }
 
-/*static void throw_warn(LexState *ls, const char *err) {
+/*
+static void throw_warn(LexState *ls, const char *err) {
   return throw_warn(ls, err, ls->getLineNumber());
-}*/
+}
+*/
 #endif
 
 
@@ -477,11 +483,11 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int l
     err.append(td.toString());
     err.append(" value.");
     if (td.getType() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
-      throw_warn(ls, err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line);
+      throw_warn(ls, err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line, TYPE_MISMATCH);
       ls->L->top--;
     }
-    else {  /* Throw a generic warning. */
-      throw_warn(ls, err.c_str(), "type mismatch", line);
+    else {  /* Throw a generic mismatch warning. */
+      throw_warn(ls, err.c_str(), "type mismatch", line, TYPE_MISMATCH);
     }
   }
 #endif
@@ -546,7 +552,7 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
     if ((n != "(for state)" && n != "(switch control value)") && (local && local->varname == name)) { // Got a match.
       throw_warn(ls,
         "duplicate local declaration",
-          luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.line));
+          luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.line), VAR_SHADOW);
       L->top--; /* pop result of luaO_fmt */
     }
   }
@@ -1503,7 +1509,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     err.append(rethint.toString());
     err.append(" but actually returns ");
     err.append(p.toString());
-    throw_warn(ls, err.c_str(), line);
+    throw_warn(ls, err.c_str(), line, TYPE_MISMATCH);
   }
 #endif
   if (prop) { /* propagate type of function */
@@ -1629,13 +1635,16 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
         err.append(param_hint.toString());
         err.append(" but provided with ");
         err.append(arg.toString());
-        throw_warn(ls, err.c_str(), "argument type mismatch", line);
+        throw_warn(ls, err.c_str(), "argument type mismatch", line, TYPE_MISMATCH);
       }
     }
-    if (!funcdesc->proto->is_vararg && funcdesc->getNumParams() < (int)argdescs.size()) {  /* Too many arguments? */
+    const auto expected = funcdesc->getNumParams();
+    const auto received = (int)argdescs.size();
+    if (!funcdesc->proto->is_vararg && expected < received) {  /* Too many arguments? */
+      auto suffix = expected == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
       throw_warn(ls,
         "too many arguments",
-          luaO_fmt(ls->L, "expected %d arguments, got %d.", funcdesc->getNumParams(), (int)argdescs.size()));
+          luaO_fmt(ls->L, "expected %d argument%s, got %d.", expected, suffix, received), EXCESSIVE_ARGUMENTS);
       --ls->L->top;
     }
   }
@@ -2719,7 +2728,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
   luaX_next(ls);  /* skip IF or ELSEIF */
   expr(ls, &v);  /* read condition */
   if (v.k == VNIL || v.k == VFALSE)
-    throw_warn(ls, "unreachable code", "this condition will never be truthy.", ls->getLineNumber());
+    throw_warn(ls, "unreachable code", "this condition will never be truthy.", ls->getLineNumber(), UNREACHABLE_CODE);
   checknext(ls, TK_THEN);
   if (ls->t.token == TK_GOTO) {  /* 'if x then goto' ? */
     ls->laststat.token = TK_GOTO;
@@ -2973,7 +2982,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
   {
     throw_warn(ls,
       "unreachable code",
-        luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)));
+        luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)), UNREACHABLE_CODE);
     ls->L->top -= 2;
   }
   ls->laststat.token = ls->t.token;

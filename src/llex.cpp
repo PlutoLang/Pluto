@@ -208,10 +208,26 @@ static void inclinenumber (LexState *ls) {
 
   auto buff = ls->getLineBuff();
   
-  if (buff.find("[[pluto_disable_warnings]]") != std::string::npos)
-    ls->warnings = false;
-  else if (buff.find("[[pluto_enable_warnings]]") != std::string::npos)
-    ls->warnings = true;
+  if (buff.find("@pluto_warnings: disable-all") != std::string::npos)
+    ls->warning.disableAll();
+  else if (buff.find("@pluto_warnings: enable-all") != std::string::npos)
+    ls->warning.enableAll();
+  else if (buff.find("@pluto_warnings: disable-var-shadow") != std::string::npos)
+    ls->warning.var_shadow = false;
+  else if (buff.find("@pluto_warnings: enable-var-shadow") != std::string::npos)
+    ls->warning.var_shadow = true;
+  else if (buff.find("@pluto_warnings: disable-type-mismatch") != std::string::npos)
+    ls->warning.type_mismatch = false;
+  else if (buff.find("@pluto_warnings: enable-type-mismatch") != std::string::npos)
+    ls->warning.type_mismatch = true;
+  else if (buff.find("@pluto_warnings: disable-unreachable-code") != std::string::npos)
+    ls->warning.unreachable_code = false;
+  else if (buff.find("@pluto_warnings: enable-unreachable-code") != std::string::npos)
+    ls->warning.unreachable_code = true;
+  else if (buff.find("@pluto_warnings: disable-excessive-arguments") != std::string::npos)
+    ls->warning.excessive_arguments = false;
+  else if (buff.find("@pluto_warnings: enable-excessive-arguments") != std::string::npos)
+    ls->warning.excessive_arguments = true;
 
   ls->lines.emplace_back(std::string{});
 }
@@ -228,7 +244,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
   ls->fs = NULL;
   ls->source = source;
   ls->envn = luaS_newliteral(L, LUA_ENV);  /* get env name */
-  ls->warnings = true;
+  ls->warning = WarningConfig {};
   luaZ_resizebuffer(ls->L, ls->buff, LUA_MINBUFFER);  /* initialize buffer */
 }
 
