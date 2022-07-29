@@ -120,6 +120,62 @@ struct Token {
 };
 
 
+enum WarningType
+{
+  VAR_SHADOW,
+  TYPE_MISMATCH,
+  UNREACHABLE_CODE,
+  EXCESSIVE_ARGUMENTS,
+};
+
+
+struct WarningConfig
+{
+  bool var_shadow;
+  bool type_mismatch;
+  bool unreachable_code;
+  bool excessive_arguments;
+
+  WarningConfig()
+  {
+    enableAll();
+  }
+
+  [[nodiscard]] bool Allowed(WarningType type) const noexcept
+  {
+    switch (type)
+    {
+      case VAR_SHADOW:
+        return var_shadow;
+      case TYPE_MISMATCH:
+        return type_mismatch;
+      case UNREACHABLE_CODE:
+        return unreachable_code;
+      case EXCESSIVE_ARGUMENTS:
+        return excessive_arguments;
+      default:
+        return false;
+    }
+  }
+
+  void enableAll() noexcept
+  {
+    var_shadow = true;
+    type_mismatch = true;
+    unreachable_code = true;
+    excessive_arguments = true;
+  }
+
+  void disableAll() noexcept
+  {
+    var_shadow = false;
+    type_mismatch = false;
+    unreachable_code = false;
+    excessive_arguments = false;
+  }
+};
+
+
 /*
 ** State of the lexer plus state of the parser when shared by all functions.
 ** Suppression of C26495 (uninitalized member), because it's initialized elsewhere. 
@@ -144,7 +200,7 @@ struct LexState {
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
-  bool warnings;  /* toggable boolean during compilation. */
+  WarningConfig warning;  /* Configuration class for compile-time warnings. */
 
   LexState()
     : lines { std::string {} }
