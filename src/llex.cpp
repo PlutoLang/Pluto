@@ -205,29 +205,27 @@ static void inclinenumber (LexState *ls) {
   next(ls);  /* skip '\n' or '\r' */
   if (currIsNewline(ls) && ls->current != old)
     next(ls);  /* skip '\n\r' or '\r\n' */
-
-  auto buff = ls->getLineBuff();
   
-  if (buff.find("@pluto_warnings: disable-all") != std::string::npos)
+  if (ls->findWithinLine("@pluto_warnings: disable-all"))
     ls->warning.disableAll();
-  else if (buff.find("@pluto_warnings: enable-all") != std::string::npos)
+  else if (ls->findWithinLine("@pluto_warnings: enable-all"))
     ls->warning.enableAll();
-  else if (buff.find("@pluto_warnings: disable-var-shadow") != std::string::npos)
-    ls->warning.var_shadow = false;
-  else if (buff.find("@pluto_warnings: enable-var-shadow") != std::string::npos)
+  else if (ls->findWithinLine("@pluto_warnings: enable-var-shadow"))
     ls->warning.var_shadow = true;
-  else if (buff.find("@pluto_warnings: disable-type-mismatch") != std::string::npos)
-    ls->warning.type_mismatch = false;
-  else if (buff.find("@pluto_warnings: enable-type-mismatch") != std::string::npos)
+  else if (ls->findWithinLine("@pluto_warnings: disable-var-shadow"))
+    ls->warning.var_shadow = false;
+  else if (ls->findWithinLine("@pluto_warnings: enable-type-mismatch"))
     ls->warning.type_mismatch = true;
-  else if (buff.find("@pluto_warnings: disable-unreachable-code") != std::string::npos)
-    ls->warning.unreachable_code = false;
-  else if (buff.find("@pluto_warnings: enable-unreachable-code") != std::string::npos)
+  else if (ls->findWithinLine("@pluto_warnings: disable-type-mismatch"))
+    ls->warning.type_mismatch = false;
+  else if (ls->findWithinLine("@pluto_warnings: enable-unreachable-code"))
     ls->warning.unreachable_code = true;
-  else if (buff.find("@pluto_warnings: disable-excessive-arguments") != std::string::npos)
-    ls->warning.excessive_arguments = false;
-  else if (buff.find("@pluto_warnings: enable-excessive-arguments") != std::string::npos)
+  else if (ls->findWithinLine("@pluto_warnings: disable-unreachable-code"))
+    ls->warning.unreachable_code = false;
+  else if (ls->findWithinLine("@pluto_warnings: enable-excessive-arguments"))
     ls->warning.excessive_arguments = true;
+  else if (ls->findWithinLine("@pluto_warnings: disable-excessive-arguments"))
+    ls->warning.excessive_arguments = false;
 
   ls->lines.emplace_back(std::string{});
 }

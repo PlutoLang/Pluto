@@ -213,6 +213,17 @@ struct LexState {
     return (int)lines.size();
   }
 
+
+  /// Find a substring within the current line buffer.
+  /// There is an overload that allows a line number as the first argument to search a specific line.
+  [[nodiscard]] bool findWithinLine(const std::string& substr, int offset = 0) noexcept
+  {
+    const std::string& str = getLineBuff();
+    return str.find(substr, offset) != std::string::npos;
+  }
+
+  /// Find a substring within the respective line.
+  /// There is an overload that allows you to omit the 'line' argument and default to the current line buffer.
   [[nodiscard]] bool findWithinLine(int line, const std::string& substr, int offset = 0) const noexcept {
     const std::string& str = getLineString(line);
     return str.find(substr, offset) != std::string::npos;
