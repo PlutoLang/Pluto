@@ -177,7 +177,7 @@ static std::string make_warn(const char *s) {
 static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
   const std::string& linebuff = ls->getLineString(line);
   const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
-  if (lastattr.find("@pluto_warnings: disable-next") == std::string::npos && ls->warning.Allowed(warningType)) {
+  if (lastattr.find("@pluto_warnings: disable-next") == std::string::npos && ls->warning.Get(warningType)) {
     std::string error = make_warn(err);
     std::string rhere = make_here(linebuff, here);
     lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line), 0);
@@ -193,7 +193,7 @@ static void throw_warn(LexState *ls, const char *err, const char *here, WarningT
 static void throw_warn(LexState *ls, const char *err, int line, WarningType warningType) {
   const std::string& linebuff = ls->getLineString(line);
   const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
-  if (lastattr.find("@pluto_warnings: disable-next") == std::string::npos && ls->warning.Allowed(warningType)) {
+  if (lastattr.find("@pluto_warnings: disable-next") == std::string::npos && ls->warning.Get(warningType)) {
     auto msg = luaG_addinfo(ls->L, err, ls->source, line);
     lua_warning(ls->L, msg, 0);
     ls->L->top -= 1; /* remove warning from stack */
