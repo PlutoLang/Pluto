@@ -2365,11 +2365,8 @@ static void casecond(LexState* ls, int case_line, expdesc& lcase) {
   else {
     testnext(ls, '+'); /* support pseudo-unary '+' */
     simpleexp(ls, &lcase, true);
-    if (lcase.k == VCONST) {
-      luaK_dischargevars(ls->fs, &lcase);
-    }
-    if (!vkisconst(lcase.k)) {
-        throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
+    if (!vkisconst(lcase.k) && lcase.k != VCONST) {
+      throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
     }
   }
   checknext(ls, ':');
