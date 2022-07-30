@@ -7,7 +7,6 @@
 
 #include <limits.h>
 
-#include <map>
 #include <string>
 #include <vector>
 #include <string_view>
@@ -128,16 +127,20 @@ struct Token {
 */
 
 
-enum WarningType
+enum WarningType : int
 {
+  ALL_WARNINGS = 0,
+
   VAR_SHADOW,
   TYPE_MISMATCH,
   UNREACHABLE_CODE,
   EXCESSIVE_ARGUMENTS,
+
+  NUM_WARNING_TYPES
 };
 
 
-static const std::vector<std::string> luaX_warnIds = {
+static const std::vector<std::string> luaX_warnNames = {
   "all",
   "var-shadow",
   "type-mismatch",
@@ -148,48 +151,49 @@ static const std::vector<std::string> luaX_warnIds = {
 
 struct WarningConfig
 {
-  std::map<std::string_view, bool> toggles;
+  bool toggles[NUM_WARNING_TYPES];
 
   WarningConfig()
   {
     setAllTo(true);
   }
 
-  [[nodiscard]] bool Allowed(WarningType type) const noexcept
+  [[nodiscard]] bool& Get(WarningType type) noexcept
   {
-    auto obj = toggles.find(luaX_warnIds.at(static_cast<size_t>(type + 1)));
-    return obj == toggles.end() ? false : obj->second;
+    return toggles[type];
   }
 
   void setAllTo(bool newState) noexcept
   {
-    for (auto& id : luaX_warnIds)
+    for (int id = 0; id != NUM_WARNING_TYPES; ++id)
     {
-      toggles.insert_or_assign(id, newState);
+      toggles[id] = newState;
     }
   }
 
   void processComment(const std::string& line) noexcept
   {
-    for (auto& id : luaX_warnIds)
+    for (int id = 0; id != NUM_WARNING_TYPES; ++id)
     {
       std::string enable  = "enable-";
       std::string disable = "disable-";
 
-      enable += id.data();
-      disable += id.data();
+      const std::string& name = luaX_warnNames[id];
+
+      enable += name;
+      disable += name;
 
       if (line.find(enable) != std::string::npos)
       {
-        if (id != "all")
-          toggles.insert_or_assign(id, true);
+        if (name != "all")
+          Get((WarningType)id) = true;
         else
           setAllTo(true);
       }
       else if (line.find(disable) != std::string::npos)
       {
-        if (id != "all")
-          toggles.insert_or_assign(id, false);
+        if (name != "all")
+          Get((WarningType)id) = false;
         else
           setAllTo(false);
       }
