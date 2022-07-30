@@ -1740,7 +1740,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
-static void suffixedexp (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
+static void suffixedexp (LexState *ls, expdesc *v, bool caseexpr = false, TypeDesc *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   FuncState *fs = ls->fs;
@@ -1764,6 +1764,9 @@ static void suffixedexp (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
         break;
       }
       case ':': {  /* ':' NAME funcargs */
+        if (caseexpr) {
+          return;
+        }
         expdesc key;
         luaX_next(ls);
         codename(ls, &key);
@@ -1873,7 +1876,7 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, TypeDesc *prop =
       return;
     }
     default: {
-      suffixedexp(ls, v, prop);
+      suffixedexp(ls, v, caseexpr, prop);
       return;
     }
   }
@@ -2350,6 +2353,9 @@ static void casecond(LexState* ls, int case_line, expdesc& lcase) {
   else {
     testnext(ls, '+'); /* support pseudo-unary '+' */
     simpleexp(ls, &lcase, true);
+    if (lcase.k == VCONST) {
+      luaK_dischargevars(ls->fs, &lcase);
+    }
     if (!vkisconst(lcase.k)) {
         throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
     }
