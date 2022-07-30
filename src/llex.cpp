@@ -206,26 +206,9 @@ static void inclinenumber (LexState *ls) {
   if (currIsNewline(ls) && ls->current != old)
     next(ls);  /* skip '\n\r' or '\r\n' */
   
-  if (ls->findWithinLine("@pluto_warnings: disable-all"))
-    ls->warning.disableAll();
-  else if (ls->findWithinLine("@pluto_warnings: enable-all"))
-    ls->warning.enableAll();
-  else if (ls->findWithinLine("@pluto_warnings: enable-var-shadow"))
-    ls->warning.var_shadow = true;
-  else if (ls->findWithinLine("@pluto_warnings: disable-var-shadow"))
-    ls->warning.var_shadow = false;
-  else if (ls->findWithinLine("@pluto_warnings: enable-type-mismatch"))
-    ls->warning.type_mismatch = true;
-  else if (ls->findWithinLine("@pluto_warnings: disable-type-mismatch"))
-    ls->warning.type_mismatch = false;
-  else if (ls->findWithinLine("@pluto_warnings: enable-unreachable-code"))
-    ls->warning.unreachable_code = true;
-  else if (ls->findWithinLine("@pluto_warnings: disable-unreachable-code"))
-    ls->warning.unreachable_code = false;
-  else if (ls->findWithinLine("@pluto_warnings: enable-excessive-arguments"))
-    ls->warning.excessive_arguments = true;
-  else if (ls->findWithinLine("@pluto_warnings: disable-excessive-arguments"))
-    ls->warning.excessive_arguments = false;
+  const std::string& buff = ls->getLineBuff();
+  if (buff.find("@pluto_warnings:") != std::string::npos)
+    ls->warning.processComment(buff);
 
   ls->lines.emplace_back(std::string{});
 }

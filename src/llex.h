@@ -7,8 +7,10 @@
 
 #include <limits.h>
 
+#include <map>
 #include <string>
 #include <vector>
+#include <string_view>
 
 #include "lobject.h"
 #include "lzio.h"
@@ -120,6 +122,12 @@ struct Token {
 };
 
 
+/*
+** If you wish to add a new warning type, you need to update WarningType from the bottom.
+** Then, you need to enter the 'name' of your warning at the bottom of luaX_warnIds, so the user can toggle it during runtime.
+*/
+
+
 enum WarningType
 {
   VAR_SHADOW,
@@ -129,49 +137,63 @@ enum WarningType
 };
 
 
+static const std::vector<std::string> luaX_warnIds = {
+  "all",
+  "var-shadow",
+  "type-mismatch",
+  "unreachable-code",
+  "excessive_arguments",
+};
+
+
 struct WarningConfig
 {
-  bool var_shadow;
-  bool type_mismatch;
-  bool unreachable_code;
-  bool excessive_arguments;
+  std::map<std::string_view, bool> toggles;
 
   WarningConfig()
   {
-    enableAll();
+    setAllTo(true);
   }
 
   [[nodiscard]] bool Allowed(WarningType type) const noexcept
   {
-    switch (type)
+    auto obj = toggles.find(luaX_warnIds.at(static_cast<size_t>(type + 1)));
+    return obj == toggles.end() ? false : obj->second;
+  }
+
+  void setAllTo(bool newState) noexcept
+  {
+    for (auto& id : luaX_warnIds)
     {
-      case VAR_SHADOW:
-        return var_shadow;
-      case TYPE_MISMATCH:
-        return type_mismatch;
-      case UNREACHABLE_CODE:
-        return unreachable_code;
-      case EXCESSIVE_ARGUMENTS:
-        return excessive_arguments;
-      default:
-        return false;
+      toggles.insert_or_assign(id, newState);
     }
   }
 
-  void enableAll() noexcept
+  void processComment(const std::string& line) noexcept
   {
-    var_shadow = true;
-    type_mismatch = true;
-    unreachable_code = true;
-    excessive_arguments = true;
-  }
+    for (auto& id : luaX_warnIds)
+    {
+      std::string enable  = "enable-";
+      std::string disable = "disable-";
 
-  void disableAll() noexcept
-  {
-    var_shadow = false;
-    type_mismatch = false;
-    unreachable_code = false;
-    excessive_arguments = false;
+      enable += id.data();
+      disable += id.data();
+
+      if (line.find(enable) != std::string::npos)
+      {
+        if (id != "all")
+          toggles.insert_or_assign(id, true);
+        else
+          setAllTo(true);
+      }
+      else if (line.find(disable) != std::string::npos)
+      {
+        if (id != "all")
+          toggles.insert_or_assign(id, false);
+        else
+          setAllTo(false);
+      }
+    }
   }
 };
 
