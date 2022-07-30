@@ -142,7 +142,7 @@ static const std::vector<std::string> luaX_warnIds = {
   "var-shadow",
   "type-mismatch",
   "unreachable-code",
-  "excessive_arguments",
+  "excessive-arguments",
 };
 
 
