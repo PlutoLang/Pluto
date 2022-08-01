@@ -283,6 +283,40 @@ do
         pluto_default:
         error()
     end
+    do
+        local casecond <const> = 3
+        pluto_switch value do
+            pluto_case casecond:
+            break
+            pluto_default:
+            error()
+        end
+    end
+    do
+        local casecond = 3
+        pluto_switch value do
+            pluto_case casecond:
+            break
+            pluto_default:
+            error()
+        end
+    end
+        do
+        local casecond <const> = 3
+        pluto_switch value do
+            pluto_default:
+            error()
+            pluto_case casecond:
+        end
+    end
+    do
+        local casecond = 3
+        pluto_switch value do
+            pluto_default:
+            error()
+            pluto_case casecond:
+        end
+    end
     value = +3
     pluto_switch value do
         pluto_case +1:
