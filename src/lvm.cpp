@@ -24,6 +24,7 @@
 #include "lgc.h"
 #include "lobject.h"
 #include "lopcodes.h"
+#include "lopnames.h"
 #include "lstate.h"
 #include "lstring.h"
 #include "ltable.h"
@@ -32,10 +33,9 @@
 
 #ifdef PLUTO_VMDUMP
 #include <string>
-
 #include "lauxlib.h" // lua_writestring
-#include "lopnames.h"
 #endif
+
 
 
 /* limit for table tag-method chains (to avoid infinite loops) */
@@ -1885,6 +1885,16 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
       vmcase(OP_TAILCALL) {
+#ifdef PLUTO_ILP_ENABLE
+        if (GET_OPCODE(i - 1) == OP_CALL && (++sequentialJumps) >= PLUTO_ILP_MAX_ITERATIONS)
+        {
+          sequentialJumps = 0;
+#ifndef PLUTO_ILP_SILENT_BREAK
+          luaG_runerror(L, "infinite loop detected (exceeded max iterations: %d)", PLUTO_ILP_MAX_ITERATIONS);
+#endif
+          vmbreak;
+        }
+#endif
         int b = GETARG_B(i);  /* number of arguments + 1 (function) */
         int n;  /* number of results when calling a C function */
         int nparams1 = GETARG_C(i);
