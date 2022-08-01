@@ -761,21 +761,8 @@ static void singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
 }
 
 
-/*
-** Find a variable with the given name 'n', handling global variables
-** too.
-*/
-static void singlevar (LexState *ls, expdesc *var) {
-  TString *varname = str_checkname(ls);
-  FuncState *fs = ls->fs;
-  singlevaraux(fs, varname, var, 1);
-  if (var->k == VVOID) {  /* global name? */
-    expdesc key;
-    singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
-    lua_assert(var->k != VVOID);  /* this one must exist */
-    codestring(&key, varname);  /* key is variable name */
-    luaK_indexed(fs, var, &key);  /* env[varname] */
-  }
+inline int gett(LexState *ls) {
+  return ls->t.token;
 }
 
 
@@ -802,6 +789,34 @@ static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
     luaK_reserveregs(fs, needed);  /* registers for extra values */
   else  /* adding 'needed' is actually a subtraction */
     fs->freereg += needed;  /* remove extra values */
+}
+
+
+/*
+** Find a variable with the given name 'n', handling global variables
+** too.
+*/
+static void singlevar (LexState *ls, expdesc *var) {
+  TString *varname = str_checkname(ls);
+  if (gett(ls) == TK_WALRUS) {
+    luaX_next(ls);
+    if (ls->dyd->creating_multiple_variables)
+      throwerr(ls, "unexpected ':=' while creating multiple variable", "unexpected ':='");
+    new_localvar(ls, varname);
+    expr(ls, var);
+    adjust_assign(ls, 1, 1, var);
+    adjustlocalvars(ls, 1);
+    return;
+  }
+  FuncState *fs = ls->fs;
+  singlevaraux(fs, varname, var, 1);
+  if (var->k == VVOID) {  /* global name? */
+    expdesc key;
+    singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
+    lua_assert(var->k != VVOID);  /* this one must exist */
+    codestring(&key, varname);  /* key is variable name */
+    luaK_indexed(fs, var, &key);  /* env[varname] */
+  }
 }
 
 
@@ -1144,11 +1159,6 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implie
       no_ret_implies_nil) { /* does that imply a nil return? */
     propagate_return_type(prop, VT_NIL); /* propagate */
   }
-}
-
-
-inline int gett(LexState *ls) {
-  return ls->t.token;
 }
 
 
@@ -2229,7 +2239,9 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
       TypeDesc prop = VT_DUNNO;
+      ls->dyd->creating_multiple_variables = (nvars != 1);
       int nexps = explist(ls, &e, &prop);
+      ls->dyd->creating_multiple_variables = false;
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
       else {
@@ -2820,8 +2832,11 @@ static void localstat (LexState *ls) {
     nvars++;
   } while (testnext(ls, ','));
   std::vector<TypeDesc> tds;
-  if (testnext(ls, '='))
+  if (testnext(ls, '=')) {
+    ls->dyd->creating_multiple_variables = (nvars != 1);
     nexps = explist(ls, &e, tds);
+    ls->dyd->creating_multiple_variables = false;
+  }
   else {
     e.k = VVOID;
     nexps = 0;

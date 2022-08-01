@@ -563,6 +563,25 @@ do
     assert(string.find_last_of("orld hello world cccc", "orld") == 16)
 end
 
+print "Testing walrus operator."
+do
+    if a := 3 then
+    else
+        error()
+    end
+    assert(a == 3)
+
+    if b := nil then
+        error()
+    end
+
+    local function walrus_test_helper(v1, v2)
+        assert(v1 == "hi")
+        assert(v2 == nil)
+    end
+    walrus_test_helper(c := "hi")
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
