@@ -198,7 +198,7 @@ lstate.o: lstate.cpp lprefix.h lua.h luaconf.h lapi.h llimits.h lstate.h \
 lstring.o: lstring.cpp lprefix.h lua.h luaconf.h ldebug.h lstate.h \
  lobject.h llimits.h ltm.h lzio.h lmem.h ldo.h lstring.h lgc.h
 lstrlib.o: lstrlib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h
-lhashlib.o: lhashlib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+lhashlib.o: lhashlib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h lhashlib.hpp
 ltable.o: ltable.cpp lprefix.h lua.h luaconf.h ldebug.h lstate.h lobject.h \
  llimits.h ltm.h lzio.h lmem.h ldo.h lgc.h lstring.h ltable.h lvm.h
 ltablib.o: ltablib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h
