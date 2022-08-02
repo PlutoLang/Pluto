@@ -6,6 +6,7 @@
 #include "lprefix.h"
 #include "luaconf.h"
 #include "lauxlib.h"
+#include "lhashlib.hpp"
 #include <string>
 
 
@@ -66,7 +67,35 @@ static int joaat(lua_State *L)
 }
 
 
+// Times33, a.k.a DJBX33A is the hashing algorithm used in PHP's hash table.
+static int times33(lua_State *L)
+{
+  const std::string str = luaL_checkstring(L, 1);
+  unsigned long hash = 0;
+ 
+  for (auto c : str)
+  {
+    hash = (hash * 33) ^ (unsigned long)c;
+  }
+  
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
+static int murmur1(lua_State *L)
+{
+  const std::string input = luaL_checkstring(L, 1);
+  const auto seed = luaL_optinteger(L, 2, 0);
+  const auto hash = MurmurHash1Aligned(input.c_str(), input.size(), seed);
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
 static const luaL_Reg funcs[] = {
+  {"murmur1", murmur1},
+  {"times33", times33},
   {"joaat", joaat},
   {"fnv1a", fnv1a},
   {"fnv1", fnv1},
