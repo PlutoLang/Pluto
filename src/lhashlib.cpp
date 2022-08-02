@@ -87,9 +87,10 @@ static int times33(lua_State *L)
 
 static int murmur1(lua_State *L)
 {
-  const std::string input = luaL_checkstring(L, 1);
+  size_t textLen;
+  const auto text = luaL_checklstring(L, 1, &textLen);
   const auto seed = luaL_optinteger(L, 2, 0);
-  const auto hash = MurmurHash1Aligned(input.c_str(), input.size(), seed);
+  const auto hash = MurmurHash1Aligned(text, textLen, seed);
   lua_pushinteger(L, hash);
   return 1;
 }
