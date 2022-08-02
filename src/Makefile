@@ -6,10 +6,15 @@
 # Your platform. See PLATS for possible values.
 PLAT= mingw
 
-CXX= g++ -std=c++2a -O3 -flto
+CXX= g++ -std=c++17 -O3 -flto
 CXXFLAGS= -Wall -Wextra -DLUA_COMPAT_5_3 $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm $(SYSLIBS) $(MYLIBS)
+
+# Specifying DEBUG=0 (or any value) will remove any optimizations.
+ifdef DEBUG
+override CXX= g++ -std=c++17
+endif
 
 AR= ar rcu
 RANLIB= ranlib
