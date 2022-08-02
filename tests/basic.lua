@@ -535,6 +535,11 @@ end
 
 print "Testing standard library additions."
 do
+    assert(hash.fnv1("hello world") == 0x7DCF62CDB1910E6F)
+    assert(hash.fnv1a("hello world") == 8618312879776256743)
+    assert(hash.joaat("hello world") == 1045060183)
+end
+do
     local t = {}
     table.insert(t, 0)
     table.insert(t, "Hello")
