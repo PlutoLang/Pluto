@@ -178,6 +178,7 @@
     <ClCompile Include="src\lstrlib.cpp" />
     <ClCompile Include="src\ltable.cpp" />
     <ClCompile Include="src\ltablib.cpp" />
+    <ClCompile Include="src\lhashlib.cpp" />
     <ClCompile Include="src\ltm.cpp" />
     <ClCompile Include="src\lua.cpp" />
     <ClCompile Include="src\lundump.cpp" />
