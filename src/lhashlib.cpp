@@ -48,21 +48,23 @@ static int fnv1a(lua_State *L)
 
 static int joaat(lua_State *L)
 {
-  uint32_t hash = 0;
-  const std::string s = luaL_checkstring(L, 1);
+  /* get input */
+  size_t size;
+  const char* data = luaL_checklstring(L, 1, &size);
+ 
+  /* do partial on input */
+  size_t v3 = 0;
+  uint32_t result = 0; /* initial = 0 */
+  int v5 = 0;
+  for (; v3 < size; result = ((uint32_t)(1025 * (v5 + result)) >> 6) ^ (1025 * (v5 + result))) {
+    v5 = data[v3++];
+  }
 
-	for (auto c : s)
-	{
-		hash += c;
-		hash += hash << 10;
-		hash ^= hash >> 6;
-	}
+  /* finalise */
+  result = (0x8001 * (((uint32_t)(9 * result) >> 11) ^ (9 * result)));
 
-	hash += hash << 3;
-	hash ^= hash >> 11;
-	hash += hash << 15;
-
-  lua_pushinteger(L, hash);
+  /* done, give result */
+  lua_pushinteger(L, result);
   return 1;
 }
 
