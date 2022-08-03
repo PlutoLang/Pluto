@@ -953,13 +953,104 @@ void md5_fn( unsigned char *input, int ilen, unsigned char output[16] )
     memset( &ctx, 0, sizeof( md5_context ) );
 }
 
+// lookup3 by Bob Jekins, code is public domain.
+#define rot(x,k) (((x)<<(k)) | ((x)>>(32-(k))))
 
-unsigned int md5hash ( const void * input, int len)
+#define mix(a,b,c) \
+{ \
+  a -= c;  a ^= rot(c, 4);  c += b; \
+  b -= a;  b ^= rot(a, 6);  a += c; \
+  c -= b;  c ^= rot(b, 8);  b += a; \
+  a -= c;  a ^= rot(c,16);  c += b; \
+  b -= a;  b ^= rot(a,19);  a += c; \
+  c -= b;  c ^= rot(b, 4);  b += a; \
+}
+
+#define final(a,b,c) \
+{ \
+  c ^= b; c -= rot(b,14); \
+  a ^= c; a -= rot(c,11); \
+  b ^= a; b -= rot(a,25); \
+  c ^= b; c -= rot(b,16); \
+  a ^= c; a -= rot(c,4);  \
+  b ^= a; b -= rot(a,14); \
+  c ^= b; c -= rot(b,24); \
+}
+
+uint32_t lookup3_impl ( const void * key, int length, uint32_t initval )
 {
-  unsigned int hash[4];
+  uint32_t a,b,c;                                          /* internal state */
 
-  md5_fn((unsigned char *)input,len,(unsigned char *)hash);
+  a = b = c = 0xdeadbeef + ((uint32_t)length) + initval;
 
-  return hash[0] ^ hash[1] ^ hash[2] ^ hash[3];
-}	
+  const uint32_t *k = (const uint32_t *)key;         /* read 32-bit chunks */
+
+  /*------ all but last block: aligned reads and affect 32 bits of (a,b,c) */
+  while (length > 12)
+  {
+    a += k[0];
+    b += k[1];
+    c += k[2];
+    mix(a,b,c);
+    length -= 12;
+    k += 3;
+  }
+
+  switch(length)
+  {
+    case 12:
+      c += k[2];
+      b += k[1];
+      a += k[0];
+      break;
+    case 11:
+      c += k[2] & 0xffffff;
+      b += k[1];
+      a += k[0];
+      break;
+    case 10:
+      c += k[2] & 0xffff;
+      b += k[1];
+      a += k[0];
+      break;
+    case 9:
+      c += k[2] & 0xff;
+      b += k[1];
+      a += k[0];
+      break;
+    case 8:
+      b += k[1];
+      a += k[0];
+      break;
+    case 7:
+      b += k[1] & 0xffffff;
+      a += k[0];
+      break;
+    case 6:
+      b += k[1] & 0xffff;
+      a += k[0];
+      break;
+    case 5:
+      b += k[1] & 0xff;
+      a += k[0];
+      break;
+    case 4:
+      a += k[0];
+      break;
+    case 3:
+      a += k[0] & 0xffffff;
+      break;
+    case 2:
+      a += k[0] & 0xffff;
+      break;
+    case 1:
+      a += k[0] & 0xff;
+      break;
+    case 0: return c; 
+  }
+
+  final(a,b,c);
+
+  return c;
+}
 
