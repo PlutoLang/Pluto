@@ -95,8 +95,79 @@ static int murmur1(lua_State *L)
   return 1;
 }
 
+// P1: String
+// P2: Seed
+// P3: Boolean whether to follow alignment.
+static int murmur2(lua_State *L)
+{
+  size_t textLen;
+  const auto text = luaL_checklstring(L, 1, &textLen);
+  const auto seed = luaL_optinteger(L, 2, 0);
+  unsigned int hash;
+
+  if (lua_toboolean(L, 3))
+    hash = MurmurHashAligned2(text, textLen, seed);
+  else
+    hash = MurmurHash2(text, textLen, seed);
+
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
+// x86_64
+static int murmur64a(lua_State *L)
+{
+  size_t textLen;
+  const auto text = luaL_checklstring(L, 1, &textLen);
+  const auto seed = luaL_optinteger(L, 2, 0);
+  const auto hash = MurmurHash64A(text, textLen, seed);
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
+// 64-bit hash for 32-bit platforms
+static int murmur64b(lua_State *L)
+{
+  size_t textLen;
+  const auto text = luaL_checklstring(L, 1, &textLen);
+  const auto seed = luaL_optinteger(L, 2, 0);
+  const auto hash = MurmurHash64B(text, textLen, seed);
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
+static int murmur2a(lua_State *L)
+{
+  size_t textLen;
+  const auto text = luaL_checklstring(L, 1, &textLen);
+  const auto seed = luaL_optinteger(L, 2, 0);
+  const auto hash = MurmurHash2A(text, textLen, seed);
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
+// Architecture independent.
+static int murmur2neutral(lua_State *L)
+{
+  size_t textLen;
+  const auto text = luaL_checklstring(L, 1, &textLen);
+  const auto seed = luaL_optinteger(L, 2, 0);
+  const auto hash = MurmurHashNeutral2(text, textLen, seed);
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
 
 static const luaL_Reg funcs[] = {
+  {"murmur2neutral", murmur2neutral},
+  {"murmur64b", murmur64b},
+  {"murmur64a", murmur64a},
+  {"murmur2a", murmur2a},
+  {"murmur2", murmur2},
   {"murmur1", murmur1},
   {"times33", times33},
   {"joaat", joaat},
