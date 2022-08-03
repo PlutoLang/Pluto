@@ -162,7 +162,50 @@ static int murmur2neutral(lua_State *L)
 }
 
 
+// Just the name. I still prefer DJB.
+static int superfasthash(lua_State *L)
+{
+  size_t textLen;
+  const auto text = luaL_checklstring(L, 1, &textLen);
+  const auto seed = luaL_optinteger(L, 2, 0);
+  const auto hash = SuperFastHash((const signed char*)text, textLen);
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
+static int djb2(lua_State *L)
+{
+  int c;
+  auto str = luaL_checkstring(L, 1);
+  unsigned long hash = 5381;
+
+  while (c = *str++)
+    hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
+static int sdbm(lua_State *L)
+{
+  int c;
+  auto str = luaL_checkstring(L, 1);
+  unsigned long hash = 0;
+
+  while (c = *str++)
+    hash = c + (hash << 6) + (hash << 16) - hash;
+
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
 static const luaL_Reg funcs[] = {
+  {"sdbm", sdbm},
+  {"djb2", djb2},
+  {"superfasthash", superfasthash},
   {"murmur2neutral", murmur2neutral},
   {"murmur64b", murmur64b},
   {"murmur64a", murmur64a},
