@@ -7,7 +7,9 @@
 #include "luaconf.h"
 #include "lauxlib.h"
 #include "lhashlib.hpp"
+#include <ios>
 #include <string>
+#include <sstream>
 
 
 static int fnv1(lua_State *L)
@@ -167,7 +169,6 @@ static int superfasthash(lua_State *L)
 {
   size_t textLen;
   const auto text = luaL_checklstring(L, 1, &textLen);
-  const auto seed = luaL_optinteger(L, 2, 0);
   const auto hash = SuperFastHash((const signed char*)text, textLen);
   lua_pushinteger(L, hash);
   return 1;
@@ -180,7 +181,7 @@ static int djb2(lua_State *L)
   auto str = luaL_checkstring(L, 1);
   unsigned long hash = 5381;
 
-  while (c = *str++)
+  while ((c = *str++))
     hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
   lua_pushinteger(L, hash);
@@ -194,7 +195,7 @@ static int sdbm(lua_State *L)
   auto str = luaL_checkstring(L, 1);
   unsigned long hash = 0;
 
-  while (c = *str++)
+  while ((c = *str++))
     hash = c + (hash << 6) + (hash << 16) - hash;
 
   lua_pushinteger(L, hash);
@@ -202,7 +203,26 @@ static int sdbm(lua_State *L)
 }
 
 
+static int md5(lua_State *L)
+{
+  size_t len;
+  unsigned char buffer[16] = {};
+  const auto str = luaL_checklstring(L, 1, &len);
+  md5_fn((unsigned char*)str, len, buffer);
+  
+  std::stringstream res {};
+  for (int i = 0; i < 16; i++)
+  {
+    res << std::hex << (int)buffer[i];
+  }
+
+  lua_pushstring(L, res.str().c_str());
+  return 1;
+}
+
+
 static const luaL_Reg funcs[] = {
+  {"md5", md5},
   {"sdbm", sdbm},
   {"djb2", djb2},
   {"superfasthash", superfasthash},
