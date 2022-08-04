@@ -6,6 +6,7 @@
 #include "lprefix.h"
 #include "luaconf.h"
 #include "lauxlib.h"
+#include "lstring.h"
 #include "lhashlib.hpp"
 #include <ios>
 #include <string>
@@ -241,7 +242,20 @@ static int crc32(lua_State *L)
 }
 
 
+// The hashing function used inside Lua. Honorary addition.
+// Basically a slightly different DJB2.
+static int lua(lua_State *L)
+{
+  size_t l;
+  const auto text = luaL_checklstring(L, 1, &l);
+  const auto hash = luaS_hash(text, l, (unsigned int)luaL_optinteger(L, 2, 0));
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
 static const luaL_Reg funcs[] = {
+  {"lua", lua},
   {"crc32", crc32},
   {"lookup3", lookup3},
   {"md5", md5},
