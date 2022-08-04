@@ -231,7 +231,18 @@ static int lookup3(lua_State *L)
 }
 
 
+static int crc32(lua_State *L)
+{
+  size_t len;
+  const auto text = luaL_checklstring(L, 1, &len);
+  const auto hash = crc32_impl(text, len, luaL_optinteger(L, 2, 0));
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
 static const luaL_Reg funcs[] = {
+  {"crc32", crc32},
   {"lookup3", lookup3},
   {"md5", md5},
   {"sdbm", sdbm},
