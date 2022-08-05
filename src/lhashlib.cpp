@@ -254,7 +254,20 @@ static int lua(lua_State *L)
 }
 
 
+static int l_sha256(lua_State *L)
+{
+  size_t l;
+  char hex[SHA256_HEX_SIZE];
+  const auto text = luaL_checklstring(L, 1, &l);
+  sha256_hex(text, l, hex);
+  lua_pushstring(L, hex);
+  return 1;
+}
+
+
+
 static const luaL_Reg funcs[] = {
+  {"sha256", l_sha256},
   {"lua", lua},
   {"crc32", crc32},
   {"lookup3", lookup3},
