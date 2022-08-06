@@ -1875,23 +1875,45 @@ static int str_partition (lua_State *L) {
 
 
 static int str_split (lua_State *L) {
-  size_t pos, len, sepsize;
-  std::string str = luaL_checkstring(L, 1);
-  const char* sep = luaL_checklstring(L, 2, &sepsize);
+  /*
+    https://github.com/Roblox/luau/blob/master/VM/src/lstrlib.cpp
+    This str_split function is licensed to LuaU under their terms.
+  */
+  size_t haystackLen;
+  const char* haystack = luaL_checklstring(L, 1, &haystackLen);
+  size_t needleLen;
+  const char* needle = luaL_optlstring(L, 2, ",", &needleLen);
 
-  pos = 0;  // Last position of sep.
-  len = 0;  // Length of Lua table.
+  const char* begin = haystack;
+  const char* end = haystack + haystackLen;
+  const char* spanStart = begin;
+  int numMatches = 0;
 
-  lua_newtable(L);
-  while ((pos = str.find(sep)) != std::string::npos && pos < str.length()) {
-    lua_pushstring(L, str.substr(0, pos).c_str());
-    lua_rawseti(L, -2, ++len);
-    str.erase(0, pos + sepsize);
+  lua_createtable(L, 0, 0);
+
+  if (needleLen == 0)
+    begin++;
+
+  for (const char* iter = begin; iter <= end - needleLen; iter++)
+  {
+    if (memcmp(iter, needle, needleLen) == 0)
+    {
+      lua_pushinteger(L, ++numMatches);
+      lua_pushlstring(L, spanStart, iter - spanStart);
+      lua_settable(L, -3);
+
+      spanStart = iter + needleLen;
+      if (needleLen > 0)
+        iter += needleLen - 1;
+    }
   }
-  
-  lua_pushstring(L, str.c_str());  // Push remaining word.
-  lua_rawseti(L, -2, ++len);
-  lua_setcachelen(L, len, -1);  // Cache table length.
+
+  if (needleLen > 0)
+  {
+    lua_pushinteger(L, ++numMatches);
+    lua_pushlstring(L, spanStart, end - spanStart);
+    lua_settable(L, -3);
+  }
 
   return 1;
 }
