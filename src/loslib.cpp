@@ -9,7 +9,7 @@
 
 #include "lprefix.h"
 
-
+#include <thread>
 #include <chrono>
 #include <errno.h>
 #include <locale.h>
@@ -399,6 +399,14 @@ static int os_nanos(lua_State* L) {
   return 1;
 }
 
+
+static int os_sleep (lua_State *L) {
+  std::chrono::milliseconds timespan(luaL_checkinteger(L, 1));
+  std::this_thread::sleep_for(timespan);
+  return 0;
+}
+
+
 /* }====================================================== */
 
 
@@ -428,6 +436,7 @@ static int os_exit (lua_State *L) {
 
 
 static const luaL_Reg syslib[] = {
+  {"sleep",       os_sleep},
   {"clock",       os_clock},
   {"date",        os_date},
   {"difftime",    os_difftime},
