@@ -519,6 +519,10 @@ static int luaB_newuserdata (lua_State *L) {
 }
 
 
+/*
+  0.4.0 Changes:
+    - Deprecated in favor of os.sleep. Will be removed in 0.5.0.
+*/
 static int luaB_sleep (lua_State *L) {
   std::chrono::milliseconds timespan(luaL_checkinteger(L, 1));
   std::this_thread::sleep_for(timespan);

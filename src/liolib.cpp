@@ -790,19 +790,39 @@ static int makedir (lua_State *L) {
 }
 
 
-static int listdir (lua_State *L) {
-  auto f = luaL_checkstring(L, 1);
-  if (std::filesystem::is_directory(f)) {
+/*
+  0.4.0 Changes:
+    - Second boolean parameter will toggle recursive iteration.
+    - Returns an empty table instead of throwing an error if 'f' is not a directory.
+*/
+static int listdir(lua_State *L)
+{
+  lua_newtable(L);
+
+  const auto f = luaL_checkstring(L, 1);
+  const auto recursive = lua_istrue(L, 2);
+
+  if (std::filesystem::is_directory(f))
+  {
     size_t i = 0;
-    lua_newtable(L);
-    for (auto const& dir_entry : std::filesystem::directory_iterator { f })  {
-      lua_pushstring(L, dir_entry.path().generic_string().c_str());
-      lua_rawseti(L, -2, ++i);
+    if (!recursive)
+    {
+      for (auto const& dir_entry : std::filesystem::directory_iterator { f })
+      {
+        lua_pushstring(L, dir_entry.path().generic_string().c_str());
+        lua_rawseti(L, -2, ++i);
+      }
+    }
+    else
+    {
+      for (auto const& dir_entry : std::filesystem::recursive_directory_iterator { f })
+      {
+        lua_pushstring(L, dir_entry.path().generic_string().c_str());
+        lua_rawseti(L, -2, ++i);
+      }
     }
   }
-  else {
-    luaL_error(L, "Argument 1 is not a valid path to a directory.");
-  }
+
   return 1;
 }
 
