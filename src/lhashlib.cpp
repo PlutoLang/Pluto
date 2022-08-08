@@ -289,7 +289,7 @@ static const luaL_Reg funcs[] = {
 };
 
 
-LUAMOD_API int luaopen_hash(lua_State *L)
+LUAMOD_API int luaopen_hashlib(lua_State *L)
 {
   luaL_newlib(L, funcs);
   return 1;
