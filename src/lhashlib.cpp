@@ -265,8 +265,17 @@ static int l_sha256(lua_State *L)
 }
 
 
+static int l_isaac64(lua_State *L)
+{
+  lua_Integer n = rand_isaac();
+  while (n == 0) n = rand_isaac();
+  lua_pushinteger(L, n);
+  return 1;
+}
+
 
 static const luaL_Reg funcs[] = {
+  {"isaac64", l_isaac64},
   {"sha256", l_sha256},
   {"lua", lua},
   {"crc32", crc32},
