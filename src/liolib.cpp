@@ -750,13 +750,29 @@ static int isfile (lua_State *L) {
 
 
 static int filesize (lua_State *L) {
+  std::error_code ec;
   auto f = luaL_checkstring(L, 1);
-  if (std::filesystem::is_regular_file(f)) {
-    lua_pushinteger(L, (lua_Integer)std::filesystem::file_size(f));
+  auto s = (lua_Integer)std::filesystem::file_size(f, ec);
+
+  if (ec)
+  {
+    const auto msg = ec.message();
+    const auto val = ec.value();
+
+    switch (val)
+    {
+      case 2:
+        luaL_error(L, "file does not exist (%d)", val);
+
+      case 21:
+        luaL_error(L, "path leads towards directory (%d)", val);
+
+      default:
+        luaL_error(L, "%s (%d)", msg, val);
+    }
   }
-  else {
-    luaL_error(L, "Argument 1 did not lead towards a valid file.");
-  }
+
+  lua_pushinteger(L, s);
   return 1;
 }
 
@@ -771,14 +787,41 @@ static int exists (lua_State *L) {
 static int copyto (lua_State *L) {
   auto from = luaL_checkstring(L, 1);
   auto to = luaL_checkstring(L, 2);
-  lua_pushboolean(L, std::filesystem::copy_file(from, to));
+  std::error_code ec;
+
+  /* 
+  ** Need to manually do this, MinGW bug.
+  ** https://sourceforge.net/p/mingw-w64/bugs/852/
+  */
+  if (std::filesystem::is_regular_file(to))
+  {
+    std::filesystem::remove(to);
+  }
+
+  if (!std::filesystem::copy_file(from, to, ec))  /* Failed to create the file. */
+  {
+    luaL_error(L, "%s (%d)", ec.message().c_str(), ec.value());
+  }
+  else
+  {
+    lua_pushboolean(L, true);
+  }
+
   return 1;
 }
 
 
 static int absolute (lua_State *L) {
-  auto f = luaL_checkstring(L, 1);
-  lua_pushstring(L, std::filesystem::absolute(f).generic_string().c_str());
+  std::error_code ec;
+  const auto f = luaL_checkstring(L, 1);
+  const auto r = std::filesystem::absolute(f, ec);
+
+  if (ec)
+  {
+    luaL_error(L, "%s (%d)", ec.message().c_str(), ec.value());
+  }
+
+  lua_pushstring(L, r.generic_string().c_str());
   return 1;
 }
 
