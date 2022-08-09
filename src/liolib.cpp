@@ -768,7 +768,7 @@ static int filesize (lua_State *L) {
         luaL_error(L, "path leads towards directory (%d)", val);
 
       default:
-        luaL_error(L, "%s (%d)", msg, val);
+        luaL_error(L, "%s (%d)", msg.c_str(), val);
     }
   }
 
