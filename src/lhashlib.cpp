@@ -92,8 +92,8 @@ static int murmur1(lua_State *L)
 {
   size_t textLen;
   const auto text = luaL_checklstring(L, 1, &textLen);
-  const auto seed = luaL_optinteger(L, 2, 0);
-  const auto hash = MurmurHash1Aligned(text, textLen, seed);
+  const auto seed = (unsigned int)luaL_optinteger(L, 2, 0);
+  const auto hash = MurmurHash1Aligned(text, (int)textLen, seed);
   lua_pushinteger(L, hash);
   return 1;
 }
@@ -109,9 +109,9 @@ static int murmur2(lua_State *L)
   unsigned int hash;
 
   if (lua_toboolean(L, 3))
-    hash = MurmurHashAligned2(text, textLen, seed);
+    hash = MurmurHashAligned2(text, (int)textLen, (uint32_t)seed);
   else
-    hash = MurmurHash2(text, textLen, seed);
+    hash = MurmurHash2(text, (int)textLen, (uint32_t)seed);
 
   lua_pushinteger(L, hash);
   return 1;
@@ -123,8 +123,8 @@ static int murmur64a(lua_State *L)
 {
   size_t textLen;
   const auto text = luaL_checklstring(L, 1, &textLen);
-  const auto seed = luaL_optinteger(L, 2, 0);
-  const auto hash = MurmurHash64A(text, textLen, seed);
+  const auto seed = (uint64_t)luaL_optinteger(L, 2, 0);
+  const auto hash = MurmurHash64A(text, (int)textLen, seed);
   lua_pushinteger(L, hash);
   return 1;
 }
@@ -135,8 +135,8 @@ static int murmur64b(lua_State *L)
 {
   size_t textLen;
   const auto text = luaL_checklstring(L, 1, &textLen);
-  const auto seed = luaL_optinteger(L, 2, 0);
-  const auto hash = MurmurHash64B(text, textLen, seed);
+  const auto seed = (uint64_t)luaL_optinteger(L, 2, 0);
+  const auto hash = MurmurHash64B(text, (int)textLen, seed);
   lua_pushinteger(L, hash);
   return 1;
 }
@@ -146,8 +146,8 @@ static int murmur2a(lua_State *L)
 {
   size_t textLen;
   const auto text = luaL_checklstring(L, 1, &textLen);
-  const auto seed = luaL_optinteger(L, 2, 0);
-  const auto hash = MurmurHash2A(text, textLen, seed);
+  const auto seed = (uint32_t)luaL_optinteger(L, 2, 0);
+  const auto hash = MurmurHash2A(text, (int)textLen, seed);
   lua_pushinteger(L, hash);
   return 1;
 }
@@ -158,8 +158,8 @@ static int murmur2neutral(lua_State *L)
 {
   size_t textLen;
   const auto text = luaL_checklstring(L, 1, &textLen);
-  const auto seed = luaL_optinteger(L, 2, 0);
-  const auto hash = MurmurHashNeutral2(text, textLen, seed);
+  const auto seed = (uint32_t)luaL_optinteger(L, 2, 0);
+  const auto hash = MurmurHashNeutral2(text, (int)textLen, seed);
   lua_pushinteger(L, hash);
   return 1;
 }
@@ -170,7 +170,7 @@ static int superfasthash(lua_State *L)
 {
   size_t textLen;
   const auto text = luaL_checklstring(L, 1, &textLen);
-  const auto hash = SuperFastHash((const signed char*)text, textLen);
+  const auto hash = SuperFastHash((const signed char*)text, (int)textLen);
   lua_pushinteger(L, hash);
   return 1;
 }
@@ -209,7 +209,7 @@ static int md5(lua_State *L)
   size_t len;
   unsigned char buffer[16] = {};
   const auto str = luaL_checklstring(L, 1, &len);
-  md5_fn((unsigned char*)str, len, buffer);
+  md5_fn((unsigned char*)str, (int)len, buffer);
   
   std::stringstream res {};
   for (int i = 0; i < 16; i++)
@@ -226,7 +226,7 @@ static int lookup3(lua_State *L)
 {
   size_t len;
   const auto text = luaL_checklstring(L, 1, &len);
-  const auto hash = lookup3_impl(text, len, luaL_optinteger(L, 2, 0));
+  const auto hash = lookup3_impl(text, (int)len, (uint32_t)luaL_optinteger(L, 2, 0));
   lua_pushinteger(L, hash);
   return 1;
 }
@@ -236,7 +236,7 @@ static int crc32(lua_State *L)
 {
   size_t len;
   const auto text = luaL_checklstring(L, 1, &len);
-  const auto hash = crc32_impl(text, len, luaL_optinteger(L, 2, 0));
+  const auto hash = crc32_impl(text, (int)len, (uint32_t)luaL_optinteger(L, 2, 0));
   lua_pushinteger(L, hash);
   return 1;
 }
