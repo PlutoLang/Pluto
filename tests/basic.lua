@@ -508,6 +508,7 @@ do
     status, _ = pcall(function () t[function () end] = "abc" end)
     assert(status == true, "unexpected error")
 
+    --[[
     table.freeze(_G)
     status, _ = pcall(function () _G.string = "abc" end)
     assert(status == false, "expected error")
@@ -531,6 +532,7 @@ do
     assert(status == false, "expected error")
     status, _ = pcall(function () _ENV[function () end] = "abc" end)
     assert(status == false, "expected error")
+    --]] --> Doing this will break tests done with dofile(), since the environment is reused.
 end
 
 print "Testing standard library additions."
@@ -600,10 +602,19 @@ do
     assert(string.find_first_not_of("hello world", "hello") == 6)
     assert(string.find_first_not_of("hello world", "hello world") == nil)
     assert(string.find_last_of("orld hello world cccc", "orld") == 16)
-    assert(string.capitalize("hello", 1) == "Hello")
-    assert(string.capitalize("hello", 2) == "hEllo")
-    assert(string.capitalize("hello", -1) == "hellO")
-    assert(string.capitalize("hello", -2) == "helLo")
+    assert(string.upper("hello", 1) == "Hello")
+    assert(string.upper("hello", 2) == "hEllo")
+    assert(string.upper("hello", -1) == "hellO")
+    assert(string.upper("hello", -2) == "helLo")
+    assert(string.upper("hello", -6) == "hello")
+    assert(string.upper("hello", 6) == "hello")
+    assert(string.upper("hello") == "HELLO")
+    assert(string.lower("HELLO") == "hello")
+    assert(string.lower("HELLO", 1) == "hELLO")
+    assert(string.lower("HELLO", 2) == "HeLLO")
+    assert(string.lower("HELLO", -1) == "HELLo")
+    assert(string.lower("HELLO", -2) == "HELlO")
+    assert(string.lower("HELLO", -14) == "HELLO")
 end
 
 print "Testing walrus operator."
