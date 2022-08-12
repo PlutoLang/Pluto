@@ -301,7 +301,7 @@ do
             error()
         end
     end
-        do
+    do
         local casecond <const> = 3
         pluto_switch value do
             pluto_default:
