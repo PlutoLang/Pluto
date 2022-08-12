@@ -211,6 +211,18 @@ do
     assert(T?.K?.Z == T.K.Z)
 end
 
+print "Testing shorthand ternary."
+do
+    local a = 3
+    assert((true ? "yes" : "no") == "yes")
+    assert((false ? "yes" : "no") == "no")
+    assert((a ? "yes" : "no") == "yes")
+    assert((a == 3 ? "yes" : "no") == "yes")
+    assert((a == 4 ? "yes" : "no") == "no")
+    assert((3 == a ? "yes" : "no") == "yes")
+    assert((4 == a ? "yes" : "no") == "no")
+end
+
 print "Testing new 'in' expressions."
 if ("hel" in "hello") != true then error() end
 if ("abc" in "hello") != false then error() end
