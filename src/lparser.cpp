@@ -2074,7 +2074,7 @@ static void expr (LexState *ls, expdesc *v, TypeDesc *prop, bool no_colon) {
   subexpr(ls, v, 0, prop, no_colon);
   if (testnext(ls, '?')) { /* ternary expression? */
     int escape = NO_JUMP;
-    if (v->k == VNIL) v->k = VFALSE;  /* 'falses' are all equal here */
+    v->normaliseFalse();
     luaK_goiftrue(ls->fs, v);
     int condition = v->f;
     expr(ls, v, nullptr, true);
@@ -2326,7 +2326,7 @@ int cond (LexState *ls) {
   /* cond -> exp */
   expdesc v;
   expr(ls, &v);  /* read condition */
-  if (v.k == VNIL) v.k = VFALSE;  /* 'falses' are all equal here */
+  v.normaliseFalse();
   luaK_goiftrue(ls->fs, &v);
   return v.f;
 }
@@ -2603,7 +2603,7 @@ static void repeatstat (LexState *ls) {
 #endif
     expdesc v;
     expr(ls, &v);  /* read condition */
-    if (v.k == VNIL) v.k = VFALSE;  /* 'falses' are all equal here */
+    v.normaliseFalse();
     luaK_goiffalse(ls->fs, &v);
     condexit = v.t;
   }
