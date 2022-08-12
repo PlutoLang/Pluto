@@ -889,3 +889,10 @@ int luaX_lookahead (LexState *ls) {
   ls->lookahead.token = llex(ls, &ls->lookahead.seminfo);
   return ls->lookahead.token;
 }
+
+
+void luaX_rewind (LexState *ls, int token) {
+  lua_assert(ls->lookahead.token == TK_EOS);
+  ls->lookahead = ls->t;
+  ls->t.token = token;
+}
