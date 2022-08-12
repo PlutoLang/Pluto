@@ -836,7 +836,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
                                   luaZ_bufflen(ls->buff));
           seminfo->ts = ts;
-          ls->appendLineBuff(ts->contents);
+          ls->appendLineBuff(ts->toCpp());
           if (isreserved(ts))  /* reserved word? */
             return ts->extra - 1 + FIRST_RESERVED;
           else {
