@@ -636,6 +636,12 @@ do
     walrus_test_helper(c := "hi")
 end
 
+print "Testing non-ascii variable names."
+do
+    local 😉 = "Hello"
+    assert(😉 == "Hello")
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
