@@ -1450,8 +1450,8 @@ static void setvararg (FuncState *fs, int nparams) {
   luaK_codeABC(fs, OP_VARARGPREP, nparams, 0, 0);
 }
 
-
-static void parlist (LexState *ls) {
+static void simpleexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDesc *prop = nullptr);
+static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -1464,6 +1464,15 @@ static void parlist (LexState *ls) {
           auto parname = str_checkname(ls, true);
           auto parhint = gettypehint(ls);
           new_localvar(ls, parname, parhint);
+          if (fallbacks) {
+            expdesc* parfallback = &fallbacks->emplace_back(expdesc{});
+            if (testnext(ls, '=')) {
+              simpleexp(ls, parfallback);
+              if (!vkisconst(parfallback->k)) {
+                luaX_syntaxerror(ls, "parameter fallback value must be a compile-time constant");
+              }
+            }
+          }
           nparams++;
           break;
         }
@@ -1496,7 +1505,21 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     new_localvarliteral(ls, "self");  /* create 'self' parameter */
     adjustlocalvars(ls, 1);
   }
-  parlist(ls);
+  std::vector<expdesc> fallbacks{};
+  parlist(ls, &fallbacks);
+  int fallback_idx = 0;
+  for (auto& fallback : fallbacks) {
+    if (fallback.k != VVOID) {
+      Vardesc *vd = getlocalvardesc(ls->fs, fallback_idx);
+      expdesc lv;
+      singlevaraux(ls->fs, vd->vd.name, &lv, 1);
+      expdesc lcond = lv;
+      luaK_goiffalse(ls->fs, &lcond);
+      luaK_storevar(ls->fs, &lv, &fallback);
+      luaK_patchtohere(ls->fs, lcond.t);
+    }
+    ++fallback_idx;
+  }
   checknext(ls, ')');
   TypeDesc rethint = gettypehint(ls);
   TypeDesc p = VT_DUNNO;
@@ -1849,7 +1872,7 @@ static void ifexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop = nullptr) {
+static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
