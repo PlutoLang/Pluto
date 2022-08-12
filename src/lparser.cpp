@@ -1659,7 +1659,6 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
 */
 static void safe_navigation(LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
-  luaX_next(ls);
   luaK_exp2nextreg(fs, v);
   luaK_codeABC(fs, OP_TEST, v->u.info, NO_REG, 0 );
   {
@@ -1758,7 +1757,13 @@ static void suffixedexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDe
   primaryexp(ls, v);
   for (;;) {
     switch (ls->t.token) {
-      case '?': {  /* safe navigation */
+      case '?': {  /* safe navigation or ternary */
+        luaX_next(ls); /* skip '?' */
+        if (gett(ls) != '[' && gett(ls) != '.') {
+          /* it's a ternary but we have to deal with that later */
+          luaX_rewind(ls, '?'); /* unskip '?' */
+          return; /* back to primaryexp */
+        }
         safe_navigation(ls, v);
         break;
       }
