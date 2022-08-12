@@ -123,26 +123,55 @@ static int str_reverse (lua_State *L) {
 static int str_lower (lua_State *L) {
   size_t l;
   size_t i;
-  luaL_Buffer b;
-  const char *s = luaL_checklstring(L, 1, &l);
-  char *p = luaL_buffinitsize(L, &b, l);
-  for (i=0; i<l; i++)
-    p[i] = tolower(uchar(s[i]));
-  luaL_pushresultsize(&b, l);
-  return 1;
+  std::string s_ = luaL_checklstring(L, 1, &l);
+  lua_Integer i_ = lua_tointeger(L, 2);
+  if (i_)  /* Convert a specific index. */
+  {
+    --i_;
+    if (i_ < 0) i_ += s_.length() + 1;  /* Negative indexes. */
+    if (!s_.empty() && (unsigned)i_ < s_.length())
+      s_[i_] = std::tolower(s_.at(i_));
+    lua_pushstring(L, s_.c_str());
+    return 1;
+  }
+  else  /* Convert the entire string. */
+  {
+    luaL_Buffer b;
+    const char *s = s_.c_str();
+    char *p = luaL_buffinitsize(L, &b, l);
+    for (i=0; i<l; i++)
+      p[i] = std::tolower(uchar(s[i]));
+    luaL_pushresultsize(&b, l);
+    return 1;
+  }
 }
 
 
-static int str_upper (lua_State *L) {
+static int str_upper (lua_State *L)
+{
   size_t l;
   size_t i;
-  luaL_Buffer b;
-  const char *s = luaL_checklstring(L, 1, &l);
-  char *p = luaL_buffinitsize(L, &b, l);
-  for (i=0; i<l; i++)
-    p[i] = toupper(uchar(s[i]));
-  luaL_pushresultsize(&b, l);
-  return 1;
+  std::string s_ = luaL_checklstring(L, 1, &l);
+  lua_Integer i_ = lua_tointeger(L, 2);
+  if (i_)  /* Convert a specific index. */
+  {
+    --i_;
+    if (i_ < 0) i_ += s_.length() + 1;  /* Negative indexes. */
+    if (!s_.empty() && (unsigned)i_ < s_.length())
+      s_[i_] = std::toupper(s_.at(i_));
+    lua_pushstring(L, s_.c_str());
+    return 1;
+  }
+  else  /* Convert the entire string. */
+  {
+    luaL_Buffer b;
+    const char *s = s_.c_str();
+    char *p = luaL_buffinitsize(L, &b, l);
+    for (i=0; i<l; i++)
+      p[i] = std::toupper(uchar(s[i]));
+    luaL_pushresultsize(&b, l);
+    return 1;
+  }
 }
 
 
@@ -2204,23 +2233,10 @@ static int str_find_last_not_of(lua_State *L)
 }
 
 
-static int capitalize(lua_State *L)
-{
-  std::string s = luaL_checkstring(L, 1);
-  lua_Integer i = luaL_optinteger(L, 2, 1) - 1;
-  if (i < 0) i += s.length() + 1;  /* Negative indexes. */
-  if (!s.empty() && (unsigned)i < s.length())
-    s[i] = std::toupper(s.at(i));
-  lua_pushstring(L, s.c_str());
-  return 1;
-}
-
-
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
-  {"capitalize", capitalize},
   {"find_last_not_of", str_find_last_not_of},
   {"find_last_of", str_find_last_of},
   {"find_first_not_of", str_find_first_not_of},
