@@ -768,7 +768,10 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             return '=';
           } else return TK_COAL; /* ?? */
         }
-        else return '?';
+        else {
+          ls->appendLineBuff('?');
+          return '?';
+        }
       }
       case '*': {  /* special case compound, need to support mul, exponent, and augmented mul */
         next(ls);
