@@ -91,6 +91,10 @@ typedef struct expdesc {
   } u;
   int t;  /* patch list of 'exit when true' */
   int f;  /* patch list of 'exit when false' */
+
+  void normaliseFalse() {
+    if (k == VNIL) k = VFALSE;
+  }
 } expdesc;
 
 
