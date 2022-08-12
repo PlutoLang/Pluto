@@ -600,6 +600,10 @@ do
     assert(string.find_first_not_of("hello world", "hello") == 6)
     assert(string.find_first_not_of("hello world", "hello world") == nil)
     assert(string.find_last_of("orld hello world cccc", "orld") == 16)
+    assert(string.capitalize("hello", 1) == "Hello")
+    assert(string.capitalize("hello", 2) == "hEllo")
+    assert(string.capitalize("hello", -1) == "hellO")
+    assert(string.capitalize("hello", -2) == "helLo")
 end
 
 print "Testing walrus operator."
