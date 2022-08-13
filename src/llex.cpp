@@ -205,6 +205,11 @@ static void inclinenumber (LexState *ls) {
   next(ls);  /* skip '\n' or '\r' */
   if (currIsNewline(ls) && ls->current != old)
     next(ls);  /* skip '\n\r' or '\r\n' */
+  
+  const std::string& buff = ls->getLineBuff();
+  if (buff.find("@pluto_warnings:") != std::string::npos)
+    ls->warning.processComment(buff);
+
   ls->lines.emplace_back(std::string{});
 }
 
@@ -220,6 +225,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
   ls->fs = NULL;
   ls->source = source;
   ls->envn = luaS_newliteral(L, LUA_ENV);  /* get env name */
+  ls->warning = WarningConfig {};
   luaZ_resizebuffer(ls->L, ls->buff, LUA_MINBUFFER);  /* initialize buffer */
 }
 
@@ -558,13 +564,16 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             luaZ_resetbuffer(ls->buff);  /* 'skip_sep' may dirty the buffer */
             if (sep >= 2) {
               read_long_string(ls, NULL, sep);  /* skip long comment */
+              ls->appendLineBuff(getstr(seminfo->ts));
               luaZ_resetbuffer(ls->buff);  /* previous call may dirty the buff. */
               break;
             }
           }
           /* else short comment */
-          while (!currIsNewline(ls) && ls->current != EOZ)
+          while (!currIsNewline(ls) && ls->current != EOZ) {
+            ls->appendLineBuff(ls->current);
             next(ls);  /* skip until end of line (or end of file) */
+          }
           break;
         }
       }
