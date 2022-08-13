@@ -1771,7 +1771,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
-static void suffixedexp (LexState *ls, expdesc *v, bool caseexpr = false, TypeDesc *prop = nullptr) {
+static void suffixedexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDesc *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   FuncState *fs = ls->fs;
@@ -1795,7 +1795,7 @@ static void suffixedexp (LexState *ls, expdesc *v, bool caseexpr = false, TypeDe
         break;
       }
       case ':': {  /* ':' NAME funcargs */
-        if (caseexpr) {
+        if (no_colon) {
           return;
         }
         expdesc key;
@@ -1849,7 +1849,7 @@ static void ifexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, TypeDesc *prop = nullptr) {
+static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop = nullptr) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
@@ -1907,12 +1907,12 @@ static void simpleexp (LexState *ls, expdesc *v, bool caseexpr, TypeDesc *prop =
       return;
     }
     default: {
-      suffixedexp(ls, v, caseexpr, prop);
+      suffixedexp(ls, v, no_colon, prop);
       return;
     }
   }
   luaX_next(ls);
-  if (!caseexpr && testnext(ls, ':')) {
+  if (!no_colon && testnext(ls, ':')) {
     expdesc key;
     codename(ls, &key);
     luaK_self(ls->fs, v, &key);
