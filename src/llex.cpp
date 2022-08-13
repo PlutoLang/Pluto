@@ -828,15 +828,23 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         return TK_EOS;
       }
       default: {
-        if (lislalpha(ls->current)) {  /* identifier or reserved word? */
+        if (lislalpha(ls->current)
+#ifndef PLUTO_NO_UTF8
+            || (ls->current & 0b10000000)
+#endif
+          ) {  /* identifier or reserved word? */
           TString *ts;
           do {
             save_and_next(ls);
-          } while (lislalnum(ls->current));
+          } while (lislalnum(ls->current)
+#ifndef PLUTO_NO_UTF8
+              || (ls->current & 0b10000000)
+#endif
+            );
           ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
                                   luaZ_bufflen(ls->buff));
           seminfo->ts = ts;
-          ls->appendLineBuff(ts->contents);
+          ls->appendLineBuff(ts->toCpp());
           if (isreserved(ts))  /* reserved word? */
             return ts->extra - 1 + FIRST_RESERVED;
           else {
