@@ -1502,7 +1502,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
       expdesc lv;
       singlevaraux(ls->fs, vd->vd.name, &lv, 1);
       expdesc lcond = lv;
-      luaK_goiffalse(ls->fs, &lcond);
+      luaK_goifnil(ls->fs, &lcond);
       luaK_storevar(ls->fs, &lv, &fallback);
       luaK_patchtohere(ls->fs, lcond.t);
     }
