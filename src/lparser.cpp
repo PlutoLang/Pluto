@@ -79,7 +79,7 @@ typedef struct BlockCnt {
 ** prototypes for recursive non-terminal functions
 */
 static void statement (LexState *ls, TypeDesc *prop = nullptr);
-static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr);
+static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, bool no_colon = false);
 
 
 /*
@@ -1703,7 +1703,6 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
 */
 static void safe_navigation(LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
-  luaX_next(ls);
   luaK_exp2nextreg(fs, v);
   luaK_codeABC(fs, OP_TEST, v->u.info, NO_REG, 0 );
   {
@@ -1802,7 +1801,13 @@ static void suffixedexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDe
   primaryexp(ls, v);
   for (;;) {
     switch (ls->t.token) {
-      case '?': {  /* safe navigation */
+      case '?': {  /* safe navigation or ternary */
+        luaX_next(ls); /* skip '?' */
+        if (gett(ls) != '[' && gett(ls) != '.') {
+          /* it's a ternary but we have to deal with that later */
+          luaX_rewind(ls, '?'); /* unskip '?' */
+          return; /* back to primaryexp */
+        }
         safe_navigation(ls, v);
         break;
       }
@@ -2021,7 +2026,7 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nullptr) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nullptr, bool no_colon = false) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
@@ -2046,7 +2051,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
     luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
   }
   else {
-    simpleexp(ls, v, false, prop);
+    simpleexp(ls, v, no_colon, prop);
     if (ls->t.token == TK_IN) {
       inexpr(ls, v);
       if (prop) *prop = VT_BOOL;
@@ -2070,8 +2075,24 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
 }
 
 
-static void expr (LexState *ls, expdesc *v, TypeDesc *prop) {
-  subexpr(ls, v, 0, prop);
+static void expr (LexState *ls, expdesc *v, TypeDesc *prop, bool no_colon) {
+  subexpr(ls, v, 0, prop, no_colon);
+  if (testnext(ls, '?')) { /* ternary expression? */
+    int escape = NO_JUMP;
+    v->normaliseFalse();
+    luaK_goiftrue(ls->fs, v);
+    int condition = v->f;
+    expr(ls, v, nullptr, true);
+    auto fs = ls->fs;
+    auto reg = luaK_exp2anyreg(fs, v);
+    luaK_concat(fs, &escape, luaK_jump(fs));
+    luaK_patchtohere(fs, condition);
+    checknext(ls, ':');
+    expr(ls, v);
+    luaK_exp2reg(fs, v, reg);
+    luaK_patchtohere(fs, escape);
+    if (prop) *prop = VT_MIXED; /* reset propagated type */
+  }
 }
 
 /* }==================================================================== */
@@ -2310,7 +2331,7 @@ int cond (LexState *ls) {
   /* cond -> exp */
   expdesc v;
   expr(ls, &v);  /* read condition */
-  if (v.k == VNIL) v.k = VFALSE;  /* 'falses' are all equal here */
+  v.normaliseFalse();
   luaK_goiftrue(ls->fs, &v);
   return v.f;
 }
@@ -2587,7 +2608,7 @@ static void repeatstat (LexState *ls) {
 #endif
     expdesc v;
     expr(ls, &v);  /* read condition */
-    if (v.k == VNIL) v.k = VFALSE;  /* 'falses' are all equal here */
+    v.normaliseFalse();
     luaK_goiffalse(ls->fs, &v);
     condexit = v.t;
   }
