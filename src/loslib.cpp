@@ -154,12 +154,20 @@ static int os_execute (lua_State *L) {
 }
 
 
+/*
+  Deprecated:
+    - This will be removed in spite of io.remove, in 0.5.0.
+*/
 static int os_remove (lua_State *L) {
   const char *filename = luaL_checkstring(L, 1);
   return luaL_fileresult(L, remove(filename) == 0, filename);
 }
 
 
+/*
+  Deprecated:
+    - This will be removed in spite of io.rename, in 0.5.0.
+*/
 static int os_rename (lua_State *L) {
   const char *fromname = luaL_checkstring(L, 1);
   const char *toname = luaL_checkstring(L, 2);
