@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+#include <string_view>
 
 #include "lobject.h"
 #include "lzio.h"
@@ -90,12 +91,113 @@ struct Token {
   int token;
   SemInfo seminfo;
 
-  [[nodiscard]] bool IsReserved() const noexcept {
+  /*
+  ** This could be implemented using operator overloading.
+  ** I dislike this approach because it's unnecessarily ambiguous. 
+  ** I tend to avoid overloading as a whole, because it's typically unclear.
+  **
+  ** - Ryan
+  */
+  [[nodiscard]] bool Is(int t) const noexcept
+  {
+    return token == t;
+  }
+
+  [[nodiscard]] bool IsReserved() const noexcept
+  {
     return token >= FIRST_RESERVED && token <= LAST_RESERVED;
   }
 
-  [[nodiscard]] bool IsReservedNonValue() const noexcept {
+  /// Does this token escape control flow? I.e, a TK_BREAK or TK_CONTINUE?
+  [[nodiscard]] bool IsEscapingToken() const noexcept
+  {
+    return token == TK_BREAK || token == TK_CONTINUE;
+  }
+
+  [[nodiscard]] bool IsReservedNonValue() const noexcept
+  {
     return IsReserved() && token != TK_TRUE && token != TK_FALSE && token != TK_NIL;
+  }
+};
+
+
+/*
+** If you wish to add a new warning type, you need to update WarningType from the bottom.
+** Then, you need to enter the 'name' of your warning at the bottom of luaX_warnIds, so the user can toggle it during runtime.
+*/
+
+
+enum WarningType : int
+{
+  ALL_WARNINGS = 0,
+
+  VAR_SHADOW,
+  TYPE_MISMATCH,
+  UNREACHABLE_CODE,
+  EXCESSIVE_ARGUMENTS,
+
+  NUM_WARNING_TYPES
+};
+
+
+static const std::vector<std::string> luaX_warnNames = {
+  "all",
+  "var-shadow",
+  "type-mismatch",
+  "unreachable-code",
+  "excessive-arguments",
+};
+
+
+struct WarningConfig
+{
+  bool toggles[NUM_WARNING_TYPES];
+
+  WarningConfig()
+  {
+    setAllTo(true);
+  }
+
+  [[nodiscard]] bool& Get(WarningType type) noexcept
+  {
+    return toggles[type];
+  }
+
+  void setAllTo(bool newState) noexcept
+  {
+    for (int id = 0; id != NUM_WARNING_TYPES; ++id)
+    {
+      toggles[id] = newState;
+    }
+  }
+
+  void processComment(const std::string& line) noexcept
+  {
+    for (int id = 0; id != NUM_WARNING_TYPES; ++id)
+    {
+      std::string enable  = "enable-";
+      std::string disable = "disable-";
+
+      const std::string& name = luaX_warnNames[id];
+
+      enable += name;
+      disable += name;
+
+      if (line.find(enable) != std::string::npos)
+      {
+        if (name != "all")
+          Get((WarningType)id) = true;
+        else
+          setAllTo(true);
+      }
+      else if (line.find(disable) != std::string::npos)
+      {
+        if (name != "all")
+          Get((WarningType)id) = false;
+        else
+          setAllTo(false);
+      }
+    }
   }
 };
 
@@ -110,9 +212,10 @@ struct Token {
 
 struct LexState {
   int current;  /* current character (charint) */
-  std::vector<std::string> lines;
+  std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
   int lastline;  /* line of last token 'consumed' */
   int lasttoken;  /* save the last compound binary operator, if exists */
+  Token laststat;  /* the last statement */
   Token t;  /* current token */
   Token lookahead;  /* look ahead token */
   struct FuncState *fs;  /* current function (parser) */
@@ -123,14 +226,33 @@ struct LexState {
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
+  WarningConfig warning;  /* Configuration class for compile-time warnings. */
 
   LexState()
-    : lines{ std::string{} }
+    : lines { std::string {} }
   {
+    laststat = Token {};
+    laststat.token = TK_EOS;
   }
 
   [[nodiscard]] int getLineNumber() const noexcept {
     return (int)lines.size();
+  }
+
+
+  /// Find a substring within the current line buffer.
+  /// There is an overload that allows a line number as the first argument to search a specific line.
+  [[nodiscard]] bool findWithinLine(const std::string& substr, int offset = 0) noexcept
+  {
+    const std::string& str = getLineBuff();
+    return str.find(substr, offset) != std::string::npos;
+  }
+
+  /// Find a substring within the respective line.
+  /// There is an overload that allows you to omit the 'line' argument and default to the current line buffer.
+  [[nodiscard]] bool findWithinLine(int line, const std::string& substr, int offset = 0) const noexcept {
+    const std::string& str = getLineString(line);
+    return str.find(substr, offset) != std::string::npos;
   }
 
   [[nodiscard]] int getLineNumberOfLastNonEmptyLine() const noexcept {
@@ -171,6 +293,7 @@ LUAI_FUNC TString *luaX_newstring (LexState *ls, const char *str, size_t l);
 LUAI_FUNC TString* luaX_newstring (LexState *ls, const char *str);
 LUAI_FUNC void luaX_next (LexState *ls);
 LUAI_FUNC int luaX_lookahead (LexState *ls);
+LUAI_FUNC void luaX_rewind (LexState *ls, int token);
 [[noreturn]] LUAI_FUNC void luaX_syntaxerror (LexState *ls, const char *s);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);

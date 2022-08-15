@@ -14,3 +14,8 @@ Instructions on how to install Pluto, as well as a detailed documentation for al
 
 - [Repository for Website](https://github.com/PlutoLang/plutolang.github.io)
 - [Write Pluto Online](https://plutolang.github.io/web/)
+
+## Donate
+If you really fancy the project, feel free to buy me a coffee.
+#### BTC Address
+`bc1qsv6pwsgpwdhedfg8jzsnmr9lsffdvstcj8zpyc`

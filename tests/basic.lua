@@ -211,6 +211,18 @@ do
     assert(T?.K?.Z == T.K.Z)
 end
 
+print "Testing shorthand ternary."
+do
+    local a = 3
+    assert((true ? "yes" : "no") == "yes")
+    assert((false ? "yes" : "no") == "no")
+    assert((a ? "yes" : "no") == "yes")
+    assert((a == 3 ? "yes" : "no") == "yes")
+    assert((a == 4 ? "yes" : "no") == "no")
+    assert((3 == a ? "yes" : "no") == "yes")
+    assert((4 == a ? "yes" : "no") == "no")
+end
+
 print "Testing new 'in' expressions."
 if ("hel" in "hello") != true then error() end
 if ("abc" in "hello") != false then error() end
@@ -301,7 +313,7 @@ do
             error()
         end
     end
-        do
+    do
         local casecond <const> = 3
         pluto_switch value do
             pluto_default:
@@ -508,6 +520,7 @@ do
     status, _ = pcall(function () t[function () end] = "abc" end)
     assert(status == true, "unexpected error")
 
+    --[[
     table.freeze(_G)
     status, _ = pcall(function () _G.string = "abc" end)
     assert(status == false, "expected error")
@@ -531,6 +544,7 @@ do
     assert(status == false, "expected error")
     status, _ = pcall(function () _ENV[function () end] = "abc" end)
     assert(status == false, "expected error")
+    --]] --> Doing this will break tests done with dofile(), since the environment is reused.
 end
 
 print "Testing standard library additions."
@@ -600,6 +614,44 @@ do
     assert(string.find_first_not_of("hello world", "hello") == 6)
     assert(string.find_first_not_of("hello world", "hello world") == nil)
     assert(string.find_last_of("orld hello world cccc", "orld") == 16)
+    assert(string.upper("hello", 1) == "Hello")
+    assert(string.upper("hello", 2) == "hEllo")
+    assert(string.upper("hello", -1) == "hellO")
+    assert(string.upper("hello", -2) == "helLo")
+    assert(string.upper("hello", -6) == "hello")
+    assert(string.upper("hello", 6) == "hello")
+    assert(string.upper("hello") == "HELLO")
+    assert(string.lower("HELLO") == "hello")
+    assert(string.lower("HELLO", 1) == "hELLO")
+    assert(string.lower("HELLO", 2) == "HeLLO")
+    assert(string.lower("HELLO", -1) == "HELLo")
+    assert(string.lower("HELLO", -2) == "HELlO")
+    assert(string.lower("HELLO", -14) == "HELLO")
+end
+
+print "Testing walrus operator."
+do
+    if a := 3 then
+    else
+        error()
+    end
+    assert(a == 3)
+
+    if b := nil then
+        error()
+    end
+
+    local function walrus_test_helper(v1, v2)
+        assert(v1 == "hi")
+        assert(v2 == nil)
+    end
+    walrus_test_helper(c := "hi")
+end
+
+print "Testing non-ascii variable names."
+do
+    local 😉 = "Hello"
+    assert(😉 == "Hello")
 end
 
 print "Testing walrus operator."

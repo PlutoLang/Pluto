@@ -23,6 +23,12 @@
 #include "lualib.h"
 
 
+/* Basic error handling. TO-DO: Improve error message detail. */
+#define procErrCode(ec) \
+  if (ec) \
+  { \
+    luaL_error(L, "%s (%d)", ec.message().c_str(), ec.value()); \
+  }
 
 
 /*
@@ -736,49 +742,82 @@ static int f_flush (lua_State *L) {
 
 
 static int isdir (lua_State *L) {
-  auto dir = luaL_checkstring(L, 1);
+  const auto dir = luaL_checkstring(L, 1);
   lua_pushboolean(L, std::filesystem::is_directory(dir));
   return 1;
 }
 
 
 static int isfile (lua_State *L) {
-  auto dir = luaL_checkstring(L, 1);
+  const auto dir = luaL_checkstring(L, 1);
   lua_pushboolean(L, std::filesystem::is_regular_file(dir));
   return 1;
 }
 
 
 static int filesize (lua_State *L) {
-  auto f = luaL_checkstring(L, 1);
-  if (std::filesystem::is_regular_file(f)) {
-    lua_pushinteger(L, (lua_Integer)std::filesystem::file_size(f));
+  std::error_code ec;
+  const auto f = luaL_checkstring(L, 1);
+  const auto s = (lua_Integer)std::filesystem::file_size(f, ec);
+
+  if (ec)
+  {
+    const auto msg = ec.message();
+    const auto val = ec.value();
+
+    switch (val)
+    {
+      case 2:
+        luaL_error(L, "file does not exist (%d)", val);
+
+      case 21:
+        luaL_error(L, "path leads towards directory (%d)", val);
+
+      default:
+        procErrCode(ec);
+    }
   }
-  else {
-    luaL_error(L, "Argument 1 did not lead towards a valid file.");
-  }
+
+  lua_pushinteger(L, s);
   return 1;
 }
 
 
 static int exists (lua_State *L) {
-  auto f = luaL_checkstring(L, 1);
+  const auto f = luaL_checkstring(L, 1);
   lua_pushboolean(L, std::filesystem::exists(f));
   return 1;
 }
 
 
 static int copyto (lua_State *L) {
-  auto from = luaL_checkstring(L, 1);
-  auto to = luaL_checkstring(L, 2);
-  lua_pushboolean(L, std::filesystem::copy_file(from, to));
-  return 1;
+  std::error_code ec;
+  const auto from = luaL_checkstring(L, 1);
+  const auto to = luaL_checkstring(L, 2);
+
+  /* 
+  ** Need to manually do this, MinGW bug.
+  ** https://sourceforge.net/p/mingw-w64/bugs/852/
+  */
+  if (std::filesystem::is_regular_file(to))
+  {
+    std::filesystem::remove(to);
+  }
+
+  std::filesystem::copy_file(from, to, ec);
+  procErrCode(ec);
+
+  return 0;
 }
 
 
 static int absolute (lua_State *L) {
-  auto f = luaL_checkstring(L, 1);
-  lua_pushstring(L, std::filesystem::absolute(f).generic_string().c_str());
+  std::error_code ec;
+  const auto f = luaL_checkstring(L, 1);
+  const auto r = std::filesystem::absolute(f, ec);
+
+  procErrCode(ec);
+  lua_pushstring(L, r.generic_string().c_str());
   return 1;
 }
 
@@ -827,10 +866,43 @@ static int listdir(lua_State *L)
 }
 
 
+static int l_remove(lua_State *L)
+{
+  std::error_code ec;
+  const auto path = luaL_checkstring(L, 1);
+  const auto recursive = lua_istrue(L, 2);
+
+  if (recursive)
+  {
+    std::filesystem::remove_all(path, ec);
+  }
+  else
+  {
+    std::filesystem::remove(path, ec);
+  }
+
+  procErrCode(ec);
+  return 0;
+}
+
+
+static int l_rename(lua_State *L)
+{
+  std::error_code ec;
+  const auto oldP = luaL_checkstring(L, 1);
+  const auto newP = luaL_checkstring(L, 2);
+  std::filesystem::rename(oldP, newP, ec);
+  procErrCode(ec);
+  return 0;
+}
+
+
 /*
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
+  {"rename", l_rename},
+  {"remove", l_remove},
   {"listdir", listdir},
   {"makedir", makedir},
   {"absolute", absolute},
