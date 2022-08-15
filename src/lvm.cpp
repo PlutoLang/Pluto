@@ -32,14 +32,15 @@
 
 #ifdef PLUTO_VMDUMP
 #include <string>
-
+#include <sstream>
+#include <iostream>
 #include "lauxlib.h" // lua_writestring
 #include "lopnames.h"
 #endif
 
 
 /* limit for table tag-method chains (to avoid infinite loops) */
-#define MAXTAGLOOP	2000
+#define MAXTAGLOOP  2000
 
 
 /*
@@ -48,7 +49,7 @@
 */
 
 /* number of bits in the mantissa of a float */
-#define NBM		(l_floatatt(MANT_DIG))
+#define NBM   (l_floatatt(MANT_DIG))
 
 /*
 ** Check whether some integers may not fit in a float, testing whether
@@ -61,14 +62,14 @@
     >> (NBM - (3 * (NBM / 4))))  >  0
 
 /* limit for integers that fit in a float */
-#define MAXINTFITSF	((lua_Unsigned)1 << NBM)
+#define MAXINTFITSF ((lua_Unsigned)1 << NBM)
 
 /* check whether 'i' is in the interval [-MAXINTFITSF, MAXINTFITSF] */
-#define l_intfitsf(i)	((MAXINTFITSF + l_castS2U(i)) <= (2 * MAXINTFITSF))
+#define l_intfitsf(i) ((MAXINTFITSF + l_castS2U(i)) <= (2 * MAXINTFITSF))
 
 #else  /* all integers fit in a float precisely */
 
-#define l_intfitsf(i)	1
+#define l_intfitsf(i) 1
 
 #endif
 
@@ -628,7 +629,7 @@ int luaV_equalobj (lua_State *L, const TValue *t1, const TValue *t2) {
 #define tostring(L,o)  \
     (ttisstring(o) || (cvt2str(o) && (luaO_tostring(L, o), 1)))
 
-#define isemptystr(o)	(ttisshrstring(o) && tsvalue(o)->shrlen == 0)
+#define isemptystr(o) (ttisshrstring(o) && tsvalue(o)->shrlen == 0)
 
 /* copy strings in stack from top - n up to top - 1 to buffer */
 static void copy2buff (StkId top, int n, char *buff) {
@@ -772,12 +773,12 @@ lua_Number luaV_modf (lua_State *L, lua_Number m, lua_Number n) {
 
 
 /* number of bits in an integer */
-#define NBITS	cast_int(sizeof(lua_Integer) * CHAR_BIT)
+#define NBITS cast_int(sizeof(lua_Integer) * CHAR_BIT)
 
 /*
 ** Shift left operation. (Shift right just negates 'y'.)
 */
-#define luaV_shiftr(x,y)	luaV_shiftl(x,intop(-, 0, y))
+#define luaV_shiftr(x,y)  luaV_shiftl(x,intop(-, 0, y))
 
 
 lua_Integer luaV_shiftl (lua_Integer x, lua_Integer y) {
@@ -891,17 +892,17 @@ void luaV_finishOp (lua_State *L) {
 ** ===================================================================
 */
 
-#define l_addi(L,a,b)	intop(+, a, b)
-#define l_subi(L,a,b)	intop(-, a, b)
-#define l_muli(L,a,b)	intop(*, a, b)
-#define l_band(a,b)	intop(&, a, b)
-#define l_bor(a,b)	intop(|, a, b)
-#define l_bxor(a,b)	intop(^, a, b)
+#define l_addi(L,a,b) intop(+, a, b)
+#define l_subi(L,a,b) intop(-, a, b)
+#define l_muli(L,a,b) intop(*, a, b)
+#define l_band(a,b) intop(&, a, b)
+#define l_bor(a,b)  intop(|, a, b)
+#define l_bxor(a,b) intop(^, a, b)
 
-#define l_lti(a,b)	(a < b)
-#define l_lei(a,b)	(a <= b)
-#define l_gti(a,b)	(a > b)
-#define l_gei(a,b)	(a >= b)
+#define l_lti(a,b)  (a < b)
+#define l_lei(a,b)  (a <= b)
+#define l_gti(a,b)  (a > b)
+#define l_gei(a,b)  (a >= b)
 
 
 /*
@@ -1066,20 +1067,20 @@ void luaV_finishOp (lua_State *L) {
 */
 
 
-#define RA(i)	(base+GETARG_A(i))
-#define RB(i)	(base+GETARG_B(i))
-#define vRB(i)	s2v(RB(i))
-#define KB(i)	(k+GETARG_B(i))
-#define RC(i)	(base+GETARG_C(i))
-#define vRC(i)	s2v(RC(i))
-#define KC(i)	(k+GETARG_C(i))
-#define RKC(i)	((TESTARG_k(i)) ? k + GETARG_C(i) : s2v(base + GETARG_C(i)))
+#define RA(i) (base+GETARG_A(i))
+#define RB(i) (base+GETARG_B(i))
+#define vRB(i)  s2v(RB(i))
+#define KB(i) (k+GETARG_B(i))
+#define RC(i) (base+GETARG_C(i))
+#define vRC(i)  s2v(RC(i))
+#define KC(i) (k+GETARG_C(i))
+#define RKC(i)  ((TESTARG_k(i)) ? k + GETARG_C(i) : s2v(base + GETARG_C(i)))
 
 
 
 #define updatetrap(ci)  (trap = ci->u.l.trap)
 
-#define updatebase(ci)	(base = ci->func + 1)
+#define updatebase(ci)  (base = ci->func + 1)
 
 
 #define updatestack(ci)  \
@@ -1090,31 +1091,31 @@ void luaV_finishOp (lua_State *L) {
 ** Execute a jump instruction. The 'updatetrap' allows signals to stop
 ** tight loops. (Without it, the local copy of 'trap' could never change.)
 */
-#define dojump(ci,i,e)	{ pc += GETARG_sJ(i) + e; updatetrap(ci); }
+#define dojump(ci,i,e)  { pc += GETARG_sJ(i) + e; updatetrap(ci); }
 
 
 /* for test instructions, execute the jump instruction that follows it */
-#define donextjump(ci)	{ Instruction ni = *pc; dojump(ci, ni, 1); }
+#define donextjump(ci)  { Instruction ni = *pc; dojump(ci, ni, 1); }
 
 /*
 ** do a conditional jump: skip next instruction if 'cond' is not what
 ** was expected (parameter 'k'), else do next instruction, which must
 ** be a jump.
 */
-#define docondjump()	if (cond != GETARG_k(i)) pc++; else donextjump(ci);
+#define docondjump()  if (cond != GETARG_k(i)) pc++; else donextjump(ci);
 
 
 /*
 ** Correct global 'pc'.
 */
-#define savepc(L)	(ci->u.l.savedpc = pc)
+#define savepc(L) (ci->u.l.savedpc = pc)
 
 
 /*
 ** Whenever code can raise errors, the global 'pc' and the global
 ** 'top' must be correct to report occasional errors.
 */
-#define savestate(L,ci)		(savepc(L), L->top = ci->top)
+#define savestate(L,ci)   (savepc(L), L->top = ci->top)
 
 
 /*
@@ -1140,7 +1141,7 @@ void luaV_finishOp (lua_State *L) {
 
 
 /* fetch an instruction and prepare its execution */
-#define vmfetch()	{ \
+#define vmfetch() { \
   if (l_unlikely(trap)) {  /* stack reallocation or hooks? */ \
     trap = luaG_traceexec(L, pc);  /* handle hooks */ \
     updatebase(ci);  /* correct stack */ \
@@ -1149,9 +1150,9 @@ void luaV_finishOp (lua_State *L) {
   ra = RA(i); /* WARNING: any stack reallocation invalidates 'ra' */ \
 }
 
-#define vmdispatch(o)	switch(o)
-#define vmcase(l)	case l:
-#define vmbreak		break
+#define vmdispatch(o) switch(o)
+#define vmcase(l) case l:
+#define vmbreak   break
 
 
 /*
@@ -1173,63 +1174,102 @@ void luaV_finishOp (lua_State *L) {
 */
 LUAI_FUNC int luaB_next (lua_State *L);
 LUAI_FUNC int luaB_ipairsaux (lua_State *L);
-LUAI_FUNC int tcontains(lua_State* L);
+
 
 #ifdef PLUTO_VMDUMP
-[[nodiscard]] static std::string stringify_ttype(lu_byte t)
+[[nodiscard]] static std::string stringify_ttype(const TValue* t) noexcept
 {
-  switch (t)
+  std::ostringstream str { };
+
+  switch (ttype(t))
   {
-  case LUA_TNIL: return "nil";
-  case LUA_TBOOLEAN: return "boolean";
-  case LUA_TLIGHTUSERDATA: return "lightuserdata";
-  case LUA_TNUMBER: return "number";
-  case LUA_TSTRING: return "string";
-  case LUA_TTABLE: return "table";
-  case LUA_TFUNCTION: return "function";
-  case LUA_TUSERDATA: return "userdata";
-  case LUA_TTHREAD: return "thread";
+    case LUA_TNIL:
+      str << "nil";
+      break;
+    case LUA_TBOOLEAN: 
+      str << "boolean";
+      break;
+    case LUA_TLIGHTUSERDATA: 
+      str << "lightuserdata";
+      break;
+    case LUA_TNUMBER:
+      str << "number";
+      break;
+    case LUA_TSTRING:
+      str << "string";
+      break;
+    case LUA_TTABLE:
+      str << "table";
+      break;
+    case LUA_TFUNCTION:
+      str << "function";
+      break;
+    case LUA_TUSERDATA:
+      str << "userdata";
+      break;
+    case LUA_TTHREAD:
+      str << "thread";
+      break;
+    default:
+      str << "unknown";
   }
-  std::string str = "invalid type (";
-  str.append(std::to_string(t));
-  str.push_back(')');
-  return str;
+  
+  str << "-";
+  str << (void*)t;
+
+  return str.str();
 }
 
-[[nodiscard]] static std::string stringify_tvalue(TValue* o)
+
+inline void padUntilGoal(std::string& s, const size_t goal) noexcept
 {
-  std::string str(1, '{');
-  str.append(stringify_ttype(ttype(o)));
+  while (s.length() < goal) s += " ";
+}
+
+
+[[nodiscard]] static std::string stringify_tvalue(const TValue* o) noexcept
+{
+  std::string str { };
+
   switch (ttype(o))
   {
-  case LUA_TSTRING:
-    str.append(" \"");
-    str.append(svalue(o));
-    str.push_back('"');
-    break;
+    case LUA_TSTRING:
+      str.push_back('"');
+      str.append(svalue(o));
+      str.push_back('"');
+      break;
+    case LUA_TNUMBER:
+      if (ttisinteger(o))
+        str += std::to_string(ivalue(o));
+      else
+        str += std::to_string(nvalue(o));
+      break;
+    case LUA_TBOOLEAN:
+      str += ttistrue(o) ? "true" : "false";
+      break;
+    default:
+      str += stringify_ttype(o);
   }
-  str.push_back('}');
+
   return str;
 }
 
-static void vmdump_log_impl(lua_State* L, CallInfo* ci, LClosure* cl, const Instruction* pc, std::string&& str)
-{
-  lua_Debug ar;
-  ar.i_ci = ci;
-  lua_getinfo(L, "Sl", &ar);
-  if (ar.currentline > 0) {
-    str.insert(0, "] ");
-    str.insert(0, std::to_string(luaG_getfuncline(cl->p, pcRel(pc, cl->p))));
-    str.insert(0, 1, ':');
-    str.insert(0, ar.short_src);
-    str.insert(0, 1, '[');
-  }
-  lua_writestring(str.data(), str.size());
-  lua_writeline();
-}
 
-#define vmdump_log(str) vmdump_log_impl(L, ci, cl, pc, str);
-#endif
+#define vmDumpInit() std::string tmp = opnames[GET_OPCODE(i)]; padUntilGoal(tmp, 11);
+#define vmDumpAddA() tmp += std::to_string(GETARG_A(i)); tmp += " ";
+#define vmDumpAddB() tmp += std::to_string(GETARG_B(i)); tmp += " ";
+#define vmDumpAddC() tmp += std::to_string(GETARG_C(i)); tmp += " ";
+#define vmDumpAdd(o) tmp += std::to_string(o);           tmp += " ";
+#define vmDumpOut(c) padUntilGoal(tmp, 20); std::cout << tmp << c << std::endl; 
+#else
+#define vmDumpInit()
+#define vmDumpAddA()
+#define vmDumpAddB()
+#define vmDumpAddC()
+#define vmDumpAdd(o)
+#define vmDumpOut(c)
+#endif  /* PLUTO_VMDUMP */
+
 
 #if !defined(__GNUC__) && defined(PLUTO_FORCE_JUMPTABLE)
 #include "ljumptab.h"
@@ -1268,95 +1308,80 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
     Instruction i;  /* instruction being executed */
     StkId ra;  /* instruction's A register */
     vmfetch();
-#ifdef PLUTO_VMDUMP
-    if (PLUTO_VMDUMP_COND(L))
-    {
-      switch (GET_OPCODE(i))
-      {
-      case OP_LOADI:
-      case OP_LOADF:
-      case OP_LOADK:
-      case OP_GETTABUP:
-      case OP_GETFIELD:
-      case OP_EQK:
-      case OP_EQI:
-        break;
-
-      default:
-        vmdump_log(opnames[GET_OPCODE(i)]);
-      }
-    }
-#endif
-    #if 0
-      /* low-level line tracing for debugging Lua */
-      printf("line: %d\n", luaG_getfuncline(cl->p, pcRel(pc, cl->p)));
-    #endif
-    lua_assert(base == ci->func + 1);
-    lua_assert(base <= L->top && L->top < L->stack_last);
-    /* invalidate top for instructions not expecting it */
     lua_assert(isIT(i) || (cast_void(L->top = base), 1));
     vmdispatch (GET_OPCODE(i)) {
       vmcase(OP_MOVE) {
         setobjs2s(L, ra, RB(i));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpOut ("; move " << stringify_tvalue(vRB(i)) << " into R(A)");
         vmbreak;
       }
       vmcase(OP_LOADI) {
         lua_Integer b = GETARG_sBx(i);
-#ifdef PLUTO_VMDUMP
-        if (PLUTO_VMDUMP_COND(L)) {
-          std::string msg = "LOADI ";
-          msg.append(std::to_string(b));
-          vmdump_log(std::move(msg));
-        }
-#endif
         setivalue(s2v(ra), b);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_sBx(i));
+        vmDumpOut ("; push " << b);
         vmbreak;
       }
       vmcase(OP_LOADF) {
         int b = GETARG_sBx(i);
-#ifdef PLUTO_VMDUMP
-        if (PLUTO_VMDUMP_COND(L)) {
-          std::string msg = "LOADF ";
-          msg.append(std::to_string(b));
-          vmdump_log(std::move(msg));
-        }
-#endif
         setfltvalue(s2v(ra), cast_num(b));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_sBx(i));
+        vmDumpOut ("; push " << b << ".0");
         vmbreak;
       }
       vmcase(OP_LOADK) {
         TValue *rb = k + GETARG_Bx(i);
-#ifdef PLUTO_VMDUMP
-        if (PLUTO_VMDUMP_COND(L)) {
-          std::string msg = "LOADK ";
-          msg.append(stringify_tvalue(rb));
-          vmdump_log(std::move(msg));
-        }
-#endif
         setobj2s(L, ra, rb);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_Bx(i));
+        vmDumpOut ("; push " << stringify_tvalue(rb));
         vmbreak;
       }
       vmcase(OP_LOADKX) {
         TValue *rb;
         rb = k + GETARG_Ax(*pc); pc++;
         setobj2s(L, ra, rb);
+        vmDumpInit();
+        vmDumpAdd (GETARG_Ax(*pc));
+        vmDumpOut ("; push " << stringify_tvalue(rb) << " & skip next opcode");
         vmbreak;
       }
       vmcase(OP_LOADFALSE) {
         setbfvalue(s2v(ra));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpOut ("; push false");
         vmbreak;
       }
       vmcase(OP_LFALSESKIP) {
         setbfvalue(s2v(ra));
         pc++;  /* skip next instruction */
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpOut ("; push false & skip next opcode");
         vmbreak;
       }
       vmcase(OP_LOADTRUE) {
         setbtvalue(s2v(ra));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpOut ("; push true");
         vmbreak;
       }
       vmcase(OP_LOADNIL) {
         int b = GETARG_B(i);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpOut ("; push " << b << " nil value(s)");
         do {
           setnilvalue(s2v(ra++));
         } while (b--);
@@ -1365,10 +1390,18 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       vmcase(OP_GETUPVAL) {
         int b = GETARG_B(i);
         setobj2s(L, ra, cl->upvals[b]->v);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpOut ("; push " << stringify_tvalue(cl->upvals[b]->v));
         vmbreak;
       }
       vmcase(OP_SETUPVAL) {
         UpVal *uv = cl->upvals[GETARG_B(i)];
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpOut ("; old=" << stringify_tvalue(uv->v) << " new=" << stringify_tvalue(s2v(ra)));
         setobj(L, uv->v, s2v(ra));
         luaC_barrier(L, uv, s2v(ra));
         vmbreak;
@@ -1378,18 +1411,16 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *upval = cl->upvals[GETARG_B(i)]->v;
         TValue *rc = KC(i);
         TString *key = tsvalue(rc);  /* key must be a string */
-#ifdef PLUTO_VMDUMP
-        if (PLUTO_VMDUMP_COND(L)) {
-          std::string msg = "GETTABUP ";
-          msg.append(key->contents);
-          vmdump_log(std::move(msg));
-        }
-#endif
         if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
           setobj2s(L, ra, slot);
         }
         else
           Protect(luaV_finishget(L, upval, rc, ra, slot));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push T['" << getstr(key) << "'] for " << stringify_tvalue(s2v(ra)) << " (T=" << stringify_tvalue(upval) << ")");
         vmbreak;
       }
       vmcase(OP_GETTABLE) {
@@ -1404,6 +1435,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaV_finishget(L, rb, rc, ra, slot));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push T[" << stringify_tvalue(rc) << "] where T=" << stringify_tvalue(rb))
         vmbreak;
       }
       vmcase(OP_GETI) {
@@ -1418,6 +1454,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           setivalue(&key, c);
           Protect(luaV_finishget(L, rb, &key, ra, slot));
         }
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push T[" << c << "] for " << stringify_tvalue(rb));
         vmbreak;
       }
       vmcase(OP_GETFIELD) {
@@ -1425,18 +1466,16 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = vRB(i);
         TValue *rc = KC(i);
         TString *key = tsvalue(rc);  /* key must be a string */
-#ifdef PLUTO_VMDUMP
-        if (PLUTO_VMDUMP_COND(L)) {
-          std::string msg = "GETFIELD ";
-          msg.append(key->contents);
-          vmdump_log(std::move(msg));
-        }
-#endif
         if (luaV_fastget(L, rb, key, slot, luaH_getshortstr)) {
           setobj2s(L, ra, slot);
         }
         else
           Protect(luaV_finishget(L, rb, rc, ra, slot));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push T['" << getstr(key) << "'] for " << stringify_tvalue(rb));
         vmbreak;
       }
       vmcase(OP_SETTABUP) {
@@ -1459,6 +1498,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         else {
           Protect(luaV_finishset(L, upval, rb, rc, slot));
         }
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; T['" << getstr(key) << "'] = " << stringify_tvalue(rc) << " (T=" << stringify_tvalue(upval) << ")");
         vmbreak;
       }
       vmcase(OP_SETTABLE) {
@@ -1481,6 +1525,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaV_finishset(L, s2v(ra), rb, rc, slot));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; T[" << stringify_tvalue(rb) << "] = " << stringify_tvalue(rc) << " (T=" << stringify_tvalue(s2v(ra)) << ")");
         vmbreak;
       }
       vmcase(OP_SETI) {
@@ -1503,6 +1552,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           setivalue(&key, c);
           Protect(luaV_finishset(L, s2v(ra), &key, rc, slot));
         }
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; T[" << c << "] = " << stringify_tvalue(rc) << " (T=" << stringify_tvalue(s2v(ra)) << ")");
         vmbreak;
       }
       vmcase(OP_SETFIELD) {
@@ -1519,6 +1573,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaV_finishset(L, s2v(ra), rb, rc, slot));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; T['" << getstr(key) << "'] = " << stringify_tvalue(rc) << " (T=" << stringify_tvalue(s2v(ra)) << ")");
         vmbreak;
       }
       vmcase(OP_NEWTABLE) {
@@ -1537,6 +1596,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if (b != 0 || c != 0)
           luaH_resize(L, t, c, b);  /* idem */
         checkGC(L, ra + 1);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; arraysize=" << c << " hashsize=" << b);
         vmbreak;
       }
       vmcase(OP_SELF) {
@@ -1550,53 +1614,117 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaV_finishget(L, rb, rc, ra, slot));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push self to call '" << getstr(key) << "'");
         vmbreak;
       }
       vmcase(OP_ADDI) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_sC(i));
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " + " << GETARG_sC(i));
         op_arithI(L, l_addi, luai_numadd);
         vmbreak;
       }
       vmcase(OP_ADDK) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " + " << stringify_tvalue(KC(i)));
         op_arithK(L, l_addi, luai_numadd);
         vmbreak;
       }
       vmcase(OP_SUBK) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " - " << stringify_tvalue(KC(i)));
         op_arithK(L, l_subi, luai_numsub);
         vmbreak;
       }
       vmcase(OP_MULK) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " * " << stringify_tvalue(KC(i)));
         op_arithK(L, l_muli, luai_nummul);
         vmbreak;
       }
       vmcase(OP_MODK) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " % " << stringify_tvalue(KC(i)));
         op_arithK(L, luaV_mod, luaV_modf);
         vmbreak;
       }
       vmcase(OP_POWK) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " ^ " << stringify_tvalue(KC(i)));
         op_arithfK(L, luai_numpow);
         vmbreak;
       }
       vmcase(OP_DIVK) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " / " << stringify_tvalue(KC(i)));
         op_arithfK(L, luai_numdiv);
         vmbreak;
       }
       vmcase(OP_IDIVK) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " // " << stringify_tvalue(KC(i)));
         op_arithK(L, luaV_idiv, luai_numidiv);
         vmbreak;
       }
       vmcase(OP_BANDK) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " & " << stringify_tvalue(KC(i)));
         op_bitwiseK(L, l_band);
         vmbreak;
       }
       vmcase(OP_BORK) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " | " << stringify_tvalue(KC(i)));
         op_bitwiseK(L, l_bor);
         vmbreak;
       }
       vmcase(OP_BXORK) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " ~ " << stringify_tvalue(KC(i)));
         op_bitwiseK(L, l_bxor);
         vmbreak;
       }
       vmcase(OP_SHRI) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAdd (GETARG_sC(i));
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " >> " << GETARG_sC(i));
         TValue *rb = vRB(i);
         int ic = GETARG_sC(i);
         lua_Integer ib;
@@ -1606,6 +1734,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
       vmcase(OP_SHLI) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << GETARG_sC(i) << " << " << stringify_tvalue(vRB(i)));
         TValue *rb = vRB(i);
         int ic = GETARG_sC(i);
         lua_Integer ib;
@@ -1615,50 +1748,110 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
       vmcase(OP_ADD) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " + " << stringify_tvalue(vRC(i)));
         op_arith(L, l_addi, luai_numadd);
         vmbreak;
       }
       vmcase(OP_SUB) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " - " << stringify_tvalue(vRC(i)));
         op_arith(L, l_subi, luai_numsub);
         vmbreak;
       }
       vmcase(OP_MUL) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " * " << stringify_tvalue(vRC(i)));
         op_arith(L, l_muli, luai_nummul);
         vmbreak;
       }
       vmcase(OP_MOD) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " % " << stringify_tvalue(vRC(i)));
         op_arith(L, luaV_mod, luaV_modf);
         vmbreak;
       }
       vmcase(OP_POW) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " ^ " << stringify_tvalue(vRC(i)));
         op_arithf(L, luai_numpow);
         vmbreak;
       }
       vmcase(OP_DIV) {  /* float division (always with floats) */
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " / " << stringify_tvalue(vRC(i)));
         op_arithf(L, luai_numdiv);
         vmbreak;
       }
       vmcase(OP_IDIV) {  /* floor division */
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " // " << stringify_tvalue(vRC(i)));
         op_arith(L, luaV_idiv, luai_numidiv);
         vmbreak;
       }
       vmcase(OP_BAND) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " & " << stringify_tvalue(vRC(i)));
         op_bitwise(L, l_band);
         vmbreak;
       }
       vmcase(OP_BOR) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " | " << stringify_tvalue(vRC(i)));
         op_bitwise(L, l_bor);
         vmbreak;
       }
       vmcase(OP_BXOR) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " ~ " << stringify_tvalue(vRC(i)));
         op_bitwise(L, l_bxor);
         vmbreak;
       }
       vmcase(OP_SHR) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " >> " << stringify_tvalue(vRC(i)));
         op_bitwise(L, luaV_shiftr);
         vmbreak;
       }
       vmcase(OP_SHL) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " << " << stringify_tvalue(vRC(i)));
         op_bitwise(L, luaV_shiftl);
         vmbreak;
       }
@@ -1669,6 +1862,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         StkId result = RA(pi);
         lua_assert(OP_ADD <= GET_OPCODE(pi) && GET_OPCODE(pi) <= OP_SHR);
         Protect(luaT_trybinTM(L, s2v(ra), rb, result, tm));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; call " << luaT_eventname[tm] << " over " << stringify_tvalue(s2v(ra)) << " & " << stringify_tvalue(rb));
         vmbreak;
       }
       vmcase(OP_MMBINI) {
@@ -1678,6 +1876,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         int flip = GETARG_k(i);
         StkId result = RA(pi);
         Protect(luaT_trybiniTM(L, s2v(ra), imm, flip, result, tm));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_sB(i));
+        vmDumpAddC();
+        vmDumpOut ("; call " << luaT_eventname[tm] << " over " << stringify_tvalue(s2v(ra)) << " & " << imm);
         vmbreak;
       }
       vmcase(OP_MMBINK) {
@@ -1687,6 +1890,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         int flip = GETARG_k(i);
         StkId result = RA(pi);
         Protect(luaT_trybinassocTM(L, s2v(ra), imm, flip, result, tm));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_sB(i));
+        vmDumpAddC();
+        vmDumpOut ("; call " << luaT_eventname[tm] << " over " << stringify_tvalue(s2v(ra)) << " & " << stringify_tvalue(KB(i)) << " (k=" << GETARG_k(i) << ")");
         vmbreak;
       }
       vmcase(OP_UNM) {
@@ -1701,6 +1909,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaT_trybinTM(L, rb, rb, ra, TM_UNM));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpOut ("; push -(" << stringify_tvalue(rb) << ")");
         vmbreak;
       }
       vmcase(OP_BNOT) {
@@ -1711,6 +1923,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         else
           Protect(luaT_trybinTM(L, rb, rb, ra, TM_BNOT));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpOut ("; push ~(" << stringify_tvalue(rb) << ")");
         vmbreak;
       }
       vmcase(OP_NOT) {
@@ -1719,10 +1935,18 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           setbtvalue(s2v(ra));
         else
           setbfvalue(s2v(ra));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpOut ("; push " << stringify_tvalue(s2v(ra)) << " (operand=" << stringify_tvalue(rb) << ")");
         vmbreak;
       }
       vmcase(OP_LEN) {
         Protect(luaV_objlen(L, ra, vRB(i)));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpOut ("; push #(" << stringify_tvalue(vRB(i)) << ") (value=" << stringify_tvalue(s2v(ra)) << ")");
         vmbreak;
       }
       vmcase(OP_CONCAT) {
@@ -1730,15 +1954,25 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         L->top = ra + n;  /* mark the end of concat operands */
         ProtectNT(luaV_concat(L, n));
         checkGC(L, L->top); /* 'luaV_concat' ensures correct top */
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpOut ("; concat the last " << n << " elements on the stack");
         vmbreak;
       }
       vmcase(OP_CLOSE) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpOut ("; close all upvalues with an ID >= " << ivalue(s2v(ra)));
         Protect(luaF_close(L, ra, LUA_OK, 1));
         vmbreak;
       }
       vmcase(OP_TBC) {
         /* create new to-be-closed upvalue */
         halfProtect(luaF_newtbcupval(L, ra));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpOut ("; turn R(A) into a TBC upvalue");
         vmbreak;
       }
       vmcase(OP_JMP) {
@@ -1758,6 +1992,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
 #endif // PLUTO_ILP_ENABLE
         pc += offset;
         updatetrap(ci);
+        vmDumpInit();
+        vmDumpAdd (offset);
+        vmDumpOut ("; offset=" << offset << " newpc=" << pc);
         vmbreak;
       }
       vmcase(OP_EQ) {
@@ -1765,40 +2002,46 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = vRB(i);
         Protect(cond = luaV_equalobj(L, s2v(ra), rb));
         docondjump();
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAdd (GETARG_k(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " == " << stringify_tvalue(rb));
         vmbreak;
       }
       vmcase(OP_LT) {
         op_order(L, l_lti, LTnum, lessthanothers);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAdd (GETARG_k(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " < " << stringify_tvalue(vRB(i)));
         vmbreak;
       }
       vmcase(OP_LE) {
         op_order(L, l_lei, LEnum, lessequalothers);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAdd (GETARG_k(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " <= " << stringify_tvalue(vRB(i)));
         vmbreak;
       }
       vmcase(OP_EQK) {
         TValue *rb = KB(i);
-#ifdef PLUTO_VMDUMP
-        if (PLUTO_VMDUMP_COND(L)) {
-          std::string msg = "EQK ";
-          msg.append(stringify_tvalue(rb));
-          vmdump_log(std::move(msg));
-        }
-#endif
         /* basic types do not use '__eq'; we can use raw equality */
         int cond = luaV_rawequalobj(s2v(ra), rb);
         docondjump();
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAdd (GETARG_k(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " == " << stringify_tvalue(rb));
         vmbreak;
       }
       vmcase(OP_EQI) {
         int cond;
         int im = GETARG_sB(i);
-#ifdef PLUTO_VMDUMP
-        if (PLUTO_VMDUMP_COND(L)) {
-          std::string msg = "EQI ";
-          msg.append(std::to_string(im));
-          vmdump_log(std::move(msg));
-        }
-#endif
         if (ttisinteger(s2v(ra)))
           cond = (ivalue(s2v(ra)) == im);
         else if (ttisfloat(s2v(ra)))
@@ -1806,22 +2049,47 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         else
           cond = 0;  /* other types cannot be equal to a number */
         docondjump();
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_sB(i));
+        vmDumpAdd (GETARG_k(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " == " << im);
         vmbreak;
       }
       vmcase(OP_LTI) {
         op_orderI(L, l_lti, luai_numlt, 0, TM_LT);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_sB(i));
+        vmDumpAdd (GETARG_k(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " <= " << GETARG_sB(i));
         vmbreak;
       }
       vmcase(OP_LEI) {
         op_orderI(L, l_lei, luai_numle, 0, TM_LE);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_sB(i));
+        vmDumpAdd (GETARG_k(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " < " << GETARG_sB(i));
         vmbreak;
       }
       vmcase(OP_GTI) {
         op_orderI(L, l_gti, luai_numgt, 1, TM_LT);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_sB(i));
+        vmDumpAdd (GETARG_k(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " > " << GETARG_sB(i));
         vmbreak;
       }
       vmcase(OP_GEI) {
         op_orderI(L, l_gei, luai_numge, 1, TM_LE);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_sB(i));
+        vmDumpAdd (GETARG_k(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " >= " << GETARG_sB(i));
         vmbreak;
       }
       vmcase(OP_TEST) {
@@ -1841,26 +2109,41 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
 #endif // PLUTO_ILP_ENABLE
         docondjump();
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_k(i));
+        vmDumpOut (";");
         vmbreak;
       }
       vmcase(OP_TESTSET) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpAdd (GETARG_k(i));
         if (GETARG_C(i) == NULL_COALESCE) { /* R(C) is used as an identifier, as it was previously unused. */
           TValue *rb = vRB(i);
           if (ttisnil(rb)) {
             pc++;
+            vmDumpOut("; null coalesce, no assignment");
           }
           else {
             setobj2s(L, ra, rb);
             donextjump(ci);
+            vmDumpOut("; null coalesce, push/assign " << stringify_tvalue(rb));
           }
         }
         else {
           TValue *rb = vRB(i);
           if (l_isfalse(rb) == GETARG_k(i))
+          {
             pc++;
+            vmDumpOut("; no assignment");
+          }
           else {
             setobj2s(L, ra, rb);
             donextjump(ci);
+            vmDumpOut("; push/assign " << stringify_tvalue(rb));
           }
         }
         vmbreak;
@@ -1873,12 +2156,21 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           L->top = ra + b;  /* top signals number of arguments */
         /* else previous instruction set top */
         savepc(L);  /* in case of errors */
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
 #ifdef PLUTO_ILP_HOOK_FUNCTION
         if (fvalue(s2v(ra)) == PLUTO_ILP_HOOK_FUNCTION) sequentialJumps = 0;
 #endif
-        if ((newci = luaD_precall(L, ra, nresults)) == NULL)
-          updatetrap(ci);  /* C call; nothing else to be done */
-        else {  /* Lua call: run function in this same C frame */
+        if ((newci = luaD_precall(L, ra, nresults)) == NULL)  /* C call; nothing else to be done */
+        {
+          updatetrap(ci);
+          vmDumpOut("; call cfunc (nresults=" << nresults << " nparams=" << nresults << ")");
+        }
+        else  /* Lua call: run function in this same C frame */
+        {
+          vmDumpOut("; call lfunc (nresults=" << nresults << " nparams=" << nresults << ")");
           ci = newci;
           goto startfunc;
         }
@@ -1895,14 +2187,23 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         else  /* previous instruction set top */
           b = cast_int(L->top - ra);
         savepc(ci);  /* several calls here can raise errors */
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
         if (TESTARG_k(i)) {
           luaF_closeupval(L, base);  /* close upvalues from current call */
           lua_assert(L->tbclist < base);  /* no pending tbc variables */
           lua_assert(base == ci->func + 1);
         }
-        if ((n = luaD_pretailcall(L, ci, ra, b, delta)) < 0)  /* Lua function? */
+        if ((n = luaD_pretailcall(L, ci, ra, b, delta)) < 0)
+        {
+          vmDumpOut("; tailcall lfunc (nresults=" << n << " nparams=" << b - 1 << ")");
           goto startfunc;  /* execute the callee */
-        else {  /* C function? */
+        }
+        else
+        {
+          vmDumpOut("; tailcall cfunc (nresults=" << n << " nparams=" << b - 1 << ")");
           ci->func -= delta;  /* restore 'func' (if vararg) */
           luaD_poscall(L, ci, n);  /* finish caller */
           updatetrap(ci);  /* 'luaD_poscall' can change hooks */
@@ -1928,6 +2229,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         L->top = ra + n;  /* set call for 'luaD_poscall' */
         luaD_poscall(L, ci, n);
         updatetrap(ci);  /* 'luaD_poscall' can change hooks */
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; return " << n << " value(s)");
         goto ret;
       }
       vmcase(OP_RETURN0) {
@@ -1944,9 +2250,24 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           for (nres = ci->nresults; l_unlikely(nres > 0); nres--)
             setnilvalue(s2v(L->top++));  /* all results are nil */
         }
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; return nothing");
         goto ret;
       }
       vmcase(OP_RETURN1) {
+#ifdef PLUTO_VMDUMP
+        if (true)  /* Jump to label 'ret' crosses initalization with vmDumpInit. */
+        {
+          vmDumpInit();
+          vmDumpAddA();
+          vmDumpAddB();
+          vmDumpAddC();
+          vmDumpOut ("; return " << stringify_tvalue(s2v(ra)));
+        }
+#endif
         if (l_unlikely(L->hookmask)) {
           L->top = ra + 1;
           savepc(ci);
@@ -1989,15 +2310,35 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         else if (floatforloop(ra))  /* float loop */
           pc -= GETARG_Bx(i);  /* jump back */
         updatetrap(ci);  /* allows a signal to break the loop */
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_Bx(i));
+        vmDumpOut ("; update loop: curr=" << stringify_tvalue(s2v(ra + 3)) << " step=" << stringify_tvalue(s2v(ra + 2)));
         vmbreak;
       }
       vmcase(OP_FORPREP) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_Bx(i));
         savestate(L, ci);  /* in case of errors */
         if (forprep(L, ra))
+        {
           pc += GETARG_Bx(i) + 1;  /* skip the loop */
+          vmDumpOut("; this loop is skipped");
+        }
+#ifdef PLUTO_VMDUMP
+        else
+        {
+          vmDumpOut("; prepare loop");
+        }
+#endif
         vmbreak;
       }
       vmcase(OP_TFORPREP) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_Bx(i));
+        vmDumpOut (";");
         const Instruction* callpc = pc + GETARG_Bx(i);
         i = *callpc;
         if ((!ttisfunction(s2v(ra)))) {
@@ -2028,6 +2369,15 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         goto l_tforcall;
       }
       vmcase(OP_TFORCALL) {
+#ifdef PLUTO_VMDUMP
+        if (true)
+        {
+          vmDumpInit();
+          vmDumpAddA();
+          vmDumpAddC();
+          vmDumpOut (";");
+        }
+#endif
        l_tforcall:
         /* 'ra' has the iterator function, 'ra + 1' has the state,
            'ra + 2' has the control variable, and 'ra + 3' has the
@@ -2098,6 +2448,15 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         goto l_tforloop;
       }
       vmcase(OP_TFORLOOP) {
+#ifdef PLUTO_VMDUMP
+        if (true)
+        {
+          vmDumpInit();
+          vmDumpAddA();
+          vmDumpAdd (GETARG_Bx(i));
+          vmDumpOut (";");
+        }
+#endif
         l_tforloop:
         if (!ttisnil(s2v(ra + 4))) {  /* continue loop? */
           setobjs2s(L, ra + 2, ra + 4);  /* save control variable */
@@ -2126,17 +2485,30 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           last--;
           luaC_barrierback(L, obj2gco(h), val);
         }
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; k=" << GETARG_k(i));
         vmbreak;
       }
       vmcase(OP_CLOSURE) {
         Proto *p = cl->p->p[GETARG_Bx(i)];
         halfProtect(pushclosure(L, p, cl->upvals, base, ra));
         checkGC(L, ra + 1);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAdd (GETARG_Bx(i));
+        vmDumpOut (";");
         vmbreak;
       }
       vmcase(OP_VARARG) {
         int n = GETARG_C(i) - 1;  /* required results */
         Protect(luaT_getvarargs(L, ci, ra, n));
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddC();
+        vmDumpOut (";");
         vmbreak;
       }
       vmcase(OP_VARARGPREP) {
@@ -2146,15 +2518,24 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           L->oldpc = 1;  /* next opcode will be seen as a "new" line */
         }
         updatebase(ci);  /* function has new base after adjustment */
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpOut (";");
         vmbreak;
       }
       vmcase(OP_EXTRAARG) {
         lua_assert(0);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpOut (";");
         vmbreak;
       }
       vmcase(OP_IN) {
         TValue *a = s2v(RA(i));
         TValue *b = vRB(i);
+#ifdef PLUTO_VMDUMP
+        std::string old = stringify_tvalue(a);  /* RA will be changed below. */
+#endif
         if (ttisstring(a) && ttisstring(b)) {
           if (strstr(svalue(b), svalue(a)) != nullptr)
             setbtvalue(s2v(ra));
@@ -2177,6 +2558,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           else
             setbtvalue(s2v(ra));
         }
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; " << old << " in " << stringify_tvalue(b) << " (" << stringify_tvalue(s2v(ra)) << ")");
         vmbreak;
       }
       vmcase(NUM_OPCODES) {
