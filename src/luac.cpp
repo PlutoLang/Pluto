@@ -156,7 +156,8 @@ static const Proto* combine(lua_State* L, int n)
    if (f->p[i]->sizeupvalues>0) f->p[i]->upvalues[0].instack=0;
   }
   luaM_freearray(L,f->lineinfo,f->sizelineinfo);
-  f->sizelineinfo=0;
+  f->lineinfo = nullptr;
+  f->sizelineinfo = 0;
   return f;
  }
 }
