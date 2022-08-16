@@ -563,8 +563,9 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             size_t sep = skip_sep(ls);
             luaZ_resetbuffer(ls->buff);  /* 'skip_sep' may dirty the buffer */
             if (sep >= 2) {
-              read_long_string(ls, NULL, sep);  /* skip long comment */
-              ls->appendLineBuff(getstr(seminfo->ts));
+              SemInfo si;
+              read_long_string(ls, &si, sep);  /* skip long comment */
+              ls->appendLineBuff(getstr(si.ts));
               luaZ_resetbuffer(ls->buff);  /* previous call may dirty the buff. */
               break;
             }
