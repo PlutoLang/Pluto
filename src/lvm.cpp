@@ -40,7 +40,7 @@
 
 
 /* limit for table tag-method chains (to avoid infinite loops) */
-#define MAXTAGLOOP  2000
+#define MAXTAGLOOP	2000
 
 
 /*
@@ -49,7 +49,7 @@
 */
 
 /* number of bits in the mantissa of a float */
-#define NBM   (l_floatatt(MANT_DIG))
+#define NBM		(l_floatatt(MANT_DIG))
 
 /*
 ** Check whether some integers may not fit in a float, testing whether
@@ -62,14 +62,14 @@
     >> (NBM - (3 * (NBM / 4))))  >  0
 
 /* limit for integers that fit in a float */
-#define MAXINTFITSF ((lua_Unsigned)1 << NBM)
+#define MAXINTFITSF	((lua_Unsigned)1 << NBM)
 
 /* check whether 'i' is in the interval [-MAXINTFITSF, MAXINTFITSF] */
-#define l_intfitsf(i) ((MAXINTFITSF + l_castS2U(i)) <= (2 * MAXINTFITSF))
+#define l_intfitsf(i)	((MAXINTFITSF + l_castS2U(i)) <= (2 * MAXINTFITSF))
 
 #else  /* all integers fit in a float precisely */
 
-#define l_intfitsf(i) 1
+#define l_intfitsf(i)	1
 
 #endif
 
@@ -629,7 +629,7 @@ int luaV_equalobj (lua_State *L, const TValue *t1, const TValue *t2) {
 #define tostring(L,o)  \
     (ttisstring(o) || (cvt2str(o) && (luaO_tostring(L, o), 1)))
 
-#define isemptystr(o) (ttisshrstring(o) && tsvalue(o)->shrlen == 0)
+#define isemptystr(o)	(ttisshrstring(o) && tsvalue(o)->shrlen == 0)
 
 /* copy strings in stack from top - n up to top - 1 to buffer */
 static void copy2buff (StkId top, int n, char *buff) {
@@ -773,12 +773,12 @@ lua_Number luaV_modf (lua_State *L, lua_Number m, lua_Number n) {
 
 
 /* number of bits in an integer */
-#define NBITS cast_int(sizeof(lua_Integer) * CHAR_BIT)
+#define NBITS	cast_int(sizeof(lua_Integer) * CHAR_BIT)
 
 /*
 ** Shift left operation. (Shift right just negates 'y'.)
 */
-#define luaV_shiftr(x,y)  luaV_shiftl(x,intop(-, 0, y))
+#define luaV_shiftr(x,y)	luaV_shiftl(x,intop(-, 0, y))
 
 
 lua_Integer luaV_shiftl (lua_Integer x, lua_Integer y) {
@@ -892,17 +892,17 @@ void luaV_finishOp (lua_State *L) {
 ** ===================================================================
 */
 
-#define l_addi(L,a,b) intop(+, a, b)
-#define l_subi(L,a,b) intop(-, a, b)
-#define l_muli(L,a,b) intop(*, a, b)
-#define l_band(a,b) intop(&, a, b)
-#define l_bor(a,b)  intop(|, a, b)
-#define l_bxor(a,b) intop(^, a, b)
+#define l_addi(L,a,b)	intop(+, a, b)
+#define l_subi(L,a,b)	intop(-, a, b)
+#define l_muli(L,a,b)	intop(*, a, b)
+#define l_band(a,b)	intop(&, a, b)
+#define l_bor(a,b)	intop(|, a, b)
+#define l_bxor(a,b)	intop(^, a, b)
 
-#define l_lti(a,b)  (a < b)
-#define l_lei(a,b)  (a <= b)
-#define l_gti(a,b)  (a > b)
-#define l_gei(a,b)  (a >= b)
+#define l_lti(a,b)	(a < b)
+#define l_lei(a,b)	(a <= b)
+#define l_gti(a,b)	(a > b)
+#define l_gei(a,b)	(a >= b)
 
 
 /*
@@ -1067,20 +1067,20 @@ void luaV_finishOp (lua_State *L) {
 */
 
 
-#define RA(i) (base+GETARG_A(i))
-#define RB(i) (base+GETARG_B(i))
-#define vRB(i)  s2v(RB(i))
-#define KB(i) (k+GETARG_B(i))
-#define RC(i) (base+GETARG_C(i))
-#define vRC(i)  s2v(RC(i))
-#define KC(i) (k+GETARG_C(i))
-#define RKC(i)  ((TESTARG_k(i)) ? k + GETARG_C(i) : s2v(base + GETARG_C(i)))
+#define RA(i)	(base+GETARG_A(i))
+#define RB(i)	(base+GETARG_B(i))
+#define vRB(i)	s2v(RB(i))
+#define KB(i)	(k+GETARG_B(i))
+#define RC(i)	(base+GETARG_C(i))
+#define vRC(i)	s2v(RC(i))
+#define KC(i)	(k+GETARG_C(i))
+#define RKC(i)	((TESTARG_k(i)) ? k + GETARG_C(i) : s2v(base + GETARG_C(i)))
 
 
 
 #define updatetrap(ci)  (trap = ci->u.l.trap)
 
-#define updatebase(ci)  (base = ci->func + 1)
+#define updatebase(ci)	(base = ci->func + 1)
 
 
 #define updatestack(ci)  \
@@ -1091,31 +1091,31 @@ void luaV_finishOp (lua_State *L) {
 ** Execute a jump instruction. The 'updatetrap' allows signals to stop
 ** tight loops. (Without it, the local copy of 'trap' could never change.)
 */
-#define dojump(ci,i,e)  { pc += GETARG_sJ(i) + e; updatetrap(ci); }
+#define dojump(ci,i,e)	{ pc += GETARG_sJ(i) + e; updatetrap(ci); }
 
 
 /* for test instructions, execute the jump instruction that follows it */
-#define donextjump(ci)  { Instruction ni = *pc; dojump(ci, ni, 1); }
+#define donextjump(ci)	{ Instruction ni = *pc; dojump(ci, ni, 1); }
 
 /*
 ** do a conditional jump: skip next instruction if 'cond' is not what
 ** was expected (parameter 'k'), else do next instruction, which must
 ** be a jump.
 */
-#define docondjump()  if (cond != GETARG_k(i)) pc++; else donextjump(ci);
+#define docondjump()	if (cond != GETARG_k(i)) pc++; else donextjump(ci);
 
 
 /*
 ** Correct global 'pc'.
 */
-#define savepc(L) (ci->u.l.savedpc = pc)
+#define savepc(L)	(ci->u.l.savedpc = pc)
 
 
 /*
 ** Whenever code can raise errors, the global 'pc' and the global
 ** 'top' must be correct to report occasional errors.
 */
-#define savestate(L,ci)   (savepc(L), L->top = ci->top)
+#define savestate(L,ci)		(savepc(L), L->top = ci->top)
 
 
 /*
@@ -1141,7 +1141,7 @@ void luaV_finishOp (lua_State *L) {
 
 
 /* fetch an instruction and prepare its execution */
-#define vmfetch() { \
+#define vmfetch()	{ \
   if (l_unlikely(trap)) {  /* stack reallocation or hooks? */ \
     trap = luaG_traceexec(L, pc);  /* handle hooks */ \
     updatebase(ci);  /* correct stack */ \
@@ -1150,9 +1150,9 @@ void luaV_finishOp (lua_State *L) {
   ra = RA(i); /* WARNING: any stack reallocation invalidates 'ra' */ \
 }
 
-#define vmdispatch(o) switch(o)
-#define vmcase(l) case l:
-#define vmbreak   break
+#define vmdispatch(o)	switch(o)
+#define vmcase(l)	case l:
+#define vmbreak		break
 
 
 /*

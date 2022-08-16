@@ -38,7 +38,7 @@ typedef enum {
   TM_CONCAT,
   TM_CALL,
   TM_CLOSE,
-  TM_N    /* number of elements in the enum */
+  TM_N		/* number of elements in the enum */
 } TMS;
 
 
@@ -59,22 +59,22 @@ static const char *const luaT_eventname[] = {  /* ORDER TM */
 ** corresponding metamethod field. (Bit 7 of the flag is used for
 ** 'isrealasize'.)
 */
-#define maskflags (~(~0u << (TM_EQ + 1)))
+#define maskflags	(~(~0u << (TM_EQ + 1)))
 
 
 /*
 ** Test whether there is no tagmethod.
 ** (Because tagmethods use raw accesses, the result may be an "empty" nil.)
 */
-#define notm(tm)  ttisnil(tm)
+#define notm(tm)	ttisnil(tm)
 
 
 #define gfasttm(g,et,e) ((et) == NULL ? NULL : \
   ((et)->flags & (1u<<(e))) ? NULL : luaT_gettm(et, e, (g)->tmname[e]))
 
-#define fasttm(l,et,e)  gfasttm(G(l), et, e)
+#define fasttm(l,et,e)	gfasttm(G(l), et, e)
 
-#define ttypename(x)  luaT_typenames_[(x) + 1]
+#define ttypename(x)	luaT_typenames_[(x) + 1]
 
 LUAI_DDEC(const char *const luaT_typenames_[LUA_TOTALTYPES];)
 
