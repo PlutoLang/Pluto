@@ -840,7 +840,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       default: {
         if (lislalpha(ls->current)
 #ifndef PLUTO_NO_UTF8
-            || (ls->current & 0b10000000)
+            || ((ls->current & 0b10000000) && ls->current != EOF)
 #endif
           ) {  /* identifier or reserved word? */
           TString *ts;
@@ -848,7 +848,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             save_and_next(ls);
           } while (lislalnum(ls->current)
 #ifndef PLUTO_NO_UTF8
-              || (ls->current & 0b10000000)
+              || ((ls->current & 0b10000000) && ls->current != EOF)
 #endif
             );
           ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
