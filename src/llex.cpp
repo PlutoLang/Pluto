@@ -569,6 +569,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         }
       }
       case '[': {  /* long string or simply '[' */
+        ls->appendLineBuff('[');
         size_t sep = skip_sep(ls);
         if (sep >= 2) {
           read_long_string(ls, seminfo, sep);
