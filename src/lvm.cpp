@@ -2479,9 +2479,15 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         if (last > luaH_realasize(h))  /* needs more space? */
           luaH_resizearray(L, h, last);  /* preallocate it at once */
+#ifdef PLUTO_VMDUMP
+        std::string rep;
+#endif
         for (; n > 0; n--) {
           TValue *val = s2v(ra + n);
           setobj2t(L, &h->array[last - 1], val);
+#ifdef PLUTO_VMDUMP
+          rep.insert(0, stringify_tvalue(val) + "; ");
+#endif
           last--;
           luaC_barrierback(L, obj2gco(h), val);
         }
@@ -2489,7 +2495,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAddB();
         vmDumpAddC();
-        vmDumpOut ("; k=" << GETARG_k(i));
+        vmDumpOut ("; { " << rep << "}");
         vmbreak;
       }
       vmcase(OP_CLOSURE) {
@@ -2508,7 +2514,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddC();
-        vmDumpOut (";");
+        vmDumpOut ("; get " << n << " varargs");
         vmbreak;
       }
       vmcase(OP_VARARGPREP) {
@@ -2520,7 +2526,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         updatebase(ci);  /* function has new base after adjustment */
         vmDumpInit();
         vmDumpAddA();
-        vmDumpOut (";");
+        vmDumpOut ("; prepare for " << GETARG_A(i) << " varargs");
         vmbreak;
       }
       vmcase(OP_EXTRAARG) {
