@@ -1177,6 +1177,8 @@ LUAI_FUNC int luaB_ipairsaux (lua_State *L);
 
 
 #ifdef PLUTO_VMDUMP
+#include <vector>
+
 [[nodiscard]] static std::string stringify_ttype(const TValue* t) noexcept
 {
   std::ostringstream str { };
@@ -1254,13 +1256,18 @@ inline void padUntilGoal(std::string& s, const size_t goal) noexcept
   return str;
 }
 
-
+// The compiler didn't like including 'lopcodes.h' in 'luaconf.h'.
+static const std::vector<OpCode> ignoreOps = { vmDumpIgnore };
 #define vmDumpInit() std::string tmp = opnames[GET_OPCODE(i)]; padUntilGoal(tmp, 11);
 #define vmDumpAddA() tmp += std::to_string(GETARG_A(i)); tmp += " ";
 #define vmDumpAddB() tmp += std::to_string(GETARG_B(i)); tmp += " ";
 #define vmDumpAddC() tmp += std::to_string(GETARG_C(i)); tmp += " ";
 #define vmDumpAdd(o) tmp += std::to_string(o);           tmp += " ";
-#define vmDumpOut(c) padUntilGoal(tmp, 20); std::cout << tmp << c << std::endl; 
+#define vmDumpOut(c) \
+  bool ignore = false; \
+  for (size_t idx = 0; idx < ignoreOps.size(); idx++) \
+    if (ignoreOps.at(idx) == GET_OPCODE(i)) { ignore = true; break; } \
+  if (!ignore) { padUntilGoal(tmp, 20); std::cout << tmp << c << std::endl; }
 #else
 #define vmDumpInit()
 #define vmDumpAddA()
