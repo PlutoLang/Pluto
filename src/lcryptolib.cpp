@@ -7,7 +7,8 @@
 #include "luaconf.h"
 #include "lauxlib.h"
 #include "lstring.h"
-#include "lhashlib.hpp"
+#include "lcryptolib.hpp"
+
 #include <ios>
 #include <string>
 #include <sstream>
@@ -298,7 +299,7 @@ static const luaL_Reg funcs[] = {
 };
 
 
-LUAMOD_API int luaopen_hashlib(lua_State *L)
+LUAMOD_API int luaopen_crypto(lua_State *L)
 {
   luaL_newlib(L, funcs);
   return 1;
