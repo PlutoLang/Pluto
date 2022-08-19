@@ -952,6 +952,13 @@
 // Opcodes listed in this structure are a blacklist. They not be printed when VM dumping.
 #define vmDumpIgnore
 
+
+// Opcodes listed in this structure are a whitelist. They are only printed when VM dumping.
+#define vmDumpAllow
+
+// If defined, Pluto will use vmDumpAllow instead of vmDumpIgnore.
+//#define PLUTO_VMDUMP_WHITELIST
+
 // Defines under what circumstances the VM Dump is active.
 #ifndef PLUTO_VMDUMP_COND
 #define PLUTO_VMDUMP_COND(L) true
