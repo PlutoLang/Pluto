@@ -1258,16 +1258,18 @@ inline void padUntilGoal(std::string& s, const size_t goal) noexcept
 
 // The compiler didn't like including 'lopcodes.h' in 'luaconf.h'.
 static const std::vector<OpCode> ignoreOps = { vmDumpIgnore };
-#define vmDumpInit() std::string tmp = opnames[GET_OPCODE(i)]; padUntilGoal(tmp, 11);
-#define vmDumpAddA() tmp += std::to_string(GETARG_A(i)); tmp += " ";
-#define vmDumpAddB() tmp += std::to_string(GETARG_B(i)); tmp += " ";
-#define vmDumpAddC() tmp += std::to_string(GETARG_C(i)); tmp += " ";
-#define vmDumpAdd(o) tmp += std::to_string(o);           tmp += " ";
-#define vmDumpOut(c) \
+#define vmDumpInit() \
   bool ignore = false; \
+  OpCode opcode = GET_OPCODE(i); \
+  std::string tmp; \
   for (size_t idx = 0; idx < ignoreOps.size(); idx++) \
-    if (ignoreOps.at(idx) == GET_OPCODE(i)) { ignore = true; break; } \
-  if (!ignore) { padUntilGoal(tmp, 20); std::cout << tmp << c << std::endl; }
+    if (ignoreOps.at(idx) == opcode) { ignore = true; break; } \
+  if (!ignore) { tmp = opnames[opcode]; padUntilGoal(tmp, 11); }
+#define vmDumpAddA() if (!ignore) { tmp += std::to_string(GETARG_A(i)); tmp += " "; }
+#define vmDumpAddB() if (!ignore) { tmp += std::to_string(GETARG_B(i)); tmp += " "; }
+#define vmDumpAddC() if (!ignore) { tmp += std::to_string(GETARG_C(i)); tmp += " "; }
+#define vmDumpAdd(o) if (!ignore) { tmp += std::to_string(o);           tmp += " "; }
+#define vmDumpOut(c) if (!ignore) { padUntilGoal(tmp, 20); std::cout << tmp << c << std::endl; }
 #else
 #define vmDumpInit()
 #define vmDumpAddA()
