@@ -950,8 +950,7 @@
 */
 
 // Opcodes listed in this structure are a blacklist. They not be printed when VM dumping.
-#define vmDumpIgnore \
-    OP_LOADI
+#define vmDumpIgnore
 
 // Defines under what circumstances the VM Dump is active.
 #ifndef PLUTO_VMDUMP_COND
