@@ -416,17 +416,6 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
       luaX_newstring(ls, "" v, (sizeof(v)/sizeof(char)) - 1));
 
 
-
-/*
-** Return the "variable description" (Vardesc) of a given variable.
-** (Unless noted otherwise, all variables are referred to by their
-** compiler indices.)
-*/
-static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
-  return &fs->ls->dyd->actvar.arr[fs->firstlocal + vidx];
-}
-
-
 [[nodiscard]] static TypeDesc gettypehint(LexState *ls) noexcept {
   /* TYPEHINT -> [':' Typedesc] */
   if (testnext(ls, ':')) {

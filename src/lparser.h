@@ -72,6 +72,19 @@ typedef enum {
 #define vkisvar(k)	(VLOCAL <= (k) && (k) <= VINDEXSTR)
 #define vkisindexed(k)	(VINDEXED <= (k) && (k) <= VINDEXSTR)
 
+/* types of values, for type hinting and propagation */
+enum ValType : lu_byte {
+  VT_DUNNO = 0,
+  VT_MIXED,
+  VT_NIL,
+  VT_NUMBER,
+  VT_BOOL,
+  VT_STR,
+  VT_TABLE,
+  VT_FUNC,
+
+  NUL_VAL_TYPES
+};
 
 typedef struct expdesc {
   expkind k;
@@ -91,32 +104,18 @@ typedef struct expdesc {
   } u;
   int t;  /* patch list of 'exit when true' */
   int f;  /* patch list of 'exit when false' */
+  ValType code_primitive;
 
   void normaliseFalse() {
     if (k == VNIL) k = VFALSE;
   }
 } expdesc;
 
-
 /* kinds of variables */
 #define VDKREG		0   /* regular */
 #define RDKCONST	1   /* constant */
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* compile-time constant */
-
-/* types of values, for type hinting and propagation */
-enum ValType : lu_byte {
-  VT_DUNNO = 0,
-  VT_MIXED,
-  VT_NIL,
-  VT_NUMBER,
-  VT_BOOL,
-  VT_STR,
-  VT_TABLE,
-  VT_FUNC,
-
-  NUL_VAL_TYPES
-};
 
 struct PrimitiveType {
   /* 3 bits for ValType, and 1 bit for nullable. */
@@ -322,3 +321,13 @@ typedef struct FuncState {
 LUAI_FUNC int luaY_nvarstack (FuncState *fs);
 LUAI_FUNC LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
                                  Dyndata *dyd, const char *name, int firstchar);
+
+
+/*
+** Return the "variable description" (Vardesc) of a given variable.
+** (Unless noted otherwise, all variables are referred to by their
+** compiler indices.)
+*/
+inline Vardesc* getlocalvardesc(FuncState* fs, int vidx) {
+  return &fs->ls->dyd->actvar.arr[fs->firstlocal + vidx];
+}
