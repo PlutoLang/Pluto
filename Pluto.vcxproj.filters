@@ -32,9 +32,9 @@
     <ClCompile Include="src\lstate.cpp" />
     <ClCompile Include="src\lstring.cpp" />
     <ClCompile Include="src\lstrlib.cpp" />
-    <ClCompile Include="src\lhashlib.cpp" />
     <ClCompile Include="src\ltable.cpp" />
     <ClCompile Include="src\ltablib.cpp" />
+    <ClCompile Include="src\lcryptolib.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -66,5 +66,6 @@
     <ClInclude Include="src\lstring.h" />
     <ClInclude Include="src\ltable.h" />
     <ClInclude Include="src\ljumptab.h" />
+    <ClInclude Include="src\lcryptolib.hpp" />
   </ItemGroup>
 </Project>

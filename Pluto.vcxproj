@@ -156,6 +156,7 @@
     <ClCompile Include="src\lbaselib.cpp" />
     <ClCompile Include="src\lcode.cpp" />
     <ClCompile Include="src\lcorolib.cpp" />
+    <ClCompile Include="src\lcryptolib.cpp" />
     <ClCompile Include="src\lctype.cpp" />
     <ClCompile Include="src\ldblib.cpp" />
     <ClCompile Include="src\ldebug.cpp" />
@@ -178,7 +179,6 @@
     <ClCompile Include="src\lstrlib.cpp" />
     <ClCompile Include="src\ltable.cpp" />
     <ClCompile Include="src\ltablib.cpp" />
-    <ClCompile Include="src\lhashlib.cpp" />
     <ClCompile Include="src\ltm.cpp" />
     <ClCompile Include="src\lua.cpp" />
     <ClCompile Include="src\lundump.cpp" />
@@ -190,6 +190,7 @@
     <ClInclude Include="src\lapi.h" />
     <ClInclude Include="src\lauxlib.h" />
     <ClInclude Include="src\lcode.h" />
+    <ClInclude Include="src\lcryptolib.hpp" />
     <ClInclude Include="src\lctype.h" />
     <ClInclude Include="src\ldebug.h" />
     <ClInclude Include="src\ldo.h" />
