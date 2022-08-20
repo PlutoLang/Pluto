@@ -42,6 +42,17 @@ typedef enum {
 } TMS;
 
 
+static const char *const luaT_eventname[] = {  /* ORDER TM */
+  "__index", "__newindex",
+  "__gc", "__mode", "__len", "__eq",
+  "__add", "__sub", "__mul", "__mod", "__pow",
+  "__div", "__idiv",
+  "__band", "__bor", "__bxor", "__shl", "__shr",
+  "__unm", "__bnot", "__lt", "__le",
+  "__concat", "__call", "__close"
+};
+
+
 /*
 ** Mask with 1 in all fast-access methods. A 1 in any of these bits
 ** in the flag of a (meta)table means the metatable does not have the
