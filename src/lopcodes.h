@@ -311,7 +311,12 @@ OP_VARARGPREP,/*A	(adjust vararg parameters)			*/
 
 OP_EXTRAARG,/*	Ax	extra (larger) argument for previous opcode	*/
 
-OP_IN,
+OP_IN,/* A B C 
+if A is string
+  push R(A).find(R(B)) ~= nil
+else
+  push R(A)[R(B)] ~= nil
+*/
 
 NUM_OPCODES
 } OpCode;
