@@ -1693,7 +1693,7 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
   if (foldbinop(opr) && constfolding(fs, opr + LUA_OPADD, e1, e2))
     return;  /* done by folding */
   if (opr == OPR_MOD && e2->k == VKINT && luaispow2(e2->u.ival) /* modulo a constant power of 2? */
-    && e1->k == VNONRELOC && e1->code_primitive == VT_NUMBER /* lefthand operand is a number? */
+    && e1->k == VNONRELOC && e1->code_primitive == VT_INT /* lefthand operand is an integer? */
     ) {
     opr = OPR_BAND;
     --e2->u.ival;

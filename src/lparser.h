@@ -77,7 +77,8 @@ enum ValType : lu_byte {
   VT_DUNNO = 0,
   VT_MIXED,
   VT_NIL,
-  VT_NUMBER,
+  VT_INT,
+  VT_FLT,
   VT_BOOL,
   VT_STR,
   VT_TABLE,
@@ -118,9 +119,9 @@ typedef struct expdesc {
 #define RDKCTC		3   /* compile-time constant */
 
 struct PrimitiveType {
-  /* 3 bits for ValType, and 1 bit for nullable. */
+  /* 4 bits for ValType, and 1 bit for nullable. */
   lu_byte data;
-  static_assert((NUL_VAL_TYPES - 1) <= 0b111);
+  static_assert((NUL_VAL_TYPES - 1) <= 0b1111);
 
   PrimitiveType()
     : PrimitiveType(VT_DUNNO)
@@ -128,25 +129,31 @@ struct PrimitiveType {
   }
 
   PrimitiveType(ValType vt, bool nullable = false)
-    : data(vt | (nullable << 3))
+    : data(vt | (nullable << 4))
   {
   }
 
   [[nodiscard]] ValType getType() const noexcept {
-    return (ValType)(data & 0b111);
+    return (ValType)(data & 0b1111);
+  }
+
+  [[nodiscard]] ValType getNormalisedType() const noexcept {
+    auto t = getType();
+    if (t == VT_FLT) t = VT_INT;
+    return t;
   }
 
   [[nodiscard]] bool isNullable() const noexcept {
-    return (data >> 3) & 1;
+    return (data >> 4) & 1;
   }
 
   void setNullable() noexcept {
-    data |= (1 << 3);
+    data |= (1 << 4);
   }
 
   [[nodiscard]] bool isCompatibleWith(const PrimitiveType& b) const noexcept {
-    const auto b_t = b.getType();
-    return (getType() == b_t)
+    const auto b_t = b.getNormalisedType();
+    return (getNormalisedType() == b_t)
         ? (isNullable() || !b.isNullable()) /* if same type, b can't be nullable if a isn't nullable */
         : (b_t == VT_NIL && isNullable()) /* if different type, b might still be compatible if a is nullable and b is nil */
         ;
@@ -161,7 +168,7 @@ struct PrimitiveType {
     case VT_DUNNO: str.append("dunno"); break;
     case VT_MIXED: str.append("mixed"); break;
     case VT_NIL: str.append("nil"); break;
-    case VT_NUMBER: str.append("number"); break;
+    case VT_INT: case VT_FLT: str.append("number"); break;
     case VT_BOOL: str.append("boolean"); break;
     case VT_STR: str.append("string"); break;
     case VT_TABLE: str.append("table"); break;
