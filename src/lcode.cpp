@@ -1684,6 +1684,10 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
   luaK_dischargevars(fs, e2);
   if (foldbinop(opr) && constfolding(fs, opr + LUA_OPADD, e1, e2))
     return;  /* done by folding */
+  if (opr == OPR_MOD && e2->k == VKINT && luaispow2(e2->u.ival)) {
+    opr = OPR_BAND;
+    --e2->u.ival;
+  }
   switch (opr) {
     case OPR_AND: {
       lua_assert(e1->t == NO_JUMP);  /* list closed by 'luaK_infix' */
