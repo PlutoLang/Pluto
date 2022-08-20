@@ -416,24 +416,13 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
       luaX_newstring(ls, "" v, (sizeof(v)/sizeof(char)) - 1));
 
 
-
-/*
-** Return the "variable description" (Vardesc) of a given variable.
-** (Unless noted otherwise, all variables are referred to by their
-** compiler indices.)
-*/
-static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
-  return &fs->ls->dyd->actvar.arr[fs->firstlocal + vidx];
-}
-
-
 [[nodiscard]] static TypeDesc gettypehint(LexState *ls) noexcept {
   /* TYPEHINT -> [':' Typedesc] */
   if (testnext(ls, ':')) {
     const bool nullable = testnext(ls, '?');
     const char* tname = getstr(str_checkname(ls));
     if (strcmp(tname, "number") == 0)
-      return { VT_NUMBER, nullable };
+      return { VT_INT, nullable };
     else if (strcmp(tname, "table") == 0)
       return { VT_TABLE, nullable };
     else if (strcmp(tname, "string") == 0)
@@ -460,7 +449,7 @@ static void exp_propagate(LexState* ls, const expdesc& e, TypeDesc& t) noexcept 
     {
     case LUA_TNIL: t = VT_NIL; break;
     case LUA_TBOOLEAN: t = VT_BOOL; break;
-    case LUA_TNUMBER: t = VT_NUMBER; break;
+    case LUA_TNUMBER: t = ((ttypetag(val) == LUA_VNUMINT) ? VT_INT : VT_FLT); break;
     case LUA_TSTRING: t = VT_STR; break;
     case LUA_TTABLE: t = VT_TABLE; break;
     case LUA_TFUNCTION: t = VT_FUNC; break;
@@ -1882,13 +1871,13 @@ static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop) 
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
     case TK_FLT: {
-      if (prop) *prop = VT_NUMBER;
+      if (prop) *prop = VT_FLT;
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       break;
     }
     case TK_INT: {
-      if (prop) *prop = VT_NUMBER;
+      if (prop) *prop = VT_INT;
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       break;

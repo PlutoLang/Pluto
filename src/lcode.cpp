@@ -770,9 +770,11 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
   switch (e->k) {
     case VCONST: {
       const2exp(const2val(fs, e), e);
+      e->code_primitive = VT_DUNNO;
       break;
     }
     case VLOCAL: {  /* already in a register */
+      e->code_primitive = getlocalvardesc(fs, e->u.var.vidx)->vd.prop.getType();
       e->u.info = e->u.var.ridx;
       e->k = VNONRELOC;  /* becomes a non-relocatable value */
       break;
@@ -780,33 +782,39 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
     case VUPVAL: {  /* move value to some (pending) register */
       e->u.info = luaK_codeABC(fs, OP_GETUPVAL, 0, e->u.info, 0);
       e->k = VRELOC;
+      e->code_primitive = VT_DUNNO;
       break;
     }
     case VINDEXUP: {
       e->u.info = luaK_codeABC(fs, OP_GETTABUP, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
+      e->code_primitive = VT_DUNNO;
       break;
     }
     case VINDEXI: {
       freereg(fs, e->u.ind.t);
       e->u.info = luaK_codeABC(fs, OP_GETI, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
+      e->code_primitive = VT_DUNNO;
       break;
     }
     case VINDEXSTR: {
       freereg(fs, e->u.ind.t);
       e->u.info = luaK_codeABC(fs, OP_GETFIELD, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
+      e->code_primitive = VT_DUNNO;
       break;
     }
     case VINDEXED: {
       freeregs(fs, e->u.ind.t, e->u.ind.idx);
       e->u.info = luaK_codeABC(fs, OP_GETTABLE, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
+      e->code_primitive = VT_DUNNO;
       break;
     }
     case VVARARG: case VCALL: {
       luaK_setoneret(fs, e);
+      e->code_primitive = VT_DUNNO;
       break;
     }
     default: break;  /* there is one value available (somewhere) */
@@ -1684,6 +1692,12 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
   luaK_dischargevars(fs, e2);
   if (foldbinop(opr) && constfolding(fs, opr + LUA_OPADD, e1, e2))
     return;  /* done by folding */
+  if (opr == OPR_MOD && e2->k == VKINT && luaispow2(e2->u.ival) /* modulo a constant power of 2? */
+    && e1->k == VNONRELOC && e1->code_primitive == VT_INT /* lefthand operand is an integer? */
+    ) {
+    opr = OPR_BAND;
+    --e2->u.ival;
+  }
   switch (opr) {
     case OPR_AND: {
       lua_assert(e1->t == NO_JUMP);  /* list closed by 'luaK_infix' */
