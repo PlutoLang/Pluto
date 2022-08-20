@@ -11,6 +11,7 @@
 
 #include <ios>
 #include <string>
+#include <random>
 #include <sstream>
 
 
@@ -266,17 +267,20 @@ static int l_sha256(lua_State *L)
 }
 
 
-static int l_isaac64(lua_State *L)
+// This should be fairly secure on systems that employ a randomized device, like /dev/urandom, BCryptGenRandom, etc.
+// But, otherwise, it's not secure whatsoever.
+static int l_random(lua_State *L)
 {
-  lua_Integer n = rand_isaac();
-  while (n == 0) n = rand_isaac();
-  lua_pushinteger(L, n);
+  std::random_device dev;
+  std::mt19937 rng(dev());
+  std::uniform_int_distribution<std::mt19937::result_type> dist6(luaL_checkinteger(L, 1), luaL_checkinteger(L, 2));
+  lua_pushinteger(L, dist6(rng));
   return 1;
 }
 
 
 static const luaL_Reg funcs[] = {
-  {"isaac64", l_isaac64},
+  {"random", l_random},
   {"sha256", l_sha256},
   {"lua", lua},
   {"crc32", crc32},
