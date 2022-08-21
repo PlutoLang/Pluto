@@ -1701,6 +1701,13 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
         }
         break;
       }
+      case OPR_IDIV: {
+        if (e2->k == VKINT && luaispow2(e2->u.ival)) { /* IDIV by a constant power of 2? */
+          opr = OPR_SHR;
+          e2->u.ival = (lua_Integer)log2((double)e2->u.ival);
+        }
+        break;
+      }
     }
   }
   switch (opr) { /* finalise code */
