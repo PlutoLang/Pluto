@@ -1715,6 +1715,13 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
         }
         break;
       }
+      case OPR_POW: {
+        if (e2->k == VKINT && e2->u.ival == 2) { /* to the power of 2? */
+          opr = OPR_MUL;
+          *e2 = *e1;
+        }
+        break;
+      }
     }
   }
   switch (opr) { /* finalise code */
