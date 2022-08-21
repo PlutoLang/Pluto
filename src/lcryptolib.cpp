@@ -13,6 +13,7 @@
 #include <string>
 #include <random>
 #include <sstream>
+#include <iomanip>
 
 
 static int fnv1(lua_State *L)
@@ -269,7 +270,7 @@ static int l_sha256(lua_State *L)
 
 // This should be fairly secure on systems that employ a randomized device, like /dev/urandom, BCryptGenRandom, etc.
 // But, otherwise, it's not secure whatsoever.
-static int l_random(lua_State *L)
+static int random(lua_State *L)
 {
   std::random_device dev;
   std::mt19937 rng(dev());
@@ -279,8 +280,19 @@ static int l_random(lua_State *L)
 }
 
 
+static int hexdigest(lua_State *L)
+{
+  std::stringstream stream;
+  stream << "0x";
+  stream << std::hex << luaL_checkinteger(L, 1);
+  lua_pushstring(L, stream.str().c_str());
+  return 1;
+}
+
+
 static const luaL_Reg funcs[] = {
-  {"random", l_random},
+  {"hexdigest", hexdigest},
+  {"random", random},
   {"sha256", l_sha256},
   {"lua", lua},
   {"crc32", crc32},

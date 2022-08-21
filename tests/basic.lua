@@ -553,6 +553,7 @@ do
     assert(crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
     assert(crypto.fnv1a("hello world") == 8618312879776256743)
     assert(crypto.joaat("hello world") == 1045060183)
+    assert(crypto.joaat("hello world") == tonumber(crypto.hexdigest(crypto.joaat("hello world"))))
 end
 do
     local t = {}
