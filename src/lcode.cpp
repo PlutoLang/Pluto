@@ -1708,6 +1708,13 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
         }
         break;
       }
+      case OPR_SHL: {
+        if (e2->k == VKINT && e2->u.ival == 1) { /* left shift 1 bit? */
+          opr = OPR_ADD;
+          *e2 = *e1;
+        }
+        break;
+      }
     }
   }
   switch (opr) { /* finalise code */
