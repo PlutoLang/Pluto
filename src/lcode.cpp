@@ -1692,13 +1692,39 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
   luaK_dischargevars(fs, e2);
   if (foldbinop(opr) && constfolding(fs, opr + LUA_OPADD, e1, e2))
     return;  /* done by folding */
-  if (opr == OPR_MOD && e2->k == VKINT && luaispow2(e2->u.ival) /* modulo a constant power of 2? */
-    && e1->k == VNONRELOC && e1->code_primitive == VT_INT /* lefthand operand is an integer? */
-    ) {
-    opr = OPR_BAND;
-    --e2->u.ival;
+  if (e1->k == VNONRELOC && e1->code_primitive == VT_INT) { /* lefthand operand is an integer? */
+    switch (opr) { /* optimise operation if possible */
+      case OPR_MOD: {
+        if (e2->k == VKINT && luaispow2(e2->u.ival)) { /* modulo a constant power of 2? */
+          opr = OPR_BAND;
+          --e2->u.ival;
+        }
+        break;
+      }
+      case OPR_IDIV: {
+        if (e2->k == VKINT && luaispow2(e2->u.ival)) { /* IDIV by a constant power of 2? */
+          opr = OPR_SHR;
+          e2->u.ival = (lua_Integer)log2((double)e2->u.ival);
+        }
+        break;
+      }
+      case OPR_SHL: {
+        if (e2->k == VKINT && e2->u.ival == 1) { /* left shift 1 bit? */
+          opr = OPR_ADD;
+          *e2 = *e1;
+        }
+        break;
+      }
+      case OPR_POW: {
+        if (e2->k == VKINT && e2->u.ival == 2) { /* to the power of 2? */
+          opr = OPR_MUL;
+          *e2 = *e1;
+        }
+        break;
+      }
+    }
   }
-  switch (opr) {
+  switch (opr) { /* finalise code */
     case OPR_AND: {
       lua_assert(e1->t == NO_JUMP);  /* list closed by 'luaK_infix' */
       luaK_concat(fs, &e2->f, e1->f);
