@@ -273,9 +273,14 @@ static int l_sha256(lua_State *L)
 static int random(lua_State *L)
 {
   std::random_device dev;
+#if defined(_WIN64) || defined(__x86_64__) || defined(__ppc64__) || defined(_M_X64) || defined(__aarch64__)
+  std::mt19937_64 rng(dev());
+  std::uniform_int_distribution<std::mt19937_64::result_type> dist(luaL_checkinteger(L, 1), luaL_checkinteger(L, 2));
+#else
   std::mt19937 rng(dev());
-  std::uniform_int_distribution<std::mt19937::result_type> dist6(luaL_checkinteger(L, 1), luaL_checkinteger(L, 2));
-  lua_pushinteger(L, dist6(rng));
+  std::uniform_int_distribution<std::mt19937::result_type> dist(luaL_checkinteger(L, 1), luaL_checkinteger(L, 2));
+#endif
+  lua_pushinteger(L, dist(rng));
   return 1;
 }
 
