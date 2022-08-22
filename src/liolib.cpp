@@ -839,7 +839,7 @@ static void listdir_r(lua_State* L, lua_Integer& i, const std::filesystem::path&
   std::filesystem::directory_iterator it(f, ec);
   if (ec) return; /* skip this directory if we failed to enter it */
   for (auto const& dir_entry : it) {
-    lua_pushstring(L, dir_entry.path().generic_string().c_str());
+    lua_pushstring(L, dir_entry.path().u8string().c_str());
     lua_rawseti(L, -2, ++i);
     if (dir_entry.is_directory()) {
       listdir_r(L, i, dir_entry.path());
@@ -854,7 +854,7 @@ static int listdir(lua_State *L) {
   lua_Integer i = 0;
   try {
     for (auto const& dir_entry : std::filesystem::directory_iterator(f)) {
-      lua_pushstring(L, dir_entry.path().generic_string().c_str());
+      lua_pushstring(L, dir_entry.path().u8string().c_str());
       lua_rawseti(L, -2, ++i);
       if (recursive && dir_entry.is_directory()) {
         listdir_r(L, i, dir_entry.path());
