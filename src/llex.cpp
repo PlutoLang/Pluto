@@ -779,7 +779,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         next(ls);
         if (check_next1(ls, '?')) {
           if (check_next1(ls, '=')) {
-            ls->appendLineBuff("??=");
+            ls->appendLineBuff("?\?=");
             ls->lasttoken = TK_COAL;
             return '=';
           } else {
