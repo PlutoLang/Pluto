@@ -1722,6 +1722,7 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
         }
         break;
       }
+      default: break;
     }
   }
   switch (opr) { /* finalise code */
