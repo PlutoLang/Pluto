@@ -9,6 +9,7 @@
 
 #include "lprefix.h"
 
+#include <string>
 #include <filesystem>
 #include <ctype.h>
 #include <errno.h>
@@ -23,12 +24,9 @@
 #include "lualib.h"
 
 
-/* Basic error handling. TO-DO: Improve error message detail. */
-#define procErrCode(ec) \
-  if (ec) \
-  { \
-    luaL_error(L, "%s (%d)", ec.message().c_str(), ec.value()); \
-  }
+/* Basic error handling. Exceptions have better error messages than error_codes. */
+#define Protect(c) \
+  try { c; } catch (const std::exception& err) { luaL_error(L, err.what()); } 
 
 
 /*
@@ -741,90 +739,88 @@ static int f_flush (lua_State *L) {
 }
 
 
-static int isdir (lua_State *L) {
-  const auto dir = luaL_checkstring(L, 1);
-  lua_pushboolean(L, std::filesystem::is_directory(dir));
+static int isdir (lua_State *L)
+{
+  Protect(
+    const auto dir = luaL_checkstring(L, 1);
+    lua_pushboolean(L, std::filesystem::is_directory(dir));
+  );
+
   return 1;
 }
 
 
-static int isfile (lua_State *L) {
-  const auto dir = luaL_checkstring(L, 1);
-  lua_pushboolean(L, std::filesystem::is_regular_file(dir));
+static int isfile (lua_State *L)
+{
+  Protect(
+    const auto dir = luaL_checkstring(L, 1);
+    lua_pushboolean(L, std::filesystem::is_regular_file(dir));
+  );
+
   return 1;
 }
 
 
-static int filesize (lua_State *L) {
-  std::error_code ec;
-  const auto f = luaL_checkstring(L, 1);
-  const auto s = (lua_Integer)std::filesystem::file_size(f, ec);
+static int filesize (lua_State *L)
+{
+  Protect(
+    const auto f = luaL_checkstring(L, 1);
+    const auto s = (lua_Integer)std::filesystem::file_size(f);
+    lua_pushinteger(L, s);
+  );
 
-  if (ec)
-  {
-    const auto msg = ec.message();
-    const auto val = ec.value();
+  return 1;
+}
 
-    switch (val)
+
+static int exists (lua_State *L)
+{
+  Protect(
+    const auto f = luaL_checkstring(L, 1);
+    lua_pushboolean(L, std::filesystem::exists(f));
+  );
+
+  return 1;
+}
+
+
+static int copyto (lua_State *L)
+{
+  Protect(
+    const auto from = luaL_checkstring(L, 1);
+    const auto to = luaL_checkstring(L, 2);
+
+    if (std::filesystem::is_regular_file(to))
     {
-      case 2:
-        luaL_error(L, "file does not exist (%d)", val);
-
-      case 21:
-        luaL_error(L, "path leads towards directory (%d)", val);
-
-      default:
-        procErrCode(ec);
+      std::filesystem::remove(to);
     }
-  }
 
-  lua_pushinteger(L, s);
-  return 1;
-}
-
-
-static int exists (lua_State *L) {
-  const auto f = luaL_checkstring(L, 1);
-  lua_pushboolean(L, std::filesystem::exists(f));
-  return 1;
-}
-
-
-static int copyto (lua_State *L) {
-  std::error_code ec;
-  const auto from = luaL_checkstring(L, 1);
-  const auto to = luaL_checkstring(L, 2);
-
-  /* 
-  ** Need to manually do this, MinGW bug.
-  ** https://sourceforge.net/p/mingw-w64/bugs/852/
-  */
-  if (std::filesystem::is_regular_file(to))
-  {
-    std::filesystem::remove(to);
-  }
-
-  std::filesystem::copy_file(from, to, ec);
-  procErrCode(ec);
+    std::filesystem::copy_file(from, to);
+  );
 
   return 0;
 }
 
 
-static int absolute (lua_State *L) {
-  std::error_code ec;
-  const auto f = luaL_checkstring(L, 1);
-  const auto r = std::filesystem::absolute(f, ec);
+static int absolute (lua_State *L)
+{
+  Protect(
+    const auto f = luaL_checkstring(L, 1);
+    const auto r = std::filesystem::absolute(f);
+    lua_pushstring(L, r.u8string().c_str());
+  );
 
-  procErrCode(ec);
-  lua_pushstring(L, r.generic_string().c_str());
   return 1;
 }
 
 
-static int makedir (lua_State *L) {
-  auto f = luaL_checkstring(L, 1);
-  lua_pushboolean(L, std::filesystem::create_directory(f));
+static int makedir (lua_State *L)
+{
+  Protect(
+    const auto path = luaL_checkstring(L, 1);
+    lua_pushboolean(L, std::filesystem::create_directory(path))
+  );
+
   return 1;
 }
 
@@ -834,66 +830,70 @@ static int makedir (lua_State *L) {
     - Second boolean parameter will toggle recursive iteration.
     - Returns an empty table instead of throwing an error if 'f' is not a directory.
 */
-static void listdir_r(lua_State* L, lua_Integer& i, const std::filesystem::path& f) {
+static void listdir_r(lua_State* L, lua_Integer& i, const std::filesystem::path& f)
+{
   std::error_code ec;
   std::filesystem::directory_iterator it(f, ec);
   if (ec) return; /* skip this directory if we failed to enter it */
-  for (auto const& dir_entry : it) {
+  for (auto const& dir_entry : it)
+  {
     lua_pushstring(L, dir_entry.path().u8string().c_str());
     lua_rawseti(L, -2, ++i);
-    if (dir_entry.is_directory()) {
+    if (dir_entry.is_directory())
+    {
       listdir_r(L, i, dir_entry.path());
     }
   }
 }
 
-static int listdir(lua_State *L) {
+static int listdir(lua_State *L)
+{
   const char* const f = luaL_checkstring(L, 1);
   const auto recursive = lua_istrue(L, 2);
   lua_newtable(L);
   lua_Integer i = 0;
-  try {
-    for (auto const& dir_entry : std::filesystem::directory_iterator(f)) {
+  Protect(
+    for (auto const& dir_entry : std::filesystem::directory_iterator(f))
+    {
       lua_pushstring(L, dir_entry.path().u8string().c_str());
       lua_rawseti(L, -2, ++i);
-      if (recursive && dir_entry.is_directory()) {
+      if (recursive && dir_entry.is_directory())
+      {
         listdir_r(L, i, dir_entry.path());
       }
     }
-  } catch (const std::exception& e) {
-    luaL_error(L, e.what());
-  }
+  );
   return 1;
 }
 
 
 static int l_remove(lua_State *L)
 {
-  std::error_code ec;
   const auto path = luaL_checkstring(L, 1);
   const auto recursive = lua_istrue(L, 2);
 
-  if (recursive)
-  {
-    std::filesystem::remove_all(path, ec);
-  }
-  else
-  {
-    std::filesystem::remove(path, ec);
-  }
+  Protect(
+    if (recursive)
+    {
+      std::filesystem::remove_all(path);
+    }
+    else
+    {
+      std::filesystem::remove(path);
+    }
+  );
 
-  procErrCode(ec);
   return 0;
 }
 
 
 static int l_rename(lua_State *L)
 {
-  std::error_code ec;
   const auto oldP = luaL_checkstring(L, 1);
   const auto newP = luaL_checkstring(L, 2);
-  std::filesystem::rename(oldP, newP, ec);
-  procErrCode(ec);
+
+  Protect(std::filesystem::rename(oldP, newP));
+
   return 0;
 }
 
