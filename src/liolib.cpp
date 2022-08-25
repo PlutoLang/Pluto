@@ -277,7 +277,19 @@ static int io_open (lua_State *L) {
   const char *md = mode;  /* to traverse/check mode */
   luaL_argcheck(L, l_checkmode(md), 2, "invalid mode");
   p->f = fopen(filename, mode);
-  return (p->f == NULL) ? luaL_fileresult(L, 0, filename) : 1;
+
+  if (p->f != nullptr)
+  {
+    lua_getmetatable(L, -1);
+    lua_pushstring(L, filename);
+    lua_setfield(L, -2, "__path");
+    lua_pop(L, 1);
+    return 1;
+  }
+  else
+  {
+    return luaL_fileresult(L, 0, filename);
+  }
 }
 
 
@@ -298,7 +310,19 @@ static int io_popen (lua_State *L) {
   luaL_argcheck(L, l_checkmodep(mode), 2, "invalid mode");
   p->f = l_popen(L, filename, mode);
   p->closef = &io_pclose;
-  return (p->f == NULL) ? luaL_fileresult(L, 0, filename) : 1;
+
+  if (p->f != nullptr)
+  {
+    lua_getmetatable(L, -1);
+    lua_pushstring(L, filename);
+    lua_setfield(L, -2, "__path");
+    lua_pop(L, 1);
+    return 1;
+  }
+  else
+  {
+    return luaL_fileresult(L, 0, filename);
+  }
 }
 
 
@@ -739,10 +763,32 @@ static int f_flush (lua_State *L) {
 }
 
 
+static const char* getStringStreamPath(lua_State *L, int idx = 1)
+{
+  const char* f;
+
+  if (lua_isuserdata(L, idx))
+  {
+    lua_getmetatable(L, idx);
+    lua_getfield(L, -1, "__path");
+    if ((f = lua_tostring(L, -1)) == nullptr)
+    {
+      luaL_error(L, "cannot find path attribute of file stream (this stream is a temporary file).");
+    }
+  }
+  else
+  {
+    f = luaL_checkstring(L, idx);
+  }
+
+  return f;
+}
+
+
 static int isdir (lua_State *L)
 {
   Protect(
-    const auto dir = luaL_checkstring(L, 1);
+    const auto dir = getStringStreamPath(L);
     lua_pushboolean(L, std::filesystem::is_directory(dir));
   );
 
@@ -753,7 +799,7 @@ static int isdir (lua_State *L)
 static int isfile (lua_State *L)
 {
   Protect(
-    const auto dir = luaL_checkstring(L, 1);
+    const auto dir = getStringStreamPath(L);
     lua_pushboolean(L, std::filesystem::is_regular_file(dir));
   );
 
@@ -764,7 +810,7 @@ static int isfile (lua_State *L)
 static int filesize (lua_State *L)
 {
   Protect(
-    const auto f = luaL_checkstring(L, 1);
+    const auto f = getStringStreamPath(L);
     const auto s = (lua_Integer)std::filesystem::file_size(f);
     lua_pushinteger(L, s);
   );
@@ -776,7 +822,7 @@ static int filesize (lua_State *L)
 static int exists (lua_State *L)
 {
   Protect(
-    const auto f = luaL_checkstring(L, 1);
+    const auto f = getStringStreamPath(L);
     lua_pushboolean(L, std::filesystem::exists(f));
   );
 
@@ -787,8 +833,8 @@ static int exists (lua_State *L)
 static int copyto (lua_State *L)
 {
   Protect(
-    const auto from = luaL_checkstring(L, 1);
-    const auto to = luaL_checkstring(L, 2);
+    const auto from = getStringStreamPath(L);
+    const auto to = getStringStreamPath(L, 2);
 
     if (std::filesystem::is_regular_file(to))
     {
@@ -805,7 +851,7 @@ static int copyto (lua_State *L)
 static int absolute (lua_State *L)
 {
   Protect(
-    const auto f = luaL_checkstring(L, 1);
+    const auto f = getStringStreamPath(L);
     const auto r = std::filesystem::absolute(f);
     lua_pushstring(L, r.u8string().c_str());
   );
@@ -817,7 +863,7 @@ static int absolute (lua_State *L)
 static int makedir (lua_State *L)
 {
   Protect(
-    const auto path = luaL_checkstring(L, 1);
+    const auto path = getStringStreamPath(L);
     lua_pushboolean(L, std::filesystem::create_directory(path))
   );
 
@@ -848,7 +894,7 @@ static void listdir_r(lua_State* L, lua_Integer& i, const std::filesystem::path&
 
 static int listdir(lua_State *L)
 {
-  const char* const f = luaL_checkstring(L, 1);
+  const char* const f = getStringStreamPath(L);
   const auto recursive = lua_istrue(L, 2);
   lua_newtable(L);
   lua_Integer i = 0;
@@ -869,7 +915,7 @@ static int listdir(lua_State *L)
 
 static int l_remove(lua_State *L)
 {
-  const auto path = luaL_checkstring(L, 1);
+  const auto path = getStringStreamPath(L);;
   const auto recursive = lua_istrue(L, 2);
 
   Protect(
@@ -889,7 +935,7 @@ static int l_remove(lua_State *L)
 
 static int l_rename(lua_State *L)
 {
-  const auto oldP = luaL_checkstring(L, 1);
+  const auto oldP = getStringStreamPath(L);
   const auto newP = luaL_checkstring(L, 2);
 
   Protect(std::filesystem::rename(oldP, newP));
