@@ -853,7 +853,7 @@ static int absolute (lua_State *L)
   Protect(
     const auto f = getStringStreamPath(L);
     const auto r = std::filesystem::absolute(f);
-    lua_pushstring(L, r.u8string().c_str());
+    lua_pushstring(L, (const char*)r.u8string().c_str());
   );
 
   return 1;
@@ -883,7 +883,7 @@ static void listdir_r(lua_State* L, lua_Integer& i, const std::filesystem::path&
   if (ec) return; /* skip this directory if we failed to enter it */
   for (auto const& dir_entry : it)
   {
-    lua_pushstring(L, dir_entry.path().u8string().c_str());
+    lua_pushstring(L, (const char*)dir_entry.path().u8string().c_str());
     lua_rawseti(L, -2, ++i);
     if (dir_entry.is_directory())
     {
@@ -901,7 +901,7 @@ static int listdir(lua_State *L)
   Protect(
     for (auto const& dir_entry : std::filesystem::directory_iterator(f))
     {
-      lua_pushstring(L, dir_entry.path().u8string().c_str());
+      lua_pushstring(L, (const char*)dir_entry.path().u8string().c_str());
       lua_rawseti(L, -2, ++i);
       if (recursive && dir_entry.is_directory())
       {
