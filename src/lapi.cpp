@@ -401,6 +401,13 @@ LUA_API int lua_toboolean (lua_State *L, int idx) {
 }
 
 
+LUA_API int lua_istrue(lua_State *L, int idx) noexcept
+{
+  const TValue *o = index2value(L, idx);
+  return ttistrue(o);
+}
+
+
 LUA_API const char *lua_tolstring (lua_State *L, int idx, size_t *len) {
   TValue *o;
   lua_lock(L);

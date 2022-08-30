@@ -205,6 +205,11 @@ static void inclinenumber (LexState *ls) {
   next(ls);  /* skip '\n' or '\r' */
   if (currIsNewline(ls) && ls->current != old)
     next(ls);  /* skip '\n\r' or '\r\n' */
+  
+  const std::string& buff = ls->getLineBuff();
+  if (buff.find("@pluto_warnings:") != std::string::npos)
+    ls->warning.processComment(buff);
+
   ls->lines.emplace_back(std::string{});
 }
 
@@ -220,6 +225,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
   ls->fs = NULL;
   ls->source = source;
   ls->envn = luaS_newliteral(L, LUA_ENV);  /* get env name */
+  ls->warning = WarningConfig {};
   luaZ_resizebuffer(ls->L, ls->buff, LUA_MINBUFFER);  /* initialize buffer */
 }
 
@@ -557,14 +563,18 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             size_t sep = skip_sep(ls);
             luaZ_resetbuffer(ls->buff);  /* 'skip_sep' may dirty the buffer */
             if (sep >= 2) {
-              read_long_string(ls, NULL, sep);  /* skip long comment */
+              SemInfo si;
+              read_long_string(ls, &si, sep);  /* skip long comment */
+              ls->appendLineBuff(getstr(si.ts));
               luaZ_resetbuffer(ls->buff);  /* previous call may dirty the buff. */
               break;
             }
           }
           /* else short comment */
-          while (!currIsNewline(ls) && ls->current != EOZ)
+          while (!currIsNewline(ls) && ls->current != EOZ) {
+            ls->appendLineBuff(ls->current);
             next(ls);  /* skip until end of line (or end of file) */
+          }
           break;
         }
       }
@@ -663,6 +673,10 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         if (check_next1(ls, ':')) {
           ls->appendLineBuff("::");
           return TK_DBCOLON;  /* '::' */
+        }
+        else if (check_next1(ls, '=')) {
+          ls->appendLineBuff(":=");
+          return TK_WALRUS;
         }
         else {
           ls->appendLineBuff(':');
@@ -765,7 +779,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         next(ls);
         if (check_next1(ls, '?')) {
           if (check_next1(ls, '=')) {
-            ls->appendLineBuff("??=");
+            ls->appendLineBuff("?\?=");
             ls->lasttoken = TK_COAL;
             return '=';
           } else {
@@ -825,15 +839,23 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         return TK_EOS;
       }
       default: {
-        if (lislalpha(ls->current)) {  /* identifier or reserved word? */
+        if (lislalpha(ls->current)
+#ifndef PLUTO_NO_UTF8
+            || ((ls->current & 0b10000000) && ls->current != EOF)
+#endif
+          ) {  /* identifier or reserved word? */
           TString *ts;
           do {
             save_and_next(ls);
-          } while (lislalnum(ls->current));
+          } while (lislalnum(ls->current)
+#ifndef PLUTO_NO_UTF8
+              || ((ls->current & 0b10000000) && ls->current != EOF)
+#endif
+            );
           ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
                                   luaZ_bufflen(ls->buff));
           seminfo->ts = ts;
-          ls->appendLineBuff(ts->contents);
+          ls->appendLineBuff(ts->toCpp());
           if (isreserved(ts))  /* reserved word? */
             return ts->extra - 1 + FIRST_RESERVED;
           else {
@@ -867,4 +889,11 @@ int luaX_lookahead (LexState *ls) {
   lua_assert(ls->lookahead.token == TK_EOS);
   ls->lookahead.token = llex(ls, &ls->lookahead.seminfo);
   return ls->lookahead.token;
+}
+
+
+void luaX_rewind (LexState *ls, int token) {
+  lua_assert(ls->lookahead.token == TK_EOS);
+  ls->lookahead = ls->t;
+  ls->t.token = token;
 }

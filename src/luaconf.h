@@ -861,6 +861,9 @@
 // If defined, Pluto will exclude code snippets from error messages to make them shorter.
 //#define PLUTO_SHORT_ERRORS
 
+// If defined, Pluto won't assume that files are UTF-8 encoded and restrict valid names.
+//#define PLUTO_NO_UTF8
+
 // If defined, Pluto will use a jumptable in the VM even if not compiled via GCC.
 // This will generally improve runtime performance but can add minutes to compile time, depending on the setup.
 //#define PLUTO_FORCE_JUMPTABLE
@@ -940,6 +943,21 @@
 //#define PLUTO_VMDUMP
 
 #ifdef PLUTO_VMDUMP
+/* Example:
+**  #define vmDumpIgnore \
+**      OP_LOADI \
+**      OP_LOADF
+*/
+
+// Opcodes listed in this structure are a blacklist. They not be printed when VM dumping.
+#define vmDumpIgnore
+
+
+// Opcodes listed in this structure are a whitelist. They are only printed when VM dumping.
+#define vmDumpAllow
+
+// If defined, Pluto will use vmDumpAllow instead of vmDumpIgnore.
+//#define PLUTO_VMDUMP_WHITELIST
 
 // Defines under what circumstances the VM Dump is active.
 #ifndef PLUTO_VMDUMP_COND

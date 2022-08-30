@@ -9,6 +9,7 @@
 
 #include "lprefix.h"
 
+#include <string>
 #include <filesystem>
 #include <ctype.h>
 #include <errno.h>
@@ -23,6 +24,9 @@
 #include "lualib.h"
 
 
+/* Basic error handling. Exceptions have better error messages than error_codes. */
+#define Protect(c) \
+  try { c; } catch (const std::exception& err) { luaL_error(L, err.what()); } 
 
 
 /*
@@ -273,7 +277,19 @@ static int io_open (lua_State *L) {
   const char *md = mode;  /* to traverse/check mode */
   luaL_argcheck(L, l_checkmode(md), 2, "invalid mode");
   p->f = fopen(filename, mode);
-  return (p->f == NULL) ? luaL_fileresult(L, 0, filename) : 1;
+
+  if (p->f != nullptr)
+  {
+    lua_getmetatable(L, -1);
+    lua_pushstring(L, filename);
+    lua_setfield(L, -2, "__path");
+    lua_pop(L, 1);
+    return 1;
+  }
+  else
+  {
+    return luaL_fileresult(L, 0, filename);
+  }
 }
 
 
@@ -294,7 +310,19 @@ static int io_popen (lua_State *L) {
   luaL_argcheck(L, l_checkmodep(mode), 2, "invalid mode");
   p->f = l_popen(L, filename, mode);
   p->closef = &io_pclose;
-  return (p->f == NULL) ? luaL_fileresult(L, 0, filename) : 1;
+
+  if (p->f != nullptr)
+  {
+    lua_getmetatable(L, -1);
+    lua_pushstring(L, filename);
+    lua_setfield(L, -2, "__path");
+    lua_pop(L, 1);
+    return 1;
+  }
+  else
+  {
+    return luaL_fileresult(L, 0, filename);
+  }
 }
 
 
@@ -735,118 +763,184 @@ static int f_flush (lua_State *L) {
 }
 
 
-static int isdir (lua_State *L) {
-  auto dir = luaL_checkstring(L, 1);
-  lua_pushboolean(L, std::filesystem::is_directory(dir));
-  return 1;
-}
+static const char* getStringStreamPath(lua_State *L, int idx = 1)
+{
+  const char* f;
 
-
-static int isfile (lua_State *L) {
-  auto dir = luaL_checkstring(L, 1);
-  lua_pushboolean(L, std::filesystem::is_regular_file(dir));
-  return 1;
-}
-
-
-static int filesize (lua_State *L) {
-  std::error_code ec;
-  auto f = luaL_checkstring(L, 1);
-  auto s = (lua_Integer)std::filesystem::file_size(f, ec);
-
-  if (ec)
+  if (lua_isuserdata(L, idx))
   {
-    const auto msg = ec.message();
-    const auto val = ec.value();
-
-    switch (val)
+    lua_getmetatable(L, idx);
+    lua_getfield(L, -1, "__path");
+    if ((f = lua_tostring(L, -1)) == nullptr)
     {
-      case 2:
-        luaL_error(L, "file does not exist (%d)", val);
-
-      case 21:
-        luaL_error(L, "path leads towards directory (%d)", val);
-
-      default:
-        luaL_error(L, "%s (%d)", msg.c_str(), val);
+      luaL_error(L, "cannot find path attribute of file stream (this stream is a temporary file).");
     }
-  }
-
-  lua_pushinteger(L, s);
-  return 1;
-}
-
-
-static int exists (lua_State *L) {
-  auto f = luaL_checkstring(L, 1);
-  lua_pushboolean(L, std::filesystem::exists(f));
-  return 1;
-}
-
-
-static int copyto (lua_State *L) {
-  auto from = luaL_checkstring(L, 1);
-  auto to = luaL_checkstring(L, 2);
-  std::error_code ec;
-
-  /* 
-  ** Need to manually do this, MinGW bug.
-  ** https://sourceforge.net/p/mingw-w64/bugs/852/
-  */
-  if (std::filesystem::is_regular_file(to))
-  {
-    std::filesystem::remove(to);
-  }
-
-  if (!std::filesystem::copy_file(from, to, ec))  /* Failed to create the file. */
-  {
-    luaL_error(L, "%s (%d)", ec.message().c_str(), ec.value());
   }
   else
   {
-    lua_pushboolean(L, true);
+    f = luaL_checkstring(L, idx);
   }
+
+  return f;
+}
+
+
+static int isdir (lua_State *L)
+{
+  Protect(
+    const auto dir = getStringStreamPath(L);
+    lua_pushboolean(L, std::filesystem::is_directory(dir));
+  );
 
   return 1;
 }
 
 
-static int absolute (lua_State *L) {
+static int isfile (lua_State *L)
+{
+  Protect(
+    const auto dir = getStringStreamPath(L);
+    lua_pushboolean(L, std::filesystem::is_regular_file(dir));
+  );
+
+  return 1;
+}
+
+
+static int filesize (lua_State *L)
+{
+  Protect(
+    const auto f = getStringStreamPath(L);
+    const auto s = (lua_Integer)std::filesystem::file_size(f);
+    lua_pushinteger(L, s);
+  );
+
+  return 1;
+}
+
+
+static int exists (lua_State *L)
+{
+  Protect(
+    const auto f = getStringStreamPath(L);
+    lua_pushboolean(L, std::filesystem::exists(f));
+  );
+
+  return 1;
+}
+
+
+static int copyto (lua_State *L)
+{
+  Protect(
+    const auto from = getStringStreamPath(L);
+    const auto to = getStringStreamPath(L, 2);
+
+    if (std::filesystem::is_regular_file(to))
+    {
+      std::filesystem::remove(to);
+    }
+
+    std::filesystem::copy_file(from, to);
+  );
+
+  return 0;
+}
+
+
+static int absolute (lua_State *L)
+{
+  Protect(
+    const auto f = getStringStreamPath(L);
+    const auto r = std::filesystem::absolute(f);
+    lua_pushstring(L, (const char*)r.u8string().c_str());
+  );
+
+  return 1;
+}
+
+
+static int makedir (lua_State *L)
+{
+  Protect(
+    const auto path = getStringStreamPath(L);
+    lua_pushboolean(L, std::filesystem::create_directory(path))
+  );
+
+  return 1;
+}
+
+
+/*
+  0.4.0 Changes:
+    - Second boolean parameter will toggle recursive iteration.
+    - Returns an empty table instead of throwing an error if 'f' is not a directory.
+*/
+static void listdir_r(lua_State* L, lua_Integer& i, const std::filesystem::path& f)
+{
   std::error_code ec;
-  const auto f = luaL_checkstring(L, 1);
-  const auto r = std::filesystem::absolute(f, ec);
-
-  if (ec)
+  std::filesystem::directory_iterator it(f, ec);
+  if (ec) return; /* skip this directory if we failed to enter it */
+  for (auto const& dir_entry : it)
   {
-    luaL_error(L, "%s (%d)", ec.message().c_str(), ec.value());
-  }
-
-  lua_pushstring(L, r.generic_string().c_str());
-  return 1;
-}
-
-
-static int makedir (lua_State *L) {
-  auto f = luaL_checkstring(L, 1);
-  lua_pushboolean(L, std::filesystem::create_directory(f));
-  return 1;
-}
-
-
-static int listdir (lua_State *L) {
-  auto f = luaL_checkstring(L, 1);
-  if (std::filesystem::is_directory(f)) {
-    size_t i = 0;
-    lua_newtable(L);
-    for (auto const& dir_entry : std::filesystem::directory_iterator { f })  {
-      lua_pushstring(L, dir_entry.path().generic_string().c_str());
-      lua_rawseti(L, -2, ++i);
+    lua_pushstring(L, (const char*)dir_entry.path().u8string().c_str());
+    lua_rawseti(L, -2, ++i);
+    if (dir_entry.is_directory())
+    {
+      listdir_r(L, i, dir_entry.path());
     }
   }
-  else {
-    luaL_error(L, "Argument 1 is not a valid path to a directory.");
-  }
+}
+
+static int listdir(lua_State *L)
+{
+  const char* const f = getStringStreamPath(L);
+  const auto recursive = lua_istrue(L, 2);
+  lua_newtable(L);
+  lua_Integer i = 0;
+  Protect(
+    for (auto const& dir_entry : std::filesystem::directory_iterator(f))
+    {
+      lua_pushstring(L, (const char*)dir_entry.path().u8string().c_str());
+      lua_rawseti(L, -2, ++i);
+      if (recursive && dir_entry.is_directory())
+      {
+        listdir_r(L, i, dir_entry.path());
+      }
+    }
+  );
   return 1;
+}
+
+
+static int l_remove(lua_State *L)
+{
+  const auto path = getStringStreamPath(L);;
+  const auto recursive = lua_istrue(L, 2);
+
+  Protect(
+    if (recursive)
+    {
+      std::filesystem::remove_all(path);
+    }
+    else
+    {
+      std::filesystem::remove(path);
+    }
+  );
+
+  return 0;
+}
+
+
+static int l_rename(lua_State *L)
+{
+  const auto oldP = getStringStreamPath(L);
+  const auto newP = luaL_checkstring(L, 2);
+
+  Protect(std::filesystem::rename(oldP, newP));
+
+  return 0;
 }
 
 
@@ -854,6 +948,8 @@ static int listdir (lua_State *L) {
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
+  {"rename", l_rename},
+  {"remove", l_remove},
   {"listdir", listdir},
   {"makedir", makedir},
   {"absolute", absolute},

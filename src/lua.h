@@ -13,7 +13,7 @@
 #include "luaconf.h"
 
 
-#define PLUTO_VERSION "Pluto 0.3.2"
+#define PLUTO_VERSION "Pluto 0.4.0"
 
 #define LUA_VERSION_MAJOR	"5"
 #define LUA_VERSION_MINOR	"4"
@@ -181,6 +181,7 @@ LUA_API int             (lua_isnumber) (lua_State *L, int idx);
 LUA_API int             (lua_isstring) (lua_State *L, int idx);
 LUA_API int             (lua_iscfunction) (lua_State *L, int idx);
 LUA_API int             (lua_isinteger) (lua_State *L, int idx);
+LUA_API int             (lua_istrue) (lua_State *L, int idx) noexcept;
 LUA_API int             (lua_isuserdata) (lua_State *L, int idx);
 LUA_API int             (lua_type) (lua_State *L, int idx);
 LUA_API const char     *(lua_typename) (lua_State *L, int tp);

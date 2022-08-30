@@ -54,12 +54,28 @@ static const luaL_Reg loadedlibs[] = {
 };
 
 
-LUALIB_API void luaL_openlibs (lua_State *L) {
+static const luaL_Reg preloadedLibs[] = {
+  {"crypto", luaopen_crypto},
+  {NULL, NULL}
+};
+
+
+LUALIB_API void luaL_openlibs (lua_State *L)
+{
   const luaL_Reg *lib;
-  /* "require" functions from 'loadedlibs' and set results to global table */
-  for (lib = loadedlibs; lib->func; lib++) {
+
+  for (lib = loadedlibs; lib->func; lib++)
+  {
     luaL_requiref(L, lib->name, lib->func, 1);
     lua_pop(L, 1);  /* remove lib */
+  }
+
+  for (lib = preloadedLibs; lib->func; lib++)
+  {  
+    luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
+    lua_pushcfunction(L, lib->func);
+    lua_setfield(L, -2, lib->name);
+    lua_pop(L, 1);
   }
 }
 

@@ -39,7 +39,7 @@ PLATS= guess aix bsd freebsd generic linux linux-readline macosx mingw posix sol
 
 LUA_A=	libpluto.a
 CORE_O=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o
-LIB_O=	lauxlib.o lbaselib.o lcorolib.o ldblib.o liolib.o lmathlib.o loadlib.o loslib.o lstrlib.o ltablib.o lutf8lib.o linit.o
+LIB_O=	lauxlib.o lbaselib.o lcorolib.o ldblib.o liolib.o lmathlib.o loadlib.o loslib.o lstrlib.o lcryptolib.o ltablib.o lutf8lib.o linit.o
 BASE_O= $(CORE_O) $(LIB_O) $(MYOBJS)
 
 LUA_T=	pluto
@@ -198,6 +198,7 @@ lstate.o: lstate.cpp lprefix.h lua.h luaconf.h lapi.h llimits.h lstate.h \
 lstring.o: lstring.cpp lprefix.h lua.h luaconf.h ldebug.h lstate.h \
  lobject.h llimits.h ltm.h lzio.h lmem.h ldo.h lstring.h lgc.h
 lstrlib.o: lstrlib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+lcryptolib.o: lcryptolib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h lcryptolib.hpp
 ltable.o: ltable.cpp lprefix.h lua.h luaconf.h ldebug.h lstate.h lobject.h \
  llimits.h ltm.h lzio.h lmem.h ldo.h lgc.h lstring.h ltable.h lvm.h
 ltablib.o: ltablib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h
