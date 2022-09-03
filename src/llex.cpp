@@ -218,7 +218,6 @@ static int llex(LexState* ls, SemInfo* seminfo);
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
                     int firstchar) {
   ls->t.token = 0;
-  ls->lasttoken = 0;
   ls->L = L;
   ls->current = firstchar;
   ls->z = z;
@@ -505,30 +504,30 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
 }
 
 /* assigns a reserved augmentation symbol to the lexer state token (ls->lasttoken) */
-static int llex_augmented (LexState *ls, int c) {
+static int llex_augmented (lua_Integer& i, int c) {
   switch (c) {
     case '+': {
-      ls->lasttoken = TK_CADD;
+      i = TK_CADD;
       return 1;
     }
     case '*': {
-      ls->lasttoken = TK_CMUL;
+      i = TK_CMUL;
       return 1;
     }
     case '%': {
-      ls->lasttoken = TK_CMOD;
+      i = TK_CMOD;
       return 1;
     }
     case '^': {
-      ls->lasttoken = TK_CPOW;
+      i = TK_CPOW;
       return 1;
     }
     case '|': {
-      ls->lasttoken = TK_CBOR;
+      i = TK_CBOR;
       return 1;
     }
     case '&': {
-      ls->lasttoken = TK_CBAND;
+      i = TK_CBAND;
       return 1;
     }
     default: {
@@ -556,7 +555,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         next(ls);
         if (check_next1(ls, '=')) { /* compound op */
           ls->appendLineBuff("-=");
-          ls->lasttoken = TK_CSUB;
+          seminfo->i = TK_CSUB;
           return '=';
         }
         else {
@@ -616,7 +615,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         else if (check_next1(ls, '<')) {
           if (check_next1(ls, '=')) {  /* compound support */
             ls->appendLineBuff("<<=");
-            ls->lasttoken = TK_CSHL;  /* <<= */
+            seminfo->i = TK_CSHL;  /* <<= */
             return '=';
           }
           else {
@@ -638,7 +637,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         else if (check_next1(ls, '>')) {
           if (check_next1(ls, '=')) {  /* compound support */
             ls->appendLineBuff(">>=");
-            ls->lasttoken = TK_CSHR;  /* >>= */
+            seminfo->i = TK_CSHR;  /* >>= */
             return '=';
           }
           else {
@@ -655,7 +654,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         next(ls);
         if (check_next1(ls, '=')) {  /* compound support */
           ls->appendLineBuff("/=");
-          ls->lasttoken = TK_CDIV;
+          seminfo->i = TK_CDIV;
           return '=';
         } else {
           if (check_next1(ls, '/')) {
@@ -665,7 +664,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             }
             else {  /* floor division compound support */
               ls->appendLineBuff("//=");
-              ls->lasttoken = TK_CIDIV;
+              seminfo->i = TK_CIDIV;
               return '=';
             }
           }
@@ -707,7 +706,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           else {
             if (check_next1(ls, '=')) {
               ls->appendLineBuff("..=");
-              ls->lasttoken = TK_CCAT;
+              seminfo->i = TK_CCAT;
               return '=';
             } else {
               ls->appendLineBuff("..");
@@ -787,7 +786,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         if (check_next1(ls, '?')) {
           if (check_next1(ls, '=')) {
             ls->appendLineBuff("?\?=");
-            ls->lasttoken = TK_COAL;
+            seminfo->i = TK_COAL;
             return '=';
           } else {
             ls->appendLineBuff("??");
@@ -803,13 +802,13 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         next(ls);
         if (check_next1(ls, '=')) {
           ls->appendLineBuff("*=");
-          ls->lasttoken = TK_CMUL;
+          seminfo->i = TK_CMUL;
           return '=';  /* '*=' */
         }
         else if (check_next1(ls, '*')) { /*  got '**' */  
           if (check_next1(ls, '=')) {  /* compound support; **= */
             ls->appendLineBuff("**=");
-            ls->lasttoken = TK_CPOW;
+            seminfo->i = TK_CPOW;
             return '=';
           }
           else {
@@ -829,7 +828,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         int c = ls->current;
         next(ls);
         if (check_next1(ls, '=')) {
-          if (llex_augmented(ls, c) != 1) {
+          if (llex_augmented(seminfo->i, c) != 1) {
             lexerror(ls, "unsupported augmented assignment", c);
           } else {
             ls->appendLineBuff(c);

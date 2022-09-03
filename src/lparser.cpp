@@ -2164,8 +2164,8 @@ static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
   returns a status (0 false, 1 true) and takes a pointer to set.
   this allows for seamless conditional implementation, avoiding a getcompoundop call for every Lua assignment.
 */
-static int getcompoundop (LexState *ls, BinOpr *op) {
-  switch (ls->lasttoken) {
+static int getcompoundop (lua_Integer i, BinOpr *op) {
+  switch (i) {
     case TK_CCAT: {
       *op = OPR_CONCAT;
       return 1;       /* concatenation */
@@ -2287,11 +2287,9 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
   }
   else {  /* restassign -> '=' explist */
     BinOpr op;  /* binary operation from lexer state */
-    int token = ls->lasttoken; /* lexer state token */
-    if (token != 0 && getcompoundop(ls, &op) != 0) {  /* is there a saved binop? */
+    if (getcompoundop(ls->t.seminfo.i, &op) != 0) {  /* is there a saved binop? */
       check_condition(ls, nvars == 1, "unsupported tuple assignment");
       compoundassign(ls, &lh->v, op);  /* perform binop & assignment */
-      ls->lasttoken = 0;  /* clear last token from lexer state */
       return;  /* avoid default */
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
