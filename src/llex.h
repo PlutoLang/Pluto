@@ -227,6 +227,7 @@ struct LexState {
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
   WarningConfig warning;  /* Configuration class for compile-time warnings. */
+  bool creating_multiple_variables = false;
 
   LexState()
     : lines { std::string {} }

@@ -287,7 +287,6 @@ typedef struct Labellist {
 
 /* dynamic structures used by the parser */
 typedef struct Dyndata {
-  bool creating_multiple_variables;
   struct {  /* list of all active local variables */
     Vardesc *arr;
     int n;
