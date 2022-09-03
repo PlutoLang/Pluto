@@ -90,6 +90,7 @@ typedef union {
 struct Token {
   int token;
   SemInfo seminfo;
+  int line;
 
   /*
   ** This could be implemented using operator overloading.
@@ -213,11 +214,12 @@ struct WarningConfig
 struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
-  int lastline;  /* line of last token 'consumed' */
+  int lastline = 0;  /* line of last token 'consumed' */
   int lasttoken;  /* save the last compound binary operator, if exists */
   Token laststat;  /* the last statement */
+  size_t tidx = -1;
+  std::vector<Token> tokens;
   Token t;  /* current token */
-  Token lookahead;  /* look ahead token */
   struct FuncState *fs;  /* current function (parser) */
   struct lua_State *L;
   ZIO *z;  /* input stream */
@@ -238,7 +240,7 @@ struct LexState {
   }
 
   [[nodiscard]] int getLineNumber() const noexcept {
-    return (int)lines.size();
+    return tidx == -1 ? 1 : tokens.at(tidx).line;
   }
 
 
@@ -294,8 +296,9 @@ LUAI_FUNC void luaX_setinput (lua_State *L, LexState *ls, ZIO *z,
 LUAI_FUNC TString *luaX_newstring (LexState *ls, const char *str, size_t l);
 LUAI_FUNC TString* luaX_newstring (LexState *ls, const char *str);
 LUAI_FUNC void luaX_next (LexState *ls);
-LUAI_FUNC int luaX_lookahead (LexState *ls);
-LUAI_FUNC void luaX_rewind (LexState *ls, int token);
+LUAI_FUNC void luaX_prev (LexState *ls);
+LUAI_FUNC int luaX_lookahead(LexState* ls);
+LUAI_FUNC const Token& luaX_lookbehind(LexState* ls);
 [[noreturn]] LUAI_FUNC void luaX_syntaxerror (LexState *ls, const char *s);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);

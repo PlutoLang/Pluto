@@ -214,19 +214,26 @@ static void inclinenumber (LexState *ls) {
 }
 
 
+static int llex(LexState* ls, SemInfo* seminfo);
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
                     int firstchar) {
   ls->t.token = 0;
   ls->lasttoken = 0;
   ls->L = L;
   ls->current = firstchar;
-  ls->lookahead.token = TK_EOS;  /* no look-ahead token */
   ls->z = z;
   ls->fs = NULL;
   ls->source = source;
   ls->envn = luaS_newliteral(L, LUA_ENV);  /* get env name */
   ls->warning = WarningConfig {};
   luaZ_resizebuffer(ls->L, ls->buff, LUA_MINBUFFER);  /* initialize buffer */
+
+  while (true) {  /* perform lexer pass */
+    Token& t = ls->tokens.emplace_back(Token{});
+    t.token = llex(ls, &t.seminfo);
+    t.line = (int)ls->lines.size();
+    if (t.token == TK_EOS) break;
+  }
 }
 
 
@@ -874,26 +881,33 @@ static int llex (LexState *ls, SemInfo *seminfo) {
 }
 
 
-void luaX_next (LexState *ls) {
+static void luaX_onPosUpdate (LexState *ls) {
+  /* update ls->t */
+  ls->t = ls->tokens.at(ls->tidx);
+  /* update ls->lastline */
+  --ls->tidx;
   ls->lastline = ls->getLineNumber();
-  if (ls->lookahead.token != TK_EOS) {  /* is there a look-ahead token? */
-    ls->t = ls->lookahead;  /* use this one */
-    ls->lookahead.token = TK_EOS;  /* and discharge it */
-  }
-  else
-    ls->t.token = llex(ls, &ls->t.seminfo);  /* read next token */
+  ++ls->tidx;
+}
+
+
+void luaX_next (LexState *ls) {
+  ++ls->tidx;
+  luaX_onPosUpdate(ls);
+}
+
+
+void luaX_prev (LexState *ls) {
+  --ls->tidx;
+  luaX_onPosUpdate(ls);
 }
 
 
 int luaX_lookahead (LexState *ls) {
-  lua_assert(ls->lookahead.token == TK_EOS);
-  ls->lookahead.token = llex(ls, &ls->lookahead.seminfo);
-  return ls->lookahead.token;
+  return ls->tokens.at(ls->tidx + 1).token;
 }
 
 
-void luaX_rewind (LexState *ls, int token) {
-  lua_assert(ls->lookahead.token == TK_EOS);
-  ls->lookahead = ls->t;
-  ls->t.token = token;
+const Token& luaX_lookbehind (LexState *ls) {
+  return ls->tokens.at(ls->tidx - 1);
 }
