@@ -215,7 +215,6 @@ struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
   int lastline = 0;  /* line of last token 'consumed' */
-  int lasttoken;  /* save the last compound binary operator, if exists */
   Token laststat;  /* the last statement */
   size_t tidx = -1;
   std::vector<Token> tokens;
