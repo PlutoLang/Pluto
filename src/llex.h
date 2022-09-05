@@ -230,6 +230,7 @@ struct LexState {
   WarningConfig warning;  /* Configuration class for compile-time warnings. */
   bool creating_multiple_variables = false;
   bool processing_funcargs = false;
+  void* inlinefunccall_bl = nullptr;
 
   LexState()
     : lines { std::string {} }

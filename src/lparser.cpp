@@ -1708,10 +1708,12 @@ static void inlinefunccall(LexState* ls, expdesc* f, int line, TypeDesc* funcdes
   adjust_assign(ls, nvars, nexps, &e);
   adjustlocalvars(ls, nvars);
 
+  ls->inlinefunccall_bl = &bl;
   auto pos = luaX_getpos(ls);
   luaX_setpos(ls, statlist_tidx);
   statlist(ls);
   luaX_setpos(ls, pos);
+  ls->inlinefunccall_bl = nullptr;
 
   leaveblock(fs);
 }
@@ -3028,6 +3030,10 @@ static void exprstat (LexState *ls) {
 static void retstat (LexState *ls, TypeDesc *prop) {
   /* stat -> RETURN [explist] [';'] */
   FuncState *fs = ls->fs;
+  if (ls->inlinefunccall_bl) {
+    luaK_concat(fs, &reinterpret_cast<BlockCnt*>(ls->inlinefunccall_bl)->breaklist, luaK_jump(fs));
+    return;
+  }
   expdesc e;
   int nret;  /* number of values being returned */
   int first = luaY_nvarstack(fs);  /* first slot to be returned */
