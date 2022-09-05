@@ -656,6 +656,22 @@ do
     assert(😉 == "Hello")
 end
 
+print "Testing inline functions."
+do
+    inline function inlinefunc_arg(a)
+        assert(a == "Hello")
+    end
+    inlinefunc_arg("Hello")
+
+    inline function inlinefunc_break(a)
+        if a then
+            return
+        end
+        assert(false)
+    end
+    inlinefunc_break(true)
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
