@@ -243,7 +243,6 @@ struct LexState {
     return tidx == -1 ? 1 : tokens.at(tidx).line;
   }
 
-
   /// Find a substring within the current line buffer.
   /// There is an overload that allows a line number as the first argument to search a specific line.
   [[nodiscard]] bool findWithinLine(const std::string& substr, int offset = 0) noexcept
@@ -282,6 +281,10 @@ struct LexState {
 
   void appendLineBuff(char c) {
     getLineBuff().push_back(c);
+  }
+
+  [[nodiscard]] bool isEvaluatingInlineFuncCall() const noexcept {
+    return inlinefunccall_bl != nullptr;
   }
 };
 

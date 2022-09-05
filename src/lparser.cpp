@@ -3030,7 +3030,7 @@ static void exprstat (LexState *ls) {
 static void retstat (LexState *ls, TypeDesc *prop) {
   /* stat -> RETURN [explist] [';'] */
   FuncState *fs = ls->fs;
-  if (ls->inlinefunccall_bl) {
+  if (ls->isEvaluatingInlineFuncCall()) {
     luaK_concat(fs, &reinterpret_cast<BlockCnt*>(ls->inlinefunccall_bl)->breaklist, luaK_jump(fs));
     return;
   }
