@@ -902,6 +902,17 @@ void luaX_prev (LexState *ls) {
 }
 
 
+size_t luaX_getpos (LexState *ls) {
+  return ls->tidx;
+}
+
+
+void luaX_setpos(LexState *ls, size_t pos) {
+  ls->tidx = pos;
+  luaX_onPosUpdate(ls);
+}
+
+
 int luaX_lookahead (LexState *ls) {
   return ls->tokens.at(ls->tidx + 1).token;
 }
