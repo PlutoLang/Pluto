@@ -257,7 +257,7 @@ typedef union Vardesc {
     lu_byte kind;
     TypeDesc hint;
     TypeDesc prop; /* type propagation */
-    size_t statlist_tidx; /* for inline functions */
+    size_t parlist_tidx; /* for inline functions */
     lu_byte ridx;  /* register holding the variable */
     short pidx;  /* index of the variable in the Proto's 'locvars' array */
     TString *name;  /* variable name */

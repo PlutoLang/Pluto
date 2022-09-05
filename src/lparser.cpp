@@ -554,7 +554,7 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
   var->vd.kind = VDKREG;  /* default */
   var->vd.hint = hint;
   var->vd.prop = VT_DUNNO;
-  var->vd.statlist_tidx = 0;
+  var->vd.parlist_tidx = 0;
   var->vd.name = name;
   var->vd.line = line;
   return dyd->actvar.n - 1 - fs->firstlocal;
@@ -1357,7 +1357,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 }
 
 
-static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop = nullptr, size_t *statlist_tidx = nullptr);
+static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop = nullptr, size_t *parlist_tidx = nullptr);
 static void funcfield (LexState *ls, struct ConsControl *cc) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
@@ -1443,7 +1443,7 @@ static void setvararg (FuncState *fs, int nparams) {
 }
 
 static void simpleexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDesc *prop = nullptr);
-static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
+static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr, bool only_create_locals = false) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -1477,6 +1477,9 @@ static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
       }
     } while (!isvararg && testnext(ls, ','));
   }
+  if (only_create_locals) {
+    return;
+  }
   adjustlocalvars(ls, nparams);
   f->numparams = cast_byte(fs->nactvar);
   if (isvararg)
@@ -1485,7 +1488,23 @@ static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
 }
 
 
-static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop, size_t *statlist_tidx) {
+static void process_fallbacks(LexState* ls, std::vector<expdesc>&& fallbacks, int vidx = 0) {
+  for (auto& fallback : fallbacks) {
+    if (fallback.k != VVOID) {
+      Vardesc *vd = getlocalvardesc(ls->fs, vidx);
+      expdesc lv;
+      singlevaraux(ls->fs, vd->vd.name, &lv, 1);
+      expdesc lcond = lv;
+      luaK_goifnil(ls->fs, &lcond);
+      luaK_storevar(ls->fs, &lv, &fallback);
+      luaK_patchtohere(ls->fs, lcond.t);
+    }
+    ++vidx;
+  }
+}
+
+
+static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop, size_t *parlist_tidx) {
   /* body ->  '(' parlist ')' block END */
   FuncState new_fs;
   BlockCnt bl;
@@ -1497,27 +1516,15 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     new_localvarliteral(ls, "self");  /* create 'self' parameter */
     adjustlocalvars(ls, 1);
   }
+  if (parlist_tidx) {
+    *parlist_tidx = ls->tidx;
+  }
   std::vector<expdesc> fallbacks{};
   parlist(ls, &fallbacks);
-  int fallback_idx = 0;
-  for (auto& fallback : fallbacks) {
-    if (fallback.k != VVOID) {
-      Vardesc *vd = getlocalvardesc(ls->fs, fallback_idx);
-      expdesc lv;
-      singlevaraux(ls->fs, vd->vd.name, &lv, 1);
-      expdesc lcond = lv;
-      luaK_goifnil(ls->fs, &lcond);
-      luaK_storevar(ls->fs, &lv, &fallback);
-      luaK_patchtohere(ls->fs, lcond.t);
-    }
-    ++fallback_idx;
-  }
+  process_fallbacks(ls, std::move(fallbacks));
   checknext(ls, ')');
   TypeDesc rethint = gettypehint(ls);
   TypeDesc p = VT_DUNNO;
-  if (statlist_tidx) {
-    *statlist_tidx = ls->tidx;
-  }
   statlist(ls, &p, true);
 #ifndef PLUTO_NO_PARSER_WARNINGS
   if (rethint.getType() != VT_DUNNO && /* has type hint for return type? */
@@ -1685,7 +1692,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
 }
 
 
-static void inlinefunccall(LexState* ls, expdesc* f, int line, TypeDesc* funcdesc, size_t statlist_tidx) {
+static void inlinefunccall(LexState* ls, expdesc* f, int line, TypeDesc* funcdesc, size_t parlist_tidx) {
   luaX_next(ls); /* skip '(' */
 
   FuncState* fs = ls->fs;
@@ -1695,10 +1702,14 @@ static void inlinefunccall(LexState* ls, expdesc* f, int line, TypeDesc* funcdes
   expdesc e;
   const auto nvars = funcdesc->getNumParams();
   int nexps = 0;
+  std::vector<expdesc> fallbacks{};
 
-  for (lu_byte i = 0; i != nvars; ++i) {
-    new_localvar(ls, funcdesc->proto->locvars[i].varname);
-  }
+  auto pos = luaX_getpos(ls);
+  luaX_setpos(ls, parlist_tidx);
+  parlist(ls, &fallbacks, true);
+  checknext(ls, ')');
+  auto statlist_tidx = luaX_getpos(ls);
+  luaX_setpos(ls, pos);
 
   if (!testnext(ls, ')')) {
     nexps = explist(ls, &e);
@@ -1707,9 +1718,10 @@ static void inlinefunccall(LexState* ls, expdesc* f, int line, TypeDesc* funcdes
 
   adjust_assign(ls, nvars, nexps, &e);
   adjustlocalvars(ls, nvars);
+  process_fallbacks(ls, std::move(fallbacks), ls->dyd->actvar.n - 1 - fs->firstlocal);
 
   ls->inlinefunccall_bl = &bl;
-  auto pos = luaX_getpos(ls);
+  pos = luaX_getpos(ls);
   luaX_setpos(ls, statlist_tidx);
   statlist(ls);
   luaX_setpos(ls, pos);
@@ -1876,9 +1888,9 @@ static void suffixedexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDe
             }
           }
         }
-        if (fvar && funcdesc && fvar->vd.statlist_tidx != 0 && /* inline function? */
+        if (fvar && funcdesc && fvar->vd.parlist_tidx != 0 && /* inline function? */
             ls->t.token == '(') { /* called in a way that we can inline? */
-          inlinefunccall(ls, v, line, funcdesc, fvar->vd.statlist_tidx);
+          inlinefunccall(ls, v, line, funcdesc, fvar->vd.parlist_tidx);
         }
         else {
           luaK_exp2nextreg(fs, v);
@@ -2882,12 +2894,12 @@ static void localfunc (LexState *ls, bool is_inline_function = false) {
   new_localvar(ls, str_checkname(ls, true));  /* new local variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
   TypeDesc funcdesc;
-  size_t statlist_tidx;
-  body(ls, &b, 0, ls->getLineNumber(), &funcdesc, &statlist_tidx);  /* function created in next register */
+  size_t parlist_tidx;
+  body(ls, &b, 0, ls->getLineNumber(), &funcdesc, &parlist_tidx);  /* function created in next register */
   Vardesc* vd = getlocalvardesc(fs, fvar);
   vd->vd.prop = std::move(funcdesc);
   if (is_inline_function) {
-    vd->vd.statlist_tidx = statlist_tidx;
+    vd->vd.parlist_tidx = parlist_tidx;
   }
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
