@@ -643,11 +643,11 @@ do
         error()
     end
 
-    local function walrus_test_helper(v1, v2)
+    --[[local function walrus_test_helper(v1, v2)
         assert(v1 == "hi")
         assert(v2 == nil)
     end
-    walrus_test_helper(c := "hi")
+    walrus_test_helper(c := "hi")]]
 end
 
 print "Testing non-ascii variable names."
