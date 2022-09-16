@@ -801,6 +801,8 @@ static void singlevar (LexState *ls, expdesc *var) {
     luaX_next(ls);
     if (ls->creating_multiple_variables)
       throwerr(ls, "unexpected ':=' while creating multiple variable", "unexpected ':='");
+    if (ls->processing_funcargs)
+      throwerr(ls, "unexpected ':=' while processing function arguments", "unexpected ':='");
     new_localvar(ls, varname);
     expr(ls, var);
     adjust_assign(ls, 1, 1, var);
@@ -1596,6 +1598,7 @@ static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
 }
 
 static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = nullptr) {
+  ls->processing_funcargs = true;
   FuncState *fs = ls->fs;
   expdesc args;
   std::vector<TypeDesc> argdescs;
@@ -1674,6 +1677,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
   luaK_fixline(fs, line);
   fs->freereg = base+1;  /* call remove function and arguments and leaves
                             (unless changed) one result */
+  ls->processing_funcargs = false;
 }
 
 
