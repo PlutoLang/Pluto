@@ -643,6 +643,18 @@ do
         error()
     end
 
+    -- Complex Context: Walrus in function body of a lambda function that is passed an argument
+    local function executeFunc(f)
+        f()
+    end
+    executeFunc(function()
+        if c := 3 then
+            assert(c == 3)
+        else
+            error()
+        end
+    end)
+
     --[[local function walrus_test_helper(v1, v2)
         assert(v1 == "hi")
         assert(v2 == nil)
