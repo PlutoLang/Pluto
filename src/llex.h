@@ -7,9 +7,10 @@
 
 #include <limits.h>
 
+#include <stack>
 #include <string>
-#include <vector>
 #include <string_view>
+#include <vector>
 
 #include "lobject.h"
 #include "lzio.h"
@@ -211,6 +212,14 @@ struct WarningConfig
 #pragma warning( disable: 26495 )
 #endif
 
+enum ParserContext {
+  PARCTX_NONE,
+  PARCTX_CREATE_VAR,
+  PARCTX_CREATE_VARS,
+  PARCTX_FUNCARGS,
+  PARCTX_BODY,
+};
+
 struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
@@ -228,14 +237,14 @@ struct LexState {
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
   WarningConfig warning;  /* Configuration class for compile-time warnings. */
-  bool creating_multiple_variables = false;
-  bool processing_funcargs = false;
+  std::stack<ParserContext> parser_context_stck{};
 
   LexState()
     : lines { std::string {} }
   {
     laststat = Token {};
     laststat.token = TK_EOS;
+    parser_context_stck.push(PARCTX_NONE); /* ensure there is at least 1 item on the parser context stack */
   }
 
   [[nodiscard]] int getLineNumber() const noexcept {
@@ -282,6 +291,16 @@ struct LexState {
   void appendLineBuff(char c) {
     getLineBuff().push_back(c);
   }
+
+  [[nodiscard]] ParserContext getContext() const noexcept {
+    return parser_context_stck.top();
+  }
+
+  void pushContext(ParserContext ctx) {
+    parser_context_stck.push(ctx);
+  }
+
+  void popContext(ParserContext ctx);
 };
 
 #if defined(_MSC_VER) && _MSC_VER && !__INTEL_COMPILER

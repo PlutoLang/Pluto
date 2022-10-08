@@ -72,6 +72,13 @@ static const char *const luaX_tokens [] = {
 [[noreturn]] static void lexerror (LexState *ls, const char *msg, int token);
 
 
+void LexState::popContext(ParserContext ctx) {
+  if (getContext() != ctx)
+    luaX_syntaxerror(this, "parser context stack corrupted");
+  parser_context_stck.pop();
+}
+
+
 static void save (LexState *ls, int c) {
   Mbuffer *b = ls->buff;
   if (luaZ_bufflen(b) + 1 > luaZ_sizebuffer(b)) {

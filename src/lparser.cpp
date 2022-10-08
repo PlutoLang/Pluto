@@ -799,9 +799,9 @@ static void singlevar (LexState *ls, expdesc *var) {
   TString *varname = str_checkname(ls);
   if (gett(ls) == TK_WALRUS) {
     luaX_next(ls);
-    if (ls->creating_multiple_variables)
+    if (ls->getContext() == PARCTX_CREATE_VARS)
       throwerr(ls, "unexpected ':=' while creating multiple variable", "unexpected ':='");
-    if (ls->processing_funcargs)
+    if (ls->getContext() == PARCTX_FUNCARGS)
       throwerr(ls, "unexpected ':=' while processing function arguments", "unexpected ':='");
     new_localvar(ls, varname);
     expr(ls, var);
@@ -1486,6 +1486,7 @@ static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
 
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop) {
   /* body ->  '(' parlist ')' block END */
+  ls->pushContext(PARCTX_BODY);
   FuncState new_fs;
   BlockCnt bl;
   new_fs.f = addprototype(ls);
@@ -1540,6 +1541,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   check_match(ls, TK_END, TK_FUNCTION, line);
   codeclosure(ls, e);
   close_func(ls);
+  ls->popContext(PARCTX_BODY);
 }
 
 
@@ -1598,7 +1600,7 @@ static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
 }
 
 static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = nullptr) {
-  ls->processing_funcargs = true;
+  ls->pushContext(PARCTX_FUNCARGS);
   FuncState *fs = ls->fs;
   expdesc args;
   std::vector<TypeDesc> argdescs;
@@ -1677,7 +1679,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
   luaK_fixline(fs, line);
   fs->freereg = base+1;  /* call remove function and arguments and leaves
                             (unless changed) one result */
-  ls->processing_funcargs = false;
+  ls->popContext(PARCTX_FUNCARGS);
 }
 
 
@@ -2298,9 +2300,10 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
       TypeDesc prop = VT_DUNNO;
-      ls->creating_multiple_variables = (nvars != 1);
+      ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
+      ls->pushContext(ctx);
       int nexps = explist(ls, &e, &prop);
-      ls->creating_multiple_variables = false;
+      ls->popContext(ctx);
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
       else {
@@ -2896,9 +2899,10 @@ static void localstat (LexState *ls) {
   } while (testnext(ls, ','));
   std::vector<TypeDesc> tds;
   if (testnext(ls, '=')) {
-    ls->creating_multiple_variables = (nvars != 1);
+    ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
+    ls->pushContext(ctx);
     nexps = explist(ls, &e, tds);
-    ls->creating_multiple_variables = false;
+    ls->popContext(ctx);
   }
   else {
     e.k = VVOID;
