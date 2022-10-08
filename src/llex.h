@@ -297,7 +297,7 @@ LUAI_FUNC TString* luaX_newstring (LexState *ls, const char *str);
 LUAI_FUNC void luaX_next (LexState *ls);
 LUAI_FUNC void luaX_prev (LexState *ls);
 [[nodiscard]] LUAI_FUNC size_t luaX_getpos(LexState *ls);
-LUAI_FUNC void luaX_setpos(LexState* ls, size_t pos);
+LUAI_FUNC void luaX_setpos(LexState *ls, size_t pos);
 LUAI_FUNC int luaX_lookahead(LexState *ls);
 LUAI_FUNC const Token& luaX_lookbehind(LexState *ls);
 [[noreturn]] LUAI_FUNC void luaX_syntaxerror (LexState *ls, const char *s);
