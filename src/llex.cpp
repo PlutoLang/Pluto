@@ -73,6 +73,7 @@ static const char *const luaX_tokens [] = {
 
 
 void LexState::popContext(ParserContext ctx) {
+  lua_assert(ctx != PARCTX_NONE);
   if (getContext() != ctx)
     luaX_syntaxerror(this, "parser context stack corrupted");
   parser_context_stck.pop();
