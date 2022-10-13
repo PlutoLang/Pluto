@@ -685,6 +685,11 @@ do
         goto if_then_goto_test
         ::if_then_goto_test::
     end
+
+    local function compat_default_name(default)
+        assert(default == "yes")
+    end
+    compat_default_name("yes")
 end
 
 print "Finished."

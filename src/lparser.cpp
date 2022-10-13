@@ -363,9 +363,14 @@ static void check_match (LexState *ls, int what, int who, int where) {
 }
 
 
+[[nodiscard]] static bool isnametkn(LexState *ls, bool strict = false) {
+  return ls->t.token == TK_NAME || ls->t.IsNarrow() || (!strict && ls->t.IsReservedNonValue());
+}
+
+
 static TString *str_checkname (LexState *ls, bool strict = false) {
   TString *ts;
-  if (ls->t.token != TK_NAME && (strict || !ls->t.IsReservedNonValue())) {
+  if (!isnametkn(ls)) {
     error_expected(ls, TK_NAME);
   }
   ts = ls->t.seminfo.ts;
@@ -1450,30 +1455,26 @@ static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
   int isvararg = 0;
   if (ls->t.token != ')' && ls->t.token != '|') {  /* is 'parlist' not empty? */
     do {
-      switch (ls->t.token) {
-        case TK_NAME: {
-          auto parname = str_checkname(ls, true);
-          auto parhint = gettypehint(ls);
-          new_localvar(ls, parname, parhint);
-          if (fallbacks) {
-            expdesc* parfallback = &fallbacks->emplace_back(expdesc{});
-            if (testnext(ls, '=')) {
-              simpleexp(ls, parfallback);
-              if (!vkisconst(parfallback->k)) {
-                luaX_syntaxerror(ls, "parameter fallback value must be a compile-time constant");
-              }
+      if (isnametkn(ls, true)) {
+        auto parname = str_checkname(ls, true);
+        auto parhint = gettypehint(ls);
+        new_localvar(ls, parname, parhint);
+        if (fallbacks) {
+          expdesc* parfallback = &fallbacks->emplace_back(expdesc{});
+          if (testnext(ls, '=')) {
+            simpleexp(ls, parfallback);
+            if (!vkisconst(parfallback->k)) {
+              luaX_syntaxerror(ls, "parameter fallback value must be a compile-time constant");
             }
           }
-          nparams++;
-          break;
         }
-        case TK_DOTS: {
-          luaX_next(ls);
-          isvararg = 1;
-          break;
-        }
-        default: luaX_syntaxerror(ls, "<name> or '...' expected");
+        nparams++;
       }
+      else if (ls->t.token == TK_DOTS) {
+        luaX_next(ls);
+        isvararg = 1;
+      }
+      else luaX_syntaxerror(ls, "<name> or '...' expected");
     } while (!isvararg && testnext(ls, ','));
   }
   adjustlocalvars(ls, nparams);
@@ -1752,6 +1753,10 @@ static void safe_navigation(LexState *ls, expdesc *v) {
 
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
+  if (isnametkn(ls)) {
+    singlevar(ls, v);
+    return;
+  }
   switch (ls->t.token) {
     case '(': {
       int line = ls->getLineNumber();
@@ -1759,10 +1764,6 @@ static void primaryexp (LexState *ls, expdesc *v) {
       expr(ls, v);
       check_match(ls, ')', '(', line);
       luaK_dischargevars(ls->fs, v);
-      return;
-    }
-    case TK_NAME: {
-      singlevar(ls, v);
       return;
     }
     case '}':
