@@ -6,7 +6,7 @@
 
 namespace Pluto // Decided to create the first instance of 'namespace' in this project. Figuring I'll put Pluto-related utility in here for now.
 {
-	struct Error
+	class Error
 	{
 	private:
 		LexState* ls;
@@ -77,6 +77,12 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 		void finalize()
 		{
 			lua_pushstring(ls->L, this->content.c_str());
+		}
+
+		[[noreturn]] void finalizeAndThrow()
+		{
+			this->finalize();
+			luaD_throw(ls->L, LUA_ERRSYNTAX);
 		}
 	};
 }
