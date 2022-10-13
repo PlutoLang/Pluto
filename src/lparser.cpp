@@ -1922,6 +1922,38 @@ static BinOpr getbinopr (int op) {
   }
 }
 
+
+static void prefixplusplus(LexState *ls, expdesc* v) {
+  int line = ls->getLineNumber();
+  luaX_next(ls); /* skip second '+' */
+  singlevar(ls, v); /* variable name */
+  FuncState *fs = ls->fs;
+  expdesc e = *v, v2;
+  if (v->k != VLOCAL) {  /* complex lvalue, use a temporary register. linear perf incr. with complexity of lvalue */
+    luaK_reserveregs(fs, fs->freereg-fs->nactvar);
+    enterlevel(ls);
+    luaK_infix(fs, OPR_ADD, &e);
+    init_exp(&v2, VKINT, 0);
+    v2.u.ival = 1;
+    luaK_posfix(fs, OPR_ADD, &e, &v2, line);
+    leavelevel(ls);
+    luaK_exp2nextreg(fs, &e);
+    luaK_setoneret(ls->fs, &e);
+    luaK_storevar(ls->fs, v, &e);
+  }
+  else {  /* simple lvalue; a local. directly change value (~20% speedup vs temporary register) */
+    enterlevel(ls);
+    luaK_infix(fs, OPR_ADD, &e);
+    init_exp(&v2, VKINT, 0);
+    v2.u.ival = 1;
+    luaK_posfix(fs, OPR_ADD, &e, &v2, line);
+    leavelevel(ls);
+    luaK_setoneret(ls->fs, &e);
+    luaK_storevar(ls->fs, v, &e);
+  }
+}
+
+
 /*
 ** Priority table for binary operators.
 */
@@ -1961,16 +1993,21 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
   else if (ls->t.token == '+') {
-    /* support pseudo-unary '+' by implying '0 + subexpr' */
-    init_exp(v, VKINT, 0);
-    v->u.ival = 0;
-    luaK_infix(ls->fs, OPR_ADD, v);
-
-    expdesc v2;
     int line = ls->getLineNumber();
     luaX_next(ls); /* skip '+' */
-    subexpr(ls, &v2, priority[OPR_ADD].right);
-    luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
+    if (ls->t.token == '+') { /* '++' ? */
+      prefixplusplus(ls, v);
+    }
+    else {
+      /* support pseudo-unary '+' by implying '0 + subexpr' */
+      init_exp(v, VKINT, 0);
+      v->u.ival = 0;
+      luaK_infix(ls->fs, OPR_ADD, v);
+
+      expdesc v2;
+      subexpr(ls, &v2, priority[OPR_ADD].right);
+      luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
+    }
   }
   else {
     simpleexp(ls, v, no_colon, prop);
