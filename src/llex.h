@@ -93,13 +93,6 @@ struct Token {
   SemInfo seminfo;
   int line;
 
-  /*
-  ** This could be implemented using operator overloading.
-  ** I dislike this approach because it's unnecessarily ambiguous. 
-  ** I tend to avoid overloading as a whole, because it's typically unclear.
-  **
-  ** - Ryan
-  */
   [[nodiscard]] bool Is(int t) const noexcept
   {
     return token == t;

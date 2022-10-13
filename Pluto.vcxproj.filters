@@ -67,5 +67,6 @@
     <ClInclude Include="src\ltable.h" />
     <ClInclude Include="src\ljumptab.h" />
     <ClInclude Include="src\lcryptolib.hpp" />
+    <ClInclude Include="src\ErrorMessage.hpp" />
   </ItemGroup>
 </Project>

@@ -187,6 +187,7 @@
     <ClCompile Include="src\lzio.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ErrorMessage.hpp" />
     <ClInclude Include="src\lapi.h" />
     <ClInclude Include="src\lauxlib.h" />
     <ClInclude Include="src\lcode.h" />
