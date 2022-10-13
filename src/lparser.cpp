@@ -107,9 +107,7 @@ static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, bool no_co
 ** Throws a warning into standard output, which will not close the program.
 */
 static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
-  const std::string& linebuff = ls->getLineString(line);
-  const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
-  if (lastattr.find("@pluto_warnings: disable-next") == std::string::npos && ls->warning.Get(warningType)) {
+  if (ls->callsForSilence(line, warningType)) {
     Pluto::Error msg{ ls, luaG_addinfo(ls->L, "warning: ", ls->source, line) };
     msg.addMsg(err)
       .addSrcLine(line)
@@ -126,20 +124,12 @@ static void throw_warn(LexState *ls, const char *err, const char *here, WarningT
 
 // TO-DO: Warning suppression attribute support for this overload. Don't know where it's used atm.
 static void throw_warn(LexState *ls, const char *err, int line, WarningType warningType) {
-  const std::string& linebuff = ls->getLineString(line);
-  const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
-  if (lastattr.find("@pluto_warnings: disable-next") == std::string::npos && ls->warning.Get(warningType)) {
+  if (ls->callsForSilence(line, warningType)) {
     auto msg = luaG_addinfo(ls->L, err, ls->source, line);
     lua_warning(ls->L, msg, 0);
     ls->L->top -= 1; /* remove warning from stack */
   }
 }
-
-/*
-static void throw_warn(LexState *ls, const char *err) {
-  return throw_warn(ls, err, ls->getLineNumber());
-}
-*/
 #endif
 
 

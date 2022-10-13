@@ -269,6 +269,14 @@ struct LexState {
     return str.find(substr, offset) != std::string::npos;
   }
 
+  // Does the last relevant source line call for warning silence?
+  [[nodiscard]] bool callsForSilence(int line, WarningType warning_type)
+  {
+    const auto& linebuff = this->getLineString(line);
+    const auto& lastattr = line > 1 ? this->getLineString(line - 1) : linebuff;
+    return lastattr.find("@pluto_warnings: disable-next") == std::string::npos && this->warning.Get(warning_type);
+  }
+
   [[nodiscard]] int getLineNumberOfLastNonEmptyLine() const noexcept {
     for (int line = getLineNumber(); line != 0; --line) {
       if (!getLineString(line).empty()) {
