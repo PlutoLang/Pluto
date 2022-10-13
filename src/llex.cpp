@@ -167,19 +167,19 @@ static const char *txtToken (LexState *ls, int token) {
     if (ls->t.IsReserved())
     {
       err.addMsg(", but found reserved keyword ")
-        ->addMsg(txtToken(ls, token))
-        ->addSrcLine(ls->getLineNumber())
-        ->addGenericHere("reserved keyword cannot be used in this context.")
-        ->addNote("Reserved keywords *can* be used outside of relevant contexts, but this is a relevant context!")
-        ->finalize();
+         .addMsg(txtToken(ls, token))
+         .addSrcLine(ls->getLineNumber())
+         .addGenericHere("reserved keyword cannot be used in this context.")
+         .addNote("Reserved keywords *can* be used outside of relevant contexts, but this is a relevant context!")
+         .finalize();
     }
     else
     {
       err.addMsg(" near ")
-        ->addMsg(txtToken(ls, token))
-        ->addSrcLine(ls->getLineNumber())
-        ->addGenericHere()
-        ->finalize();
+         .addMsg(txtToken(ls, token))
+         .addSrcLine(ls->getLineNumber())
+         .addGenericHere()
+         .finalize();
     }
   }
   luaD_throw(ls->L, LUA_ERRSYNTAX);

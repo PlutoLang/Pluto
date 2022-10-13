@@ -26,13 +26,13 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 		{
 		}
 
-		Error* addMsg(const std::string& msg)
+		Error& addMsg(const std::string& msg)
 		{
 			this->content.append(msg);
-			return this;
+			return *this;
 		}
 
-		Error* addSrcLine(int line)
+		Error& addSrcLine(int line)
 		{
 			const auto line_string = this->ls->getLineString(line);
 			const auto init_len = this->content.length();
@@ -42,35 +42,35 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 			this->line_len = this->content.length() - init_len - 3;
 			this->src_len += line_string.length();
 			this->content.append(line_string);
-			return this;
+			return *this;
 		}
 
-		Error* addGenericHere(const std::string& msg) // TO-DO: Add '^^^' strings for specific keywords. Not accurate with a simple string search.
+		Error& addGenericHere(const std::string& msg) // TO-DO: Add '^^^' strings for specific keywords. Not accurate with a simple string search.
 		{
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
 			this->content.append(std::string(this->src_len, '^'));
 			this->content.append(" here: ");
 			this->content.append(msg);
-			return this;
+			return *this;
 		}
 
-		Error* addGenericHere()
+		Error& addGenericHere()
 		{
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
 			this->content.append(std::string(this->src_len, '^'));
 			this->content.append(" here");
-			return this;
+			return *this;
 		}
 
-		Error* addNote(const std::string& msg)
+		Error& addNote(const std::string& msg)
 		{
 			const auto pad = std::string(this->line_len, ' ');
 			this->content.push_back('\n');
 			this->content.append(pad + "+ note: ");
 			this->content.append(msg);
-			return this;
+			return *this;
 		}
 
 		// Pushes the string to the stack for luaD_throw to conveniently pick up.
