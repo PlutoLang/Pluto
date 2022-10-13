@@ -79,8 +79,12 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 			lua_pushstring(ls->L, this->content.c_str());
 		}
 
-		[[noreturn]] void finalizeAndThrow()
+		[[noreturn]] void finalizeAndThrow(const bool clear_token = false)
 		{
+			if (clear_token) // luaK_semerror replacement.
+			{
+				ls->t.token = 0;
+			}
 			this->finalize();
 			luaD_throw(ls->L, LUA_ERRSYNTAX);
 		}
