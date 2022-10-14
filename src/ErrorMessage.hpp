@@ -6,7 +6,7 @@
 
 namespace Pluto // Decided to create the first instance of 'namespace' in this project. Figuring I'll put Pluto-related utility in here for now.
 {
-	class Error
+	class ErrorMessage
 	{
 	private:
 		LexState* ls;
@@ -16,23 +16,23 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 	public:
 		std::string content{};
 
-		Error(LexState* ls)
+		ErrorMessage(LexState* ls)
 			: ls(ls)
 		{
 		}
 
-		Error(LexState* ls, const std::string& initial_msg)
+		ErrorMessage(LexState* ls, const std::string& initial_msg)
 			: ls(ls), content(initial_msg)
 		{
 		}
 
-		Error& addMsg(const std::string& msg)
+		ErrorMessage& addMsg(const std::string& msg)
 		{
 			this->content.append(msg);
 			return *this;
 		}
 
-		Error& addSrcLine(int line)
+		ErrorMessage& addSrcLine(int line)
 		{
 			const auto line_string = this->ls->getLineString(line);
 			const auto init_len = this->content.length();
@@ -45,7 +45,7 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 			return *this;
 		}
 
-		Error& addGenericHere(const std::string& msg) // TO-DO: Add '^^^' strings for specific keywords. Not accurate with a simple string search.
+		ErrorMessage& addGenericHere(const std::string& msg) // TO-DO: Add '^^^' strings for specific keywords. Not accurate with a simple string search.
 		{
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
@@ -55,7 +55,7 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 			return *this;
 		}
 
-		Error& addGenericHere()
+		ErrorMessage& addGenericHere()
 		{
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
@@ -64,7 +64,7 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 			return *this;
 		}
 
-		Error& addNote(const std::string& msg)
+		ErrorMessage& addNote(const std::string& msg)
 		{
 			const auto pad = std::string(this->line_len, ' ');
 			this->content.push_back('\n');
