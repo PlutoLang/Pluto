@@ -305,7 +305,7 @@ static void check_match (LexState *ls, int what, int who, int where) {
 
 static TString *str_checkname (LexState *ls, bool strict = false) {
   TString *ts;
-  if (!isnametkn(ls)) {
+  if (!isnametkn(ls, strict)) {
     error_expected(ls, TK_NAME);
   }
   ts = ls->t.seminfo.ts;

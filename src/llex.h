@@ -204,7 +204,7 @@ struct WarningConfig
     }
   }
 
-  const char* getWarningName(const WarningType w) const noexcept
+  [[nodiscard]] const char* getWarningName(const WarningType w) const noexcept
   {
     return luaX_warnNames[(int)w].c_str();
   }
@@ -255,7 +255,7 @@ struct LexState {
   }
 
   [[nodiscard]] int getLineNumber() const noexcept {
-    return tidx == -1 ? 1 : tokens.at(tidx).line;
+    return tidx == (size_t)-1 ? 1 : tokens.at(tidx).line;
   }
 
 
