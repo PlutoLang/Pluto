@@ -2045,8 +2045,9 @@ static void postfixplusplus(LexState *ls, expdesc *v) {
   singlevar(ls, v); /* consume variable name */
 
   /* store variable's value at this point */
-  luaK_exp2nextreg(ls->fs, v);
-  luaK_setoneret(ls->fs, v);
+  FuncState *fs = ls->fs;
+  luaK_exp2nextreg(fs, v);
+  luaK_setoneret(fs, v);
 
   /* make another expression for the variable */
   expdesc e, v2;
@@ -2055,10 +2056,10 @@ static void postfixplusplus(LexState *ls, expdesc *v) {
 
   /* and increment it now */
   enterlevel(ls);
-  luaK_infix(ls->fs, OPR_ADD, &e);
+  luaK_infix(fs, OPR_ADD, &e);
   init_exp(&v2, VKINT, 0);
   v2.u.ival = 1;
-  luaK_posfix(ls->fs, OPR_ADD, &e, &v2, line);
+  luaK_posfix(fs, OPR_ADD, &e, &v2, line);
   leavelevel(ls);
 
   /* skip ahead */
