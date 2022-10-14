@@ -90,7 +90,7 @@ static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, bool no_co
 */
 [[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here, int line) {
   err = luaG_addinfo(ls->L, err, ls->source, line);
-  Pluto::ErrorMessage msg{ ls, "syntax error: " }; // We'll only throw syntax errors if 'throwerr' is called
+  Pluto::ErrorMessage msg{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
   msg.addMsg(err)
     .addSrcLine(line)
     .addGenericHere(here)
@@ -108,7 +108,7 @@ static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, bool no_co
 */
 static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
   if (ls->callsForSilence(line, warningType)) {
-    Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, "warning: ", ls->source, line) };
+    Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
     msg.addMsg(err)
       .addSrcLine(line)
       .addGenericHere(here)
@@ -277,7 +277,7 @@ static void check_match (LexState *ls, int what, int who, int where) {
           }
         }
         default: {
-          Pluto::ErrorMessage err{ ls, "syntax error: " }; // Doesn't use throwerr since I replicated old code. Couldn't find problematic code to repro error, so went safe.
+          Pluto::ErrorMessage err{ ls, RED "syntax error: " BWHT }; // Doesn't use throwerr since I replicated old code. Couldn't find problematic code to repro error, so went safe.
           err.addMsg(luaX_token2str(ls, what))
             .addMsg(" expected (to close ")
             .addMsg(luaX_token2str(ls, who))

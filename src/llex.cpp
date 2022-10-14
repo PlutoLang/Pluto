@@ -163,7 +163,8 @@ static const char *txtToken (LexState *ls, int token) {
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->getLineNumber());
   if (token)
   {
-    Pluto::ErrorMessage err{ ls, msg };
+    Pluto::ErrorMessage err{ ls, HRED "syntax error: " BWHT};
+    err.addMsg(msg);
     if (ls->t.IsReserved())
     {
       err.addMsg(", but found reserved keyword ")

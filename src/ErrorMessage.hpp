@@ -49,9 +49,9 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 		{
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
-			this->content.append(std::string(this->src_len, '^'));
+			this->content.append(HBLU + std::string(this->src_len, '^'));
 			this->content.append(" here: ");
-			this->content.append(msg);
+			this->content.append(msg + RESET);
 			return *this;
 		}
 
@@ -59,8 +59,9 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 		{
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
-			this->content.append(std::string(this->src_len, '^'));
+			this->content.append(HBLU + std::string(this->src_len, '^'));
 			this->content.append(" here");
+			this->content.append(RESET);
 			return *this;
 		}
 
@@ -68,7 +69,7 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 		{
 			const auto pad = std::string(this->line_len, ' ');
 			this->content.push_back('\n');
-			this->content.append(pad + "+ note: ");
+			this->content.append(pad + HCYN + "+ note: " + RESET);
 			this->content.append(msg);
 			return *this;
 		}
@@ -76,6 +77,7 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 		// Pushes the string to the stack for luaD_throw to conveniently pick up.
 		void finalize()
 		{
+			this->content.append(RESET);
 			lua_pushstring(ls->L, this->content.c_str());
 		}
 
