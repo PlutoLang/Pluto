@@ -416,7 +416,7 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int l
       ls->L->top--;
     }
     else {  /* Throw a generic mismatch warning. */
-      throw_warn(ls, err.c_str(), "type mismatch", line, TYPE_MISMATCH);
+      throw_warn(ls, "variable type mismatch", err.c_str(), line, TYPE_MISMATCH);
     }
   }
 #endif
