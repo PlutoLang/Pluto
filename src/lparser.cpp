@@ -106,9 +106,13 @@ static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, bool no_co
 /*
 ** Throws a warning into standard output, which will not close the program.
 */
-static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
+static void throw_warn (LexState *ls, const char *raw_err, const char *here, int line, WarningType warningType) {
+  std::string err(raw_err);
   if (ls->callsForSilence(line, warningType)) {
     Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
+    err.append(" [");
+    err.append(ls->warning.getWarningName(warningType));
+    err.push_back(']');
     msg.addMsg(err)
       .addSrcLine(line)
       .addGenericHere(here)
@@ -118,7 +122,7 @@ static void throw_warn (LexState *ls, const char *err, const char *here, int lin
   }
 }
 
-static void throw_warn(LexState *ls, const char *err, const char *here, WarningType warningType) {
+static void throw_warn(LexState *ls, const char* err, const char *here, WarningType warningType) {
   return throw_warn(ls, err, here, ls->getLineNumber(), warningType);
 }
 

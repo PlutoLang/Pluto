@@ -203,6 +203,11 @@ struct WarningConfig
       }
     }
   }
+
+  const char* getWarningName(const WarningType w) const noexcept
+  {
+    return luaX_warnNames[(int)w].c_str();
+  }
 };
 
 
