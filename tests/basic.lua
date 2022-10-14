@@ -662,6 +662,13 @@ do
     walrus_test_helper(c := "hi")]]
 end
 
+print "Testing ++ operator."
+do
+    local a = 1
+    assert(++a == 2)
+    assert(a == 2)
+end
+
 print "Testing non-ascii variable names."
 do
     local 😉 = "Hello"
