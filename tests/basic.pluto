@@ -721,6 +721,10 @@ do
     local a = 1
     assert(++a == 2)
     assert(a == 2)
+
+    local b = 1
+    assert(b++ == 1)
+    assert(b == 2)
 end
 
 print "Testing non-ascii variable names."

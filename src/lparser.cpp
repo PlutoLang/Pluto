@@ -2008,7 +2008,7 @@ static BinOpr getbinopr (int op) {
 }
 
 
-static void prefixplusplus(LexState *ls, expdesc* v) {
+static void prefixplusplus(LexState *ls, expdesc *v) {
   int line = ls->getLineNumber();
   luaX_next(ls); /* skip second '+' */
   singlevar(ls, v); /* variable name */
@@ -2036,6 +2036,34 @@ static void prefixplusplus(LexState *ls, expdesc* v) {
     luaK_setoneret(ls->fs, &e);
     luaK_storevar(ls->fs, v, &e);
   }
+}
+
+
+static void postfixplusplus(LexState *ls, expdesc *v) {
+  int line = ls->getLineNumber();
+  luaX_prev(ls); /* rewind to variable name */
+  singlevar(ls, v); /* consume variable name */
+
+  /* store variable's value at this point */
+  luaK_exp2nextreg(ls->fs, v);
+  luaK_setoneret(ls->fs, v);
+
+  /* make another expression for the variable */
+  expdesc e, v2;
+  luaX_prev(ls);
+  singlevar(ls, &e);
+
+  /* and increment it now */
+  enterlevel(ls);
+  luaK_infix(ls->fs, OPR_ADD, &e);
+  init_exp(&v2, VKINT, 0);
+  v2.u.ival = 1;
+  luaK_posfix(ls->fs, OPR_ADD, &e, &v2, line);
+  leavelevel(ls);
+
+  /* skip ahead */
+  luaX_next(ls); /* first + */
+  luaX_next(ls); /* second + */
 }
 
 
@@ -2080,7 +2108,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
   else if (ls->t.token == '+') {
     int line = ls->getLineNumber();
     luaX_next(ls); /* skip '+' */
-    if (ls->t.token == '+') { /* '++' ? */
+    if (ls->t.token == '+') { /* prefix ++ ? */
       prefixplusplus(ls, v);
     }
     else {
@@ -2100,6 +2128,9 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
       inexpr(ls, v);
       if (prop) *prop = VT_BOOL;
     }
+  }
+  if (ls->t.token == '+' && luaX_lookahead(ls) == '+') { /* postfix ++ ?*/
+    postfixplusplus(ls, v);
   }
   /* expand while operators have priorities higher than 'limit' */
   op = getbinopr(ls->t.token);
