@@ -275,7 +275,7 @@ struct LexState {
   }
 
   // Does the last relevant source line call for warning silence?
-  [[nodiscard]] bool callsForSilence(int line, WarningType warning_type)
+  [[nodiscard]] bool shouldEmitWarning(int line, WarningType warning_type)
   {
     const auto& linebuff = this->getLineString(line);
     const auto& lastattr = line > 1 ? this->getLineString(line - 1) : linebuff;

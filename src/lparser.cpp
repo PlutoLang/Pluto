@@ -108,7 +108,7 @@ static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, bool no_co
 */
 static void throw_warn (LexState *ls, const char *raw_err, const char *here, int line, WarningType warningType) {
   std::string err(raw_err);
-  if (ls->callsForSilence(line, warningType)) {
+  if (ls->shouldEmitWarning(line, warningType)) {
     Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
     err.append(" [");
     err.append(ls->warning.getWarningName(warningType));
@@ -128,7 +128,7 @@ static void throw_warn(LexState *ls, const char* err, const char *here, WarningT
 
 // TO-DO: Warning suppression attribute support for this overload. Don't know where it's used atm.
 static void throw_warn(LexState *ls, const char *err, int line, WarningType warningType) {
-  if (ls->callsForSilence(line, warningType)) {
+  if (ls->shouldEmitWarning(line, warningType)) {
     auto msg = luaG_addinfo(ls->L, err, ls->source, line);
     lua_warning(ls->L, msg, 0);
     ls->L->top -= 1; /* remove warning from stack */
