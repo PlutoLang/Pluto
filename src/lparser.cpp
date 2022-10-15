@@ -103,9 +103,7 @@ static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, bool no_co
 
 
 #ifndef PLUTO_NO_PARSER_WARNINGS
-/*
-** Throws a warning into standard output, which will not close the program.
-*/
+// No note.
 static void throw_warn (LexState *ls, const char *raw_err, const char *here, int line, WarningType warningType) {
   std::string err(raw_err);
   if (ls->shouldEmitWarning(line, warningType)) {
@@ -116,6 +114,24 @@ static void throw_warn (LexState *ls, const char *raw_err, const char *here, int
     msg.addMsg(err)
       .addSrcLine(line)
       .addGenericHere(here)
+      .finalize();
+    lua_warning(ls->L, msg.content.c_str(), 0);
+    ls->L->top -= 2; // Pluto::Error::finalize & luaG_addinfo
+  }
+}
+
+// Note.
+static void throw_warn(LexState* ls, const char* raw_err, const char* here, const char* note, int line, WarningType warningType) {
+  std::string err(raw_err);
+  if (ls->shouldEmitWarning(line, warningType)) {
+    Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
+    err.append(" [");
+    err.append(ls->warning.getWarningName(warningType));
+    err.push_back(']');
+    msg.addMsg(err)
+      .addSrcLine(line)
+      .addGenericHere(here)
+      .addNote(note)
       .finalize();
     lua_warning(ls->L, msg.content.c_str(), 0);
     ls->L->top -= 2; // Pluto::Error::finalize & luaG_addinfo
@@ -407,13 +423,13 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int l
     const auto hint = var->vd.hint.toString();
     std::string err = var->vd.name->toCpp();
     err.insert(0, "'");
-    err.append("' was type-hinted as '" + hint);
-    err.append("', but is assigned a ");
+    err.append("' type-hinted as '" + hint);
+    err.append("', but assigned a ");
     err.append(td.toString());
     err.append(" value.");
     if (td.getType() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
-      throw_warn(ls, err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line, TYPE_MISMATCH);
-      ls->L->top--;
+      throw_warn(ls, "variable type mismatch", err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line, TYPE_MISMATCH);
+      ls->L->top--; // luaO_fmt
     }
     else {  /* Throw a generic mismatch warning. */
       throw_warn(ls, "variable type mismatch", err.c_str(), line, TYPE_MISMATCH);
