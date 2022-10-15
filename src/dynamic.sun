@@ -1,2 +1,4 @@
 +*.cpp
+-lua.cpp
+-luac.cpp
 dynamic
