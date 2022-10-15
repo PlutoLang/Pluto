@@ -120,6 +120,10 @@ struct Token {
 #ifndef PLUTO_COMPATIBLE_DEFAULT
       || token == TK_DEFAULT
 #endif
+      || token == TK_PCASE
+#ifndef PLUTO_COMPATIBLE_CASE
+      || token == TK_CASE
+#endif
       ;
   }
 };
