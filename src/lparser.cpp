@@ -1754,44 +1754,6 @@ static void safe_navigation(LexState *ls, expdesc *v) {
 }
 
 
-static void primaryexp (LexState *ls, expdesc *v) {
-  /* primaryexp -> NAME | '(' expr ')' */
-  switch (ls->t.token) {
-    case '(': {
-      int line = ls->getLineNumber();
-      luaX_next(ls);
-      expr(ls, v);
-      check_match(ls, ')', '(', line);
-      luaK_dischargevars(ls->fs, v);
-      return;
-    }
-    case TK_NAME: {
-      singlevar(ls, v);
-      return;
-    }
-    case '}':
-    case '{': { // Unfinished table constructors.
-       if (ls->t.token == '{') {
-         throwerr(ls, "unfinished table constructor", "did you mean to close with '}'?");
-       }
-       else {
-         throwerr(ls, "unfinished table constructor", "did you mean to enter with '{'?");
-       }
-       return;
-    }
-    case '|': { // Potentially mistyped lambda expression. People may confuse '->' with '=>'.
-      while (testnext(ls, '|') || testnext(ls, TK_NAME) || testnext(ls, ','));
-      throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
-      return;
-    }
-    default: {
-      const char *token = luaX_token2str(ls, ls->t.token);
-      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
-    }
-  }
-}
-
-
 struct StringChain {
   LexState* ls;
   expdesc* v;
@@ -1836,6 +1798,8 @@ struct StringChain {
 
 static void fstring (LexState *ls, expdesc *v) {
   luaX_next(ls); /* skip '$' */
+
+  check(ls, TK_STRING);
   auto str = ls->t.seminfo.ts->toCpp();
 
   StringChain sc(ls, v);
@@ -1865,16 +1829,54 @@ static void fstring (LexState *ls, expdesc *v) {
 }
 
 
+static void primaryexp (LexState *ls, expdesc *v) {
+  /* primaryexp -> NAME | '(' expr ')' */
+  switch (ls->t.token) {
+    case '(': {
+      int line = ls->getLineNumber();
+      luaX_next(ls);
+      expr(ls, v);
+      check_match(ls, ')', '(', line);
+      luaK_dischargevars(ls->fs, v);
+      return;
+    }
+    case TK_NAME: {
+      singlevar(ls, v);
+      return;
+    }
+    case '}':
+    case '{': { // Unfinished table constructors.
+       if (ls->t.token == '{') {
+         throwerr(ls, "unfinished table constructor", "did you mean to close with '}'?");
+       }
+       else {
+         throwerr(ls, "unfinished table constructor", "did you mean to enter with '{'?");
+       }
+       return;
+    }
+    case '|': { // Potentially mistyped lambda expression. People may confuse '->' with '=>'.
+      while (testnext(ls, '|') || testnext(ls, TK_NAME) || testnext(ls, ','));
+      throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
+      return;
+    }
+    case '$': {
+      fstring(ls, v);
+      return;
+    }
+    default: {
+      const char *token = luaX_token2str(ls, ls->t.token);
+      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+    }
+  }
+}
+
+
 static void suffixedexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDesc *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
-  if (ls->t.token == '$' && luaX_lookahead(ls) == TK_STRING) { /* '$' + string ? */
-    fstring(ls, v);
-  } else {
-    primaryexp(ls, v);
-  }
+  primaryexp(ls, v);
   for (;;) {
     switch (ls->t.token) {
       case '?': {  /* safe navigation or ternary */
