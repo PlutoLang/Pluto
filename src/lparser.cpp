@@ -1835,7 +1835,7 @@ struct StringChain {
 
 
 static void fstring (LexState *ls, expdesc *v) {
-  luaX_next(ls); /* skip 'f' */
+  luaX_next(ls); /* skip '$' */
   auto str = ls->t.seminfo.ts->toCpp();
 
   StringChain sc(ls, v);
@@ -1870,9 +1870,7 @@ static void suffixedexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDe
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
-  if (ls->t.token == TK_NAME && luaX_lookahead(ls) == TK_STRING /* string-style function call? */
-      && strcmp(ls->t.seminfo.ts->contents, "f") == 0 /* function called 'f' ? */
-      ) {
+  if (ls->t.token == '$' && luaX_lookahead(ls) == TK_STRING) { /* '$' + string ? */
     fstring(ls, v);
   } else {
     primaryexp(ls, v);

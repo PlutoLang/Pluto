@@ -662,12 +662,12 @@ do
     walrus_test_helper(c := "hi")]]
 end
 
-print "Testing f-strings."
+print "Testing format strings."
 do
     f_string_global = "foo"
     local f_string_local = "bar"
-    assert(f"a{f_string_global}b{f_string_local}c" == "afoobbarc")
-    assert(f"{f_string_global}{f_string_local}" == "foobar")
+    assert($"a{f_string_global}b{f_string_local}c" == "afoobbarc")
+    assert($"{f_string_global}{f_string_local}" == "foobar")
 end
 
 print "Testing ++ operator."
