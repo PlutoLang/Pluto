@@ -3,6 +3,7 @@
 /src/*.exe
 /src/*.dll
 /src/*.a
+/src/*.lib
 /tbytecode.script
 /luac.out
 /tests/quick.lua
