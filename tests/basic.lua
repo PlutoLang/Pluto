@@ -675,6 +675,11 @@ do
     assert(😉 == "Hello")
 end
 
+print "Testing binary numerals."
+do
+    assert(0b11 == 3)
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
