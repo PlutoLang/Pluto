@@ -34,6 +34,8 @@
 #include "ltable.h"
 #include "lauxlib.h"
 
+#include "ErrorMessage.hpp"
+
 
 
 /* maximum number of local variables per function (must be smaller
@@ -83,86 +85,16 @@ static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, bool no_co
 
 
 /*
-** Formats an error with the appropriate source code snippet.
-*/
-static const char *format_line_error (LexState *ls, const char *msg, const char *token, const char *here, int line) {
-  std::string pad_str(std::to_string(line).length(), ' ');
-  const char *pad = pad_str.c_str();
-  const char *text = luaG_addinfo(ls->L, msg, ls->source, line);
-#ifdef PLUTO_SHORT_ERRORS
-#ifdef PLUTO_USE_COLORED_OUTPUT
-  text = luaO_fmt(ls->L, "%s%s%s", YEL, text, RESET);
-#endif // PLUTO_USE_COLORED_OUTPUT
-  return text;
-#endif
-#ifndef PLUTO_USE_COLORED_OUTPUT
-  text = luaO_fmt(ls->L, "%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          text, pad, line, token, pad, pad, here, pad, pad);
-#else // PLUTO_USE_COLORED_OUTPUT
-  text = luaO_fmt(ls->L, "%s%s%s\n\t%s%d | %s\n\t%s%s | %s\n\t%s%s |",
-                          YEL, text, RESET, pad, line, token, pad, pad, here, pad, pad);
-#endif // PLUTO_USED_COLORED_OUTPUT
-  return text;
-}
-
-
-/*
-** Applies coloring (if permitted) to 's'.
-*/
-static std::string make_here(const std::string& linebuff, const char *s) {
-  std::string here = std::string(linebuff.size(), '^');
-  here.append(" here: ");
-#ifdef PLUTO_USE_COLORED_OUTPUT
-  here.insert(0, std::string(RED));
-  here.append(s);
-  here.append(RESET);
-#else
-  here.append(s);
-#endif
-  return here;
-}
-
-
-/*
-** Applies coloring (if permitted) to an invalid synax error message.
-*/
-static std::string make_err(const char *s) {
-  std::string error = std::string(s);
-  error.insert(0, "syntax error: ");
-#ifdef PLUTO_USE_COLORED_OUTPUT
-  error.insert(0, std::string(RED));
-  error.insert(19, std::string(BWHT));
-  error.append(RESET);
-#endif
-  return error;
-}
-
-
-/*
-** Applies coloring (if permitted) to a warning message.
-*/
-static std::string make_warn(const char *s) {
-  std::string error = std::string(s);
-  error.insert(0, "warning: ");
-#ifdef PLUTO_USE_COLORED_OUTPUT
-  error.insert(0, std::string(RED));
-  error.insert(error.find("warning:") + 8, std::string(BWHT));
-  error.append(RESET);
-#endif
-  return error;
-}
-
-
-/*
 ** Throws an exception into Lua, which will promptly close the program.
 ** This is only called for vital errors, like lexer and/or syntax problems.
 */
 [[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here, int line) {
-  const std::string& linebuff = ls->getLineString(line);
-  std::string error = make_err(err);
-  std::string rhere = make_here(linebuff, here);
-  format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line);
-  luaD_throw(ls->L, LUA_ERRSYNTAX);
+  err = luaG_addinfo(ls->L, err, ls->source, line);
+  Pluto::ErrorMessage msg{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
+  msg.addMsg(err)
+    .addSrcLine(line)
+    .addGenericHere(here)
+    .finalizeAndThrow();
 }
 
 [[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here) {
@@ -171,40 +103,53 @@ static std::string make_warn(const char *s) {
 
 
 #ifndef PLUTO_NO_PARSER_WARNINGS
-/*
-** Throws a warning into standard output, which will not close the program.
-*/
-static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
-  const std::string& linebuff = ls->getLineString(line);
-  const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
-  if (lastattr.find("@pluto_warnings: disable-next") == std::string::npos && ls->warning.Get(warningType)) {
-    std::string error = make_warn(err);
-    std::string rhere = make_here(linebuff, here);
-    lua_warning(ls->L, format_line_error(ls, error.c_str(), linebuff.c_str(), rhere.c_str(), line), 0);
-    ls->L->top -= 2; /* remove warning from stack */
+// No note.
+static void throw_warn (LexState *ls, const char *raw_err, const char *here, int line, WarningType warningType) {
+  std::string err(raw_err);
+  if (ls->shouldEmitWarning(line, warningType)) {
+    Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
+    err.append(" [");
+    err.append(ls->warning.getWarningName(warningType));
+    err.push_back(']');
+    msg.addMsg(err)
+      .addSrcLine(line)
+      .addGenericHere(here)
+      .finalize();
+    lua_warning(ls->L, msg.content.c_str(), 0);
+    ls->L->top -= 2; // Pluto::Error::finalize & luaG_addinfo
   }
 }
 
-static void throw_warn(LexState *ls, const char *err, const char *here, WarningType warningType) {
+// Note.
+static void throw_warn(LexState* ls, const char* raw_err, const char* here, const char* note, int line, WarningType warningType) {
+  std::string err(raw_err);
+  if (ls->shouldEmitWarning(line, warningType)) {
+    Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
+    err.append(" [");
+    err.append(ls->warning.getWarningName(warningType));
+    err.push_back(']');
+    msg.addMsg(err)
+      .addSrcLine(line)
+      .addGenericHere(here)
+      .addNote(note)
+      .finalize();
+    lua_warning(ls->L, msg.content.c_str(), 0);
+    ls->L->top -= 2; // Pluto::Error::finalize & luaG_addinfo
+  }
+}
+
+static void throw_warn(LexState *ls, const char* err, const char *here, WarningType warningType) {
   return throw_warn(ls, err, here, ls->getLineNumber(), warningType);
 }
 
 // TO-DO: Warning suppression attribute support for this overload. Don't know where it's used atm.
 static void throw_warn(LexState *ls, const char *err, int line, WarningType warningType) {
-  const std::string& linebuff = ls->getLineString(line);
-  const std::string& lastattr = line > 1 ? ls->getLineString(line - 1) : linebuff;
-  if (lastattr.find("@pluto_warnings: disable-next") == std::string::npos && ls->warning.Get(warningType)) {
+  if (ls->shouldEmitWarning(line, warningType)) {
     auto msg = luaG_addinfo(ls->L, err, ls->source, line);
     lua_warning(ls->L, msg, 0);
     ls->L->top -= 1; /* remove warning from stack */
   }
 }
-
-/*
-static void throw_warn(LexState *ls, const char *err) {
-  return throw_warn(ls, err, ls->getLineNumber());
-}
-*/
 #endif
 
 
@@ -322,41 +267,20 @@ static void check_match (LexState *ls, int what, int who, int where) {
     if (where == ls->getLineNumber())  /* all in the same line? */
       error_expected(ls, what);  /* do not need a complex message */
     else {
-      switch (what) {
-        case TK_END: {
-          switch (who) {
-            case TK_IF: {
-              throwerr(ls,
-                "missing 'end' to terminate 'if' statement.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-            case TK_DO: {
-              throwerr(ls,
-                "missing 'end' to terminate 'do' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-            case TK_FOR: {
-              throwerr(ls,
-                "missing 'end' to terminate 'for' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-            case TK_WHILE: {
-              throwerr(ls,
-                "missing 'end' to terminate 'while' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-            case TK_FUNCTION: {
-              throwerr(ls,
-                "missing 'end' to terminate 'function' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-            default: {
-              throwerr(ls,
-                "missing 'end' to terminate block.", "missing termination.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-          }
-        }
-        default: {
-          std::string err = make_err("%s expected (to close %s at line %d)");
-          luaK_semerror(ls,
-            luaO_fmt(ls->L, err.c_str(),
-              luaX_token2str(ls, what), luaX_token2str(ls, who), where));
-        }
+      if (what == TK_END) {
+        throwerr(ls, luaO_fmt(ls->L, "missing 'end' to terminate matching %s block", luaX_token2str(ls, who)), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
+      }
+      else {
+        Pluto::ErrorMessage err{ ls, RED "syntax error: " BWHT }; // Doesn't use throwerr since I replicated old code. Couldn't find problematic code to repro error, so went safe.
+        err.addMsg(luaX_token2str(ls, what))
+          .addMsg(" expected (to close ")
+          .addMsg(luaX_token2str(ls, who))
+          .addMsg(" at line ")
+          .addMsg(std::to_string(where))
+          .addMsg(")")
+          .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
+          .addGenericHere()
+          .finalizeAndThrow();
       }
     }
   }
@@ -370,7 +294,7 @@ static void check_match (LexState *ls, int what, int who, int where) {
 
 static TString *str_checkname (LexState *ls, bool strict = false) {
   TString *ts;
-  if (!isnametkn(ls)) {
+  if (!isnametkn(ls, strict)) {
     error_expected(ls, TK_NAME);
   }
   ts = ls->t.seminfo.ts;
@@ -472,16 +396,16 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int l
     const auto hint = var->vd.hint.toString();
     std::string err = var->vd.name->toCpp();
     err.insert(0, "'");
-    err.append("' was type-hinted as '" + hint);
-    err.append("', but is assigned a ");
+    err.append("' type-hinted as '" + hint);
+    err.append("', but assigned a ");
     err.append(td.toString());
     err.append(" value.");
     if (td.getType() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
-      throw_warn(ls, err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line, TYPE_MISMATCH);
-      ls->L->top--;
+      throw_warn(ls, "variable type mismatch", err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line, TYPE_MISMATCH);
+      ls->L->top--; // luaO_fmt
     }
     else {  /* Throw a generic mismatch warning. */
-      throw_warn(ls, err.c_str(), "type mismatch", line, TYPE_MISMATCH);
+      throw_warn(ls, "variable type mismatch", err.c_str(), line, TYPE_MISMATCH);
     }
   }
 #endif

@@ -766,88 +766,6 @@
 
 /*
 ** {====================================================================
-** Pluto color macros.
-** =====================================================================}
-*/
-
-#define ESC "\x1B"
-
-#define BLK ESC "[0;30m"
-#define RED ESC "[0;31m"
-#define GRN ESC "[0;32m"
-#define YEL ESC "[0;33m"
-#define BLU ESC "[0;34m"
-#define MAG ESC "[0;35m"
-#define CYN ESC "[0;36m"
-#define WHT ESC "[0;37m"
-
-//Regular bold text
-#define BBLK ESC "[1;30m"
-#define BRED ESC "[1;31m"
-#define BGRN ESC "[1;32m"
-#define BYEL ESC "[1;33m"
-#define BBLU ESC "[1;34m"
-#define BMAG ESC "[1;35m"
-#define BCYN ESC "[1;36m"
-#define BWHT ESC "[1;37m"
-
-//Regular underline text
-#define UBLK ESC "[4;30m"
-#define URED ESC "[4;31m"
-#define UGRN ESC "[4;32m"
-#define UYEL ESC "[4;33m"
-#define UBLU ESC "[4;34m"
-#define UMAG ESC "[4;35m"
-#define UCYN ESC "[4;36m"
-#define UWHT ESC "[4;37m"
-
-//Regular background
-#define BLKB ESC "[40m"
-#define REDB ESC "[41m"
-#define GRNB ESC "[42m"
-#define YELB ESC "[43m"
-#define BLUB ESC "[44m"
-#define MAGB ESC "[45m"
-#define CYNB ESC "[46m"
-#define WHTB ESC "[47m"
-
-//High intensty background 
-#define BLKHB ESC "[0;100m"
-#define REDHB ESC "[0;101m"
-#define GRNHB ESC "[0;102m"
-#define YELHB ESC "[0;103m"
-#define BLUHB ESC "[0;104m"
-#define MAGHB ESC "[0;105m"
-#define CYNHB ESC "[0;106m"
-#define WHTHB ESC "[0;107m"
-
-//High intensty text
-#define HBLK ESC "[0;90m"
-#define HRED ESC "[0;91m"
-#define HGRN ESC "[0;92m"
-#define HYEL ESC "[0;93m"
-#define HBLU ESC "[0;94m"
-#define HMAG ESC "[0;95m"
-#define HCYN ESC "[0;96m"
-#define HWHT ESC "[0;97m"
-
-//Bold high intensity text
-#define BHBLK ESC "[1;90m"
-#define BHRED ESC "[1;91m"
-#define BHGRN ESC "[1;92m"
-#define BHYEL ESC "[1;93m"
-#define BHBLU ESC "[1;94m"
-#define BHMAG ESC "[1;95m"
-#define BHCYN ESC "[1;96m"
-#define BHWHT ESC "[1;97m"
-
-//Reset
-#define RESET ESC "[0m"
-#define CRESET ESC "[0m"
-#define COLOR_RESET ESC "[0m"
-
-/*
-** {====================================================================
 ** Pluto configuration
 ** =====================================================================}
 */
@@ -965,5 +883,151 @@
 #endif
 
 #endif // PLUTO_VMDUMP
+
+/*
+** {====================================================================
+** Pluto color macros.
+** =====================================================================}
+*/
+
+#ifdef PLUTO_USE_COLORED_OUTPUT // Don't need to write any 'ifdef' macro logic inside of Pluto::ErrorMessage.
+#define ESC "\x1B"
+
+#define BLK ESC "[0;30m"
+#define RED ESC "[0;31m"
+#define GRN ESC "[0;32m"
+#define YEL ESC "[0;33m"
+#define BLU ESC "[0;34m"
+#define MAG ESC "[0;35m"
+#define CYN ESC "[0;36m"
+#define WHT ESC "[0;37m"
+
+//Regular bold text
+#define BBLK ESC "[1;30m"
+#define BRED ESC "[1;31m"
+#define BGRN ESC "[1;32m"
+#define BYEL ESC "[1;33m"
+#define BBLU ESC "[1;34m"
+#define BMAG ESC "[1;35m"
+#define BCYN ESC "[1;36m"
+#define BWHT ESC "[1;37m"
+
+//Regular underline text
+#define UBLK ESC "[4;30m"
+#define URED ESC "[4;31m"
+#define UGRN ESC "[4;32m"
+#define UYEL ESC "[4;33m"
+#define UBLU ESC "[4;34m"
+#define UMAG ESC "[4;35m"
+#define UCYN ESC "[4;36m"
+#define UWHT ESC "[4;37m"
+
+//Regular background
+#define BLKB ESC "[40m"
+#define REDB ESC "[41m"
+#define GRNB ESC "[42m"
+#define YELB ESC "[43m"
+#define BLUB ESC "[44m"
+#define MAGB ESC "[45m"
+#define CYNB ESC "[46m"
+#define WHTB ESC "[47m"
+
+//High intensty background 
+#define BLKHB ESC "[0;100m"
+#define REDHB ESC "[0;101m"
+#define GRNHB ESC "[0;102m"
+#define YELHB ESC "[0;103m"
+#define BLUHB ESC "[0;104m"
+#define MAGHB ESC "[0;105m"
+#define CYNHB ESC "[0;106m"
+#define WHTHB ESC "[0;107m"
+
+//High intensty text
+#define HBLK ESC "[0;90m"
+#define HRED ESC "[0;91m"
+#define HGRN ESC "[0;92m"
+#define HYEL ESC "[0;93m"
+#define HBLU ESC "[0;94m"
+#define HMAG ESC "[0;95m"
+#define HCYN ESC "[0;96m"
+#define HWHT ESC "[0;97m"
+
+//Bold high intensity text
+#define BHBLK ESC "[1;90m"
+#define BHRED ESC "[1;91m"
+#define BHGRN ESC "[1;92m"
+#define BHYEL ESC "[1;93m"
+#define BHBLU ESC "[1;94m"
+#define BHMAG ESC "[1;95m"
+#define BHCYN ESC "[1;96m"
+#define BHWHT ESC "[1;97m"
+
+//Reset
+#define RESET ESC "[0m"
+#define CRESET ESC "[0m"
+#define COLOR_RESET ESC "[0m"
+#else // PLUTO_USE_COLORED_OUTPUT
+#define ESC ""
+#define BLK ESC
+#define RED ESC
+#define GRN ESC
+#define YEL ESC
+#define BLU ESC
+#define MAG ESC
+#define CYN ESC
+#define WHT ESC
+#define BBLK ESC
+#define BRED ESC
+#define BGRN ESC
+#define BYEL ESC
+#define BBLU ESC
+#define BMAG ESC
+#define BCYN ESC
+#define BWHT ESC
+#define UBLK ESC
+#define URED ESC
+#define UGRN ESC
+#define UYEL ESC
+#define UBLU ESC
+#define UMAG ESC
+#define UCYN ESC
+#define UWHT ESC
+#define BLKB ESC
+#define REDB ESC
+#define GRNB ESC
+#define YELB ESC
+#define BLUB ESC
+#define MAGB ESC
+#define CYNB ESC
+#define WHTB ESC
+#define BLKHB ESC
+#define REDHB ESC
+#define GRNHB ESC
+#define YELHB ESC
+#define BLUHB ESC
+#define MAGHB ESC
+#define CYNHB ESC
+#define WHTHB ESC
+#define HBLK ESC
+#define HRED ESC
+#define HGRN ESC
+#define HYEL ESC
+#define HBLU ESC
+#define HMAG ESC
+#define HCYN ESC
+#define HWHT ESC
+#define BHBLK ESC
+#define BHRED ESC
+#define BHGRN ESC
+#define BHYEL ESC
+#define BHBLU ESC
+#define BHMAG ESC
+#define BHCYN ESC
+#define BHWHT ESC
+#define RESET ESC
+#define CRESET ESC
+#define COLOR_RESET ESC
+#endif // PLUTO_USE_COLORED_OUTPUT
+
 
 /* }================================================================== */

@@ -27,6 +27,8 @@
 #include "ltable.h"
 #include "lzio.h"
 
+#include "ErrorMessage.hpp"
+
 
 
 #define next(ls)	(ls->current = zgetc(ls->z))
@@ -160,7 +162,27 @@ static const char *txtToken (LexState *ls, int token) {
 [[noreturn]] static void lexerror (LexState *ls, const char *msg, int token) {
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->getLineNumber());
   if (token)
-    luaO_pushfstring(ls->L, "%s near %s", msg, txtToken(ls, token));
+  {
+    Pluto::ErrorMessage err{ ls, HRED "syntax error: " BWHT};
+    err.addMsg(msg);
+    if (ls->t.IsReserved())
+    {
+      err.addMsg(", but found reserved keyword ")
+         .addMsg(txtToken(ls, token))
+         .addSrcLine(ls->getLineNumber())
+         .addGenericHere("reserved keyword cannot be used in this context.")
+         .addNote("Reserved keywords *can* be used outside of relevant contexts, but this is a relevant context!")
+         .finalize();
+    }
+    else
+    {
+      err.addMsg(" near ")
+         .addMsg(txtToken(ls, token))
+         .addSrcLine(ls->getLineNumber())
+         .addGenericHere()
+         .finalize();
+    }
+  }
   luaD_throw(ls->L, LUA_ERRSYNTAX);
 }
 

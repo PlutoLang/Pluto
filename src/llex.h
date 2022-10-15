@@ -93,13 +93,6 @@ struct Token {
   SemInfo seminfo;
   int line;
 
-  /*
-  ** This could be implemented using operator overloading.
-  ** I dislike this approach because it's unnecessarily ambiguous. 
-  ** I tend to avoid overloading as a whole, because it's typically unclear.
-  **
-  ** - Ryan
-  */
   [[nodiscard]] bool Is(int t) const noexcept
   {
     return token == t;
@@ -210,6 +203,11 @@ struct WarningConfig
       }
     }
   }
+
+  [[nodiscard]] const char* getWarningName(const WarningType w) const noexcept
+  {
+    return luaX_warnNames[(int)w].c_str();
+  }
 };
 
 
@@ -257,7 +255,7 @@ struct LexState {
   }
 
   [[nodiscard]] int getLineNumber() const noexcept {
-    return tidx == -1 ? 1 : tokens.at(tidx).line;
+    return tidx == (size_t)-1 ? 1 : tokens.at(tidx).line;
   }
 
 
@@ -274,6 +272,14 @@ struct LexState {
   [[nodiscard]] bool findWithinLine(int line, const std::string& substr, int offset = 0) const noexcept {
     const std::string& str = getLineString(line);
     return str.find(substr, offset) != std::string::npos;
+  }
+
+  // Does the last relevant source line call for warning silence?
+  [[nodiscard]] bool shouldEmitWarning(int line, WarningType warning_type)
+  {
+    const auto& linebuff = this->getLineString(line);
+    const auto& lastattr = line > 1 ? this->getLineString(line - 1) : linebuff;
+    return lastattr.find("@pluto_warnings: disable-next") == std::string::npos && this->warning.Get(warning_type);
   }
 
   [[nodiscard]] int getLineNumberOfLastNonEmptyLine() const noexcept {
