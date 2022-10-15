@@ -34,6 +34,7 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 
 		ErrorMessage& addSrcLine(int line)
 		{
+#ifndef PLUTO_SHORT_ERRORS
 			const auto line_string = this->ls->getLineString(line);
 			const auto init_len = this->content.length();
 			this->content.append("\n    ");
@@ -42,35 +43,42 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 			this->line_len = this->content.length() - init_len - 3;
 			this->src_len += line_string.length();
 			this->content.append(line_string);
+#endif
 			return *this;
 		}
 
 		ErrorMessage& addGenericHere(const std::string& msg) // TO-DO: Add '^^^' strings for specific keywords. Not accurate with a simple string search.
 		{
+#ifndef PLUTO_SHORT_ERRORS
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
 			this->content.append(HBLU + std::string(this->src_len, '^'));
 			this->content.append(" here: ");
 			this->content.append(msg + RESET);
+#endif
 			return *this;
 		}
 
 		ErrorMessage& addGenericHere()
 		{
+#ifndef PLUTO_SHORT_ERRORS
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
 			this->content.append(HBLU + std::string(this->src_len, '^'));
 			this->content.append(" here");
 			this->content.append(RESET);
+#endif
 			return *this;
 		}
 
 		ErrorMessage& addNote(const std::string& msg)
 		{
+#ifndef PLUTO_SHORT_ERRORS
 			const auto pad = std::string(this->line_len, ' ');
 			this->content.push_back('\n');
 			this->content.append(pad + HCYN + "+ note: " + RESET);
 			this->content.append(msg);
+#endif
 			return *this;
 		}
 
