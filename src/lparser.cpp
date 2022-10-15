@@ -267,47 +267,20 @@ static void check_match (LexState *ls, int what, int who, int where) {
     if (where == ls->getLineNumber())  /* all in the same line? */
       error_expected(ls, what);  /* do not need a complex message */
     else {
-      switch (what) {
-        case TK_END: {
-          switch (who) {
-            case TK_IF: {
-              throwerr(ls,
-                "missing 'end' to terminate 'if' statement.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-            case TK_DO: {
-              throwerr(ls,
-                "missing 'end' to terminate 'do' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-            case TK_FOR: {
-              throwerr(ls,
-                "missing 'end' to terminate 'for' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-            case TK_WHILE: {
-              throwerr(ls,
-                "missing 'end' to terminate 'while' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-            case TK_FUNCTION: {
-              throwerr(ls,
-                "missing 'end' to terminate 'function' block.", "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-            default: {
-              throwerr(ls,
-                "missing 'end' to terminate block.", "missing termination.", ls->getLineNumberOfLastNonEmptyLine());
-            }
-          }
-        }
-        default: {
-          Pluto::ErrorMessage err{ ls, RED "syntax error: " BWHT }; // Doesn't use throwerr since I replicated old code. Couldn't find problematic code to repro error, so went safe.
-          err.addMsg(luaX_token2str(ls, what))
-            .addMsg(" expected (to close ")
-            .addMsg(luaX_token2str(ls, who))
-            .addMsg(" at line ")
-            .addMsg(std::to_string(where))
-            .addMsg(")")
-            .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
-            .addGenericHere()
-            .finalizeAndThrow();
-        }
+      if (what == TK_END) {
+        throwerr(ls, luaO_fmt(ls->L, "missing 'end' to terminate matching %s block", luaX_token2str(ls, who)), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
+      }
+      else {
+        Pluto::ErrorMessage err{ ls, RED "syntax error: " BWHT }; // Doesn't use throwerr since I replicated old code. Couldn't find problematic code to repro error, so went safe.
+        err.addMsg(luaX_token2str(ls, what))
+          .addMsg(" expected (to close ")
+          .addMsg(luaX_token2str(ls, who))
+          .addMsg(" at line ")
+          .addMsg(std::to_string(where))
+          .addMsg(")")
+          .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
+          .addGenericHere()
+          .finalizeAndThrow();
       }
     }
   }
