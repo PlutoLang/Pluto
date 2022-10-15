@@ -306,7 +306,7 @@ static void check_match (LexState *ls, int what, int who, int where) {
             .addMsg(")")
             .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
             .addGenericHere()
-            .finalizeAndThrow(true);
+            .finalizeAndThrow();
         }
       }
     }
