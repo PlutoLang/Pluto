@@ -662,6 +662,13 @@ do
     walrus_test_helper(c := "hi")]]
 end
 
+print "Testing f-strings."
+do
+    f_string_global = "foo"
+    local f_string_local = "bar"
+    assert(f"a{f_string_global}b{f_string_local}c" == "afoobbarc")
+end
+
 print "Testing ++ operator."
 do
     local a = 1
