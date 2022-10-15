@@ -1874,9 +1874,9 @@ static void suffixedexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDe
       && strcmp(ls->t.seminfo.ts->contents, "f") == 0 /* function called 'f' ? */
       ) {
     fstring(ls, v);
-    return;
+  } else {
+    primaryexp(ls, v);
   }
-  primaryexp(ls, v);
   for (;;) {
     switch (ls->t.token) {
       case '?': {  /* safe navigation or ternary */
