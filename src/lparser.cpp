@@ -1822,10 +1822,14 @@ struct StringChain {
   }
 
   void addVar(const char* varname) noexcept {
-    luaK_infix(ls->fs, OPR_CONCAT, v);
-    expdesc v2;
-    singlevarinner(ls, luaS_new(ls->L, varname), &v2);
-    luaK_posfix(ls->fs, OPR_CONCAT, v, &v2, ls->getLineNumber());
+    if (v->k == VVOID) { /* first chain entry? */
+      singlevarinner(ls, luaS_new(ls->L, varname), v);
+    } else {
+      luaK_infix(ls->fs, OPR_CONCAT, v);
+      expdesc v2;
+      singlevarinner(ls, luaS_new(ls->L, varname), &v2);
+      luaK_posfix(ls->fs, OPR_CONCAT, v, &v2, ls->getLineNumber());
+    }
   }
 };
 
@@ -1838,7 +1842,9 @@ static void fstring (LexState *ls, expdesc *v) {
   for (size_t i = 0;; ) {
     size_t del = str.find('{', i);
     auto chunk = str.substr(i, del - i);
-    sc.add(chunk.c_str());
+    if (!chunk.empty()) {
+      sc.add(chunk.c_str());
+    }
     if (del == std::string::npos) {
       break;
     }
