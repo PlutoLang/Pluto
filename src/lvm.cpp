@@ -2186,7 +2186,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if (fvalue(s2v(ra)) == PLUTO_ILP_HOOK_FUNCTION) sequentialJumps = 0;
 #endif
         if (fvalue(s2v(ra)) == tinsert && ttistable(s2v(ra + 1))) {
-          if (!ttisnil(s2v(ra + 2)) && ttisnil(s2v(ra + 3))) {
+          if (ttisnil(s2v(ra + 3))) {
             Table* table = hvalue(s2v(ra + 1));
             luaH_setint(L, table, luaH_getn(table) + 1, s2v(ra + 2));
           }
