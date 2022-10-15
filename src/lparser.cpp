@@ -726,6 +726,18 @@ static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
 ** Find a variable with the given name 'n', handling global variables
 ** too.
 */
+static void singlevarinner (LexState *ls, TString *varname, expdesc *var) {
+  FuncState *fs = ls->fs;
+  singlevaraux(fs, varname, var, 1);
+  if (var->k == VVOID) {  /* global name? */
+    expdesc key;
+    singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
+    lua_assert(var->k != VVOID);  /* this one must exist */
+    codestring(&key, varname);  /* key is variable name */
+    luaK_indexed(fs, var, &key);  /* env[varname] */
+  }
+}
+
 static void singlevar (LexState *ls, expdesc *var) {
   TString *varname = str_checkname(ls);
   if (gett(ls) == TK_WALRUS) {
@@ -740,15 +752,7 @@ static void singlevar (LexState *ls, expdesc *var) {
     adjustlocalvars(ls, 1);
     return;
   }
-  FuncState *fs = ls->fs;
-  singlevaraux(fs, varname, var, 1);
-  if (var->k == VVOID) {  /* global name? */
-    expdesc key;
-    singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
-    lua_assert(var->k != VVOID);  /* this one must exist */
-    codestring(&key, varname);  /* key is variable name */
-    luaK_indexed(fs, var, &key);  /* env[varname] */
-  }
+  singlevarinner(ls, varname, var);
 }
 
 
@@ -1677,6 +1681,81 @@ static void safe_navigation(LexState *ls, expdesc *v) {
 }
 
 
+struct StringChain {
+  LexState* ls;
+  expdesc* v;
+
+  StringChain(LexState* ls, expdesc* v) noexcept
+    : ls(ls), v(v)
+  {
+    enterlevel(ls);
+    v->k = VVOID;
+  }
+
+  ~StringChain() noexcept {
+    if (v->k == VVOID) { /* ensure we produce at least an empty string */
+      codestring(v, luaS_new(ls->L, ""));
+    }
+    leavelevel(ls);
+  }
+
+  void add(const char* str) noexcept {
+    if (v->k == VVOID) { /* first chain entry? */
+      codestring(v, luaS_new(ls->L, str));
+    } else {
+      luaK_infix(ls->fs, OPR_CONCAT, v);
+      expdesc v2;
+      codestring(&v2, luaS_new(ls->L, str));
+      luaK_posfix(ls->fs, OPR_CONCAT, v, &v2, ls->getLineNumber());
+    }
+  }
+
+  void addVar(const char* varname) noexcept {
+    if (v->k == VVOID) { /* first chain entry? */
+      singlevarinner(ls, luaS_new(ls->L, varname), v);
+    } else {
+      luaK_infix(ls->fs, OPR_CONCAT, v);
+      expdesc v2;
+      singlevarinner(ls, luaS_new(ls->L, varname), &v2);
+      luaK_posfix(ls->fs, OPR_CONCAT, v, &v2, ls->getLineNumber());
+    }
+  }
+};
+
+
+static void fstring (LexState *ls, expdesc *v) {
+  luaX_next(ls); /* skip '$' */
+
+  check(ls, TK_STRING);
+  auto str = ls->t.seminfo.ts->toCpp();
+
+  StringChain sc(ls, v);
+  for (size_t i = 0;; ) {
+    size_t del = str.find('{', i);
+    auto chunk = str.substr(i, del - i);
+    if (!chunk.empty()) {
+      sc.add(chunk.c_str());
+    }
+    if (del == std::string::npos) {
+      break;
+    }
+    ++del;
+    size_t del2 = str.find('}', del);
+    if (del2 == std::string::npos) {
+      luaX_syntaxerror(ls, "Improper f-string with unterminated varname");
+      break;
+    }
+    auto varname_len = (del2 - del);
+    auto varname = str.substr(del, varname_len);
+    del += varname_len + 1;
+    sc.addVar(varname.c_str());
+    i = del;
+  }
+
+  luaX_next(ls); /* skip string */
+}
+
+
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
   if (isnametkn(ls)) {
@@ -1705,6 +1784,10 @@ static void primaryexp (LexState *ls, expdesc *v) {
     case '|': { // Potentially mistyped lambda expression. People may confuse '->' with '=>'.
       while (testnext(ls, '|') || testnext(ls, TK_NAME) || testnext(ls, ','));
       throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
+      return;
+    }
+    case '$': {
+      fstring(ls, v);
       return;
     }
     default: {
