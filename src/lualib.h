@@ -43,7 +43,9 @@ LUAMOD_API int (luaopen_package) (lua_State *L);
 
 
 LUAMOD_API int (luaopen_crypto) (lua_State *L);
-
+#ifdef PLUTO_USE_SOUP
+LUAMOD_API int (luaopen_base64) (lua_State* L);
+#endif
 
 /* open all previous libraries */
 LUALIB_API void (luaL_openlibs) (lua_State *L);
