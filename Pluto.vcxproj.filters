@@ -35,6 +35,7 @@
     <ClCompile Include="src\ltable.cpp" />
     <ClCompile Include="src\ltablib.cpp" />
     <ClCompile Include="src\lcryptolib.cpp" />
+    <ClCompile Include="src\lbase64.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
