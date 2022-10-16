@@ -556,6 +556,18 @@ do
     assert(crypto.joaat("hello world") == tonumber(crypto.hexdigest(crypto.joaat("hello world"))))
 end
 do
+    if package.preload["base64"] ~= nil then -- Soup is linked.
+        do
+            local base64 = require("base64")
+            assert(base64.encode("Hello") == "SGVsbG8")
+            assert(base64.decode("SGVsbG8") == "Hello")
+            assert(base64.urlEncode("Hello") == "SGVsbG8")
+            assert(base64.urlDecode("SGVsbG8") == "Hello")
+            assert(base64.decode(base64.encode("Hello", true)) == "Hello")
+        end
+    end
+end
+do
     local t = {}
     table.insert(t, 0)
     table.insert(t, "Hello")
