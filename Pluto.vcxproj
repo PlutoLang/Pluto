@@ -155,6 +155,8 @@
   <ItemGroup>
     <ClCompile Include="src\lapi.cpp" />
     <ClCompile Include="src\lauxlib.cpp" />
+    <ClCompile Include="src\lbase32.cpp" />
+    <ClCompile Include="src\lbase58.cpp" />
     <ClCompile Include="src\lbase64.cpp" />
     <ClCompile Include="src\lbaselib.cpp" />
     <ClCompile Include="src\lcode.cpp" />
