@@ -557,6 +557,23 @@ LUA_API const char *lua_pushstring (lua_State *L, const char *s) {
   return s;
 }
 
+LUA_API const char* lua_pushstring(lua_State* L, const std::string& str) {
+  const char* s = str.c_str();
+  lua_lock(L);
+  if (s == NULL)
+    setnilvalue(s2v(L->top));
+  else {
+    TString* ts;
+    ts = luaS_new(L, s);
+    setsvalue2s(L, L->top, ts);
+    s = getstr(ts);  /* internal copy's address */
+  }
+  api_incr_top(L);
+  luaC_checkGC(L);
+  lua_unlock(L);
+  return s;
+}
+
 
 LUA_API const char *lua_pushvfstring (lua_State *L, const char *fmt,
                                       va_list argp) {
