@@ -171,6 +171,7 @@
     <ClCompile Include="src\lgc.cpp" />
     <ClCompile Include="src\linit.cpp" />
     <ClCompile Include="src\liolib.cpp" />
+    <ClCompile Include="src\ljson.cpp" />
     <ClCompile Include="src\llex.cpp" />
     <ClCompile Include="src\lmathlib.cpp" />
     <ClCompile Include="src\lmem.cpp" />
@@ -202,6 +203,7 @@
     <ClInclude Include="src\ldo.h" />
     <ClInclude Include="src\lfunc.h" />
     <ClInclude Include="src\lgc.h" />
+    <ClInclude Include="src\ljson.hpp" />
     <ClInclude Include="src\ljumptab.h" />
     <ClInclude Include="src\ljumptabgcc.h" />
     <ClInclude Include="src\llex.h" />
