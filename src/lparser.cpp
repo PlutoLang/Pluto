@@ -360,9 +360,11 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
       return { VT_BOOL, nullable };
     else if (strcmp(tname, "function") == 0)
       return { VT_FUNC, nullable };
-    else if (strcmp(tname, "userdata") != 0)
+    else if (strcmp(tname, "userdata") != 0) {
+      luaX_prev(ls);
       luaK_semerror(ls,
         luaO_pushfstring(ls->L, "unknown type hint '%s'", tname));
+    }
   }
   return VT_DUNNO;
 }
