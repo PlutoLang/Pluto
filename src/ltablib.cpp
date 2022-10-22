@@ -87,6 +87,20 @@ LUAI_FUNC int tinsert (lua_State *L) {
   return 0;
 }
 
+static int foreach(lua_State* L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  luaL_checktype(L, 2, LUA_TFUNCTION);
+  lua_pushnil(L);  /* first key */
+  while (lua_next(L, 1)) {
+    lua_pushvalue(L, 2);  /* function */
+    lua_pushvalue(L, -2);  /* value */
+    lua_call(L, 1, 1);
+    if (!lua_isnil(L, -1))
+      return 1;
+    lua_pop(L, 2);  /* remove value and result */
+  }
+  return 0;
+}
 
 static int tremove (lua_State *L) {
   lua_Integer size = aux_getn(L, 1, TAB_RW);
@@ -462,6 +476,7 @@ static int tcontains(lua_State* L) {
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"foreach", foreach},
   {"contains", tcontains},
   {"isfrozen", tisfrozen},
   {"freeze", tfreeze},
