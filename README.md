@@ -4,9 +4,14 @@ Pluto is a fork of the Lua 5.4 programming language. Lua is designed to be a sma
 Pluto is a dialect of Lua which intends on removing these cons, which makes Pluto a best-of-both-worlds Lua dialect.
 
 ### Why use Pluto over other dialects?
-- **Runs Lua.** Pluto's VM can run Lua 5.4 bytecode (and does so with more performance), it also aims to be able to parse/compile Lua 5.4 code, and to that end, it removes language limitations and offers compatibility options to ensure Pluto keywords don't break existing code.
-- **Diffable.** Pluto aims to retain some diffability with Lua, so it won't just be a Lua *5.4* dialect.
-- **Compiles to Lua.** Many features in Pluto are achieved entirely in the lexer, parser, or code generator, but don't require any VM patches, therefore you can leverage faster & more type-safe code while still running it with a stock Lua VM.
+- **Diffable.**
+  - Pluto aims to retain some diffability with Lua, so it won't just be a Lua *5.4* dialect.
+- **Runs Lua.**
+  - Pluto's VM can run Lua 5.4 bytecode. It aims to be able to parse/compile Lua 5.4 code, and to that end, it removes language limitations and offers compatibility options to ensure Pluto keywords don't break existing code.
+- **Compiles to Lua.**
+  - Many features in Pluto are achieved entirely in the lexer, parser, or code generator, but don't require any VM patches, therefore you can leverage faster & more type-safe code while still running it with a stock Lua VM. Not all features are compatible though, and our documentation should tell you which.
+- **Drag & Drop Compatibility.**
+  - Pluto is the only Lua dialect on the planet that's proven it can be dropped into massive [communities](https://stand.gg/) (50K> users), and not a break a single existing script. 
 
 ### Note
 Thanks to everyone who's provided a star towards Pluto. I do notice every single person that does so, and it provides me excellent motivation to continue working on Pluto. On this note, please do send PRs and plenty of bug reports if you stumble upon any. All help is appreciated.
