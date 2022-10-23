@@ -86,7 +86,7 @@ namespace Pluto // Decided to create the first instance of 'namespace' in this p
 		void finalize()
 		{
 			this->content.append(RESET);
-			lua_pushstring(ls->L, this->content.c_str());
+			lua_pushlstring(ls->L, this->content.data(), this->content.size());
 		}
 
 		[[noreturn]] void finalizeAndThrow()
