@@ -2783,9 +2783,12 @@ static int getlocalattribute (LexState *ls) {
       return RDKCONST;  /* read-only variable */
     else if (strcmp(attr, "close") == 0)
       return RDKTOCLOSE;  /* to-be-closed variable */
-    else
+    else {
+      luaX_prev(ls); // back to '>'
+      luaX_prev(ls); // back to attribute
       luaK_semerror(ls,
         luaO_pushfstring(ls->L, "unknown attribute '%s'", attr));
+    }
   }
   return VDKREG;  /* regular variable */
 }
