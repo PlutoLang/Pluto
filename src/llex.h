@@ -116,7 +116,8 @@ struct Token {
 
   [[nodiscard]] bool IsNarrow() const noexcept
   {
-    return token == TK_PDEFAULT
+    return token == TK_IN
+      || token == TK_PDEFAULT
 #ifndef PLUTO_COMPATIBLE_DEFAULT
       || token == TK_DEFAULT
 #endif
