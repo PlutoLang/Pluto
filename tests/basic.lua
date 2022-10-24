@@ -674,6 +674,16 @@ do
     walrus_test_helper(c := "hi")]]
 end
 
+print "Testing for-as loop."
+do
+    local t = { "a", "b", "c" }
+    local k = 1
+    for t as v do
+        assert(t[k] == v)
+        k = k + 1
+    end
+end
+
 print "Testing format strings."
 do
     f_string_global = "foo"
@@ -722,6 +732,12 @@ do
         assert(default == "yes")
     end
     compat_default_name("yes")
+end
+do
+    local t = { "a", "b", "c" }
+    for k, v in t do
+        assert(t[k] == v)
+    end
 end
 
 print "Finished."
