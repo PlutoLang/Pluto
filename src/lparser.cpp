@@ -2778,26 +2778,74 @@ static void forlist (LexState *ls, TString *indexname) {
 }
 
 
+static void forvlist (LexState *ls, TString *valname) {
+  /* forvlist -> explist AS NAME forbody */
+  FuncState *fs = ls->fs;
+  expdesc e;
+  int nvars = 5;  /* gen, state, control, toclose, 'indexname' */
+  int line;
+  int base = fs->freereg;
+  /* create control variables */
+  new_localvarliteral(ls, "(for state)");
+  new_localvarliteral(ls, "(for state)");
+  new_localvarliteral(ls, "(for state)");
+  new_localvarliteral(ls, "(for state)");
+  /* create variable for key */
+  new_localvar(ls, luaS_newliteral(ls->L, "(for state)"));
+  /* create variable for value */
+  new_localvar(ls, valname);
+  nvars++;
+
+  line = ls->getLineNumber();
+  adjust_assign(ls, 4, explist(ls, &e), &e);
+  adjustlocalvars(ls, 4);  /* control variables */
+  marktobeclosed(fs);  /* last control var. must be closed */
+  luaK_checkstack(fs, 3);  /* extra space to call generator */
+
+  checknext(ls, TK_AS);
+  luaX_next(ls); /* skip valname */
+
+  forbody(ls, base, line, nvars - 4, 1);
+}
+
+
 static void forstat (LexState *ls, int line) {
   /* forstat -> FOR (fornum | forlist) END */
   FuncState *fs = ls->fs;
-  TString *varname;
+  TString *varname = nullptr;
   BlockCnt bl;
   enterblock(fs, &bl, 1);  /* scope for loop and control variables */
   luaX_next(ls);  /* skip 'for' */
-  varname = str_checkname(ls);  /* first variable name */
-  switch (ls->t.token) {
-    case '=': {
-      fornum(ls, varname, line);
+
+  /* determine if this is a for-as loop */
+  auto sp = luaX_getpos(ls);
+  for (; ls->t.token != TK_IN && ls->t.token != TK_DO && ls->t.token != TK_EOS; luaX_next(ls)) {
+    if (ls->t.token == TK_AS) {
+      luaX_next(ls);
+      varname = str_checkname(ls);
       break;
     }
-    case ',': case TK_IN: {
-      forlist(ls, varname);
-      break;
+  }
+  luaX_setpos(ls, sp);
+
+  if (varname == nullptr) {
+    varname = str_checkname(ls);  /* first variable name */
+    switch (ls->t.token) {
+      case '=': {
+        fornum(ls, varname, line);
+        break;
+      }
+      case ',': case TK_IN: {
+        forlist(ls, varname);
+        break;
+      }
+      default: {
+        luaX_syntaxerror(ls, "'=' or 'in' expected");
+      }
     }
-    default: {
-      luaX_syntaxerror(ls, "'=' or 'in' expected");
-    }
+  }
+  else {
+    forvlist(ls, varname);
   }
   check_match(ls, TK_END, TK_FOR, line);
   leaveblock(fs);  /* loop scope ('break' jumps to this point) */
