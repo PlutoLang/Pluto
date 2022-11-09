@@ -30,6 +30,10 @@
 #include "ltm.h"
 #include "lvm.h"
 
+#ifdef PLUTO_ETL_ENABLE
+#include <chrono>
+#endif
+
 #ifdef PLUTO_VMDUMP
 #include <string>
 #include <sstream>
@@ -1305,6 +1309,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   int trap;
 #ifdef PLUTO_ILP_ENABLE
   int sequentialJumps = 0;
+#endif
+#ifdef PLUTO_ETL_ENABLE
+  std::time_t deadline = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()
+                         + PLUTO_ETL_NANOS;
 #endif
 #if defined(__GNUC__)
 #include "ljumptabgcc.h"
@@ -2604,6 +2612,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
     }
+#ifdef PLUTO_ETL_ENABLE
+    if (deadline < std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) {
+      PLUTO_ETL_TIMESUP
+      return;
+    }
+#endif
   }
 }
 
