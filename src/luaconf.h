@@ -859,6 +859,33 @@
 
 /*
 ** {====================================================================
+** Pluto configuration: Execution Time Limit (ETL)
+**
+** This is only useful in sandbox environments where stalling is absolutely unacceptable.
+** =====================================================================}
+*/
+
+//#define PLUTO_ETL_ENABLE
+
+#ifdef PLUTO_ETL_ENABLE
+/*
+** This is the maximum amount of nanoseconds the VM is allowed to run.
+*/
+#ifndef PLUTO_ETL_NANOS
+#define PLUTO_ETL_NANOS			1'000'000 /* 1ms */
+#endif
+
+/*
+** This can be used to execute custom code when the time limit is exceeded and
+** the VM is about to be terminated.
+*/
+#ifndef PLUTO_ETL_TIMESUP
+#define PLUTO_ETL_TIMESUP
+#endif
+#endif
+
+/*
+** {====================================================================
 ** Pluto configuration: VM Dump
 ** =====================================================================}
 */
