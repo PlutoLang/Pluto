@@ -58,7 +58,7 @@ static void checktab (lua_State *L, int arg, int what) {
 }
 
 
-LUAI_FUNC int tinsert (lua_State *L) {
+static int tinsert (lua_State *L) {
   lua_Integer pos;  /* where to insert new element */
   lua_Integer e = aux_getn(L, 1, TAB_RW);
   e = luaL_intop(+, e, 1);  /* first empty element */

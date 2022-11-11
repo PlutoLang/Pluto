@@ -1174,7 +1174,6 @@ void luaV_finishOp (lua_State *L) {
 */
 LUAI_FUNC int luaB_next (lua_State *L);
 LUAI_FUNC int luaB_ipairsaux (lua_State *L);
-LUAI_FUNC int tinsert(lua_State * L);
 
 
 #ifdef PLUTO_VMDUMP
@@ -2185,23 +2184,16 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
 #ifdef PLUTO_ILP_HOOK_FUNCTION
         if (fvalue(s2v(ra)) == PLUTO_ILP_HOOK_FUNCTION) sequentialJumps = 0;
 #endif
-        if (fvalue(s2v(ra)) == tinsert && ttistable(s2v(ra + 1)) && ttisnil(s2v(ra + 3))) {
-          Table* table = hvalue(s2v(ra + 1));
-          if (!table->length) table->length = luaH_getn(table);  /* ensure table has cached length */
-          luaH_setint(L, table, ++table->length, s2v(ra + 2));
+        if ((newci = luaD_precall(L, ra, nresults)) == NULL)  /* C call; nothing else to be done */
+        {
+          updatetrap(ci);
+          vmDumpOut("; call cfunc (nresults=" << nresults << " nparams=" << nresults << ")");
         }
-        else {
-          if ((newci = luaD_precall(L, ra, nresults)) == NULL)  /* C call; nothing else to be done */
-          {
-            updatetrap(ci);
-            vmDumpOut("; call cfunc (nresults=" << nresults << " nparams=" << nresults << ")");
-          }
-          else  /* Lua call: run function in this same C frame */
-          {
-            vmDumpOut("; call lfunc (nresults=" << nresults << " nparams=" << nresults << ")");
-            ci = newci;
-            goto startfunc;
-          }
+        else  /* Lua call: run function in this same C frame */
+        {
+          vmDumpOut("; call lfunc (nresults=" << nresults << " nparams=" << nresults << ")");
+          ci = newci;
+          goto startfunc;
         }
         vmbreak;
       }
