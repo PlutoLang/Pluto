@@ -279,216 +279,216 @@ print "Testing switch statement."
 do
     local value = 5
     pluto_switch (value) do
-        pluto_case 5:
+        case 5:
         break
-        pluto_default:
+        default:
         error()
     end
     value = 3
     pluto_switch value do
-        pluto_case 1:
-        pluto_case 2:
-        pluto_case 3:
-        pluto_case 4:
-        pluto_case 5:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
         break
-        pluto_default:
+        default:
         error()
     end
     do
         local casecond <const> = 3
         pluto_switch value do
-            pluto_case casecond:
+            case casecond:
             break
-            pluto_default:
+            default:
             error()
         end
     end
     do
         local casecond = 3
         pluto_switch value do
-            pluto_case casecond:
+            case casecond:
             break
-            pluto_default:
+            default:
             error()
         end
     end
     do
         local casecond <const> = 3
         pluto_switch value do
-            pluto_default:
+            default:
             error()
-            pluto_case casecond:
+            case casecond:
         end
     end
     do
         local casecond = 3
         pluto_switch value do
-            pluto_default:
+            default:
             error()
-            pluto_case casecond:
+            case casecond:
         end
     end
     value = +3
     pluto_switch value do
-        pluto_case +1:
-        pluto_case +2:
-        pluto_case +3:
-        pluto_case +4:
-        pluto_case +5:
+        case +1:
+        case +2:
+        case +3:
+        case +4:
+        case +5:
         break
-        pluto_default:
+        default:
         error()
     end
     value = "foo"
     pluto_switch (value) do
-        pluto_case "foo":
+        case "foo":
         break
-        pluto_default:
+        default:
         error()
     end
     pluto_switch (value) do
-        pluto_case "abc":
-        pluto_case "124":
-        pluto_case nil:
-        pluto_case false:
-        pluto_case true:
-        pluto_case "23420948239":
-        pluto_case "foo":
-        pluto_case 1238123:
-        pluto_case -2409384029842:
-        pluto_case "awweee":
+        case "abc":
+        case "124":
+        case nil:
+        case false:
+        case true:
+        case "23420948239":
+        case "foo":
+        case 1238123:
+        case -2409384029842:
+        case "awweee":
         break
-        pluto_default:
+        default:
         error()
     end
     value = nil
     pluto_switch (value) do
-        pluto_case -1:
-        pluto_case nil:
-        pluto_case -2:
+        case -1:
+        case nil:
+        case -2:
         break
-        pluto_default:
+        default:
         error()
     end
     value = -24389
     pluto_switch (value) do
-        pluto_case "aawdkawmlwadmlaw":
-        pluto_case "q49324932":
-        pluto_case nil:
-        pluto_case "130-91230921":
-        pluto_case false:
-        pluto_case 231923:
-        pluto_case true:
-        pluto_case -234234:
-        pluto_case -24389:
-        pluto_case 23429:
-        pluto_case "bar":
-        pluto_case "foobar":
-        pluto_case "barfoo":
+        case "aawdkawmlwadmlaw":
+        case "q49324932":
+        case nil:
+        case "130-91230921":
+        case false:
+        case 231923:
+        case true:
+        case -234234:
+        case -24389:
+        case 23429:
+        case "bar":
+        case "foobar":
+        case "barfoo":
         break
-        pluto_default: 
+        default: 
         error()
     end
     value = -1
     pluto_switch (value) do
-        pluto_case "aawdkawmlwadmlaw":
-        pluto_case "q49324932":
-        pluto_case nil:
-        pluto_case "130-91230921":
-        pluto_case false:
-        pluto_case 231923:
-        pluto_case true:
-        pluto_case -234234:
-        pluto_case -24389:
-        pluto_case 23429:
-        pluto_case "bar":
-        pluto_case "foobar":
-        pluto_case "barfoo":
+        case "aawdkawmlwadmlaw":
+        case "q49324932":
+        case nil:
+        case "130-91230921":
+        case false:
+        case 231923:
+        case true:
+        case -234234:
+        case -24389:
+        case 23429:
+        case "bar":
+        case "foobar":
+        case "barfoo":
         error()
     end
     value = -3.14
     pluto_switch (value) do
-        pluto_case "aawdkawmlwadmlaw":
-        pluto_case "q49324932":
-        pluto_case nil:
-        pluto_case "130-91230921":
-        pluto_case false:
-        pluto_case -3.14:
-        pluto_case true:
-        pluto_case -234234:
-        pluto_case -24389:
-        pluto_case 23429:
-        pluto_case "bar":
-        pluto_case "foobar":
-        pluto_case "barfoo":
+        case "aawdkawmlwadmlaw":
+        case "q49324932":
+        case nil:
+        case "130-91230921":
+        case false:
+        case -3.14:
+        case true:
+        case -234234:
+        case -24389:
+        case 23429:
+        case "bar":
+        case "foobar":
+        case "barfoo":
         break
     end
     value = -3.3
     pluto_switch (value) do
-        pluto_case "aawdkawmlwadmlaw":
-        pluto_case "q49324932":
-        pluto_case nil:
-        pluto_case "130-91230921":
-        pluto_case false:
-        pluto_case -3.15:
-        pluto_case true:
-        pluto_case -234234:
-        pluto_case -24389:
-        pluto_case 23429:
-        pluto_case "bar":
-        pluto_case "foobar":
-        pluto_case "barfoo":
+        case "aawdkawmlwadmlaw":
+        case "q49324932":
+        case nil:
+        case "130-91230921":
+        case false:
+        case -3.15:
+        case true:
+        case -234234:
+        case -24389:
+        case 23429:
+        case "bar":
+        case "foobar":
+        case "barfoo":
         error()
     end
     t = 0
     value = -3.15
     pluto_switch (value) do
-        pluto_case "aawdkawmlwadmlaw":
-        pluto_case "q49324932":
-        pluto_case nil:
-        pluto_case "130-91230921":
-        pluto_case false:
-        pluto_case -3.15:
-        pluto_case true:
-        pluto_case -234234:
-        pluto_case -24389:
-        pluto_case 23429:
-        pluto_case "bar":
-        pluto_case "foobar":
-        pluto_case "barfoo":
+        case "aawdkawmlwadmlaw":
+        case "q49324932":
+        case nil:
+        case "130-91230921":
+        case false:
+        case -3.15:
+        case true:
+        case -234234:
+        case -24389:
+        case 23429:
+        case "bar":
+        case "foobar":
+        case "barfoo":
         t = true
     end
     assert(t == true)
     t = 0
     value = -3.15
     pluto_switch (value) do
-        pluto_case "aawdkawmlwadmlaw":
-        pluto_case "q49324932":
-        pluto_case nil:
-        pluto_case "130-91230921":
-        pluto_case false:
-        pluto_case -3.15:
-        pluto_case true:
-        pluto_case -234234:
-        pluto_case -24389:
-        pluto_case 23429:
-        pluto_case "bar":
-        pluto_case "foobar":
-        pluto_case "barfoo":
+        case "aawdkawmlwadmlaw":
+        case "q49324932":
+        case nil:
+        case "130-91230921":
+        case false:
+        case -3.15:
+        case true:
+        case -234234:
+        case -24389:
+        case 23429:
+        case "bar":
+        case "foobar":
+        case "barfoo":
         t = true
         break
-        pluto_default:
+        default:
         t = false
     end
     assert(t == true)
     t = 0
     value = 3
     pluto_switch value do
-        pluto_case 1:
-        pluto_default:
+        case 1:
+        default:
         error()
-        pluto_case 3:
+        case 3:
         t = true
     end
     assert(t == true)
