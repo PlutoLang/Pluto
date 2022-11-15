@@ -817,10 +817,6 @@
 #define PLUTO_COMPATIBLE_SWITCH
 
 // If defined, only 'pluto_... you get the idea.
-#define PLUTO_COMPATIBLE_CASE
-
-#define PLUTO_COMPATIBLE_DEFAULT
-
 #define PLUTO_COMPATIBLE_CONTINUE
 
 #define PLUTO_COMPATIBLE_WHEN
