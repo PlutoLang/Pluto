@@ -1161,20 +1161,14 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
 
 /* Switch logic partially inspired by Paige Marie DePol from the Lua mailing list. */
 static void caselist (LexState *ls) {
-  while (gett(ls) != TK_PDEFAULT
-      && gett(ls) != TK_PCASE
-      && gett(ls) != TK_END
-#ifndef PLUTO_COMPATIBLE_DEFAULT
+  while (gett(ls) != TK_CASE
       && gett(ls) != TK_DEFAULT
-#endif
-#ifndef PLUTO_COMPATIBLE_CASE
-      && gett(ls) != TK_CASE
-#endif
+      && gett(ls) != TK_END
+      && gett(ls) != TK_PCASE
+      && gett(ls) != TK_PDEFAULT
     ) {
     if (gett(ls) == TK_PCONTINUE
-#ifndef PLUTO_COMPATIBLE_CONTINUE
         || gett(ls) == TK_CONTINUE
-#endif
         ) {
       continuestat(ls, 1);
     }
@@ -2502,13 +2496,12 @@ static void switchstat (LexState *ls, int line) {
   TString* const end_switch = luaS_newliteral(ls->L, "pluto_end_switch");
   TString* default_case = nullptr;
 
-  if (gett(ls) == TK_PCASE
-#ifndef PLUTO_COMPATIBLE_CASE
-      || gett(ls) == TK_CASE
-#endif
-      ) {
+  if (gett(ls) == TK_CASE || gett(ls) == TK_PCASE) {
     int case_line = ls->getLineNumber();
 
+    if (gett(ls) == TK_PCASE) {
+      throw_warn(ls, "'pluto_case' is deprecated", "use 'case' instead", WT_DEPRECATED);
+    }
     luaX_next(ls); /* Skip 'case' */
 
     first = save;
@@ -2530,11 +2523,12 @@ static void switchstat (LexState *ls, int line) {
 
   while (gett(ls) != TK_END) {
     auto case_line = ls->getLineNumber();
-#ifdef PLUTO_COMPATIBLE_DEFAULT
-    if (testnext(ls, TK_PDEFAULT)) {
-#else
-    if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) {
-#endif 
+    if (gett(ls) == TK_DEFAULT || gett(ls) == TK_PDEFAULT) {
+      if (gett(ls) == TK_PDEFAULT) {
+        throw_warn(ls, "'pluto_default' is deprecated", "use 'default' instead", WT_DEPRECATED);
+      }
+      luaX_next(ls); /* Skip 'default' */
+
       checknext(ls, ':');
       if (default_case != nullptr)
         throwerr(ls, "switch statement already has a default case", "second default case", case_line);
@@ -2543,16 +2537,8 @@ static void switchstat (LexState *ls, int line) {
       caselist(ls);
     }
     else {
-#ifdef PLUTO_COMPATIBLE_CASE
-      if (!testnext(ls, TK_PCASE)) {
-#else
-      if (!testnext2(ls, TK_PCASE, TK_CASE)) {
-#endif
-#ifdef PLUTO_COMPATIBLE_CASE
-        error_expected(ls, TK_PCASE);
-#else
+      if (!testnext2(ls, TK_CASE, TK_PCASE)) {
         error_expected(ls, TK_CASE);
-#endif
       }
       casecond(ls, case_line, cases.emplace_back(std::pair<expdesc, int>{ expdesc{}, luaK_getlabel(fs) }).first);
       caselist(ls);
@@ -3190,15 +3176,11 @@ static void statement (LexState *ls, TypeDesc *prop) {
       gotostat(ls);
       break;
     }
-#ifndef PLUTO_COMPATIBLE_CASE
     case TK_CASE:
-#endif
     case TK_PCASE: {
       throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
     }
-#ifndef PLUTO_COMPATIBLE_DEFAULT
     case TK_DEFAULT:
-#endif
     case TK_PDEFAULT: {
       throwerr(ls, "inappropriate 'default' statement.", "outside of 'switch' block.");
     }
