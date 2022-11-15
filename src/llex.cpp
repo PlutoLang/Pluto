@@ -167,11 +167,12 @@ static const char *txtToken (LexState *ls, int token) {
     err.addMsg(msg);
     if (ls->t.IsReserved())
     {
-      err.addMsg(", but found reserved keyword ")
-         .addMsg(txtToken(ls, token))
-         .addSrcLine(ls->getLineNumber())
-         .addGenericHere("reserved keyword cannot be used in this context.")
-         .addNote("Reserved keywords *can* be used outside of relevant contexts, but this is a relevant context!")
+      std::string str = txtToken(ls, token);
+      err.addMsg(", but found ")
+         .addMsg(str);
+      str.append(" cannot be used in this context.");
+      err.addSrcLine(ls->getLineNumber())
+         .addGenericHere(str)
          .finalize();
     }
     else
