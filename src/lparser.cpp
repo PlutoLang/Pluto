@@ -474,6 +474,7 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
         "duplicate local declaration",
           luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.line), VAR_SHADOW);
       L->top--; /* pop result of luaO_fmt */
+      break;
     }
   }
 #endif
