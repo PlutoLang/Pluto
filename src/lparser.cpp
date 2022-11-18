@@ -2573,6 +2573,33 @@ static void switchstat (LexState *ls, int line) {
 }
 
 
+static void enumstat (LexState *ls) {
+  /* enumstat -> ENUM [NAME] BEGIN NAME { ',' NAME } END */
+
+  luaX_next(ls); /* skip 'enum' */
+
+  if (gett(ls) != TK_BEGIN) { /* enum has name? */
+    luaX_next(ls); /* skip name */
+  }
+
+  const auto line_begin = ls->getLineNumber();
+  checknext(ls, TK_BEGIN); /* ensure we have 'begin' */
+
+  lua_Integer i = 1;
+  while (gett(ls) == TK_NAME) {
+    auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
+    auto var = getlocalvardesc(ls->fs, vidx);
+    var->vd.kind = RDKCTC;
+    setivalue(&var->k, i++);
+    ls->fs->nactvar++;
+    if (gett(ls) != ',') break;
+    luaX_next(ls);
+  }
+
+  check_match(ls, TK_END, TK_BEGIN, line_begin);
+}
+
+
 /*
 ** Check whether there is already a label with the given 'name'.
 */
@@ -3190,6 +3217,12 @@ static void statement (LexState *ls, TypeDesc *prop) {
     case TK_PSWITCH: {
       switchstat(ls, line);
       break;
+    }
+#ifndef PLUTO_COMPATIBLE_ENUM
+    case TK_ENUM:
+#endif
+    case TK_PENUM: {
+      enumstat(ls);
     }
     default: {  /* stat -> func | assignment */
       exprstat(ls);
