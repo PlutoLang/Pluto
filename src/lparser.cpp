@@ -2581,7 +2581,7 @@ static void switchstat (LexState *ls, int line) {
 
 
 static void enumstat (LexState *ls) {
-  /* enumstat -> ENUM [NAME] BEGIN NAME { ',' NAME } END */
+  /* enumstat -> ENUM [NAME] BEGIN NAME ['=' INT] { ',' NAME ['=' INT] } END */
 
   luaX_next(ls); /* skip 'enum' */
 
@@ -2596,6 +2596,11 @@ static void enumstat (LexState *ls) {
   while (gett(ls) == TK_NAME) {
     auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
     auto var = getlocalvardesc(ls->fs, vidx);
+    if (testnext(ls, '=')) {
+      check(ls, TK_INT);
+      i = ls->t.seminfo.i;
+      luaX_next(ls);
+    }
     var->vd.kind = RDKCTC;
     setivalue(&var->k, i++);
     ls->fs->nactvar++;
