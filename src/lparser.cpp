@@ -268,14 +268,21 @@ static void check_match (LexState *ls, int what, int who, int where) {
       error_expected(ls, what);  /* do not need a complex message */
     else {
       if (what == TK_END) {
-        throwerr(ls, luaO_fmt(ls->L, "missing 'end' to terminate matching %s block", luaX_token2str(ls, who)), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
+        std::string msg = "missing 'end' to terminate ";
+        msg.append(luaX_token2str(ls, who));
+        if (who != TK_BEGIN) {
+          msg.append(" block");
+        }
+        msg.append(" on line ");
+        msg.append(std::to_string(where));
+        throwerr(ls, msg.c_str(), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
       }
       else {
         Pluto::ErrorMessage err{ ls, RED "syntax error: " BWHT }; // Doesn't use throwerr since I replicated old code. Couldn't find problematic code to repro error, so went safe.
         err.addMsg(luaX_token2str(ls, what))
           .addMsg(" expected (to close ")
           .addMsg(luaX_token2str(ls, who))
-          .addMsg(" at line ")
+          .addMsg(" on line ")
           .addMsg(std::to_string(where))
           .addMsg(")")
           .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
