@@ -150,6 +150,7 @@ const char* luaX_reserved2str (int token) {
 static const char *txtToken (LexState *ls, int token) {
   switch (token) {
     case TK_NAME: case TK_STRING:
+      return luaO_pushfstring(ls->L, "'%s'", ls->t.seminfo.ts->contents);
     case TK_FLT: case TK_INT:
       save(ls, '\0');
       return luaO_pushfstring(ls->L, "'%s'", luaZ_buffer(ls->buff));
