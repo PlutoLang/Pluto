@@ -1909,11 +1909,15 @@ static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop) 
         luaX_next(ls); /* skip '#' */
         check(ls, TK_NAME);
         switch (Pluto::joaat(ls->t.seminfo.ts)) {
-          case Pluto::joaat("joaat"):
+          case Pluto::joaat("joaat"): {
             uint32_t val = Pluto::joaat(v->u.strval);
             init_exp(v, VKINT, 0);
             v->u.ival = val;
             break;
+          }
+
+          default:
+            luaX_syntaxerror(ls, "unknown hashing algorithm");
         }
       }
       break;
