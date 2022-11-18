@@ -60,7 +60,7 @@ static const char *const luaX_tokens [] = {
 #ifndef PLUTO_COMPATIBLE_ENUM
     "enum",
 #endif
-	"return", "then", "true", "until", "while",
+    "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=",
     "<<", ">>", "::", "<eof>",
     "<number>", "<integer>", "<name>", "<string>"
