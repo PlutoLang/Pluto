@@ -684,6 +684,30 @@ do
     end
 end
 
+print "Testing enums."
+do
+    enum begin
+        UTE_ONE,
+        UTE_TWO,
+    end
+    assert(UTE_ONE == 1)
+    assert(UTE_TWO == 2)
+
+    enum NamedTestEnum begin
+        NTE_ONE,
+        NTE_TWO
+    end
+    assert(NTE_ONE == 1)
+    assert(NTE_TWO == 2)
+
+    enum CStyleEnum begin
+        CSE_INIT = 0,
+        CSE_CONTINUED
+    end
+    assert(CSE_INIT == 0)
+    assert(CSE_CONTINUED == 1)
+end
+
 print "Testing format strings."
 do
     f_string_global = "foo"
