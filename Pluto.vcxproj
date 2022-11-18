@@ -203,6 +203,7 @@
     <ClInclude Include="src\ldo.h" />
     <ClInclude Include="src\lfunc.h" />
     <ClInclude Include="src\lgc.h" />
+    <ClInclude Include="src\hash_common.hpp" />
     <ClInclude Include="src\ljson.hpp" />
     <ClInclude Include="src\ljumptab.h" />
     <ClInclude Include="src\ljumptabgcc.h" />

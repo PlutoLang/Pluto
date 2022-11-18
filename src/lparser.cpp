@@ -35,6 +35,7 @@
 #include "lauxlib.h"
 
 #include "ErrorMessage.hpp"
+#include "hash_common.hpp"
 
 
 
@@ -1903,6 +1904,18 @@ static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop) 
     case TK_STRING: {
       if (prop) *prop = VT_STR;
       codestring(v, ls->t.seminfo.ts);
+      if (luaX_lookahead(ls) == '#') { /* parse-time hash? */
+        luaX_next(ls); /* skip string */
+        luaX_next(ls); /* skip '#' */
+        check(ls, TK_NAME);
+        switch (Pluto::joaat(ls->t.seminfo.ts)) {
+          case Pluto::joaat("joaat"):
+            uint32_t val = Pluto::joaat(v->u.strval);
+            init_exp(v, VKINT, 0);
+            v->u.ival = val;
+            break;
+        }
+      }
       break;
     }
     case TK_NIL: {
