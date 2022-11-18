@@ -3235,6 +3235,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
 #endif
     case TK_PENUM: {
       enumstat(ls);
+      break;
     }
     default: {  /* stat -> func | assignment */
       exprstat(ls);
