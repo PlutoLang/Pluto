@@ -630,7 +630,6 @@ static int math_randomseed (lua_State *L) {
 
 
 static const luaL_Reg randfuncs[] = {
-  {"rand", math_random},
   {"random", math_random},
   {"randomseed", math_randomseed},
   {NULL, NULL}
@@ -645,6 +644,10 @@ static void setrandfunc (lua_State *L) {
   randseed(L, state);  /* initialize with a "random" seed */
   lua_pop(L, 2);  /* remove pushed seeds */
   luaL_setfuncs(L, randfuncs, 1);
+
+  // Provide "rand" as an alias to "random"
+  lua_getfield(L, -1, "random");
+  lua_setfield(L, -2, "rand");
 }
 
 /* }================================================================== */
