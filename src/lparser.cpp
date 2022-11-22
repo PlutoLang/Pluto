@@ -114,7 +114,7 @@ static void throw_warn (LexState *ls, const char *raw_err, const char *here, int
       .addGenericHere(here)
       .finalize();
     lua_warning(ls->L, msg.content.c_str(), 0);
-    ls->L->top -= 2; // Pluto::Error::finalize & luaG_addinfo
+    ls->L->top.p -= 2; // Pluto::Error::finalize & luaG_addinfo
   }
 }
 
@@ -132,7 +132,7 @@ static void throw_warn(LexState* ls, const char* raw_err, const char* here, cons
       .addNote(note)
       .finalize();
     lua_warning(ls->L, msg.content.c_str(), 0);
-    ls->L->top -= 2; // Pluto::Error::finalize & luaG_addinfo
+    ls->L->top.p -= 2; // Pluto::Error::finalize & luaG_addinfo
   }
 }
 
@@ -145,7 +145,7 @@ static void throw_warn(LexState *ls, const char *err, int line, WarningType warn
   if (ls->shouldEmitWarning(line, warningType)) {
     auto msg = luaG_addinfo(ls->L, err, ls->source, line);
     lua_warning(ls->L, msg, 0);
-    ls->L->top -= 1; /* remove warning from stack */
+    ls->L->top.p -= 1; /* remove warning from stack */
   }
 }
 
@@ -377,7 +377,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     else if (strcmp(tname, "userdata") != 0) {
       luaX_prev(ls);
       throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", TYPE_MISMATCH);
-      ls->L->top--;
+      ls->L->top.p--;
       luaX_next(ls); // Preserve a6c8e359857644f4311c022f85cf19d85d95c25d
     }
   }
@@ -418,7 +418,7 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int l
     err.append(" value.");
     if (td.getType() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
       throw_warn(ls, "variable type mismatch", err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line, TYPE_MISMATCH);
-      ls->L->top--; // luaO_fmt
+      ls->L->top.p--; // luaO_fmt
     }
     else {  /* Throw a generic mismatch warning. */
       throw_warn(ls, "variable type mismatch", err.c_str(), line, TYPE_MISMATCH);
@@ -485,7 +485,7 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
       throw_warn(ls,
         "duplicate local declaration",
           luaO_fmt(L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, VAR_SHADOW);
-      L->top--; /* pop result of luaO_fmt */
+      L->top.p--; /* pop result of luaO_fmt */
       break;
     }
   }
@@ -1908,7 +1908,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       throw_warn(ls,
         "too many arguments",
           luaO_fmt(ls->L, "expected %d argument%s, got %d.", expected, suffix, received), EXCESSIVE_ARGUMENTS);
-      --ls->L->top;
+      --ls->L->top.p;
     }
   }
   lua_assert(f->k == VNONRELOC);
@@ -2100,7 +2100,7 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
           break;
         case VCONST:
           lua_lock(L);
-          *s2v(L->top) = ls->dyd->actvar.arr[argexp.u.info].k;
+          *s2v(L->top.p) = ls->dyd->actvar.arr[argexp.u.info].k;
           api_incr_top(L);
           lua_unlock(L);
           break;
@@ -3805,7 +3805,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
     throw_warn(ls,
       "unreachable code",
         luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)), UNREACHABLE_CODE);
-    ls->L->top--;
+    ls->L->top.p--;
   }
   if (ls->t.token != ';')
     ls->laststat.token = ls->t.token;
@@ -4197,10 +4197,10 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   LexState lexstate;
   FuncState funcstate;
   LClosure *cl = luaF_newLclosure(L, 1);  /* create main closure */
-  setclLvalue2s(L, L->top, cl);  /* anchor it (to avoid being collected) */
+  setclLvalue2s(L, L->top.p, cl);  /* anchor it (to avoid being collected) */
   luaD_inctop(L);
   lexstate.h = luaH_new(L);  /* create table for scanner */
-  sethvalue2s(L, L->top, lexstate.h);  /* anchor it */
+  sethvalue2s(L, L->top.p, lexstate.h);  /* anchor it */
   luaD_inctop(L);
   funcstate.f = cl->p = luaF_newproto(L);
   luaC_objbarrier(L, cl, cl->p);
@@ -4214,6 +4214,6 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
   /* all scopes should be correctly finished */
   lua_assert(dyd->actvar.n == 0 && dyd->gt.n == 0 && dyd->label.n == 0);
-  L->top--;  /* remove scanner's table */
+  L->top.p--;  /* remove scanner's table */
   return cl;  /* closure is on the stack, too */
 }

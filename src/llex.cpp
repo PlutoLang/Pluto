@@ -120,7 +120,7 @@ void luaX_init (lua_State *L) {
 
 const char *luaX_token2str (LexState *ls, int token) {
   const char *ret = luaO_pushfstring(ls->L, "'%s'", luaX_token2str_noq(ls, token));
-  ls->L->top--;
+  ls->L->top.p--;
   return ret;
 }
 
@@ -131,10 +131,10 @@ const char *luaX_token2str_noq (LexState *ls, int token) {
   if (token < FIRST_RESERVED) {  /* single-byte symbols? */
     if (lisprint(token)) {
       ret = luaO_pushfstring(ls->L, "%c", token);
-      ls->L->top--;
+      ls->L->top.p--;
     } else { /* control character */
       ret = luaO_pushfstring(ls->L, "'<\\%d>'", token);
-      ls->L->top--;
+      ls->L->top.p--;
     }
   }
   else switch (token) {
@@ -142,18 +142,18 @@ const char *luaX_token2str_noq (LexState *ls, int token) {
       if (!ls->hasDoneLexerPass())
         return luaX_tokens[token - FIRST_RESERVED];
       ret = luaO_pushfstring(ls->L, "%s", ls->t.seminfo.ts->contents);
-      ls->L->top--;
+      ls->L->top.p--;
       break;
     case TK_FLT: case TK_INT:
       save(ls, '\0');
       ret = luaO_pushfstring(ls->L, "%s", luaZ_buffer(ls->buff));
-      ls->L->top--;
+      ls->L->top.p--;
       break;
     default:
       const char *s = luaX_tokens[token - FIRST_RESERVED];
       if (token < TK_EOS) { /* fixed format (symbols and reserved words)? */
           ret = luaO_pushfstring(ls->L, "%s", s);
-          ls->L->top--;
+          ls->L->top.p--;
       } else  /* names, strings, and numerals */
         return s;
   }
@@ -220,12 +220,12 @@ TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
   if (!ttisnil(o))  /* string already present? */
     ts = keystrval(nodefromval(o));  /* get saved copy */
   else {  /* not in use yet */
-    TValue *stv = s2v(L->top++);  /* reserve stack space for string */
+    TValue *stv = s2v(L->top.p++);  /* reserve stack space for string */
     setsvalue(L, stv, ts);  /* temporarily anchor the string */
     luaH_finishset(L, ls->h, stv, o, stv);  /* t[string] = string */
     /* table is not a metatable, so it does not need to invalidate cache */
     luaC_checkGC(L);
-    L->top--;  /* remove string from stack */
+    L->top.p--;  /* remove string from stack */
   }
   return ts;
 }
