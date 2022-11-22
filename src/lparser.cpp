@@ -472,7 +472,7 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
     if ((n != "(for state)" && n != "(switch control value)") && (local && local->varname == name)) { // Got a match.
       throw_warn(ls,
         "duplicate local declaration",
-          luaO_fmt(L, "this shadows the value of the initial declaration on line %d.", desc->vd.line), VAR_SHADOW);
+          luaO_fmt(L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), VAR_SHADOW);
       L->top--; /* pop result of luaO_fmt */
       break;
     }
