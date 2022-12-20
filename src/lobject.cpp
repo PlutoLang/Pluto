@@ -380,12 +380,20 @@ static int tostringbuff (TValue *obj, char *buff) {
 
 
 /*
-** Convert a number object to a Lua string, replacing the value at 'obj'
+** Convert a number or boolean object to a Lua string, replacing the value at 'obj'
 */
 void luaO_tostring (lua_State *L, TValue *obj) {
-  char buff[MAXNUMBER2STR];
-  int len = tostringbuff(obj, buff);
-  setsvalue(L, obj, luaS_newlstr(L, buff, len));
+  if (ttisboolean(obj)) {
+    if (ttistrue(obj)) {
+      setsvalue(L, obj, luaS_newliteral(L, "true"));
+    } else {
+      setsvalue(L, obj, luaS_newliteral(L, "false"));
+    }
+  } else {
+    char buff[MAXNUMBER2STR];
+    int len = tostringbuff(obj, buff);
+    setsvalue(L, obj, luaS_newlstr(L, buff, len));
+  }
 }
 
 
