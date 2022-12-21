@@ -710,6 +710,12 @@ do
     assert(0b11 == 3)
 end
 
+print "Testing boolean concatenation."
+do
+    assert(("aussie version is " .. true) == "aussie version is true")
+    assert((true .. false) == "truefalse")
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
