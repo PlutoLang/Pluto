@@ -896,6 +896,12 @@
 // If defined, Pluto will not load compiled Lua or Pluto code.
 //#define PLUTO_DISABLE_COMPILED
 
+// If defined, the provided function will be called as bool(const char* filename).
+// It needs to have C ABI linkage (extern "C").
+// If it returns false, a Lua error is raised.
+// This will affect require and dofile.
+//#define PLUTO_LOADFILE_HOOK ContmodOnLoadfile
+
 /*
 ** {====================================================================
 ** Pluto color macros.
