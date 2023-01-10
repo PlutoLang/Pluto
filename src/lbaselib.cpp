@@ -564,6 +564,13 @@ LUAMOD_API int luaopen_base (lua_State *L) {
   /* set global _PVERSION */
   lua_pushliteral(L, PLUTO_VERSION);
   lua_setfield(L, -2, "_PVERSION");
+  /* set global _PSOUP */
+#ifdef PLUTO_USE_SOUP
+  lua_pushboolean(L, true);
+#else
+  lua_pushboolean(L, false);
+#endif
+  lua_setfield(L, -2, "_PSOUP");
   return 1;
 }
 
