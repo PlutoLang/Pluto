@@ -23,6 +23,10 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 
 /* Basic error handling. Exceptions have better error messages than error_codes. */
 #define Protect(c) \
@@ -270,13 +274,35 @@ static void opencheck (lua_State *L, const char *fname, const char *mode) {
 }
 
 
+#ifdef _WIN32
+[[nodiscard]] static std::wstring utf8_to_utf16(const char* utf8, size_t utf8_len) {
+  std::wstring utf16;
+  const int sizeRequired = MultiByteToWideChar(CP_UTF8, 0, utf8, (int)utf8_len, nullptr, 0);
+  if (l_likely(sizeRequired != 0)) {
+    utf16 = std::wstring(sizeRequired, 0);
+    MultiByteToWideChar(CP_UTF8, 0, utf8, (int)utf8_len, utf16.data(), sizeRequired);
+  }
+  return utf16;
+}
+#endif
+
+
 static int io_open (lua_State *L) {
-  const char *filename = luaL_checkstring(L, 1);
-  const char *mode = luaL_optstring(L, 2, "r");
+  size_t filename_len, mode_len;
+  const char *filename = luaL_checklstring(L, 1, &filename_len);
+  const char *mode = luaL_optlstring(L, 2, "r", &mode_len);
   LStream *p = newfile(L);
   const char *md = mode;  /* to traverse/check mode */
   luaL_argcheck(L, l_checkmode(md), 2, "invalid mode");
+#ifdef _WIN32
+  // From what I could gather online, UTF-8 is the path encoding convention on *nix systems,
+  // so I've ultimately decided that we should just "fix" the fact that Windows doesn't use UTF-8.
+  std::wstring wfilename = utf8_to_utf16(filename, filename_len);
+  std::wstring wmode = utf8_to_utf16(mode, mode_len);
+  p->f = _wfopen(wfilename.c_str(), wmode.c_str());
+#else
   p->f = fopen(filename, mode);
+#endif
 
   if (p->f != nullptr)
   {
