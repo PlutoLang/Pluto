@@ -1737,7 +1737,7 @@ static void fstring (LexState *ls, expdesc *v) {
     ++del;
     size_t del2 = str.find('}', del);
     if (del2 == std::string::npos) {
-      luaX_syntaxerror(ls, "Improper f-string with unterminated varname");
+      luaX_syntaxerror(ls, "Improper $-string with unterminated varname");
       break;
     }
     auto varname_len = (del2 - del);
