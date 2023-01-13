@@ -556,7 +556,7 @@ do
     assert(crypto.joaat("hello world") == tonumber(crypto.hexdigest(crypto.joaat("hello world"))))
 end
 do
-    if package.preload["base64"] ~= nil then -- Soup is linked.
+    if _PSOUP then -- Soup is linked.
         do
             local base64 = require("base64")
             assert(base64.encode("Hello") == "SGVsbG8")
