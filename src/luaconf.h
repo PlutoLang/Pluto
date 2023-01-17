@@ -780,7 +780,7 @@
 // If defined, Pluto will exclude code snippets from error messages to make them shorter.
 //#define PLUTO_SHORT_ERRORS
 
-// If defined, Pluto won't assume that files are UTF-8 encoded and restrict valid names.
+// If defined, Pluto won't assume that source files are UTF-8 encoded and restrict valid symbol names.
 //#define PLUTO_NO_UTF8
 
 // If defined, Pluto will use a jumptable in the VM even if not compiled via GCC.
