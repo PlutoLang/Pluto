@@ -268,14 +268,21 @@ static void check_match (LexState *ls, int what, int who, int where) {
       error_expected(ls, what);  /* do not need a complex message */
     else {
       if (what == TK_END) {
-        throwerr(ls, luaO_fmt(ls->L, "missing 'end' to terminate matching %s block", luaX_token2str(ls, who)), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
+        std::string msg = "missing 'end' to terminate ";
+        msg.append(luaX_token2str(ls, who));
+        if (who != TK_BEGIN) {
+          msg.append(" block");
+        }
+        msg.append(" on line ");
+        msg.append(std::to_string(where));
+        throwerr(ls, msg.c_str(), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
       }
       else {
         Pluto::ErrorMessage err{ ls, RED "syntax error: " BWHT }; // Doesn't use throwerr since I replicated old code. Couldn't find problematic code to repro error, so went safe.
         err.addMsg(luaX_token2str(ls, what))
           .addMsg(" expected (to close ")
           .addMsg(luaX_token2str(ls, who))
-          .addMsg(" at line ")
+          .addMsg(" on line ")
           .addMsg(std::to_string(where))
           .addMsg(")")
           .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
@@ -2573,6 +2580,38 @@ static void switchstat (LexState *ls, int line) {
 }
 
 
+static void enumstat (LexState *ls) {
+  /* enumstat -> ENUM [NAME] BEGIN NAME ['=' INT] { ',' NAME ['=' INT] } END */
+
+  luaX_next(ls); /* skip 'enum' */
+
+  if (gett(ls) != TK_BEGIN) { /* enum has name? */
+    luaX_next(ls); /* skip name */
+  }
+
+  const auto line_begin = ls->getLineNumber();
+  checknext(ls, TK_BEGIN); /* ensure we have 'begin' */
+
+  lua_Integer i = 1;
+  while (gett(ls) == TK_NAME) {
+    auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
+    auto var = getlocalvardesc(ls->fs, vidx);
+    if (testnext(ls, '=')) {
+      check(ls, TK_INT);
+      i = ls->t.seminfo.i;
+      luaX_next(ls);
+    }
+    var->vd.kind = RDKCTC;
+    setivalue(&var->k, i++);
+    ls->fs->nactvar++;
+    if (gett(ls) != ',') break;
+    luaX_next(ls);
+  }
+
+  check_match(ls, TK_END, TK_BEGIN, line_begin);
+}
+
+
 /*
 ** Check whether there is already a label with the given 'name'.
 */
@@ -3189,6 +3228,13 @@ static void statement (LexState *ls, TypeDesc *prop) {
 #endif
     case TK_PSWITCH: {
       switchstat(ls, line);
+      break;
+    }
+#ifndef PLUTO_COMPATIBLE_ENUM
+    case TK_ENUM:
+#endif
+    case TK_PENUM: {
+      enumstat(ls);
       break;
     }
     default: {  /* stat -> func | assignment */
