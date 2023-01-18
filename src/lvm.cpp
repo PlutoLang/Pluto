@@ -33,7 +33,6 @@
 #ifdef PLUTO_VMDUMP
 #include <string>
 #include <sstream>
-#include <iostream>
 #include "lauxlib.h" // lua_writestring
 #include "lopnames.h"
 #endif
@@ -1279,7 +1278,7 @@ static const std::vector<OpCode> allowOps = { vmDumpAllow };
 #define vmDumpAddB() if (!ignore) { tmp += std::to_string(GETARG_B(i)); tmp += " "; }
 #define vmDumpAddC() if (!ignore) { tmp += std::to_string(GETARG_C(i)); tmp += " "; }
 #define vmDumpAdd(o) if (!ignore) { tmp += std::to_string(o);           tmp += " "; }
-#define vmDumpOut(c) if (!ignore) { padUntilGoal(tmp, 20); std::cout << tmp << c << std::endl; }
+#define vmDumpOut(c) if (!ignore) { padUntilGoal(tmp, 20); std::stringstream cs; cs << c; tmp.append(cs.str()); lua_writestring(tmp.data(), tmp.size()); lua_writeline(); }
 #else
 #define vmDumpInit()
 #define vmDumpAddA()
