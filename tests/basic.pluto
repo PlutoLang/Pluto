@@ -745,5 +745,6 @@ do
         assert(t[k] == v)
     end
 end
+assert(("deez" .. 69) == "deez69")
 
 print "Finished."
