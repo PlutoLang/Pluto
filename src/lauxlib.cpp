@@ -770,9 +770,18 @@ static int skipcomment (FILE *f, int *cp) {
   else return 0;  /* no comment */
 }
 
+#ifdef PLUTO_LOADFILE_HOOK
+extern "C" bool PLUTO_LOADFILE_HOOK(const char* filename);
+#endif
 
 LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
                                              const char *mode) {
+#ifdef PLUTO_LOADFILE_HOOK
+  if (!PLUTO_LOADFILE_HOOK(filename)) {
+    lua_pushfstring(L, "%s failed content moderation policy", filename);
+    return LUA_ERRFILE;
+  }
+#endif
   LoadF lf;
   int status, readstatus;
   int c;

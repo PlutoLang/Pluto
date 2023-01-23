@@ -897,6 +897,17 @@ static int makedir (lua_State *L)
 }
 
 
+static int makedirs (lua_State *L)
+{
+  Protect(
+    const auto path = getStringStreamPath(L);
+    lua_pushboolean(L, std::filesystem::create_directories(path))
+  );
+
+  return 1;
+}
+
+
 /*
   0.4.0 Changes:
     - Second boolean parameter will toggle recursive iteration.
@@ -978,6 +989,7 @@ static const luaL_Reg iolib[] = {
   {"remove", l_remove},
   {"listdir", listdir},
   {"makedir", makedir},
+  {"makedirs", makedirs},
   {"absolute", absolute},
   {"copyto", copyto},
   {"exists", exists},

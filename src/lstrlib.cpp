@@ -1859,8 +1859,7 @@ static int str_unpack (lua_State *L) {
 }
 
 
-static int str_startswith (lua_State *L)
-{
+static int str_startswith (lua_State *L) {
   size_t len;
   const char *str = luaL_checkstring(L, 1);
   const char *prefix = luaL_checklstring(L, 2, &len);
@@ -1869,8 +1868,7 @@ static int str_startswith (lua_State *L)
 }
 
 
-static int str_endswith (lua_State *L)
-{
+static int str_endswith (lua_State *L) {
   size_t len;
   size_t suffixlen;
   const char *str = luaL_checklstring(L, 1, &len);
@@ -1880,28 +1878,23 @@ static int str_endswith (lua_State *L)
 }
 
 
-static int str_partition (lua_State *L)
-{
+static int str_partition (lua_State *L) {
   size_t sepsize, sepindex;
   std::string str = luaL_checkstring(L, 1);
   const char *sep = luaL_checklstring(L, 2, &sepsize);
 
-  if (lua_toboolean(L, 3))
-  {
+  if (lua_toboolean(L, 3)) {
     sepindex = str.rfind(sep);
   }
-  else
-  {
+  else {
     sepindex = str.find(sep);
   }
 
-  if (sepindex != std::string::npos)
-  {
+  if (sepindex != std::string::npos) {
     lua_pushstring(L, str.substr(0, sepindex).c_str());
     lua_pushstring(L, str.substr(sepindex + sepsize).c_str());
   }
-  else
-  {
+  else {
     lua_pushnil(L);
     lua_pushnil(L);
   }
@@ -1930,10 +1923,8 @@ static int str_split (lua_State *L) {
   if (needleLen == 0)
     begin++;
 
-  for (const char* iter = begin; iter <= end - needleLen; iter++)
-  {
-    if (memcmp(iter, needle, needleLen) == 0)
-    {
+  for (const char* iter = begin; iter <= end - needleLen; iter++) {
+    if (memcmp(iter, needle, needleLen) == 0) {
       lua_pushinteger(L, ++numMatches);
       lua_pushlstring(L, spanStart, iter - spanStart);
       lua_settable(L, -3);
@@ -1944,8 +1935,7 @@ static int str_split (lua_State *L) {
     }
   }
 
-  if (needleLen > 0)
-  {
+  if (needleLen > 0) {
     lua_pushinteger(L, ++numMatches);
     lua_pushlstring(L, spanStart, end - spanStart);
     lua_settable(L, -3);
@@ -1955,13 +1945,11 @@ static int str_split (lua_State *L) {
 }
 
 
-static int str_islower (lua_State* L)
-{
+static int str_islower (lua_State* L) {
   size_t len;
   const char* str = luaL_checklstring(L, 1, &len);
   int retval = 1;
-  for (size_t i = 0; i != len; ++i)
-  {
+  for (size_t i = 0; i != len; ++i) {
     retval = std::islower(str[i]);
     if (!retval)
       break;
@@ -1970,13 +1958,11 @@ static int str_islower (lua_State* L)
   return 1;
 }
 
-static int str_isupper (lua_State* L)
-{
+static int str_isupper (lua_State* L) {
   size_t len;
   const char* str = luaL_checklstring(L, 1, &len);
   int retval = 1;
-  for (size_t i = 0; i != len; ++i)
-  {
+  for (size_t i = 0; i != len; ++i) {
     retval = std::isupper(str[i]);
     if (!retval)
       break;
@@ -1985,13 +1971,11 @@ static int str_isupper (lua_State* L)
   return 1;
 }
 
-static int str_isalpha (lua_State* L)
-{
+static int str_isalpha (lua_State* L) {
   size_t len;
   const char* str = luaL_checklstring(L, 1, &len);
   int retval = 1;
-  for (size_t i = 0; i != len; ++i)
-  {
+  for (size_t i = 0; i != len; ++i) {
     retval = std::isalpha(str[i]);
     if (!retval)
       break;
@@ -2000,13 +1984,11 @@ static int str_isalpha (lua_State* L)
   return 1;
 }
 
-static int str_isalnum (lua_State* L)
-{
+static int str_isalnum (lua_State* L) {
   size_t len;
   const char* str = luaL_checklstring(L, 1, &len);
   int retval = 1;
-  for (size_t i = 0; i != len; ++i)
-  {
+  for (size_t i = 0; i != len; ++i) {
     retval = std::isalnum(str[i]);
     if (!retval)
       break;
@@ -2016,13 +1998,11 @@ static int str_isalnum (lua_State* L)
 }
 
 
-static int str_iswhitespace (lua_State *L)
-{
+static int str_iswhitespace (lua_State *L) {
   size_t len;
   const char* str = luaL_checklstring(L, 1, &len);
   int retval = 1;
-  for (size_t i = 0; i != len; ++i)
-  {
+  for (size_t i = 0; i != len; ++i) {
     retval = std::isspace(str[i]);
     if (!retval)
       break;
@@ -2032,13 +2012,11 @@ static int str_iswhitespace (lua_State *L)
 }
 
 
-static int str_isascii (lua_State* L) 
-{
+static int str_isascii (lua_State* L) {
   size_t len;
   const char* str = luaL_checklstring(L, 1, &len);
   int retval = 1;
-  for (size_t i = 0; i != len; ++i)
-  {
+  for (size_t i = 0; i != len; ++i) {
     retval = isascii(static_cast<unsigned char>(str[i]));
     if (!retval)
       break;
@@ -2048,30 +2026,25 @@ static int str_isascii (lua_State* L)
 }
 
 
-static int str_contains (lua_State *L) 
-{
+static int str_contains (lua_State *L)  {
   std::string s = luaL_checkstring(L, 1);
   lua_pushboolean(L, s.find(luaL_checkstring(L, 2)) != std::string::npos);
   return 1;
 }
 
 
-static int str_casefold (lua_State *L)
-{
+static int str_casefold (lua_State *L) {
   size_t len1, len2;
   const char *s1 = luaL_checklstring(L, 1, &len1);
   const char *s2 = luaL_checklstring(L, 2, &len2);
 
-  if (len1 != len2)
-  {
+  if (len1 != len2) {
     lua_pushboolean(L, false);
     return 1;
   }
 
-  for (size_t i = 0; i != len1; ++i)
-  {
-    if (std::tolower(s1[i]) != std::tolower(s2[i]))
-    {
+  for (size_t i = 0; i != len1; ++i) {
+    if (std::tolower(s1[i]) != std::tolower(s2[i])) {
       lua_pushboolean(L, false);
       return 1;
     }
@@ -2082,8 +2055,7 @@ static int str_casefold (lua_State *L)
 }
 
 
-static int str_lstrip (lua_State *L)
-{
+static int str_lstrip (lua_State *L) {
   std::string s = luaL_checkstring(L, 1);
   const char *delim = luaL_checkstring(L, 2);
   s.erase(0, s.find_first_not_of(delim));
@@ -2092,8 +2064,7 @@ static int str_lstrip (lua_State *L)
 }
 
 
-static int str_rstrip (lua_State *L)
-{
+static int str_rstrip (lua_State *L) {
   std::string s = luaL_checkstring(L, 1);
   const char *delim = luaL_checkstring(L, 2);
   s.erase(s.find_last_not_of(delim) + 1);
@@ -2102,8 +2073,7 @@ static int str_rstrip (lua_State *L)
 }
 
 
-static int str_strip (lua_State *L)
-{
+static int str_strip (lua_State *L) {
   std::string s = luaL_checkstring(L, 1);
   const char *delim = luaL_checkstring(L, 2);
   s.erase(0, s.find_first_not_of(delim));
@@ -2113,19 +2083,16 @@ static int str_strip (lua_State *L)
 }
 
 
-static int str_rfind (lua_State *L)
-{
+static int str_rfind (lua_State *L) {
   size_t pos;
   std::string s = luaL_checkstring(L, 1);
   const char *sub = luaL_checkstring(L, 2);
   
   pos = s.rfind(sub);
-  if (pos != std::string::npos)
-  {
+  if (pos != std::string::npos) {
     lua_pushinteger(L, pos + 1);
   }
-  else
-  {
+  else {
     lua_pushnil(L);
   }
 
@@ -2133,19 +2100,16 @@ static int str_rfind (lua_State *L)
 }
 
 
-static int str_lfind (lua_State *L)
-{
+static int str_lfind (lua_State *L) {
   size_t pos;
   std::string s = luaL_checkstring(L, 1);
   const char *sub = luaL_checkstring(L, 2);
   
   pos = s.find(sub);
-  if (pos != std::string::npos)
-  {
+  if (pos != std::string::npos) {
     lua_pushinteger(L, pos + 1);
   }
-  else
-  {
+  else {
     lua_pushnil(L);
   }
 
@@ -2153,19 +2117,16 @@ static int str_lfind (lua_State *L)
 }
 
 
-static int str_find_first_of (lua_State *L)
-{
+static int str_find_first_of (lua_State *L) {
   size_t pos;
   std::string s = luaL_checkstring(L, 1);
   const char *d = luaL_checkstring(L, 2);
 
   pos = s.find_first_of(d);
-  if (pos != std::string::npos)
-  {
+  if (pos != std::string::npos) {
     lua_pushinteger(L, ++pos);
   }
-  else
-  {
+  else {
     lua_pushnil(L);
   }
 
@@ -2173,19 +2134,16 @@ static int str_find_first_of (lua_State *L)
 }
 
 
-static int str_find_first_not_of(lua_State *L)
-{
+static int str_find_first_not_of (lua_State *L) {
   size_t pos;
   std::string s = luaL_checkstring(L, 1);
   const char *d = luaL_checkstring(L, 2);
 
   pos = s.find_first_not_of(d);
-  if (pos != std::string::npos)
-  {
+  if (pos != std::string::npos) {
     lua_pushinteger(L, ++pos);
   }
-  else
-  {
+  else {
     lua_pushnil(L);
   }
 
@@ -2193,19 +2151,16 @@ static int str_find_first_not_of(lua_State *L)
 }
 
 
-static int str_find_last_of(lua_State *L)
-{
+static int str_find_last_of (lua_State *L) {
   size_t pos;
   std::string s = luaL_checkstring(L, 1);
   const char *d = luaL_checkstring(L, 2);
 
   pos = s.find_last_of(d);
-  if (pos != std::string::npos)
-  {
+  if (pos != std::string::npos) {
     lua_pushinteger(L, ++pos);
   }
-  else
-  {
+  else {
     lua_pushnil(L);
   }
 
@@ -2213,19 +2168,16 @@ static int str_find_last_of(lua_State *L)
 }
 
 
-static int str_find_last_not_of(lua_State *L)
-{
+static int str_find_last_not_of (lua_State *L) {
   size_t pos;
   std::string s = luaL_checkstring(L, 1);
   const char *d = luaL_checkstring(L, 2);
 
   pos = s.find_last_not_of(d);
-  if (pos != std::string::npos)
-  {
+  if (pos != std::string::npos) {
     lua_pushinteger(L, ++pos);
   }
-  else
-  {
+  else {
     lua_pushnil(L);
   }
 

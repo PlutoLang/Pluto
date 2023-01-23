@@ -1,3 +1,4 @@
+require ../../Soup/soup include_dir=../../Soup
 +*.cpp
 -lua.cpp
 -luac.cpp

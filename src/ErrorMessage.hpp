@@ -4,7 +4,7 @@
 
 #include "llex.h"
 
-namespace Pluto // Decided to create the first instance of 'namespace' in this project. Figuring I'll put Pluto-related utility in here for now.
+namespace Pluto
 {
 	class ErrorMessage
 	{

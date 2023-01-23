@@ -45,21 +45,20 @@ static const char *const luaX_tokens [] = {
     "and", "break", "do", "else", "elseif",
     "end", "false", "for", "function", "goto", "if",
     "in", "local", "nil", "not", "or", "repeat",
-    "pluto_switch", "pluto_case", "pluto_default", "pluto_continue", "pluto_when",
+    "case", "default", "as", "begin",
+    "pluto_switch", "pluto_continue", "pluto_when", "pluto_enum",
+    "pluto_case", "pluto_default",
 #ifndef PLUTO_COMPATIBLE_SWITCH
     "switch",
-#endif
-#ifndef PLUTO_COMPATIBLE_CASE
-    "case",
-#endif
-#ifndef PLUTO_COMPATIBLE_DEFAULT
-    "default",
 #endif
 #ifndef PLUTO_COMPATIBLE_CONTINUE
     "continue",
 #endif
 #ifndef PLUTO_COMPATIBLE_WHEN
     "when",
+#endif
+#ifndef PLUTO_COMPATIBLE_ENUM
+    "enum",
 #endif
     "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=",

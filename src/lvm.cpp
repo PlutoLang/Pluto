@@ -30,10 +30,13 @@
 #include "ltm.h"
 #include "lvm.h"
 
+#ifdef PLUTO_ETL_ENABLE
+#include <chrono>
+#endif
+
 #ifdef PLUTO_VMDUMP
 #include <string>
 #include <sstream>
-#include <iostream>
 #include "lauxlib.h" // lua_writestring
 #include "lopnames.h"
 #endif
@@ -1279,7 +1282,7 @@ static const std::vector<OpCode> allowOps = { vmDumpAllow };
 #define vmDumpAddB() if (!ignore) { tmp += std::to_string(GETARG_B(i)); tmp += " "; }
 #define vmDumpAddC() if (!ignore) { tmp += std::to_string(GETARG_C(i)); tmp += " "; }
 #define vmDumpAdd(o) if (!ignore) { tmp += std::to_string(o);           tmp += " "; }
-#define vmDumpOut(c) if (!ignore) { padUntilGoal(tmp, 20); std::cout << tmp << c << std::endl; }
+#define vmDumpOut(c) if (!ignore) { padUntilGoal(tmp, 20); std::stringstream cs; cs << c; tmp.append(cs.str()); lua_writestring(tmp.data(), tmp.size()); lua_writeline(); }
 #else
 #define vmDumpInit()
 #define vmDumpAddA()
@@ -1302,6 +1305,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   int trap;
 #ifdef PLUTO_ILP_ENABLE
   int sequentialJumps = 0;
+#endif
+#ifdef PLUTO_ETL_ENABLE
+  std::time_t deadline = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()
+                         + PLUTO_ETL_NANOS;
 #endif
 #if defined(__GNUC__)
 #include "ljumptabgcc.h"
@@ -2594,6 +2601,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
     }
+#ifdef PLUTO_ETL_ENABLE
+    if (deadline < std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) {
+      PLUTO_ETL_TIMESUP
+      return;
+    }
+#endif
   }
 }
 

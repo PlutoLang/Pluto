@@ -202,7 +202,8 @@
         LUA_LDIR"?.lua;"  LUA_LDIR"?\\init.lua;" \
         LUA_CDIR"?.lua;"  LUA_CDIR"?\\init.lua;" \
         LUA_SHRDIR"?.lua;" LUA_SHRDIR"?\\init.lua;" \
-        ".\\?.lua;" ".\\?\\init.lua"
+        ".\\?.lua;" ".\\?\\init.lua;" \
+        ".\\?.pluto"
 #endif
 
 #if !defined(LUA_CPATH_DEFAULT)
@@ -222,7 +223,8 @@
 #define LUA_PATH_DEFAULT  \
         LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
         LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua;" \
-        "./?.lua;" "./?/init.lua"
+        "./?.lua;" "./?/init.lua;" \
+        "./?.pluto"
 #endif
 
 #if !defined(LUA_CPATH_DEFAULT)
@@ -771,6 +773,12 @@
 ** =====================================================================}
 */
 
+// !!IMPORTANT!!
+// Enabling this macro will greatly expand the preloaded standard libraries to your access.
+//   However, it will complicate the build process. Look at what features you need, and if they require Soup.
+// If defined, Pluto will link with Soup via Sun. Flat directory structure is expected, but feel free to modify the Sun build files appropriately.
+//#define PLUTO_USE_SOUP
+
 // If defined, Pluto won't emit parser warnings.
 //#define PLUTO_NO_PARSER_WARNINGS
 
@@ -812,13 +820,11 @@
 #define PLUTO_COMPATIBLE_SWITCH
 
 // If defined, only 'pluto_... you get the idea.
-#define PLUTO_COMPATIBLE_CASE
-
-#define PLUTO_COMPATIBLE_DEFAULT
-
 #define PLUTO_COMPATIBLE_CONTINUE
 
 #define PLUTO_COMPATIBLE_WHEN
+
+#define PLUTO_COMPATIBLE_ENUM
 
 #endif // PLUTO_COMPATIBLE_MODE
 
@@ -853,6 +859,33 @@
 
 /*
 ** {====================================================================
+** Pluto configuration: Execution Time Limit (ETL)
+**
+** This is only useful in sandbox environments where stalling is absolutely unacceptable.
+** =====================================================================}
+*/
+
+//#define PLUTO_ETL_ENABLE
+
+#ifdef PLUTO_ETL_ENABLE
+/*
+** This is the maximum amount of nanoseconds the VM is allowed to run.
+*/
+#ifndef PLUTO_ETL_NANOS
+#define PLUTO_ETL_NANOS			1'000'000 /* 1ms */
+#endif
+
+/*
+** This can be used to execute custom code when the time limit is exceeded and
+** the VM is about to be terminated.
+*/
+#ifndef PLUTO_ETL_TIMESUP
+#define PLUTO_ETL_TIMESUP
+#endif
+#endif
+
+/*
+** {====================================================================
 ** Pluto configuration: VM Dump
 ** =====================================================================}
 */
@@ -884,6 +917,21 @@
 #endif
 
 #endif // PLUTO_VMDUMP
+
+/*
+** {====================================================================
+** Pluto configuration: Content Moderation
+** =====================================================================}
+*/
+
+// If defined, Pluto will not load compiled Lua or Pluto code.
+//#define PLUTO_DISABLE_COMPILED
+
+// If defined, the provided function will be called as bool(const char* filename).
+// It needs to have C ABI linkage (extern "C").
+// If it returns false, a Lua error is raised.
+// This will affect require and dofile.
+//#define PLUTO_LOADFILE_HOOK ContmodOnLoadfile
 
 /*
 ** {====================================================================

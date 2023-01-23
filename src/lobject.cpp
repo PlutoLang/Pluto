@@ -287,6 +287,17 @@ static const char *l_str2int (const char *s, lua_Integer *result) {
       empty = 0;
     }
   }
+  else if (s[0] == '0' &&
+      (s[1] == 'b' || s[1] == 'B')) { /* binary? */
+    s += 2;  /* skip '0b' */
+    for (; lisdigit(cast_uchar(*s)); s++) {
+      int d = *s - '0';
+      if (d >= 2)
+        return NULL;
+      a = a * 2 + d;
+      empty = 0;
+    }
+  }
   else {  /* decimal */
     for (; lisdigit(cast_uchar(*s)); s++) {
       int d = *s - '0';
@@ -369,12 +380,20 @@ static int tostringbuff (TValue *obj, char *buff) {
 
 
 /*
-** Convert a number object to a Lua string, replacing the value at 'obj'
+** Convert a number or boolean object to a Lua string, replacing the value at 'obj'
 */
 void luaO_tostring (lua_State *L, TValue *obj) {
-  char buff[MAXNUMBER2STR];
-  int len = tostringbuff(obj, buff);
-  setsvalue(L, obj, luaS_newlstr(L, buff, len));
+  if (ttisboolean(obj)) {
+    if (ttistrue(obj)) {
+      setsvalue(L, obj, luaS_newliteral(L, "true"));
+    } else {
+      setsvalue(L, obj, luaS_newliteral(L, "false"));
+    }
+  } else {
+    char buff[MAXNUMBER2STR];
+    int len = tostringbuff(obj, buff);
+    setsvalue(L, obj, luaS_newlstr(L, buff, len));
+  }
 }
 
 

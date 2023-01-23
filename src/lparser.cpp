@@ -268,14 +268,21 @@ static void check_match (LexState *ls, int what, int who, int where) {
       error_expected(ls, what);  /* do not need a complex message */
     else {
       if (what == TK_END) {
-        throwerr(ls, luaO_fmt(ls->L, "missing 'end' to terminate matching %s block", luaX_token2str(ls, who)), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
+        std::string msg = "missing 'end' to terminate ";
+        msg.append(luaX_token2str(ls, who));
+        if (who != TK_BEGIN) {
+          msg.append(" block");
+        }
+        msg.append(" on line ");
+        msg.append(std::to_string(where));
+        throwerr(ls, msg.c_str(), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
       }
       else {
         Pluto::ErrorMessage err{ ls, RED "syntax error: " BWHT }; // Doesn't use throwerr since I replicated old code. Couldn't find problematic code to repro error, so went safe.
         err.addMsg(luaX_token2str(ls, what))
           .addMsg(" expected (to close ")
           .addMsg(luaX_token2str(ls, who))
-          .addMsg(" at line ")
+          .addMsg(" on line ")
           .addMsg(std::to_string(where))
           .addMsg(")")
           .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
@@ -727,6 +734,18 @@ static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
 ** Find a variable with the given name 'n', handling global variables
 ** too.
 */
+static void singlevarinner (LexState *ls, TString *varname, expdesc *var) {
+  FuncState *fs = ls->fs;
+  singlevaraux(fs, varname, var, 1);
+  if (var->k == VVOID) {  /* global name? */
+    expdesc key;
+    singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
+    lua_assert(var->k != VVOID);  /* this one must exist */
+    codestring(&key, varname);  /* key is variable name */
+    luaK_indexed(fs, var, &key);  /* env[varname] */
+  }
+}
+
 static void singlevar (LexState *ls, expdesc *var) {
   TString *varname = str_checkname(ls);
   if (gett(ls) == TK_WALRUS) {
@@ -741,15 +760,7 @@ static void singlevar (LexState *ls, expdesc *var) {
     adjustlocalvars(ls, 1);
     return;
   }
-  FuncState *fs = ls->fs;
-  singlevaraux(fs, varname, var, 1);
-  if (var->k == VVOID) {  /* global name? */
-    expdesc key;
-    singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
-    lua_assert(var->k != VVOID);  /* this one must exist */
-    codestring(&key, varname);  /* key is variable name */
-    luaK_indexed(fs, var, &key);  /* env[varname] */
-  }
+  singlevarinner(ls, varname, var);
 }
 
 
@@ -1157,20 +1168,14 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
 
 /* Switch logic partially inspired by Paige Marie DePol from the Lua mailing list. */
 static void caselist (LexState *ls) {
-  while (gett(ls) != TK_PDEFAULT
-      && gett(ls) != TK_PCASE
-      && gett(ls) != TK_END
-#ifndef PLUTO_COMPATIBLE_DEFAULT
+  while (gett(ls) != TK_CASE
       && gett(ls) != TK_DEFAULT
-#endif
-#ifndef PLUTO_COMPATIBLE_CASE
-      && gett(ls) != TK_CASE
-#endif
+      && gett(ls) != TK_END
+      && gett(ls) != TK_PCASE
+      && gett(ls) != TK_PDEFAULT
     ) {
     if (gett(ls) == TK_PCONTINUE
-#ifndef PLUTO_COMPATIBLE_CONTINUE
         || gett(ls) == TK_CONTINUE
-#endif
         ) {
       continuestat(ls, 1);
     }
@@ -1678,6 +1683,81 @@ static void safe_navigation(LexState *ls, expdesc *v) {
 }
 
 
+struct StringChain {
+  LexState* ls;
+  expdesc* v;
+
+  StringChain(LexState* ls, expdesc* v) noexcept
+    : ls(ls), v(v)
+  {
+    enterlevel(ls);
+    v->k = VVOID;
+  }
+
+  ~StringChain() noexcept {
+    if (v->k == VVOID) { /* ensure we produce at least an empty string */
+      codestring(v, luaS_new(ls->L, ""));
+    }
+    leavelevel(ls);
+  }
+
+  void add(const char* str) noexcept {
+    if (v->k == VVOID) { /* first chain entry? */
+      codestring(v, luaS_new(ls->L, str));
+    } else {
+      luaK_infix(ls->fs, OPR_CONCAT, v);
+      expdesc v2;
+      codestring(&v2, luaS_new(ls->L, str));
+      luaK_posfix(ls->fs, OPR_CONCAT, v, &v2, ls->getLineNumber());
+    }
+  }
+
+  void addVar(const char* varname) noexcept {
+    if (v->k == VVOID) { /* first chain entry? */
+      singlevarinner(ls, luaS_new(ls->L, varname), v);
+    } else {
+      luaK_infix(ls->fs, OPR_CONCAT, v);
+      expdesc v2;
+      singlevarinner(ls, luaS_new(ls->L, varname), &v2);
+      luaK_posfix(ls->fs, OPR_CONCAT, v, &v2, ls->getLineNumber());
+    }
+  }
+};
+
+
+static void fstring (LexState *ls, expdesc *v) {
+  luaX_next(ls); /* skip '$' */
+
+  check(ls, TK_STRING);
+  auto str = ls->t.seminfo.ts->toCpp();
+
+  StringChain sc(ls, v);
+  for (size_t i = 0;; ) {
+    size_t del = str.find('{', i);
+    auto chunk = str.substr(i, del - i);
+    if (!chunk.empty()) {
+      sc.add(chunk.c_str());
+    }
+    if (del == std::string::npos) {
+      break;
+    }
+    ++del;
+    size_t del2 = str.find('}', del);
+    if (del2 == std::string::npos) {
+      luaX_syntaxerror(ls, "Improper $-string with unterminated varname");
+      break;
+    }
+    auto varname_len = (del2 - del);
+    auto varname = str.substr(del, varname_len);
+    del += varname_len + 1;
+    sc.addVar(varname.c_str());
+    i = del;
+  }
+
+  luaX_next(ls); /* skip string */
+}
+
+
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
   if (isnametkn(ls)) {
@@ -1706,6 +1786,10 @@ static void primaryexp (LexState *ls, expdesc *v) {
     case '|': { // Potentially mistyped lambda expression. People may confuse '->' with '=>'.
       while (testnext(ls, '|') || testnext(ls, TK_NAME) || testnext(ls, ','));
       throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
+      return;
+    }
+    case '$': {
+      fstring(ls, v);
       return;
     }
     default: {
@@ -1923,6 +2007,38 @@ static BinOpr getbinopr (int op) {
   }
 }
 
+
+static void prefixplusplus(LexState *ls, expdesc* v) {
+  int line = ls->getLineNumber();
+  luaX_next(ls); /* skip second '+' */
+  singlevar(ls, v); /* variable name */
+  FuncState *fs = ls->fs;
+  expdesc e = *v, v2;
+  if (v->k != VLOCAL) {  /* complex lvalue, use a temporary register. linear perf incr. with complexity of lvalue */
+    luaK_reserveregs(fs, fs->freereg-fs->nactvar);
+    enterlevel(ls);
+    luaK_infix(fs, OPR_ADD, &e);
+    init_exp(&v2, VKINT, 0);
+    v2.u.ival = 1;
+    luaK_posfix(fs, OPR_ADD, &e, &v2, line);
+    leavelevel(ls);
+    luaK_exp2nextreg(fs, &e);
+    luaK_setoneret(ls->fs, &e);
+    luaK_storevar(ls->fs, v, &e);
+  }
+  else {  /* simple lvalue; a local. directly change value (~20% speedup vs temporary register) */
+    enterlevel(ls);
+    luaK_infix(fs, OPR_ADD, &e);
+    init_exp(&v2, VKINT, 0);
+    v2.u.ival = 1;
+    luaK_posfix(fs, OPR_ADD, &e, &v2, line);
+    leavelevel(ls);
+    luaK_setoneret(ls->fs, &e);
+    luaK_storevar(ls->fs, v, &e);
+  }
+}
+
+
 /*
 ** Priority table for binary operators.
 */
@@ -1962,16 +2078,21 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
   else if (ls->t.token == '+') {
-    /* support pseudo-unary '+' by implying '0 + subexpr' */
-    init_exp(v, VKINT, 0);
-    v->u.ival = 0;
-    luaK_infix(ls->fs, OPR_ADD, v);
-
-    expdesc v2;
     int line = ls->getLineNumber();
     luaX_next(ls); /* skip '+' */
-    subexpr(ls, &v2, priority[OPR_ADD].right);
-    luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
+    if (ls->t.token == '+') { /* '++' ? */
+      prefixplusplus(ls, v);
+    }
+    else {
+      /* support pseudo-unary '+' by implying '0 + subexpr' */
+      init_exp(v, VKINT, 0);
+      v->u.ival = 0;
+      luaK_infix(ls->fs, OPR_ADD, v);
+
+      expdesc v2;
+      subexpr(ls, &v2, priority[OPR_ADD].right);
+      luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
+    }
   }
   else {
     simpleexp(ls, v, no_colon, prop);
@@ -2382,13 +2503,12 @@ static void switchstat (LexState *ls, int line) {
   TString* const end_switch = luaS_newliteral(ls->L, "pluto_end_switch");
   TString* default_case = nullptr;
 
-  if (gett(ls) == TK_PCASE
-#ifndef PLUTO_COMPATIBLE_CASE
-      || gett(ls) == TK_CASE
-#endif
-      ) {
+  if (gett(ls) == TK_CASE || gett(ls) == TK_PCASE) {
     int case_line = ls->getLineNumber();
 
+    if (gett(ls) == TK_PCASE) {
+      throw_warn(ls, "'pluto_case' is deprecated", "use 'case' instead", WT_DEPRECATED);
+    }
     luaX_next(ls); /* Skip 'case' */
 
     first = save;
@@ -2410,11 +2530,12 @@ static void switchstat (LexState *ls, int line) {
 
   while (gett(ls) != TK_END) {
     auto case_line = ls->getLineNumber();
-#ifdef PLUTO_COMPATIBLE_DEFAULT
-    if (testnext(ls, TK_PDEFAULT)) {
-#else
-    if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) {
-#endif 
+    if (gett(ls) == TK_DEFAULT || gett(ls) == TK_PDEFAULT) {
+      if (gett(ls) == TK_PDEFAULT) {
+        throw_warn(ls, "'pluto_default' is deprecated", "use 'default' instead", WT_DEPRECATED);
+      }
+      luaX_next(ls); /* Skip 'default' */
+
       checknext(ls, ':');
       if (default_case != nullptr)
         throwerr(ls, "switch statement already has a default case", "second default case", case_line);
@@ -2423,16 +2544,8 @@ static void switchstat (LexState *ls, int line) {
       caselist(ls);
     }
     else {
-#ifdef PLUTO_COMPATIBLE_CASE
-      if (!testnext(ls, TK_PCASE)) {
-#else
-      if (!testnext2(ls, TK_PCASE, TK_CASE)) {
-#endif
-#ifdef PLUTO_COMPATIBLE_CASE
-        error_expected(ls, TK_PCASE);
-#else
+      if (!testnext2(ls, TK_CASE, TK_PCASE)) {
         error_expected(ls, TK_CASE);
-#endif
       }
       casecond(ls, case_line, cases.emplace_back(std::pair<expdesc, int>{ expdesc{}, luaK_getlabel(fs) }).first);
       caselist(ls);
@@ -2464,6 +2577,38 @@ static void switchstat (LexState *ls, int line) {
 
   check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
+}
+
+
+static void enumstat (LexState *ls) {
+  /* enumstat -> ENUM [NAME] BEGIN NAME ['=' INT] { ',' NAME ['=' INT] } END */
+
+  luaX_next(ls); /* skip 'enum' */
+
+  if (gett(ls) != TK_BEGIN) { /* enum has name? */
+    luaX_next(ls); /* skip name */
+  }
+
+  const auto line_begin = ls->getLineNumber();
+  checknext(ls, TK_BEGIN); /* ensure we have 'begin' */
+
+  lua_Integer i = 1;
+  while (gett(ls) == TK_NAME) {
+    auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
+    auto var = getlocalvardesc(ls->fs, vidx);
+    if (testnext(ls, '=')) {
+      check(ls, TK_INT);
+      i = ls->t.seminfo.i;
+      luaX_next(ls);
+    }
+    var->vd.kind = RDKCTC;
+    setivalue(&var->k, i++);
+    ls->fs->nactvar++;
+    if (gett(ls) != ',') break;
+    luaX_next(ls);
+  }
+
+  check_match(ls, TK_END, TK_BEGIN, line_begin);
 }
 
 
@@ -2659,26 +2804,74 @@ static void forlist (LexState *ls, TString *indexname) {
 }
 
 
+static void forvlist (LexState *ls, TString *valname) {
+  /* forvlist -> explist AS NAME forbody */
+  FuncState *fs = ls->fs;
+  expdesc e;
+  int nvars = 5;  /* gen, state, control, toclose, 'indexname' */
+  int line;
+  int base = fs->freereg;
+  /* create control variables */
+  new_localvarliteral(ls, "(for state)");
+  new_localvarliteral(ls, "(for state)");
+  new_localvarliteral(ls, "(for state)");
+  new_localvarliteral(ls, "(for state)");
+  /* create variable for key */
+  new_localvar(ls, luaS_newliteral(ls->L, "(for state)"));
+  /* create variable for value */
+  new_localvar(ls, valname);
+  nvars++;
+
+  line = ls->getLineNumber();
+  adjust_assign(ls, 4, explist(ls, &e), &e);
+  adjustlocalvars(ls, 4);  /* control variables */
+  marktobeclosed(fs);  /* last control var. must be closed */
+  luaK_checkstack(fs, 3);  /* extra space to call generator */
+
+  checknext(ls, TK_AS);
+  luaX_next(ls); /* skip valname */
+
+  forbody(ls, base, line, nvars - 4, 1);
+}
+
+
 static void forstat (LexState *ls, int line) {
   /* forstat -> FOR (fornum | forlist) END */
   FuncState *fs = ls->fs;
-  TString *varname;
+  TString *varname = nullptr;
   BlockCnt bl;
   enterblock(fs, &bl, 1);  /* scope for loop and control variables */
   luaX_next(ls);  /* skip 'for' */
-  varname = str_checkname(ls);  /* first variable name */
-  switch (ls->t.token) {
-    case '=': {
-      fornum(ls, varname, line);
+
+  /* determine if this is a for-as loop */
+  auto sp = luaX_getpos(ls);
+  for (; ls->t.token != TK_IN && ls->t.token != TK_DO && ls->t.token != TK_EOS; luaX_next(ls)) {
+    if (ls->t.token == TK_AS) {
+      luaX_next(ls);
+      varname = str_checkname(ls);
       break;
     }
-    case ',': case TK_IN: {
-      forlist(ls, varname);
-      break;
+  }
+  luaX_setpos(ls, sp);
+
+  if (varname == nullptr) {
+    varname = str_checkname(ls);  /* first variable name */
+    switch (ls->t.token) {
+      case '=': {
+        fornum(ls, varname, line);
+        break;
+      }
+      case ',': case TK_IN: {
+        forlist(ls, varname);
+        break;
+      }
+      default: {
+        luaX_syntaxerror(ls, "'=' or 'in' expected");
+      }
     }
-    default: {
-      luaX_syntaxerror(ls, "'=' or 'in' expected");
-    }
+  }
+  else {
+    forvlist(ls, varname);
   }
   check_match(ls, TK_END, TK_FOR, line);
   leaveblock(fs);  /* loop scope ('break' jumps to this point) */
@@ -3022,15 +3215,11 @@ static void statement (LexState *ls, TypeDesc *prop) {
       gotostat(ls);
       break;
     }
-#ifndef PLUTO_COMPATIBLE_CASE
     case TK_CASE:
-#endif
     case TK_PCASE: {
       throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
     }
-#ifndef PLUTO_COMPATIBLE_DEFAULT
     case TK_DEFAULT:
-#endif
     case TK_PDEFAULT: {
       throwerr(ls, "inappropriate 'default' statement.", "outside of 'switch' block.");
     }
@@ -3039,6 +3228,13 @@ static void statement (LexState *ls, TypeDesc *prop) {
 #endif
     case TK_PSWITCH: {
       switchstat(ls, line);
+      break;
+    }
+#ifndef PLUTO_COMPATIBLE_ENUM
+    case TK_ENUM:
+#endif
+    case TK_PENUM: {
+      enumstat(ls);
       break;
     }
     default: {  /* stat -> func | assignment */

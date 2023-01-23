@@ -37,22 +37,21 @@ enum RESERVED {
   TK_AND = FIRST_RESERVED, TK_BREAK,
   TK_DO, TK_ELSE, TK_ELSEIF, TK_END, TK_FALSE, TK_FOR, TK_FUNCTION,
   TK_GOTO, TK_IF, TK_IN, TK_LOCAL, TK_NIL, TK_NOT, TK_OR, TK_REPEAT,
-  TK_PSWITCH, TK_PCASE, TK_PDEFAULT, TK_PCONTINUE, TK_PWHEN, // New compatibility keywords.
+  TK_CASE, TK_DEFAULT, TK_AS, TK_BEGIN, // New narrow keywords.
+  TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, // New compatibility keywords.
+  TK_PCASE, TK_PDEFAULT, // Deprecated compatibility keywords.
   /* New non-compatible keywords. */
 #ifndef PLUTO_COMPATIBLE_SWITCH
   TK_SWITCH,
-#endif
-#ifndef PLUTO_COMPATIBLE_CASE
-  TK_CASE,
-#endif
-#ifndef PLUTO_COMPATIBLE_DEFAULT
-  TK_DEFAULT,
 #endif
 #ifndef PLUTO_COMPATIBLE_CONTINUE
   TK_CONTINUE,
 #endif
 #ifndef PLUTO_COMPATIBLE_WHEN
   TK_WHEN,
+#endif
+#ifndef PLUTO_COMPATIBLE_ENUM
+  TK_ENUM,
 #endif
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
@@ -116,14 +115,13 @@ struct Token {
 
   [[nodiscard]] bool IsNarrow() const noexcept
   {
-    return token == TK_PDEFAULT
-#ifndef PLUTO_COMPATIBLE_DEFAULT
-      || token == TK_DEFAULT
-#endif
-      || token == TK_PCASE
-#ifndef PLUTO_COMPATIBLE_CASE
+    return token == TK_IN
       || token == TK_CASE
-#endif
+      || token == TK_DEFAULT
+      || token == TK_AS
+      || token == TK_BEGIN
+      || token == TK_PCASE
+      || token == TK_PDEFAULT
       ;
   }
 };
@@ -143,6 +141,7 @@ enum WarningType : int
   TYPE_MISMATCH,
   UNREACHABLE_CODE,
   EXCESSIVE_ARGUMENTS,
+  WT_DEPRECATED,
 
   NUM_WARNING_TYPES
 };
@@ -154,6 +153,7 @@ static const std::vector<std::string> luaX_warnNames = {
   "type-mismatch",
   "unreachable-code",
   "excessive-arguments",
+  "deprecated",
 };
 
 
