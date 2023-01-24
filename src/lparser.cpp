@@ -2321,7 +2321,7 @@ static void compoundassign(LexState *ls, expdesc* v, BinOpr op) {
 /*
   assignment function
   handles every Lua assignment
-  special cases for compound operators via lexer state tokens (ls->lasttoken)
+  special cases for compound operators via lexer state tokens (ls->t.seminfo.i)
 */
 static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
   int line = ls->getLineNumber(); /* in case we need to emit a warning */
