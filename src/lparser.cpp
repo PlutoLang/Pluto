@@ -473,7 +473,7 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
 #ifndef PLUTO_NO_PARSER_WARNINGS
   int locals = luaY_nvarstack(fs);
   for (int i = fs->firstlocal; i < locals; i++) {
-    Vardesc *desc = getlocalvardesc(fs,  i);
+    Vardesc *desc = getlocalvardesc(fs, i);
     LocVar *local = localdebuginfo(fs, i);
     std::string n = name->toCpp();
     if ((n != "(for state)" && n != "(switch control value)") && (local && local->varname == name)) { // Got a match.
