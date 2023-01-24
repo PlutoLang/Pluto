@@ -16,6 +16,7 @@
 #include <limits.h>
 #include <string.h>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -470,11 +471,14 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
   Vardesc *var;
-#ifndef PLUTO_NO_PARSER_WARNINGS
   int locals = luaY_nvarstack(fs);
+  int non_const_locals = 0;
   for (int i = fs->firstlocal; i < locals; i++) {
     Vardesc *desc = getlocalvardesc(fs, i);
-    LocVar *local = localdebuginfo(fs, i);
+    if (desc->vd.kind != RDKCTC)
+      ++non_const_locals;
+#ifndef PLUTO_NO_PARSER_WARNINGS
+    LocVar* local = localdebuginfo(fs, i);
     std::string n = name->toCpp();
     if ((n != "(for state)" && n != "(switch control value)") && (local && local->varname == name)) { // Got a match.
       throw_warn(ls,
@@ -483,9 +487,9 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
       L->top--; /* pop result of luaO_fmt */
       break;
     }
-  }
 #endif
-  checklimit(fs, dyd->actvar.n + 1 - fs->firstlocal,
+  }
+  checklimit(fs, non_const_locals + 1,
                  MAXVARS, "local variables");
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
@@ -545,6 +549,14 @@ static void check_readonly (LexState *ls, expdesc *e) {
     const char *here = "this variable is constant, and cannot be reassigned.";
     throwerr(ls, luaO_fmt(ls->L, msg, getstr(varname)), here);
   }
+}
+
+
+static void relocateconsts (LexState *ls) {
+  FuncState *fs = ls->fs;
+  std::sort(&ls->dyd->actvar.arr[fs->firstlocal], &ls->dyd->actvar.arr[fs->firstlocal + fs->nactvar], [](const Vardesc& a, const Vardesc& b) {
+    return (a.vd.kind != RDKCTC) < (b.vd.kind != RDKCTC);
+  });
 }
 
 
@@ -827,7 +839,7 @@ static int newlabelentry (LexState *ls, Labellist *l, TString *name,
                   Labeldesc, SHRT_MAX, "labels/gotos");
   l->arr[n].name = name;
   l->arr[n].line = line;
-  l->arr[n].nactvar = ls->fs->nactvar;
+  l->arr[n].nactvar = (lu_byte)ls->fs->nactvar;
   l->arr[n].close = 0;
   l->arr[n].pc = pc;
   l->n = n + 1;
@@ -906,7 +918,7 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
   bl->breaklist = NO_JUMP;
   bl->isloop = isloop;
   bl->scopeend = NO_JUMP;
-  bl->nactvar = fs->nactvar;
+  bl->nactvar = (lu_byte)fs->nactvar;
   bl->firstlabel = fs->ls->dyd->label.n;
   bl->firstgoto = fs->ls->dyd->gt.n;
   bl->upval = 0;
@@ -2607,6 +2619,7 @@ static void enumstat (LexState *ls) {
     if (gett(ls) != ',') break;
     luaX_next(ls);
   }
+  relocateconsts(ls);
 
   check_match(ls, TK_END, TK_BEGIN, line_begin);
 }
@@ -3039,6 +3052,7 @@ static void localstat (LexState *ls) {
       var->vd.kind = RDKCTC;  /* variable is a compile-time constant */
       adjustlocalvars(ls, nvars - 1);  /* exclude last variable */
       fs->nactvar++;  /* but count it */
+      relocateconsts(ls);
     }
     else {
       vidx = vidx - nvars + 1;
