@@ -2597,8 +2597,15 @@ static void enumstat (LexState *ls) {
     auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
     auto var = getlocalvardesc(ls->fs, vidx);
     if (testnext(ls, '=')) {
-      check(ls, TK_INT);
-      i = ls->t.seminfo.i;
+      if (testnext(ls, '-')) { /* Negative constant? */
+        check(ls, TK_INT);
+        i = ls->t.seminfo.i * -1;
+      }
+      else {
+        testnext(ls, '+'); /* support pseudo-unary '+' */
+        check(ls, TK_INT);
+        i = ls->t.seminfo.i;
+      }
       luaX_next(ls);
     }
     var->vd.kind = RDKCTC;
