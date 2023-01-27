@@ -1636,7 +1636,7 @@ static void safe_navigation(LexState *ls, expdesc *v) {
   {
     int old_free = fs->freereg;             
     int vreg = v->u.info;
-    int j = luaK_codeAsBx(fs, OP_JMP, 0, NO_JUMP);
+    int j = luaK_jump(fs);
     expdesc key;
     switch(ls->t.token) {
       case '[': {
@@ -1678,7 +1678,7 @@ static void safe_navigation(LexState *ls, expdesc *v) {
       luaK_codeABC(fs, OP_MOVE, vreg, v->u.info, 0);
       v->u.info = vreg;
     }
-    SETARG_sBx(fs->f->code[j], fs->pc-j - 1);
+    luaK_patchtohere(fs, j);
   }
 }
 
