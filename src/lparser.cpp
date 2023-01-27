@@ -1963,7 +1963,6 @@ static void inexpr (LexState *ls, expdesc *v) {
   luaK_exp2nextreg(ls->fs, v);
   luaK_exp2nextreg(ls->fs, &v2);
   luaK_codeABC(ls->fs, OP_IN, v->u.info, v2.u.info, 0);
-  luaK_storevar(ls->fs, v, v);
 }
 
 
