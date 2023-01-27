@@ -38,11 +38,6 @@
 
 
 
-/* maximum number of local variables per function (must be smaller
-   than 250, due to the bytecode format) */
-#define MAXVARS		249
-
-
 #define hasmultret(k)		((k) == VCALL || (k) == VVARARG)
 
 
@@ -69,7 +64,7 @@ typedef struct BlockCnt {
   int scopeend;  /* delimits the end of this scope, for 'continue' to jump before. */
   int firstlabel;  /* index of first label in this block */
   int firstgoto;  /* index of first pending goto in this block */
-  lu_byte nactvar;  /* # active locals outside the block */
+  int nactvar;  /* # active locals outside the block */
   lu_byte upval;  /* true if some variable in the block is an upvalue */
   lu_byte isloop;  /* true if 'block' is a loop */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
@@ -485,8 +480,6 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
     }
   }
 #endif
-  checklimit(fs, dyd->actvar.n + 1 - fs->firstlocal,
-                 MAXVARS, "local variables");
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
@@ -632,7 +625,7 @@ static int newupvalue (FuncState *fs, TString *name, expdesc *v) {
 */
 static int searchvar (FuncState *fs, TString *n, expdesc *var) {
   int i;
-  for (i = cast_int(fs->nactvar) - 1; i >= 0; i--) {
+  for (i = fs->nactvar - 1; i >= 0; i--) {
     Vardesc *vd = getlocalvardesc(fs, i);
     if (eqstr(n, vd->vd.name)) {  /* found? */
       if (vd->vd.kind == RDKCTC)  /* compile-time constant? */
