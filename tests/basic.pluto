@@ -706,6 +706,13 @@ do
     end
     assert(CSE_INIT == 0)
     assert(CSE_CONTINUED == 1)
+
+    enum UnaryTestEnum begin
+        UNAR_INVALID = -1,
+        UNAR_ONE = +1
+    end
+    assert(UNAR_INVALID == -1)
+    assert(UNAR_ONE == +1)
 end
 
 print "Testing format strings."
