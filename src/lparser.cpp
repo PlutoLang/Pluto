@@ -1755,25 +1755,27 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
   lua_State *L = ls->L;
   lua_pushcfunction(L, f);
   int nargs = 0;
-  do {
-    ++nargs;
-    switch (ls->t.token) {
-      case TK_STRING:
-        lua_pushlstring(L, ls->t.seminfo.ts->contents, ls->t.seminfo.ts->size());
-        break;
-      case TK_INT:
-        lua_pushinteger(L, ls->t.seminfo.i);
-        break;
-      case TK_FLT:
-        lua_pushnumber(L, ls->t.seminfo.r);
-        break;
-      default: {
-        const char* token = luaX_token2str(ls, ls->t.token);
-        throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+  if (ls->t.token != ')') {
+    do {
+      ++nargs;
+      switch (ls->t.token) {
+        case TK_STRING:
+          lua_pushlstring(L, ls->t.seminfo.ts->contents, ls->t.seminfo.ts->size());
+          break;
+        case TK_INT:
+          lua_pushinteger(L, ls->t.seminfo.i);
+          break;
+        case TK_FLT:
+          lua_pushnumber(L, ls->t.seminfo.r);
+          break;
+        default: {
+          const char* token = luaX_token2str(ls, ls->t.token);
+          throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+        }
       }
-    }
-    luaX_next(ls);
-  } while (testnext(ls, ','));
+      luaX_next(ls);
+    } while (testnext(ls, ','));
+  }
   check_match(ls, ')', '(', line);
   int status = lua_pcall(L, nargs, 1, 0);
   lua_assert(status == LUA_OK);
