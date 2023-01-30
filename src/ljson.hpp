@@ -93,7 +93,7 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 			return obj;
 		}
 	}
-	luaL_typeerror(L, i, "JSON-castable type"); // this will probably raise a compiler warning if you're not using Pluto. Kinda cringe.
+	luaL_typeerror(L, i, "JSON-castable type");
 }
 
 static void pushFromJson(lua_State* L, const soup::JsonNode& node)
