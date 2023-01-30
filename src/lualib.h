@@ -6,6 +6,7 @@
 */
 
 #include "lua.h"
+#include "lauxlib.h" // Pluto::Preloaded
 
 
 /* version suffix for environment variable names */
@@ -41,6 +42,25 @@ LUAMOD_API int (luaopen_debug) (lua_State *L);
 #define LUA_LOADLIBNAME	"package"
 LUAMOD_API int (luaopen_package) (lua_State *L);
 
+namespace Pluto {
+  extern const Preloaded preloaded_crypto;
+#ifdef PLUTO_USE_SOUP
+  extern const Preloaded preloaded_json;
+  extern const Preloaded preloaded_base32;
+  extern const Preloaded preloaded_base58;
+  extern const Preloaded preloaded_base64;
+#endif
+
+  inline const Preloaded* const all_preloaded[] = {
+    &preloaded_crypto,
+#ifdef PLUTO_USE_SOUP
+    &preloaded_json,
+    &preloaded_base32,
+    &preloaded_base58,
+    &preloaded_base64,
+#endif
+  };
+}
 
 LUAMOD_API int (luaopen_crypto) (lua_State *L);
 #ifdef PLUTO_USE_SOUP
