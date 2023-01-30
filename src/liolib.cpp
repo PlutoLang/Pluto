@@ -789,7 +789,7 @@ static int f_flush (lua_State *L) {
 }
 
 
-static const char* getStringStreamPath(lua_State *L, int idx = 1)
+[[nodiscard]] static std::filesystem::path getStringStreamPath(lua_State *L, int idx = 1)
 {
   const char* f;
 
@@ -807,7 +807,7 @@ static const char* getStringStreamPath(lua_State *L, int idx = 1)
     f = luaL_checkstring(L, idx);
   }
 
-  return f;
+  return std::filesystem::u8path(f);
 }
 
 
@@ -931,7 +931,7 @@ static void listdir_r(lua_State* L, lua_Integer& i, const std::filesystem::path&
 
 static int listdir(lua_State *L)
 {
-  const char* const f = getStringStreamPath(L);
+  const auto f = getStringStreamPath(L);
   const auto recursive = lua_istrue(L, 2);
   lua_newtable(L);
   lua_Integer i = 0;
