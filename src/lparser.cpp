@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "lua.h"
+#include "lualib.h" // Pluto::all_preloaded
 #include "lcode.h"
 #include "ldebug.h"
 #include "ldo.h"
@@ -1719,9 +1720,6 @@ struct StringChain {
 
 
 static void fstring (LexState *ls, expdesc *v) {
-  luaX_next(ls); /* skip '$' */
-
-  check(ls, TK_STRING);
   auto str = ls->t.seminfo.ts->toCpp();
 
   StringChain sc(ls, v);
@@ -1748,6 +1746,96 @@ static void fstring (LexState *ls, expdesc *v) {
   }
 
   luaX_next(ls); /* skip string */
+}
+
+
+static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
+  auto line = ls->getLineNumber();
+  checknext(ls, '(');
+  lua_State *L = ls->L;
+  lua_pushcfunction(L, f);
+  int nargs = 0;
+  do {
+    ++nargs;
+    switch (ls->t.token) {
+      case TK_STRING:
+        lua_pushlstring(L, ls->t.seminfo.ts->contents, ls->t.seminfo.ts->size());
+        break;
+      default: {
+        const char* token = luaX_token2str(ls, ls->t.token);
+        throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+      }
+    }
+    luaX_next(ls);
+  } while (testnext(ls, ','));
+  check_match(ls, ')', '(', line);
+  int status = lua_pcall(L, nargs, 1, 0);
+  lua_assert(status == LUA_OK);
+  switch (lua_type(L, -1)) {
+    case LUA_TNUMBER: {
+      if (lua_isinteger(L, -1)) {
+        init_exp(v, VKINT, 0);
+        v->u.ival = lua_tointeger(L, -1);
+      }
+      else {
+        init_exp(v, VKFLT, 0);
+        v->u.nval = lua_tonumber(L, -1);
+      }
+      break;
+    }
+    case LUA_TSTRING: {
+      size_t len;
+      const char* str = lua_tolstring(L, -1, &len);
+      codestring(v, luaS_newlstr(L, str, len));
+      break;
+    }
+    default: {
+      luaX_syntaxerror(ls, "unexpected return value in constexpr_call");
+    }
+  }
+  lua_pop(L, 1);
+}
+
+
+static void const_expr (LexState *ls, expdesc *v) {
+  switch (ls->t.token) {
+    case TK_NAME: {
+      const Pluto::Preloaded* lib = nullptr;
+      for (const auto& preloaded : Pluto::all_preloaded) {
+        if (strcmp(preloaded->name, ls->t.seminfo.ts->contents) == 0) {
+          lib = preloaded;
+          break;
+        }
+      }
+      if (lib == nullptr) {
+        throwerr(ls, luaO_fmt(ls->L, "%s is not available in constant expression", ls->t.seminfo.ts->contents), "unrecognized name.");
+      }
+      else {
+        luaX_next(ls); /* skip TK_NAME */
+        checknext(ls, '.');
+        check(ls, TK_NAME);
+        lua_CFunction f = NULL;
+        for (auto reg = &lib->funcs[0]; reg->name; ++reg) {
+          if (strcmp(reg->name, ls->t.seminfo.ts->contents) == 0) {
+            f = reg->func;
+            break;
+          }
+        }
+        if (f == NULL) {
+          throwerr(ls, luaO_fmt(ls->L, "%s is not a member of %s", ls->t.seminfo.ts->contents, lib->name), "unknown function.");
+        }
+        else {
+          luaX_next(ls); /* skip TK_NAME */
+          constexpr_call(ls, v, f);
+        }
+      }
+      return;
+    }
+    default: {
+      const char* token = luaX_token2str(ls, ls->t.token);
+      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+    }
+  }
 }
 
 
@@ -1782,7 +1870,13 @@ static void primaryexp (LexState *ls, expdesc *v) {
       return;
     }
     case '$': {
-      fstring(ls, v);
+      luaX_next(ls); /* skip '$' */
+      if (ls->t.token == TK_STRING) {
+        fstring(ls, v);
+      }
+      else {
+        const_expr(ls, v);
+      }
       return;
     }
     default: {
