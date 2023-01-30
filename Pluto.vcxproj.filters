@@ -38,6 +38,7 @@
     <ClCompile Include="src\lbase64.cpp" />
     <ClCompile Include="src\lbase58.cpp" />
     <ClCompile Include="src\lbase32.cpp" />
+    <ClCompile Include="src\ljson.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -71,5 +72,6 @@
     <ClInclude Include="src\ljumptab.h" />
     <ClInclude Include="src\lcryptolib.hpp" />
     <ClInclude Include="src\ErrorMessage.hpp" />
+    <ClInclude Include="src\ljson.hpp" />
   </ItemGroup>
 </Project>
