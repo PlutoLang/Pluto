@@ -77,7 +77,7 @@ LUALIB_API void luaL_openlibs (lua_State *L)
   }
 
   for (lib = preloadedLibs; lib->func; lib++)
-  {  
+  {
     luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
     lua_pushcfunction(L, lib->func);
     lua_setfield(L, -2, lib->name);
