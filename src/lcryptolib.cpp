@@ -57,7 +57,7 @@ static int joaat(lua_State *L)
   /* get input */
   size_t size;
   const char* data = luaL_checklstring(L, 1, &size);
- 
+
   /* do partial on input */
   size_t v3 = 0;
   uint32_t result = 0; /* initial = 0 */
