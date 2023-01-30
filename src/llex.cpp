@@ -160,12 +160,13 @@ static const char *txtToken (LexState *ls, int token) {
 
 
 [[noreturn]] static void lexerror (LexState *ls, const char *msg, int token) {
+  const bool is_expected_token_error = (strcmp(msg, "syntax error") != 0);
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->getLineNumber());
   if (token)
   {
     Pluto::ErrorMessage err{ ls, HRED "syntax error: " BWHT};
     err.addMsg(msg);
-    if (ls->t.IsReserved())
+    if (is_expected_token_error && ls->t.IsReserved())
     {
       std::string str = txtToken(ls, token);
       err.addMsg(", but found ")
