@@ -1761,6 +1761,12 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
       case TK_STRING:
         lua_pushlstring(L, ls->t.seminfo.ts->contents, ls->t.seminfo.ts->size());
         break;
+      case TK_INT:
+        lua_pushinteger(L, ls->t.seminfo.i);
+        break;
+      case TK_FLT:
+        lua_pushnumber(L, ls->t.seminfo.r);
+        break;
       default: {
         const char* token = luaX_token2str(ls, ls->t.token);
         throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
