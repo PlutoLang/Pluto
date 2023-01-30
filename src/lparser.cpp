@@ -1758,22 +1758,22 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
   if (ls->t.token != ')') {
     do {
       ++nargs;
-      switch (ls->t.token) {
-        case TK_STRING:
-          lua_pushlstring(L, ls->t.seminfo.ts->contents, ls->t.seminfo.ts->size());
+      auto argline = ls->getLineNumber();
+      expdesc argexp;
+      simpleexp(ls, &argexp, true);
+      switch (argexp.k) {
+        case VKSTR:
+          lua_pushlstring(L, argexp.u.strval->contents, argexp.u.strval->size());
           break;
-        case TK_INT:
-          lua_pushinteger(L, ls->t.seminfo.i);
+        case VKINT:
+          lua_pushinteger(L, argexp.u.ival);
           break;
-        case TK_FLT:
-          lua_pushnumber(L, ls->t.seminfo.r);
+        case VKFLT:
+          lua_pushnumber(L, argexp.u.nval);
           break;
-        default: {
-          const char* token = luaX_token2str(ls, ls->t.token);
-          throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
-        }
+        default:
+          throwerr(ls, "unexpected argument type in constexpr_call", "unexpected argument type", argline);
       }
-      luaX_next(ls);
     } while (testnext(ls, ','));
   }
   check_match(ls, ')', '(', line);
