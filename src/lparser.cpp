@@ -1778,7 +1778,9 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
   }
   check_match(ls, ')', '(', line);
   int status = lua_pcall(L, nargs, 1, 0);
-  lua_assert(status == LUA_OK);
+  if (status != LUA_OK) {
+    throwerr(ls, lua_tostring(L, -1), "error in constexpr_call", line);
+  }
   switch (lua_type(L, -1)) {
     case LUA_TNUMBER: {
       if (lua_isinteger(L, -1)) {
