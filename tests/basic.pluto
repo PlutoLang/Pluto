@@ -560,7 +560,7 @@ do
     assert($crypto.fnv1a("hello world") == 8618312879776256743)
     assert($crypto.joaat("hello world") == 1045060183)
     assert($crypto.hexdigest(1045060183) == "0x3e4a5a57")
-    assert($crypto.joaat("hello world") == tonumber($crypto.hexdigest($crypto.joaat("hello world"))))
+    assert($crypto.joaat("hello world") == $tonumber($crypto.hexdigest($crypto.joaat("hello world"))))
 end
 do
     if _PSOUP then -- Soup is linked.
