@@ -1823,6 +1823,18 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
 }
 
 
+static bool check_constexpr_call (LexState *ls, expdesc *v, const char *name, lua_CFunction f) {
+  if (strcmp(ls->t.seminfo.ts->contents, name) == 0) {
+    luaX_next(ls); /* skip TK_NAME */
+    constexpr_call(ls, v, f);
+    return true;
+  }
+  return false;
+}
+
+int luaB_tonumber (lua_State *L);
+int luaB_tostring (lua_State *L);
+
 static void const_expr (LexState *ls, expdesc *v) {
   switch (ls->t.token) {
     case TK_NAME: {
@@ -1833,10 +1845,7 @@ static void const_expr (LexState *ls, expdesc *v) {
           break;
         }
       }
-      if (lib == nullptr) {
-        throwerr(ls, luaO_fmt(ls->L, "%s is not available in constant expression", ls->t.seminfo.ts->contents), "unrecognized name.");
-      }
-      else {
+      if (lib != nullptr) {
         luaX_next(ls); /* skip TK_NAME */
         checknext(ls, '.');
         check(ls, TK_NAME);
@@ -1854,6 +1863,12 @@ static void const_expr (LexState *ls, expdesc *v) {
           luaX_next(ls); /* skip TK_NAME */
           constexpr_call(ls, v, f);
         }
+      }
+      else if (!check_constexpr_call(ls, v, "tonumber", luaB_tonumber)
+        && !check_constexpr_call(ls, v, "tostring", luaB_tostring)
+        )
+      {
+        throwerr(ls, luaO_fmt(ls->L, "%s is not available in constant expression", ls->t.seminfo.ts->contents), "unrecognized name.");
       }
       return;
     }
