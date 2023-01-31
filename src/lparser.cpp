@@ -21,6 +21,7 @@
 
 #include "lua.h"
 #include "lualib.h" // Pluto::all_preloaded
+#include "lapi.h" // api_incr_top
 #include "lcode.h"
 #include "ldebug.h"
 #include "ldo.h"
@@ -1770,6 +1771,12 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
           break;
         case VKFLT:
           lua_pushnumber(L, argexp.u.nval);
+          break;
+        case VCONST:
+          lua_lock(L);
+          *s2v(L->top) = ls->dyd->actvar.arr[argexp.u.info].k;
+          api_incr_top(L);
+          lua_unlock(L);
           break;
         default:
           throwerr(ls, "unexpected argument type in constexpr_call", "unexpected argument type", argline);
