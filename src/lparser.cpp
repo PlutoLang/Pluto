@@ -1772,6 +1772,15 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
         case VKFLT:
           lua_pushnumber(L, argexp.u.nval);
           break;
+        case VTRUE:
+          lua_pushboolean(L, true);
+          break;
+        case VFALSE:
+          lua_pushboolean(L, false);
+          break;
+        case VNIL:
+          lua_pushnil(L);
+          break;
         case VCONST:
           lua_lock(L);
           *s2v(L->top) = ls->dyd->actvar.arr[argexp.u.info].k;
