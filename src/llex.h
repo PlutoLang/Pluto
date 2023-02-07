@@ -258,6 +258,10 @@ struct LexState {
     parser_context_stck.push(PARCTX_NONE); /* ensure there is at least 1 item on the parser context stack */
   }
 
+  [[nodiscard]] bool hasDoneLexerPass() const noexcept {
+    return !tokens.empty() && tokens.back().token == TK_EOS;
+  }
+
   [[nodiscard]] int getLineNumber() const noexcept {
     return tidx == (size_t)-1 ? 1 : tokens.at(tidx).line;
   }
