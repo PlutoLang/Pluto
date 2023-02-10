@@ -14,7 +14,7 @@
 #include "luaconf.h"
 
 
-#define PLUTO_VERSION "Pluto 0.5.1"
+#define PLUTO_VERSION "Pluto 0.5.2"
 
 #define LUA_VERSION_MAJOR	"5"
 #define LUA_VERSION_MINOR	"4"
