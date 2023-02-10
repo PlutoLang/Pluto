@@ -319,6 +319,7 @@ static const luaL_Reg funcs[] = {
   {NULL, NULL}  
 };
 
+const Pluto::Preloaded Pluto::preloaded_crypto{ "crypto", funcs };
 
 LUAMOD_API int luaopen_crypto(lua_State *L)
 {
