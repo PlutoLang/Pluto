@@ -83,7 +83,7 @@ static const char *b_str2int (const char *s, int base, lua_Integer *pn) {
 }
 
 
-static int luaB_tonumber (lua_State *L) {
+int luaB_tonumber (lua_State *L) {
   if (lua_isnoneornil(L, 2)) {  /* standard conversion? */
     if (lua_type(L, 1) == LUA_TNUMBER) {  /* already a number? */
       lua_settop(L, 1);  /* yes; return it */
@@ -507,7 +507,7 @@ static int luaB_xpcall (lua_State *L) {
 }
 
 
-static int luaB_tostring (lua_State *L) {
+int luaB_tostring (lua_State *L) {
   luaL_checkany(L, 1);
   luaL_tolstring(L, 1, NULL);
   return 1;
