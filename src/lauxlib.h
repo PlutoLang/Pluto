@@ -41,6 +41,14 @@ typedef struct luaL_Reg {
 } luaL_Reg;
 
 
+namespace Pluto {
+  struct Preloaded {
+    const char* name;
+    const luaL_Reg* funcs;
+  };
+}
+
+
 #define LUAL_NUMSIZES	(sizeof(lua_Integer)*16 + sizeof(lua_Number))
 
 LUALIB_API void (luaL_checkversion_) (lua_State *L, lua_Number ver, size_t sz);

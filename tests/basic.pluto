@@ -553,7 +553,14 @@ do
     assert(crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
     assert(crypto.fnv1a("hello world") == 8618312879776256743)
     assert(crypto.joaat("hello world") == 1045060183)
+    assert(crypto.hexdigest(1045060183) == "0x3e4a5a57")
     assert(crypto.joaat("hello world") == tonumber(crypto.hexdigest(crypto.joaat("hello world"))))
+    -- Constexpr
+    assert($crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
+    assert($crypto.fnv1a("hello world") == 8618312879776256743)
+    assert($crypto.joaat("hello world") == 1045060183)
+    assert($crypto.hexdigest(1045060183) == "0x3e4a5a57")
+    assert($crypto.joaat("hello world") == $tonumber($crypto.hexdigest($crypto.joaat("hello world"))))
 end
 do
     if _PSOUP then -- Soup is linked.
@@ -765,6 +772,18 @@ print "Testing boolean concatenation."
 do
     assert(("aussie version is " .. true) == "aussie version is true")
     assert((true .. false) == "truefalse")
+end
+
+print "Testing constant expressions."
+do
+    assert($crypto.joaat("Pluto") == 32037948)
+
+    -- They can be chained
+    assert($crypto.hexdigest($crypto.joaat("hello world")) == "0x3e4a5a57")
+
+    -- They accept compile-time constants as argument
+    local str <const> = "Pluto"
+    assert($crypto.joaat(str) == 32037948)
 end
 
 print "Testing compatibility."
