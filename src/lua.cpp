@@ -20,6 +20,11 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#ifdef _WIN32
+#include <vector>
+#include <Windows.h>
+#endif
+
 
 #if !defined(LUA_PROGNAME)
 #define LUA_PROGNAME		"lua"
@@ -647,7 +652,27 @@ static int pmain (lua_State *L) {
 }
 
 
+#ifdef _WIN32
+[[nodiscard]] static std::string utf16_to_utf8(const wchar_t* utf16, size_t utf16_len) {
+  std::string utf8;
+  const int sizeRequired = WideCharToMultiByte(CP_UTF8, 0, utf16, (int)utf16_len, nullptr, 0, 0, 0);
+  if (sizeRequired != 0) {
+      utf8 = std::string(sizeRequired, 0);
+    WideCharToMultiByte(CP_UTF8, 0, utf16, (int)utf16_len, utf8.data(), sizeRequired, 0, 0);
+  }
+  return utf8;
+}
+
+int wmain (int argc, wchar_t **wargv) {
+  std::vector<char*> argv_arr; argv_arr.reserve(argc);
+  std::vector<std::string> argv_buf; argv_buf.reserve(argc);
+  for (int i = 0; i != argc; ++i) {
+    argv_arr.emplace_back(argv_buf.emplace_back(utf16_to_utf8(wargv[i], wcslen(wargv[i]))).data());
+  }
+  char **argv = &argv_arr[0];
+#else
 int main (int argc, char **argv) {
+#endif
   int status, result;
   lua_State *L = luaL_newstate();  /* create state */
   if (L == NULL) {
