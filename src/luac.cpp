@@ -185,7 +185,7 @@ static int pmain(lua_State* L)
  if (listing) luaU_print(f,listing>1);
  if (dumping)
  {
-  FILE* D= (output==NULL) ? stdout : fopen(output,"wb");
+  FILE* D= (output==NULL) ? stdout : luaL_fopen(output,strlen(output),"wb",sizeof("wb")-sizeof(char));
   if (D==NULL) cannot("open");
   lua_lock(L);
   luaU_dump(L,f,writer,D,stripping);

@@ -263,7 +263,7 @@ static LStream *newfile (lua_State *L) {
 
 static void opencheck (lua_State *L, const char *fname, const char *mode) {
   LStream *p = newfile(L);
-  p->f = fopen(fname, mode);
+  p->f = luaL_fopen(fname, strlen(fname), mode, strlen(mode));
   if (l_unlikely(p->f == NULL))
     luaL_error(L, "cannot open file '%s' (%s)", fname, strerror(errno));
 }
