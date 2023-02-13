@@ -13,6 +13,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <string>
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 
 /*
 ** This file uses only the official API of Lua.
@@ -748,6 +754,32 @@ static int skipBOM (FILE *f) {
     return getc(f);  /* ignore BOM and return next char */
   else  /* no (valid) BOM */
     return c;  /* return first character */
+}
+
+
+#ifdef _WIN32
+[[nodiscard]] static std::wstring utf8_to_utf16(const char* utf8, size_t utf8_len) {
+  std::wstring utf16;
+  const int sizeRequired = MultiByteToWideChar(CP_UTF8, 0, utf8, (int)utf8_len, nullptr, 0);
+  if (l_likely(sizeRequired != 0)) {
+    utf16 = std::wstring(sizeRequired, 0);
+    MultiByteToWideChar(CP_UTF8, 0, utf8, (int)utf8_len, utf16.data(), sizeRequired);
+  }
+  return utf16;
+}
+#endif
+
+LUALIB_API FILE* (luaL_fopen) (const char *filename, size_t filename_len,
+                               const char *mode, size_t mode_len) {
+#ifdef _WIN32
+  // From what I could gather online, UTF-8 is the path encoding convention on *nix systems,
+  // so I've ultimately decided that we should just "fix" the fact that Windows doesn't use UTF-8.
+  std::wstring wfilename = utf8_to_utf16(filename, filename_len);
+  std::wstring wmode = utf8_to_utf16(mode, mode_len);
+  return _wfopen(wfilename.c_str(), wmode.c_str());
+#else
+  return fopen(filename, mode);
+#endif
 }
 
 

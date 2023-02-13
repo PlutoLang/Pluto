@@ -85,6 +85,9 @@ LUALIB_API int (luaL_execresult) (lua_State *L, int stat);
 LUALIB_API int (luaL_ref) (lua_State *L, int t);
 LUALIB_API void (luaL_unref) (lua_State *L, int t, int ref);
 
+LUALIB_API FILE* (luaL_fopen) (const char *filename, size_t filename_len,
+                               const char *mode, size_t mode_len);
+
 LUALIB_API int (luaL_loadfilex) (lua_State *L, const char *filename,
                                                const char *mode);
 
