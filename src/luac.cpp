@@ -15,6 +15,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <vector>
+#endif
+
 #include "lua.h"
 #include "lauxlib.h"
 
@@ -196,8 +200,17 @@ static int pmain(lua_State* L)
  return 0;
 }
 
-int main(int argc, char* argv[])
-{
+#ifdef _WIN32
+int wmain (int argc, wchar_t **wargv) {
+  std::vector<char*> argv_arr; argv_arr.reserve(argc);
+  std::vector<std::string> argv_buf; argv_buf.reserve(argc);
+  for (int i = 0; i != argc; ++i) {
+    argv_arr.emplace_back(argv_buf.emplace_back(luaL_utf16_to_utf8(wargv[i], wcslen(wargv[i]))).data());
+  }
+  char **argv = &argv_arr[0];
+#else
+int main (int argc, char **argv) {
+#endif
  lua_State* L;
  int i=doargs(argc,argv);
  argc-=i; argv+=i;
