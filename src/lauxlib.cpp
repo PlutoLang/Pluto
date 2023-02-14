@@ -769,7 +769,7 @@ std::wstring luaL_utf8_to_utf16(const char *utf8, size_t utf8_len) {
 std::string luaL_utf16_to_utf8(const wchar_t *utf16, size_t utf16_len) {
   std::string utf8;
   const int sizeRequired = WideCharToMultiByte(CP_UTF8, 0, utf16, (int)utf16_len, nullptr, 0, 0, 0);
-  if (sizeRequired != 0) {
+  if (l_likely(sizeRequired != 0)) {
     utf8 = std::string(sizeRequired, 0);
     WideCharToMultiByte(CP_UTF8, 0, utf16, (int)utf16_len, utf8.data(), sizeRequired, 0, 0);
   }
