@@ -713,6 +713,13 @@ do
     end
     assert(UNAR_INVALID == -1)
     assert(UNAR_ONE == +1)
+
+    enum ConstyEnum begin
+        CST_VAL = 1,
+        CPY_VAL = CST_VAL,
+    end
+    assert(CST_VAL == 1)
+    assert(CPY_VAL == 1)
 end
 
 print "Testing format strings."
