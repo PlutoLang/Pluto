@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 
 /*
 ** This file uses only the official API of Lua.
@@ -751,6 +755,43 @@ static int skipBOM (FILE *f) {
 }
 
 
+#ifdef _WIN32
+std::wstring luaL_utf8_to_utf16(const char *utf8, size_t utf8_len) {
+  std::wstring utf16;
+  const int sizeRequired = MultiByteToWideChar(CP_UTF8, 0, utf8, (int)utf8_len, nullptr, 0);
+  if (l_likely(sizeRequired != 0)) {
+    utf16 = std::wstring(sizeRequired, 0);
+    MultiByteToWideChar(CP_UTF8, 0, utf8, (int)utf8_len, utf16.data(), sizeRequired);
+  }
+  return utf16;
+}
+
+std::string luaL_utf16_to_utf8(const wchar_t *utf16, size_t utf16_len) {
+  std::string utf8;
+  const int sizeRequired = WideCharToMultiByte(CP_UTF8, 0, utf16, (int)utf16_len, nullptr, 0, 0, 0);
+  if (l_likely(sizeRequired != 0)) {
+    utf8 = std::string(sizeRequired, 0);
+    WideCharToMultiByte(CP_UTF8, 0, utf16, (int)utf16_len, utf8.data(), sizeRequired, 0, 0);
+  }
+  return utf8;
+}
+#endif
+
+
+LUALIB_API FILE* (luaL_fopen) (const char *filename, size_t filename_len,
+                               const char *mode, size_t mode_len) {
+#ifdef _WIN32
+  // From what I could gather online, UTF-8 is the path encoding convention on *nix systems,
+  // so I've ultimately decided that we should just "fix" the fact that Windows doesn't use UTF-8.
+  std::wstring wfilename = luaL_utf8_to_utf16(filename, filename_len);
+  std::wstring wmode = luaL_utf8_to_utf16(mode, mode_len);
+  return _wfopen(wfilename.c_str(), wmode.c_str());
+#else
+  return fopen(filename, mode);
+#endif
+}
+
+
 /*
 ** reads the first character of file 'f' and skips an optional BOM mark
 ** in its beginning plus its first line if it starts with '#'. Returns
@@ -792,7 +833,7 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
   }
   else {
     lua_pushfstring(L, "@%s", filename);
-    lf.f = fopen(filename, "r");
+    lf.f = luaL_fopen(filename, strlen(filename), "r", sizeof("r") - sizeof(char));
     if (lf.f == NULL) return errfile(L, "open", fnameindex);
   }
   lf.n = 0;
