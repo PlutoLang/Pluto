@@ -2593,13 +2593,23 @@ static void enumstat (LexState *ls) {
       if (testnext(ls, '-')) { /* Negative constant? */
         check(ls, TK_INT);
         i = ls->t.seminfo.i * -1;
+        luaX_next(ls);
       }
       else {
         testnext(ls, '+'); /* support pseudo-unary '+' */
-        check(ls, TK_INT);
-        i = ls->t.seminfo.i;
+        expdesc v;
+        simpleexp(ls, &v, true);
+        if (v.k == VCONST) { /* compile-time constant? */
+          TValue* k = &ls->dyd->actvar.arr[v.u.info].k;
+          if (ttype(k) == LUA_TNUMBER && ttisinteger(k)) { /* integer value? */
+            init_exp(&v, VKINT, (int)ivalue(k)); /* squash into expdesc */
+          }
+        }
+        if (v.k != VKINT) { /* assert expdesc kind */
+          throwerr(ls, "expected integer constant", "unexpected expression type");
+        }
+        i = v.u.ival;
       }
-      luaX_next(ls);
     }
     var->vd.kind = RDKCTC;
     setivalue(&var->k, i++);
