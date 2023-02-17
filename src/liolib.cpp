@@ -924,7 +924,7 @@ static int listdir(lua_State *L)
 }
 
 
-static int l_remove(lua_State *L)
+int l_remove(lua_State *L)
 {
   const auto path = getStringStreamPath(L);;
   const auto recursive = lua_istrue(L, 2);
@@ -944,7 +944,7 @@ static int l_remove(lua_State *L)
 }
 
 
-static int l_rename(lua_State *L)
+int l_rename(lua_State *L)
 {
   const auto oldP = getStringStreamPath(L);
   const auto newP = luaL_checkstring(L, 2);
