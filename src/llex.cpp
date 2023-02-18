@@ -587,17 +587,18 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       }
       case '-': {  /* '-' or '--' (comment) */
         next(ls);
+        ls->appendLineBuff('-');
         if (check_next1(ls, '=')) { /* compound op */
-          ls->appendLineBuff("-=");
+          ls->appendLineBuff('=');
           seminfo->i = TK_CSUB;
           return '=';
         }
         else {
           if (ls->current != '-') {
-            ls->appendLineBuff('-');
             return '-';
           }
           /* else is a comment */
+          ls->appendLineBuff('-');
           next(ls);
           if (ls->current == '[') {  /* long comment? */
             size_t sep = skip_sep(ls);
