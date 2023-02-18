@@ -117,6 +117,7 @@ typedef struct expdesc {
 #define RDKCONST	1   /* constant */
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* compile-time constant */
+#define RDKCONSTEXP	4   /* [Pluto] enforced compile-time constant */
 
 struct PrimitiveType {
   /* 4 bits for ValType, and 1 bit for nullable. */

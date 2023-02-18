@@ -3138,6 +3138,8 @@ static int getlocalattribute (LexState *ls) {
     checknext(ls, '>');
     if (strcmp(attr, "const") == 0)
       return RDKCONST;  /* read-only variable */
+    else if (strcmp(attr, "constexpr") == 0)
+      return RDKCONSTEXP;  /* read-only variable */
     else if (strcmp(attr, "close") == 0)
       return RDKTOCLOSE;  /* to-be-closed variable */
     else {
@@ -3171,7 +3173,10 @@ static void localstat (LexState *ls) {
   expdesc e;
   int line = ls->getLineNumber(); /* in case we need to emit a warning */
   size_t starting_tidx = ls->tidx; /* code snippets on tuple assignments can have inaccurate line readings because the parser skips lines until it can close the statement */
+  bool is_constexpr = false;
   do {
+    if (is_constexpr)
+      luaK_semerror(ls, "<constexpr> must only be used on the last variable in local list");
     vidx = new_localvar(ls, str_checkname(ls, true), line);
     hint = gettypehint(ls);
     kind = getlocalattribute(ls);
@@ -3184,6 +3189,9 @@ static void localstat (LexState *ls) {
         luaK_semerror(ls, "multiple to-be-closed variables in local list");
       }
       toclose = fs->nactvar + nvars;
+    }
+    else if (kind == RDKCONSTEXP) {
+      is_constexpr = true;
     }
     nvars++;
   } while (testnext(ls, ','));
@@ -3198,6 +3206,13 @@ static void localstat (LexState *ls) {
     e.k = VVOID;
     nexps = 0;
     process_assign(ls, var, VT_NIL, line);
+  }
+  if (is_constexpr) {
+    if (nvars != nexps)
+      luaK_semerror(ls, "<constexpr> variable assignment needs adjustment");
+    if (!vkisconst(e.k))
+      throwerr(ls, "<constexpr> variable was not assigned a compile-time constant value", "expression not constant");
+    var->vd.kind = RDKCONST;
   }
   if (nvars == nexps) { /* no adjustments? */
     if (var->vd.kind == RDKCONST &&  /* last variable is const? */
