@@ -1402,7 +1402,7 @@ static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
         if (fallbacks) {
           expdesc* parfallback = &fallbacks->emplace_back(expdesc{});
           if (testnext(ls, '=')) {
-            simpleexp(ls, parfallback);
+            simpleexp_with_unary_support(ls, parfallback);
             if (!vkisconst(parfallback->k)) {
               luaX_syntaxerror(ls, "parameter fallback value must be a compile-time constant");
             }

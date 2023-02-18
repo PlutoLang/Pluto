@@ -646,12 +646,14 @@ end
 print "Testing default arguments."
 do
     local CONST_VAL <const> = 69
-    local function f(a = 1, b = CONST_VAL)
-        return a, b
+    local function f(a = 1, b = CONST_VAL, c = -2, d = +3)
+        return a, b, c, d
     end
-    local a, b = f()
+    local a, b, c, d = f()
     assert(a == 1)
     assert(b == 69)
+    assert(c == -2)
+    assert(d == +3)
 end
 
 print "Testing walrus operator."
