@@ -2602,7 +2602,8 @@ static void enumstat (LexState *ls) {
         if (v.k == VCONST) { /* compile-time constant? */
           TValue* k = &ls->dyd->actvar.arr[v.u.info].k;
           if (ttype(k) == LUA_TNUMBER && ttisinteger(k)) { /* integer value? */
-            init_exp(&v, VKINT, (int)ivalue(k)); /* squash into expdesc */
+            init_exp(&v, VKINT, 0);
+            v.u.ival = ivalue(k);
           }
         }
         if (v.k != VKINT) { /* assert expdesc kind */
