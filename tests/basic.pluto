@@ -643,6 +643,15 @@ do
     assert(string.lower("HELLO", -14) == "HELLO")
 end
 
+print "Testing default arguments."
+do
+    local function f(a = 1)
+        return a
+    end
+    local a = f()
+    assert(a == 1)
+end
+
 print "Testing walrus operator."
 do
     if a := 3 then
