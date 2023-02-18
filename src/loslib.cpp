@@ -420,6 +420,9 @@ static int os_exit (lua_State *L) {
 }
 
 
+int l_remove(lua_State* L);
+int l_rename(lua_State* L);
+
 static const luaL_Reg syslib[] = {
   {"sleep",       os_sleep},
   {"clock",       os_clock},
@@ -428,6 +431,8 @@ static const luaL_Reg syslib[] = {
   {"execute",     os_execute},
   {"exit",        os_exit},
   {"getenv",      os_getenv},
+  {"remove",      l_remove},
+  {"rename",      l_rename},
   {"setlocale",   os_setlocale},
   {"time",        os_time},
   {"tmpname",     os_tmpname},
