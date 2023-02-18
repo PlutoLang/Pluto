@@ -66,7 +66,7 @@ typedef enum {
 } expkind;
 
 [[nodiscard]] constexpr bool vkisconst(lu_byte k) noexcept {
-  return k == VNIL || k == VTRUE || k == VFALSE || k == VKFLT || k == VKINT || k == VKSTR;
+  return k == VNIL || k == VTRUE || k == VFALSE || k == VKFLT || k == VKINT || k == VKSTR || k == VCONST;
 }
 
 #define vkisvar(k)	(VLOCAL <= (k) && (k) <= VINDEXSTR)

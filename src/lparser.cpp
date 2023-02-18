@@ -2466,7 +2466,7 @@ static void casecond(LexState* ls, int case_line, expdesc& lcase) {
   else {
     testnext(ls, '+'); /* support pseudo-unary '+' */
     simpleexp(ls, &lcase, true);
-    if (!vkisconst(lcase.k) && lcase.k != VCONST && lcase.k != VLOCAL) {
+    if (!vkisconst(lcase.k) && lcase.k != VLOCAL) {
       throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
     }
   }
