@@ -62,7 +62,8 @@ typedef enum {
   VRELOC,  /* expression can put result in any register;
               info = instruction pc */
   VCALL,  /* expression is a function call; info = instruction pc */
-  VVARARG  /* vararg expression; info = instruction pc */
+  VVARARG,  /* vararg expression; info = instruction pc */
+  VENUM
 } expkind;
 
 [[nodiscard]] constexpr bool vkisconst(lu_byte k) noexcept {
@@ -118,6 +119,7 @@ typedef struct expdesc {
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* compile-time constant */
 #define RDKCONSTEXP	4   /* [Pluto] enforced compile-time constant */
+#define RDKENUM		5   /* [Pluto] named enum */
 
 struct PrimitiveType {
   /* 4 bits for ValType, and 1 bit for nullable. */

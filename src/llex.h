@@ -244,6 +244,14 @@ enum ParserContext {
   PARCTX_BODY,
 };
 
+struct EnumDesc {
+  struct Enumerator {
+    TString* name;
+    lua_Integer value;
+  };
+  std::vector<Enumerator> enumerators;
+};
+
 struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
@@ -262,6 +270,7 @@ struct LexState {
   TString *envn;  /* environment variable name */
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
+  std::vector<EnumDesc> enums{};
 
   LexState()
     : lines{ std::string{} }, warnconfs{ WarningConfig(0) }

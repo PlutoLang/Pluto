@@ -16,6 +16,7 @@
 #include <limits.h>
 #include <string.h>
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -428,7 +429,7 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int l
 static int reglevel (FuncState *fs, int nvar) {
   while (nvar-- > 0) {
     Vardesc *vd = getlocalvardesc(fs, nvar);  /* get previous variable */
-    if (vd->vd.kind != RDKCTC)  /* is in a register? */
+    if (vd->vd.kind != RDKCTC && vd->vd.kind != RDKENUM)  /* is in a register? */
       return vd->vd.ridx + 1;
   }
   return 0;  /* no variables in registers */
@@ -449,8 +450,8 @@ int luaY_nvarstack (FuncState *fs) {
 */
 static LocVar *localdebuginfo (FuncState *fs, int vidx) {
   Vardesc *vd = getlocalvardesc(fs, vidx);
-  if (vd->vd.kind == RDKCTC)
-    return NULL;  /* no debug info. for constants */
+  if (vd->vd.kind == RDKCTC || vd->vd.kind == RDKENUM)
+    return NULL;  /* no debug info. for constants [Pluto] and named enums */
   else {
     int idx = vd->vd.pidx;
     lua_assert(idx < fs->ndebugvars);
@@ -633,6 +634,10 @@ static int searchvar (FuncState *fs, TString *n, expdesc *var) {
     if (eqstr(n, vd->vd.name)) {  /* found? */
       if (vd->vd.kind == RDKCTC)  /* compile-time constant? */
         init_exp(var, VCONST, fs->firstlocal + i);
+      else if (vd->vd.kind == RDKENUM) {
+        init_exp(var, VENUM, 0);
+        var->u.ival = ivalue(&vd->k);
+      }
       else  /* real variable */
         init_var(fs, var, i);
       return var->k;
@@ -1928,10 +1933,120 @@ static void const_expr (LexState *ls, expdesc *v) {
 }
 
 
+static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc*)>& gen) {
+  FuncState* fs = ls->fs;
+  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  ConsControl cc;
+  luaK_code(fs, 0);  /* space for extra arg. */
+  cc.na = cc.nh = cc.tostore = 0;
+  cc.t = v;
+  init_exp(v, VNONRELOC, fs->freereg);  /* table will be at stack top */
+  luaK_reserveregs(fs, 1);
+  while (gen(&cc.v)) {
+    ++cc.tostore;
+    closelistfield(fs, &cc);
+  }
+  lastlistfield(fs, &cc);
+  luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
+}
+
+static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc *key, expdesc *val)>& gen) {
+  FuncState* fs = ls->fs;
+  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  ConsControl cc;
+  luaK_code(fs, 0);  /* space for extra arg. */
+  cc.na = cc.nh = cc.tostore = 0;
+  cc.t = v;
+  init_exp(v, VNONRELOC, fs->freereg);  /* table will be at stack top */
+  luaK_reserveregs(fs, 1);
+  init_exp(&cc.v, VVOID, 0);
+  while (true) {
+    closelistfield(fs, &cc);
+    int reg = ls->fs->freereg;
+    expdesc tab, key, val;
+    if (!gen(&key, &val))
+      break;
+    luaK_exp2val(ls->fs, &key);
+    cc.nh++;
+    tab = *cc.t;
+    luaK_indexed(fs, &tab, &key);
+    luaK_storevar(fs, &tab, &val);
+    fs->freereg = reg;
+  }
+  lastlistfield(fs, &cc);
+  luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
+}
+
+
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
   if (isnametkn(ls)) {
     singlevar(ls, v);
+    if (v->k == VENUM) {
+      checknext(ls, ':');
+      check(ls, TK_NAME);
+      if (strcmp(ls->t.seminfo.ts->contents, "values") == 0) {
+        luaX_next(ls);
+        checknext(ls, '('); checknext(ls, ')');
+        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        size_t i = 0;
+        newtable(ls, v, [ed, &i](expdesc *e) {
+          if (i == ed->enumerators.size())
+            return false;
+          init_exp(e, VKINT, 0);
+          e->u.ival = ed->enumerators.at(i++).value;
+          return true;
+        });
+      }
+      else if (strcmp(ls->t.seminfo.ts->contents, "names") == 0) {
+        luaX_next(ls);
+        checknext(ls, '('); checknext(ls, ')');
+        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        size_t i = 0;
+        newtable(ls, v, [ed, &i](expdesc *e) {
+          if (i == ed->enumerators.size())
+            return false;
+          init_exp(e, VKSTR, 0);
+          e->u.strval = ed->enumerators.at(i++).name;
+          return true;
+        });
+      }
+      else if (strcmp(ls->t.seminfo.ts->contents, "kvmap") == 0) {
+        luaX_next(ls);
+        checknext(ls, '('); checknext(ls, ')');
+        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        size_t i = 0;
+        newtable(ls, v, [ed, &i](expdesc *key, expdesc *val) {
+          if (i == ed->enumerators.size())
+            return false;
+          init_exp(key, VKSTR, 0);
+          key->u.strval = ed->enumerators.at(i).name;
+          init_exp(val, VKINT, 0);
+          val->u.ival = ed->enumerators.at(i).value;
+          i++;
+          return true;
+        });
+      }
+      else if (strcmp(ls->t.seminfo.ts->contents, "vkmap") == 0) {
+        luaX_next(ls);
+        checknext(ls, '('); checknext(ls, ')');
+        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        size_t i = 0;
+        newtable(ls, v, [ed, &i](expdesc *key, expdesc *val) {
+          if (i == ed->enumerators.size())
+            return false;
+          init_exp(key, VKINT, 0);
+          key->u.ival = ed->enumerators.at(i).value;
+          init_exp(val, VKSTR, 0);
+          val->u.strval = ed->enumerators.at(i).name;
+          i++;
+          return true;
+        });
+      }
+      else {
+        throwerr(ls, luaO_fmt(ls->L, "%s is not a member of enums", ls->t.seminfo.ts->contents), "unknown member.");
+      }
+    }
     return;
   }
   switch (ls->t.token) {
@@ -2761,8 +2876,14 @@ static void enumstat (LexState *ls) {
 
   luaX_next(ls); /* skip 'enum' */
 
+  EnumDesc* ed = nullptr;
   if (gett(ls) != TK_BEGIN) { /* enum has name? */
-    luaX_next(ls); /* skip name */
+    auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
+    auto var = getlocalvardesc(ls->fs, vidx);
+    var->vd.kind = RDKENUM;
+    setivalue(&var->k, ls->enums.size());
+    ed = &ls->enums.emplace_back(EnumDesc{});
+    ls->fs->nactvar++;
   }
 
   const auto line_begin = ls->getLineNumber();
@@ -2770,7 +2891,8 @@ static void enumstat (LexState *ls) {
 
   lua_Integer i = 1;
   while (gett(ls) == TK_NAME) {
-    auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
+    TString* name = str_checkname(ls, true);
+    auto vidx = new_localvar(ls, name, ls->getLineNumber());
     auto var = getlocalvardesc(ls->fs, vidx);
     if (testnext(ls, '=')) {
       expdesc v;
@@ -2788,7 +2910,11 @@ static void enumstat (LexState *ls) {
       i = v.u.ival;
     }
     var->vd.kind = RDKCTC;
-    setivalue(&var->k, i++);
+    setivalue(&var->k, i);
+    if (ed) {
+      ed->enumerators.emplace_back(EnumDesc::Enumerator{ name, i });
+    }
+    i++;
     ls->fs->nactvar++;
     if (gett(ls) != ',') break;
     luaX_next(ls);
