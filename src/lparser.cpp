@@ -1371,7 +1371,22 @@ static void setvararg (FuncState *fs, int nparams) {
   luaK_codeABC(fs, OP_VARARGPREP, nparams, 0, 0);
 }
 
+
 static void simpleexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDesc *prop = nullptr);
+static void simpleexp_with_unary_support (LexState *ls, expdesc *v) {
+  if (testnext(ls, '-')) { /* Negative constant? */
+    check(ls, TK_INT);
+    init_exp(v, VKINT, 0);
+    v->u.ival = (ls->t.seminfo.i * -1);
+    luaX_next(ls);
+  }
+  else {
+    testnext(ls, '+'); /* support pseudo-unary '+' */
+    simpleexp(ls, v, true);
+  }
+}
+
+
 static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
@@ -1387,7 +1402,7 @@ static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
         if (fallbacks) {
           expdesc* parfallback = &fallbacks->emplace_back(expdesc{});
           if (testnext(ls, '=')) {
-            simpleexp(ls, parfallback);
+            simpleexp_with_unary_support(ls, parfallback);
             if (!vkisconst(parfallback->k)) {
               luaX_syntaxerror(ls, "parameter fallback value must be a compile-time constant");
             }
@@ -2590,26 +2605,19 @@ static void enumstat (LexState *ls) {
     auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
     auto var = getlocalvardesc(ls->fs, vidx);
     if (testnext(ls, '=')) {
-      if (testnext(ls, '-')) { /* Negative constant? */
-        check(ls, TK_INT);
-        i = ls->t.seminfo.i * -1;
-        luaX_next(ls);
-      }
-      else {
-        testnext(ls, '+'); /* support pseudo-unary '+' */
-        expdesc v;
-        simpleexp(ls, &v, true);
-        if (v.k == VCONST) { /* compile-time constant? */
-          TValue* k = &ls->dyd->actvar.arr[v.u.info].k;
-          if (ttype(k) == LUA_TNUMBER && ttisinteger(k)) { /* integer value? */
-            init_exp(&v, VKINT, (int)ivalue(k)); /* squash into expdesc */
-          }
+      expdesc v;
+      simpleexp_with_unary_support(ls, &v);
+      if (v.k == VCONST) { /* compile-time constant? */
+        TValue* k = &ls->dyd->actvar.arr[v.u.info].k;
+        if (ttype(k) == LUA_TNUMBER && ttisinteger(k)) { /* integer value? */
+          init_exp(&v, VKINT, 0);
+          v.u.ival = ivalue(k);
         }
-        if (v.k != VKINT) { /* assert expdesc kind */
-          throwerr(ls, "expected integer constant", "unexpected expression type");
-        }
-        i = v.u.ival;
       }
+      if (v.k != VKINT) { /* assert expdesc kind */
+        throwerr(ls, "expected integer constant", "unexpected expression type");
+      }
+      i = v.u.ival;
     }
     var->vd.kind = RDKCTC;
     setivalue(&var->k, i++);
