@@ -1937,6 +1937,18 @@ static void primaryexp (LexState *ls, expdesc *v) {
           return true;
         });
       }
+      else if (strcmp(ls->t.seminfo.ts->contents, "names") == 0) {
+        luaX_next(ls);
+        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        size_t i = 0;
+        newtable(ls, v, [ed, &i](expdesc *e) {
+          if (i == ed->enumerators.size())
+            return false;
+          init_exp(e, VKSTR, 0);
+          e->u.strval = ed->enumerators.at(i++).name;
+          return true;
+        });
+      }
       else {
         throwerr(ls, luaO_fmt(ls->L, "%s is not a member of enums", ls->t.seminfo.ts->contents), "unknown member.");
       }
