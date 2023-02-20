@@ -2,7 +2,7 @@ do
     local a = 1
     local a = 2
 end
-print "Welcome to the test suit. There should have been exactly 1 parser warning."
+print "Welcome to the test suite. There should have been exactly 1 parser warning."
 
 print "Testing compound assignment."
 do
