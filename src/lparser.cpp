@@ -1900,7 +1900,7 @@ static void const_expr (LexState *ls, expdesc *v) {
 }
 
 
-static void newtable(LexState *ls, expdesc *v, const std::function<bool(expdesc*)>& gen) {
+static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc*)>& gen) {
   FuncState* fs = ls->fs;
   int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
   ConsControl cc;
