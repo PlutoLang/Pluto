@@ -1950,7 +1950,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
   if (isnametkn(ls)) {
     singlevar(ls, v);
     if (v->k == VENUM) {
-      checknext(ls, '.');
+      checknext(ls, ':');
       check(ls, TK_NAME);
       if (strcmp(ls->t.seminfo.ts->contents, "values") == 0) {
         luaX_next(ls);
