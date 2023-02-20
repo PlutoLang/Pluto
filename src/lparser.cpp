@@ -1917,6 +1917,33 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
   luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
 }
 
+static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc *key, expdesc *val)>& gen) {
+  FuncState* fs = ls->fs;
+  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  ConsControl cc;
+  luaK_code(fs, 0);  /* space for extra arg. */
+  cc.na = cc.nh = cc.tostore = 0;
+  cc.t = v;
+  init_exp(v, VNONRELOC, fs->freereg);  /* table will be at stack top */
+  luaK_reserveregs(fs, 1);
+  init_exp(&cc.v, VVOID, 0);
+  while (true) {
+    closelistfield(fs, &cc);
+    int reg = ls->fs->freereg;
+    expdesc tab, key, val;
+    if (!gen(&key, &val))
+      break;
+    luaK_exp2val(ls->fs, &key);
+    cc.nh++;
+    tab = *cc.t;
+    luaK_indexed(fs, &tab, &key);
+    luaK_storevar(fs, &tab, &val);
+    fs->freereg = reg;
+  }
+  lastlistfield(fs, &cc);
+  luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
+}
+
 
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
@@ -1948,6 +1975,38 @@ static void primaryexp (LexState *ls, expdesc *v) {
             return false;
           init_exp(e, VKSTR, 0);
           e->u.strval = ed->enumerators.at(i++).name;
+          return true;
+        });
+      }
+      else if (strcmp(ls->t.seminfo.ts->contents, "kvmap") == 0) {
+        luaX_next(ls);
+        checknext(ls, '('); checknext(ls, ')');
+        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        size_t i = 0;
+        newtable(ls, v, [ed, &i](expdesc *key, expdesc *val) {
+          if (i == ed->enumerators.size())
+            return false;
+          init_exp(key, VKSTR, 0);
+          key->u.strval = ed->enumerators.at(i).name;
+          init_exp(val, VKINT, 0);
+          val->u.ival = ed->enumerators.at(i).value;
+          i++;
+          return true;
+        });
+      }
+      else if (strcmp(ls->t.seminfo.ts->contents, "vkmap") == 0) {
+        luaX_next(ls);
+        checknext(ls, '('); checknext(ls, ')');
+        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        size_t i = 0;
+        newtable(ls, v, [ed, &i](expdesc *key, expdesc *val) {
+          if (i == ed->enumerators.size())
+            return false;
+          init_exp(key, VKINT, 0);
+          key->u.ival = ed->enumerators.at(i).value;
+          init_exp(val, VKSTR, 0);
+          val->u.strval = ed->enumerators.at(i).name;
+          i++;
           return true;
         });
       }
