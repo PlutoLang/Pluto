@@ -3003,6 +3003,7 @@ static void localstat (LexState *ls) {
   int nexps;
   expdesc e;
   int line = ls->getLineNumber(); /* in case we need to emit a warning */
+  size_t starting_tidx = ls->tidx; /* code snippets on tuple assignments can have inaccurate line readings because the parser skips lines until it can close the statement */
   do {
     vidx = new_localvar(ls, str_checkname(ls, true), line);
     hint = gettypehint(ls);
@@ -3011,8 +3012,10 @@ static void localstat (LexState *ls) {
     var->vd.kind = kind;
     var->vd.hint = hint;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
-      if (toclose != -1)  /* one already present? */
+      if (toclose != -1) { /* one already present? */
+        luaX_setpos(ls, starting_tidx);
         luaK_semerror(ls, "multiple to-be-closed variables in local list");
+      }
       toclose = fs->nactvar + nvars;
     }
     nvars++;
