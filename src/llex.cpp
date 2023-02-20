@@ -239,7 +239,7 @@ static void inclinenumber (LexState *ls) {
   next(ls);  /* skip '\n' or '\r' */
   if (currIsNewline(ls) && ls->current != old)
     next(ls);  /* skip '\n\r' or '\r\n' */
-  
+
   const std::string& buff = ls->getLineBuff();
   if (buff.find("@pluto_warnings:") != std::string::npos)
     ls->warning.processComment(buff);
