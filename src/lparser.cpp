@@ -2907,28 +2907,6 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
   if (v.k == VNIL || v.k == VFALSE)
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", ls->getLineNumber(), UNREACHABLE_CODE);
   checknext(ls, TK_THEN);
-  if (ls->t.token == TK_GOTO) {  /* 'if x then goto' ? */
-    ls->laststat.token = TK_GOTO;
-    luaX_next(ls); /* skip 'goto' */
-    enterblock(fs, &bl, 0);
-    auto name = str_checkname(ls); /* read & skip TK_NAME */
-    if (luaK_isalwaytrue(&v)) { /* unconditional jump */
-      lgoto(ls, name);
-    }
-    else if (auto lb = findlabel(ls, name)) { /* conditional backwards jump */
-      luaK_goiffalse(ls->fs, &v);
-      luaK_patchlist(fs, v.t, lb->pc);
-    }
-    else { /* conditional forwards jump */
-      luaK_goiftrue(ls->fs, &v);
-      lgoto(ls, name);
-      luaK_patchtohere(fs, v.f);
-    }
-    /* there might be more instructions even tho they would never be executed... */
-    statlist(ls);
-    leaveblock(fs);
-    return;
-  }
   if (ls->t.token == TK_BREAK && luaX_lookahead(ls) != TK_INT) {  /* 'if x then break' and not 'if x then break int' ? */
     ls->laststat.token = TK_BREAK;
     int line = ls->getLineNumber();
