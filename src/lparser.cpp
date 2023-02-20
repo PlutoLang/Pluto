@@ -1927,6 +1927,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       check(ls, TK_NAME);
       if (strcmp(ls->t.seminfo.ts->contents, "values") == 0) {
         luaX_next(ls);
+        checknext(ls, '('); checknext(ls, ')');
         const EnumDesc* ed = &ls->enums.at(v->u.ival);
         size_t i = 0;
         newtable(ls, v, [ed, &i](expdesc *e) {
@@ -1939,6 +1940,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       }
       else if (strcmp(ls->t.seminfo.ts->contents, "names") == 0) {
         luaX_next(ls);
+        checknext(ls, '('); checknext(ls, ')');
         const EnumDesc* ed = &ls->enums.at(v->u.ival);
         size_t i = 0;
         newtable(ls, v, [ed, &i](expdesc *e) {
