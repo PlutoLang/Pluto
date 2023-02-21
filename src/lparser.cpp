@@ -104,7 +104,7 @@ static void throw_warn (LexState *ls, const char *raw_err, const char *here, int
   if (ls->shouldEmitWarning(line, warningType)) {
     Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
     err.append(" [");
-    err.append(ls->warning.getWarningName(warningType));
+    err.append(ls->getWarningConfig().getWarningName(warningType));
     err.push_back(']');
     msg.addMsg(err)
       .addSrcLine(line)
@@ -121,7 +121,7 @@ static void throw_warn(LexState* ls, const char* raw_err, const char* here, cons
   if (ls->shouldEmitWarning(line, warningType)) {
     Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
     err.append(" [");
-    err.append(ls->warning.getWarningName(warningType));
+    err.append(ls->getWarningConfig().getWarningName(warningType));
     err.push_back(']');
     msg.addMsg(err)
       .addSrcLine(line)
