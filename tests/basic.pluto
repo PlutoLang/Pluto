@@ -3,7 +3,6 @@ do
     local a = 2
 end
 print "Welcome to the test suite. There should have been exactly 1 parser warning."
---- @pluto_warnings: disable-unreachable-code
 
 print "Testing compound assignment."
 do
@@ -798,6 +797,7 @@ do
     end
 end
 assert(("deez" .. 69) == "deez69")
+--- @pluto_warnings: disable-unreachable-code
 do
     -- From lua/testes/closure.lua
     for i = 1, 10 do
@@ -841,5 +841,6 @@ do
     assert(testG(4) == 5)
     assert(testG(5) == 10)
 end
+--- @pluto_warnings: enable-unreachable-code
 
 print "Finished."
