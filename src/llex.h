@@ -7,6 +7,7 @@
 
 #include <limits.h>
 
+#include <cstring> // memcpy
 #include <stack>
 #include <string>
 #include <string_view>
