@@ -159,13 +159,25 @@ static const std::vector<std::string> luaX_warnNames = {
 
 struct WarningConfig
 {
+  const size_t begins_at;
   bool toggles[NUM_WARNING_TYPES];
 
-  WarningConfig()
+  WarningConfig(size_t begins_at) noexcept
+    : begins_at(begins_at)
   {
     setAllTo(true);
   }
 
+  void copyFrom(const WarningConfig& b) noexcept
+  {
+    memcpy(toggles, b.toggles, sizeof(toggles));
+  }
+
+  [[nodiscard]] bool Get(WarningType type) const noexcept
+  {
+    return toggles[type];
+  }
+  
   [[nodiscard]] bool& Get(WarningType type) noexcept
   {
     return toggles[type];
@@ -208,9 +220,9 @@ struct WarningConfig
     }
   }
 
-  [[nodiscard]] const char* getWarningName(const WarningType w) const noexcept
+  [[nodiscard]] static const char* getWarningName(const WarningType w)
   {
-    return luaX_warnNames[(int)w].c_str();
+    return luaX_warnNames.at((size_t)w).c_str();
   }
 };
 
@@ -247,11 +259,11 @@ struct LexState {
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
-  WarningConfig warning;  /* Configuration class for compile-time warnings. */
+  std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
 
   LexState()
-    : lines { std::string {} }
+    : lines{ std::string{} }, warnconfs{ WarningConfig(0) }
   {
     laststat = Token {};
     laststat.token = TK_EOS;
@@ -280,14 +292,6 @@ struct LexState {
   [[nodiscard]] bool findWithinLine(int line, const std::string& substr, int offset = 0) const noexcept {
     const std::string& str = getLineString(line);
     return str.find(substr, offset) != std::string::npos;
-  }
-
-  // Does the last relevant source line call for warning silence?
-  [[nodiscard]] bool shouldEmitWarning(int line, WarningType warning_type)
-  {
-    const auto& linebuff = this->getLineString(line);
-    const auto& lastattr = line > 1 ? this->getLineString(line - 1) : linebuff;
-    return lastattr.find("@pluto_warnings: disable-next") == std::string::npos && this->warning.Get(warning_type);
   }
 
   [[nodiscard]] int getLineNumberOfLastNonEmptyLine() const noexcept {
@@ -324,6 +328,35 @@ struct LexState {
   }
 
   void popContext(ParserContext ctx);
+
+  WarningConfig& lexPushWarningOverride() {
+    if (warnconfs.back().begins_at == tokens.size()) {
+      return warnconfs.back();
+    }
+    WarningConfig warnconf(tokens.size());
+    warnconf.copyFrom(warnconfs.back());
+    return warnconfs.emplace_back(std::move(warnconf));
+  }
+
+  [[nodiscard]] const WarningConfig& getWarningConfig() const noexcept {
+    return getWarningConfig(tidx);
+  }
+
+  [[nodiscard]] const WarningConfig& getWarningConfig(size_t tidx) const noexcept {
+    const WarningConfig* last = &warnconfs.at(0);
+    for (const auto& warnconf : warnconfs) {
+      if (warnconf.begins_at > tidx)
+        break;
+      last = &warnconf;
+    }
+    return *last;
+  }
+
+  [[nodiscard]] bool shouldEmitWarning(int line, WarningType warning_type) const {
+    const auto& linebuff = this->getLineString(line);
+    const auto& lastattr = line > 1 ? this->getLineString(line - 1) : linebuff;
+    return lastattr.find("@pluto_warnings: disable-next") == std::string::npos && getWarningConfig().Get(warning_type);
+  }
 };
 
 #if defined(_MSC_VER) && _MSC_VER && !__INTEL_COMPILER
