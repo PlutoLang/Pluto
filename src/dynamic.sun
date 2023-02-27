@@ -1,3 +1,4 @@
+cpp 17
 +*.cpp
 -lua.cpp
 -luac.cpp
