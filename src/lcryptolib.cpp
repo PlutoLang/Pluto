@@ -278,7 +278,7 @@ static int random(lua_State *L)
   std::uniform_int_distribution<std::mt19937_64::result_type> dist(luaL_checkinteger(L, 1), luaL_checkinteger(L, 2));
 #else
   std::mt19937 rng(dev());
-  std::uniform_int_distribution<std::mt19937::result_type> dist(luaL_checkinteger(L, 1), luaL_checkinteger(L, 2));
+  std::uniform_int_distribution<std::mt19937::result_type> dist((std::mt19937::result_type)luaL_checkinteger(L, 1), (std::mt19937::result_type)luaL_checkinteger(L, 2));
 #endif
   lua_pushinteger(L, dist(rng));
   return 1;

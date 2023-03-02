@@ -130,7 +130,7 @@ static int str_lower (lua_State *L) {
     --i_;
     if (i_ < 0) i_ += s_.length() + 1;  /* Negative indexes. */
     if (!s_.empty() && (unsigned)i_ < s_.length())
-      s_[i_] = std::tolower(s_.at(i_));
+      s_[(size_t)i_] = std::tolower(s_.at((size_t)i_));
     lua_pushstring(L, s_.c_str());
     return 1;
   }
@@ -158,7 +158,7 @@ static int str_upper (lua_State *L)
     --i_;
     if (i_ < 0) i_ += s_.length() + 1;  /* Negative indexes. */
     if (!s_.empty() && (unsigned)i_ < s_.length())
-      s_[i_] = std::toupper(s_.at(i_));
+      s_[(size_t)i_] = std::toupper(s_.at((size_t)i_));
     lua_pushstring(L, s_.c_str());
     return 1;
   }
