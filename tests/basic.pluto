@@ -492,6 +492,22 @@ do
         t = true
     end
     assert(t == true)
+    local function switchfunc(a)
+        switch a do
+            case 1: -- return before case
+            return
+            case 2:
+            return 2
+            case 3: -- return before defualt
+            return
+            default:
+            return
+        end
+        return 3
+    end
+    assert(switchfunc(1) == nil)
+    assert(switchfunc(2) == 2)
+    assert(switchfunc(3) == nil)
 end
 
 print "Testing table freezing."

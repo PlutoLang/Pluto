@@ -3109,7 +3109,10 @@ static void retstat (LexState *ls, TypeDesc *prop) {
   expdesc e;
   int nret;  /* number of values being returned */
   int first = luaY_nvarstack(fs);  /* first slot to be returned */
-  if (block_follow(ls, 1) || ls->t.token == ';') {
+  if (block_follow(ls, 1) || ls->t.token == ';'
+    || ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT
+    || ls->t.token == TK_PCASE || ls->t.token == TK_PDEFAULT
+  ) {
     nret = 0;  /* return no values */
     if (prop) *prop = VT_NIL;
   }
