@@ -1955,7 +1955,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       if (strcmp(ls->t.seminfo.ts->contents, "values") == 0) {
         luaX_next(ls);
         checknext(ls, '('); checknext(ls, ')');
-        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
         size_t i = 0;
         newtable(ls, v, [ed, &i](expdesc *e) {
           if (i == ed->enumerators.size())
@@ -1968,7 +1968,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       else if (strcmp(ls->t.seminfo.ts->contents, "names") == 0) {
         luaX_next(ls);
         checknext(ls, '('); checknext(ls, ')');
-        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
         size_t i = 0;
         newtable(ls, v, [ed, &i](expdesc *e) {
           if (i == ed->enumerators.size())
@@ -1981,7 +1981,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       else if (strcmp(ls->t.seminfo.ts->contents, "kvmap") == 0) {
         luaX_next(ls);
         checknext(ls, '('); checknext(ls, ')');
-        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
         size_t i = 0;
         newtable(ls, v, [ed, &i](expdesc *key, expdesc *val) {
           if (i == ed->enumerators.size())
@@ -1997,7 +1997,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       else if (strcmp(ls->t.seminfo.ts->contents, "vkmap") == 0) {
         luaX_next(ls);
         checknext(ls, '('); checknext(ls, ')');
-        const EnumDesc* ed = &ls->enums.at(v->u.ival);
+        const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
         size_t i = 0;
         newtable(ls, v, [ed, &i](expdesc *key, expdesc *val) {
           if (i == ed->enumerators.size())
