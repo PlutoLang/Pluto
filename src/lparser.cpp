@@ -1981,7 +1981,7 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
   luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
 }
 
-static void enumexp (LexState *ls, expdesc *v) {
+static void enumexp (LexState *ls, expdesc *v, TString *varname) {
   switch (ls->t.token) {
     case ':': {
       luaX_next(ls);
@@ -2047,7 +2047,22 @@ static void enumexp (LexState *ls, expdesc *v) {
       else {
         throwerr(ls, luaO_fmt(ls->L, "%s is not a member of enums", ls->t.seminfo.ts->contents), "unknown member.");
       }
-      break;
+      return;
+    }
+    case '.': {
+      luaX_next(ls);
+      check(ls, TK_NAME);
+      const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
+      for (const auto& e : ed->enumerators) {
+        if (eqstr(e.name->contents, ls->t.seminfo.ts->contents)) {
+          init_exp(v, VKINT, 0);
+          v->u.ival = e.value;
+          luaX_next(ls);
+          return;
+        }
+      }
+      throwerr(ls, luaO_fmt(ls->L, "%s is not a member of %s", ls->t.seminfo.ts->contents, varname->contents), "unknown member.");
+      return;
     }
     default: {
       const char* token = luaX_token2str(ls, ls->t.token);
@@ -2060,9 +2075,10 @@ static void enumexp (LexState *ls, expdesc *v) {
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
   if (isnametkn(ls)) {
-    singlevar(ls, v);
+    TString *varname = str_checkname(ls);
+    singlevar(ls, v, varname);
     if (v->k == VENUM) {
-      enumexp(ls, v);
+      enumexp(ls, v, varname);
     }
     return;
   }
