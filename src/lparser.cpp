@@ -1977,13 +1977,10 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
   luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
 }
 
-
-static void primaryexp (LexState *ls, expdesc *v) {
-  /* primaryexp -> NAME | '(' expr ')' */
-  if (isnametkn(ls)) {
-    singlevar(ls, v);
-    if (v->k == VENUM) {
-      checknext(ls, ':');
+static void enumexp (LexState *ls, expdesc *v) {
+  switch (ls->t.token) {
+    case ':': {
+      luaX_next(ls);
       check(ls, TK_NAME);
       if (strcmp(ls->t.seminfo.ts->contents, "values") == 0) {
         luaX_next(ls);
@@ -2046,6 +2043,22 @@ static void primaryexp (LexState *ls, expdesc *v) {
       else {
         throwerr(ls, luaO_fmt(ls->L, "%s is not a member of enums", ls->t.seminfo.ts->contents), "unknown member.");
       }
+      break;
+    }
+    default: {
+      const char* token = luaX_token2str(ls, ls->t.token);
+      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+    }
+  }
+}
+
+
+static void primaryexp (LexState *ls, expdesc *v) {
+  /* primaryexp -> NAME | '(' expr ')' */
+  if (isnametkn(ls)) {
+    singlevar(ls, v);
+    if (v->k == VENUM) {
+      enumexp(ls, v);
     }
     return;
   }
