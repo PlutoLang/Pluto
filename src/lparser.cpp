@@ -746,8 +746,7 @@ static void singlevarinner (LexState *ls, TString *varname, expdesc *var) {
   }
 }
 
-static void singlevar (LexState *ls, expdesc *var) {
-  TString *varname = str_checkname(ls);
+static void singlevar (LexState *ls, expdesc *var, TString *varname) {
   if (gett(ls) == TK_WALRUS) {
     luaX_next(ls);
     if (ls->getContext() == PARCTX_CREATE_VARS)
@@ -761,6 +760,11 @@ static void singlevar (LexState *ls, expdesc *var) {
     return;
   }
   singlevarinner(ls, varname, var);
+}
+
+static void singlevar (LexState *ls, expdesc *var) {
+  TString *varname = str_checkname(ls);
+  singlevar(ls, var, varname);
 }
 
 
