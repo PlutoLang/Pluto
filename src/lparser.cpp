@@ -1176,8 +1176,6 @@ static void caselist (LexState *ls) {
   while (gett(ls) != TK_CASE
       && gett(ls) != TK_DEFAULT
       && gett(ls) != TK_END
-      && gett(ls) != TK_PCASE
-      && gett(ls) != TK_PDEFAULT
     ) {
     if (gett(ls) == TK_PCONTINUE
         || gett(ls) == TK_CONTINUE
@@ -2827,12 +2825,9 @@ static void switchstat (LexState *ls, int line) {
   TString* const end_switch = luaS_newliteral(ls->L, "pluto_end_switch");
   TString* default_case = nullptr;
 
-  if (gett(ls) == TK_CASE || gett(ls) == TK_PCASE) {
+  if (gett(ls) == TK_CASE) {
     int case_line = ls->getLineNumber();
 
-    if (gett(ls) == TK_PCASE) {
-      throw_warn(ls, "'pluto_case' is deprecated", "use 'case' instead", WT_DEPRECATED);
-    }
     luaX_next(ls); /* Skip 'case' */
 
     first = save;
@@ -2854,10 +2849,7 @@ static void switchstat (LexState *ls, int line) {
 
   while (gett(ls) != TK_END) {
     auto case_line = ls->getLineNumber();
-    if (gett(ls) == TK_DEFAULT || gett(ls) == TK_PDEFAULT) {
-      if (gett(ls) == TK_PDEFAULT) {
-        throw_warn(ls, "'pluto_default' is deprecated", "use 'default' instead", WT_DEPRECATED);
-      }
+    if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
 
       checknext(ls, ':');
@@ -2868,7 +2860,7 @@ static void switchstat (LexState *ls, int line) {
       caselist(ls);
     }
     else {
-      if (!testnext2(ls, TK_CASE, TK_PCASE)) {
+      if (!testnext(ls, TK_CASE)) {
         error_expected(ls, TK_CASE);
       }
       casecond(ls, case_line, cases.emplace_back(std::pair<expdesc, int>{ expdesc{}, luaK_getlabel(fs) }).first);
@@ -3463,7 +3455,6 @@ static void retstat (LexState *ls, TypeDesc *prop) {
   int first = luaY_nvarstack(fs);  /* first slot to be returned */
   if (block_follow(ls, 1) || ls->t.token == ';'
     || ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT
-    || ls->t.token == TK_PCASE || ls->t.token == TK_PDEFAULT
   ) {
     nret = 0;  /* return no values */
     if (prop) *prop = VT_NIL;
@@ -3569,12 +3560,10 @@ static void statement (LexState *ls, TypeDesc *prop) {
       gotostat(ls);
       break;
     }
-    case TK_CASE:
-    case TK_PCASE: {
+    case TK_CASE: {
       throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
     }
-    case TK_DEFAULT:
-    case TK_PDEFAULT: {
+    case TK_DEFAULT: {
       throwerr(ls, "inappropriate 'default' statement.", "outside of 'switch' block.");
     }
 #ifndef PLUTO_COMPATIBLE_SWITCH
