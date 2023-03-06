@@ -40,7 +40,6 @@ enum RESERVED {
   TK_GOTO, TK_IF, TK_IN, TK_LOCAL, TK_NIL, TK_NOT, TK_OR, TK_REPEAT,
   TK_CASE, TK_DEFAULT, TK_AS, TK_BEGIN, TK_CLASS, // New narrow keywords.
   TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, // New compatibility keywords.
-  TK_PCASE, TK_PDEFAULT, // Deprecated compatibility keywords.
   /* New non-compatible keywords. */
 #ifndef PLUTO_COMPATIBLE_SWITCH
   TK_SWITCH,
@@ -122,8 +121,6 @@ struct Token {
       || token == TK_AS
       || token == TK_BEGIN
       || token == TK_CLASS
-      || token == TK_PCASE
-      || token == TK_PDEFAULT
       ;
   }
 };
