@@ -2908,7 +2908,7 @@ static void enumstat (LexState *ls) {
 
   luaX_next(ls); /* skip 'enum' */
 
-  EnumDesc* ed = nullptr;
+  EnumDesc *ed = nullptr;
   if (gett(ls) != TK_BEGIN) { /* enum has name? */
     auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
     auto var = getlocalvardesc(ls->fs, vidx);
@@ -2923,14 +2923,14 @@ static void enumstat (LexState *ls) {
 
   lua_Integer i = 1;
   while (gett(ls) == TK_NAME) {
-    TString* name = str_checkname(ls, true);
+    TString *name = str_checkname(ls, true);
     auto vidx = new_localvar(ls, name, ls->getLineNumber());
     auto var = getlocalvardesc(ls->fs, vidx);
     if (testnext(ls, '=')) {
       expdesc v;
       simpleexp_with_unary_support(ls, &v);
       if (v.k == VCONST) { /* compile-time constant? */
-        TValue* k = &ls->dyd->actvar.arr[v.u.info].k;
+        TValue *k = &ls->dyd->actvar.arr[v.u.info].k;
         if (ttype(k) == LUA_TNUMBER && ttisinteger(k)) { /* integer value? */
           init_exp(&v, VKINT, 0);
           v.u.ival = ivalue(k);
