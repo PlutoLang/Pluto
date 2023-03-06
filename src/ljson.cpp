@@ -9,11 +9,11 @@ static int encode(lua_State* L) {
 	auto root = checkJson(L, 1);
 	if (lua_gettop(L) >= 2 && lua_toboolean(L, 2))
 	{
-		pluto_pushstring(L, root->encodePretty());
+		lua_pushstring(L, root->encodePretty());
 	}
 	else
 	{
-		pluto_pushstring(L, root->encode());
+		lua_pushstring(L, root->encode());
 	}
 	return 1;
 }
