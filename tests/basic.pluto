@@ -767,6 +767,15 @@ do
     assert(CST_VAL == 1)
     assert(CPY_VAL == 1)
 end
+do
+    enum class colours begin
+        red,
+        green,
+        blue
+    end
+    assert(colours.red == 1)
+    assert(red == nil)
+end
 
 print "Testing format strings."
 do
