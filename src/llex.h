@@ -38,7 +38,7 @@ enum RESERVED {
   TK_AND = FIRST_RESERVED, TK_BREAK,
   TK_DO, TK_ELSE, TK_ELSEIF, TK_END, TK_FALSE, TK_FOR, TK_FUNCTION,
   TK_GOTO, TK_IF, TK_IN, TK_LOCAL, TK_NIL, TK_NOT, TK_OR, TK_REPEAT,
-  TK_CASE, TK_DEFAULT, TK_AS, TK_BEGIN, // New narrow keywords.
+  TK_CASE, TK_DEFAULT, TK_AS, TK_BEGIN, TK_CLASS, // New narrow keywords.
   TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, // New compatibility keywords.
   TK_PCASE, TK_PDEFAULT, // Deprecated compatibility keywords.
   /* New non-compatible keywords. */
@@ -121,6 +121,7 @@ struct Token {
       || token == TK_DEFAULT
       || token == TK_AS
       || token == TK_BEGIN
+      || token == TK_CLASS
       || token == TK_PCASE
       || token == TK_PDEFAULT
       ;
