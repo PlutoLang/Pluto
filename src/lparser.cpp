@@ -2872,12 +2872,17 @@ static void switchstat (LexState *ls, int line) {
 
 
 static void enumstat (LexState *ls) {
-  /* enumstat -> ENUM [NAME] BEGIN NAME ['=' INT] { ',' NAME ['=' INT] } END */
+  /* enumstat -> ENUM [[CLASS] NAME] BEGIN NAME ['=' INT] { ',' NAME ['=' INT] } END */
 
   luaX_next(ls); /* skip 'enum' */
 
   EnumDesc *ed = nullptr;
-  if (gett(ls) != TK_BEGIN) { /* enum has name? */
+  bool is_enum_class = false;
+  if (gett(ls) != TK_BEGIN) { /* enum has name (and possibly modifier)? */
+    if (gett(ls) == TK_CLASS) {
+      is_enum_class = true;
+      luaX_next(ls);
+    }
     auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
     auto var = getlocalvardesc(ls->fs, vidx);
     var->vd.kind = RDKENUM;
@@ -2892,8 +2897,10 @@ static void enumstat (LexState *ls) {
   lua_Integer i = 1;
   while (gett(ls) == TK_NAME) {
     TString *name = str_checkname(ls, true);
-    auto vidx = new_localvar(ls, name, ls->getLineNumber());
-    auto var = getlocalvardesc(ls->fs, vidx);
+    int vidx;
+    if (!is_enum_class) {
+      vidx = new_localvar(ls, name, ls->getLineNumber());
+    }
     if (testnext(ls, '=')) {
       expdesc v;
       simpleexp_with_unary_support(ls, &v);
@@ -2909,13 +2916,16 @@ static void enumstat (LexState *ls) {
       }
       i = v.u.ival;
     }
-    var->vd.kind = RDKCTC;
-    setivalue(&var->k, i);
     if (ed) {
       ed->enumerators.emplace_back(EnumDesc::Enumerator{ name, i });
     }
-    i++;
-    ls->fs->nactvar++;
+    if (!is_enum_class) {
+      auto var = getlocalvardesc(ls->fs, vidx);
+      var->vd.kind = RDKCTC;
+      setivalue(&var->k, i);
+      i++;
+      ls->fs->nactvar++;
+    }
     if (gett(ls) != ',') break;
     luaX_next(ls);
   }
