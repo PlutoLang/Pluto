@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=linux all
+      - run: make -Bj PLAT=linux
       - uses: actions/upload-artifact@v3
         with:
           name: "Ubuntu 22.04"
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=linux all
+      - run: make -Bj PLAT=linux
       - uses: actions/upload-artifact@v3
         with:
           name: "Debian 11, Ubuntu 20.04"
@@ -54,7 +54,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=macos all
+      - run: make -Bj PLAT=macos
       - uses: actions/upload-artifact@v3
         with:
           name: MacOS
