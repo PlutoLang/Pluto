@@ -4,35 +4,63 @@ on:
   pull_request:
     branches: [ "main" ]
 jobs:
-  linux-pluto:
-    runs-on: ubuntu-latest
+  ubuntu-22-04:
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
       - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=linux all
       - uses: actions/upload-artifact@v2
         with:
-          name: pluto-linux
+          name: "Ubuntu 22.04"
           path: |
             src/pluto
             src/plutoc
             src/libpluto.dll
             src/libpluto.a
       - run: src/pluto tests/basic.pluto
-  macos-pluto:
+  ubuntu-20-04:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=linux all
+      - uses: actions/upload-artifact@v2
+        with:
+          name: "Debian 11, Ubuntu 20.04"
+          path: |
+            src/pluto
+            src/plutoc
+            src/libpluto.dll
+            src/libpluto.a
+      - run: src/pluto tests/basic.pluto
+  debian-10:
+    runs-on: [debian-10]
+    steps:
+      - uses: actions/checkout@v2
+      - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=linux all
+      - uses: actions/upload-artifact@v2
+        with:
+          name: "Debian 10"
+          path: |
+            src/pluto
+            src/plutoc
+            src/libpluto.dll
+            src/libpluto.a
+      - run: src/pluto tests/basic.pluto
+  macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=macos all
       - uses: actions/upload-artifact@v2
         with:
-          name: pluto-macos
+          name: MacOS
           path: |
             src/pluto
             src/plutoc
             src/libpluto.dll
             src/libpluto.a
       - run: src/pluto tests/basic.pluto
-  windows-pluto:
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -43,7 +71,7 @@ jobs:
       - run: php scripts/link_static.php
       - uses: actions/upload-artifact@v2
         with:
-          name: pluto-windows
+          name: Windows
           path: |
             src/pluto.exe
             src/plutoc.exe
