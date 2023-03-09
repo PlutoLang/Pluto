@@ -4,46 +4,78 @@ on:
   pull_request:
     branches: [ "main" ]
 jobs:
-  linux-pluto:
-    runs-on: ubuntu-latest
+  ubuntu-22-04:
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
-      - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=linux all
-      - uses: actions/upload-artifact@v2
+      - uses: actions/checkout@v3
+      - run: make -Bj PLAT=linux
+      - uses: actions/upload-artifact@v3
         with:
-          name: pluto-linux
+          name: "Ubuntu 22.04"
           path: |
             src/pluto
             src/plutoc
             src/libpluto.dll
             src/libpluto.a
       - run: src/pluto tests/basic.pluto
-  macos-pluto:
-    runs-on: macos-latest
+  ubuntu-20-04:
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
-      - run: make -Bj CXXFLAGS+=-fms-extensions PLAT=macos all
-      - uses: actions/upload-artifact@v2
+      - uses: actions/checkout@v3
+      - run: make -Bj PLAT=linux
+      - uses: actions/upload-artifact@v3
         with:
-          name: pluto-macos
+          name: "Debian 11, Ubuntu 20.04"
           path: |
             src/pluto
             src/plutoc
             src/libpluto.dll
             src/libpluto.a
       - run: src/pluto tests/basic.pluto
-  windows-pluto:
-    runs-on: windows-latest
+  debian-10:
+    runs-on: [debian-10]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
       - run: php scripts/link_shared.php clang
       - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
-          name: pluto-windows
+          name: "Debian 10"
+          path: |
+            src/pluto
+            src/plutoc
+            src/libpluto.dll
+            src/libpluto.a
+      - run: src/pluto tests/basic.pluto
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: make -Bj PLAT=macos
+      - uses: actions/upload-artifact@v3
+        with:
+          name: MacOS
+          path: |
+            src/pluto
+            src/plutoc
+            src/libpluto.dll
+            src/libpluto.a
+      - run: src/pluto tests/basic.pluto
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: php scripts/compile.php clang
+      - run: php scripts/link_pluto.php clang
+      - run: php scripts/link_plutoc.php clang
+      - run: php scripts/link_shared.php clang
+      - run: php scripts/link_static.php
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Windows
           path: |
             src/pluto.exe
             src/plutoc.exe
