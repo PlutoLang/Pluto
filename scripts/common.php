@@ -23,7 +23,11 @@ function check_compiler()
 	}
 	else
 	{
-		$compiler .= " -fuse-ld=lld -lm -lstdc++ -lstdc++fs";
+		$compiler .= " -lm -lstdc++";
+		if (PHP_OS_FAMILY != "Darwin")
+		{
+			$compiler .= " -lstdc++fs -fuse-ld=lld";
+		}
 	}
 }
 
