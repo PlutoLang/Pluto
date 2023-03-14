@@ -579,16 +579,12 @@ do
     assert($crypto.joaat("hello world") == $tonumber($crypto.hexdigest($crypto.joaat("hello world"))))
 end
 do
-    if _PSOUP then -- Soup is linked.
-        do
-            local base64 = require("base64")
-            assert(base64.encode("Hello") == "SGVsbG8")
-            assert(base64.decode("SGVsbG8") == "Hello")
-            assert(base64.url_encode("Hello") == "SGVsbG8")
-            assert(base64.url_decode("SGVsbG8") == "Hello")
-            assert(base64.decode(base64.encode("Hello", true)) == "Hello")
-        end
-    end
+    local base64 = require("base64")
+    assert(base64.encode("Hello") == "SGVsbG8")
+    assert(base64.decode("SGVsbG8") == "Hello")
+    assert(base64.url_encode("Hello") == "SGVsbG8")
+    assert(base64.url_decode("SGVsbG8") == "Hello")
+    assert(base64.decode(base64.encode("Hello", true)) == "Hello")
 end
 do
     local t = {}
