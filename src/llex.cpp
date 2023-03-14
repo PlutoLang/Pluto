@@ -27,7 +27,7 @@
 #include "ltable.h"
 #include "lzio.h"
 
-#include "ErrorMessage.hpp"
+#include "lerrormessage.hpp"
 
 
 
