@@ -3,8 +3,8 @@
 
 #ifdef PLUTO_USE_SOUP
 
-#include <soup/string.hpp>
-#include <soup/base58.hpp>
+#include "vendor/Soup/string.hpp"
+#include "vendor/Soup/base58.hpp"
 
 static int decode(lua_State* L) {
 	try {

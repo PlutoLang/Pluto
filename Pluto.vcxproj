@@ -94,9 +94,10 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PLUTO_USE_SOUP;SOUP_CPP20=false;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,9 +110,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PLUTO_USE_SOUP;SOUP_CPP20=false;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -124,10 +126,10 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PLUTO_USE_SOUP;SOUP_CPP20=false;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\Soup\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -140,10 +142,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PLUTO_USE_SOUP;SOUP_CPP20=false;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\Soup\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -191,6 +193,19 @@
     <ClCompile Include="src\lutf8lib.cpp" />
     <ClCompile Include="src\lvm.cpp" />
     <ClCompile Include="src\lzio.cpp" />
+    <ClCompile Include="src\vendor\Soup\base32.cpp" />
+    <ClCompile Include="src\vendor\Soup\base58.cpp" />
+    <ClCompile Include="src\vendor\Soup\base64.cpp" />
+    <ClCompile Include="src\vendor\Soup\json.cpp" />
+    <ClCompile Include="src\vendor\Soup\JsonArray.cpp" />
+    <ClCompile Include="src\vendor\Soup\JsonBool.cpp" />
+    <ClCompile Include="src\vendor\Soup\JsonFloat.cpp" />
+    <ClCompile Include="src\vendor\Soup\JsonInt.cpp" />
+    <ClCompile Include="src\vendor\Soup\JsonNode.cpp" />
+    <ClCompile Include="src\vendor\Soup\JsonNull.cpp" />
+    <ClCompile Include="src\vendor\Soup\JsonObject.cpp" />
+    <ClCompile Include="src\vendor\Soup\JsonString.cpp" />
+    <ClCompile Include="src\vendor\Soup\unicode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\lerrormessage.hpp" />
@@ -225,6 +240,34 @@
     <ClInclude Include="src\lundump.h" />
     <ClInclude Include="src\lvm.h" />
     <ClInclude Include="src\lzio.h" />
+    <ClInclude Include="src\vendor\Soup\alpha2decodetbl.hpp" />
+    <ClInclude Include="src\vendor\Soup\base.hpp" />
+    <ClInclude Include="src\vendor\Soup\base32.hpp" />
+    <ClInclude Include="src\vendor\Soup\base58.hpp" />
+    <ClInclude Include="src\vendor\Soup\base64.hpp" />
+    <ClInclude Include="src\vendor\Soup\bitutil.hpp" />
+    <ClInclude Include="src\vendor\Soup\Endian.hpp" />
+    <ClInclude Include="src\vendor\Soup\Exception.hpp" />
+    <ClInclude Include="src\vendor\Soup\fwd.hpp" />
+    <ClInclude Include="src\vendor\Soup\IntStruct.hpp" />
+    <ClInclude Include="src\vendor\Soup\ioBase.hpp" />
+    <ClInclude Include="src\vendor\Soup\json.hpp" />
+    <ClInclude Include="src\vendor\Soup\JsonArray.hpp" />
+    <ClInclude Include="src\vendor\Soup\JsonBool.hpp" />
+    <ClInclude Include="src\vendor\Soup\JsonFloat.hpp" />
+    <ClInclude Include="src\vendor\Soup\JsonInt.hpp" />
+    <ClInclude Include="src\vendor\Soup\JsonNode.hpp" />
+    <ClInclude Include="src\vendor\Soup\JsonNodeType.hpp" />
+    <ClInclude Include="src\vendor\Soup\JsonNull.hpp" />
+    <ClInclude Include="src\vendor\Soup\JsonObject.hpp" />
+    <ClInclude Include="src\vendor\Soup\JsonString.hpp" />
+    <ClInclude Include="src\vendor\Soup\Reader.hpp" />
+    <ClInclude Include="src\vendor\Soup\string.hpp" />
+    <ClInclude Include="src\vendor\Soup\TreeNode.hpp" />
+    <ClInclude Include="src\vendor\Soup\type_traits.hpp" />
+    <ClInclude Include="src\vendor\Soup\unicode.hpp" />
+    <ClInclude Include="src\vendor\Soup\UniquePtr.hpp" />
+    <ClInclude Include="src\vendor\Soup\Writer.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
