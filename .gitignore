@@ -5,6 +5,7 @@
 /src/*.a
 /src/*.lib
 /src/*.exp
+/src/vendor/Soup/*.lib
 /tbytecode.script
 /luac.out
 /tests/quick.lua
