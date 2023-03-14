@@ -577,8 +577,8 @@ do
             local base64 = require("base64")
             assert(base64.encode("Hello") == "SGVsbG8")
             assert(base64.decode("SGVsbG8") == "Hello")
-            assert(base64.urlEncode("Hello") == "SGVsbG8")
-            assert(base64.urlDecode("SGVsbG8") == "Hello")
+            assert(base64.url_encode("Hello") == "SGVsbG8")
+            assert(base64.url_decode("SGVsbG8") == "Hello")
             assert(base64.decode(base64.encode("Hello", true)) == "Hello")
         end
     end
