@@ -23,7 +23,7 @@ function check_compiler()
 	}
 	else
 	{
-		$compiler .= " -lm -lstdc++";
+		$compiler .= " -Wno-unused-command-line-argument -lm -lstdc++";
 		if (PHP_OS_FAMILY != "Darwin")
 		{
 			$compiler .= " -lstdc++fs -fuse-ld=lld";
