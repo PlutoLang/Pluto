@@ -39,6 +39,45 @@
     <ClCompile Include="src\lbase58.cpp" />
     <ClCompile Include="src\lbase32.cpp" />
     <ClCompile Include="src\ljson.cpp" />
+    <ClCompile Include="src\vendor\Soup\base32.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\base64.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\JsonArray.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\JsonBool.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\JsonFloat.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\JsonInt.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\JsonNode.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\JsonNull.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\JsonObject.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\JsonString.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\base58.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\json.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\unicode.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -73,5 +112,97 @@
     <ClInclude Include="src\lcryptolib.hpp" />
     <ClInclude Include="src\lerrormessage.hpp" />
     <ClInclude Include="src\ljson.hpp" />
+    <ClInclude Include="src\vendor\Soup\base32.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\base64.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\fwd.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\json.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\JsonArray.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\JsonBool.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\JsonFloat.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\JsonInt.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\JsonNode.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\JsonNodeType.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\JsonNull.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\JsonObject.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\JsonString.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\string.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\base58.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\base.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\UniquePtr.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\TreeNode.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\type_traits.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\bitutil.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\alpha2decodetbl.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\Exception.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\Writer.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\ioBase.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\Endian.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\IntStruct.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\unicode.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\Reader.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="vendor">
+      <UniqueIdentifier>{b2f263e7-2d39-4d0c-8a19-3f3d2ef15195}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\Soup">
+      <UniqueIdentifier>{af4e4be1-d5f9-493f-b6ba-02d33b8dc9a7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
