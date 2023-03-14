@@ -5,6 +5,14 @@ if(!is_dir("int"))
 {
 	mkdir("int");
 }
+if(!is_dir("int/vendor"))
+{
+	mkdir("int/vendor");
+}
+if(!is_dir("int/vendor/Soup"))
+{
+	mkdir("int/vendor/Soup");
+}
 
 function check_compiler()
 {
@@ -16,7 +24,7 @@ function check_compiler()
 	}
 
 	$compiler = resolve_installed_program($argv[1]);
-	$compiler .= " -std=c++17 -O3";
+	$compiler .= " -std=c++17 -D SOUP_CPP20=false -DPLUTO_USE_SOUP -O3";
 	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 	{
 		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
@@ -42,11 +50,14 @@ function resolve_installed_program($exe)
 
 function for_each_obj($f)
 {
-	foreach(scandir("src") as $file)
+	foreach(["","vendor/Soup/"] as $prefix)
 	{
-		if(substr($file, -4) == ".cpp")
+		foreach(scandir("src/".$prefix) as $file)
 		{
-			$f(substr($file, 0, -4));
+			if(substr($file, -4) == ".cpp")
+			{
+				$f($prefix.substr($file, 0, -4));
+			}
 		}
 	}
 }

@@ -4,7 +4,7 @@
 #ifdef PLUTO_USE_SOUP
 
 #include <string>
-#include <soup/base64.hpp>
+#include "vendor/Soup/base64.hpp"
 
 static int encode(lua_State* L) {
 	lua_pushstring(L, soup::base64::encode(luaL_checkstring(L, 1), (bool)lua_toboolean(L, 2)).c_str());
