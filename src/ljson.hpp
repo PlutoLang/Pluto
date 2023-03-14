@@ -1,15 +1,16 @@
 #pragma once
-#ifdef PLUTO_USE_SOUP
+
 // https://github.com/calamity-inc/Soup-Lua-Bindings/blob/main/soup_lua_bindings.hpp
-#include <soup/json.hpp>
-#include <soup/JsonInt.hpp>
-#include <soup/JsonBool.hpp>
-#include <soup/JsonNode.hpp>
-#include <soup/JsonFloat.hpp>
-#include <soup/JsonArray.hpp>
-#include <soup/JsonObject.hpp>
-#include <soup/JsonString.hpp>
-#include <soup/UniquePtr.hpp>
+
+#include "vendor/Soup/json.hpp"
+#include "vendor/Soup/JsonInt.hpp"
+#include "vendor/Soup/JsonBool.hpp"
+#include "vendor/Soup/JsonNode.hpp"
+#include "vendor/Soup/JsonFloat.hpp"
+#include "vendor/Soup/JsonArray.hpp"
+#include "vendor/Soup/JsonObject.hpp"
+#include "vendor/Soup/JsonString.hpp"
+#include "vendor/Soup/UniquePtr.hpp"
 
 static bool isIndexBasedTable(lua_State* L, int i)
 {
@@ -140,5 +141,3 @@ static void pushFromJson(lua_State* L, const soup::JsonNode& node)
 		lua_pushnil(L);
 	}
 }
-
-#endif

@@ -38,11 +38,14 @@ function resolve_installed_program($exe)
 
 function for_each_obj($f)
 {
-	foreach(scandir("src") as $file)
+	foreach(["src","src/vendor/Soup"] as $dir)
 	{
-		if(substr($file, -4) == ".cpp")
+		foreach(scandir($dir) as $file)
 		{
-			$f(substr($file, 0, -4));
+			if(substr($file, -4) == ".cpp")
+			{
+				$f(substr($file, 0, -4));
+			}
 		}
 	}
 }
