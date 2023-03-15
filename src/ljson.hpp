@@ -1,5 +1,5 @@
 #pragma once
-
+#ifdef PLUTO_USE_SOUP
 // https://github.com/calamity-inc/Soup-Lua-Bindings/blob/main/soup_lua_bindings.hpp
 
 #include "vendor/Soup/json.hpp"
@@ -141,3 +141,5 @@ static void pushFromJson(lua_State* L, const soup::JsonNode& node)
 		lua_pushnil(L);
 	}
 }
+
+#endif

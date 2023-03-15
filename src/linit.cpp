@@ -55,10 +55,12 @@ static const luaL_Reg loadedlibs[] = {
 
 
 static const luaL_Reg preloadedLibs[] = {
+#ifdef PLUTO_USE_SOUP
   {"json", luaopen_json},
   {"base32", luaopen_base32},
   {"base58", luaopen_base58},
   {"base64", luaopen_base64},
+#endif
   {"crypto", luaopen_crypto},
   {NULL, NULL}
 };

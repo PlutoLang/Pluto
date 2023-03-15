@@ -1,6 +1,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#ifdef PLUTO_USE_SOUP
+
 #include <string>
 #include "vendor/Soup/base64.hpp"
 
@@ -38,3 +40,5 @@ LUAMOD_API int luaopen_base64(lua_State* L) {
 	luaL_newlib(L, funcs);
 	return 1;
 }
+
+#endif

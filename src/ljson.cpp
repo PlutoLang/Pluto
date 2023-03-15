@@ -1,6 +1,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#ifdef PLUTO_USE_SOUP
+
 #include "ljson.hpp"
 
 static int encode(lua_State* L) {
@@ -35,3 +37,5 @@ LUA_API int luaopen_json(lua_State *L) {
 	luaL_newlib(L, funcs);
 	return 1;
 }
+
+#endif

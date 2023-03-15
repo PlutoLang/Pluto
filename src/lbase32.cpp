@@ -1,6 +1,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#ifdef PLUTO_USE_SOUP
+
 #include "vendor/Soup/base32.hpp"
 
 static int encode(lua_State* L) {
@@ -25,3 +27,5 @@ LUAMOD_API int luaopen_base32(lua_State* L) {
 	luaL_newlib(L, funcs);
 	return 1;
 }
+
+#endif
