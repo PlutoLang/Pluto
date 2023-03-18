@@ -1940,7 +1940,9 @@ static bool check_constexpr_call (LexState *ls, expdesc *v, const char *name, lu
 }
 
 int luaB_tonumber (lua_State *L);
+int luaB_utonumber (lua_State *L);
 int luaB_tostring (lua_State *L);
+int luaB_utostring (lua_State *L);
 
 static void const_expr (LexState *ls, expdesc *v) {
   switch (ls->t.token) {
@@ -1972,7 +1974,9 @@ static void const_expr (LexState *ls, expdesc *v) {
         }
       }
       else if (!check_constexpr_call(ls, v, "tonumber", luaB_tonumber)
-        && !check_constexpr_call(ls, v, "tostring", luaB_tostring)
+          && !check_constexpr_call(ls, v, "utonumber", luaB_utonumber)
+          && !check_constexpr_call(ls, v, "tostring", luaB_tostring)
+          && !check_constexpr_call(ls, v, "utostring", luaB_utostring)
         )
       {
         throwerr(ls, luaO_fmt(ls->L, "%s is not available in constant expression", ls->t.seminfo.ts->contents), "unrecognized name.");
