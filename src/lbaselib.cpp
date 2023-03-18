@@ -8,6 +8,7 @@
 #define LUA_LIB
 
 #include <ctype.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -112,6 +113,15 @@ int luaB_tonumber (lua_State *L) {
     }  /* else not a number */
   }  /* else not a number */
   luaL_pushfail(L);  /* not a number */
+  return 1;
+}
+
+
+int luaB_utonumber (lua_State *L) {
+  auto old = setlocale(LC_ALL, nullptr);
+  setlocale(LC_NUMERIC, "en_US.UTF-8");
+  luaB_tonumber(L);
+  setlocale(LC_ALL, old);
   return 1;
 }
 
@@ -514,6 +524,16 @@ int luaB_tostring (lua_State *L) {
 }
 
 
+int luaB_utostring (lua_State *L) {
+  luaL_checkany(L, 1);
+  auto old = setlocale(LC_ALL, nullptr);
+  setlocale(LC_NUMERIC, "en_US.UTF-8");
+  luaL_tolstring(L, 1, NULL);
+  setlocale(LC_ALL, old);
+  return 1;
+}
+
+
 static int luaB_newuserdata (lua_State *L) {
   lua_newuserdata(L, 0);
   lua_newtable(L);
@@ -544,7 +564,9 @@ static const luaL_Reg base_funcs[] = {
   {"select", luaB_select},
   {"setmetatable", luaB_setmetatable},
   {"tonumber", luaB_tonumber},
+  {"utonumber", luaB_utonumber},
   {"tostring", luaB_tostring},
+  {"utostring", luaB_utostring},
   {"type", luaB_type},
   {"xpcall", luaB_xpcall},
   /* placeholders */
