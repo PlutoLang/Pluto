@@ -1411,6 +1411,15 @@ static int str_format (lua_State *L) {
   return 1;
 }
 
+
+static int str_uformat (lua_State *L) {
+  auto old = setlocale(LC_ALL, nullptr);
+  setlocale(LC_NUMERIC, "en_US.UTF-8");
+  str_format(L);
+  setlocale(LC_ALL, old);
+  return 1;
+}
+
 /* }====================================================== */
 
 
@@ -2215,6 +2224,7 @@ static const luaL_Reg strlib[] = {
   {"dump", str_dump},
   {"find", str_find},
   {"format", str_format},
+  {"uformat", str_uformat},
   {"gmatch", gmatch},
   {"gsub", str_gsub},
   {"len", str_len},
