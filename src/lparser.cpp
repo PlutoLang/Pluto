@@ -1585,16 +1585,13 @@ static void explist_nonlinear_arg (LexState *ls, expdesc *v, size_t tidx, TypeDe
   }
 }
 
-static int explist_nonlinear (LexState *ls, expdesc *v, const std::vector<size_t>& argtis, std::vector<TypeDesc>& prop) {
-  int n = 1;
+static void explist_nonlinear (LexState *ls, expdesc *v, const std::vector<size_t>& argtis, std::vector<TypeDesc>& prop) {
   prop.reserve(argtis.size());
   explist_nonlinear_arg(ls, v, argtis.at(0), prop.emplace_back(VT_DUNNO));
   for (size_t i = 1; i != argtis.size(); ++i) {
     luaK_exp2nextreg(ls->fs, v);
     explist_nonlinear_arg(ls, v, argtis.at(i), prop.emplace_back(VT_DUNNO));
-    n++;
   }
-  return n;
 }
 
 static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
