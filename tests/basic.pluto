@@ -832,6 +832,16 @@ do
     assert($crypto.joaat(str) == 32037948)
 end
 
+print "Testing named arguments."
+do
+    local function getGreeting(greeting, name = "Universe")
+        return greeting .. ", " .. name .. "!"
+    end
+    assert(getGreeting(::greeting:: "Hello", ::name:: "World") == "Hello, World!")
+    assert(getGreeting(::greeting:: "Hello") == "Hello, Universe!")
+    assert(getGreeting(::name:: "World", ::greeting:: "Hello") == "Hello, World!")
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
