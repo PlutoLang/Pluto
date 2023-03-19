@@ -1630,9 +1630,9 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
           do {
             checknext(ls, TK_DBCOLON);
             TString *pname = str_checkname(ls, true);
-            auto pi = funcdesc->findParamByName(pname);
+            int pi = funcdesc->findParamByName(pname);
             if (pi == -1) {
-              throwerr(ls, luaO_fmt(ls->L, "function does not have a %s parameter", pname), "unknown parameter");
+              throwerr(ls, luaO_fmt(ls->L, "function does not have a %s parameter", pname->contents), "unknown parameter");
             }
             checknext(ls, TK_DBCOLON);
             argtis.at(pi) = luaX_getpos(ls);
