@@ -1557,7 +1557,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
 }
 
 
-static void expr_propagate(LexState *ls, expdesc* v, TypeDesc& td) {
+static void expr_propagate(LexState *ls, expdesc *v, TypeDesc& td) {
   expr(ls, v, &td);
   exp_propagate(ls, *v, td);
 }
