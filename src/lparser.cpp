@@ -1574,6 +1574,29 @@ static int explist (LexState *ls, expdesc *v, std::vector<TypeDesc>& prop) {
   return n;
 }
 
+static void explist_nonlinear_arg (LexState *ls, expdesc *v, size_t tidx, TypeDesc& td) {
+  if (tidx == 0) {
+    init_exp(v, VNIL, 0);
+    td = VT_NIL;
+  }
+  else {
+    luaX_setpos(ls, tidx);
+    expr_propagate(ls, v, td);
+  }
+}
+
+static int explist_nonlinear (LexState *ls, expdesc *v, const std::vector<size_t>& argtis, std::vector<TypeDesc>& prop) {
+  int n = 1;
+  prop.reserve(argtis.size());
+  explist_nonlinear_arg(ls, v, argtis.at(0), prop.emplace_back(VT_DUNNO));
+  for (size_t i = 1; i != argtis.size(); ++i) {
+    luaK_exp2nextreg(ls->fs, v);
+    explist_nonlinear_arg(ls, v, argtis.at(i), prop.emplace_back(VT_DUNNO));
+    n++;
+  }
+  return n;
+}
+
 static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
@@ -1598,7 +1621,32 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       if (ls->t.token == ')')  /* arg list is empty? */
         args.k = VVOID;
       else {
-        explist(ls, &args, argdescs);
+        if (ls->t.token == TK_DBCOLON) {
+          if (!funcdesc) {
+            luaX_syntaxerror(ls, "can't used named arguments here because the function was not found at parse-time");
+          }
+          std::vector<size_t> argtis{};
+          argtis.resize(funcdesc->getNumParams());
+          do {
+            checknext(ls, TK_DBCOLON);
+            TString *pname = str_checkname(ls, true);
+            auto pi = funcdesc->findParamByName(pname);
+            if (pi == -1) {
+              throwerr(ls, luaO_fmt(ls->L, "function does not have a %s parameter", pname), "unknown parameter");
+            }
+            checknext(ls, TK_DBCOLON);
+            argtis.at(pi) = luaX_getpos(ls);
+            do {
+              luaX_next(ls);
+            } while (ls->t.token != ',' && ls->t.token != ')' && ls->t.token != TK_EOS);
+          } while (testnext(ls, ','));
+          const auto tidx = luaX_getpos(ls);
+          explist_nonlinear(ls, &args, argtis, argdescs);
+          luaX_setpos(ls, tidx);
+        }
+        else {
+          explist(ls, &args, argdescs);
+        }
         if (hasmultret(args.k))
           luaK_setmultret(fs, &args);
       }

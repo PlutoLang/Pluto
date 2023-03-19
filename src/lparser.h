@@ -230,6 +230,15 @@ struct TypeDesc
     return proto->numparams;
   }
 
+  [[nodiscard]] lu_byte findParamByName(TString* name) noexcept {
+    for (lu_byte i = 0; i != getNumParams(); ++i) {
+      if (name == proto->locvars[i].varname) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
   [[nodiscard]] lu_byte getNumTypedParams() noexcept {
     auto p = getNumParams();
     if (p >= MAX_TYPED_PARAMS)
