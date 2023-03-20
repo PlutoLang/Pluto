@@ -1427,7 +1427,7 @@ static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr) {
 }
 
 
-static void compoundassign(LexState* ls, expdesc* v, BinOpr op);
+static void compoundassign(LexState *ls, expdesc *v, BinOpr op);
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop) {
   /* body ->  '(' parlist ')' block END */
   ls->pushContext(PARCTX_BODY);
@@ -1450,7 +1450,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     if (tidx != 0) {
       enterlevel(ls);
       expdesc lv;
-      Vardesc* vd = getlocalvardesc(ls->fs, fallback_idx);
+      Vardesc *vd = getlocalvardesc(ls->fs, fallback_idx);
       singlevaraux(ls->fs, vd->vd.name, &lv, 1);
       luaX_setpos(ls, tidx - 1);
       compoundassign(ls, &lv, OPR_COAL);
@@ -2304,7 +2304,7 @@ static int getcompoundop (lua_Integer i, BinOpr *op) {
   reserves N registers (where N = local variables on stack)
   preforms binary operation and assignment
 */ 
-static void compoundassign(LexState *ls, expdesc* v, BinOpr op) {
+static void compoundassign(LexState *ls, expdesc *v, BinOpr op) {
   luaX_next(ls);
   int line = ls->getLineNumber();
   FuncState *fs = ls->fs;
