@@ -1440,6 +1440,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   }
   std::vector<expdesc> fallbacks{};
   parlist(ls, &fallbacks);
+  checknext(ls, ')');
   int fallback_idx = 0;
   for (auto& fallback : fallbacks) {
     if (fallback.k != VVOID) {
@@ -1453,7 +1454,6 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     }
     ++fallback_idx;
   }
-  checknext(ls, ')');
   TypeDesc rethint = gettypehint(ls);
   TypeDesc p = VT_DUNNO;
   statlist(ls, &p, true);
