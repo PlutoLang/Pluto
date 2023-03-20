@@ -671,6 +671,15 @@ do
     assert(c == -2)
     assert(d == +3)
     assert(e == "Hello")
+
+    local function tf(t = { 1, 2, 3 })
+        return t
+    end
+    local t = tf()
+    assert(#t == 3)
+    assert(t[1] == 1)
+    assert(t[2] == 2)
+    assert(t[3] == 3)
 end
 
 print "Testing walrus operator."

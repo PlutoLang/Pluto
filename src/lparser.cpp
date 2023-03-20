@@ -1387,6 +1387,35 @@ static void simpleexp_with_unary_support (LexState *ls, expdesc *v) {
 }
 
 
+static void skip_over_simpleexp_within_parenlist (LexState *ls) {
+  int parens = 0;
+  int curlys = 0;
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.token == '(') {
+      parens++;
+    }
+    else if (ls->t.token == ')') {
+      if (parens == 0 && curlys == 0) {
+        break;
+      }
+      parens--;
+    }
+    else if (ls->t.token == '{') {
+      curlys++;
+    }
+    else if (ls->t.token == '}') {
+      curlys--;
+    }
+    else if (ls->t.token == ',') {
+      if (parens == 0 && curlys == 0) {
+        break;
+      }
+    }
+    luaX_next(ls);
+  }
+}
+
+
 static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
@@ -1402,9 +1431,7 @@ static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr) {
         if (fallbacks) {
           if (testnext(ls, '=')) {
             fallbacks->emplace_back(luaX_getpos(ls));
-            do {
-              luaX_next(ls);
-            } while (ls->t.token != ',' && ls->t.token != ')' && ls->t.token != TK_EOS);
+            skip_over_simpleexp_within_parenlist(ls);
           }
           else {
             fallbacks->emplace_back(0);
