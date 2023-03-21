@@ -1633,9 +1633,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
             }
             checknext(ls, TK_DBCOLON);
             argtis.at(pi) = luaX_getpos(ls);
-            do {
-              luaX_next(ls);
-            } while (ls->t.token != ',' && ls->t.token != ')' && ls->t.token != TK_EOS);
+            skip_over_simpleexp_within_parenlist(ls);
           } while (testnext(ls, ','));
           const auto tidx = luaX_getpos(ls);
           explist_nonlinear(ls, &args, argtis, argdescs);
