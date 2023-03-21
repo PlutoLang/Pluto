@@ -840,6 +840,11 @@ do
     assert(getGreeting(::greeting:: "Hello", ::name:: "World") == "Hello, World!")
     assert(getGreeting(::greeting:: "Hello") == "Hello, Universe!")
     assert(getGreeting(::name:: "World", ::greeting:: "Hello") == "Hello, World!")
+
+    local function getName()
+        return "Planet"
+    end
+    assert(getGreeting(::name:: getName(), ::greeting:: "Hello") == "Hello, Planet!")
 end
 
 print "Testing compatibility."
