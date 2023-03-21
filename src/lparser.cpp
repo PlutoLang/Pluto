@@ -1387,7 +1387,36 @@ static void simpleexp_with_unary_support (LexState *ls, expdesc *v) {
 }
 
 
-static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
+static void skip_over_simpleexp_within_parenlist (LexState *ls) {
+  int parens = 0;
+  int curlys = 0;
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.token == '(') {
+      parens++;
+    }
+    else if (ls->t.token == ')') {
+      if (parens == 0 && curlys == 0) {
+        break;
+      }
+      parens--;
+    }
+    else if (ls->t.token == '{') {
+      curlys++;
+    }
+    else if (ls->t.token == '}') {
+      curlys--;
+    }
+    else if (ls->t.token == ',') {
+      if (parens == 0 && curlys == 0) {
+        break;
+      }
+    }
+    luaX_next(ls);
+  }
+}
+
+
+static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -1400,12 +1429,12 @@ static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
         auto parhint = gettypehint(ls);
         new_localvar(ls, parname, parhint);
         if (fallbacks) {
-          expdesc* parfallback = &fallbacks->emplace_back(expdesc{});
           if (testnext(ls, '=')) {
-            simpleexp_with_unary_support(ls, parfallback);
-            if (!vkisconst(parfallback->k)) {
-              luaX_syntaxerror(ls, "parameter fallback value must be a compile-time constant");
-            }
+            fallbacks->emplace_back(luaX_getpos(ls));
+            skip_over_simpleexp_within_parenlist(ls);
+          }
+          else {
+            fallbacks->emplace_back(0);
           }
         }
         nparams++;
@@ -1425,6 +1454,7 @@ static void parlist (LexState *ls, std::vector<expdesc>* fallbacks = nullptr) {
 }
 
 
+static void compoundassign(LexState *ls, expdesc *v, BinOpr op);
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop) {
   /* body ->  '(' parlist ')' block END */
   ls->pushContext(PARCTX_BODY);
@@ -1438,22 +1468,24 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     new_localvarliteral(ls, "self");  /* create 'self' parameter */
     adjustlocalvars(ls, 1);
   }
-  std::vector<expdesc> fallbacks{};
+  std::vector<size_t> fallbacks{};
   parlist(ls, &fallbacks);
+  checknext(ls, ')');
+  const auto saved_pos = luaX_getpos(ls);
   int fallback_idx = 0;
-  for (auto& fallback : fallbacks) {
-    if (fallback.k != VVOID) {
-      Vardesc *vd = getlocalvardesc(ls->fs, fallback_idx);
+  for (const auto& tidx : fallbacks) {
+    if (tidx != 0) {
+      enterlevel(ls);
       expdesc lv;
+      Vardesc *vd = getlocalvardesc(ls->fs, fallback_idx);
       singlevaraux(ls->fs, vd->vd.name, &lv, 1);
-      expdesc lcond = lv;
-      luaK_goifnil(ls->fs, &lcond);
-      luaK_storevar(ls->fs, &lv, &fallback);
-      luaK_patchtohere(ls->fs, lcond.t);
+      luaX_setpos(ls, tidx - 1);
+      compoundassign(ls, &lv, OPR_COAL);
+      leavelevel(ls);
     }
     ++fallback_idx;
   }
-  checknext(ls, ')');
+  luaX_setpos(ls, saved_pos);
   TypeDesc rethint = gettypehint(ls);
   TypeDesc p = VT_DUNNO;
   statlist(ls, &p, true);
@@ -2299,7 +2331,7 @@ static int getcompoundop (lua_Integer i, BinOpr *op) {
   reserves N registers (where N = local variables on stack)
   preforms binary operation and assignment
 */ 
-static void compoundassign(LexState *ls, expdesc* v, BinOpr op) {
+static void compoundassign(LexState *ls, expdesc *v, BinOpr op) {
   luaX_next(ls);
   int line = ls->getLineNumber();
   FuncState *fs = ls->fs;
