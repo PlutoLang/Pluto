@@ -356,7 +356,11 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     const bool nullable = testnext(ls, '?');
     const char* tname = getstr(str_checkname(ls));
     if (strcmp(tname, "number") == 0)
+      return { VT_NUMBER, nullable };
+    else if (strcmp(tname, "int") == 0)
       return { VT_INT, nullable };
+    else if (strcmp(tname, "float") == 0)
+      return { VT_FLT, nullable };
     else if (strcmp(tname, "table") == 0)
       return { VT_TABLE, nullable };
     else if (strcmp(tname, "string") == 0)
