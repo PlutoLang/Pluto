@@ -364,7 +364,8 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
       return { VT_FUNC, nullable };
     else if (strcmp(tname, "userdata") != 0) {
       luaX_prev(ls);
-      throw_warn(ls, "unknown type hint", "the type hinted here is unknown to the parser.", TYPE_MISMATCH);
+      throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", TYPE_MISMATCH);
+      ls->L->top--;
       luaX_next(ls); // Preserve a6c8e359857644f4311c022f85cf19d85d95c25d
     }
   }
