@@ -4,6 +4,17 @@ do
 end
 print "Welcome to the test suite. There should have been exactly 1 parser warning."
 
+-- Testing type hints (there should be no warnings here)
+do
+    local function takesInt(a: int) end
+    takesInt(1)
+    local function takesFloat(a: float) end
+    takesFloat(1.0)
+    local function takesNumber(a: number) end
+    takesNumber(1)
+    takesNumber(1.0)
+end
+
 print "Testing compound assignment."
 do
     local a, b = 1, 2
