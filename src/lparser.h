@@ -78,6 +78,7 @@ enum ValType : lu_byte {
   VT_DUNNO = 0,
   VT_MIXED,
   VT_NIL,
+  VT_NUMBER,
   VT_INT,
   VT_FLT,
   VT_BOOL,
@@ -140,12 +141,6 @@ struct PrimitiveType {
     return (ValType)(data & 0b1111);
   }
 
-  [[nodiscard]] ValType getNormalisedType() const noexcept {
-    auto t = getType();
-    if (t == VT_FLT) t = VT_INT;
-    return t;
-  }
-
   [[nodiscard]] bool isNullable() const noexcept {
     return (data >> 4) & 1;
   }
@@ -155,10 +150,13 @@ struct PrimitiveType {
   }
 
   [[nodiscard]] bool isCompatibleWith(const PrimitiveType& b) const noexcept {
-    const auto b_t = b.getNormalisedType();
-    return (getNormalisedType() == b_t)
+    const auto a_t = getType();
+    const auto b_t = b.getType();
+    return (a_t == b_t)
         ? (isNullable() || !b.isNullable()) /* if same type, b can't be nullable if a isn't nullable */
-        : (b_t == VT_NIL && isNullable()) /* if different type, b might still be compatible if a is nullable and b is nil */
+        : ((b_t == VT_NIL && isNullable()) /* if different type, b might still be compatible if a is nullable and b is nil */
+          || (a_t == VT_NUMBER && (b_t == VT_INT || b_t == VT_FLT)) /* if different type, b might still be compatible if a is number and b is int or float */
+          )
         ;
   }
 
@@ -171,7 +169,9 @@ struct PrimitiveType {
     case VT_DUNNO: str.append("dunno"); break;
     case VT_MIXED: str.append("mixed"); break;
     case VT_NIL: str.append("nil"); break;
-    case VT_INT: case VT_FLT: str.append("number"); break;
+    case VT_NUMBER: str.append("number"); break;
+    case VT_INT: str.append("int"); break;
+    case VT_FLT: str.append("float"); break;
     case VT_BOOL: str.append("boolean"); break;
     case VT_STR: str.append("string"); break;
     case VT_TABLE: str.append("table"); break;
