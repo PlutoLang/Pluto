@@ -1618,9 +1618,12 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       if (ls->t.token == ')')  /* arg list is empty? */
         args.k = VVOID;
       else {
-        luaX_next(ls); /* skip name */
-        const bool is_named = (ls->t.token == '=');
-        luaX_prev(ls); /* back to name */
+        bool is_named = false;
+        if (ls->t.token != TK_EOS) {
+          luaX_next(ls); /* skip name */
+          is_named = (ls->t.token == '=');
+          luaX_prev(ls); /* back to name */
+        }
         if (is_named) {
           if (!funcdesc) {
             luaX_syntaxerror(ls, "can't used named arguments here because the function was not found at parse-time");
