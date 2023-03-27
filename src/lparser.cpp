@@ -1618,20 +1618,22 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       if (ls->t.token == ')')  /* arg list is empty? */
         args.k = VVOID;
       else {
-        if (ls->t.token == TK_DBCOLON) {
+        luaX_next(ls); /* skip name */
+        const bool is_named = (ls->t.token == '=');
+        luaX_prev(ls); /* back to name */
+        if (is_named) {
           if (!funcdesc) {
             luaX_syntaxerror(ls, "can't used named arguments here because the function was not found at parse-time");
           }
           std::vector<size_t> argtis{};
           argtis.resize(funcdesc->getNumParams());
           do {
-            checknext(ls, TK_DBCOLON);
             TString *pname = str_checkname(ls, true);
             int pi = funcdesc->findParamByName(pname);
             if (pi == -1) {
               throwerr(ls, luaO_fmt(ls->L, "function does not have a %s parameter", pname->contents), "unknown parameter");
             }
-            checknext(ls, TK_DBCOLON);
+            checknext(ls, '=');
             argtis.at(pi) = luaX_getpos(ls);
             skip_over_simpleexp_within_parenlist(ls);
           } while (testnext(ls, ','));
