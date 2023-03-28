@@ -289,7 +289,7 @@
 
 #if PLUTO_C_LINKAGE
   #define LUA_API			extern "C" PLUTO_API
-  // Note that the lack of [[noreturn]] will cause warnings.
+  // Note that the lack of [[noreturn]] will cause warnings (-Wno-return-type -Wno-invalid-noreturn).
   #define LUA_API_NORETURN	LUA_API
 #else
   #define LUA_API			PLUTO_API
