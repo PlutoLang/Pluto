@@ -50,8 +50,8 @@ LUALIB_API void (luaL_checkversion_) (lua_State *L, lua_Number ver, size_t sz);
 LUALIB_API int (luaL_getmetafield) (lua_State *L, int obj, const char *e);
 LUALIB_API int (luaL_callmeta) (lua_State *L, int obj, const char *e);
 LUALIB_API const char *(luaL_tolstring) (lua_State *L, int idx, size_t *len);
-[[noreturn]] LUALIB_API void (luaL_argerror) (lua_State *L, int arg, const char *extramsg);
-[[noreturn]] LUALIB_API void (luaL_typeerror) (lua_State *L, int arg, const char *tname);
+LUALIB_API_NORETURN void (luaL_argerror) (lua_State *L, int arg, const char *extramsg);
+LUALIB_API_NORETURN void (luaL_typeerror) (lua_State *L, int arg, const char *tname);
 LUALIB_API const char *(luaL_checklstring) (lua_State *L, int arg,
                                                           size_t *l);
 LUALIB_API const char *(luaL_optlstring) (lua_State *L, int arg,
@@ -73,7 +73,7 @@ LUALIB_API void *(luaL_testudata) (lua_State *L, int ud, const char *tname);
 LUALIB_API void *(luaL_checkudata) (lua_State *L, int ud, const char *tname);
 
 LUALIB_API void (luaL_where) (lua_State *L, int lvl);
-[[noreturn]] LUALIB_API void (luaL_error) (lua_State *L, const char *fmt, ...);
+LUALIB_API_NORETURN void (luaL_error) (lua_State *L, const char *fmt, ...);
 
 LUALIB_API int (luaL_checkoption) (lua_State *L, int arg, const char *def,
                                    const char *const lst[]);
@@ -90,8 +90,8 @@ LUALIB_API int (luaL_ref) (lua_State *L, int t);
 LUALIB_API void (luaL_unref) (lua_State *L, int t, int ref);
 
 #ifdef _WIN32
-LUALIB_API std::wstring luaL_utf8_to_utf16(const char *utf8, size_t utf8_len);
-LUALIB_API std::string luaL_utf16_to_utf8(const wchar_t *utf16, size_t utf16_len);
+PLUTOLIB_API std::wstring luaL_utf8_to_utf16(const char *utf8, size_t utf8_len);
+PLUTOLIB_API std::string luaL_utf16_to_utf8(const wchar_t *utf16, size_t utf16_len);
 #endif
 
 LUALIB_API FILE* (luaL_fopen) (const char *filename, size_t filename_len,

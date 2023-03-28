@@ -173,7 +173,7 @@ LUALIB_API void luaL_traceback (lua_State *L, lua_State *L1,
 ** =======================================================
 */
 
-LUALIB_API void luaL_argerror (lua_State *L, int arg, const char *extramsg) {
+LUALIB_API_NORETURN void luaL_argerror (lua_State *L, int arg, const char *extramsg) {
   lua_Debug ar;
   if (!lua_getstack(L, 0, &ar))  /* no stack frame? */
     luaL_error(L, "bad argument #%d (%s)", arg, extramsg);
@@ -191,7 +191,7 @@ LUALIB_API void luaL_argerror (lua_State *L, int arg, const char *extramsg) {
 }
 
 
-LUALIB_API void luaL_typeerror (lua_State *L, int arg, const char *tname) {
+LUALIB_API_NORETURN void luaL_typeerror (lua_State *L, int arg, const char *tname) {
   const char *msg;
   const char *typearg;  /* name for the type of the actual argument */
   if (luaL_getmetafield(L, arg, "__name") == LUA_TSTRING)
@@ -232,7 +232,7 @@ LUALIB_API void luaL_where (lua_State *L, int level) {
 ** not need reserved stack space when called. (At worst, it generates
 ** an error with "stack overflow" instead of the given message.)
 */
-LUALIB_API void luaL_error (lua_State *L, const char *fmt, ...) {
+LUALIB_API_NORETURN void luaL_error (lua_State *L, const char *fmt, ...) {
   va_list argp;
   va_start(argp, fmt);
   luaL_where(L, 1);

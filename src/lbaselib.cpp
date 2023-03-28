@@ -125,6 +125,9 @@ static int luaB_tonumber (lua_State *L) {
     lua_concat(L, 2);
   }
   lua_error(L);
+#ifdef PLUTO_C_LINKAGE
+  return 0;
+#endif
 }
 
 
