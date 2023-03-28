@@ -80,3 +80,15 @@ jobs:
             src/plutoc.exe
             src/libpluto.a
       - run: src/pluto.exe tests/basic.pluto
+  windows-dll:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: php scripts/make_dll_c.php clang
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Windows DLL
+          path: |
+            src/pluto.dll
+            src/pluto.lib
+            src/pluto.exp
