@@ -15,7 +15,7 @@ jobs:
           path: |
             src/pluto
             src/plutoc
-            src/libpluto.dll
+            src/libpluto.so
             src/libpluto.a
       - run: src/pluto tests/basic.pluto
   ubuntu-20-04:
@@ -29,7 +29,7 @@ jobs:
           path: |
             src/pluto
             src/plutoc
-            src/libpluto.dll
+            src/libpluto.so
             src/libpluto.a
       - run: src/pluto tests/basic.pluto
   debian-10:
@@ -47,7 +47,7 @@ jobs:
           path: |
             src/pluto
             src/plutoc
-            src/libpluto.dll
+            src/libpluto.so
             src/libpluto.a
       - run: src/pluto tests/basic.pluto
   macos:
@@ -61,7 +61,7 @@ jobs:
           path: |
             src/pluto
             src/plutoc
-            src/libpluto.dll
+            src/libpluto.so
             src/libpluto.a
       - run: src/pluto tests/basic.pluto
   windows:
@@ -71,7 +71,6 @@ jobs:
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
-      - run: php scripts/link_shared.php clang
       - run: php scripts/link_static.php
       - uses: actions/upload-artifact@v3
         with:
@@ -79,6 +78,5 @@ jobs:
           path: |
             src/pluto.exe
             src/plutoc.exe
-            src/libpluto.dll
             src/libpluto.a
       - run: src/pluto.exe tests/basic.pluto
