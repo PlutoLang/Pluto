@@ -4,6 +4,7 @@
 /src/*.dll
 /src/*.a
 /src/*.lib
+/src/*.exp
 /tbytecode.script
 /luac.out
 /tests/quick.lua

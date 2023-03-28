@@ -3,3 +3,6 @@ cpp 17
 -lua.cpp
 -luac.cpp
 dynamic
+if windows
+	arg -DLUA_BUILD_AS_DLL
+endif
