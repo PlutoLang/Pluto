@@ -557,7 +557,7 @@ LUA_API const char *lua_pushstring (lua_State *L, const char *s) {
   return s;
 }
 
-LUA_API const char* lua_pushstring(lua_State* L, const std::string& str) {
+PLUTO_API const char* pluto_pushstring(lua_State* L, const std::string& str) {
   return lua_pushstring(L, str.c_str());
 }
 
@@ -1288,7 +1288,7 @@ LUA_API int lua_gc (lua_State *L, int what, ...) {
 */
 
 
-LUA_API void lua_error (lua_State *L) {
+LUA_API_NORETURN void lua_error (lua_State *L) {
   TValue *errobj;
   lua_lock(L);
   errobj = s2v(L->top - 1);

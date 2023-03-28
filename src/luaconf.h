@@ -268,26 +268,37 @@
 ** the libraries, you may want to use the following definition (define
 ** LUA_BUILD_AS_DLL to get it).
 */
-#if defined(LUA_BUILD_AS_DLL)	/* { */
+#if defined(LUA_BUILD_AS_DLL)
+  #if defined(LUA_CORE) || defined(LUA_LIB)
+    #define PLUTO_DLLSPEC __declspec(dllexport)
+  #else
+    #define PLUTO_DLLSPEC __declspec(dllimport)
+  #endif
+#else
+  #define PLUTO_DLLSPEC
+#endif
 
-#if defined(LUA_CORE) || defined(LUA_LIB)	/* { */
-#define LUA_API __declspec(dllexport)
-#else						/* }{ */
-#define LUA_API __declspec(dllimport)
-#endif						/* } */
+// Additions by Pluto that are not compatible with `extern "C"` use PLUTO_API instead of LUA_API.
+#define PLUTO_API	PLUTO_DLLSPEC
 
-#else				/* }{ */
-
-#define LUA_API		extern
-
-#endif				/* } */
-
+#ifdef PLUTO_C_LINKAGE
+  #define LUA_API			extern "C" PLUTO_API
+  // Note that the lack of [[noreturn]] will cause warnings.
+  #define LUA_API_NORETURN	LUA_API
+#else
+  #define LUA_API			PLUTO_API
+  #define LUA_API_NORETURN	[[noreturn]] LUA_API
+#endif
 
 /*
 ** More often than not the libs go together with the core.
 */
 #define LUALIB_API	LUA_API
 #define LUAMOD_API	LUA_API
+
+#define LUALIB_API_NORETURN	LUA_API_NORETURN
+
+#define PLUTOLIB_API	PLUTO_API
 
 
 /*

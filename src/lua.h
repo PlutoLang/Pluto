@@ -235,7 +235,7 @@ LUA_API void        (lua_pushnumber) (lua_State *L, lua_Number n);
 LUA_API void        (lua_pushinteger) (lua_State *L, lua_Integer n);
 LUA_API const char *(lua_pushlstring) (lua_State *L, const char *s, size_t len);
 LUA_API const char *(lua_pushstring) (lua_State *L, const char *s);
-LUA_API const char *(lua_pushstring) (lua_State* L, const std::string& str);
+PLUTO_API const char *(pluto_pushstring) (lua_State* L, const std::string& str);
 LUA_API const char *(lua_pushvfstring) (lua_State *L, const char *fmt,
                                                       va_list argp);
 LUA_API const char *(lua_pushfstring) (lua_State *L, const char *fmt, ...);
@@ -340,7 +340,7 @@ LUA_API int (lua_gc) (lua_State *L, int what, ...);
 ** miscellaneous functions
 */
 
-[[noreturn]] LUA_API void   (lua_error) (lua_State *L);
+LUA_API_NORETURN void   (lua_error) (lua_State *L);
 
 LUA_API int   (lua_next) (lua_State *L, int idx);
 
