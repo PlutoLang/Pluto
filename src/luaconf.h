@@ -269,19 +269,25 @@
 ** LUA_BUILD_AS_DLL to get it).
 */
 #if defined(LUA_BUILD_AS_DLL)
+  #ifndef PLUTO_C_LINKAGE
+    #define PLUTO_C_LINKAGE true
+  #endif
   #if defined(LUA_CORE) || defined(LUA_LIB)
     #define PLUTO_DLLSPEC __declspec(dllexport)
   #else
     #define PLUTO_DLLSPEC __declspec(dllimport)
   #endif
 #else
+  #ifndef PLUTO_C_LINKAGE
+    #define PLUTO_C_LINKAGE false
+  #endif
   #define PLUTO_DLLSPEC
 #endif
 
 // Additions by Pluto that are not compatible with `extern "C"` use PLUTO_API instead of LUA_API.
 #define PLUTO_API	PLUTO_DLLSPEC
 
-#ifdef PLUTO_C_LINKAGE
+#if PLUTO_C_LINKAGE
   #define LUA_API			extern "C" PLUTO_API
   // Note that the lack of [[noreturn]] will cause warnings.
   #define LUA_API_NORETURN	LUA_API
