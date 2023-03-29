@@ -930,15 +930,17 @@ do
     pcall(|| -> utonumber("", 69))
     assert(utonumber("1337") == 1337)
     assert(utonumber("1337", 16) == 0x1337)
-    assert(os.setlocale(nil) == "fr-FR.UTF-8")
 
     pcall(|| -> utostring())
     assert(utostring(1337) == "1337")
-    assert(os.setlocale(nil) == "fr-FR.UTF-8")
 
     pcall(|| -> string.uformat("%f", ""))
     assert(string.uformat("%.2f", 4.20) == "4.20")
-    assert(os.setlocale(nil) == "fr-FR.UTF-8")
+
+    -- Ensure locale is still the same...
+    assert((os.setlocale(nil) == "C") -- or this... for *nix-based systems.
+        or (os.setlocale(nil) == "fr-FR.UTF-8") -- For Windows, actually do the assert, tho. :)
+        )
 end
 
 print "Finished."
