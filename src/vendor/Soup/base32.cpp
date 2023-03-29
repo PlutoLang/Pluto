@@ -63,12 +63,12 @@ namespace soup
 		return byte << offset;
 	}
 
-	static bool decode_sequence(const uint8_t* coded, uint8_t octet_base, std::string& out)
+	static bool decode_sequence(const uint8_t* coded, size_t octet_base, std::string& out)
 	{
 		for (int block = 0; block != 8; ++block)
 		{
 			int offset = get_offset(block);
-			int octet = octet_base + get_octet(block);
+			size_t octet = octet_base + get_octet(block);
 
 			int c = decode_char(coded[block]);
 			if (c == -1)
