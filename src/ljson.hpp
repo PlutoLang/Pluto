@@ -113,7 +113,7 @@ static void pushFromJson(lua_State* L, const soup::JsonNode& node)
 	}
 	else if (node.isStr())
 	{
-		lua_pushstring(L, node.asStr().value);
+		pluto_pushstring(L, node.asStr().value);
 	}
 	else if (node.isArr())
 	{
