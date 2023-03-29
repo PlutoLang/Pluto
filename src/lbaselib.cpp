@@ -117,12 +117,8 @@ int luaB_tonumber (lua_State *L) {
 }
 
 
-int luaB_utonumber (lua_State *L) {
-  auto old = setlocale(LC_ALL, nullptr);
-  setlocale(LC_NUMERIC, "en_US.UTF-8");
-  luaB_tonumber(L);
-  setlocale(LC_ALL, old);
-  return 1;
+int luaB_utonumber(lua_State* L) {
+  pluto_uwrap(L, luaB_tonumber, 1);
 }
 
 
@@ -525,12 +521,7 @@ int luaB_tostring (lua_State *L) {
 
 
 int luaB_utostring (lua_State *L) {
-  luaL_checkany(L, 1);
-  auto old = setlocale(LC_ALL, nullptr);
-  setlocale(LC_NUMERIC, "en_US.UTF-8");
-  luaL_tolstring(L, 1, NULL);
-  setlocale(LC_ALL, old);
-  return 1;
+  pluto_uwrap(L, luaB_tostring, 1);
 }
 
 
