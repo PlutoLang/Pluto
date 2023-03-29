@@ -1413,11 +1413,7 @@ static int str_format (lua_State *L) {
 
 
 static int str_uformat (lua_State *L) {
-  auto old = setlocale(LC_ALL, nullptr);
-  setlocale(LC_NUMERIC, "en_US.UTF-8");
-  str_format(L);
-  setlocale(LC_ALL, old);
-  return 1;
+  pluto_uwrap(L, str_format, 1);
 }
 
 /* }====================================================== */
