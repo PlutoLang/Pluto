@@ -4,10 +4,8 @@
 
 #include "llex.h"
 
-namespace Pluto
-{
-	class ErrorMessage
-	{
+namespace Pluto {
+	class ErrorMessage {
 	private:
 		LexState* ls;
 		size_t src_len = 0; // The size of the source line itself.
@@ -17,23 +15,19 @@ namespace Pluto
 		std::string content{};
 
 		ErrorMessage(LexState* ls)
-			: ls(ls)
-		{
+			: ls(ls) {
 		}
 
 		ErrorMessage(LexState* ls, const std::string& initial_msg)
-			: ls(ls), content(initial_msg)
-		{
+			: ls(ls), content(initial_msg) {
 		}
 
-		ErrorMessage& addMsg(const std::string& msg)
-		{
+		ErrorMessage& addMsg(const std::string& msg) {
 			this->content.append(msg);
 			return *this;
 		}
 
-		ErrorMessage& addSrcLine(int line)
-		{
+		ErrorMessage& addSrcLine(int line) {
 #ifndef PLUTO_SHORT_ERRORS
 			const auto line_string = this->ls->getLineString(line);
 			const auto init_len = this->content.length();
@@ -47,8 +41,7 @@ namespace Pluto
 			return *this;
 		}
 
-		ErrorMessage& addGenericHere(const std::string& msg) // TO-DO: Add '^^^' strings for specific keywords. Not accurate with a simple string search.
-		{
+		ErrorMessage& addGenericHere(const std::string& msg) { // TO-DO: Add '^^^' strings for specific keywords. Not accurate with a simple string search.
 #ifndef PLUTO_SHORT_ERRORS
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
@@ -59,8 +52,7 @@ namespace Pluto
 			return *this;
 		}
 
-		ErrorMessage& addGenericHere()
-		{
+		ErrorMessage& addGenericHere() {
 #ifndef PLUTO_SHORT_ERRORS
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
@@ -71,8 +63,7 @@ namespace Pluto
 			return *this;
 		}
 
-		ErrorMessage& addNote(const std::string& msg)
-		{
+		ErrorMessage& addNote(const std::string& msg) {
 #ifndef PLUTO_SHORT_ERRORS
 			const auto pad = std::string(this->line_len, ' ');
 			this->content.push_back('\n');
@@ -83,14 +74,12 @@ namespace Pluto
 		}
 
 		// Pushes the string to the stack for luaD_throw to conveniently pick up.
-		void finalize()
-		{
+		void finalize() {
 			this->content.append(RESET);
 			lua_pushlstring(ls->L, this->content.data(), this->content.size());
 		}
 
-		[[noreturn]] void finalizeAndThrow()
-		{
+		[[noreturn]] void finalizeAndThrow() {
 			this->finalize();
 			luaD_throw(ls->L, LUA_ERRSYNTAX);
 		}
