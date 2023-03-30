@@ -12,12 +12,6 @@
 
 
 /*
-** Shorthand for converting a token into a non-quoted string.
-*/
-#define t2s(lex, token) (luaX_token2str_noq(lex, token))
-
-
-/*
 ** Expression and variable descriptor.
 ** Code generation for variables and expressions can be delayed to allow
 ** optimizations; An 'expdesc' structure describes a potentially-delayed
