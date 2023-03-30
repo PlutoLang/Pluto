@@ -117,7 +117,7 @@ int luaB_tonumber (lua_State *L) {
 }
 
 
-int luaB_utonumber(lua_State* L) {
+int luaB_utonumber(lua_State *L) {
   pluto_uwrap(L, luaB_tonumber, 1);
 }
 
