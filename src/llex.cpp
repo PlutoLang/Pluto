@@ -124,13 +124,25 @@ const char *luaX_token2str_noq (LexState *ls, int token) {
       ls->L->top--;
     }
   }
-  else {
-    const char *s = luaX_tokens[token - FIRST_RESERVED];
-    if (token < TK_EOS) { /* fixed format (symbols and reserved words)? */
-        ret = luaO_pushfstring(ls->L, "%s", s);
+  else switch (token) {
+    case TK_NAME: case TK_STRING:
+      if (ls->hasDoneLexerPass()) {
+        ret = luaO_pushfstring(ls->L, "%s", ls->t.seminfo.ts->contents);
         ls->L->top--;
-    } else  /* names, strings, and numerals */
-      return s;
+      }
+      break;
+    case TK_FLT: case TK_INT:
+      save(ls, '\0');
+      ret = luaO_pushfstring(ls->L, "%s", luaZ_buffer(ls->buff));
+      ls->L->top--;
+      break;
+    default:
+      const char *s = luaX_tokens[token - FIRST_RESERVED];
+      if (token < TK_EOS) { /* fixed format (symbols and reserved words)? */
+          ret = luaO_pushfstring(ls->L, "%s", s);
+          ls->L->top--;
+      } else  /* names, strings, and numerals */
+        return s;
   }
   return ret;
 }
@@ -141,21 +153,6 @@ const char* luaX_reserved2str (int token) {
 }
 
 
-static const char *txtToken (LexState *ls, int token) {
-  switch (token) {
-    case TK_NAME: case TK_STRING:
-      if (ls->hasDoneLexerPass()) {
-        return luaO_pushfstring(ls->L, "'%s'", ls->t.seminfo.ts->contents);
-      }
-    case TK_FLT: case TK_INT:
-      save(ls, '\0');
-      return luaO_pushfstring(ls->L, "'%s'", luaZ_buffer(ls->buff));
-    default:
-      return luaX_token2str(ls, token);
-  }
-}
-
-
 [[noreturn]] static void lexerror (LexState *ls, const char *msg, int token) {
   const bool is_expected_token_error = (strcmp(msg, "syntax error") != 0);
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->getLineNumber());
@@ -163,7 +160,7 @@ static const char *txtToken (LexState *ls, int token) {
   err.addMsg(msg);
   if (token) {
     if (is_expected_token_error && ls->t.IsReserved()) {
-      std::string str = txtToken(ls, token);
+      std::string str = luaX_token2str_noq(ls, token);
       err.addMsg(", but found ")
          .addMsg(str);
       str.append(" cannot be used in this context.");
@@ -173,7 +170,7 @@ static const char *txtToken (LexState *ls, int token) {
     }
     else {
       err.addMsg(" near ")
-         .addMsg(txtToken(ls, token))
+         .addMsg(luaX_token2str_noq(ls, token))
          .addSrcLine(ls->getLineNumber())
          .addGenericHere()
          .finalize();
