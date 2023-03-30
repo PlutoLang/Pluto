@@ -106,25 +106,33 @@ void luaX_init (lua_State *L) {
 
 
 const char *luaX_token2str (LexState *ls, int token) {
-  return luaO_pushfstring(ls->L, "'%s'", luaX_token2str_noq(ls, token));
+  const char *ret = luaO_pushfstring(ls->L, "'%s'", luaX_token2str_noq(ls, token));
+  ls->L->top--;
+  return ret;
 }
 
 
 /* Converts a token into a string, same as luaX_token2str (but it doesn't quote the token). */
 const char *luaX_token2str_noq (LexState *ls, int token) {
+  const char *ret;
   if (token < FIRST_RESERVED) {  /* single-byte symbols? */
-    if (lisprint(token))
-      return luaO_pushfstring(ls->L, "%c", token);
-    else  /* control character */
-      return luaO_pushfstring(ls->L, "'<\\%d>'", token);
+    if (lisprint(token)) {
+      ret = luaO_pushfstring(ls->L, "%c", token);
+      ls->L->top--;
+    } else { /* control character */
+      ret = luaO_pushfstring(ls->L, "'<\\%d>'", token);
+      ls->L->top--;
+    }
   }
   else {
     const char *s = luaX_tokens[token - FIRST_RESERVED];
-    if (token < TK_EOS)  /* fixed format (symbols and reserved words)? */
-      return luaO_pushfstring(ls->L, "%s", s);
-    else  /* names, strings, and numerals */
+    if (token < TK_EOS) { /* fixed format (symbols and reserved words)? */
+        ret = luaO_pushfstring(ls->L, "%s", s);
+        ls->L->top--;
+    } else  /* names, strings, and numerals */
       return s;
   }
+  return ret;
 }
 
 
