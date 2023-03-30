@@ -1984,7 +1984,7 @@ static void const_expr (LexState *ls, expdesc *v) {
       return;
     }
     default: {
-      const char* token = luaX_token2str(ls, ls->t.token);
+      const char *token = luaX_token2str(ls, ls->t.token);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
   }
@@ -2119,7 +2119,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
       return;
     }
     default: {
-      const char* token = luaX_token2str(ls, ls->t.token);
+      const char *token = luaX_token2str(ls, ls->t.token);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
   }
