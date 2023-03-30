@@ -3547,7 +3547,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
     throw_warn(ls,
       "unreachable code",
         luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)), UNREACHABLE_CODE);
-    ls->L->top -= 2;
+    ls->L->top--;
   }
   ls->laststat.token = ls->t.token;
   enterlevel(ls);
