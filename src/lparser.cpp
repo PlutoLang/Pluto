@@ -2118,7 +2118,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
         for (const auto& e : ed->enumerators) {
-          ss.push("eprop", e.name->contents);
+          ss.push("eprop", e.name->contents, std::to_string(e.value));
         }
       }
       check(ls, TK_NAME);
