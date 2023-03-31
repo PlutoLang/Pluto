@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -9,6 +10,7 @@ struct SuggestionsState {
   struct Suggestion {
     const char* type;
     const char* name;
+    std::string extra;
   };
 
   LexState* const ls;
@@ -28,8 +30,8 @@ struct SuggestionsState {
     luaX_next(ls); /* skip pluto_suggest_0 or filter */
   }
 
-  void push(const char* type, const char* name) {
-    suggestions.emplace_back(Suggestion{ type, name });
+  void push(const char* type, const char* name, std::string extra = {}) {
+    suggestions.emplace_back(Suggestion{ type, name, std::move(extra) });
   }
 
   ~SuggestionsState() {
@@ -48,6 +50,10 @@ struct SuggestionsState {
         msg.append(suggestion.type);
         msg.push_back(',');
         msg.append(suggestion.name);
+        if (!suggestion.extra.empty()) {
+          msg.push_back(',');
+          msg.append(suggestion.extra);
+        }
         msg.push_back(';');
       }
       msg.pop_back();
