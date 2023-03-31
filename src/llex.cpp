@@ -59,7 +59,7 @@ static const char *const luaX_tokens [] = {
 #ifndef PLUTO_COMPATIBLE_ENUM
     "enum",
 #endif
-    "pluto_suggest",
+    "pluto_suggest_0", "pluto_suggest_1",
     "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=",
     "<<", ">>", "::", "<eof>",
@@ -953,10 +953,14 @@ const Token& luaX_lookbehind (LexState *ls) {
 
 
 void luaX_checkspecial (LexState *ls) {
-  if (ls->t.token == TK_SUGGEST) {
-    luaX_next(ls);
-    const char* str = luaX_token2str_noq(ls, ls->t.token);
-    size_t len = strlen(str);
+  if (ls->t.token == TK_SUGGEST_0 || ls->t.token == TK_SUGGEST_1) {
+    const char* str = "";
+    size_t len = 0;
+    if (ls->t.token != TK_SUGGEST_0) {
+      luaX_next(ls);
+      str = luaX_token2str_noq(ls, ls->t.token);
+      len = strlen(str);
+    }
     luaX_next(ls);
 
     std::vector<std::pair<const char*, const char*>> suggestions;
