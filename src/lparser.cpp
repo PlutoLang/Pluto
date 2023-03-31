@@ -34,6 +34,7 @@
 #include "lparser.h"
 #include "lstate.h"
 #include "lstring.h"
+#include "lsuggestions.hpp"
 #include "ltable.h"
 #include "lauxlib.h"
 
@@ -2040,6 +2041,13 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
   switch (ls->t.token) {
     case ':': {
       luaX_next(ls);
+      if (ls->shouldSuggest()) {
+        SuggestionsState ss(ls);
+        ss.push("efunc", "values");
+        ss.push("efunc", "names");
+        ss.push("efunc", "kvmap");
+        ss.push("efunc", "vkmap");
+      }
       check(ls, TK_NAME);
       if (strcmp(ls->t.seminfo.ts->contents, "values") == 0) {
         luaX_next(ls);
