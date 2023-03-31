@@ -53,6 +53,7 @@ enum RESERVED {
 #ifndef PLUTO_COMPATIBLE_ENUM
   TK_ENUM,
 #endif
+  TK_SUGGEST, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
   TK_IDIV, TK_CONCAT,
@@ -387,3 +388,4 @@ LUAI_FUNC const Token& luaX_lookbehind(LexState *ls);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);
 LUAI_FUNC const char *luaX_reserved2str (int token);
+LUAI_FUNC void luaX_checkspecial (LexState *ls);
