@@ -59,6 +59,7 @@ static const char *const luaX_tokens [] = {
 #ifndef PLUTO_COMPATIBLE_ENUM
     "enum",
 #endif
+    "pluto_suggest",
     "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=",
     "<<", ">>", "::", "<eof>",
@@ -948,4 +949,36 @@ int luaX_lookahead (LexState *ls) {
 
 const Token& luaX_lookbehind (LexState *ls) {
   return ls->tokens.at(ls->tidx - 1);
+}
+
+
+void luaX_checkspecial (LexState *ls) {
+  if (ls->t.token == TK_SUGGEST) {
+    luaX_next(ls);
+    const char* str = luaX_token2str_noq(ls, ls->t.token);
+    size_t len = strlen(str);
+    luaX_next(ls);
+
+    std::vector<std::pair<const char*, const char*>> suggestions;
+
+    /* look up locals */
+    for (int i = ls->fs->nactvar - 1; i >= 0; i--) {
+      Vardesc *vd = getlocalvardesc(ls->fs, i);
+      if (strncmp(vd->vd.name->contents, str, len) == 0) {
+        suggestions.emplace_back("local", vd->vd.name->contents);
+      }
+    }
+
+    if (!suggestions.empty()) {
+      std::string msg = "suggest: ";
+      for (const auto& suggestion : suggestions) {
+        msg.append(suggestion.first);
+        msg.push_back(',');
+        msg.append(suggestion.second);
+        msg.push_back(';');
+      }
+      msg.pop_back();
+      lua_warning(ls->L, msg.c_str(), 0);
+    }
+  }
 }
