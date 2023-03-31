@@ -6,12 +6,17 @@
 #include "llex.h"
 
 struct SuggestionsState {
+  struct Suggestion {
+    const char* type;
+    const char* name;
+  };
+
   LexState* const ls;
 
   const char* str = "";
   size_t len = 0;
 
-  std::vector<std::pair<const char*, const char*>> suggestions;
+  std::vector<Suggestion> suggestions;
 
   SuggestionsState(LexState* ls)
     : ls(ls) {
@@ -24,13 +29,13 @@ struct SuggestionsState {
   }
 
   void push(const char* type, const char* name) {
-    suggestions.emplace_back(type, name);
+    suggestions.emplace_back(Suggestion{ type, name });
   }
 
   ~SuggestionsState() {
     /* filter suggestions */
     for (auto i = suggestions.begin(); i != suggestions.end(); ) {
-      if (strncmp(i->second, str, len) == 0)
+      if (strncmp(i->name, str, len) == 0)
         ++i;
       else
         i = suggestions.erase(i);
@@ -40,9 +45,9 @@ struct SuggestionsState {
     if (!suggestions.empty()) {
       std::string msg = "suggest: ";
       for (const auto& suggestion : suggestions) {
-        msg.append(suggestion.first);
+        msg.append(suggestion.type);
         msg.push_back(',');
-        msg.append(suggestion.second);
+        msg.append(suggestion.name);
         msg.push_back(';');
       }
       msg.pop_back();
