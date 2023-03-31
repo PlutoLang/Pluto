@@ -2113,9 +2113,15 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
       return;
     }
     case '.': {
-      luaX_next(ls);
-      check(ls, TK_NAME);
       const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
+      luaX_next(ls);
+      if (ls->shouldSuggest()) {
+        SuggestionsState ss(ls);
+        for (const auto& e : ed->enumerators) {
+          ss.push("eprop", e.name->contents);
+        }
+      }
+      check(ls, TK_NAME);
       for (const auto& e : ed->enumerators) {
         if (eqstr(e.name->contents, ls->t.seminfo.ts->contents)) {
           init_exp(v, VKINT, 0);
