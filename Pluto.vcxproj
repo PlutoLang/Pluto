@@ -235,6 +235,7 @@
     <ClInclude Include="src\lprefix.h" />
     <ClInclude Include="src\lstate.h" />
     <ClInclude Include="src\lstring.h" />
+    <ClInclude Include="src\lsuggestions.hpp" />
     <ClInclude Include="src\ltable.h" />
     <ClInclude Include="src\ltm.h" />
     <ClInclude Include="src\lua.h" />

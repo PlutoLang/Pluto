@@ -366,6 +366,10 @@ struct LexState {
     const auto& lastattr = line > 1 ? this->getLineString(line - 1) : linebuff;
     return lastattr.find("@pluto_warnings: disable-next") == std::string::npos && getWarningConfig().Get(warning_type);
   }
+
+  [[nodiscard]] bool shouldSuggest() const noexcept {
+    return t.token == TK_SUGGEST_0 || t.token == TK_SUGGEST_1;
+  }
 };
 
 #if defined(_MSC_VER) && _MSC_VER && !__INTEL_COMPILER

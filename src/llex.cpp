@@ -18,16 +18,16 @@
 #include "lctype.h"
 #include "ldebug.h"
 #include "ldo.h"
+#include "lerrormessage.hpp"
 #include "lgc.h"
 #include "llex.h"
 #include "lobject.h"
 #include "lparser.h"
 #include "lstate.h"
 #include "lstring.h"
+#include "lsuggestions.hpp"
 #include "ltable.h"
 #include "lzio.h"
-
-#include "lerrormessage.hpp"
 
 
 
@@ -953,36 +953,13 @@ const Token& luaX_lookbehind (LexState *ls) {
 
 
 void luaX_checkspecial (LexState *ls) {
-  if (ls->t.token == TK_SUGGEST_0 || ls->t.token == TK_SUGGEST_1) {
-    const char* str = "";
-    size_t len = 0;
-    if (ls->t.token != TK_SUGGEST_0) {
-      luaX_next(ls);
-      str = luaX_token2str_noq(ls, ls->t.token);
-      len = strlen(str);
-    }
-    luaX_next(ls);
-
-    std::vector<std::pair<const char*, const char*>> suggestions;
+  if (ls->shouldSuggest()) {
+    SuggestionsState ss(ls);
 
     /* look up locals */
     for (int i = ls->fs->nactvar - 1; i >= 0; i--) {
       Vardesc *vd = getlocalvardesc(ls->fs, i);
-      if (strncmp(vd->vd.name->contents, str, len) == 0) {
-        suggestions.emplace_back("local", vd->vd.name->contents);
-      }
-    }
-
-    if (!suggestions.empty()) {
-      std::string msg = "suggest: ";
-      for (const auto& suggestion : suggestions) {
-        msg.append(suggestion.first);
-        msg.push_back(',');
-        msg.append(suggestion.second);
-        msg.push_back(';');
-      }
-      msg.pop_back();
-      lua_warning(ls->L, msg.c_str(), 0);
+      ss.push("local", vd->vd.name->contents);
     }
   }
 }
