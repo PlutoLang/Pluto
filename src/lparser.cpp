@@ -237,6 +237,7 @@ static int testnext (LexState *ls, int c) {
 ** Check that next token is 'c'.
 */
 static void check (LexState *ls, int c) {
+  luaX_checkspecial(ls);
   if (ls->t.token != c) {
     error_expected(ls, c);
   }
@@ -2498,6 +2499,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
 
 
 static void expr (LexState *ls, expdesc *v, TypeDesc *prop, bool no_colon) {
+  luaX_checkspecial(ls);
   subexpr(ls, v, 0, prop, no_colon);
   if (testnext(ls, '?')) { /* ternary expression? */
     int escape = NO_JUMP;
@@ -3540,6 +3542,7 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 
 
 static void statement (LexState *ls, TypeDesc *prop) {
+  luaX_checkspecial(ls);
   int line = ls->getLineNumber();
   if (ls->laststat.IsEscapingToken() ||
      (ls->laststat.Is(TK_GOTO) && !ls->findWithinLine(line, luaX_lookbehind(ls).seminfo.ts->toCpp()))) /* Don't warn if this statement is the goto's label. */
