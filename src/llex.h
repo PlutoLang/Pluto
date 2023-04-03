@@ -39,7 +39,7 @@ enum RESERVED {
   TK_DO, TK_ELSE, TK_ELSEIF, TK_END, TK_FALSE, TK_FOR, TK_FUNCTION,
   TK_GOTO, TK_IF, TK_IN, TK_LOCAL, TK_NIL, TK_NOT, TK_OR, TK_REPEAT,
   TK_CASE, TK_DEFAULT, TK_AS, TK_BEGIN, TK_CLASS, // New narrow keywords.
-  TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, // New compatibility keywords.
+  TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, TK_PNEW, // New compatibility keywords.
   /* New non-compatible keywords. */
 #ifndef PLUTO_COMPATIBLE_SWITCH
   TK_SWITCH,
@@ -52,6 +52,9 @@ enum RESERVED {
 #endif
 #ifndef PLUTO_COMPATIBLE_ENUM
   TK_ENUM,
+#endif
+#ifndef PLUTO_COMPATIBLE_NEW
+  TK_NEW,
 #endif
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
@@ -81,17 +84,42 @@ enum RESERVED {
 #define NUM_RESERVED	(cast_int(LAST_RESERVED-FIRST_RESERVED + 1))
 
 
-typedef union {
+/* semantics information */
+union SemInfo {
   lua_Number r;
   lua_Integer i;
   TString *ts;
-} SemInfo;  /* semantics information */
+
+  SemInfo()
+    : ts(nullptr)
+  {
+  }
+
+  SemInfo(TString *ts)
+    : ts(ts)
+  {
+  }
+};
 
 
 struct Token {
   int token;
   SemInfo seminfo;
   int line;
+
+  Token() = default;
+
+  static constexpr int LINE_INJECTED = -1886153070; /* -'plin' */
+
+  Token(int token)
+    : token(token), line(LINE_INJECTED)
+  {
+  }
+
+  Token(int token, TString* ts)
+    : token(token), seminfo(ts), line(LINE_INJECTED)
+  {
+  }
 
   [[nodiscard]] bool Is(int t) const noexcept
   {
@@ -312,7 +340,11 @@ struct LexState {
     return getLineNumber();
   }
 
+  inline static std::string injected_code_str = "[injected code]";
+
   [[nodiscard]] const std::string& getLineString(int line) const {
+    if (line == Token::LINE_INJECTED)
+      return injected_code_str;
     return lines.at(line - 1);
   }
 
