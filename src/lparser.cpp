@@ -2277,6 +2277,30 @@ static void ifexpr (LexState *ls, expdesc *v) {
 }
 
 
+static void newexpr (LexState *ls, expdesc *v) {
+  FuncState *fs = ls->fs;
+  int line = ls->getLineNumber();
+
+  luaX_next(ls);
+
+  singlevar(ls, v, luaS_newliteral(ls->L, "Pluto_operator_new"));
+  luaK_exp2nextreg(fs, v);
+
+  expdesc args;
+  singlevar(ls, &args, str_checkname(ls));
+
+  int base = v->u.info;  /* base register for call */
+  luaK_exp2nextreg(fs, &args);  /* close last argument */
+  int nparams = fs->freereg - (base + 1);
+  init_exp(v, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
+  luaK_fixline(fs, line);
+  fs->freereg = base + 1;
+
+  luaK_exp2nextreg(fs, v);
+  funcargs(ls, v, line);
+}
+
+
 static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
@@ -2332,6 +2356,13 @@ static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop) 
     }
     case '|': {
       lambdabody(ls, v, ls->getLineNumber());
+      return;
+    }
+#ifndef PLUTO_COMPATIBLE_NEW
+    case TK_NEW:
+#endif
+    case TK_PNEW: {
+      newexpr(ls, v);
       return;
     }
     default: {
@@ -3667,6 +3698,105 @@ static void statement (LexState *ls, TypeDesc *prop) {
 /* }====================================================================== */
 
 
+static void builtinoperators (LexState *ls) {
+  bool uses_new = false;
+
+  /* discover what operators are used */
+  for (const auto& t : ls->tokens) {
+    switch (t.token) {
+#ifndef PLUTO_COMPATIBLE_NEW
+      case TK_NEW:
+#endif
+      case TK_PNEW:
+        uses_new = true;
+        break;
+    }
+  }
+
+  /* inject implementers */
+  if (uses_new) {
+    /* capture state */
+    std::vector<Token> tokens = std::move(ls->tokens);
+
+    ls->tokens = {}; /* avoid use of moved warning */
+
+    // local function Pluto_operator_new(mt)
+    ls->tokens.emplace_back(Token(TK_LOCAL));
+    ls->tokens.emplace_back(Token(TK_FUNCTION));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "Pluto_operator_new")));
+    ls->tokens.emplace_back(Token('('));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+    ls->tokens.emplace_back(Token(')'));
+
+    //   local t = {}
+    ls->tokens.emplace_back(Token(TK_LOCAL));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+    ls->tokens.emplace_back(Token('='));
+    ls->tokens.emplace_back(Token('{'));
+    ls->tokens.emplace_back(Token('}'));
+
+    //   setmetatable(t, mt)
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "setmetatable")));
+    ls->tokens.emplace_back(Token('('));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+    ls->tokens.emplace_back(Token(','));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+    ls->tokens.emplace_back(Token(')'));
+
+    //   mt.__index = mt
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+    ls->tokens.emplace_back(Token('.'));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__index")));
+    ls->tokens.emplace_back(Token('='));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+
+    //   return function(...)
+    ls->tokens.emplace_back(Token(TK_RETURN));
+    ls->tokens.emplace_back(Token(TK_FUNCTION));
+    ls->tokens.emplace_back(Token('('));
+    ls->tokens.emplace_back(Token(TK_DOTS));
+    ls->tokens.emplace_back(Token(')'));
+
+    //     if t.__construct then
+    ls->tokens.emplace_back(Token(TK_IF));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+    ls->tokens.emplace_back(Token('.'));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__construct")));
+    ls->tokens.emplace_back(Token(TK_THEN));
+
+    //       t:__construct(...)
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+    ls->tokens.emplace_back(Token(':'));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__construct")));
+    ls->tokens.emplace_back(Token('('));
+    ls->tokens.emplace_back(Token(TK_DOTS));
+    ls->tokens.emplace_back(Token(')'));
+
+    //     end
+    ls->tokens.emplace_back(Token(TK_END));
+
+    //     return t
+    ls->tokens.emplace_back(Token(TK_RETURN));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+
+    //   end
+    ls->tokens.emplace_back(Token(TK_END));
+
+    // end
+    ls->tokens.emplace_back(Token(TK_END));
+
+    /* parse */
+    ls->tokens.emplace_back(Token(TK_EOS));
+    luaX_next(ls);
+    statlist(ls);
+
+    /* reset state */
+    ls->tidx = -1;
+    ls->tokens = std::move(tokens);
+  }
+}
+
+
 /*
 ** compiles the main function, which is a regular vararg function with an
 ** upvalue named LUA_ENV
@@ -3682,6 +3812,7 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   env->kind = VDKREG;
   env->name = ls->envn;
   luaC_objbarrier(ls->L, fs->f, env->name);
+  builtinoperators(ls);
   luaX_next(ls);  /* read first token */
   statlist(ls);  /* parse main body */
   check(ls, TK_EOS);
