@@ -2398,6 +2398,7 @@ static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop) 
     case TK_NEW:
 #endif
     case TK_PNEW: {
+      if (prop) *prop = VT_TABLE;
       newexpr(ls, v);
       return;
     }
