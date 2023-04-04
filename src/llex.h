@@ -38,8 +38,11 @@ enum RESERVED {
   TK_AND = FIRST_RESERVED, TK_BREAK,
   TK_DO, TK_ELSE, TK_ELSEIF, TK_END, TK_FALSE, TK_FOR, TK_FUNCTION,
   TK_GOTO, TK_IF, TK_IN, TK_LOCAL, TK_NIL, TK_NOT, TK_OR, TK_REPEAT,
-  TK_CASE, TK_DEFAULT, TK_AS, TK_BEGIN, TK_CLASS, // New narrow keywords.
-  TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, TK_PNEW, // New compatibility keywords.
+  TK_CASE, TK_DEFAULT, TK_AS, TK_BEGIN, // New narrow keywords.
+#ifdef PLUTO_COMPATIBLE_CLASS
+  TK_CLASS,
+#endif
+  TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, TK_PNEW, TK_PCLASS, // New compatibility keywords.
   /* New non-compatible keywords. */
 #ifndef PLUTO_COMPATIBLE_SWITCH
   TK_SWITCH,
@@ -55,6 +58,9 @@ enum RESERVED {
 #endif
 #ifndef PLUTO_COMPATIBLE_NEW
   TK_NEW,
+#endif
+#ifndef PLUTO_COMPATIBLE_CLASS
+  TK_CLASS,
 #endif
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
@@ -149,7 +155,9 @@ struct Token {
       || token == TK_DEFAULT
       || token == TK_AS
       || token == TK_BEGIN
+#ifdef PLUTO_COMPATIBLE_CLASS
       || token == TK_CLASS
+#endif
       ;
   }
 };
