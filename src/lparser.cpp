@@ -1478,8 +1478,7 @@ static void classstat (LexState *ls) {
 
 
 static void localclass (LexState *ls) {
-  auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
-  auto var = getlocalvardesc(ls->fs, vidx);
+  new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
 
   expdesc t;
   classexpr(ls, &t);
