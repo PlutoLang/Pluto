@@ -3819,6 +3819,23 @@ static void builtinoperators (LexState *ls) {
     ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
     ls->tokens.emplace_back(Token(')'));
 
+    //   if type(mt) ~= "table" then
+    ls->tokens.emplace_back(Token(TK_IF));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "type")));
+    ls->tokens.emplace_back(Token('('));
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+    ls->tokens.emplace_back(Token(')'));
+    ls->tokens.emplace_back(Token(TK_NE));
+    ls->tokens.emplace_back(Token(TK_STRING, luaS_newliteral(ls->L, "table")));
+    ls->tokens.emplace_back(Token(TK_THEN));
+
+    //     error "'new' used on non-table value"
+    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "error")));
+    ls->tokens.emplace_back(Token(TK_STRING, luaS_newliteral(ls->L, "'new' used on non-table value")));
+
+    //   end
+    ls->tokens.emplace_back(Token(TK_END));
+
     //   local t = {}
     ls->tokens.emplace_back(Token(TK_LOCAL));
     ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
