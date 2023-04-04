@@ -847,6 +847,24 @@ do
     assert(getGreeting(name=getName(), greeting="Hello") == "Hello, Planet!")
 end
 
+print "Testing classes."
+do
+    do
+        class globalclass
+        end
+        local class localclass
+        end
+    end
+    assert(globalclass ~= nil)
+    assert(localclass == nil)
+end
+do
+    local classexpr = class
+        b = true
+    end
+    assert(classexpr.b == true)
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"

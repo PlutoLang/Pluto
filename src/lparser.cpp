@@ -1380,36 +1380,53 @@ static void constructor (LexState *ls, expdesc *t) {
 }
 
 
-static void classstat (LexState *ls) {
+static void classexpr (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
-
-  luaX_next(ls);
-  auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
-  auto var = getlocalvardesc(fs, vidx);
-  expdesc t;
-
   int line = ls->getLineNumber();
   int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
   ConsControl cc;
   luaK_code(fs, 0);  /* space for extra arg. */
   cc.na = cc.nh = cc.tostore = 0;
-  cc.t = &t;
-  init_exp(&t, VNONRELOC, fs->freereg);  /* table will be at stack top */
+  cc.t = t;
+  init_exp(t, VNONRELOC, fs->freereg);  /* table will be at stack top */
   luaK_reserveregs(fs, 1);
   init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
-  do {
+  while (ls->t.token != TK_END) {
     lua_assert(cc.v.k == VVOID || cc.tostore > 0);
     if (ls->t.token == '}') break;
     closelistfield(fs, &cc);
     field(ls, &cc);
-  } while ((testnext(ls, ',') || testnext(ls, ';')), ls->t.token != TK_END);
+    (testnext(ls, ',') || testnext(ls, ';'));
+  }
 #ifdef PLUTO_COMPATIBLE_CLASS
   check_match(ls, TK_END, TK_PCLASS, line);
 #else
   check_match(ls, TK_END, TK_CLASS, line);
 #endif
   lastlistfield(fs, &cc);
-  luaK_settablesize(fs, pc, t.u.info, cc.na, cc.nh);
+  luaK_settablesize(fs, pc, t->u.info, cc.na, cc.nh);
+}
+
+
+static void classstat (LexState *ls) {
+  auto line = ls->getLineNumber();
+  luaX_next(ls); /* skip 'class' */
+
+  expdesc v, t;
+  singlevar(ls, &v);
+  classexpr(ls, &t);
+  check_readonly(ls, &v);
+  luaK_storevar(ls->fs, &v, &t);
+  luaK_fixline(ls->fs, line);
+}
+
+
+static void localclass (LexState *ls) {
+  auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
+  auto var = getlocalvardesc(ls->fs, vidx);
+
+  expdesc t;
+  classexpr(ls, &t);
 
   adjust_assign(ls, 1, 1, &t);
   adjustlocalvars(ls, 1);
@@ -2400,6 +2417,15 @@ static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop) 
     case TK_PNEW: {
       if (prop) *prop = VT_TABLE;
       newexpr(ls, v);
+      return;
+    }
+#ifndef PLUTO_COMPATIBLE_CLASS
+    case TK_CLASS:
+#endif
+    case TK_PCLASS: {
+      if (prop) *prop = VT_TABLE;
+      luaX_next(ls); /* skip 'class' */
+      classexpr(ls, v);
       return;
     }
     default: {
@@ -3671,6 +3697,12 @@ static void statement (LexState *ls, TypeDesc *prop) {
       luaX_next(ls);  /* skip LOCAL */
       if (testnext(ls, TK_FUNCTION))  /* local function? */
         localfunc(ls);
+#ifdef PLUTO_COMPATIBLE_CLASS
+      else if (testnext(ls, TK_PCLASS))
+#else
+      else if (testnext(ls, TK_CLASS) || testnext(ls, TK_PCLASS))
+#endif
+        localclass(ls);
       else
         localstat(ls);
       break;
