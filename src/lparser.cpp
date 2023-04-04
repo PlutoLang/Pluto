@@ -1391,6 +1391,51 @@ static void constructor (LexState *ls, expdesc *t) {
 }
 
 
+static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc*)>& gen) {
+  FuncState* fs = ls->fs;
+  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  ConsControl cc;
+  luaK_code(fs, 0);  /* space for extra arg. */
+  cc.na = cc.nh = cc.tostore = 0;
+  cc.t = v;
+  init_exp(v, VNONRELOC, fs->freereg);  /* table will be at stack top */
+  luaK_reserveregs(fs, 1);
+  while (gen(&cc.v)) {
+    ++cc.tostore;
+    closelistfield(fs, &cc);
+  }
+  lastlistfield(fs, &cc);
+  luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
+}
+
+static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc *key, expdesc *val)>& gen) {
+  FuncState* fs = ls->fs;
+  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  ConsControl cc;
+  luaK_code(fs, 0);  /* space for extra arg. */
+  cc.na = cc.nh = cc.tostore = 0;
+  cc.t = v;
+  init_exp(v, VNONRELOC, fs->freereg);  /* table will be at stack top */
+  luaK_reserveregs(fs, 1);
+  init_exp(&cc.v, VVOID, 0);
+  while (true) {
+    closelistfield(fs, &cc);
+    int reg = ls->fs->freereg;
+    expdesc tab, key, val;
+    if (!gen(&key, &val))
+      break;
+    luaK_exp2val(ls->fs, &key);
+    cc.nh++;
+    tab = *cc.t;
+    luaK_indexed(fs, &tab, &key);
+    luaK_storevar(fs, &tab, &val);
+    fs->freereg = reg;
+  }
+  lastlistfield(fs, &cc);
+  luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
+}
+
+
 static void classexpr (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
@@ -2085,50 +2130,6 @@ static void const_expr (LexState *ls, expdesc *v) {
   }
 }
 
-
-static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc*)>& gen) {
-  FuncState* fs = ls->fs;
-  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
-  ConsControl cc;
-  luaK_code(fs, 0);  /* space for extra arg. */
-  cc.na = cc.nh = cc.tostore = 0;
-  cc.t = v;
-  init_exp(v, VNONRELOC, fs->freereg);  /* table will be at stack top */
-  luaK_reserveregs(fs, 1);
-  while (gen(&cc.v)) {
-    ++cc.tostore;
-    closelistfield(fs, &cc);
-  }
-  lastlistfield(fs, &cc);
-  luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
-}
-
-static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc *key, expdesc *val)>& gen) {
-  FuncState* fs = ls->fs;
-  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
-  ConsControl cc;
-  luaK_code(fs, 0);  /* space for extra arg. */
-  cc.na = cc.nh = cc.tostore = 0;
-  cc.t = v;
-  init_exp(v, VNONRELOC, fs->freereg);  /* table will be at stack top */
-  luaK_reserveregs(fs, 1);
-  init_exp(&cc.v, VVOID, 0);
-  while (true) {
-    closelistfield(fs, &cc);
-    int reg = ls->fs->freereg;
-    expdesc tab, key, val;
-    if (!gen(&key, &val))
-      break;
-    luaK_exp2val(ls->fs, &key);
-    cc.nh++;
-    tab = *cc.t;
-    luaK_indexed(fs, &tab, &key);
-    luaK_storevar(fs, &tab, &val);
-    fs->freereg = reg;
-  }
-  lastlistfield(fs, &cc);
-  luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
-}
 
 static void enumexp (LexState *ls, expdesc *v, TString *varname) {
   switch (ls->t.token) {
