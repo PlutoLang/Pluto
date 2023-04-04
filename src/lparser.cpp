@@ -1379,6 +1379,42 @@ static void constructor (LexState *ls, expdesc *t) {
   luaK_settablesize(fs, pc, t->u.info, cc.na, cc.nh);
 }
 
+
+static void classstat (LexState *ls) {
+  FuncState *fs = ls->fs;
+
+  luaX_next(ls);
+  auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
+  auto var = getlocalvardesc(fs, vidx);
+  expdesc t;
+
+  int line = ls->getLineNumber();
+  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  ConsControl cc;
+  luaK_code(fs, 0);  /* space for extra arg. */
+  cc.na = cc.nh = cc.tostore = 0;
+  cc.t = &t;
+  init_exp(&t, VNONRELOC, fs->freereg);  /* table will be at stack top */
+  luaK_reserveregs(fs, 1);
+  init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
+  do {
+    lua_assert(cc.v.k == VVOID || cc.tostore > 0);
+    if (ls->t.token == '}') break;
+    closelistfield(fs, &cc);
+    field(ls, &cc);
+  } while ((testnext(ls, ',') || testnext(ls, ';')), ls->t.token != TK_END);
+#ifdef PLUTO_COMPATIBLE_CLASS
+  check_match(ls, TK_END, TK_PCLASS, line);
+#else
+  check_match(ls, TK_END, TK_CLASS, line);
+#endif
+  lastlistfield(fs, &cc);
+  luaK_settablesize(fs, pc, t.u.info, cc.na, cc.nh);
+
+  adjust_assign(ls, 1, 1, &t);
+  adjustlocalvars(ls, 1);
+}
+
 /* }====================================================================== */
 
 
@@ -3637,6 +3673,13 @@ static void statement (LexState *ls, TypeDesc *prop) {
       else
         localstat(ls);
       break;
+    }
+#ifndef PLUTO_COMPATIBLE_CLASS
+    case TK_CLASS:
+#endif
+    case TK_PCLASS: {
+      classstat(ls);
+      return;
     }
     case TK_DBCOLON: {  /* stat -> label */
       luaX_next(ls);  /* skip double colon */
