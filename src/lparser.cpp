@@ -1497,7 +1497,7 @@ static void skip_over_simpleexp_within_parenlist (LexState *ls) {
 }
 
 
-static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr) {
+static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr, TString** varargname = nullptr) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -1523,6 +1523,10 @@ static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr) {
       else if (ls->t.token == TK_DOTS) {
         luaX_next(ls);
         isvararg = 1;
+        if (varargname && ls->t.token == TK_NAME) {
+          *varargname = ls->t.seminfo.ts;
+          luaX_next(ls);
+        }
       }
       else luaX_syntaxerror(ls, "<name> or '...' expected");
     } while (!isvararg && testnext(ls, ','));
@@ -1550,7 +1554,8 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     adjustlocalvars(ls, 1);
   }
   std::vector<size_t> fallbacks{};
-  parlist(ls, &fallbacks);
+  TString* varargname = nullptr;
+  parlist(ls, &fallbacks, &varargname);
   checknext(ls, ')');
   const auto saved_pos = luaX_getpos(ls);
   int fallback_idx = 0;
@@ -1567,6 +1572,29 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     ++fallback_idx;
   }
   luaX_setpos(ls, saved_pos);
+  if (varargname) {
+    enterlevel(ls);
+    new_localvar(ls, varargname);
+
+    FuncState *fs = ls->fs;
+    int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+    luaK_code(fs, 0);
+    expdesc t;
+    init_exp(&t, VNONRELOC, fs->freereg);
+    ConsControl cc;
+    cc.na = cc.nh = cc.tostore = 0;
+    cc.t = &t;
+    luaK_reserveregs(fs, 1);
+    lua_assert(fs->f->is_vararg);
+    init_exp(&cc.v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
+    cc.tostore++;
+    lastlistfield(fs, &cc);
+    luaK_settablesize(fs, pc, t.u.info, cc.na, cc.nh);
+
+    adjust_assign(ls, 1, 1, &t);
+    adjustlocalvars(ls, 1);
+    leavelevel(ls);
+  }
   TypeDesc rethint = gettypehint(ls);
   TypeDesc p = VT_DUNNO;
   statlist(ls, &p, true);
