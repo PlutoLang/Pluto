@@ -1432,6 +1432,47 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
 }
 
 
+static TString *checkextends (LexState *ls) {
+  TString *parent = nullptr;
+  if (ls->t.token == TK_NAME
+    && strcmp(ls->t.seminfo.ts->contents, "extends") == 0
+    ) {
+    luaX_next(ls);
+    parent = str_checkname(ls, true);
+  }
+  return parent;
+}
+
+static void applyextends (LexState *ls, expdesc *v, TString *parent, int line) {
+  FuncState *fs = ls->fs;
+
+  expdesc f;
+  singlevar(ls, &f, luaS_newliteral(ls->L, "setmetatable"));
+  luaK_exp2nextreg(fs, &f);
+
+  expdesc args = *v;
+  luaK_exp2nextreg(fs, &args);
+  newtable(ls, &args, [ls, &parent](expdesc *key, expdesc *val) {
+    if (parent) {
+      init_exp(key, VKSTR, 0);
+      key->u.strval = luaS_newliteral(ls->L, "__index");
+      singlevar(ls, val, parent);
+      parent = nullptr;
+      return true;
+    }
+    return false;
+  });
+
+  lua_assert(f.k == VNONRELOC);
+  int base = f.u.info;  /* base register for call */
+  luaK_exp2nextreg(fs, &args);  /* close last argument */
+  int nparams = fs->freereg - (base + 1);
+  init_exp(&f, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
+  luaK_fixline(fs, line);
+  fs->freereg = base + 1;
+}
+
+
 static void classexpr (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
@@ -1464,23 +1505,40 @@ static void classstat (LexState *ls) {
   auto line = ls->getLineNumber();
   luaX_next(ls); /* skip 'class' */
 
-  expdesc v, t;
+  expdesc v;
   singlevar(ls, &v);
+
+  TString *parent = checkextends(ls);
+
+  expdesc t;
   classexpr(ls, &t);
   check_readonly(ls, &v);
   luaK_storevar(ls->fs, &v, &t);
   luaK_fixline(ls->fs, line);
+
+  if (parent)
+    applyextends(ls, &v, parent, line);
 }
 
 
 static void localclass (LexState *ls) {
-  new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
+  auto line = ls->getLineNumber();
+  TString *name = str_checkname(ls, true);
+  TString *parent = checkextends(ls);
+
+  new_localvar(ls, name, ls->getLineNumber());
 
   expdesc t;
   classexpr(ls, &t);
 
   adjust_assign(ls, 1, 1, &t);
   adjustlocalvars(ls, 1);
+
+  if (parent) {
+    expdesc v;
+    singlevar(ls, &v, name);
+    applyextends(ls, &v, parent, line);
+  }
 }
 
 /* }====================================================================== */
