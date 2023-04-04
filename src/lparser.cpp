@@ -1303,7 +1303,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 
 
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop = nullptr);
-static void funcfield (LexState *ls, struct ConsControl *cc) {
+static void funcfield (LexState *ls, struct ConsControl *cc, bool ismethod) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
   int reg = ls->fs->freereg;
@@ -1313,7 +1313,7 @@ static void funcfield (LexState *ls, struct ConsControl *cc) {
   codename(ls, &key);
   tab = *cc->t;
   luaK_indexed(fs, &tab, &key);
-  body(ls, &val, true, ls->getLineNumber());
+  body(ls, &val, ismethod, ls->getLineNumber());
   luaK_storevar(fs, &tab, &val);
   fs->freereg = reg;  /* free registers */
 }
@@ -1322,11 +1322,18 @@ static void funcfield (LexState *ls, struct ConsControl *cc) {
 static void field (LexState *ls, ConsControl *cc) {
   /* field -> listfield | recfield | funcfield */
   switch(ls->t.token) {
-    case TK_NAME: {  /* may be 'listfield' or 'recfield' */
-      if (luaX_lookahead(ls) != '=')  /* expression? */
-        listfield(ls, cc);
-      else
-        recfield(ls, cc);
+    case TK_NAME: {  /* may be 'listfield', 'recfield' or static 'funcfield' */
+      if (strcmp(ls->t.seminfo.ts->contents, "static") != 0) {
+        if (luaX_lookahead(ls) != '=')  /* expression? */
+          listfield(ls, cc);
+        else
+          recfield(ls, cc);
+      }
+      else { /* static function */
+        luaX_next(ls);
+        check(ls, TK_FUNCTION);
+        funcfield(ls, cc, false);
+      }
       break;
     }
     case '[': {
@@ -1338,7 +1345,7 @@ static void field (LexState *ls, ConsControl *cc) {
         listfield(ls, cc);
       }
       else {
-        funcfield(ls, cc);
+        funcfield(ls, cc, true);
       }
       break;
     }
