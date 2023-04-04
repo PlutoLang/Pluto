@@ -865,6 +865,17 @@ do
     assert(classexpr.b == true)
 end
 
+print "Testing named varargs."
+do
+    local function f(...a)
+        return a
+    end
+    local t = f("Hello", 1337)
+    assert(#t == 2)
+    assert(t[1] == "Hello")
+    assert(t[2] == 1337)
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
