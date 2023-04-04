@@ -80,7 +80,7 @@ typedef struct BlockCnt {
 ** prototypes for recursive non-terminal functions
 */
 static void statement (LexState *ls, TypeDesc *prop = nullptr);
-static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, bool no_colon = false);
+static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, int flags = 0);
 
 
 /*
@@ -1448,7 +1448,12 @@ static void setvararg (FuncState *fs, int nparams) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDesc *prop = nullptr);
+enum expflags {
+  E_NO_COLON = 1 << 0,
+  E_NO_CALL  = 1 << 1,
+};
+
+static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeDesc *prop = nullptr);
 static void simpleexp_with_unary_support (LexState *ls, expdesc *v) {
   if (testnext(ls, '-')) { /* Negative constant? */
     check(ls, TK_INT);
@@ -2253,7 +2258,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
-static void suffixedexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDesc *prop = nullptr) {
+static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeDesc *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   FuncState *fs = ls->fs;
@@ -2283,7 +2288,7 @@ static void suffixedexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDe
         break;
       }
       case ':': {  /* ':' NAME funcargs */
-        if (no_colon) {
+        if (flags & E_NO_COLON) {
           return;
         }
         expdesc key;
@@ -2294,6 +2299,9 @@ static void suffixedexp (LexState *ls, expdesc *v, bool no_colon = false, TypeDe
         break;
       }
       case '(': case TK_STRING: case '{': {  /* funcargs */
+        if (flags & E_NO_CALL) {
+          return;
+        }
         TypeDesc* funcdesc = nullptr;
         if (v->k == VLOCAL) {
           auto fvar = getlocalvardesc(ls->fs, v->u.var.vidx);
@@ -2347,7 +2355,7 @@ static void newexpr (LexState *ls, expdesc *v) {
   luaK_exp2nextreg(fs, v);
 
   expdesc args;
-  singlevar(ls, &args, str_checkname(ls));
+  expr(ls, &args, nullptr, E_NO_CALL);
 
   int base = v->u.info;  /* base register for call */
   luaK_exp2nextreg(fs, &args);  /* close last argument */
@@ -2361,7 +2369,7 @@ static void newexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop) {
+static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
@@ -2436,12 +2444,12 @@ static void simpleexp (LexState *ls, expdesc *v, bool no_colon, TypeDesc *prop) 
       return;
     }
     default: {
-      suffixedexp(ls, v, no_colon, prop);
+      suffixedexp(ls, v, flags, prop);
       return;
     }
   }
   luaX_next(ls);
-  if (!no_colon && testnext(ls, ':')) {
+  if (!(flags & E_NO_COLON) && testnext(ls, ':')) {
     expdesc key;
     codename(ls, &key);
     luaK_self(ls->fs, v, &key);
@@ -2559,7 +2567,7 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nullptr, bool no_colon = false) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nullptr, int flags = 0) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
@@ -2589,7 +2597,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
     }
   }
   else {
-    simpleexp(ls, v, no_colon, prop);
+    simpleexp(ls, v, flags, prop);
     if (ls->t.token == TK_IN) {
       inexpr(ls, v);
       if (prop) *prop = VT_BOOL;
@@ -2613,9 +2621,9 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
 }
 
 
-static void expr (LexState *ls, expdesc *v, TypeDesc *prop, bool no_colon) {
+static void expr (LexState *ls, expdesc *v, TypeDesc *prop, int flags) {
   luaX_checkspecial(ls);
-  subexpr(ls, v, 0, prop, no_colon);
+  subexpr(ls, v, 0, prop, flags);
   if (testnext(ls, '?')) { /* ternary expression? */
     int escape = NO_JUMP;
     v->normaliseFalse();
