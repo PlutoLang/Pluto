@@ -1099,7 +1099,7 @@ static void propagate_return_type(TypeDesc*& prop, TypeDesc&& ret) {
   }
 }
 
-static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
+static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implies_void = false) {
   /* statlist -> { stat [';'] } */
   bool ret = false;
   while (!block_follow(ls, 1)) {
@@ -1113,7 +1113,8 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
     if (ret) break;
   }
   if (prop && /* do we need to propagate the return type? */
-      !ret) { /* had no return statement? */
+      !ret && /* had no return statement? */
+      no_ret_implies_void) { /* does that imply a void return? */
     propagate_return_type(prop, VT_VOID); /* propagate */
   }
 }
@@ -1598,7 +1599,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   }
   TypeDesc rethint = gettypehint(ls, true);
   TypeDesc p = VT_DUNNO;
-  statlist(ls, &p);
+  statlist(ls, &p, true);
   if (rethint.getType() != VT_DUNNO && /* has type hint for return type? */
       p.getType() != VT_DUNNO && /* return type is known? */
       !rethint.isCompatibleWith(p)) { /* incompatible? */
