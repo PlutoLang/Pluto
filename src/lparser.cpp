@@ -3847,6 +3847,13 @@ static void statement (LexState *ls, TypeDesc *prop) {
       funcstat(ls, line);
       break;
     }
+#ifndef PLUTO_COMPATIBLE_CLASS
+    case TK_CLASS:
+#endif
+    case TK_PCLASS: {
+      classstat(ls);
+      break;
+    }
     case TK_LOCAL: {  /* stat -> localstat */
       luaX_next(ls);  /* skip LOCAL */
       if (testnext(ls, TK_FUNCTION))  /* local function? */
@@ -3859,13 +3866,6 @@ static void statement (LexState *ls, TypeDesc *prop) {
         localclass(ls);
       else
         localstat(ls);
-      break;
-    }
-#ifndef PLUTO_COMPATIBLE_CLASS
-    case TK_CLASS:
-#endif
-    case TK_PCLASS: {
-      classstat(ls);
       break;
     }
     case TK_DBCOLON: {  /* stat -> label */
