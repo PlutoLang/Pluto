@@ -3702,10 +3702,12 @@ static void localstat (LexState *ls) {
     process_assign(ls, var, VT_NIL, line);
   }
   if (is_constexpr) {
-    if (nvars != nexps)
+    if (nvars != nexps) {
+      luaX_prev(ls);
       luaK_semerror(ls, "<constexpr> variable assignment needs adjustment");
+    }
     if (!vkisconst(e.k))
-      throwerr(ls, "<constexpr> variable was not assigned a compile-time constant value", "expression not constant");
+      throwerr(ls, "<constexpr> variable was not assigned a compile-time constant value", "expression not constant", line);
     var->vd.kind = RDKCONST;
   }
   if (nvars == nexps) { /* no adjustments? */
