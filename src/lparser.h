@@ -136,6 +136,10 @@ struct PrimitiveType {
     return (ValType)(data & 0b1111);
   }
 
+  [[nodiscard]] bool isNull() const noexcept {
+    return getType() == VT_NIL || getType() == VT_VOID;
+  }
+
   [[nodiscard]] bool isNullable() const noexcept {
     return (data >> 4) & 1;
   }
@@ -149,8 +153,7 @@ struct PrimitiveType {
     const auto b_t = b.getType();
     return (a_t == b_t)
         ? (isNullable() || !b.isNullable()) /* if same type, b can't be nullable if a isn't nullable */
-        : ((b_t == VT_NIL && isNullable()) /* if different type, b might still be compatible if a is nullable and b is nil */
-          || (b_t == VT_VOID && isNullable()) /* if different type, b might still be compatible if a is nullable and b is void */
+        : ((isNull() && isNullable()) /* if different type, b might still be compatible if a is nullable and b is null (void or nil) */
           || (a_t == VT_NUMBER && (b_t == VT_INT || b_t == VT_FLT)) /* if different type, b might still be compatible if a is number and b is int or float */
           )
         ;
@@ -205,6 +208,10 @@ struct TypeDesc
 
   [[nodiscard]] ValType getType() const noexcept {
     return primitive.getType();
+  }
+
+  [[nodiscard]] bool isNull() const noexcept {
+    return primitive.isNull();
   }
 
   [[nodiscard]] bool isNullable() const noexcept {
