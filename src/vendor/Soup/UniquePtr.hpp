@@ -2,6 +2,8 @@
 
 #include "type_traits.hpp"
 
+#include <utility> // forward
+
 namespace soup
 {
 	// Why not std::unique_ptr?
@@ -26,7 +28,7 @@ namespace soup
 			b.data = nullptr;
 		}
 
-		template <typename T2, SOUP_RESTRICT(std::is_base_of_v<T, T2>)>
+		template <typename T2, SOUP_RESTRICT(std::is_base_of_v<T, T2> || std::is_base_of_v<T2, T>)>
 		UniquePtr(UniquePtr<T2>&& b) noexcept
 			: data(reinterpret_cast<T*>(b.data))
 		{

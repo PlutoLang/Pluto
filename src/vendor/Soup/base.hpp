@@ -86,12 +86,19 @@
 
 // === C++ version abstraction macros
 
-#ifndef SOUP_CPP20
-	#if !defined(_MSC_VER) && (__cplusplus < 202002L)
-		#define SOUP_CPP20 false
-	#else
-		#define SOUP_CPP20 true
-	#endif
+#if __cplusplus == 199711L
+	#error Please set the /Zc:__cplusplus compiler flag or manually adjust __cplusplus when using Soup.
+#endif
+
+#ifdef SOUP_CPP20
+	#pragma message("Ignoring SOUP_CPP20 define, this is automatically set based on C++ version.")
+	#undef SOUP_CPP20
+#endif
+
+#if __cplusplus < 202002L
+	#define SOUP_CPP20 false
+#else
+	#define SOUP_CPP20 true
 #endif
 
 #if !SOUP_CPP20
@@ -119,9 +126,10 @@
 
 // === Development helper macros
 
-#define SOUP_ASSERT(x) SOUP_IF_UNLIKELY (!(x)) { throw 0; }
+namespace soup { extern void throwAssertionFailed(); }
+#define SOUP_ASSERT(x) SOUP_IF_UNLIKELY (!(x)) { ::soup::throwAssertionFailed(); }
 
 #define SOUP_ASSERT_ARG(x) SOUP_ASSERT(x)
 #define SOUP_ASSERT_LOGIC(x) SOUP_ASSERT(x)
 
-#define SOUP_UNUSED(x) ((void)x)
+template <typename T> SOUP_FORCEINLINE void SOUP_UNUSED(T&&) {}
