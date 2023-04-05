@@ -1436,9 +1436,7 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
 
 static TString *checkextends (LexState *ls) {
   TString *parent = nullptr;
-  if (ls->t.token == TK_NAME
-    && strcmp(ls->t.seminfo.ts->contents, "extends") == 0
-    ) {
+  if (ls->t.token == TK_EXTENDS) {
     luaX_next(ls);
     parent = str_checkname(ls, true);
   }
