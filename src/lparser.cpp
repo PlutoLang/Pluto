@@ -3868,6 +3868,34 @@ static void statement (LexState *ls, TypeDesc *prop) {
         localstat(ls);
       break;
     }
+#ifndef PLUTO_COMPATIBLE_EXPORT
+    case TK_EXPORT:
+#endif
+    case TK_PEXPORT: {
+      luaX_next(ls); /* skip export */
+      if (ls->t.token != TK_EOS) {
+        if (testnext(ls, TK_FUNCTION)) {
+          ls->export_symbols.emplace_back(str_checkname(ls, true));
+          luaX_prev(ls);
+          localfunc(ls);
+        }
+#ifdef PLUTO_COMPATIBLE_CLASS
+        else if (testnext(ls, TK_PCLASS)) {
+#else
+        else if (testnext(ls, TK_CLASS) || testnext(ls, TK_PCLASS)) {
+#endif
+          ls->export_symbols.emplace_back(str_checkname(ls, true));
+          luaX_prev(ls);
+          localclass(ls);
+        }
+        else {
+          ls->export_symbols.emplace_back(str_checkname(ls, true));
+          luaX_prev(ls);
+          localstat(ls);
+        }
+      }
+      break;
+    }
     case TK_DBCOLON: {  /* stat -> label */
       luaX_next(ls);  /* skip double colon */
       labelstat(ls, str_checkname(ls), line);
@@ -4163,6 +4191,23 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   luaX_next(ls);  /* read first token */
   const bool ret = statlist(ls);  /* parse main body */
   check(ls, TK_EOS);
+  if (!ls->export_symbols.empty()) {
+    if (ret)
+      luaX_syntaxerror(ls, "'export' used but main body already returns something");
+    enterlevel(ls);
+    size_t i = 0;
+    expdesc t;
+    newtable(ls, &t, [ls, &i](expdesc *k, expdesc *v) {
+      if (i == ls->export_symbols.size())
+        return false;
+      codestring(k, ls->export_symbols.at(i));
+      singlevar(ls, v, ls->export_symbols.at(i));
+      ++i;
+      return true;
+    });
+    luaK_ret(ls->fs, luaK_exp2anyreg(fs, &t), 1);
+    leavelevel(ls);
+  }
   close_func(ls);
 }
 
