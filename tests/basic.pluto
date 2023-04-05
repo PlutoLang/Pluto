@@ -881,6 +881,29 @@ do
     assert(h instanceof Entity == true)
     assert(h instanceof Human == true)
 end
+do
+    local class Entity
+        __name = "Entity"
+
+        function __construct(name)
+            self.name = name
+        end
+    end
+
+    local class Human extends Entity
+        __name = "Human"
+
+        function __construct(name)
+            assert(parent.__name == "Entity")
+            parent:__construct(name)
+        end
+    end
+
+    local john = new Human("John")
+    assert(john.name == "John")
+    assert(john instanceof Entity)
+    assert(john instanceof Human)
+end
 
 print "Testing named varargs."
 do

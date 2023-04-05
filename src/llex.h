@@ -42,7 +42,7 @@ enum RESERVED {
 #ifdef PLUTO_COMPATIBLE_CLASS
   TK_CLASS,
 #endif
-  TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, TK_PNEW, TK_PCLASS, // New compatibility keywords.
+  TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, // New compatibility keywords.
   /* New non-compatible keywords. */
 #ifndef PLUTO_COMPATIBLE_SWITCH
   TK_SWITCH,
@@ -61,6 +61,9 @@ enum RESERVED {
 #endif
 #ifndef PLUTO_COMPATIBLE_CLASS
   TK_CLASS,
+#endif
+#ifndef PLUTO_COMPATIBLE_PARENT
+  TK_PARENT,
 #endif
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
@@ -145,7 +148,7 @@ struct Token {
 
   [[nodiscard]] bool IsReservedNonValue() const noexcept
   {
-    return IsReserved() && token != TK_TRUE && token != TK_FALSE && token != TK_NIL;
+    return IsReserved() && token != TK_TRUE && token != TK_FALSE && token != TK_NIL && token != TK_PARENT;
   }
 
   [[nodiscard]] bool IsNarrow() const noexcept
