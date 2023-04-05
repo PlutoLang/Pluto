@@ -70,6 +70,7 @@ typedef enum {
 /* types of values, for type hinting and propagation */
 enum ValType : lu_byte {
   VT_DUNNO = 0,
+  VT_VOID,
   VT_MIXED,
   VT_NIL,
   VT_NUMBER,
@@ -149,6 +150,7 @@ struct PrimitiveType {
     return (a_t == b_t)
         ? (isNullable() || !b.isNullable()) /* if same type, b can't be nullable if a isn't nullable */
         : ((b_t == VT_NIL && isNullable()) /* if different type, b might still be compatible if a is nullable and b is nil */
+          || (b_t == VT_VOID && isNullable()) /* if different type, b might still be compatible if a is nullable and b is void */
           || (a_t == VT_NUMBER && (b_t == VT_INT || b_t == VT_FLT)) /* if different type, b might still be compatible if a is number and b is int or float */
           )
         ;
@@ -161,6 +163,7 @@ struct PrimitiveType {
     switch (getType())
     {
     case VT_DUNNO: str.append("dunno"); break;
+    case VT_VOID: str.append("void"); break;
     case VT_MIXED: str.append("mixed"); break;
     case VT_NIL: str.append("nil"); break;
     case VT_NUMBER: str.append("number"); break;
