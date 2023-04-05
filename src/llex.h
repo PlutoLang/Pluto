@@ -151,7 +151,12 @@ struct Token {
 
   [[nodiscard]] bool IsReservedNonValue() const noexcept
   {
-    return IsReserved() && token != TK_TRUE && token != TK_FALSE && token != TK_NIL && token != TK_PARENT;
+    return IsReserved() && token != TK_TRUE && token != TK_FALSE && token != TK_NIL
+      && token != TK_PPARENT
+#ifndef PLUTO_COMPATIBLE_PARENT
+      && token != TK_PARENT
+#endif
+      ;
   }
 
   [[nodiscard]] bool IsNarrow() const noexcept
