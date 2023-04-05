@@ -1079,13 +1079,13 @@ static int block_follow (LexState *ls, int withuntil) {
 
 static void propagate_return_type(TypeDesc*& prop, TypeDesc&& ret) {
   if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
-    if (prop->isNull()) {
+    if (vtIsNull(prop->getType())) {
       if (!ret.isNull()) {
         ret.setNullable();
         *prop = ret;
       }
     }
-    else if (ret.isNull()) {
+    else if (vtIsNull(ret.getType())) {
       if (!prop->isNull())
       prop->setNullable();
     }
