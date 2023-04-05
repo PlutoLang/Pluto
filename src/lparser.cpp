@@ -4192,8 +4192,10 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   const bool ret = statlist(ls);  /* parse main body */
   check(ls, TK_EOS);
   if (!ls->export_symbols.empty()) {
-    if (ret)
+    if (ret) {
+      luaX_prev(ls);
       luaX_syntaxerror(ls, "'export' used but main body already returns something");
+    }
     enterlevel(ls);
     size_t i = 0;
     expdesc t;
