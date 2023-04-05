@@ -587,6 +587,13 @@ LUAMOD_API int luaopen_base (lua_State *L) {
   lua_pushboolean(L, false);
 #endif
   lua_setfield(L, -2, "_PSOUP");
+  const auto startup_code = R"EOC(
+function instanceof(a, b)
+  return a instanceof b
+end
+)EOC";
+  luaL_loadbuffer(L, startup_code, strlen(startup_code), "Pluto");
+  lua_pcall(L, 0, LUA_MULTRET, 0);
   return 1;
 }
 
