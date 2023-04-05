@@ -2487,18 +2487,10 @@ static void newexpr (LexState *ls, expdesc *v) {
   singlevar(ls, v, luaS_newliteral(ls->L, "Pluto_operator_new"));
   luaK_exp2nextreg(fs, v);
 
-  expdesc args;
-  expr(ls, &args, nullptr, E_NO_CALL);
+  expdesc first_arg;
+  expr(ls, &first_arg, nullptr, E_NO_CALL);
+  luaK_exp2nextreg(fs, &first_arg);
 
-  lua_assert(v->k == VNONRELOC);
-  int base = v->u.info;  /* base register for call */
-  luaK_exp2nextreg(fs, &args);  /* close last argument */
-  int nparams = fs->freereg - (base + 1);
-  init_exp(v, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
-  luaK_fixline(fs, line);
-  fs->freereg = base + 1;
-
-  luaK_exp2nextreg(fs, v);
   funcargs(ls, v, line);
 }
 
@@ -4003,12 +3995,14 @@ static void builtinoperators (LexState *ls) {
     ls->tokens = {}; /* avoid use of moved warning */
 
     if (uses_new) {
-      // local function Pluto_operator_new(mt)
+      // local function Pluto_operator_new(mt, ...)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_FUNCTION));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "Pluto_operator_new")));
       ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_DOTS));
       ls->tokens.emplace_back(Token(')'));
      
       //   if type(mt) ~= "table" then
@@ -4050,21 +4044,14 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token('='));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
      
-      //   return function(...)
-      ls->tokens.emplace_back(Token(TK_RETURN));
-      ls->tokens.emplace_back(Token(TK_FUNCTION));
-      ls->tokens.emplace_back(Token('('));
-      ls->tokens.emplace_back(Token(TK_DOTS));
-      ls->tokens.emplace_back(Token(')'));
-     
-      //     if t.__construct then
+      //   if t.__construct then
       ls->tokens.emplace_back(Token(TK_IF));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
       ls->tokens.emplace_back(Token('.'));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__construct")));
       ls->tokens.emplace_back(Token(TK_THEN));
      
-      //       t:__construct(...)
+      //     t:__construct(...)
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
       ls->tokens.emplace_back(Token(':'));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__construct")));
@@ -4072,15 +4059,12 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_DOTS));
       ls->tokens.emplace_back(Token(')'));
      
-      //     end
-      ls->tokens.emplace_back(Token(TK_END));
-     
-      //     return t
-      ls->tokens.emplace_back(Token(TK_RETURN));
-      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
-     
       //   end
       ls->tokens.emplace_back(Token(TK_END));
+     
+      //   return t
+      ls->tokens.emplace_back(Token(TK_RETURN));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
      
       // end
       ls->tokens.emplace_back(Token(TK_END));
