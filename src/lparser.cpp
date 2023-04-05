@@ -1078,12 +1078,15 @@ static int block_follow (LexState *ls, int withuntil) {
 
 
 static void propagate_return_type(TypeDesc*& prop, TypeDesc&& ret) {
-  if (prop->getType() != VT_VOID) { /* had previous return path(s)? */
-    if (prop->getType() == VT_NIL) {
-      ret.setNullable();
-      *prop = ret;
+  if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
+    if (prop->isNull()) {
+      if (!ret.isNull()) {
+        ret.setNullable();
+        *prop = ret;
+      }
     }
-    else if (ret.getType() == VT_NIL) {
+    else if (ret.isNull()) {
+      if (!prop->isNull())
       prop->setNullable();
     }
     else if (!prop->isCompatibleWith(ret)) {
@@ -1101,13 +1104,17 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr) {
   bool ret = false;
   while (!block_follow(ls, 1)) {
     ret = (ls->t.token == TK_RETURN);
-    TypeDesc p = VT_VOID;
+    TypeDesc p = VT_DUNNO;
     statement(ls, &p);
     if (prop && /* do we need to propagate the return type? */
-        p.getType() != VT_VOID) { /* is there a return path here? */
+        p.getType() != VT_DUNNO) { /* is there a return path here? */
       propagate_return_type(prop, p.getType());
     }
     if (ret) break;
+  }
+  if (prop && /* do we need to propagate the return type? */
+      !ret) { /* had no return statement? */
+    propagate_return_type(prop, VT_VOID); /* propagate */
   }
 }
 
@@ -1590,7 +1597,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     leavelevel(ls);
   }
   TypeDesc rethint = gettypehint(ls, true);
-  TypeDesc p = VT_VOID;
+  TypeDesc p = VT_DUNNO;
   statlist(ls, &p);
   if (rethint.getType() != VT_DUNNO && /* has type hint for return type? */
       p.getType() != VT_DUNNO && /* return type is known? */
@@ -3656,6 +3663,7 @@ static void retstat (LexState *ls, TypeDesc *prop) {
     || ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT
   ) {
     nret = 0;  /* return no values */
+    if (prop) *prop = VT_VOID;
   }
   else {
     nret = explist(ls, &e, prop);  /* optional return values */
