@@ -350,7 +350,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
       luaX_newstring(ls, "" v, (sizeof(v)/sizeof(char)) - 1));
 
 
-[[nodiscard]] static TypeDesc gettypehint(LexState *ls) noexcept {
+[[nodiscard]] static TypeDesc gettypehint (LexState *ls, bool funcret = false) noexcept {
   /* TYPEHINT -> [':' Typedesc] */
   if (testnext(ls, ':')) {
     const bool nullable = testnext(ls, '?');
@@ -369,6 +369,11 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
       return { VT_BOOL, nullable };
     else if (strcmp(tname, "function") == 0)
       return { VT_FUNC, nullable };
+    else if (strcmp(tname, "void") == 0) {
+      if (!nullable && funcret)
+        return { VT_VOID, nullable };
+      throw_warn(ls, "'void' is not a valid type hint in this context", "invalid type hint", TYPE_MISMATCH);
+    }
     else if (strcmp(tname, "userdata") != 0) {
       luaX_prev(ls);
       throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", TYPE_MISMATCH);
@@ -1072,13 +1077,16 @@ static int block_follow (LexState *ls, int withuntil) {
 }
 
 
-static void propagate_return_type(TypeDesc *prop, TypeDesc&& ret) {
+static void propagate_return_type(TypeDesc*& prop, TypeDesc&& ret) {
   if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
-    if (prop->getType() == VT_NIL) {
-      ret.setNullable();
-      *prop = ret;
+    if (vtIsNull(prop->getType())) {
+      if (vtCanBeNullable(ret.getType())) {
+        ret.setNullable();
+        *prop = ret;
+      }
     }
-    else if (ret.getType() == VT_NIL) {
+    else if (vtIsNull(ret.getType())) {
+      if (vtCanBeNullable(prop->getType()))
       prop->setNullable();
     }
     else if (!prop->isCompatibleWith(ret)) {
@@ -1091,7 +1099,7 @@ static void propagate_return_type(TypeDesc *prop, TypeDesc&& ret) {
   }
 }
 
-static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implies_nil = false) {
+static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implies_void = false) {
   /* statlist -> { stat [';'] } */
   bool ret = false;
   while (!block_follow(ls, 1)) {
@@ -1108,8 +1116,8 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implie
   }
   if (prop && /* do we need to propagate the return type? */
       !ret && /* had no return statement? */
-      no_ret_implies_nil) { /* does that imply a nil return? */
-    propagate_return_type(prop, VT_NIL); /* propagate */
+      no_ret_implies_void) { /* does that imply a void return? */
+    propagate_return_type(prop, VT_VOID); /* propagate */
   }
 }
 
@@ -1591,7 +1599,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     adjustlocalvars(ls, 1);
     leavelevel(ls);
   }
-  TypeDesc rethint = gettypehint(ls);
+  TypeDesc rethint = gettypehint(ls, true);
   TypeDesc p = VT_DUNNO;
   statlist(ls, &p, true);
   if (rethint.getType() != VT_DUNNO && /* has type hint for return type? */
@@ -3658,7 +3666,7 @@ static void retstat (LexState *ls, TypeDesc *prop) {
     || ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT
   ) {
     nret = 0;  /* return no values */
-    if (prop) *prop = VT_NIL;
+    if (prop) *prop = VT_VOID;
   }
   else {
     nret = explist(ls, &e, prop);  /* optional return values */
