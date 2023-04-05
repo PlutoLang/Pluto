@@ -2283,6 +2283,28 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
 }
 
 
+static void parentexp (LexState *ls, expdesc *v) {
+  singlevar(ls, v, luaS_newliteral(ls->L, "self"));
+  expdesc key;
+  codestring(&key, luaS_newliteral(ls->L, "__parent"));
+  luaK_indexed(ls->fs, v, &key);
+  if (testnext(ls, ':')) {
+    auto line = ls->getLineNumber();
+
+    luaK_exp2nextreg(ls->fs, v);
+    codename(ls, &key);
+    luaK_indexed(ls->fs, v, &key);
+    luaK_exp2nextreg(ls->fs, v);
+
+    expdesc first_arg;
+    singlevar(ls, &first_arg, luaS_newliteral(ls->L, "self"));
+    luaK_exp2nextreg(ls->fs, &first_arg);
+
+    funcargs(ls, v, line);
+  }
+}
+
+
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
   if (isnametkn(ls)) {
@@ -2325,6 +2347,14 @@ static void primaryexp (LexState *ls, expdesc *v) {
       else {
         const_expr(ls, v);
       }
+      return;
+    }
+#ifndef PLUTO_COMPATIBLE_PARENT
+    case TK_PARENT:
+#endif
+    case TK_PPARENT: {
+      luaX_next(ls);
+      parentexp(ls, v);
       return;
     }
     default: {
