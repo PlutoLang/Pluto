@@ -88,6 +88,10 @@ enum ValType : lu_byte {
   return vt == VT_VOID || vt == VT_NIL;
 }
 
+[[nodiscard]] inline bool vtCanBeNullable(ValType vt) {
+  return !vtIsNull(vt) && vt != VT_MIXED;
+}
+
 typedef struct expdesc {
   expkind k;
   union {
