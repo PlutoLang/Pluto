@@ -101,7 +101,6 @@ static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, int flags 
 }
 
 
-#ifndef PLUTO_NO_PARSER_WARNINGS
 // No note.
 static void throw_warn (LexState *ls, const char *raw_err, const char *here, int line, WarningType warningType) {
   std::string err(raw_err);
@@ -149,7 +148,6 @@ static void throw_warn(LexState *ls, const char *err, int line, WarningType warn
     ls->L->top -= 1; /* remove warning from stack */
   }
 }
-#endif
 
 
 /*
@@ -402,7 +400,6 @@ static void exp_propagate(LexState* ls, const expdesc& e, TypeDesc& t) noexcept 
 
 
 static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int line) {
-#ifndef PLUTO_NO_PARSER_WARNINGS
   auto hinted = var->vd.hint.getType() != VT_DUNNO;
   auto knownvalue = td.getType() != VT_DUNNO;
   auto incompatible = !var->vd.hint.isCompatibleWith(td);
@@ -422,7 +419,6 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int l
       throw_warn(ls, "variable type mismatch", err.c_str(), line, TYPE_MISMATCH);
     }
   }
-#endif
   var->vd.prop = td; /* propagate type */
 }
 
@@ -475,7 +471,6 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
   Vardesc *var;
-#ifndef PLUTO_NO_PARSER_WARNINGS
   int locals = luaY_nvarstack(fs);
   for (int i = fs->firstlocal; i < locals; i++) {
     Vardesc *desc = getlocalvardesc(fs, i);
@@ -489,7 +484,6 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
       break;
     }
   }
-#endif
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
@@ -1598,7 +1592,6 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   TypeDesc rethint = gettypehint(ls);
   TypeDesc p = VT_DUNNO;
   statlist(ls, &p, true);
-#ifndef PLUTO_NO_PARSER_WARNINGS
   if (rethint.getType() != VT_DUNNO && /* has type hint for return type? */
       p.getType() != VT_DUNNO && /* return type is known? */
       !rethint.isCompatibleWith(p)) { /* incompatible? */
@@ -1608,7 +1601,6 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     err.append(p.toString());
     throw_warn(ls, err.c_str(), line, TYPE_MISMATCH);
   }
-#endif
   if (prop) { /* propagate type of function */
     *prop = VT_FUNC;
     prop->proto = new_fs.f;
@@ -1763,7 +1755,6 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       luaX_syntaxerror(ls, "function arguments expected");
     }
   }
-#ifndef PLUTO_NO_PARSER_WARNINGS
   if (funcdesc) {
     for (lu_byte i = 0; i != funcdesc->getNumTypedParams(); ++i) {
       const PrimitiveType& param_hint = funcdesc->params[i];
@@ -1795,7 +1786,6 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       --ls->L->top;
     }
   }
-#endif
   lua_assert(f->k == VNONRELOC);
   base = f->u.info;  /* base register for call */
   if (hasmultret(args.k))
