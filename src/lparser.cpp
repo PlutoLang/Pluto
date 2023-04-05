@@ -1099,7 +1099,7 @@ static void propagate_return_type(TypeDesc*& prop, TypeDesc&& ret) {
   }
 }
 
-static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implies_void = false) {
+static bool statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implies_void = false) {
   /* statlist -> { stat [';'] } */
   bool ret = false;
   while (!block_follow(ls, 1)) {
@@ -1119,6 +1119,7 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implie
       no_ret_implies_void) { /* does that imply a void return? */
     propagate_return_type(prop, VT_VOID); /* propagate */
   }
+  return ret;
 }
 
 
@@ -4160,7 +4161,7 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   luaC_objbarrier(ls->L, fs->f, env->name);
   builtinoperators(ls);
   luaX_next(ls);  /* read first token */
-  statlist(ls);  /* parse main body */
+  const bool ret = statlist(ls);  /* parse main body */
   check(ls, TK_EOS);
   close_func(ls);
 }
