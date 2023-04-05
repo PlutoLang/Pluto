@@ -3656,7 +3656,6 @@ static void retstat (LexState *ls, TypeDesc *prop) {
     || ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT
   ) {
     nret = 0;  /* return no values */
-    if (prop) *prop = VT_NIL;
   }
   else {
     nret = explist(ls, &e, prop);  /* optional return values */
