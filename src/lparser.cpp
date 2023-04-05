@@ -1559,7 +1559,7 @@ static void simpleexp_with_unary_support (LexState *ls, expdesc *v) {
   }
   else {
     testnext(ls, '+'); /* support pseudo-unary '+' */
-    simpleexp(ls, v, true);
+    simpleexp(ls, v, E_NO_COLON);
   }
 }
 
@@ -2055,7 +2055,7 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
       ++nargs;
       auto argline = ls->getLineNumber();
       expdesc argexp;
-      simpleexp(ls, &argexp, true);
+      simpleexp(ls, &argexp, E_NO_COLON);
       switch (argexp.k) {
         case VKSTR:
           lua_pushlstring(L, argexp.u.strval->contents, argexp.u.strval->size());
@@ -3098,7 +3098,7 @@ inline bool testnext2 (LexState *ls, int token1, int token2) {
 
 static void casecond(LexState* ls, int case_line, expdesc& lcase) {
   if (testnext(ls, '-')) { // Probably a negative constant.
-    simpleexp(ls, &lcase, true);
+    simpleexp(ls, &lcase, E_NO_COLON);
     switch (lcase.k) {
       case VKINT:
         lcase.u.ival *= -1;
@@ -3114,7 +3114,7 @@ static void casecond(LexState* ls, int case_line, expdesc& lcase) {
   }
   else {
     testnext(ls, '+'); /* support pseudo-unary '+' */
-    simpleexp(ls, &lcase, true);
+    simpleexp(ls, &lcase, E_NO_COLON);
     if (!vkisconst(lcase.k) && lcase.k != VLOCAL) {
       throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
     }
