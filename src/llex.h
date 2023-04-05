@@ -42,7 +42,7 @@ enum RESERVED {
 #ifdef PLUTO_COMPATIBLE_CLASS
   TK_CLASS,
 #endif
-  TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, // New compatibility keywords.
+  TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, // New compatibility keywords.
   /* New non-compatible keywords. */
 #ifndef PLUTO_COMPATIBLE_SWITCH
   TK_SWITCH,
@@ -64,6 +64,9 @@ enum RESERVED {
 #endif
 #ifndef PLUTO_COMPATIBLE_PARENT
   TK_PARENT,
+#endif
+#ifndef PLUTO_COMPATIBLE_EXPORT
+  TK_EXPORT,
 #endif
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
@@ -306,6 +309,7 @@ struct LexState {
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
   std::vector<EnumDesc> enums{};
+  std::vector<TString*> export_symbols{};
 
   LexState()
     : lines{ std::string{} }, warnconfs{ WarningConfig(0) }
