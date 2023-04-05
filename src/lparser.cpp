@@ -1072,7 +1072,7 @@ static int block_follow (LexState *ls, int withuntil) {
 }
 
 
-static void propagate_return_type(TypeDesc *prop, TypeDesc&& ret) {
+static void propagate_return_type(TypeDesc*& prop, TypeDesc&& ret) {
   if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
     if (prop->getType() == VT_NIL) {
       ret.setNullable();
