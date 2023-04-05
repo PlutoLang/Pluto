@@ -1559,11 +1559,38 @@ static void simpleexp_with_unary_support (LexState *ls, expdesc *v) {
   }
   else {
     testnext(ls, '+'); /* support pseudo-unary '+' */
-    simpleexp(ls, v, true);
+    simpleexp(ls, v, E_NO_COLON);
   }
 }
 
 
+/* keep advancing until we hit `token` */
+static void skip_until (LexState *ls, int token) {
+  int parens = 0;
+  int curlys = 0;
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.token == '(') {
+      parens++;
+    }
+    else if (ls->t.token == ')') {
+      parens--;
+    }
+    else if (ls->t.token == '{') {
+      curlys++;
+    }
+    else if (ls->t.token == '}') {
+      curlys--;
+    }
+    else if (ls->t.token == token) {
+      if (parens == 0 && curlys == 0) {
+        break;
+      }
+    }
+    luaX_next(ls);
+  }
+}
+
+/* keep advancing until we hit ',' or non-nested ')' */
 static void skip_over_simpleexp_within_parenlist (LexState *ls) {
   int parens = 0;
   int curlys = 0;
@@ -2055,7 +2082,7 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
       ++nargs;
       auto argline = ls->getLineNumber();
       expdesc argexp;
-      simpleexp(ls, &argexp, true);
+      simpleexp(ls, &argexp, E_NO_COLON);
       switch (argexp.k) {
         case VKSTR:
           lua_pushlstring(L, argexp.u.strval->contents, argexp.u.strval->size());
@@ -2714,7 +2741,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
   if (uop != OPR_NOUNOPR) {  /* prefix (unary) operator? */
     int line = ls->getLineNumber();
     luaX_next(ls);  /* skip operator */
-    subexpr(ls, v, UNARY_PRIORITY);
+    subexpr(ls, v, UNARY_PRIORITY, nullptr, flags);
     luaK_prefix(ls->fs, uop, v, line);
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
@@ -2731,7 +2758,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
       luaK_infix(ls->fs, OPR_ADD, v);
 
       expdesc v2;
-      subexpr(ls, &v2, priority[OPR_ADD].right);
+      subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, flags);
       luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
     }
   }
@@ -2751,7 +2778,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
     luaX_next(ls);  /* skip operator */
     luaK_infix(ls->fs, op, v);
     /* read sub-expression with higher priority */
-    nextop = subexpr(ls, &v2, priority[op].right);
+    nextop = subexpr(ls, &v2, priority[op].right, nullptr, flags);
     luaK_posfix(ls->fs, op, v, &v2, line);
     op = nextop;
   }
@@ -3097,28 +3124,7 @@ inline bool testnext2 (LexState *ls, int token1, int token2) {
 
 
 static void casecond(LexState* ls, int case_line, expdesc& lcase) {
-  if (testnext(ls, '-')) { // Probably a negative constant.
-    simpleexp(ls, &lcase, true);
-    switch (lcase.k) {
-      case VKINT:
-        lcase.u.ival *= -1;
-        break;
-  
-      case VKFLT:
-        lcase.u.nval *= -1;
-        break;
-  
-      default: // Why is there a unary '-' on a non-numeral type?
-        throwerr(ls, "unexpected symbol in 'case' expression.", "unary '-' on non-numeral type.");
-    }
-  }
-  else {
-    testnext(ls, '+'); /* support pseudo-unary '+' */
-    simpleexp(ls, &lcase, true);
-    if (!vkisconst(lcase.k) && lcase.k != VLOCAL) {
-      throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
-    }
-  }
+  expr(ls, &lcase, nullptr, E_NO_COLON);
   checknext(ls, ':');
 }
 
@@ -3152,10 +3158,9 @@ static void switchstat (LexState *ls, int line) {
 
     first = save;
 
+    luaK_infix(fs, OPR_NE, &first);
     expdesc lcase;
     casecond(ls, case_line, lcase);
-
-    luaK_infix(fs, OPR_NE, &first);
     luaK_posfix(fs, OPR_NE, &first, &lcase, ls->getLineNumber());
 
     caselist(ls);
@@ -3165,7 +3170,7 @@ static void switchstat (LexState *ls, int line) {
     newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
   }
 
-  std::vector<std::pair<expdesc, int>> cases{};
+  std::vector<std::pair<size_t, int>> cases{};
 
   while (gett(ls) != TK_END) {
     auto case_line = ls->getLineNumber();
@@ -3183,7 +3188,9 @@ static void switchstat (LexState *ls, int line) {
       if (!testnext(ls, TK_CASE)) {
         error_expected(ls, TK_CASE);
       }
-      casecond(ls, case_line, cases.emplace_back(std::pair<expdesc, int>{ expdesc{}, luaK_getlabel(fs) }).first);
+      cases.emplace_back(std::pair<size_t, int>{ luaX_getpos(ls), luaK_getlabel(fs) });
+      skip_until(ls, ':'); /* skip over casecond */
+      checknext(ls, ':');
       caselist(ls);
     }
   }
@@ -3202,7 +3209,12 @@ static void switchstat (LexState *ls, int line) {
   for (auto& c : cases) {
     test = save;
     luaK_infix(fs, OPR_EQ, &test);
-    luaK_posfix(fs, OPR_EQ, &test, &c.first, ls->getLineNumber());
+    auto pos = luaX_getpos(ls);
+    luaX_setpos(ls, c.first);
+    expdesc cc;
+    casecond(ls, ls->getLineNumber(), cc);
+    luaX_setpos(ls, pos);
+    luaK_posfix(fs, OPR_EQ, &test, &cc, ls->getLineNumber());
     luaK_patchlist(fs, test.u.info, c.second);
   }
 
@@ -3806,15 +3818,17 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 static void statement (LexState *ls, TypeDesc *prop) {
   luaX_checkspecial(ls);
   int line = ls->getLineNumber();
-  if (ls->laststat.IsEscapingToken() ||
-     (ls->laststat.Is(TK_GOTO) && !ls->findWithinLine(line, luaX_lookbehind(ls).seminfo.ts->toCpp()))) /* Don't warn if this statement is the goto's label. */
+  if ((ls->laststat.IsEscapingToken()
+    || (ls->laststat.Is(TK_GOTO) && !ls->findWithinLine(line, luaX_lookbehind(ls).seminfo.ts->toCpp()))) /* Don't warn if this statement is the goto's label. */
+    && ls->t.token != ';') /* Don't warn if this is only a semicolon */
   {
     throw_warn(ls,
       "unreachable code",
         luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)), UNREACHABLE_CODE);
     ls->L->top--;
   }
-  ls->laststat.token = ls->t.token;
+  if (ls->t.token != ';')
+    ls->laststat.token = ls->t.token;
   enterlevel(ls);
   switch (ls->t.token) {
     case ';': {  /* stat -> ';' (empty statement) */
