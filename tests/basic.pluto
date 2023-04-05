@@ -13,6 +13,37 @@ do
     local function takesNumber(a: number) end
     takesNumber(1)
     takesNumber(1.0)
+    -- void|string
+    local function f1(): ?string
+        if true then
+            return
+        end
+        return ""
+    end
+    local function f2(): ?string
+        if true then
+            return ""
+        end
+    end
+    -- possible void|string false-positve
+    local function f3(): string
+        if true then
+        end
+        return ""
+    end
+    -- nil|string
+    local function f4(): ?string
+        if true then
+            return ""
+        end
+        return nil
+    end
+    local function f5(): ?string
+        if true then
+            return nil
+        end
+        return ""
+    end
 end
 
 print "Testing compound assignment."
