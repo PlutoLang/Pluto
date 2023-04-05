@@ -1564,6 +1564,33 @@ static void simpleexp_with_unary_support (LexState *ls, expdesc *v) {
 }
 
 
+/* keep advancing until we hit token ')' */
+static void skip_until (LexState *ls, int token) {
+  int parens = 0;
+  int curlys = 0;
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.token == '(') {
+      parens++;
+    }
+    else if (ls->t.token == ')') {
+      parens--;
+    }
+    else if (ls->t.token == '{') {
+      curlys++;
+    }
+    else if (ls->t.token == '}') {
+      curlys--;
+    }
+    else if (ls->t.token == token) {
+      if (parens == 0 && curlys == 0) {
+        break;
+      }
+    }
+    luaX_next(ls);
+  }
+}
+
+/* keep advancing until we hit ',' or non-nested ')' */
 static void skip_over_simpleexp_within_parenlist (LexState *ls) {
   int parens = 0;
   int curlys = 0;
@@ -3097,28 +3124,7 @@ inline bool testnext2 (LexState *ls, int token1, int token2) {
 
 
 static void casecond(LexState* ls, int case_line, expdesc& lcase) {
-  if (testnext(ls, '-')) { // Probably a negative constant.
-    simpleexp(ls, &lcase, E_NO_COLON);
-    switch (lcase.k) {
-      case VKINT:
-        lcase.u.ival *= -1;
-        break;
-  
-      case VKFLT:
-        lcase.u.nval *= -1;
-        break;
-  
-      default: // Why is there a unary '-' on a non-numeral type?
-        throwerr(ls, "unexpected symbol in 'case' expression.", "unary '-' on non-numeral type.");
-    }
-  }
-  else {
-    testnext(ls, '+'); /* support pseudo-unary '+' */
-    simpleexp(ls, &lcase, E_NO_COLON);
-    if (!vkisconst(lcase.k) && lcase.k != VLOCAL) {
-      throwerr(ls, "malformed 'case' expression.", "expression must be compile-time constant.", case_line);
-    }
-  }
+  expr(ls, &lcase, nullptr, E_NO_COLON);
   checknext(ls, ':');
 }
 
@@ -3165,7 +3171,7 @@ static void switchstat (LexState *ls, int line) {
     newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
   }
 
-  std::vector<std::pair<expdesc, int>> cases{};
+  std::vector<std::pair<size_t, int>> cases{};
 
   while (gett(ls) != TK_END) {
     auto case_line = ls->getLineNumber();
@@ -3183,7 +3189,9 @@ static void switchstat (LexState *ls, int line) {
       if (!testnext(ls, TK_CASE)) {
         error_expected(ls, TK_CASE);
       }
-      casecond(ls, case_line, cases.emplace_back(std::pair<expdesc, int>{ expdesc{}, luaK_getlabel(fs) }).first);
+      cases.emplace_back(std::pair<size_t, int>{ luaX_getpos(ls), luaK_getlabel(fs) });
+      skip_until(ls, ':'); /* skip over casecond */
+      checknext(ls, ':');
       caselist(ls);
     }
   }
@@ -3202,7 +3210,12 @@ static void switchstat (LexState *ls, int line) {
   for (auto& c : cases) {
     test = save;
     luaK_infix(fs, OPR_EQ, &test);
-    luaK_posfix(fs, OPR_EQ, &test, &c.first, ls->getLineNumber());
+    auto pos = luaX_getpos(ls);
+    luaX_setpos(ls, c.first);
+    expdesc cc;
+    casecond(ls, ls->getLineNumber(), cc);
+    luaX_setpos(ls, pos);
+    luaK_posfix(fs, OPR_EQ, &test, &cc, ls->getLineNumber());
     luaK_patchlist(fs, test.u.info, c.second);
   }
 
