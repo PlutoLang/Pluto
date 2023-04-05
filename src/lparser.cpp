@@ -3745,7 +3745,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
 #endif
     case TK_PCLASS: {
       classstat(ls);
-      return;
+      break;
     }
     case TK_DBCOLON: {  /* stat -> label */
       luaX_next(ls);  /* skip double colon */
