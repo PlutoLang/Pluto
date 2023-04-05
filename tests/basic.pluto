@@ -551,6 +551,22 @@ do
     assert(switchfunc(2) == 2)
     assert(switchfunc(3) == nil)
 end
+do
+    switch true do
+        default:
+            error()
+        case (87 == 87):
+    end
+end
+do
+    local x = 3
+    local y = 2
+    switch x do
+        default:
+            error()
+        case y + 1: -- x == y + 1
+    end
+end
 
 print "Testing table freezing."
 do
