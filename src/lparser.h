@@ -171,8 +171,8 @@ struct PrimitiveType {
     {
     case VT_DUNNO: str.append("dunno"); break;
     case VT_VOID: str.append("void"); break;
-    case VT_MIXED: str.append("mixed"); break;
     case VT_NIL: str.append("nil"); break;
+    case VT_MIXED: str.append("mixed"); break;
     case VT_NUMBER: str.append("number"); break;
     case VT_INT: str.append("int"); break;
     case VT_FLT: str.append("float"); break;
