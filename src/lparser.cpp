@@ -1564,7 +1564,7 @@ static void simpleexp_with_unary_support (LexState *ls, expdesc *v) {
 }
 
 
-/* keep advancing until we hit token ')' */
+/* keep advancing until we hit `token` */
 static void skip_until (LexState *ls, int token) {
   int parens = 0;
   int curlys = 0;
