@@ -2445,6 +2445,7 @@ static void newexpr (LexState *ls, expdesc *v) {
   expdesc args;
   expr(ls, &args, nullptr, E_NO_CALL);
 
+  lua_assert(v->k == VNONRELOC);
   int base = v->u.info;  /* base register for call */
   luaK_exp2nextreg(fs, &args);  /* close last argument */
   int nparams = fs->freereg - (base + 1);
@@ -2457,9 +2458,41 @@ static void newexpr (LexState *ls, expdesc *v) {
 }
 
 
+static void instanceof (LexState *ls, expdesc *v) {
+  FuncState *fs = ls->fs;
+  int line = ls->getLineNumber();
+
+  singlevar(ls, v, luaS_newliteral(ls->L, "Pluto_operator_instanceof"));
+  luaK_exp2nextreg(fs, v);
+
+  expdesc args;
+  singlevar(ls, &args);
+  luaK_exp2nextreg(fs, &args);
+  luaX_next(ls);
+  singlevar(ls, &args);
+
+  lua_assert(v->k == VNONRELOC);
+  int base = v->u.info;  /* base register for call */
+  luaK_exp2nextreg(fs, &args);  /* close last argument */
+  int nparams = fs->freereg - (base + 1);
+  init_exp(v, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
+  luaK_fixline(fs, line);
+  fs->freereg = base + 1;
+}
+
+
 static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
+  if (ls->t.token != TK_EOS) {
+    luaX_next(ls);
+    const bool is_instanceof = (ls->t.token == TK_INSTANCEOF);
+    luaX_prev(ls);
+    if (is_instanceof) {
+      instanceof(ls, v);
+      return;
+    }
+  }
   switch (ls->t.token) {
     case TK_FLT: {
       if (prop) *prop = VT_FLT;
@@ -3879,6 +3912,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
 
 static void builtinoperators (LexState *ls) {
   bool uses_new = false;
+  bool uses_instanceof = false;
 
   /* discover what operators are used */
   for (const auto& t : ls->tokens) {
@@ -3889,97 +3923,163 @@ static void builtinoperators (LexState *ls) {
       case TK_PNEW:
         uses_new = true;
         break;
+      case TK_INSTANCEOF:
+        uses_instanceof = true;
+        break;
     }
   }
 
   /* inject implementers */
-  if (uses_new) {
+  if (uses_new || uses_instanceof) {
     /* capture state */
     std::vector<Token> tokens = std::move(ls->tokens);
 
     ls->tokens = {}; /* avoid use of moved warning */
 
-    // local function Pluto_operator_new(mt)
-    ls->tokens.emplace_back(Token(TK_LOCAL));
-    ls->tokens.emplace_back(Token(TK_FUNCTION));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "Pluto_operator_new")));
-    ls->tokens.emplace_back(Token('('));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
-    ls->tokens.emplace_back(Token(')'));
+    if (uses_new) {
+      // local function Pluto_operator_new(mt)
+      ls->tokens.emplace_back(Token(TK_LOCAL));
+      ls->tokens.emplace_back(Token(TK_FUNCTION));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "Pluto_operator_new")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+      ls->tokens.emplace_back(Token(')'));
+     
+      //   if type(mt) ~= "table" then
+      ls->tokens.emplace_back(Token(TK_IF));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "type")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+      ls->tokens.emplace_back(Token(')'));
+      ls->tokens.emplace_back(Token(TK_NE));
+      ls->tokens.emplace_back(Token(TK_STRING, luaS_newliteral(ls->L, "table")));
+      ls->tokens.emplace_back(Token(TK_THEN));
+     
+      //     error "'new' used on non-table value"
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "error")));
+      ls->tokens.emplace_back(Token(TK_STRING, luaS_newliteral(ls->L, "'new' used on non-table value")));
+     
+      //   end
+      ls->tokens.emplace_back(Token(TK_END));
+     
+      //   local t = {}
+      ls->tokens.emplace_back(Token(TK_LOCAL));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token('{'));
+      ls->tokens.emplace_back(Token('}'));
+     
+      //   setmetatable(t, mt)
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "setmetatable")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+      ls->tokens.emplace_back(Token(')'));
+     
+      //   mt.__index = mt
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+      ls->tokens.emplace_back(Token('.'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__index")));
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+     
+      //   return function(...)
+      ls->tokens.emplace_back(Token(TK_RETURN));
+      ls->tokens.emplace_back(Token(TK_FUNCTION));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_DOTS));
+      ls->tokens.emplace_back(Token(')'));
+     
+      //     if t.__construct then
+      ls->tokens.emplace_back(Token(TK_IF));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token('.'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__construct")));
+      ls->tokens.emplace_back(Token(TK_THEN));
+     
+      //       t:__construct(...)
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token(':'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__construct")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_DOTS));
+      ls->tokens.emplace_back(Token(')'));
+     
+      //     end
+      ls->tokens.emplace_back(Token(TK_END));
+     
+      //     return t
+      ls->tokens.emplace_back(Token(TK_RETURN));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+     
+      //   end
+      ls->tokens.emplace_back(Token(TK_END));
+     
+      // end
+      ls->tokens.emplace_back(Token(TK_END));
+    }
+    if (uses_instanceof) {
+      // local function Pluto_operator_instanceof(t, mt)
+      ls->tokens.emplace_back(Token(TK_LOCAL));
+      ls->tokens.emplace_back(Token(TK_FUNCTION));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "Pluto_operator_instanceof")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+      ls->tokens.emplace_back(Token(')'));
 
-    //   if type(mt) ~= "table" then
-    ls->tokens.emplace_back(Token(TK_IF));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "type")));
-    ls->tokens.emplace_back(Token('('));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
-    ls->tokens.emplace_back(Token(')'));
-    ls->tokens.emplace_back(Token(TK_NE));
-    ls->tokens.emplace_back(Token(TK_STRING, luaS_newliteral(ls->L, "table")));
-    ls->tokens.emplace_back(Token(TK_THEN));
+      //   t = getmetatable(t)
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "getmetatable")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token(')'));
 
-    //     error "'new' used on non-table value"
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "error")));
-    ls->tokens.emplace_back(Token(TK_STRING, luaS_newliteral(ls->L, "'new' used on non-table value")));
+      //   while t ~= nil do
+      ls->tokens.emplace_back(Token(TK_WHILE));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token(TK_NE));
+      ls->tokens.emplace_back(Token(TK_NIL));
+      ls->tokens.emplace_back(Token(TK_DO));
 
-    //   end
-    ls->tokens.emplace_back(Token(TK_END));
+      //     if t == mt then
+      ls->tokens.emplace_back(Token(TK_IF));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token(TK_EQ));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+      ls->tokens.emplace_back(Token(TK_THEN));
 
-    //   local t = {}
-    ls->tokens.emplace_back(Token(TK_LOCAL));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
-    ls->tokens.emplace_back(Token('='));
-    ls->tokens.emplace_back(Token('{'));
-    ls->tokens.emplace_back(Token('}'));
+      //       return true
+      ls->tokens.emplace_back(Token(TK_RETURN));
+      ls->tokens.emplace_back(Token(TK_TRUE));
 
-    //   setmetatable(t, mt)
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "setmetatable")));
-    ls->tokens.emplace_back(Token('('));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
-    ls->tokens.emplace_back(Token(','));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
-    ls->tokens.emplace_back(Token(')'));
+      //     end
+      ls->tokens.emplace_back(Token(TK_END));
 
-    //   mt.__index = mt
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
-    ls->tokens.emplace_back(Token('.'));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__index")));
-    ls->tokens.emplace_back(Token('='));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+      //     t = getmetatable(t)?.__index
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "getmetatable")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
+      ls->tokens.emplace_back(Token(')'));
+      ls->tokens.emplace_back(Token('?'));
+      ls->tokens.emplace_back(Token('.'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__index")));
 
-    //   return function(...)
-    ls->tokens.emplace_back(Token(TK_RETURN));
-    ls->tokens.emplace_back(Token(TK_FUNCTION));
-    ls->tokens.emplace_back(Token('('));
-    ls->tokens.emplace_back(Token(TK_DOTS));
-    ls->tokens.emplace_back(Token(')'));
+      //   end
+      ls->tokens.emplace_back(Token(TK_END));
 
-    //     if t.__construct then
-    ls->tokens.emplace_back(Token(TK_IF));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
-    ls->tokens.emplace_back(Token('.'));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__construct")));
-    ls->tokens.emplace_back(Token(TK_THEN));
+      //   return false
+      ls->tokens.emplace_back(Token(TK_RETURN));
+      ls->tokens.emplace_back(Token(TK_FALSE));
 
-    //       t:__construct(...)
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
-    ls->tokens.emplace_back(Token(':'));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__construct")));
-    ls->tokens.emplace_back(Token('('));
-    ls->tokens.emplace_back(Token(TK_DOTS));
-    ls->tokens.emplace_back(Token(')'));
-
-    //     end
-    ls->tokens.emplace_back(Token(TK_END));
-
-    //     return t
-    ls->tokens.emplace_back(Token(TK_RETURN));
-    ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
-
-    //   end
-    ls->tokens.emplace_back(Token(TK_END));
-
-    // end
-    ls->tokens.emplace_back(Token(TK_END));
+      // end
+      ls->tokens.emplace_back(Token(TK_END));
+    }
 
     /* parse */
     ls->tokens.emplace_back(Token(TK_EOS));
