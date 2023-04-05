@@ -864,6 +864,23 @@ do
     end
     assert(classexpr.b == true)
 end
+do
+    local Entity = {
+        age = 1
+    }
+
+    local class Human extends Entity
+    end
+
+    local e = new Entity()
+    local h = new Human()
+    assert(e.age == 1)
+    assert(h.age == 1)
+    assert(e instanceof Entity == true)
+    assert(e instanceof Human == false)
+    assert(h instanceof Entity == true)
+    assert(h instanceof Human == true)
+end
 
 print "Testing named varargs."
 do
