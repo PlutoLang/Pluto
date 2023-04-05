@@ -1,5 +1,6 @@
 #include "JsonString.hpp"
 
+#include "string.hpp"
 #include "unicode.hpp"
 #include "Writer.hpp"
 
@@ -108,7 +109,7 @@ namespace soup
 
 	std::string JsonString::encode() const
 	{
-		std::string str{ value };
+		std::string str = *this;
 		string::replaceAll(str, "\\", "\\\\");
 		string::replaceAll(str, "\"", "\\\"");
 		string::replaceAll(str, "\r", "\\r");
@@ -130,7 +131,7 @@ namespace soup
 		}
 		b |= (0b11111 << 3);
 		return w.u8(b)
-			&& w.str_lp_u64_dyn(value)
+			&& w.str_lp_u64_dyn(*this)
 			;
 	}
 }

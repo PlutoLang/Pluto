@@ -15,11 +15,12 @@ namespace soup
 	struct ChessCoordinate;
 
 	// crypto
-	struct Keystore;
 	struct RsaKeypair;
+	struct TrustStore;
 
 	// crypto.x509
 	struct X509Certchain;
+	class X509Certificate;
 
 	// data
 	struct Oid;
@@ -116,6 +117,7 @@ namespace soup
 
 	// net.dns.resolver
 	struct dnsResolver;
+	struct dnsHttpResolver;
 
 	// net.tls
 	class SocketTlsHandshaker;

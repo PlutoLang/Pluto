@@ -175,6 +175,12 @@ namespace soup
 			return isLetter(c) || isNumberChar(c);
 		}
 
+		template <typename T>
+		[[nodiscard]] static constexpr bool isHexDigitChar(const T c) noexcept
+		{
+			return isNumberChar(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+		}
+
 		// string attributes
 
 		template <typename T>
@@ -248,29 +254,50 @@ namespace soup
 			}
 			return res;
 		}
+		
+		enum ToIntFlags : uint8_t
+		{
+			TI_FULL = 1 << 0, // The entire string must be processed. If the string is too long or contains invalid characters, nullopt or fallback will be returned.
+		};
 
 		template <typename IntT, typename CharT>
-		[[nodiscard]] static IntT toInt(const CharT*& it) noexcept
+		[[nodiscard]] static IntT toIntImpl(const CharT*& it) noexcept
 		{
 			IntT val = 0;
 			IntT max = 0;
 			IntT prev_max = 0;
 			while (true)
 			{
-				const CharT c = *it++;
-				if (!isNumberChar(c))
+				if constexpr (std::is_unsigned_v<IntT>)
 				{
+					max *= 10;
+					max += 9;
+					SOUP_IF_UNLIKELY (!(max > prev_max))
+					{
+						break;
+					}
+					prev_max = max;
+				}
+
+				const CharT c = *it++;
+				SOUP_IF_UNLIKELY (!isNumberChar(c))
+				{
+					--it;
 					break;
 				}
 				val *= 10;
 				val += (c - '0');
-				max *= 10;
-				max += 9;
-				if (max < prev_max)
+
+				if constexpr (std::is_signed_v<IntT>)
 				{
-					break;
+					max *= 10;
+					max += 9;
+					SOUP_IF_UNLIKELY (max < prev_max)
+					{
+						break;
+					}
+					prev_max = max;
 				}
-				prev_max = max;
 			}
 			return val;
 		}
@@ -284,21 +311,37 @@ namespace soup
 			IntT prev_max = 0;
 			while (true)
 			{
-				const CharT c = *it++;
-				if (!isNumberChar(c))
+				if constexpr (std::is_unsigned_v<IntT>)
 				{
+					max *= 10;
+					max += 9;
+					SOUP_IF_UNLIKELY (!(max > prev_max))
+					{
+						break;
+					}
+					prev_max = max;
+				}
+
+				const CharT c = *it++;
+				SOUP_IF_UNLIKELY (!isNumberChar(c))
+				{
+					--it;
 					break;
 				}
 				had_number_char = true;
 				val *= 10;
 				val += (c - '0');
-				max *= 10;
-				max += 9;
-				if (max < prev_max)
+
+				if constexpr (std::is_signed_v<IntT>)
 				{
-					break;
+					max *= 10;
+					max += 9;
+					SOUP_IF_UNLIKELY (max < prev_max)
+					{
+						break;
+					}
+					prev_max = max;
 				}
-				prev_max = max;
 			}
 			if (!had_number_char)
 			{
@@ -307,14 +350,11 @@ namespace soup
 			return val;
 		}
 
-		template <typename IntT, typename StringView>
-		[[nodiscard]] static std::optional<IntT> toInt(const StringView& str) noexcept
+		template <typename IntT, uint8_t Flags = 0, typename CharT>
+		[[nodiscard]] static std::optional<IntT> toInt(const CharT* it) noexcept
 		{
-			using CharT = typename StringView::value_type;
-
 			bool neg = false;
-			auto it = str.cbegin();
-			if (it == str.cend())
+			if (*it == '\0')
 			{
 				return std::nullopt;
 			}
@@ -324,7 +364,7 @@ namespace soup
 				neg = true;
 				[[fallthrough]];
 			case '+':
-				if (++it == str.cend())
+				if (*++it == '\0')
 				{
 					return std::nullopt;
 				}
@@ -333,8 +373,14 @@ namespace soup
 			{
 				return std::nullopt;
 			}
-			const CharT* it_ = &*it;
-			IntT val = toInt<IntT, CharT>(it_);
+			IntT val = toIntImpl<IntT, CharT>(it);
+			if constexpr (Flags & TI_FULL)
+			{
+				if (*it != '\0')
+				{
+					return std::nullopt;
+				}
+			}
 			if (neg)
 			{
 				val *= -1;
@@ -342,38 +388,173 @@ namespace soup
 			return std::optional<IntT>(std::move(val));
 		}
 
-		template <typename IntT>
-		[[nodiscard]] static std::optional<IntT> toInt(const std::string_view& str) noexcept
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static std::optional<IntT> toInt(const std::string& str) noexcept
 		{
-			return toInt<IntT, std::string_view>(str);
+			return toInt<IntT, Flags>(str.c_str());
 		}
 
-		template <typename IntT>
-		[[nodiscard]] static std::optional<IntT> toInt(const std::wstring_view& str) noexcept
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static std::optional<IntT> toInt(const std::wstring& str) noexcept
 		{
-			return toInt<IntT, std::wstring_view>(str);
+			return toInt<IntT, Flags>(str.c_str());
 		}
 
-		template <typename IntT>
-		[[nodiscard]] static IntT toInt(const std::string_view& str, IntT default_value) noexcept
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static IntT toInt(const char* str, IntT fallback) noexcept
 		{
-			auto res = toInt<IntT>(str);
+			auto res = toInt<IntT, Flags>(str);
 			if (res.has_value())
 			{
 				return res.value();
 			}
-			return default_value;
+			return fallback;
+		}
+		
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static IntT toInt(const std::string& str, IntT fallback) noexcept
+		{
+			return toInt<IntT, Flags>(str.c_str(), fallback);
 		}
 
-		template <typename IntT>
-		[[nodiscard]] static IntT toInt(const std::wstring_view& str, IntT default_value) noexcept
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static IntT toInt(const wchar_t* str, IntT fallback) noexcept
 		{
-			auto res = toInt<IntT>(str);
+			auto res = toInt<IntT, Flags>(str);
 			if (res.has_value())
 			{
 				return res.value();
 			}
-			return default_value;
+			return fallback;
+		}
+
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static IntT toInt(const std::wstring& str, IntT fallback) noexcept
+		{
+			return toInt<IntT, Flags>(str.c_str(), fallback);
+		}
+
+		template <typename IntT, typename CharT>
+		[[nodiscard]] static IntT hexToIntImpl(const CharT*& it)
+		{
+			IntT val = 0;
+			IntT max = 0;
+			IntT prev_max = 0;
+			while (true)
+			{
+				if constexpr (std::is_unsigned_v<IntT>)
+				{
+					max *= 0x10;
+					max += 0xf;
+					SOUP_IF_UNLIKELY (!(max > prev_max))
+					{
+						break;
+					}
+					prev_max = max;
+				}
+
+				const CharT c = *it++;
+				if (isNumberChar(c))
+				{
+					val *= 0x10;
+					val += (c - '0');
+				}
+				else if (c >= 'a' && c <= 'f')
+				{
+					val *= 0x10;
+					val += 0xA + (c - 'a');
+				}
+				else if (c >= 'A' && c <= 'F')
+				{
+					val *= 0x10;
+					val += 0xA + (c - 'A');
+				}
+				else
+				{
+					--it;
+					break;
+				}
+
+				if constexpr (std::is_signed_v<IntT>)
+				{
+					max *= 0x10;
+					max += 0xf;
+					SOUP_IF_UNLIKELY (max < prev_max)
+					{
+						break;
+					}
+					prev_max = max;
+				}
+			}
+			return val;
+		}
+
+		template <typename IntT, uint8_t Flags = 0, typename CharT>
+		[[nodiscard]] static std::optional<IntT> hexToInt(const CharT* it) noexcept
+		{
+			if (*it == '\0')
+			{
+				return std::nullopt;
+			}
+			if (!isHexDigitChar(*it))
+			{
+				return std::nullopt;
+			}
+			IntT val = hexToIntImpl<IntT, CharT>(it);
+			if constexpr (Flags & TI_FULL)
+			{
+				if (*it != '\0')
+				{
+					return std::nullopt;
+				}
+			}
+			return std::optional<IntT>(std::move(val));
+		}
+
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static std::optional<IntT> hexToInt(const std::string& str) noexcept
+		{
+			return hexToInt<IntT, Flags>(str.c_str());
+		}
+
+		template <typename IntT, uint8_t Flags>
+		[[nodiscard]] static std::optional<IntT> hexToInt(const std::wstring& str) noexcept
+		{
+			return hexToInt<IntT, Flags>(str.c_str());
+		}
+
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static IntT hexToInt(const char* str, IntT fallback) noexcept
+		{
+			auto res = hexToInt<IntT, Flags>(str);
+			if (res.has_value())
+			{
+				return res.value();
+			}
+			return fallback;
+		}
+
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static IntT hexToInt(const std::string& str, IntT fallback) noexcept
+		{
+			return hexToInt<IntT, Flags>(str.c_str(), fallback);
+		}
+
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static IntT hexToInt(const wchar_t* str, IntT fallback) noexcept
+		{
+			auto res = hexToInt<IntT, Flags>(str);
+			if (res.has_value())
+			{
+				return res.value();
+			}
+			return fallback;
+		}
+
+		template <typename IntT, uint8_t Flags = 0>
+		[[nodiscard]] static IntT hexToInt(const std::wstring& str, IntT fallback) noexcept
+		{
+			return hexToInt<IntT, Flags>(str.c_str(), fallback);
 		}
 
 		// string mutation
@@ -630,7 +811,7 @@ namespace soup
 		}
 
 		template <typename Str>
-		static Str lower(Str&& str)
+		[[nodiscard]] static Str lower(Str&& str)
 		{
 			lower(str);
 			return str;
@@ -646,7 +827,7 @@ namespace soup
 		}
 
 		template <typename Str>
-		static Str upper(Str&& str)
+		[[nodiscard]] static Str upper(Str&& str)
 		{
 			upper(str);
 			return str;

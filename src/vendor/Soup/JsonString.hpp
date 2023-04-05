@@ -2,7 +2,7 @@
 
 #include "JsonNode.hpp"
 
-#include "string.hpp"
+#include <string>
 
 namespace soup
 {
@@ -11,7 +11,7 @@ namespace soup
 		std::string value{};
 
 		explicit JsonString() noexcept;
-		explicit JsonString(std::string&& value)noexcept;
+		explicit JsonString(std::string&& value) noexcept;
 		explicit JsonString(const char*& c);
 
 		[[nodiscard]] std::string encode() const final;
@@ -19,6 +19,11 @@ namespace soup
 		bool binaryEncode(Writer& w) const final;
 
 		operator std::string& () noexcept
+		{
+			return value;
+		}
+
+		operator const std::string& () const noexcept
 		{
 			return value;
 		}

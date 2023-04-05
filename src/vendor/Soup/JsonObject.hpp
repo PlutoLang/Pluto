@@ -37,7 +37,6 @@ namespace soup
 		[[nodiscard]] auto end() const noexcept { return children.end(); }
 
 		void add(UniquePtr<JsonNode>&& k, UniquePtr<JsonNode>&& v);
-		void add(std::string k, UniquePtr<JsonNode>&& v) = delete;
 		void add(std::string k, std::string v);
 		void add(std::string k, const char* v);
 		void add(std::string k, int8_t v);
@@ -45,5 +44,11 @@ namespace soup
 		void add(std::string k, int32_t v);
 		void add(std::string k, int64_t v);
 		void add(std::string k, bool v);
+
+		template <typename T, SOUP_RESTRICT(std::is_base_of_v<JsonNode, T>)>
+		void add(std::string k, UniquePtr<T>&& v)
+		{
+			add(soup::make_unique<JsonString>(std::move(k)), std::move(v));
+		}
 	};
 }
