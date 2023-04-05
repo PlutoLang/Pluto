@@ -796,9 +796,6 @@
 // If defined, Pluto will link with Soup.
 //#define PLUTO_USE_SOUP
 
-// If defined, Pluto won't emit parser warnings.
-//#define PLUTO_NO_PARSER_WARNINGS
-
 // If defined, Pluto errors will use ANSI color codes.
 //#define PLUTO_USE_COLORED_OUTPUT
 
