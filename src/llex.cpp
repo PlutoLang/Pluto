@@ -136,10 +136,10 @@ const char *luaX_token2str_noq (LexState *ls, int token) {
   }
   else switch (token) {
     case TK_NAME: case TK_STRING:
-      if (ls->hasDoneLexerPass()) {
-        ret = luaO_pushfstring(ls->L, "%s", ls->t.seminfo.ts->contents);
-        ls->L->top--;
-      }
+      if (!ls->hasDoneLexerPass())
+        return luaX_tokens[token - FIRST_RESERVED];
+      ret = luaO_pushfstring(ls->L, "%s", ls->t.seminfo.ts->contents);
+      ls->L->top--;
       break;
     case TK_FLT: case TK_INT:
       save(ls, '\0');
