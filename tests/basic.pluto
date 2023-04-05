@@ -916,6 +916,22 @@ do
     assert(t[2] == 1337)
 end
 
+print "Testing export."
+do
+    local t = load [[export var = 1337
+
+    export function func()
+        return true
+    end
+
+    export class Clazz
+    end
+    ]] ()
+    assert(t.var == 1337)
+    assert(t.func() == true)
+    assert(type(t.Clazz) == "table")
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
