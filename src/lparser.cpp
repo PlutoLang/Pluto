@@ -1105,7 +1105,9 @@ static void statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implie
   while (!block_follow(ls, 1)) {
     ret = (ls->t.token == TK_RETURN);
     TypeDesc p = VT_DUNNO;
+    const auto levels = ls->L->nCcalls;
     statement(ls, &p);
+    lua_assert(levels == ls->L->nCcalls);
     if (prop && /* do we need to propagate the return type? */
         p.getType() != VT_DUNNO) { /* is there a return path here? */
       propagate_return_type(prop, p.getType());
