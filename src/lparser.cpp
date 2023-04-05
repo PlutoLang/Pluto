@@ -3158,10 +3158,9 @@ static void switchstat (LexState *ls, int line) {
 
     first = save;
 
+    luaK_infix(fs, OPR_NE, &first);
     expdesc lcase;
     casecond(ls, case_line, lcase);
-
-    luaK_infix(fs, OPR_NE, &first);
     luaK_posfix(fs, OPR_NE, &first, &lcase, ls->getLineNumber());
 
     caselist(ls);
