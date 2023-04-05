@@ -151,10 +151,7 @@ struct Token {
   [[nodiscard]] bool IsNarrow() const noexcept
   {
     return token == TK_IN
-      || token == TK_CASE
-      || token == TK_DEFAULT
-      || token == TK_AS
-      || token == TK_BEGIN
+      || (token >= TK_CASE && token < TK_PSWITCH)
 #ifdef PLUTO_COMPATIBLE_CLASS
       || token == TK_CLASS
 #endif
