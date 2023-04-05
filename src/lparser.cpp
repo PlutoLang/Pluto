@@ -1449,21 +1449,12 @@ static void applyextends (LexState *ls, expdesc *v, TString *parent, int line) {
   FuncState *fs = ls->fs;
 
   expdesc f;
-  singlevar(ls, &f, luaS_newliteral(ls->L, "setmetatable"));
+  singlevar(ls, &f, luaS_newliteral(ls->L, "Pluto_operator_extends"));
   luaK_exp2nextreg(fs, &f);
 
   expdesc args = *v;
   luaK_exp2nextreg(fs, &args);
-  newtable(ls, &args, [ls, &parent](expdesc *key, expdesc *val) {
-    if (parent) {
-      init_exp(key, VKSTR, 0);
-      key->u.strval = luaS_newliteral(ls->L, "__index");
-      singlevar(ls, val, parent);
-      parent = nullptr;
-      return true;
-    }
-    return false;
-  });
+  singlevar(ls, &args, parent);
 
   lua_assert(f.k == VNONRELOC);
   int base = f.u.info;  /* base register for call */
@@ -3908,6 +3899,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
 
 static void builtinoperators (LexState *ls) {
   bool uses_new = false;
+  bool uses_extends = false;
   bool uses_instanceof = false;
 
   /* discover what operators are used */
@@ -3919,6 +3911,9 @@ static void builtinoperators (LexState *ls) {
       case TK_PNEW:
         uses_new = true;
         break;
+      case TK_EXTENDS:
+        uses_extends = true;
+        break;
       case TK_INSTANCEOF:
         uses_instanceof = true;
         break;
@@ -3926,7 +3921,7 @@ static void builtinoperators (LexState *ls) {
   }
 
   /* inject implementers */
-  if (uses_new || uses_instanceof) {
+  if (uses_new || uses_extends || uses_instanceof) {
     /* capture state */
     std::vector<Token> tokens = std::move(ls->tokens);
 
@@ -4015,6 +4010,39 @@ static void builtinoperators (LexState *ls) {
       // end
       ls->tokens.emplace_back(Token(TK_END));
     }
+    if (uses_extends) {
+      // local function Pluto_operator_extends(c, p)
+      ls->tokens.emplace_back(Token(TK_LOCAL));
+      ls->tokens.emplace_back(Token(TK_FUNCTION));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "Pluto_operator_extends")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "c")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "p")));
+      ls->tokens.emplace_back(Token(')'));
+
+      // setmetatable(c, { __index = p })
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "setmetatable")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "c")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token('{'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__index")));
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "p")));
+      ls->tokens.emplace_back(Token('}'));
+      ls->tokens.emplace_back(Token(')'));
+
+      //   c.__parent = p
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "c")));
+      ls->tokens.emplace_back(Token('.'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__parent")));
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "p")));
+
+      // end
+      ls->tokens.emplace_back(Token(TK_END));
+    }
     if (uses_instanceof) {
       // local function Pluto_operator_instanceof(t, mt)
       ls->tokens.emplace_back(Token(TK_LOCAL));
@@ -4055,16 +4083,12 @@ static void builtinoperators (LexState *ls) {
       //     end
       ls->tokens.emplace_back(Token(TK_END));
 
-      //     t = getmetatable(t)?.__index
+      //     t = t.__parent
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
       ls->tokens.emplace_back(Token('='));
-      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "getmetatable")));
-      ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
-      ls->tokens.emplace_back(Token(')'));
-      ls->tokens.emplace_back(Token('?'));
       ls->tokens.emplace_back(Token('.'));
-      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__index")));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__parent")));
 
       //   end
       ls->tokens.emplace_back(Token(TK_END));
