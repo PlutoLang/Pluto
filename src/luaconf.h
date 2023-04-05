@@ -793,7 +793,7 @@
 // !!IMPORTANT!!
 // Enabling this macro will greatly expand the preloaded standard libraries to your access.
 //   However, it will complicate the build process. Look at what features you need, and if they require Soup.
-// If defined, Pluto will link with Soup via Sun. Flat directory structure is expected, but feel free to modify the Sun build files appropriately.
+// If defined, Pluto will link with Soup.
 //#define PLUTO_USE_SOUP
 
 // If defined, Pluto won't emit parser warnings.
