@@ -3691,7 +3691,7 @@ static void destructuring (LexState *ls) {
   expr(ls, &t);
 
   /* special case for destructuring a single field only, can be done in-place */
-  if (props.size() == 1) {
+  if (t.k == VNONRELOC && props.size() == 1) {
     expdesc k, l;
     codestring(&k, props.at(0));
     luaK_indexed(ls->fs, &t, &k);
@@ -3702,7 +3702,7 @@ static void destructuring (LexState *ls) {
 
   /* ensure table has a place to stay */
   TString* temporary = nullptr;
-  if (t.k == VNONRELOC) {
+  if (t.k != VLOCAL) {
     temporary = luaS_newliteral(ls->L, "(temporary)");
     new_localvar(ls, temporary, line);
     adjust_assign(ls, 1, 1, &t);
