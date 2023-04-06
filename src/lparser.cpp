@@ -1067,10 +1067,6 @@ static int block_follow (LexState *ls, int withuntil) {
     case TK_ELSE: case TK_ELSEIF:
     case TK_END: case TK_EOS:
       return 1;
-    case TK_PWHEN:
-#ifndef PLUTO_COMPATIBLE_WHEN
-    case TK_WHEN:
-#endif
     case TK_UNTIL: return withuntil;
     default: return 0;
   }
@@ -3339,16 +3335,6 @@ static void repeatstat (LexState *ls) {
   luaK_patchtohere(fs, bl1.scopeend);
   if (testnext(ls, TK_UNTIL)) {
     condexit = cond(ls);  /* read condition (inside scope block) */
-#ifdef PLUTO_COMPATIBLE_WHEN
-  } else if (testnext(ls, TK_PWHEN)) {
-#else
-  } else if (testnext2(ls, TK_PWHEN, TK_WHEN)) {
-#endif
-    expdesc v;
-    expr(ls, &v);  /* read condition */
-    v.normaliseFalse();
-    luaK_goiffalse(ls->fs, &v);
-    condexit = v.t;
   }
   else {
     error_expected(ls, TK_UNTIL);

@@ -836,8 +836,6 @@
 // If defined, only 'pluto_... you get the idea.
 #define PLUTO_COMPATIBLE_CONTINUE
 
-#define PLUTO_COMPATIBLE_WHEN
-
 #define PLUTO_COMPATIBLE_ENUM
 
 #define PLUTO_COMPATIBLE_NEW
