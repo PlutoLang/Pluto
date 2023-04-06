@@ -3633,7 +3633,73 @@ static void checktoclose (FuncState *fs, int level) {
 }
 
 
+static void destructuring (LexState *ls) {
+  auto line = ls->getLineNumber();
+  std::vector<TString*> props{};
+  luaX_next(ls); /* skip '{' */
+  do {
+    props.emplace_back(str_checkname(ls));
+  } while (testnext(ls, ','));
+  check_match(ls, '}', '{', line);
+  checknext(ls, '=');
+
+  /* begin scope of the locals we want to create */
+  for (const auto& prop : props) {
+    new_localvar(ls, prop, line);
+  }
+  expdesc e;
+  e.k = VVOID;
+  adjust_assign(ls, (int)props.size(), 0, &e);
+  adjustlocalvars(ls, (int)props.size());
+
+  /* get table */
+  expdesc t;
+  expr(ls, &t);
+
+  /* special case for destructuring a single field only, can be done in-place */
+  if (props.size() == 1) {
+    expdesc k, l;
+    codestring(&k, props.at(0));
+    luaK_indexed(ls->fs, &t, &k);
+    singlevar(ls, &l, props.at(0));
+    luaK_storevar(ls->fs, &l, &t);
+    return;
+  }
+
+  /* ensure table has a place to stay */
+  TString* temporary = nullptr;
+  if (t.k == VNONRELOC) {
+    temporary = luaS_newliteral(ls->L, "(temporary)");
+    new_localvar(ls, temporary, line);
+    adjust_assign(ls, 1, 1, &t);
+    adjustlocalvars(ls, 1);
+  }
+
+  /* assign locals */
+  for (const auto& prop : props) {
+    expdesc e, k, l;
+    if (temporary)
+      singlevar(ls, &e, temporary);
+    else
+      e = t;
+    codestring(&k, prop);
+    luaK_indexed(ls->fs, &e, &k);
+    singlevar(ls, &l, prop);
+    luaK_storevar(ls->fs, &l, &e);
+  }
+
+  /* release table */
+  if (temporary) {
+    removevars(ls->fs, ls->fs->nactvar - 1);
+  }
+}
+
+
 static void localstat (LexState *ls) {
+  if (ls->t.token == '{') {
+    destructuring(ls);
+    return;
+  }
   /* stat -> LOCAL NAME ATTRIB { ',' NAME ATTRIB } ['=' explist] */
   FuncState *fs = ls->fs;
   int toclose = -1;  /* index of to-be-closed variable (if any) */
@@ -3643,7 +3709,7 @@ static void localstat (LexState *ls) {
   int nvars = 0;
   int nexps;
   expdesc e;
-  int line = ls->getLineNumber(); /* in case we need to emit a warning */
+  auto line = ls->getLineNumber(); /* in case we need to emit a warning */
   size_t starting_tidx = ls->tidx; /* code snippets on tuple assignments can have inaccurate line readings because the parser skips lines until it can close the statement */
   bool is_constexpr = false;
   do {
