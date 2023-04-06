@@ -49,15 +49,12 @@ static const char *const luaX_tokens [] = {
 #ifdef PLUTO_COMPATIBLE_CLASS
     "class",
 #endif
-    "pluto_switch", "pluto_continue", "pluto_when", "pluto_enum", "pluto_new", "pluto_class", "pluto_parent", "pluto_export",
+    "pluto_switch", "pluto_continue", "pluto_enum", "pluto_new", "pluto_class", "pluto_parent", "pluto_export",
 #ifndef PLUTO_COMPATIBLE_SWITCH
     "switch",
 #endif
 #ifndef PLUTO_COMPATIBLE_CONTINUE
     "continue",
-#endif
-#ifndef PLUTO_COMPATIBLE_WHEN
-    "when",
 #endif
 #ifndef PLUTO_COMPATIBLE_ENUM
     "enum",

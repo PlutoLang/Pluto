@@ -42,16 +42,13 @@ enum RESERVED {
 #ifdef PLUTO_COMPATIBLE_CLASS
   TK_CLASS,
 #endif
-  TK_PSWITCH, TK_PCONTINUE, TK_PWHEN, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, // New compatibility keywords.
+  TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, // New compatibility keywords.
   /* New non-compatible keywords. */
 #ifndef PLUTO_COMPATIBLE_SWITCH
   TK_SWITCH,
 #endif
 #ifndef PLUTO_COMPATIBLE_CONTINUE
   TK_CONTINUE,
-#endif
-#ifndef PLUTO_COMPATIBLE_WHEN
-  TK_WHEN,
 #endif
 #ifndef PLUTO_COMPATIBLE_ENUM
   TK_ENUM,
