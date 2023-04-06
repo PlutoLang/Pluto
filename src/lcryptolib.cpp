@@ -1,4 +1,3 @@
-#define lhashlib_c
 #define LUA_LIB
 
 #include "lua.h"

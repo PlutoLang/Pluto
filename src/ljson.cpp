@@ -1,3 +1,5 @@
+#define LUA_LIB
+
 #include "lauxlib.h"
 #include "lualib.h"
 
