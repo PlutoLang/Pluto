@@ -1040,6 +1040,44 @@ do
     }.test() == "hello")
 end
 
+print "Testing table destructuring."
+do
+    -- Table in dedicated variable
+    local t = {
+        str = "hello",
+        i = 1337
+    }
+    do
+        local { str } = t
+        assert(str == "hello")
+    end
+    do
+        local { i } = t
+        assert(i == 1337)
+    end
+    do
+        local { str, i } = t
+        assert(str == "hello")
+        assert(i == 1337)
+    end
+end
+do
+    -- Temporary table
+    local { i, f } = {
+        i = 69,
+        s = "Hello"
+    }
+    assert(i == 69)
+end
+do
+    -- Temporary table, single field
+    local { i } = {
+        i = 69,
+        s = "Hello"
+    }
+    assert(i == 69)
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
