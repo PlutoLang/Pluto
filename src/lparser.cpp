@@ -3814,6 +3814,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
     ss.push("stat", "goto");
     ss.push("stat", "switch");
     ss.push("stat", "enum");
+    ss.push("stat", "end");
     ss.pushLocals();
     return;
   }
