@@ -3767,7 +3767,8 @@ static void destructuring (LexState *ls) {
   expr(ls, &t);
 
   /* special case for destructuring a single field only, can be done in-place */
-  if (t.k == VNONRELOC && props.size() == 1) {
+  if (props.size() == 1) {
+    luaK_exp2nextreg(ls->fs, &t);
     expdesc k, l;
     codestring(&k, props.at(0));
     luaK_indexed(ls->fs, &t, &k);
