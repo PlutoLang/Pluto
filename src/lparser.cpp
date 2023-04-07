@@ -3635,14 +3635,16 @@ static void checktoclose (FuncState *fs, int level) {
 
 static void destructuring (LexState *ls) {
   auto line = ls->getLineNumber();
-  std::vector<std::pair<TString*, TString*>> pairs{};
+  std::vector<std::pair<TString*, expdesc>> pairs{};
   luaX_next(ls); /* skip '{' */
   do {
     TString* var = str_checkname(ls);
     TString* prop = var;
     if (testnext(ls, '='))
       prop = str_checkname(ls);
-    pairs.emplace_back(var, prop);
+    expdesc propexp;
+    codestring(&propexp, prop);
+    pairs.emplace_back(var, std::move(propexp));
   } while (testnext(ls, ','));
   check_match(ls, '}', '{', line);
   checknext(ls, '=');
@@ -3675,14 +3677,13 @@ static void destructuring (LexState *ls) {
   }
 
   /* assign locals */
-  for (const auto& p : pairs) {
-    expdesc e, k, l;
+  for (auto& p : pairs) {
+    expdesc e, l;
     if (temporary)
       singlevar(ls, &e, temporary);
     else
       e = t;
-    codestring(&k, p.second);
-    luaK_indexed(ls->fs, &e, &k);
+    luaK_indexed(ls->fs, &e, &p.second);
     singlevar(ls, &l, p.first);
     luaK_storevar(ls->fs, &l, &e);
   }
