@@ -1,7 +1,6 @@
 dynamic
 
 cpp 17
-arg -DSOUP_CPP20=false
 
 require vendor/Soup include_dir=.
 arg -DPLUTO_USE_SOUP
