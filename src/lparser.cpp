@@ -3916,12 +3916,6 @@ static void statement (LexState *ls, TypeDesc *prop) {
       gotostat(ls);
       break;
     }
-    case TK_CASE: {
-      throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
-    }
-    case TK_DEFAULT: {
-      throwerr(ls, "inappropriate 'default' statement.", "outside of 'switch' block.");
-    }
 #ifndef PLUTO_COMPATIBLE_SWITCH
     case TK_SWITCH:
 #endif
