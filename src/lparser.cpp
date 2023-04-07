@@ -1329,6 +1329,11 @@ static void funcfield (LexState *ls, struct ConsControl *cc, bool ismethod) {
 
 static void field (LexState *ls, ConsControl *cc) {
   /* field -> listfield | recfield | funcfield */
+  if (ls->shouldSuggest()) {
+    SuggestionsState ss(ls);
+    ss.push("stat", "function");
+    ss.push("stat", "static");
+  }
   switch(ls->t.token) {
     case TK_NAME: {  /* may be 'listfield', 'recfield' or static 'funcfield' */
       if (strcmp(ls->t.seminfo.ts->contents, "static") != 0) {
@@ -1442,6 +1447,13 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
 
 static TString *checkextends (LexState *ls) {
   TString *parent = nullptr;
+  if (ls->shouldSuggest()) {
+    SuggestionsState ss(ls);
+    ss.push("stat", "extends");
+    ss.push("stat", "function");
+    ss.push("stat", "static");
+    ss.push("stat", "end");
+  }
   if (ls->t.token == TK_EXTENDS) {
     luaX_next(ls);
     parent = str_checkname(ls, true);
