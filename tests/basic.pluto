@@ -1125,6 +1125,20 @@ do
     }
     assert(i == 69)
 end
+-- Array destructuring
+do
+    local [a, b, c] = { 1, 2, 3 }
+    assert(a == 1)
+    assert(b == 2)
+    assert(c == 3)
+end
+do
+    local t = { 1, 2, 3 }
+    local [a, b, c] = t
+    assert(a == 1)
+    assert(b == 2)
+    assert(c == 3)
+end
 
 print "Testing compatibility."
 do
