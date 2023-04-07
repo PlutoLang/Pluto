@@ -302,6 +302,10 @@ static void check_match (LexState *ls, int what, int who, int where) {
 
 static TString *str_checkname (LexState *ls, bool strict = false) {
   TString *ts;
+  if (ls->shouldSuggest()) {
+    SuggestionsState ss(ls);
+    ss.pushLocals();
+  }
   if (!isnametkn(ls, strict)) {
     error_expected(ls, TK_NAME);
   }
