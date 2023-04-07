@@ -3660,24 +3660,18 @@ static void destructuring (LexState *ls) {
   expdesc t;
   expr(ls, &t);
 
-  /* special case for destructuring a single field only, can be done in-place */
-  if (pairs.size() == 1) {
-    luaK_exp2nextreg(ls->fs, &t);
-    expdesc k, l;
-    codestring(&k, pairs.at(0).second);
-    luaK_indexed(ls->fs, &t, &k);
-    singlevar(ls, &l, pairs.at(0).first);
-    luaK_storevar(ls->fs, &l, &t);
-    return;
-  }
-
   /* ensure table has a place to stay */
   TString* temporary = nullptr;
   if (t.k != VLOCAL) {
-    temporary = luaS_newliteral(ls->L, "(temporary)");
-    new_localvar(ls, temporary, line);
-    adjust_assign(ls, 1, 1, &t);
-    adjustlocalvars(ls, 1);
+    if (pairs.size() == 1) {
+      luaK_exp2anyreg(ls->fs, &t);
+    }
+    else {
+      temporary = luaS_newliteral(ls->L, "(temporary)");
+      new_localvar(ls, temporary, line);
+      adjust_assign(ls, 1, 1, &t);
+      adjustlocalvars(ls, 1);
+    }
   }
 
   /* assign locals */
