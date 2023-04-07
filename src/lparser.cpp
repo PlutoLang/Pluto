@@ -3870,6 +3870,13 @@ static void statement (LexState *ls, TypeDesc *prop) {
     }
     case TK_LOCAL: {  /* stat -> localstat */
       luaX_next(ls);  /* skip LOCAL */
+      if (ls->shouldSuggest()) {
+        SuggestionsState ss(ls);
+        ss.push("stat", "function");
+        ss.push("stat", "class");
+        ss.push("stat", "pluto_class");
+        return;
+      }
       if (testnext(ls, TK_FUNCTION))  /* local function? */
         localfunc(ls);
 #ifdef PLUTO_COMPATIBLE_CLASS
@@ -3887,6 +3894,13 @@ static void statement (LexState *ls, TypeDesc *prop) {
 #endif
     case TK_PEXPORT: {
       luaX_next(ls); /* skip export */
+      if (ls->shouldSuggest()) {
+        SuggestionsState ss(ls);
+        ss.push("stat", "function");
+        ss.push("stat", "class");
+        ss.push("stat", "pluto_class");
+        return;
+      }
       if (testnext(ls, TK_FUNCTION)) {
         ls->export_symbols.emplace_back(str_checkname(ls, true));
         luaX_prev(ls);
