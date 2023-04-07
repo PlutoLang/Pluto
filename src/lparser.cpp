@@ -236,7 +236,10 @@ static int testnext (LexState *ls, int c) {
 ** Check that next token is 'c'.
 */
 static void check (LexState *ls, int c) {
-  luaX_checkspecial(ls);
+  if (ls->shouldSuggest()) {
+    SuggestionsState ss(ls);
+    ss.push("stat", luaX_token2str_noq(ls, c));
+  }
   if (ls->t.token != c) {
     error_expected(ls, c);
   }
