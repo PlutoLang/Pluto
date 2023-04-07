@@ -34,6 +34,13 @@ struct SuggestionsState {
     suggestions.emplace_back(Suggestion{ type, name, std::move(extra) });
   }
 
+  void pushLocals() {
+    for (int i = ls->fs->nactvar - 1; i >= 0; i--) {
+      Vardesc *vd = getlocalvardesc(ls->fs, i);
+      push("local", vd->vd.name->contents);
+    }
+  }
+
   ~SuggestionsState() {
     /* filter suggestions */
     for (auto i = suggestions.begin(); i != suggestions.end(); ) {
