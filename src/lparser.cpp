@@ -3796,7 +3796,27 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 
 
 static void statement (LexState *ls, TypeDesc *prop) {
-  luaX_checkspecial(ls);
+  if (ls->shouldSuggest()) {
+    SuggestionsState ss(ls);
+    ss.push("stat", "if");
+    ss.push("stat", "while");
+    ss.push("stat", "do");
+    ss.push("stat", "for");
+    ss.push("stat", "function");
+    ss.push("stat", "class");
+    ss.push("stat", "pluto_class");
+    ss.push("stat", "local");
+    ss.push("stat", "export");
+    ss.push("stat", "pluto_export");
+    ss.push("stat", "return");
+    ss.push("stat", "break");
+    ss.push("stat", "continue");
+    ss.push("stat", "goto");
+    ss.push("stat", "switch");
+    ss.push("stat", "enum");
+    ss.pushLocals();
+    return;
+  }
   int line = ls->getLineNumber();
   if ((ls->laststat.IsEscapingToken()
     || (ls->laststat.Is(TK_GOTO) && !ls->findWithinLine(line, luaX_lookbehind(ls).seminfo.ts->toCpp()))) /* Don't warn if this statement is the goto's label. */
