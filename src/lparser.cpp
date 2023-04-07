@@ -3728,34 +3728,38 @@ static void checktoclose (FuncState *fs, int level) {
 
 static void destructuring (LexState *ls) {
   auto line = ls->getLineNumber();
-  std::vector<TString*> props{};
+  std::vector<std::pair<TString*, TString*>> pairs{};
   luaX_next(ls); /* skip '{' */
   do {
-    props.emplace_back(str_checkname(ls));
+    TString* var = str_checkname(ls);
+    TString* prop = var;
+    if (testnext(ls, '='))
+      prop = str_checkname(ls);
+    pairs.emplace_back(var, prop);
   } while (testnext(ls, ','));
   check_match(ls, '}', '{', line);
   checknext(ls, '=');
 
   /* begin scope of the locals we want to create */
-  for (const auto& prop : props) {
-    new_localvar(ls, prop, line);
+  for (const auto& p : pairs) {
+    new_localvar(ls, p.first, line);
   }
   expdesc e;
   e.k = VVOID;
-  adjust_assign(ls, (int)props.size(), 0, &e);
-  adjustlocalvars(ls, (int)props.size());
+  adjust_assign(ls, (int)pairs.size(), 0, &e);
+  adjustlocalvars(ls, (int)pairs.size());
 
   /* get table */
   expdesc t;
   expr(ls, &t);
 
   /* special case for destructuring a single field only, can be done in-place */
-  if (props.size() == 1) {
+  if (pairs.size() == 1) {
     luaK_exp2nextreg(ls->fs, &t);
     expdesc k, l;
-    codestring(&k, props.at(0));
+    codestring(&k, pairs.at(0).second);
     luaK_indexed(ls->fs, &t, &k);
-    singlevar(ls, &l, props.at(0));
+    singlevar(ls, &l, pairs.at(0).first);
     luaK_storevar(ls->fs, &l, &t);
     return;
   }
@@ -3770,15 +3774,15 @@ static void destructuring (LexState *ls) {
   }
 
   /* assign locals */
-  for (const auto& prop : props) {
+  for (const auto& p : pairs) {
     expdesc e, k, l;
     if (temporary)
       singlevar(ls, &e, temporary);
     else
       e = t;
-    codestring(&k, prop);
+    codestring(&k, p.second);
     luaK_indexed(ls->fs, &e, &k);
-    singlevar(ls, &l, prop);
+    singlevar(ls, &l, p.first);
     luaK_storevar(ls->fs, &l, &e);
   }
 
