@@ -3678,19 +3678,7 @@ static void checktoclose (FuncState *fs, int level) {
 }
 
 
-static void destructuring (LexState *ls) {
-  auto line = ls->getLineNumber();
-  std::vector<std::pair<TString*, expdesc>> pairs{};
-  luaX_next(ls); /* skip '{' */
-  do {
-    TString* var = str_checkname(ls);
-    TString* prop = var;
-    if (testnext(ls, '='))
-      prop = str_checkname(ls);
-    expdesc propexp;
-    codestring(&propexp, prop);
-    pairs.emplace_back(var, std::move(propexp));
-  } while (testnext(ls, ','));
+static void restdestructuring (LexState *ls, int line, std::vector<std::pair<TString*, expdesc>>& pairs) {
   check_match(ls, '}', '{', line);
   checknext(ls, '=');
 
@@ -3737,6 +3725,22 @@ static void destructuring (LexState *ls) {
   if (temporary) {
     removevars(ls->fs, ls->fs->nactvar - 1);
   }
+}
+
+static void destructuring (LexState *ls) {
+  auto line = ls->getLineNumber();
+  std::vector<std::pair<TString*, expdesc>> pairs{};
+  luaX_next(ls); /* skip '{' */
+  do {
+    TString* var = str_checkname(ls);
+    TString* prop = var;
+    if (testnext(ls, '='))
+      prop = str_checkname(ls);
+    expdesc propexp;
+    codestring(&propexp, prop);
+    pairs.emplace_back(var, std::move(propexp));
+  } while (testnext(ls, ','));
+  restdestructuring(ls, line, pairs);
 }
 
 
