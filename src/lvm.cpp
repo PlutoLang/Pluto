@@ -1688,6 +1688,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddB();
         vmDumpAddC();
         vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " % " << stringify_tvalue(KC(i)));
+        savestate(L, ci);  /* in case of division by 0 */
         op_arithK(L, luaV_mod, luaV_modf);
         vmbreak;
       }
@@ -1706,6 +1707,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddB();
         vmDumpAddC();
         vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " / " << stringify_tvalue(KC(i)));
+        savestate(L, ci);  /* in case of division by 0 */
         op_arithfK(L, luai_numdiv);
         vmbreak;
       }
@@ -1806,6 +1808,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddB();
         vmDumpAddC();
         vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " % " << stringify_tvalue(vRC(i)));
+        savestate(L, ci);  /* in case of division by 0 */
         op_arith(L, luaV_mod, luaV_modf);
         vmbreak;
       }
@@ -1833,6 +1836,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddB();
         vmDumpAddC();
         vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " // " << stringify_tvalue(vRC(i)));
+        savestate(L, ci);  /* in case of division by 0 */
         op_arith(L, luaV_idiv, luai_numidiv);
         vmbreak;
       }
