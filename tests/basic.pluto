@@ -1002,11 +1002,13 @@ do
 end
 do
     -- Temporary table
-    local { i, f } = {
+    local { i, str = s } = {
         i = 69,
         s = "Hello"
     }
     assert(i == 69)
+    assert(s == nil)
+    assert(str == "Hello")
 end
 do
     -- Temporary table, single field
