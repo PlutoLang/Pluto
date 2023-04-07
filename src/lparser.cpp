@@ -3867,26 +3867,24 @@ static void statement (LexState *ls, TypeDesc *prop) {
 #endif
     case TK_PEXPORT: {
       luaX_next(ls); /* skip export */
-      if (ls->t.token != TK_EOS) {
-        if (testnext(ls, TK_FUNCTION)) {
-          ls->export_symbols.emplace_back(str_checkname(ls, true));
-          luaX_prev(ls);
-          localfunc(ls);
-        }
+      if (testnext(ls, TK_FUNCTION)) {
+        ls->export_symbols.emplace_back(str_checkname(ls, true));
+        luaX_prev(ls);
+        localfunc(ls);
+      }
 #ifdef PLUTO_COMPATIBLE_CLASS
-        else if (testnext(ls, TK_PCLASS)) {
+      else if (testnext(ls, TK_PCLASS)) {
 #else
-        else if (testnext(ls, TK_CLASS) || testnext(ls, TK_PCLASS)) {
+      else if (testnext(ls, TK_CLASS) || testnext(ls, TK_PCLASS)) {
 #endif
-          ls->export_symbols.emplace_back(str_checkname(ls, true));
-          luaX_prev(ls);
-          localclass(ls);
-        }
-        else {
-          ls->export_symbols.emplace_back(str_checkname(ls, true));
-          luaX_prev(ls);
-          localstat(ls);
-        }
+        ls->export_symbols.emplace_back(str_checkname(ls, true));
+        luaX_prev(ls);
+        localclass(ls);
+      }
+      else {
+        ls->export_symbols.emplace_back(str_checkname(ls, true));
+        luaX_prev(ls);
+        localstat(ls);
       }
       break;
     }
