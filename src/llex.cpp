@@ -967,11 +967,6 @@ const Token& luaX_lookbehind (LexState *ls) {
 void luaX_checkspecial (LexState *ls) {
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
-
-    /* look up locals */
-    for (int i = ls->fs->nactvar - 1; i >= 0; i--) {
-      Vardesc *vd = getlocalvardesc(ls->fs, i);
-      ss.push("local", vd->vd.name->contents);
-    }
+    ss.pushLocals();
   }
 }
