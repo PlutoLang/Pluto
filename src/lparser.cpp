@@ -3727,7 +3727,6 @@ static void checktoclose (FuncState *fs, int level) {
 
 
 static void restdestructuring (LexState *ls, int line, std::vector<std::pair<TString*, expdesc>>& pairs) {
-  check_match(ls, '}', '{', line);
   checknext(ls, '=');
 
   /* begin scope of the locals we want to create */
@@ -3780,7 +3779,7 @@ static void destructuring (LexState *ls) {
   std::vector<std::pair<TString*, expdesc>> pairs{};
   luaX_next(ls); /* skip '{' */
   do {
-    TString* var = str_checkname(ls);
+    TString* var = str_checkname(ls, true);
     TString* prop = var;
     if (testnext(ls, '='))
       prop = str_checkname(ls);
@@ -3788,6 +3787,22 @@ static void destructuring (LexState *ls) {
     codestring(&propexp, prop);
     pairs.emplace_back(var, std::move(propexp));
   } while (testnext(ls, ','));
+  check_match(ls, '}', '{', line);
+  restdestructuring(ls, line, pairs);
+}
+
+static void arraydestructuring (LexState *ls) {
+  auto line = ls->getLineNumber();
+  std::vector<std::pair<TString*, expdesc>> pairs{};
+  luaX_next(ls); /* skip '[' */
+  expdesc prop;
+  init_exp(&prop, VKINT, 0);
+  prop.u.ival = 1;
+  do {
+    pairs.emplace_back(str_checkname(ls, true), prop);
+    prop.u.ival++;
+  } while (testnext(ls, ','));
+  check_match(ls, ']', '[', line);
   restdestructuring(ls, line, pairs);
 }
 
@@ -3795,6 +3810,10 @@ static void destructuring (LexState *ls) {
 static void localstat (LexState *ls) {
   if (ls->t.token == '{') {
     destructuring(ls);
+    return;
+  }
+  if (ls->t.token == '[') {
+    arraydestructuring(ls);
     return;
   }
   /* stat -> LOCAL NAME ATTRIB { ',' NAME ATTRIB } ['=' explist] */
