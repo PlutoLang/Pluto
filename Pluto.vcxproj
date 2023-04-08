@@ -231,6 +231,7 @@
     <ClInclude Include="src\ljumptabgcc.h" />
     <ClInclude Include="src\llex.h" />
     <ClInclude Include="src\llimits.h" />
+    <ClInclude Include="src\lload.h" />
     <ClInclude Include="src\lmem.h" />
     <ClInclude Include="src\lobject.h" />
     <ClInclude Include="src\lopcodes.h" />

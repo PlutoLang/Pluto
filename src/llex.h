@@ -65,6 +65,7 @@ enum RESERVED {
 #ifndef PLUTO_COMPATIBLE_EXPORT
   TK_EXPORT,
 #endif
+  TK_PARQUIRE,
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
@@ -416,6 +417,10 @@ struct LexState {
   [[nodiscard]] bool shouldSuggest() const noexcept {
     return t.token == TK_SUGGEST_0 || t.token == TK_SUGGEST_1;
   }
+};
+
+struct ParserExport {
+  std::vector<EnumDesc> enums{};
 };
 
 #if defined(_MSC_VER) && _MSC_VER && !__INTEL_COMPILER

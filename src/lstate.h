@@ -300,6 +300,7 @@ typedef struct global_State {
   void *ud_warn;         /* auxiliary data to 'warnf' */
 
   void* user_data;       /* a pointer to data you, the user, would like to specify */
+  lu_byte pluto_usage_type;   /* for Pluto-internal use only */
 } global_State;
 
 class Registry {

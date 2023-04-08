@@ -71,6 +71,7 @@ static const char *const luaX_tokens [] = {
 #ifndef PLUTO_COMPATIBLE_EXPORT
     "export",
 #endif
+    "parquire",
     "pluto_suggest_0", "pluto_suggest_1",
     "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=",

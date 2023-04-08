@@ -401,6 +401,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
     close_state(L);
     L = NULL;
   }
+  g->pluto_usage_type = 0;
   return L;
 }
 

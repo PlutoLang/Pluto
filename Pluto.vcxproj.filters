@@ -197,6 +197,7 @@
       <Filter>vendor\Soup</Filter>
     </ClInclude>
     <ClInclude Include="src\lsuggestions.hpp" />
+    <ClInclude Include="src\lload.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="vendor">

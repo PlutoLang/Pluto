@@ -19,6 +19,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <iostream> // remove me
 
 #include "lua.h"
 #include "lualib.h" // Pluto::all_preloaded
@@ -28,6 +29,7 @@
 #include "ldo.h"
 #include "lfunc.h"
 #include "llex.h"
+#include "lload.h"
 #include "lmem.h"
 #include "lobject.h"
 #include "lopcodes.h"
@@ -3928,6 +3930,26 @@ static void statement (LexState *ls, TypeDesc *prop) {
       enumstat(ls);
       break;
     }
+    case TK_PARQUIRE: {
+      luaX_next(ls);
+      check(ls, TK_STRING);
+      auto L = luaL_newstate();
+      ParserExport pe{};
+      L->l_G->user_data = &pe;
+      L->l_G->pluto_usage_type = 1;
+      LoadF lf;
+      std::cout << "Loading nested " << ls->t.seminfo.ts->contents << "\n";
+      lf.f = luaL_fopen(ls->t.seminfo.ts->contents, ls->t.seminfo.ts->size(), "r", sizeof("r") - sizeof(char));
+      if (lf.f == NULL) luaX_syntaxerror(ls, "Failed to load nested file");
+      lf.n = 0;
+      if (lua_load(L, getF, &lf, ls->t.seminfo.ts->contents, NULL) != LUA_OK)
+        luaX_syntaxerror(ls, "Nested file has syntax error");
+      lua_close(L);
+      luaX_next(ls);
+      // Proof of concept, the enums array is not actually useful.
+      std::cout << "Parser exported " << pe.enums.size() << " enums\n";
+      break;
+    }
     default: {  /* stat -> func | assignment */
       exprstat(ls);
       break;
@@ -4212,6 +4234,9 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
   mainfunc(&lexstate, &funcstate);
   lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
+  if (L->l_G->pluto_usage_type == 1) {
+    reinterpret_cast<ParserExport*>(L->l_G->user_data)->enums = std::move(lexstate.enums);
+  }
   /* all scopes should be correctly finished */
   lua_assert(dyd->actvar.n == 0 && dyd->gt.n == 0 && dyd->label.n == 0);
   L->top.p--;  /* remove scanner's table */
