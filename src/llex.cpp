@@ -139,7 +139,7 @@ const char *luaX_token2str_noq (LexState *ls, int token) {
   }
   else switch (token) {
     case TK_NAME: case TK_STRING:
-      if (!ls->hasDoneLexerPass())
+      if (!ls->hasDoneLexerPass() || ls->t.token != token)
         return luaX_tokens[token - FIRST_RESERVED];
       ret = luaO_pushfstring(ls->L, "%s", ls->t.seminfo.ts->contents);
       ls->L->top.p--;
