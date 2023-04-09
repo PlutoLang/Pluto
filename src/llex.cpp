@@ -167,27 +167,15 @@ const char* luaX_reserved2str (int token) {
 
 
 [[noreturn]] static void lexerror (LexState *ls, const char *msg, int token) {
-  const bool is_expected_token_error = (strcmp(msg, "syntax error") != 0);
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->getLineNumber());
   Pluto::ErrorMessage err{ ls, HRED "syntax error: " BWHT };
   err.addMsg(msg);
   if (token) {
-    if (is_expected_token_error && ls->t.IsReserved()) {
-      std::string str = luaX_token2str_noq(ls, token);
-      err.addMsg(", but found ")
-         .addMsg(str);
-      str.append(" cannot be used in this context.");
-      err.addSrcLine(ls->getLineNumber())
-         .addGenericHere(str)
-         .finalize();
-    }
-    else {
-      err.addMsg(" near ")
-         .addMsg(luaX_token2str_noq(ls, token))
-         .addSrcLine(ls->getLineNumber())
-         .addGenericHere()
-         .finalize();
-    }
+    err.addMsg(" near ")
+       .addMsg(luaX_token2str_noq(ls, token))
+       .addSrcLine(ls->getLineNumber())
+       .addGenericHere()
+       .finalize();
   }
   else {
     err.addSrcLine(ls->getLineNumber())
