@@ -3259,7 +3259,7 @@ static void enumstat (LexState *ls) {
   checknext(ls, TK_BEGIN); /* ensure we have 'begin' */
 
   lua_Integer i = 1;
-  while (gett(ls) == TK_NAME) {
+  while (gett(ls) != TK_END) {
     TString *name = str_checkname(ls, true);
     int vidx;
     if (!is_enum_class) {
