@@ -1427,7 +1427,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
-        vmDumpOut ("; old=" << stringify_tvalue(uv->v) << " new=" << stringify_tvalue(s2v(ra)));
+        vmDumpOut ("; old=" << stringify_tvalue(uv->v.p) << " new=" << stringify_tvalue(s2v(ra)));
         setobj(L, uv->v.p, s2v(ra));
         luaC_barrier(L, uv, s2v(ra));
         vmbreak;
