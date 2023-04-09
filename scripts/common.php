@@ -34,7 +34,7 @@ function check_compiler()
 		$compiler .= " -Wno-unused-command-line-argument -lm -lstdc++";
 		if (PHP_OS_FAMILY != "Darwin")
 		{
-			$compiler .= " -lstdc++fs -fuse-ld=lld";
+			$compiler .= " -fPIC -lstdc++fs -fuse-ld=lld";
 		}
 	}
 }
