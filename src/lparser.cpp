@@ -3913,6 +3913,8 @@ static void statement (LexState *ls, TypeDesc *prop) {
     case TK_EXPORT:
 #endif
     case TK_PEXPORT: {
+      if (ls->fs->bl->previous)
+        luaX_syntaxerror(ls, "Attempt to use 'export' outside of global scope");
       luaX_next(ls); /* skip export */
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
