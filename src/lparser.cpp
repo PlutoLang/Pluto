@@ -1500,11 +1500,7 @@ static void classexpr (LexState *ls, expdesc *t) {
     field(ls, &cc);
     (testnext(ls, ',') || testnext(ls, ';'));
   }
-#ifdef PLUTO_COMPATIBLE_CLASS
-  check_match(ls, TK_END, TK_PCLASS, line);
-#else
   check_match(ls, TK_END, TK_CLASS, line);
-#endif
   lastlistfield(fs, &cc);
   luaK_settablesize(fs, pc, t->u.info, cc.na, cc.nh);
 }
@@ -2390,9 +2386,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
       }
       return;
     }
-#ifndef PLUTO_COMPATIBLE_PARENT
     case TK_PARENT:
-#endif
     case TK_PPARENT: {
       luaX_next(ls);
       parentexp(ls, v);
@@ -2612,17 +2606,13 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
       lambdabody(ls, v, ls->getLineNumber());
       return;
     }
-#ifndef PLUTO_COMPATIBLE_NEW
     case TK_NEW:
-#endif
     case TK_PNEW: {
       if (prop) *prop = VT_TABLE;
       newexpr(ls, v);
       return;
     }
-#ifndef PLUTO_COMPATIBLE_CLASS
     case TK_CLASS:
-#endif
     case TK_PCLASS: {
       if (prop) *prop = VT_TABLE;
       luaX_next(ls); /* skip 'class' */
@@ -3266,7 +3256,9 @@ static void enumstat (LexState *ls) {
   EnumDesc *ed = nullptr;
   bool is_enum_class = false;
   if (gett(ls) != TK_BEGIN) { /* enum has name (and possibly modifier)? */
-    if (gett(ls) == TK_CLASS) {
+    if (ls->t.token == TK_CLASS
+      || (ls->t.token == TK_NAME && strcmp(ls->t.seminfo.ts->contents, "class") == 0)
+      ) {
       is_enum_class = true;
       luaX_next(ls);
     }
@@ -3994,9 +3986,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
       funcstat(ls, line);
       break;
     }
-#ifndef PLUTO_COMPATIBLE_CLASS
     case TK_CLASS:
-#endif
     case TK_PCLASS: {
       classstat(ls);
       break;
@@ -4012,19 +4002,13 @@ static void statement (LexState *ls, TypeDesc *prop) {
       }
       if (testnext(ls, TK_FUNCTION))  /* local function? */
         localfunc(ls);
-#ifdef PLUTO_COMPATIBLE_CLASS
-      else if (testnext(ls, TK_PCLASS))
-#else
-      else if (testnext(ls, TK_CLASS) || testnext(ls, TK_PCLASS))
-#endif
+      else if (testnext2(ls, TK_CLASS, TK_PCLASS))
         localclass(ls);
       else
         localstat(ls);
       break;
     }
-#ifndef PLUTO_COMPATIBLE_EXPORT
     case TK_EXPORT:
-#endif
     case TK_PEXPORT: {
       if (ls->fs->bl->previous)
         luaX_syntaxerror(ls, "Attempt to use 'export' outside of global scope");
@@ -4041,11 +4025,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
         luaX_prev(ls);
         localfunc(ls);
       }
-#ifdef PLUTO_COMPATIBLE_CLASS
-      else if (testnext(ls, TK_PCLASS)) {
-#else
-      else if (testnext(ls, TK_CLASS) || testnext(ls, TK_PCLASS)) {
-#endif
+      else if (testnext2(ls, TK_CLASS, TK_PCLASS)) {
         ls->export_symbols.emplace_back(str_checkname(ls, true));
         luaX_prev(ls);
         localclass(ls);
@@ -4071,9 +4051,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
       breakstat(ls);
       break;
     }
-#ifndef PLUTO_COMPATIBLE_CONTINUE
     case TK_CONTINUE:
-#endif
     case TK_PCONTINUE: {
       continuestat(ls);
       break;
@@ -4083,16 +4061,12 @@ static void statement (LexState *ls, TypeDesc *prop) {
       gotostat(ls);
       break;
     }
-#ifndef PLUTO_COMPATIBLE_SWITCH
     case TK_SWITCH:
-#endif
     case TK_PSWITCH: {
       switchstat(ls, line);
       break;
     }
-#ifndef PLUTO_COMPATIBLE_ENUM
     case TK_ENUM:
-#endif
     case TK_PENUM: {
       enumstat(ls);
       break;
@@ -4119,9 +4093,7 @@ static void builtinoperators (LexState *ls) {
   /* discover what operators are used */
   for (const auto& t : ls->tokens) {
     switch (t.token) {
-#ifndef PLUTO_COMPATIBLE_NEW
       case TK_NEW:
-#endif
       case TK_PNEW:
         uses_new = true;
         break;
@@ -4361,6 +4333,12 @@ static void mainfunc (LexState *ls, FuncState *fs) {
 }
 
 
+static void disablekeyword (LexState *ls, int token) {
+  for (auto& t : ls->tokens)
+    if (t.token == token)
+      t.token = TK_NAME;
+}
+
 LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
                        Dyndata *dyd, const char *name, int firstchar) {
   LexState lexstate;
@@ -4379,6 +4357,27 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   lexstate.dyd = dyd;
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
   luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
+#ifdef PLUTO_COMPATIBLE_SWITCH
+  disablekeyword(&lexstate, TK_SWITCH);
+#endif
+#ifdef PLUTO_COMPATIBLE_CONTINUE
+  disablekeyword(&lexstate, TK_CONTINUE);
+#endif
+#ifdef PLUTO_COMPATIBLE_ENUM
+  disablekeyword(&lexstate, TK_ENUM);
+#endif
+#ifdef PLUTO_COMPATIBLE_NEW
+  disablekeyword(&lexstate, TK_NEW);
+#endif
+#ifdef PLUTO_COMPATIBLE_CLASS
+  disablekeyword(&lexstate, TK_CLASS);
+#endif
+#ifdef PLUTO_COMPATIBLE_PARENT
+  disablekeyword(&lexstate, TK_PARENT);
+#endif
+#ifdef PLUTO_COMPATIBLE_EXPORT
+  disablekeyword(&lexstate, TK_EXPORT);
+#endif
   mainfunc(&lexstate, &funcstate);
   lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
   /* all scopes should be correctly finished */
