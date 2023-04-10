@@ -3162,6 +3162,7 @@ static void switchstat (LexState *ls, int line) {
   TString* const begin_switch = luaS_newliteral(ls->L, "pluto_begin_switch");
   TString* const end_switch = luaS_newliteral(ls->L, "pluto_end_switch");
   TString* default_case = nullptr;
+  int default_pc;
 
   if (gett(ls) == TK_CASE) {
     int case_line = ls->getLineNumber();
@@ -3193,6 +3194,7 @@ static void switchstat (LexState *ls, int line) {
       if (default_case != nullptr)
         throwerr(ls, "switch statement already has a default case", "second default case", case_line);
       default_case = luaS_newliteral(ls->L, "pluto_default_case");
+      default_pc = luaK_getlabel(fs);
       createlabel(ls, default_case, ls->getLineNumber(), block_follow(ls, 0));
       caselist(ls);
     }
@@ -3216,6 +3218,14 @@ static void switchstat (LexState *ls, int line) {
   else {
     createlabel(ls, begin_switch, ls->getLineNumber(), block_follow(ls, 0)); // ::begin_switch::
   }
+
+  /* prune cases that lead to default case */
+  if (default_case)
+    for (auto i = cases.begin(); i != cases.end(); )
+      if (i->pc == default_pc)
+        i = cases.erase(i);
+      else
+        ++i;
 
   expdesc test;
   for (auto& c : cases) {
