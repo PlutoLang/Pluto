@@ -39,32 +39,8 @@ enum RESERVED {
   TK_DO, TK_ELSE, TK_ELSEIF, TK_END, TK_FALSE, TK_FOR, TK_FUNCTION,
   TK_GOTO, TK_IF, TK_IN, TK_LOCAL, TK_NIL, TK_NOT, TK_OR, TK_REPEAT,
   TK_CASE, TK_DEFAULT, TK_AS, TK_BEGIN, TK_EXTENDS, TK_INSTANCEOF, // New narrow keywords.
-#ifdef PLUTO_COMPATIBLE_CLASS
-  TK_CLASS,
-#endif
   TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, // New compatibility keywords.
-  /* New non-compatible keywords. */
-#ifndef PLUTO_COMPATIBLE_SWITCH
-  TK_SWITCH,
-#endif
-#ifndef PLUTO_COMPATIBLE_CONTINUE
-  TK_CONTINUE,
-#endif
-#ifndef PLUTO_COMPATIBLE_ENUM
-  TK_ENUM,
-#endif
-#ifndef PLUTO_COMPATIBLE_NEW
-  TK_NEW,
-#endif
-#ifndef PLUTO_COMPATIBLE_CLASS
-  TK_CLASS,
-#endif
-#ifndef PLUTO_COMPATIBLE_PARENT
-  TK_PARENT,
-#endif
-#ifndef PLUTO_COMPATIBLE_EXPORT
-  TK_EXPORT,
-#endif
+  TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, // New non-compatible keywords.
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
@@ -160,10 +136,22 @@ struct Token {
   {
     return token == TK_IN
       || (token >= TK_CASE && token < TK_PSWITCH)
-#ifdef PLUTO_COMPATIBLE_CLASS
-      || token == TK_CLASS
-#endif
       ;
+  }
+
+  [[nodiscard]] bool IsCompatible() const noexcept
+  {
+      return (token >= TK_PSWITCH && token < TK_SWITCH);
+  }
+
+  [[nodiscard]] bool IsNonCompatible() const noexcept
+  {
+      return (token >= TK_SWITCH && token < TK_SUGGEST_0);
+  }
+
+  [[nodiscard]] bool IsSpecial() const noexcept
+  {
+	  return (token >= TK_SUGGEST_0 && token < TK_RETURN);
   }
 };
 
