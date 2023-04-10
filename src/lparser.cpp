@@ -3136,6 +3136,11 @@ static void casecond(LexState* ls, int case_line, expdesc& lcase) {
 }
 
 
+struct SwitchCase {
+  size_t tidx;
+  int pc;
+};
+
 static void switchstat (LexState *ls, int line) {
   int switchToken = gett(ls);
   luaX_next(ls); // Skip switch statement.
@@ -3177,7 +3182,7 @@ static void switchstat (LexState *ls, int line) {
     newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
   }
 
-  std::vector<std::pair<size_t, int>> cases{};
+  std::vector<SwitchCase> cases{};
 
   while (gett(ls) != TK_END) {
     auto case_line = ls->getLineNumber();
@@ -3195,7 +3200,7 @@ static void switchstat (LexState *ls, int line) {
       if (!testnext(ls, TK_CASE)) {
         error_expected(ls, TK_CASE);
       }
-      cases.emplace_back(std::pair<size_t, int>{ luaX_getpos(ls), luaK_getlabel(fs) });
+      cases.emplace_back(SwitchCase{ luaX_getpos(ls), luaK_getlabel(fs) });
       skip_until(ls, ':'); /* skip over casecond */
       checknext(ls, ':');
       caselist(ls);
@@ -3217,12 +3222,12 @@ static void switchstat (LexState *ls, int line) {
     test = save;
     luaK_infix(fs, OPR_EQ, &test);
     auto pos = luaX_getpos(ls);
-    luaX_setpos(ls, c.first);
+    luaX_setpos(ls, c.tidx);
     expdesc cc;
     casecond(ls, ls->getLineNumber(), cc);
     luaX_setpos(ls, pos);
     luaK_posfix(fs, OPR_EQ, &test, &cc, ls->getLineNumber());
-    luaK_patchlist(fs, test.u.info, c.second);
+    luaK_patchlist(fs, test.u.info, c.pc);
   }
 
   if (default_case != nullptr)
