@@ -19,6 +19,7 @@ Instructions on how to install Pluto, as well as a detailed documentation for al
 
 ## Related links
 
+- [Pluto Syntax Highlighting](https://github.com/PlutoLang/Syntax-Highlighting)
 - [Pluto Language Server](https://github.com/PlutoLang/pluto-language-server)
 - [Repository for Website](https://github.com/PlutoLang/plutolang.github.io)
 - [Interactive Playground](https://plutolang.github.io/web/)
