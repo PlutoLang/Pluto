@@ -1044,6 +1044,18 @@ do
     assert(c == 3)
 end
 
+print "Testing pluto_use."
+do
+    pluto_use class = false
+
+    local class = { class = "class" }
+    assert(class.class == "class")
+
+    pluto_use class
+
+    class Human end
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
