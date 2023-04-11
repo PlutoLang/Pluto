@@ -63,6 +63,9 @@ enum RESERVED {
   TK_WALRUS,            /* walrus operator */
 };
 
+#define FIRST_COMPAT TK_PSWITCH
+#define FIRST_NON_COMPAT TK_PSWITCH
+#define FIRST_SPECIAL TK_SUGGEST_0
 #define LAST_RESERVED TK_WHILE
 
 /* number of reserved words */
@@ -135,23 +138,23 @@ struct Token {
   [[nodiscard]] bool IsNarrow() const noexcept
   {
     return token == TK_IN
-      || (token >= TK_CASE && token < TK_PSWITCH)
+      || (token >= TK_CASE && token < FIRST_COMPAT)
       ;
   }
 
   [[nodiscard]] bool IsCompatible() const noexcept
   {
-      return (token >= TK_PSWITCH && token < TK_SWITCH);
+      return (token >= FIRST_COMPAT && token < FIRST_NON_COMPAT);
   }
 
   [[nodiscard]] bool IsNonCompatible() const noexcept
   {
-      return (token >= TK_SWITCH && token < TK_SUGGEST_0);
+      return (token >= FIRST_NON_COMPAT && token < FIRST_SPECIAL);
   }
 
   [[nodiscard]] bool IsSpecial() const noexcept
   {
-	  return (token >= TK_SUGGEST_0 && token < TK_RETURN);
+	  return (token >= FIRST_SPECIAL && token < TK_RETURN);
   }
 };
 
