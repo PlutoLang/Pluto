@@ -3910,6 +3910,76 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 }
 
 
+static int checkkeyword (LexState *ls) {
+  if (ls->t.token == TK_NAME)
+    for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i)
+      if (strcmp(luaX_reserved2str(i), ls->t.seminfo.ts->contents) == 0) {
+        luaX_next(ls);
+        return i;
+      }
+  if (!ls->t.IsNonCompatible()) {
+    if (ls->t.IsCompatible())
+      luaX_syntaxerror(ls, "expected non-compatible keyword");
+    luaX_syntaxerror(ls, "expected keyword");
+  }
+  int token = ls->t.token;
+  luaX_next(ls);
+  return token;
+}
+
+static void disablekeyword (LexState *ls, int token) {
+  auto i = ls->tokens.begin();
+  if (ls->tidx != -1)
+    i += ls->tidx;  /* don't apply retroactively */
+  for (; i != ls->tokens.end(); ++i)
+    if (i->token == token)
+      i->token = TK_NAME;
+}
+
+
+static void enablekeyword (LexState *ls, int token) {
+  const char* str = luaX_reserved2str(token);
+  auto i = ls->tokens.begin() + ls->tidx;
+  TString* ts = nullptr;
+  /* find first instance of token */
+  for (; i != ls->tokens.end(); ++i)
+    if (i->token == TK_NAME && strcmp(str, i->seminfo.ts->contents) == 0) {
+      ts = i->seminfo.ts;
+      i->token = token;
+      break;
+    }
+  /* find further instances of the token; faster now that we have TString */
+  if (ts)
+    for (; i != ls->tokens.end(); ++i)
+      if (i->token == TK_NAME && eqstr(i->seminfo.ts, ts))
+        i->token = token;
+}
+
+static void usestat (LexState *ls) {
+  luaX_next(ls); /* skip 'pluto_use' */
+  do {
+    bool is_enabled = (ls->t.token != TK_NAME);
+    int token = checkkeyword(ls);
+    bool enable = true;
+    if (testnext(ls, '=')) {
+      if (testnext(ls, TK_FALSE))
+        enable = false;
+      else checknext(ls, TK_FALSE);
+    }
+    if (is_enabled != enable) {
+      if (enable)
+        enablekeyword(ls, token);
+      else
+        disablekeyword(ls, token);
+    }
+  } while (testnext(ls, ','));
+
+  /* update ls->t */
+  luaX_prev(ls);
+  luaX_next(ls);
+}
+
+
 static void statement (LexState *ls, TypeDesc *prop) {
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
@@ -4061,6 +4131,10 @@ static void statement (LexState *ls, TypeDesc *prop) {
     case TK_ENUM:
     case TK_PENUM: {
       enumstat(ls);
+      break;
+    }
+    case TK_PUSE: {
+      usestat(ls);
       break;
     }
     default: {  /* stat -> func | assignment */
@@ -4324,12 +4398,6 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   close_func(ls);
 }
 
-
-static void disablekeyword (LexState *ls, int token) {
-  for (auto& t : ls->tokens)
-    if (t.token == token)
-      t.token = TK_NAME;
-}
 
 LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
                        Dyndata *dyd, const char *name, int firstchar) {
