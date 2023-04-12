@@ -3220,12 +3220,16 @@ static void switchstat (LexState *ls, int line) {
   }
 
   /* prune cases that lead to default case */
-  if (default_case)
-    for (auto i = cases.begin(); i != cases.end(); )
-      if (i->pc == default_pc)
+  if (default_case) {
+    for (auto i = cases.begin(); i != cases.end(); ) {
+      if (i->pc == default_pc) {
         i = cases.erase(i);
-      else
+      }
+      else {
         ++i;
+      }
+    }
+  }
 
   expdesc test;
   for (auto& c : cases) {
