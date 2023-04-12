@@ -3189,7 +3189,6 @@ static void switchstat (LexState *ls, int line) {
     auto case_line = ls->getLineNumber();
     if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
-
       checknext(ls, ':');
       if (default_case != nullptr)
         throwerr(ls, "switch statement already has a default case", "second default case", case_line);
@@ -3199,9 +3198,7 @@ static void switchstat (LexState *ls, int line) {
       caselist(ls);
     }
     else {
-      if (!testnext(ls, TK_CASE)) {
-        error_expected(ls, TK_CASE);
-      }
+      checknext(ls, TK_CASE);
       cases.emplace_back(SwitchCase{ luaX_getpos(ls), luaK_getlabel(fs) });
       skip_until(ls, ':'); /* skip over casecond */
       checknext(ls, ':');
