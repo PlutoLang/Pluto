@@ -160,9 +160,6 @@ struct Token {
   {
     return token == TK_IN
       || (token >= TK_CASE && token < TK_PSWITCH)
-#ifdef PLUTO_COMPATIBLE_CLASS
-      || token == TK_CLASS
-#endif
       ;
   }
 };
