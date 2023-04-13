@@ -70,6 +70,18 @@ static int luaB_coresume (lua_State *L) {
 }
 
 
+static int luaB_coxresume (lua_State *L) {
+  lua_State *co = getco(L);
+  int r;
+  r = auxresume(L, co, lua_gettop(L) - 1);
+  if (l_unlikely(r < 0)) {
+    lua_insert(L, -1);
+    lua_error(L);
+  }
+  return r;
+}
+
+
 static int luaB_auxwrap (lua_State *L) {
   lua_State *co = lua_tothread(L, lua_upvalueindex(1));
   int r = auxresume(L, co, lua_gettop(L));
@@ -192,6 +204,7 @@ static int luaB_close (lua_State *L) {
 static const luaL_Reg co_funcs[] = {
   {"create", luaB_cocreate},
   {"resume", luaB_coresume},
+  {"xresume", luaB_coxresume},
   {"running", luaB_corunning},
   {"status", luaB_costatus},
   {"wrap", luaB_cowrap},
