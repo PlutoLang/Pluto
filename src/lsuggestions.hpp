@@ -37,7 +37,12 @@ struct SuggestionsState {
   void pushLocals() {
     for (int i = ls->fs->nactvar - 1; i >= 0; i--) {
       Vardesc *vd = getlocalvardesc(ls->fs, i);
-      push("local", vd->vd.name->contents);
+      if (strcmp(vd->vd.name->contents, "Pluto_operator_new") != 0
+          && strcmp(vd->vd.name->contents, "Pluto_operator_extends") != 0
+          && strcmp(vd->vd.name->contents, "Pluto_operator_instanceof") != 0
+        ) {
+        push("local", vd->vd.name->contents);
+      }
     }
   }
 
