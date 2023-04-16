@@ -2556,32 +2556,38 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
       if (prop) *prop = VT_FLT;
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
+      luaX_next(ls);
       break;
     }
     case TK_INT: {
       if (prop) *prop = VT_INT;
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
+      luaX_next(ls);
       break;
     }
     case TK_STRING: {
       if (prop) *prop = VT_STR;
       codestring(v, ls->t.seminfo.ts);
+      luaX_next(ls);
       break;
     }
     case TK_NIL: {
       if (prop) *prop = VT_NIL;
       init_exp(v, VNIL, 0);
+      luaX_next(ls);
       break;
     }
     case TK_TRUE: {
       if (prop) *prop = VT_BOOL;
       init_exp(v, VTRUE, 0);
+      luaX_next(ls);
       break;
     }
     case TK_FALSE: {
       if (prop) *prop = VT_BOOL;
       init_exp(v, VFALSE, 0);
+      luaX_next(ls);
       break;
     }
     case TK_DOTS: {  /* vararg */
@@ -2589,12 +2595,13 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
       check_condition(ls, fs->f->is_vararg,
                       "cannot use '...' outside a vararg function");
       init_exp(v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
+      luaX_next(ls);
       break;
     }
     case '{': {  /* constructor */
       if (prop) *prop = VT_TABLE;
       constructor(ls, v);
-      return;
+      break;
     }
     case TK_FUNCTION: {
       luaX_next(ls);
@@ -2627,7 +2634,6 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
       return;
     }
   }
-  luaX_next(ls);
   expsuffix(ls, v, flags, prop);
 }
 
