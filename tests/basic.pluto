@@ -982,6 +982,12 @@ end
 print "Testing optional parentheses."
 do
     assert("a.b.c":split(".")[1] == "a")
+
+    assert({
+        static function test()
+            return "hello"
+        end
+    }.test() == "hello")
 end
 
 print "Testing compatibility."
