@@ -979,6 +979,11 @@ do
     assert(type(t.Clazz) == "table")
 end
 
+print "Testing optional parentheses."
+do
+    assert("a.b.c":split(".")[1] == "a")
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"

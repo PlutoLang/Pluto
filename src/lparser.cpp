@@ -2406,12 +2406,18 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
+static void expsuffix (LexState* ls, expdesc* v, int flags, TypeDesc* prop);
+
 static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeDesc *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
+  primaryexp(ls, v);
+  expsuffix(ls, v, flags, prop);
+}
+
+static void expsuffix (LexState* ls, expdesc* v, int flags, TypeDesc* prop) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
-  primaryexp(ls, v);
   for (;;) {
     switch (ls->t.token) {
       case '?': {  /* safe navigation or ternary */
@@ -2622,12 +2628,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
     }
   }
   luaX_next(ls);
-  if (!(flags & E_NO_COLON) && testnext(ls, ':')) {
-    expdesc key;
-    codename(ls, &key);
-    luaK_self(ls->fs, v, &key);
-    funcargs(ls, v, ls->getLineNumber());
-  }
+  expsuffix(ls, v, flags, prop);
 }
 
 
