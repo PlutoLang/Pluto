@@ -140,11 +140,14 @@ static void throw_warn(LexState *ls, const char* err, const char *here, WarningT
   return throw_warn(ls, err, here, ls->getLineNumber(), warningType);
 }
 
-// TO-DO: Warning suppression attribute support for this overload. Don't know where it's used atm.
 static void throw_warn(LexState *ls, const char *err, int line, WarningType warningType) {
   if (ls->shouldEmitWarning(line, warningType)) {
-    auto msg = luaG_addinfo(ls->L, err, ls->source, line);
-    lua_warning(ls->L, msg, 0);
+    std::string msg = luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line);
+    msg.append(err);
+    msg.append(" [");
+    msg.append(ls->getWarningConfig().getWarningName(warningType));
+    msg.push_back(']');
+    lua_warning(ls->L, msg.c_str(), 0);
     ls->L->top.p -= 1; /* remove warning from stack */
   }
 }
