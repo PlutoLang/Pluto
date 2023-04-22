@@ -295,18 +295,18 @@ static void check_match (LexState *ls, int what, int who, int where) {
 }
 
 
-[[nodiscard]] static bool isnametkn (LexState *ls, bool strict = false) {
-  return ls->t.token == TK_NAME || ls->t.IsNarrow() || (!strict && ls->t.IsReservedNonValue());
+[[nodiscard]] static bool isnametkn (LexState *ls, int strictness = 0) {
+  return ls->t.token == TK_NAME || ls->t.IsNarrow() || (strictness == 0 && ls->t.IsReservedNonValue());
 }
 
 
-static TString *str_checkname (LexState *ls, bool strict = false) {
+static TString *str_checkname (LexState *ls, int strictness = 0) {
   TString *ts;
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
     ss.pushLocals();
   }
-  if (!isnametkn(ls, strict)) {
+  if (!isnametkn(ls, strictness)) {
     error_expected(ls, TK_NAME);
   }
   ts = ls->t.seminfo.ts;
@@ -1456,7 +1456,7 @@ static TString *checkextends (LexState *ls) {
   }
   if (ls->t.token == TK_EXTENDS) {
     luaX_next(ls);
-    parent = str_checkname(ls, true);
+    parent = str_checkname(ls, 1);
   }
   return parent;
 }
@@ -1528,7 +1528,7 @@ static void classstat (LexState *ls) {
 
 static void localclass (LexState *ls) {
   auto line = ls->getLineNumber();
-  TString *name = str_checkname(ls, true);
+  TString *name = str_checkname(ls, 1);
   TString *parent = checkextends(ls);
 
   new_localvar(ls, name, ls->getLineNumber());
@@ -1639,8 +1639,8 @@ static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr, TSt
   int isvararg = 0;
   if (ls->t.token != ')' && ls->t.token != '|') {  /* is 'parlist' not empty? */
     do {
-      if (isnametkn(ls, true)) {
-        auto parname = str_checkname(ls, true);
+      if (isnametkn(ls, 1)) {
+        auto parname = str_checkname(ls, 1);
         auto parhint = gettypehint(ls);
         new_localvar(ls, parname, parhint);
         if (fallbacks) {
@@ -1858,7 +1858,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
           std::vector<size_t> argtis{};
           argtis.resize(funcdesc->getNumParams());
           do {
-            TString *pname = str_checkname(ls, true);
+            TString *pname = str_checkname(ls, 1);
             int pi = funcdesc->findParamByName(pname);
             if (pi == -1) {
               throwerr(ls, luaO_fmt(ls->L, "function does not have a %s parameter", pname->contents), "unknown parameter");
@@ -3262,7 +3262,7 @@ static void enumstat (LexState *ls) {
       is_enum_class = true;
       luaX_next(ls);
     }
-    auto vidx = new_localvar(ls, str_checkname(ls, true), ls->getLineNumber());
+    auto vidx = new_localvar(ls, str_checkname(ls, 1), ls->getLineNumber());
     auto var = getlocalvardesc(ls->fs, vidx);
     var->vd.kind = RDKENUM;
     setivalue(&var->k, ls->enums.size());
@@ -3275,7 +3275,7 @@ static void enumstat (LexState *ls) {
 
   lua_Integer i = 1;
   while (gett(ls) != TK_END) {
-    TString *name = str_checkname(ls, true);
+    TString *name = str_checkname(ls, 1);
     int vidx;
     if (!is_enum_class) {
       vidx = new_localvar(ls, name, ls->getLineNumber());
@@ -3627,7 +3627,7 @@ static void localfunc (LexState *ls) {
   expdesc b;
   FuncState *fs = ls->fs;
   int fvar = fs->nactvar;  /* function's variable index */
-  new_localvar(ls, str_checkname(ls, true));  /* new local variable */
+  new_localvar(ls, str_checkname(ls, 1));  /* new local variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
   TypeDesc funcdesc;
   body(ls, &b, 0, ls->getLineNumber(), &funcdesc);  /* function created in next register */
@@ -3720,7 +3720,7 @@ static void destructuring (LexState *ls) {
   std::vector<std::pair<TString*, expdesc>> pairs{};
   luaX_next(ls); /* skip '{' */
   do {
-    TString* var = str_checkname(ls, true);
+    TString* var = str_checkname(ls, 1);
     TString* prop = var;
     if (testnext(ls, '='))
       prop = str_checkname(ls);
@@ -3740,7 +3740,7 @@ static void arraydestructuring (LexState *ls) {
   init_exp(&prop, VKINT, 0);
   prop.u.ival = 1;
   do {
-    pairs.emplace_back(str_checkname(ls, true), prop);
+    pairs.emplace_back(str_checkname(ls, 1), prop);
     prop.u.ival++;
   } while (testnext(ls, ','));
   check_match(ls, ']', '[', line);
@@ -3772,7 +3772,7 @@ static void localstat (LexState *ls) {
   do {
     if (is_constexpr)
       luaK_semerror(ls, "<constexpr> must only be used on the last variable in local list");
-    vidx = new_localvar(ls, str_checkname(ls, true), line);
+    vidx = new_localvar(ls, str_checkname(ls, 1), line);
     hint = gettypehint(ls);
     kind = getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
@@ -4091,17 +4091,17 @@ static void statement (LexState *ls, TypeDesc *prop) {
         return;
       }
       if (testnext(ls, TK_FUNCTION)) {
-        ls->export_symbols.emplace_back(str_checkname(ls, true));
+        ls->export_symbols.emplace_back(str_checkname(ls, 1));
         luaX_prev(ls);
         localfunc(ls);
       }
       else if (testnext2(ls, TK_CLASS, TK_PCLASS)) {
-        ls->export_symbols.emplace_back(str_checkname(ls, true));
+        ls->export_symbols.emplace_back(str_checkname(ls, 1));
         luaX_prev(ls);
         localclass(ls);
       }
       else {
-        ls->export_symbols.emplace_back(str_checkname(ls, true));
+        ls->export_symbols.emplace_back(str_checkname(ls, 1));
         luaX_prev(ls);
         localstat(ls);
       }
