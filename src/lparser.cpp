@@ -298,6 +298,11 @@ static void check_match (LexState *ls, int what, int who, int where) {
 }
 
 
+/*
+** strictness = 1 allows only NAME & narrow tokens.
+** strictness = 0 also allows reserved non-value tokens (so, excl. 'true', 'parent', etc.)
+** strictness = -1 also allows value tokens
+*/
 [[nodiscard]] static bool isnametkn (LexState *ls, int strictness = 0) {
   return ls->t.token == TK_NAME || ls->t.IsNarrow()
       || (strictness == 0 && ls->t.IsReservedNonValue())
