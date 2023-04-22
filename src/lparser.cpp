@@ -304,7 +304,7 @@ static void check_match (LexState *ls, int what, int who, int where) {
 }
 
 
-[[nodiscard]] static bool isnametkn(LexState *ls, bool strict = false) {
+[[nodiscard]] static bool isnametkn (LexState *ls, bool strict = false) {
   return ls->t.token == TK_NAME || ls->t.IsNarrow() || (!strict && ls->t.IsReservedNonValue());
 }
 
