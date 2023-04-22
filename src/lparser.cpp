@@ -1342,7 +1342,10 @@ static void field (LexState *ls, ConsControl *cc) {
     ss.push("stat", "function");
     ss.push("stat", "static");
   }
-  switch(ls->t.token) {
+  if (ls->t.IsReserved() && luaX_lookahead(ls) == '=') {
+    prenamedfield(ls, cc, luaX_reserved2str(ls->t.token));
+  }
+  else switch(ls->t.token) {
     case TK_NAME: {  /* may be 'listfield', 'recfield' or static 'funcfield' */
       if (strcmp(ls->t.seminfo.ts->contents, "static") != 0) {
         if (luaX_lookahead(ls) != '=')  /* expression? */
@@ -1371,11 +1374,7 @@ static void field (LexState *ls, ConsControl *cc) {
       break;
     }
     default: {
-      if (ls->t.IsReservedNonValue()) {
-        prenamedfield(ls, cc, luaX_reserved2str(ls->t.token));
-      } else {
-        listfield(ls, cc);
-      }
+      listfield(ls, cc);
       break;
     }
   }
