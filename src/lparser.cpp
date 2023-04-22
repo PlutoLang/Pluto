@@ -305,7 +305,10 @@ static void check_match (LexState *ls, int what, int who, int where) {
 
 
 [[nodiscard]] static bool isnametkn (LexState *ls, int strictness = 0) {
-  return ls->t.token == TK_NAME || ls->t.IsNarrow() || (strictness == 0 && ls->t.IsReservedNonValue());
+  return ls->t.token == TK_NAME || ls->t.IsNarrow()
+      || (strictness == 0 && ls->t.IsReservedNonValue())
+      || (strictness == -1 && ls->t.IsReserved())
+      ;
 }
 
 
@@ -338,8 +341,8 @@ static void codestring (expdesc *e, TString *s) {
 }
 
 
-static void codename (LexState *ls, expdesc *e) {
-  codestring(e, str_checkname(ls));
+static void codename (LexState *ls, expdesc *e, int strictness = 0) {
+  codestring(e, str_checkname(ls, strictness));
 }
 
 
@@ -1223,7 +1226,7 @@ static void fieldsel (LexState *ls, expdesc *v) {
   expdesc key;
   luaK_exp2anyregup(fs, v);
   luaX_next(ls);  /* skip the dot or colon */
-  codename(ls, &key);
+  codename(ls, &key, -1);
   luaK_indexed(fs, v, &key);
 }
 

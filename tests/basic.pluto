@@ -1170,6 +1170,11 @@ do
         assert(default == "yes")
     end
     compat_default_name("yes")
+
+    local compat_parent_shorthand_accessor = {
+        ["parent"] = true
+    }
+    assert(compat_parent_shorthand_accessor.parent == true)
 end
 do
     local t = { "a", "b", "c" }
