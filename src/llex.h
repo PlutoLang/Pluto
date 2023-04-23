@@ -155,6 +155,11 @@ struct Token {
   {
       return (token >= FIRST_SPECIAL && token < TK_RETURN);
   }
+
+  [[nodiscard]] bool IsOverridable() const noexcept
+  {
+      return token == TK_PARENT || token == TK_PPARENT;
+  }
 };
 
 

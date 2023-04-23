@@ -301,12 +301,14 @@ static void check_match (LexState *ls, int what, int who, int where) {
 enum NameFlags {
   N_RESERVED_NON_VALUE = (1 << 0),
   N_RESERVED = (1 << 1),
+  N_OVERRIDABLE = (1 << 2),
 };
 
 [[nodiscard]] static bool isnametkn (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
   return ls->t.token == TK_NAME || ls->t.IsNarrow()
       || ((flags & N_RESERVED_NON_VALUE) && ls->t.IsReservedNonValue())
       || ((flags & N_RESERVED) && ls->t.IsReserved())
+      || ((flags & N_OVERRIDABLE) && ls->t.IsOverridable())
       ;
 }
 
@@ -758,10 +760,10 @@ static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
 ** Find a variable with the given name 'n', handling global variables
 ** too.
 */
-static void singlevarinner (LexState *ls, TString *varname, expdesc *var) {
+static void singlevarinner (LexState *ls, TString *varname, expdesc *var, bool localonly = false) {
   FuncState *fs = ls->fs;
   singlevaraux(fs, varname, var, 1);
-  if (var->k == VVOID) {  /* global name? */
+  if (var->k == VVOID && !localonly) {  /* global name? */
     expdesc key;
     singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
     lua_assert(var->k != VVOID);  /* this one must exist */
@@ -770,7 +772,7 @@ static void singlevarinner (LexState *ls, TString *varname, expdesc *var) {
   }
 }
 
-static void singlevar (LexState *ls, expdesc *var, TString *varname) {
+static void singlevar (LexState *ls, expdesc *var, TString *varname, bool localonly = false) {
   if (gett(ls) == TK_WALRUS) {
     luaX_next(ls);
     if (ls->getContext() == PARCTX_CREATE_VARS)
@@ -783,7 +785,7 @@ static void singlevar (LexState *ls, expdesc *var, TString *varname) {
     adjustlocalvars(ls, 1);
     return;
   }
-  singlevarinner(ls, varname, var);
+  singlevarinner(ls, varname, var, localonly);
 }
 
 static void singlevar (LexState *ls, expdesc *var) {
@@ -1649,8 +1651,8 @@ static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr, TSt
   int isvararg = 0;
   if (ls->t.token != ')' && ls->t.token != '|') {  /* is 'parlist' not empty? */
     do {
-      if (isnametkn(ls, 0)) {
-        auto parname = str_checkname(ls, 0);
+      if (isnametkn(ls, N_OVERRIDABLE)) {
+        auto parname = str_checkname(ls, N_OVERRIDABLE);
         auto parhint = gettypehint(ls);
         new_localvar(ls, parname, parhint);
         if (fallbacks) {
@@ -2354,13 +2356,17 @@ static void parentexp (LexState *ls, expdesc *v) {
 
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
-  if (isnametkn(ls)) {
-    TString *varname = str_checkname(ls);
-    singlevar(ls, v, varname);
+  if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
+    const bool is_overridable = ls->t.IsOverridable();
+    TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
+    singlevar(ls, v, varname, is_overridable);
     if (v->k == VENUM) {
       enumexp(ls, v, varname);
     }
-    return;
+    if (is_overridable && v->k == VVOID)
+      luaX_prev(ls);
+    else
+      return;
   }
   switch (ls->t.token) {
     case '(': {
@@ -3730,7 +3736,7 @@ static void destructuring (LexState *ls) {
   std::vector<std::pair<TString*, expdesc>> pairs{};
   luaX_next(ls); /* skip '{' */
   do {
-    TString* var = str_checkname(ls, 0);
+    TString* var = str_checkname(ls, N_OVERRIDABLE);
     TString* prop = var;
     if (testnext(ls, '='))
       prop = str_checkname(ls);
@@ -3750,7 +3756,7 @@ static void arraydestructuring (LexState *ls) {
   init_exp(&prop, VKINT, 0);
   prop.u.ival = 1;
   do {
-    pairs.emplace_back(str_checkname(ls, 0), prop);
+    pairs.emplace_back(str_checkname(ls, N_OVERRIDABLE), prop);
     prop.u.ival++;
   } while (testnext(ls, ','));
   check_match(ls, ']', '[', line);
@@ -3782,7 +3788,7 @@ static void localstat (LexState *ls) {
   do {
     if (is_constexpr)
       luaK_semerror(ls, "<constexpr> must only be used on the last variable in local list");
-    vidx = new_localvar(ls, str_checkname(ls, 0), line);
+    vidx = new_localvar(ls, str_checkname(ls, N_OVERRIDABLE), line);
     hint = gettypehint(ls);
     kind = getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
