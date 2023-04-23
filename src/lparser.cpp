@@ -3982,7 +3982,7 @@ static void usestat (LexState *ls) {
     if (testnext(ls, '=')) {
       if (testnext(ls, TK_FALSE))
         enable = false;
-      else checknext(ls, TK_FALSE);
+      else checknext(ls, TK_TRUE);
     }
     if (is_enabled != enable) {
       if (enable)
