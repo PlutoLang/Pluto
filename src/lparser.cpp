@@ -152,6 +152,10 @@ static void throw_warn(LexState *ls, const char *err, int line, WarningType warn
   }
 }
 
+static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
+  throw_warn(ls, err, ls->getLineNumber(), warningType);
+}
+
 
 /*
 ** This function will throw an exception and terminate the program.
