@@ -185,7 +185,7 @@ enum WarningType : int
 };
 
 
-static const std::vector<std::string> luaX_warnNames = {
+inline const std::vector<std::string> luaX_warnNames = {
   "all",
   "var-shadow",
   "type-mismatch",
