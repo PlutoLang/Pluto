@@ -3994,16 +3994,18 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 
 
 static int checkkeyword (LexState *ls) {
-  if (ls->t.token == TK_NAME)
-    for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i)
-      if (strcmp(luaX_reserved2str(i), ls->t.seminfo.ts->contents) == 0) {
-        luaX_next(ls);
-        return i;
-      }
-  if (!ls->t.IsNonCompatible()) {
-    if (ls->t.IsCompatible())
-      luaX_syntaxerror(ls, "expected non-compatible keyword");
-    luaX_syntaxerror(ls, "expected keyword");
+  if (ls->t.token != '*') {
+    if (ls->t.token == TK_NAME)
+      for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i)
+        if (strcmp(luaX_reserved2str(i), ls->t.seminfo.ts->contents) == 0) {
+          luaX_next(ls);
+          return i;
+        }
+    if (!ls->t.IsNonCompatible()) {
+      if (ls->t.IsCompatible())
+        luaX_syntaxerror(ls, "expected non-compatible keyword");
+      luaX_syntaxerror(ls, "expected keyword");
+    }
   }
   int token = ls->t.token;
   luaX_next(ls);
@@ -4055,7 +4057,12 @@ static void usestat (LexState *ls) {
         enable = false;
       else checknext(ls, TK_TRUE);
     }
-    if (is_enabled != enable) {
+    if (token == '*') {
+      for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i) {
+        togglekeyword(ls, i, enable);
+      }
+    }
+    else if (is_enabled != enable) {
       togglekeyword(ls, token, enable);
     }
   } while (testnext(ls, ','));
