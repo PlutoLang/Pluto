@@ -153,7 +153,7 @@ struct Token {
 
   [[nodiscard]] bool IsSpecial() const noexcept
   {
-	  return (token >= FIRST_SPECIAL && token < TK_RETURN);
+      return (token >= FIRST_SPECIAL && token < TK_RETURN);
   }
 };
 
