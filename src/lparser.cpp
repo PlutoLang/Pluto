@@ -4019,7 +4019,6 @@ static void disablekeyword (LexState *ls, int token) {
       i->token = TK_NAME;
 }
 
-
 static void enablekeyword (LexState *ls, int token) {
   const char* str = luaX_reserved2str(token);
   auto i = ls->tokens.begin() + ls->tidx;
@@ -4038,6 +4037,13 @@ static void enablekeyword (LexState *ls, int token) {
         i->token = token;
 }
 
+static void togglekeyword (LexState *ls, int token, bool enable) {
+  if (enable)
+    enablekeyword(ls, token);
+  else
+    disablekeyword(ls, token);
+}
+
 static void usestat (LexState *ls) {
   luaX_next(ls); /* skip 'pluto_use' */
   do {
@@ -4050,10 +4056,7 @@ static void usestat (LexState *ls) {
       else checknext(ls, TK_TRUE);
     }
     if (is_enabled != enable) {
-      if (enable)
-        enablekeyword(ls, token);
-      else
-        disablekeyword(ls, token);
+      togglekeyword(ls, token, enable);
     }
   } while (testnext(ls, ','));
 
