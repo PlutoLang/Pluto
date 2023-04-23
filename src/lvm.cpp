@@ -1334,7 +1334,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
     Instruction i;  /* instruction being executed */
     StkId ra;  /* instruction's A register */
     vmfetch();
-    lua_assert(isIT(i) || (cast_void(L->top = base), 1));
+    lua_assert(isIT(i) || (cast_void(L->top.p = base), 1));
     vmdispatch (GET_OPCODE(i)) {
       vmcase(OP_MOVE) {
         setobjs2s(L, ra, RB(i));
@@ -2224,8 +2224,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddC();
         if (TESTARG_k(i)) {
           luaF_closeupval(L, base);  /* close upvalues from current call */
-          lua_assert(L->tbclist < base);  /* no pending tbc variables */
-          lua_assert(base == ci->func + 1);
+          lua_assert(L->tbclist.p < base);  /* no pending tbc variables */
+          lua_assert(base == ci->func.p + 1);
         }
         if ((n = luaD_pretailcall(L, ci, ra, b, delta)) < 0)
         {
