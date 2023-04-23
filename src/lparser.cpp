@@ -382,11 +382,11 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     else if (strcmp(tname, "void") == 0) {
       if (!nullable && funcret)
         return { VT_VOID, nullable };
-      throw_warn(ls, "'void' is not a valid type hint in this context", "invalid type hint", TYPE_MISMATCH);
+      throw_warn(ls, "'void' is not a valid type hint in this context", "invalid type hint", WT_TYPE_MISMATCH);
     }
     else if (strcmp(tname, "userdata") != 0) {
       luaX_prev(ls);
-      throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", TYPE_MISMATCH);
+      throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", WT_TYPE_MISMATCH);
       ls->L->top.p--;
       luaX_next(ls); // Preserve a6c8e359857644f4311c022f85cf19d85d95c25d
     }
@@ -427,11 +427,11 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int l
     err.append(td.toString());
     err.append(" value.");
     if (td.getType() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
-      throw_warn(ls, "variable type mismatch", err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line, TYPE_MISMATCH);
+      throw_warn(ls, "variable type mismatch", err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line, WT_TYPE_MISMATCH);
       ls->L->top.p--; // luaO_fmt
     }
     else {  /* Throw a generic mismatch warning. */
-      throw_warn(ls, "variable type mismatch", err.c_str(), line, TYPE_MISMATCH);
+      throw_warn(ls, "variable type mismatch", err.c_str(), line, WT_TYPE_MISMATCH);
     }
   }
   var->vd.prop = td; /* propagate type */
@@ -494,7 +494,7 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
     if ((n != "(for state)" && n != "(switch control value)") && (local && local->varname == name)) { // Got a match.
       throw_warn(ls,
         "duplicate local declaration",
-          luaO_fmt(L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, VAR_SHADOW);
+          luaO_fmt(L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
       L->top.p--; /* pop result of luaO_fmt */
       break;
     }
@@ -1746,7 +1746,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     err.append(rethint.toString());
     err.append(" but actually returns ");
     err.append(p.toString());
-    throw_warn(ls, err.c_str(), line, TYPE_MISMATCH);
+    throw_warn(ls, err.c_str(), line, WT_TYPE_MISMATCH);
   }
   if (prop) { /* propagate type of function */
     *prop = VT_FUNC;
@@ -1920,7 +1920,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
         err.append(param_hint.toString());
         err.append(" but provided with ");
         err.append(arg.toString());
-        throw_warn(ls, err.c_str(), "argument type mismatch", line, TYPE_MISMATCH);
+        throw_warn(ls, err.c_str(), "argument type mismatch", line, WT_TYPE_MISMATCH);
       }
     }
     const auto expected = funcdesc->getNumParams();
@@ -1929,7 +1929,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       auto suffix = expected == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
       throw_warn(ls,
         "too many arguments",
-          luaO_fmt(ls->L, "expected %d argument%s, got %d.", expected, suffix, received), EXCESSIVE_ARGUMENTS);
+          luaO_fmt(ls->L, "expected %d argument%s, got %d.", expected, suffix, received), WT_EXCESSIVE_ARGUMENTS);
       --ls->L->top.p;
     }
   }
@@ -3589,7 +3589,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
   luaX_next(ls);  /* skip IF or ELSEIF */
   expr(ls, &v);  /* read condition */
   if (v.k == VNIL || v.k == VFALSE)
-    throw_warn(ls, "unreachable code", "this condition will never be truthy.", ls->getLineNumber(), UNREACHABLE_CODE);
+    throw_warn(ls, "unreachable code", "this condition will never be truthy.", ls->getLineNumber(), WT_UNREACHABLE_CODE);
   checknext(ls, TK_THEN);
   if (ls->t.token == TK_BREAK && luaX_lookahead(ls) != TK_INT) {  /* 'if x then break' and not 'if x then break int' ? */
     ls->laststat.token = TK_BREAK;
@@ -3871,7 +3871,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
   {
     throw_warn(ls,
       "unreachable code",
-        luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)), UNREACHABLE_CODE);
+        luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)), WT_UNREACHABLE_CODE);
     ls->L->top.p--;
   }
   if (ls->t.token != ';')
