@@ -1165,12 +1165,17 @@ do
         goto if_then_goto_test
         ::if_then_goto_test::
     end
-
-    local function compat_default_name(default)
-        assert(default == "yes")
+end
+do
+    local function compat_names(default, parent)
+        assert(default == 1)
+        assert(parent == 2)
     end
-    compat_default_name("yes")
-
+    local default = 1
+    local parent = 2
+    compat_names(default, parent)
+end
+do
     local compat_parent_shorthand_syntaxes = {
         parent = true
     }
