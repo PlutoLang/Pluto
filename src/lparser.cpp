@@ -2650,9 +2650,11 @@ static void inexpr (LexState *ls, expdesc *v) {
   checknext(ls, TK_IN);
   expr(ls, &v2);
   luaK_exp2nextreg(ls->fs, v);
+  lua_assert(v->k == VNONRELOC);
+  int base = v->u.info;
   luaK_exp2nextreg(ls->fs, &v2);
   luaK_codeABC(ls->fs, OP_IN, v->u.info, v2.u.info, 0);
-  luaK_storevar(ls->fs, v, v);
+  ls->fs->freereg = base + 1;
 }
 
 
