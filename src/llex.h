@@ -130,9 +130,7 @@ struct Token {
   {
     return IsReserved() && token != TK_TRUE && token != TK_FALSE && token != TK_NIL
       && token != TK_PPARENT
-#ifndef PLUTO_COMPATIBLE_PARENT
       && token != TK_PARENT
-#endif
       ;
   }
 
