@@ -11,6 +11,7 @@
 #include <stack>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 #include "lobject.h"
@@ -173,6 +174,7 @@ enum WarningType : int
   WT_UNREACHABLE_CODE,
   WT_EXCESSIVE_ARGUMENTS,
   WT_DEPRECATED,
+  WT_NON_PORTABLE,
 
   NUM_WARNING_TYPES
 };
@@ -185,6 +187,7 @@ inline const char* const luaX_warnNames[] = {
   "unreachable-code",
   "excessive-arguments",
   "deprecated",
+  "non-portable",
 };
 
 
@@ -303,6 +306,7 @@ struct LexState {
   std::stack<ParserContext> parser_context_stck{};
   std::vector<EnumDesc> enums{};
   std::vector<TString*> export_symbols{};
+  std::unordered_set<int> enabled_by_pluto_use{};
 
   LexState()
     : lines{ std::string{} }, warnconfs{ WarningConfig(0) }

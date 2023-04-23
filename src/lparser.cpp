@@ -153,6 +153,14 @@ static void throw_warn(LexState *ls, const char *err, int line, WarningType warn
 }
 
 
+static void check_non_portable (LexState *ls) {
+  if (ls->t.IsNonCompatible() && ls->enabled_by_pluto_use.find(ls->t.token) == ls->enabled_by_pluto_use.end()) {
+    throw_warn(ls, "this syntax may not work under compatibility mode.", luaO_fmt(ls->L, "insert 'pluto_use %s' before this line or use 'pluto_%s' instead.", ls->t.seminfo.ts->contents, ls->t.seminfo.ts->contents), WT_NON_PORTABLE);
+    ls->L->top.p--;
+  }
+}
+
+
 /*
 ** This function will throw an exception and terminate the program.
 */
@@ -2619,12 +2627,14 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
     case TK_NEW:
     case TK_PNEW: {
       if (prop) *prop = VT_TABLE;
+      check_non_portable(ls);
       newexpr(ls, v);
       return;
     }
     case TK_CLASS:
     case TK_PCLASS: {
       if (prop) *prop = VT_TABLE;
+      check_non_portable(ls);
       luaX_next(ls); /* skip 'class' */
       classexpr(ls, v);
       return;
@@ -3984,6 +3994,8 @@ static void usestat (LexState *ls) {
         enable = false;
       else checknext(ls, TK_TRUE);
     }
+    if (enable)
+      ls->enabled_by_pluto_use.emplace(token);
     if (is_enabled != enable) {
       if (enable)
         enablekeyword(ls, token);
@@ -4068,6 +4080,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
     }
     case TK_CLASS:
     case TK_PCLASS: {
+      check_non_portable(ls);
       classstat(ls);
       break;
     }
