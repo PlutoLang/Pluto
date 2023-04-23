@@ -185,7 +185,7 @@ enum WarningType : int
 };
 
 
-inline const std::vector<std::string> luaX_warnNames = {
+inline const char* const luaX_warnNames[] = {
   "all",
   "var-shadow",
   "type-mismatch",
@@ -260,7 +260,8 @@ struct WarningConfig
 
   [[nodiscard]] static const char* getWarningName(const WarningType w)
   {
-    return luaX_warnNames.at((size_t)w).c_str();
+    lua_assert((size_t)w >= 0 && (size_t)w < NUM_WARNING_TYPES);
+    return luaX_warnNames[(size_t)w];
   }
 };
 
