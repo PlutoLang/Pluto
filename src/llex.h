@@ -173,6 +173,7 @@ enum WarningType : int
   WT_UNREACHABLE_CODE,
   WT_EXCESSIVE_ARGUMENTS,
   WT_DEPRECATED,
+  WT_BAD_PRACTICE,
 
   NUM_WARNING_TYPES
 };
@@ -185,6 +186,7 @@ inline const char* const luaX_warnNames[] = {
   "unreachable-code",
   "excessive-arguments",
   "deprecated",
+  "bad-practice",
 };
 
 
