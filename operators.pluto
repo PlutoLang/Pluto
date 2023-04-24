@@ -1,0 +1,30 @@
+-- lparser.cpp's builtinoperators
+
+local function Pluto_operator_new(mt, ...)
+  if type(mt) ~= "table" then
+    error "'new' used on non-table value"
+  end
+  local t = {}
+  setmetatable(t, mt)
+  mt.__index = mt
+  if t.__construct then
+    t:__construct(...)
+  end
+  return t
+end
+
+local function Pluto_operator_extends(c, p)
+  setmetatable(c, { __index = p })
+  c.__parent = p
+end
+
+local function Pluto_operator_instanceof(t, mt)
+  t = getmetatable(t)
+  while t ~= nil do
+    if t == mt then
+      return true
+    end
+    t = t.__parent
+  end
+  return false
+end
