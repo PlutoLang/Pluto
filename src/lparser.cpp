@@ -4028,6 +4028,7 @@ static void togglekeyword (LexState *ls, int token, bool enable) {
 }
 
 static void usestat (LexState *ls) {
+  auto line = ls->getLineNumber();
   luaX_next(ls); /* skip 'pluto_use' */
   do {
     /* check affected tokens */
@@ -4068,9 +4069,9 @@ static void usestat (LexState *ls) {
       else checknext(ls, TK_TRUE);
     }
 
-    /* disallow stupid stuff */
+    /* catch stupid stuff */
     if (is_all && enable)
-      throwerr(ls, "'pluto_use *' is only valid as 'pluto_use * = false'", "did you mean 'pluto_use \"0.6.0\"'?");
+      throw_warn(ls, "'pluto_use *' is a bad idea because future Pluto versions may add keywords that will break your script", "consider using 'pluto_use \"0.6.0\"' instead", line, WT_BAD_PRACTICE);
     if (is_version && !enable)
       throwerr(ls, "'pluto_use <version>' is not valid for disabling tokens", "did you mean 'pluto_use * = false'?");
 
