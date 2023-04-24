@@ -3929,18 +3929,16 @@ static void retstat (LexState *ls, TypeDesc *prop) {
 
 
 static int checkkeyword (LexState *ls) {
-  if (ls->t.token != '*') {
-    if (ls->t.token == TK_NAME)
-      for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i)
-        if (strcmp(luaX_reserved2str(i), ls->t.seminfo.ts->contents) == 0) {
-          luaX_next(ls);
-          return i;
-        }
-    if (!ls->t.IsNonCompatible()) {
-      if (ls->t.IsCompatible())
-        luaX_syntaxerror(ls, "expected non-compatible keyword");
-      luaX_syntaxerror(ls, "expected keyword");
-    }
+  if (ls->t.token == TK_NAME)
+    for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i)
+      if (strcmp(luaX_reserved2str(i), ls->t.seminfo.ts->contents) == 0) {
+        luaX_next(ls);
+        return i;
+      }
+  if (!ls->t.IsNonCompatible()) {
+    if (ls->t.IsCompatible())
+      luaX_syntaxerror(ls, "expected non-compatible keyword");
+    luaX_syntaxerror(ls, "expected keyword");
   }
   int token = ls->t.token;
   luaX_next(ls);
@@ -3984,21 +3982,64 @@ static void togglekeyword (LexState *ls, int token, bool enable) {
 static void usestat (LexState *ls) {
   luaX_next(ls); /* skip 'pluto_use' */
   do {
+    /* check affected tokens */
     bool is_enabled = (ls->t.token != TK_NAME);
-    int token = checkkeyword(ls);
+    bool is_all = false;
+    bool is_version = false;
+    std::vector<int> tokens{};
+    if (ls->t.token == '*') {
+      is_all = true;
+      for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i) {
+        tokens.emplace_back(i);
+      }
+      luaX_next(ls);
+    }
+    else if (ls->t.token == TK_STRING) {
+      is_version = true;
+      if (strcmp(ls->t.seminfo.ts->contents, "0.6.0") == 0) {
+        tokens = { TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT };
+      }
+      else if (strcmp(ls->t.seminfo.ts->contents, "0.5.0") == 0) {
+        tokens = { TK_SWITCH, TK_CONTINUE, TK_ENUM };
+      }
+      else if (strcmp(ls->t.seminfo.ts->contents, "0.2.0") == 0) {
+        tokens = { TK_SWITCH, TK_CONTINUE };
+      }
+      else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", ls->t.seminfo.ts->contents), "did you mean \"0.6.0\", \"0.5.0\" or \"0.2.0\"?");
+      luaX_next(ls);
+    }
+    else {
+      tokens = { checkkeyword(ls) };
+    }
+
+    /* check if enable or disable */
     bool enable = true;
     if (testnext(ls, '=')) {
       if (testnext(ls, TK_FALSE))
         enable = false;
       else checknext(ls, TK_TRUE);
     }
-    if (token == '*') {
-      for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i) {
-        togglekeyword(ls, i, enable);
+
+    /* disallow stupid stuff */
+    if (is_all && enable)
+      throwerr(ls, "'pluto_use *' is only valid as 'pluto_use * = false'", "did you mean 'pluto_use \"0.6.0\"'?");
+    if (is_version && !enable)
+      throwerr(ls, "'pluto_use <version>' is not valid for disabling tokens", "did you mean 'pluto_use * = false'?");
+
+    /* apply change */
+    if (is_all || is_version) {
+      if (is_version) {
+        /* disable all non-compatible keywords as of this Pluto version, then enable those from the elected Pluto version. */
+        for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i) {
+          disablekeyword(ls, i);
+        }
+      }
+      for (const auto& token : tokens) {
+        togglekeyword(ls, token, enable);
       }
     }
     else if (is_enabled != enable) {
-      togglekeyword(ls, token, enable);
+      togglekeyword(ls, tokens.at(0), enable);
     }
   } while (testnext(ls, ','));
 
