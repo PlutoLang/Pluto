@@ -4188,11 +4188,9 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
       ls->tokens.emplace_back(Token(')'));
 
-      //   while t ~= nil do
+      //   while t do
       ls->tokens.emplace_back(Token(TK_WHILE));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
-      ls->tokens.emplace_back(Token(TK_NE));
-      ls->tokens.emplace_back(Token(TK_NIL));
       ls->tokens.emplace_back(Token(TK_DO));
 
       //     if t == mt then

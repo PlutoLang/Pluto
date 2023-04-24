@@ -20,7 +20,7 @@ end
 
 local function Pluto_operator_instanceof(t, mt)
   t = getmetatable(t)
-  while t ~= nil do
+  while t do
     if t == mt then
       return true
     end
