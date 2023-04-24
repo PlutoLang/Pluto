@@ -4069,7 +4069,7 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(','));
       ls->tokens.emplace_back(Token(TK_DOTS));
       ls->tokens.emplace_back(Token(')'));
-     
+
       //   if type(mt) ~= "table" then
       ls->tokens.emplace_back(Token(TK_IF));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "type")));
@@ -4079,21 +4079,21 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_NE));
       ls->tokens.emplace_back(Token(TK_STRING, luaS_newliteral(ls->L, "table")));
       ls->tokens.emplace_back(Token(TK_THEN));
-     
+
       //     error "'new' used on non-table value"
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "error")));
       ls->tokens.emplace_back(Token(TK_STRING, luaS_newliteral(ls->L, "'new' used on non-table value")));
-     
+
       //   end
       ls->tokens.emplace_back(Token(TK_END));
-     
+
       //   local t = {}
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
       ls->tokens.emplace_back(Token('='));
       ls->tokens.emplace_back(Token('{'));
       ls->tokens.emplace_back(Token('}'));
-     
+
       //   setmetatable(t, mt)
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "setmetatable")));
       ls->tokens.emplace_back(Token('('));
@@ -4101,21 +4101,21 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(','));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
       ls->tokens.emplace_back(Token(')'));
-     
+
       //   mt.__index = mt
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
       ls->tokens.emplace_back(Token('.'));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__index")));
       ls->tokens.emplace_back(Token('='));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
-     
+
       //   if t.__construct then
       ls->tokens.emplace_back(Token(TK_IF));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
       ls->tokens.emplace_back(Token('.'));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__construct")));
       ls->tokens.emplace_back(Token(TK_THEN));
-     
+
       //     t:__construct(...)
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
       ls->tokens.emplace_back(Token(':'));
@@ -4123,14 +4123,14 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_DOTS));
       ls->tokens.emplace_back(Token(')'));
-     
+
       //   end
       ls->tokens.emplace_back(Token(TK_END));
-     
+
       //   return t
       ls->tokens.emplace_back(Token(TK_RETURN));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
-     
+
       // end
       ls->tokens.emplace_back(Token(TK_END));
     }
