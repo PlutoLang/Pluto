@@ -4102,12 +4102,27 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
       ls->tokens.emplace_back(Token(')'));
 
-      //   mt.__index = mt
+      //   if not mt.__index or mt.__parent then
+      ls->tokens.emplace_back(Token(TK_IF));
+      ls->tokens.emplace_back(Token(TK_NOT));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+      ls->tokens.emplace_back(Token('.'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__index")));
+      ls->tokens.emplace_back(Token(TK_OR));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+      ls->tokens.emplace_back(Token('.'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__parent")));
+      ls->tokens.emplace_back(Token(TK_THEN));
+
+      //     mt.__index = mt
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
       ls->tokens.emplace_back(Token('.'));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "__index")));
       ls->tokens.emplace_back(Token('='));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
+
+      //   end
+      ls->tokens.emplace_back(Token(TK_END));
 
       //   if t.__construct then
       ls->tokens.emplace_back(Token(TK_IF));

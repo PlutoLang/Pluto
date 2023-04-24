@@ -951,6 +951,33 @@ do
     assert(john instanceof Entity)
     assert(john instanceof Human)
 end
+-- Class overriding '__index'
+do
+    local extraOffset <constexpr> = 10
+
+    class Counter
+        __num = 1
+
+        function __index(key)
+            if key == "num" then
+                return self.__num + extraOffset
+            end
+            return Counter[key]
+        end
+
+        function __newindex(key, value)
+            if key == "num" then
+                self.__num = value - extraOffset
+            end
+            rawset(self, key, value)
+        end
+    end
+
+    local c = new Counter()
+    assert(c.num == 1 + extraOffset)
+    c.num = 42
+    assert(c.num == 42)
+end
 
 print "Testing named varargs."
 do

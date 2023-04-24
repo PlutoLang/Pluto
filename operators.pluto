@@ -6,7 +6,9 @@ local function Pluto_operator_new(mt, ...)
   end
   local t = {}
   setmetatable(t, mt)
-  mt.__index = mt
+  if not mt.__index or mt.__parent then
+    mt.__index = mt
+  end
   if t.__construct then
     t:__construct(...)
   end
