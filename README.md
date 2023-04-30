@@ -15,11 +15,13 @@ Pluto is a unique dialect of Lua, which aims to specialize for general-purpose p
 
 ## Documentation
 
-Instructions on how to install Pluto, as well as a detailed documentation for all of its additions and improvements can be found [here](https://plutolang.github.io/docs/Introduction).
+A detailed documentation of getting started with, tooling for, and the additions and improvements of Pluto can be found [on our website](https://plutolang.github.io/docs/Introduction), which is [open-source as well](https://github.com/PlutoLang/plutolang.github.io).
 
-## Related links
+### Getting Started
+
+You can use Pluto right in your browser [in the interactive playground](https://plutolang.github.io/web/), or find [pre-built binaries](https://github.com/PlutoLang/Pluto/releases) on our releases page. [Read more...](https://pluto-lang.org/docs/Getting%20Started)
+
+### Tooling
 
 - [Pluto Syntax Highlighting](https://github.com/PlutoLang/Syntax-Highlighting)
 - [Pluto Language Server](https://github.com/PlutoLang/pluto-language-server)
-- [Repository for Website](https://github.com/PlutoLang/plutolang.github.io)
-- [Interactive Playground](https://plutolang.github.io/web/)
