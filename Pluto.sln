@@ -7,12 +7,26 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Pluto", "Pluto.vcxproj", "{
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		dll (c abi)|x64 = dll (c abi)|x64
+		dll (c abi)|x86 = dll (c abi)|x86
+		dll (c++ abi)|x64 = dll (c++ abi)|x64
+		dll (c++ abi)|x86 = dll (c++ abi)|x86
 		pluto|x64 = pluto|x64
 		pluto|x86 = pluto|x86
 		plutoc|x64 = plutoc|x64
 		plutoc|x86 = plutoc|x86
+		static lib|x64 = static lib|x64
+		static lib|x86 = static lib|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c abi)|x64.ActiveCfg = dll (c abi)|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c abi)|x64.Build.0 = dll (c abi)|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c abi)|x86.ActiveCfg = dll (c abi)|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c abi)|x86.Build.0 = dll (c abi)|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c++ abi)|x64.ActiveCfg = dll (c++ abi)|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c++ abi)|x64.Build.0 = dll (c++ abi)|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c++ abi)|x86.ActiveCfg = dll (c++ abi)|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c++ abi)|x86.Build.0 = dll (c++ abi)|Win32
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.pluto|x64.ActiveCfg = pluto|x64
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.pluto|x64.Build.0 = pluto|x64
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.pluto|x86.ActiveCfg = pluto|Win32
@@ -21,6 +35,10 @@ Global
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.plutoc|x64.Build.0 = plutoc|x64
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.plutoc|x86.ActiveCfg = plutoc|Win32
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.plutoc|x86.Build.0 = plutoc|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib|x64.ActiveCfg = static lib|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib|x64.Build.0 = static lib|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib|x86.ActiveCfg = static lib|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib|x86.Build.0 = static lib|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -78,6 +78,7 @@
     <ClCompile Include="src\vendor\Soup\unicode.cpp">
       <Filter>vendor\Soup</Filter>
     </ClCompile>
+    <ClCompile Include="src\luac.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
