@@ -7,20 +7,20 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Pluto", "Pluto.vcxproj", "{
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
+		pluto|x64 = pluto|x64
+		pluto|x86 = pluto|x86
+		plutoc|x64 = plutoc|x64
+		plutoc|x86 = plutoc|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Debug|x64.ActiveCfg = Debug|x64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Debug|x64.Build.0 = Debug|x64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Debug|x86.ActiveCfg = Debug|Win32
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Debug|x86.Build.0 = Debug|Win32
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Release|x64.ActiveCfg = Release|x64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Release|x64.Build.0 = Release|x64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Release|x86.ActiveCfg = Release|Win32
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.Release|x86.Build.0 = Release|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.pluto|x64.ActiveCfg = pluto|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.pluto|x64.Build.0 = pluto|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.pluto|x86.ActiveCfg = pluto|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.pluto|x86.Build.0 = pluto|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.plutoc|x64.ActiveCfg = plutoc|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.plutoc|x64.Build.0 = plutoc|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.plutoc|x86.ActiveCfg = plutoc|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.plutoc|x86.Build.0 = plutoc|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
