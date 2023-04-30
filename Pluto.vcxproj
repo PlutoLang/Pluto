@@ -166,19 +166,19 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>out\$(Configuration) $(Platform)\</OutDir>
     <IntDir>int\$(Configuration) $(Platform)\</IntDir>
-    <TargetName>$(Configuration)</TargetName>
+    <TargetName>pluto (c abi)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='static lib|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>out\$(Configuration) $(Platform)\</OutDir>
     <IntDir>int\$(Configuration) $(Platform)\</IntDir>
-    <TargetName>$(Configuration)</TargetName>
+    <TargetName>pluto</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dll (c++ abi)|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>out\$(Configuration) $(Platform)\</OutDir>
     <IntDir>int\$(Configuration) $(Platform)\</IntDir>
-    <TargetName>$(Configuration)</TargetName>
+    <TargetName>pluto (c++ abi)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='plutoc|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -196,19 +196,19 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>out\$(Configuration) $(Platform)\</OutDir>
     <IntDir>int\$(Configuration) $(Platform)\</IntDir>
-    <TargetName>$(Configuration)</TargetName>
+    <TargetName>pluto (c abi)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='static lib|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>out\$(Configuration) $(Platform)\</OutDir>
     <IntDir>int\$(Configuration) $(Platform)\</IntDir>
-    <TargetName>$(Configuration)</TargetName>
+    <TargetName>pluto</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dll (c++ abi)|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>out\$(Configuration) $(Platform)\</OutDir>
     <IntDir>int\$(Configuration) $(Platform)\</IntDir>
-    <TargetName>$(Configuration)</TargetName>
+    <TargetName>pluto (c++ abi)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='plutoc|x64'">
     <LinkIncremental>false</LinkIncremental>
