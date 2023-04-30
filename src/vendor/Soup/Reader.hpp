@@ -191,7 +191,7 @@ namespace soup
 		bool str_lp_u64_dyn(std::string& v)
 		{
 			uint64_t len;
-			return u64_dyn(len) && str_impl(v, len);
+			return u64_dyn(len) && str_impl(v, (size_t)len);
 		}
 
 		bool bigint_lp_u64_dyn(Bigint& v);
@@ -200,7 +200,7 @@ namespace soup
 		bool str_lp_mysql(std::string& v)
 		{
 			uint64_t len;
-			return mysql_lenenc(len) && str_impl(v, len);
+			return mysql_lenenc(len) && str_impl(v, (size_t)len);
 		}
 
 		// Length-prefixed string, using u8 for the length prefix.
@@ -235,7 +235,7 @@ namespace soup
 		bool str_lp_u64(std::string& v)
 		{
 			uint64_t len;
-			return ioBase::u64(len) && str_impl(v, len);
+			return ioBase::u64(len) && str_impl(v, (size_t)len);
 		}
 
 		// String with known length.
@@ -319,7 +319,7 @@ namespace soup
 				return false;
 			}
 			v.clear();
-			v.reserve(len);
+			v.reserve((size_t)len);
 			for (; len != 0; --len)
 			{
 				std::string entry;
