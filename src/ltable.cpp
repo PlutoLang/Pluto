@@ -630,7 +630,9 @@ Table *luaH_new (lua_State *L) {
   t->flags = cast_byte(maskflags);  /* table has no metamethod fields */
   t->array = NULL;
   t->alimit = 0;
+#ifndef PLUTO_DISABLE_LENGTH_CACHE
   t->length = 0;
+#endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
   t->isfrozen = false;
 #endif

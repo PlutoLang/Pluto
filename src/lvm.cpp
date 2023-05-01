@@ -704,8 +704,12 @@ void luaV_objlen (lua_State *L, StkId ra, const TValue *rb) {
       Table *h = hvalue(rb);
       tm = fasttm(L, h->metatable, TM_LEN);
       if (tm) break;  /* metamethod? break switch to call it */
+#ifndef PLUTO_DISABLE_LENGTH_CACHE
       if (!h->length) h->length = luaH_getn(h);  /* cache length */
       setivalue(s2v(ra), h->length);
+#else
+      setivalue(s2v(ra), luaH_getn(h));
+#endif
       return;
     }
     case LUA_VSHRSTR: {
@@ -1506,9 +1510,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = KB(i);
         TValue *rc = RKC(i);
         TString *key = tsvalue(rb);  /* key must be a string */
+#if !defined(PLUTO_DISABLE_LENGTH_CACHE) || !defined(PLUTO_DISABLE_TABLE_FREEZING)
         if (ttistable(upval)) {  // R(A) may not be a table.
           Table *t = hvalue(upval);
+#ifndef PLUTO_DISABLE_LENGTH_CACHE
           t->length = 0;
+#endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
           if (t->isfrozen) {
             savepc(L);
@@ -1516,6 +1523,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           }
 #endif
         }
+#endif
         if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
           luaV_finishfastset(L, upval, slot, rc);
         }
@@ -1534,9 +1542,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = vRB(i);  /* key (table is in 'ra') */
         TValue *rc = RKC(i);  /* value */
         lua_Unsigned n;
+#if !defined(PLUTO_DISABLE_LENGTH_CACHE) || !defined(PLUTO_DISABLE_TABLE_FREEZING)
         if (ttistable(s2v(ra))) {
           Table *t = hvalue(s2v(ra));
+#ifndef PLUTO_DISABLE_LENGTH_CACHE
           t->length = 0; // Reset length cache.
+#endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
           if (t->isfrozen) {
             savepc(L);
@@ -1544,6 +1555,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           }
 #endif
         }
+#endif
         if (ttisinteger(rb)  /* fast track for integers? */
             ? (cast_void(n = ivalue(rb)), luaV_fastgeti(L, s2v(ra), n, slot))
             : luaV_fastget(L, s2v(ra), rb, slot, luaH_get)) {
@@ -1562,9 +1574,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         const TValue *slot;
         int c = GETARG_B(i);
         TValue *rc = RKC(i);
+#if !defined(PLUTO_DISABLE_LENGTH_CACHE) || !defined(PLUTO_DISABLE_TABLE_FREEZING)
         if (ttistable(s2v(ra))) {
           Table *t = hvalue(s2v(ra));
+#ifndef PLUTO_DISABLE_LENGTH_CACHE
           t->length = 0; // Reset length cache.
+#endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
           if (t->isfrozen) {
             savepc(L);
@@ -1572,6 +1587,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           }
 #endif
         }
+#endif
         if (luaV_fastgeti(L, s2v(ra), c, slot)) {
           luaV_finishfastset(L, s2v(ra), slot, rc);
         }

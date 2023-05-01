@@ -109,7 +109,9 @@ static int tremove (lua_State *L) {
     /* check whether 'pos' is in [1, size + 1] */
     luaL_argcheck(L, (lua_Unsigned)pos - 1u <= (lua_Unsigned)size, 2,
                      "position out of bounds");
+#ifndef PLUTO_DISABLE_LENGTH_CACHE
   lua_setcachelen(L, size - 1, 1);
+#endif
   lua_geti(L, 1, pos);  /* result = t[pos] */
   for ( ; pos < size; pos++) {
     lua_geti(L, 1, pos + 1);
