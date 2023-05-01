@@ -409,9 +409,9 @@ LUA_API void (lua_closeslot) (lua_State *L, int idx);
 ** https://github.com/gottfriedleibniz/lua/commit/7c7f50586efa6ed90c75a498b361b4f76793a4d0
 */
 #if true
-LUA_API void (lua_insert)(lua_State* L, int idx);
-LUA_API void (lua_remove)(lua_State* L, int idx);
-LUA_API void (lua_replace)(lua_State* L, int idx);
+LUA_API void (lua_insert) (lua_State *L, int idx);
+LUA_API void (lua_remove) (lua_State *L, int idx);
+LUA_API void (lua_replace) (lua_State *L, int idx);
 #else
 #define lua_insert(L,idx)	lua_rotate(L, (idx), 1)
 #define lua_remove(L,idx)	(lua_rotate(L, (idx), -1), lua_pop(L, 1))
