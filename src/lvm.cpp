@@ -1560,11 +1560,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rc = RKC(i);
         if (ttistable(s2v(ra))) {
           Table *t = hvalue(s2v(ra));
+          t->length = 0; // Reset length cache.
           if (t->isfrozen) {
             savepc(L);
             luaG_runerror(L, "attempt to modify frozen table.");
           }
-          t->length = 0; // Reset length cache.
         }
         if (luaV_fastgeti(L, s2v(ra), c, slot)) {
           luaV_finishfastset(L, s2v(ra), slot, rc);
