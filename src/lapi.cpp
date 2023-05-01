@@ -930,11 +930,13 @@ LUA_API void lua_seti (lua_State *L, int idx, lua_Integer n) {
   lua_lock(L);
   api_checknelems(L, 1);
   t = index2value(L, idx);
+#ifndef PLUTO_DISABLE_TABLE_FREEZING
   if (ttistable(t)) {
     Table *tab = hvalue(t);
     if (tab->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
     tab->length = 0;
   } 
+#endif
   if (luaV_fastgeti(L, t, n, slot)) {
     luaV_finishfastset(L, t, slot, s2v(L->top.p - 1));
   }
@@ -997,7 +999,8 @@ LUA_API void lua_setcachelen (lua_State *L, lua_Unsigned len, int idx) {
 }
 
 
-LUA_API void lua_freezetable (lua_State *L, int idx) {
+#ifndef PLUTO_DISABLE_TABLE_FREEZING
+LUA_API void lua_freezetable(lua_State* L, int idx) {
   Table *t;
   lua_lock(L);
   t = gettable(L, idx);
@@ -1022,6 +1025,7 @@ LUA_API void lua_erriffrozen (lua_State *L, int idx) {
   if (lua_istablefrozen(L, idx)) luaG_runerror(L, "attempt to modify frozen table.");
   lua_unlock(L);
 }
+#endif
 
 
 LUA_API int lua_setmetatable (lua_State *L, int objindex) {

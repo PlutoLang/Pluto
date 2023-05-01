@@ -1509,10 +1509,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if (ttistable(upval)) {  // R(A) may not be a table.
           Table *t = hvalue(upval);
           t->length = 0;
+#ifndef PLUTO_DISABLE_TABLE_FREEZING
           if (t->isfrozen) {
             savepc(L);
             luaG_runerror(L, "attempt to modify frozen table.");
           }
+#endif
         }
         if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
           luaV_finishfastset(L, upval, slot, rc);
@@ -1535,10 +1537,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if (ttistable(s2v(ra))) {
           Table *t = hvalue(s2v(ra));
           t->length = 0; // Reset length cache.
+#ifndef PLUTO_DISABLE_TABLE_FREEZING
           if (t->isfrozen) {
             savepc(L);
             luaG_runerror(L, "attempt to modify frozen table.");
           }
+#endif
         }
         if (ttisinteger(rb)  /* fast track for integers? */
             ? (cast_void(n = ivalue(rb)), luaV_fastgeti(L, s2v(ra), n, slot))
@@ -1561,10 +1565,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if (ttistable(s2v(ra))) {
           Table *t = hvalue(s2v(ra));
           t->length = 0; // Reset length cache.
+#ifndef PLUTO_DISABLE_TABLE_FREEZING
           if (t->isfrozen) {
             savepc(L);
             luaG_runerror(L, "attempt to modify frozen table.");
           }
+#endif
         }
         if (luaV_fastgeti(L, s2v(ra), c, slot)) {
           luaV_finishfastset(L, s2v(ra), slot, rc);
@@ -1586,10 +1592,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = KB(i);
         TValue *rc = RKC(i);
         TString *key = tsvalue(rb);  /* key must be a string */
+#ifndef PLUTO_DISABLE_TABLE_FREEZING
         if (ttistable(s2v(ra)) && hvalue(s2v(ra))->isfrozen) {
           savepc(L);
           luaG_runerror(L, "attempt to modify frozen table.");
         }
+#endif
         if (luaV_fastget(L, s2v(ra), key, slot, luaH_getshortstr)) {
           luaV_finishfastset(L, s2v(ra), slot, rc);
         }

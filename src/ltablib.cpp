@@ -430,7 +430,8 @@ static int getn (lua_State *L) {
 }
 
 
-static int tfreeze (lua_State *L) {
+#ifndef PLUTO_DISABLE_TABLE_FREEZING
+static int tfreeze(lua_State* L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   if (lua_gettop(L) > 1) {
     luaL_error(L, "more arguments than expected to table.freeze");
@@ -447,6 +448,7 @@ static int tisfrozen (lua_State *L) {
   lua_pushboolean(L, lua_istablefrozen(L, 1));
   return 1;
 }
+#endif
 
 
 static int tcontains(lua_State* L) {
@@ -478,8 +480,10 @@ static int tcontains(lua_State* L) {
 static const luaL_Reg tab_funcs[] = {
   {"foreach", foreach},
   {"contains", tcontains},
+#ifndef PLUTO_DISABLE_TABLE_FREEZING
   {"isfrozen", tisfrozen},
   {"freeze", tfreeze},
+#endif
   {"concat", tconcat},
   {"insert", tinsert},
   {"pack", tpack},

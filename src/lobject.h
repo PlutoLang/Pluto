@@ -755,7 +755,9 @@ typedef struct Table {
   struct Table *metatable;
   GCObject *gclist;
   lua_Unsigned length;  /* cached length of this table, as returned by luaH_getn */
+#ifndef PLUTO_DISABLE_TABLE_FREEZING
   bool isfrozen;
+#endif
 } Table;
 
 

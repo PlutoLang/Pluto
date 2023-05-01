@@ -631,7 +631,9 @@ Table *luaH_new (lua_State *L) {
   t->array = NULL;
   t->alimit = 0;
   t->length = 0;
+#ifndef PLUTO_DISABLE_TABLE_FREEZING
   t->isfrozen = false;
+#endif
   setnodevector(L, t, 0);
   return t;
 }
