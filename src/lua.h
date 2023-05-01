@@ -408,8 +408,8 @@ LUA_API void (lua_closeslot) (lua_State *L, int idx);
 
 
 /*
-** These macros are individual functions for optimisation purposes.
-** This optimisation is entirely accredited to gottfriedleibniz.
+** These macros are individual functions for optimization purposes.
+** This optimization is entirely accredited to gottfriedleibniz.
 ** https://github.com/gottfriedleibniz/lua/commit/7c7f50586efa6ed90c75a498b361b4f76793a4d0
 */
 #if true
