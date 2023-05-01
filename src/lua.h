@@ -402,6 +402,12 @@ LUA_API void (lua_closeslot) (lua_State *L, int idx);
 
 #define lua_tostring(L,i)	lua_tolstring(L, (i), NULL)
 
+
+/*
+** These macros are individual functions for optimisation purposes.
+** This optimisation is entirely accredited to gottfriedleibniz.
+** https://github.com/gottfriedleibniz/lua/commit/7c7f50586efa6ed90c75a498b361b4f76793a4d0
+*/
 #if true
 LUA_API void (lua_insert)(lua_State* L, int idx);
 LUA_API void (lua_remove)(lua_State* L, int idx);
