@@ -8,3 +8,5 @@ arg -DPLUTO_USE_SOUP
 +*.cpp
 -lua.cpp
 -luac.cpp
+
+arg -O3
