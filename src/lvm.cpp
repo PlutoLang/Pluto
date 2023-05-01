@@ -914,7 +914,6 @@ void luaV_finishOp (lua_State *L) {
 ** operation, 'fop' is the float operation.
 */
 #define op_arithI(L,iop,fop) {  \
-  savepc(L);  \
   TValue *v1 = vRB(i);  \
   int imm = GETARG_sC(i);  \
   if (ttisinteger(v1)) {  \
@@ -943,7 +942,6 @@ void luaV_finishOp (lua_State *L) {
 ** Arithmetic operations over floats and others with register operands.
 */
 #define op_arithf(L,fop) {  \
-  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = vRC(i);  \
   op_arithf_aux(L, v1, v2, fop); }
@@ -953,7 +951,6 @@ void luaV_finishOp (lua_State *L) {
 ** Arithmetic operations with K operands for floats.
 */
 #define op_arithfK(L,fop) {  \
-  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = KC(i); lua_assert(ttisnumber(v2));  \
   op_arithf_aux(L, v1, v2, fop); }
@@ -974,7 +971,6 @@ void luaV_finishOp (lua_State *L) {
 ** Arithmetic operations with register operands.
 */
 #define op_arith(L,iop,fop) {  \
-  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = vRC(i);  \
   op_arith_aux(L, v1, v2, iop, fop); }
@@ -984,7 +980,6 @@ void luaV_finishOp (lua_State *L) {
 ** Arithmetic operations with K operands.
 */
 #define op_arithK(L,iop,fop) {  \
-  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = KC(i); lua_assert(ttisnumber(v2));  \
   op_arith_aux(L, v1, v2, iop, fop); }
@@ -994,7 +989,6 @@ void luaV_finishOp (lua_State *L) {
 ** Bitwise operations with constant operand.
 */
 #define op_bitwiseK(L,op) {  \
-  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = KC(i);  \
   lua_Integer i1;  \
@@ -1008,7 +1002,6 @@ void luaV_finishOp (lua_State *L) {
 ** Bitwise operations with register operands.
 */
 #define op_bitwise(L,op) {  \
-  savepc(L);  \
   TValue *v1 = vRB(i);  \
   TValue *v2 = vRC(i);  \
   lua_Integer i1; lua_Integer i2;  \
