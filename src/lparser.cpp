@@ -1469,6 +1469,7 @@ static TString *checkextends (LexState *ls) {
     luaX_next(ls);
     parent = str_checkname(ls, true);
   }
+  ls->parent_classes.emplace(parent);
   return parent;
 }
 
@@ -1536,6 +1537,9 @@ static void classstat (LexState *ls) {
   luaK_storevar(ls->fs, &v, &t);
   luaK_fixline(ls->fs, line);
 
+  lua_assert(ls->getParentClass() == parent);
+  ls->parent_classes.pop();
+
   if (parent)
     applyextends(ls, &v, parent, line);
 }
@@ -1553,6 +1557,9 @@ static void localclass (LexState *ls) {
 
   adjust_assign(ls, 1, 1, &t);
   adjustlocalvars(ls, 1);
+
+  lua_assert(ls->getParentClass() == parent);
+  ls->parent_classes.pop();
 
   if (parent) {
     expdesc v;
@@ -2336,14 +2343,16 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
 
 
 static void parentexp (LexState *ls, expdesc *v) {
-  singlevar(ls, v, luaS_newliteral(ls->L, "self"));
-  expdesc key;
-  codestring(&key, luaS_newliteral(ls->L, "__parent"));
-  luaK_indexed(ls->fs, v, &key);
   if (testnext(ls, ':')) {
+    if (ls->getParentClass() == nullptr)
+      luaX_syntaxerror(ls, "attempt to use 'parent' outside of a class that inherits from another class");
+
     auto line = ls->getLineNumber();
 
+    singlevar(ls, v, ls->getParentClass());
     luaK_exp2nextreg(ls->fs, v);
+
+    expdesc key;
     codename(ls, &key);
     luaK_indexed(ls->fs, v, &key);
     luaK_exp2nextreg(ls->fs, v);
@@ -2353,6 +2362,12 @@ static void parentexp (LexState *ls, expdesc *v) {
     luaK_exp2nextreg(ls->fs, &first_arg);
 
     funcargs(ls, v, line);
+  }
+  else {
+    singlevar(ls, v, luaS_newliteral(ls->L, "self"));
+    expdesc key;
+    codestring(&key, luaS_newliteral(ls->L, "__parent"));
+    luaK_indexed(ls->fs, v, &key);
   }
 }
 

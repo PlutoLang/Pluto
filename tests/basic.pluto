@@ -951,6 +951,29 @@ do
     assert(john instanceof Entity)
     assert(john instanceof Human)
 end
+-- Multi-level parent calls
+do
+    class Entity
+        function __construct(name)
+            self.name = name
+        end
+    end
+
+    class Character extends Entity
+        function __construct(name)
+            parent:__construct(name)
+        end
+    end
+
+    class Player extends Character
+        function __construct(name)
+            parent:__construct(name)
+        end
+    end
+
+    local p = new Player("John")
+    assert(p.name == "John")
+end
 -- Class overriding '__index'
 do
     local extraOffset <constexpr> = 10

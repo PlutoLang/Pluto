@@ -308,6 +308,7 @@ struct LexState {
   TString *envn;  /* environment variable name */
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
+  std::stack<TString*> parent_classes{};
   std::vector<EnumDesc> enums{};
   std::vector<TString*> export_symbols{};
 
@@ -381,6 +382,12 @@ struct LexState {
   }
 
   void popContext(ParserContext ctx);
+
+  [[nodiscard]] TString* getParentClass() const noexcept {
+    if (parent_classes.empty())
+      return nullptr;
+    return parent_classes.top();
+  }
 
   WarningConfig& lexPushWarningOverride() {
     if (warnconfs.back().begins_at == tokens.size()) {
