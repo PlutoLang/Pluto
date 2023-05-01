@@ -276,6 +276,44 @@ LUA_API void lua_pushvalue (lua_State *L, int idx) {
 }
 
 
+LUA_API void lua_insert (lua_State *L, int idx) {
+  StkId p, t;
+  TValue temp;
+  lua_lock(L);
+  p = index2stack(L, idx);  /* start of segment */
+  setobj(L, &temp, s2v(L->top.p - 1));
+  for (t = L->top.p - 1; t > p; --t) {  /* end of stack segment being rotated */
+    setobjs2s(L, t, t - 1);
+  }
+  setobj2s(L, p, &temp);
+  lua_unlock(L);
+}
+
+LUA_API void lua_remove (lua_State *L, int idx) {
+  StkId p, t;
+  lua_lock(L);
+  t = L->top.p - 1;  /* end of stack segment being rotated */
+  for (p = index2stack(L, idx); p < t; ++p) {  /* start of segment */
+    setobjs2s(L, p, p + 1);
+  }
+  L->top.p--;
+  lua_unlock(L);
+}
+
+LUA_API void lua_replace (lua_State *L, int toidx) {
+  TValue *fr, *to;
+  lua_lock(L);
+  fr = index2value(L, -1);
+  to = index2value(L, toidx);
+  api_check(L, isvalid(L, to), "invalid index");
+  setobj(L, to, fr);
+  if (isupvalue(toidx))  /* function upvalue? */
+    luaC_barrier(L, clCvalue(s2v(L->ci->func.p)), fr);
+  L->top.p--;
+  lua_unlock(L);
+}
+
+
 
 /*
 ** access functions (stack -> C)

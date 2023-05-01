@@ -402,12 +402,15 @@ LUA_API void (lua_closeslot) (lua_State *L, int idx);
 
 #define lua_tostring(L,i)	lua_tolstring(L, (i), NULL)
 
-
+#if true
+LUA_API void (lua_insert)(lua_State* L, int idx);
+LUA_API void (lua_remove)(lua_State* L, int idx);
+LUA_API void (lua_replace)(lua_State* L, int idx);
+#else
 #define lua_insert(L,idx)	lua_rotate(L, (idx), 1)
-
 #define lua_remove(L,idx)	(lua_rotate(L, (idx), -1), lua_pop(L, 1))
-
 #define lua_replace(L,idx)	(lua_copy(L, -1, (idx)), lua_pop(L, 1))
+#endif
 
 /* }============================================================== */
 
