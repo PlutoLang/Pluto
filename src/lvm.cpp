@@ -2172,8 +2172,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddB();
         vmDumpAddC();
         vmDumpAdd (GETARG_k(i));
+        TValue *rb = vRB(i);
         if (GETARG_C(i) == NULL_COALESCE) { /* R(C) is used as an identifier, as it was previously unused. */
-          TValue *rb = vRB(i);
           if (ttisnil(rb)) {
             pc++;
             vmDumpOut("; null coalesce, no assignment");
@@ -2185,7 +2185,6 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           }
         }
         else {
-          TValue *rb = vRB(i);
           if (l_isfalse(rb) == GETARG_k(i))
           {
             pc++;
