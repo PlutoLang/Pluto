@@ -961,6 +961,18 @@
 
 /*
 ** {====================================================================
+** Pluto configuration: Performance
+**
+** We recommend not touching this section because the only options here are to disable Pluto features
+** and doing so will not effect performance as trivially as "less features = more performance."
+** =====================================================================}
+*/
+
+//#define PLUTO_DISABLE_LENGTH_CACHE
+//#define PLUTO_DISABLE_TABLE_FREEZING
+
+/*
+** {====================================================================
 ** Pluto color macros.
 ** =====================================================================}
 */
