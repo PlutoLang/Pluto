@@ -152,6 +152,8 @@ static void throw_warn(LexState *ls, const char *err, int line, WarningType warn
   }
 }
 
+#pragma warning(disable : 4068) // unknown pragma
+#pragma clang diagnostic ignored "-Wunused-function"
 static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
   throw_warn(ls, err, ls->getLineNumber(), warningType);
 }
@@ -1115,7 +1117,9 @@ static bool statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implie
   while (!block_follow(ls, 1)) {
     ret = (ls->t.token == TK_RETURN);
     TypeDesc p = VT_DUNNO;
-    const auto levels = ls->L->nCcalls;
+#if defined LUAI_ASSERT
+	const auto levels = ls->L->nCcalls;
+#endif
     statement(ls, &p);
     lua_assert(levels == ls->L->nCcalls);
     if (prop && /* do we need to propagate the return type? */
