@@ -1293,7 +1293,7 @@ static const std::vector<OpCode> allowOps = { vmDumpAllow };
 #endif  /* PLUTO_VMDUMP */
 
 
-#if !defined(__GNUC__) && defined(PLUTO_FORCE_JUMPTABLE)
+#if !defined(__GNUC__) && !defined(__clang__) && defined(PLUTO_FORCE_JUMPTABLE)
 #include "ljumptab.h"
 #endif
 
@@ -1310,7 +1310,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   std::time_t deadline = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()
                          + PLUTO_ETL_NANOS;
 #endif
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
 #include "ljumptabgcc.h"
 #endif
  startfunc:
