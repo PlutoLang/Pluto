@@ -33,6 +33,14 @@
 ** Computes ceil(log2(x))
 */
 int luaO_ceillog2 (unsigned int x) {
+  lua_assert(x != 0);
+#if defined(__clang__) || defined(__GNUC__)
+  return 32 - __builtin_clz(x);
+#elif defined(_MSC_VER)
+  unsigned long ret;
+  _BitScanReverse(&ret, x);
+  return ret + 1;
+#else
   static const lu_byte log_2[256] = {  /* log_2[i] = ceil(log2(i - 1)) */
     0,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
     6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
@@ -47,6 +55,7 @@ int luaO_ceillog2 (unsigned int x) {
   x--;
   while (x >= 256) { l += 8; x >>= 8; }
   return l + log_2[x];
+#endif
 }
 
 
