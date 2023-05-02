@@ -1118,7 +1118,7 @@ static bool statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implie
     ret = (ls->t.token == TK_RETURN);
     TypeDesc p = VT_DUNNO;
 #if defined LUAI_ASSERT
-	const auto levels = ls->L->nCcalls;
+    const auto levels = ls->L->nCcalls;
 #endif
     statement(ls, &p);
     lua_assert(levels == ls->L->nCcalls);
