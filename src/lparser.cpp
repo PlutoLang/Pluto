@@ -632,6 +632,7 @@ static int newupvalue (FuncState *fs, TString *name, expdesc *v) {
     lua_assert(eqstr(name, getlocalvardesc(prev, v->u.var.vidx)->vd.name));
   }
   else {
+    lua_assert(v->k == VUPVAL);
     up->instack = 0;
     up->idx = cast_byte(v->u.info);
     up->kind = prev->f->upvalues[v->u.info].kind;
