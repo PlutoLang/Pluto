@@ -2483,7 +2483,7 @@ static void expsuffix (LexState* ls, expdesc* v, int flags, TypeDesc* prop) {
         if (flags & E_NO_CALL) {
           return;
         }
-        TypeDesc* funcdesc = nullptr;
+        TypeDesc *funcdesc = nullptr;
         if (v->k == VLOCAL) {
           auto fvar = getlocalvardesc(ls->fs, v->u.var.vidx);
           if (fvar->vd.prop.getType() == VT_FUNC) { /* just in case... */
