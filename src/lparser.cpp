@@ -1945,7 +1945,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       auto suffix = expected == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
       throw_warn(ls,
         "too many arguments",
-          luaO_fmt(ls->L, "expected %d argument%s, got %d.", expected, suffix, received), WT_EXCESSIVE_ARGUMENTS);
+          luaO_fmt(ls->L, "expected %d argument%s, got %d.", expected, suffix, received), line, WT_EXCESSIVE_ARGUMENTS);
       --ls->L->top.p;
     }
   }
