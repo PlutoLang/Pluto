@@ -2484,14 +2484,35 @@ static void expsuffix (LexState* ls, expdesc* v, int flags, TypeDesc* prop) {
         if (flags & E_NO_CALL) {
           return;
         }
+        Vardesc *vd;
         TypeDesc *funcdesc = nullptr;
         if (v->k == VLOCAL) {
-          auto fvar = getlocalvardesc(ls->fs, v->u.var.vidx);
-          if (fvar->vd.prop.getType() == VT_FUNC) { /* just in case... */
-            funcdesc = &fvar->vd.prop;
+          vd = getlocalvardesc(ls->fs, v->u.var.vidx);
+        _funcdesc_from_vd:
+          if (vd->vd.prop.getType() == VT_FUNC) { /* just in case... */
+            funcdesc = &vd->vd.prop;
             if (prop) { /* propagate return type */
-              *prop = fvar->vd.prop.retn;
+              *prop = vd->vd.prop.retn;
             }
+          }
+        }
+        else if (v->k == VUPVAL) {
+          Upvaldesc *uv = &ls->fs->f->upvalues[v->u.info];
+          FuncState *efs = ls->fs->prev;
+          int idx = v->u.info;
+          while (true) {
+            if (uv->instack) {
+              for (int i = 0; i != efs->nactvar; ++i) {
+                vd = getlocalvardesc(efs, i);
+                if (vd->vd.ridx == idx) {
+                  goto _funcdesc_from_vd;
+                }
+              }
+              break;
+            }
+            uv = &efs->f->upvalues[idx];
+            efs = efs->prev;
+            idx = uv->idx;
           }
         }
         luaK_exp2nextreg(fs, v);
