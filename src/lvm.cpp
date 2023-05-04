@@ -2055,10 +2055,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
       vmcase(OP_CLOSE) {
+        StkId ra = RA(i);
         vmDumpInit();
         vmDumpAddA();
         vmDumpOut ("; close all upvalues with an ID >= " << ivalue(s2v(ra)));
-        StkId ra = RA(i);
         Protect(luaF_close(L, ra, LUA_OK, 1));
         vmbreak;
       }
@@ -2113,7 +2113,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAddB();
         vmDumpAdd (GETARG_k(i));
-        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " < " << stringify_tvalue(vRB(i)));
+        vmDumpOut ("; " << stringify_tvalue(s2v(RA(i))) << " < " << stringify_tvalue(vRB(i)));
         vmbreak;
       }
       vmcase(OP_LE) {
@@ -2122,7 +2122,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAddB();
         vmDumpAdd (GETARG_k(i));
-        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " <= " << stringify_tvalue(vRB(i)));
+        vmDumpOut ("; " << stringify_tvalue(s2v(RA(i))) << " <= " << stringify_tvalue(vRB(i)));
         vmbreak;
       }
       vmcase(OP_EQK) {
@@ -2162,7 +2162,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAdd (GETARG_sB(i));
         vmDumpAdd (GETARG_k(i));
-        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " <= " << GETARG_sB(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(RA(i))) << " <= " << GETARG_sB(i));
         vmbreak;
       }
       vmcase(OP_LEI) {
@@ -2171,7 +2171,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAdd (GETARG_sB(i));
         vmDumpAdd (GETARG_k(i));
-        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " < " << GETARG_sB(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(RA(i))) << " < " << GETARG_sB(i));
         vmbreak;
       }
       vmcase(OP_GTI) {
@@ -2180,7 +2180,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAdd (GETARG_sB(i));
         vmDumpAdd (GETARG_k(i));
-        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " > " << GETARG_sB(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(RA(i))) << " > " << GETARG_sB(i));
         vmbreak;
       }
       vmcase(OP_GEI) {
@@ -2189,7 +2189,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAdd (GETARG_sB(i));
         vmDumpAdd (GETARG_k(i));
-        vmDumpOut ("; " << stringify_tvalue(s2v(ra)) << " >= " << GETARG_sB(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(RA(i))) << " >= " << GETARG_sB(i));
         vmbreak;
       }
       vmcase(OP_TEST) {
@@ -2370,7 +2370,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           vmDumpAddA();
           vmDumpAddB();
           vmDumpAddC();
-          vmDumpOut ("; return " << stringify_tvalue(s2v(ra)));
+          vmDumpOut ("; return " << stringify_tvalue(s2v(RA(i))));
         }
 #endif
         if (l_unlikely(L->hookmask)) {
