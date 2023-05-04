@@ -3152,7 +3152,7 @@ static void lgoto(LexState *ls, TString *name) {
 }
 
 static void gotostat (LexState *ls) {
-  lgoto(ls, str_checkname(ls));
+  lgoto(ls, str_checkname(ls, N_RESERVED));
 }
 
 
@@ -4242,7 +4242,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
     }
     case TK_DBCOLON: {  /* stat -> label */
       luaX_next(ls);  /* skip double colon */
-      labelstat(ls, str_checkname(ls), line);
+      labelstat(ls, str_checkname(ls, N_RESERVED), line);
       break;
     }
     case TK_RETURN: {  /* stat -> retstat */
