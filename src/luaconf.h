@@ -209,7 +209,7 @@
         LUA_CDIR"?.lua;"  LUA_CDIR"?\\init.lua;" \
         LUA_SHRDIR"?.lua;" LUA_SHRDIR"?\\init.lua;" \
         ".\\?.lua;" ".\\?\\init.lua;" \
-        ".\\?.pluto"
+        ".\\?.pluto;" ".\\?\\init.pluto"
 #endif
 
 #if !defined(LUA_CPATH_DEFAULT)
@@ -230,7 +230,7 @@
         LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
         LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua;" \
         "./?.lua;" "./?/init.lua;" \
-        "./?.pluto"
+        "./?.pluto;" "./?/init.pluto"
 #endif
 
 #if !defined(LUA_CPATH_DEFAULT)
