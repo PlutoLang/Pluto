@@ -826,33 +826,19 @@
 */
 
 // If defined, Pluto will assign 'pluto_' to new keywords which break previously valid Lua identifiers.
-// If you decide to leave this undefined:
-//     - Both 'pluto_switch' and 'switch' are valid syntaxes for Pluto.
-//     - Keywords like 'continue' remain keywords.
-// If you decide to define this:
-//     - Only 'pluto_switch' will be valid. 'switch' will not exist.
-//     - Keywords like 'continue' will now be 'pluto_continue'.
+// So, for example, the 'switch' keyword becomes 'pluto_switch'.
+// Note that the 'pluto_' variants are valid even if this is not defined.
 //#define PLUTO_COMPATIBLE_MODE
 
 #ifdef PLUTO_COMPATIBLE_MODE
-
-// If defined, only 'pluto_switch' will be valid. 'switch' will not exist.
-#define PLUTO_COMPATIBLE_SWITCH
-
-// If defined, only 'pluto_... you get the idea.
-#define PLUTO_COMPATIBLE_CONTINUE
-
-#define PLUTO_COMPATIBLE_ENUM
-
-#define PLUTO_COMPATIBLE_NEW
-
-#define PLUTO_COMPATIBLE_CLASS
-
-#define PLUTO_COMPATIBLE_PARENT
-
-#define PLUTO_COMPATIBLE_EXPORT
-
-#endif // PLUTO_COMPATIBLE_MODE
+    #define PLUTO_COMPATIBLE_SWITCH
+    #define PLUTO_COMPATIBLE_CONTINUE
+    #define PLUTO_COMPATIBLE_ENUM
+    #define PLUTO_COMPATIBLE_NEW
+    #define PLUTO_COMPATIBLE_CLASS
+    #define PLUTO_COMPATIBLE_PARENT
+    #define PLUTO_COMPATIBLE_EXPORT
+#endif
 
 /*
 ** {====================================================================
