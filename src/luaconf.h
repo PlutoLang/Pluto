@@ -821,7 +821,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration: Compatible Mode
+** Pluto configuration: Compatibility
 ** =====================================================================}
 */
 
@@ -839,6 +839,10 @@
     #define PLUTO_COMPATIBLE_PARENT
     #define PLUTO_COMPATIBLE_EXPORT
 #endif
+
+// If defined, Pluto disables optimisations of Lua macros that would make your code unable to be linked
+// against Lua if your code is using these macros with Pluto's definitions.
+//#define PLUTO_LUA_LINKABLE
 
 /*
 ** {====================================================================
