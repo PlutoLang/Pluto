@@ -1,8 +1,5 @@
--- Stolen from https://github.com/PlummersSoftwareLLC/Primes/blob/drag-race/PrimeLua/solution_1/Primes.lua
-
--- Based on PrimeCS.cs : Dave's Garage Prime Sieve in C++ (except it was C#)
--- Converted to LUA by SRT
--- OOP all the things so it's faithful by greatwolf
+-- From https://github.com/PlummersSoftwareLLC/Primes/blob/drag-race/PrimeLua/solution_1/Primes.lua
+-- primes.pluto uses compound operators whereas primes.lua is unmodified.
 
 local myDict = 
 {   -- rbergen: changed number for 10 from 1 to 4
@@ -36,7 +33,7 @@ function PrimeSieve:countPrimes()
   local count, bitArray = 0, self.bitArray
 	for i = 1, #bitArray do
 		if bitArray[i] then
-			count = count + 1
+			count += 1
 		end
 	end
 	return count
@@ -89,7 +86,7 @@ function PrimeSieve:runSieve()
       clearBit(self, num)
     end
 
-		factor = factor + 2
+		factor += 2
 	end
 end
 
@@ -128,7 +125,7 @@ local sieve
 while os.time() - tStart < duration do
     sieve = PrimeSieve:new(target)
     sieve:runSieve()
-    passes = passes + 1
+    passes += 1
 end
 
 local tD = os.time() - tStart
