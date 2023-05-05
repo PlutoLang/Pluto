@@ -276,6 +276,7 @@ LUA_API void lua_pushvalue (lua_State *L, int idx) {
 }
 
 
+#ifndef PLUTO_LUA_LINKABLE
 LUA_API void lua_insert (lua_State *L, int idx) {
   StkId p, t;
   TValue temp;
@@ -312,6 +313,7 @@ LUA_API void lua_replace (lua_State *L, int toidx) {
   L->top.p--;
   lua_unlock(L);
 }
+#endif
 
 
 

@@ -412,7 +412,7 @@ LUA_API void (lua_closeslot) (lua_State *L, int idx);
 ** This optimization is entirely accredited to gottfriedleibniz.
 ** https://github.com/gottfriedleibniz/lua/commit/7c7f50586efa6ed90c75a498b361b4f76793a4d0
 */
-#if true
+#ifndef PLUTO_LUA_LINKABLE
 LUA_API void (lua_insert) (lua_State *L, int idx);
 LUA_API void (lua_remove) (lua_State *L, int idx);
 LUA_API void (lua_replace) (lua_State *L, int idx);
