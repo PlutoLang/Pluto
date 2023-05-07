@@ -3968,13 +3968,13 @@ static void statement (LexState *ls, TypeDesc *prop) {
     case TK_PEXPORT: {
       if (ls->fs->bl->previous)
         luaX_syntaxerror(ls, "Attempt to use 'export' outside of global scope");
-      luaX_next(ls); /* skip export */
+      luaX_next(ls);  /* skip EXPORT */
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
         ss.push("stat", "function");
         ss.push("stat", "class");
         ss.push("stat", "pluto_class");
-        return;
+        break;
       }
       if (testnext(ls, TK_FUNCTION)) {
         ls->export_symbols.emplace_back(str_checkname(ls, true));
