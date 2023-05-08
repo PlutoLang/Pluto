@@ -2719,7 +2719,7 @@ static BinOpr getbinopr (int op) {
 }
 
 
-static void prefixplusplus(LexState *ls, expdesc* v) {
+static void prefixplusplus (LexState *ls, expdesc *v) {
   int line = ls->getLineNumber();
   luaX_next(ls); /* skip second '+' */
   singlevar(ls, v); /* variable name */
