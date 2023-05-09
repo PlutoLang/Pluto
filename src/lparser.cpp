@@ -2854,6 +2854,9 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
       if (prop) *prop = VT_BOOL;
     }
   }
+  if (ls->t.token == '+' && luaX_lookahead(ls) == '+') { /* disambiguate '+' operator and '++' as next statement */
+    return OPR_NOBINOPR;
+  }
   /* expand while operators have priorities higher than 'limit' */
   op = getbinopr(ls->t.token);
   while (op != OPR_NOBINOPR && priority[op].left > limit) {
@@ -4276,6 +4279,13 @@ static void statement (LexState *ls, TypeDesc *prop) {
     }
     case TK_PUSE: {
       usestat(ls);
+      break;
+    }
+    case '+': {
+      luaX_next(ls);
+      check(ls, '+');
+      expdesc v;
+      prefixplusplus(ls, &v);
       break;
     }
     default: {  /* stat -> func | assignment */
