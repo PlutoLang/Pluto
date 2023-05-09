@@ -887,8 +887,15 @@ end
 
 print "Testing ++ operator."
 do
+    -- expression
     local a = 1
     assert(++a == 2)
+    assert(a == 2)
+end
+do
+    -- statement
+    local a = 1
+    ++a
     assert(a == 2)
 end
 
