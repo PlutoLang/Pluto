@@ -298,8 +298,9 @@ typedef struct global_State {
   TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */
   lua_WarnFunction warnf;  /* warning function */
   void *ud_warn;         /* auxiliary data to 'warnf' */
-
+#ifndef PLUTO_LUA_LINKABLE
   void* user_data;       /* a pointer to data you, the user, would like to specify */
+#endif
 } global_State;
 
 class Registry {
