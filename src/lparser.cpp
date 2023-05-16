@@ -2761,10 +2761,13 @@ static BinOpr getbinopr (int op) {
 }
 
 
-static void prefixplusplus (LexState *ls, expdesc *v) {
+static void prefixplusplus (LexState *ls, expdesc *v, bool as_statement) {
   int line = ls->getLineNumber();
   luaX_next(ls); /* skip second '+' */
-  singlevar(ls, v); /* variable name */
+  if (as_statement)
+    suffixedexp(ls, v);
+  else
+    singlevar(ls, v); /* variable name */
   FuncState *fs = ls->fs;
   expdesc e = *v, v2;
   if (v->k != VLOCAL) {  /* complex lvalue, use a temporary register. linear perf incr. with complexity of lvalue */
@@ -2834,7 +2837,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
     int line = ls->getLineNumber();
     luaX_next(ls); /* skip '+' */
     if (ls->t.token == '+') { /* '++' ? */
-      prefixplusplus(ls, v);
+      prefixplusplus(ls, v, false);
     }
     else {
       /* support pseudo-unary '+' by implying '0 + subexpr' */
@@ -4285,7 +4288,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
       luaX_next(ls);
       check(ls, '+');
       expdesc v;
-      prefixplusplus(ls, &v);
+      prefixplusplus(ls, &v, true);
       break;
     }
     default: {  /* stat -> func | assignment */
