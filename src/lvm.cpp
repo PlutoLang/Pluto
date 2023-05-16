@@ -1545,10 +1545,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           t->length = 0;
 #endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
-          if (t->isfrozen) {
-            savepc(L);
-            luaG_runerror(L, "attempt to modify frozen table.");
-          }
+          if (t->isfrozen)
+            halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
         }
 #endif
@@ -1578,10 +1576,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           t->length = 0; // Reset length cache.
 #endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
-          if (t->isfrozen) {
-            savepc(L);
-            luaG_runerror(L, "attempt to modify frozen table.");
-          }
+          if (t->isfrozen)
+            halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
         }
 #endif
@@ -1611,10 +1607,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           t->length = 0; // Reset length cache.
 #endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
-          if (t->isfrozen) {
-            savepc(L);
-            luaG_runerror(L, "attempt to modify frozen table.");
-          }
+          if (t->isfrozen)
+            halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
         }
 #endif
@@ -1640,10 +1634,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rc = RKC(i);
         TString *key = tsvalue(rb);  /* key must be a string */
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
-        if (ttistable(s2v(ra)) && hvalue(s2v(ra))->isfrozen) {
-          savepc(L);
-          luaG_runerror(L, "attempt to modify frozen table.");
-        }
+        if (ttistable(s2v(ra)) && hvalue(s2v(ra))->isfrozen)
+          halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
         if (luaV_fastget(L, s2v(ra), key, slot, luaH_getshortstr)) {
           luaV_finishfastset(L, s2v(ra), slot, rc);
