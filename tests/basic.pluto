@@ -897,6 +897,10 @@ do
     local a = 1
     ++a
     assert(a == 2)
+
+    local t = { a = 1 }
+    ++t.a
+    assert(t.a == 2)
 end
 
 print "Testing non-ascii variable names."
