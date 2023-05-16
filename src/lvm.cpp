@@ -356,7 +356,7 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
         h->length = 0; // Reset length cache.
 #endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
-        if (h->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+        if (l_unlikely(h->isfrozen)) luaG_runerror(L, "attempt to modify frozen table.");
 #endif
         luaH_finishset(L, h, key, slot, val);  /* set new value */
         invalidateTMcache(h);
@@ -381,7 +381,7 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
       hvalue(t)->length = 0; // Reset length cache.
 #endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
-      if (hvalue(t)->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+      if (l_unlikely(hvalue(t)->isfrozen)) luaG_runerror(L, "attempt to modify frozen table.");
 #endif
       luaV_finishfastset(L, t, slot, val);
       return;  /* done */
@@ -1556,7 +1556,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           t->length = 0;
 #endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
-          if (t->isfrozen)
+          if (l_unlikely(t->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
           luaV_finishfastset(L, upval, slot, rc);
@@ -1585,7 +1585,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           t->length = 0; // Reset length cache.
 #endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
-          if (t->isfrozen)
+          if (l_unlikely(t->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
           luaV_finishfastset(L, s2v(ra), slot, rc);
@@ -1610,7 +1610,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           t->length = 0; // Reset length cache.
 #endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
-          if (t->isfrozen)
+          if (l_unlikely(t->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
           luaV_finishfastset(L, s2v(ra), slot, rc);
@@ -1635,7 +1635,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TString *key = tsvalue(rb);  /* key must be a string */
         if (luaV_fastget(L, s2v(ra), key, slot, luaH_getshortstr)) {
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
-          if (hvalue(s2v(ra))->isfrozen)
+          if (l_unlikely(hvalue(s2v(ra))->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
           luaV_finishfastset(L, s2v(ra), slot, rc);
