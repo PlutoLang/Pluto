@@ -812,7 +812,7 @@ static int skipcomment (FILE *f, int *cp) {
 }
 
 #ifdef PLUTO_LOADFILE_HOOK
-extern "C" bool PLUTO_LOADFILE_HOOK(lua_State* L, const char* filename);
+extern bool PLUTO_LOADFILE_HOOK(lua_State* L, const char* filename);
 #endif
 
 LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,

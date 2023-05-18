@@ -404,7 +404,7 @@ static const char *generic_reader (lua_State *L, void *ud, size_t *size) {
 
 
 #ifdef PLUTO_LOAD_HOOK
-extern "C" bool PLUTO_LOAD_HOOK(lua_State* L, const char* filename);
+extern bool PLUTO_LOAD_HOOK(lua_State* L, const char* filename);
 #endif
 
 static int luaB_load (lua_State *L) {
