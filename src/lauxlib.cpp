@@ -812,13 +812,13 @@ static int skipcomment (FILE *f, int *cp) {
 }
 
 #ifdef PLUTO_LOADFILE_HOOK
-extern "C" bool PLUTO_LOADFILE_HOOK(const char* filename);
+extern "C" bool PLUTO_LOADFILE_HOOK(lua_State* L, const char* filename);
 #endif
 
 LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
                                              const char *mode) {
 #ifdef PLUTO_LOADFILE_HOOK
-  if (!PLUTO_LOADFILE_HOOK(filename)) {
+  if (!PLUTO_LOADFILE_HOOK(L, filename)) {
     lua_pushfstring(L, "%s failed content moderation policy", filename);
     return LUA_ERRFILE;
   }
