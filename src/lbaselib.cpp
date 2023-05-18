@@ -403,15 +403,30 @@ static const char *generic_reader (lua_State *L, void *ud, size_t *size) {
 }
 
 
+#ifdef PLUTO_LOAD_HOOK
+extern "C" bool PLUTO_LOAD_HOOK(const char* filename);
+#endif
+
 static int luaB_load (lua_State *L) {
   int status;
   size_t l;
+#ifdef PLUTO_DISABLE_UNMODERATED_LOAD
+  const char *s = luaL_checklstring(L, 1, &l);
+#else
   const char *s = lua_tolstring(L, 1, &l);
+#endif
   const char *mode = luaL_optstring(L, 3, "bt");
   int env = (!lua_isnone(L, 4) ? 4 : 0);  /* 'env' index or 0 if no 'env' */
+#ifndef PLUTO_DISABLE_UNMODERATED_LOAD
   if (s != NULL) {  /* loading a string? */
+#endif
+#ifdef PLUTO_LOAD_HOOK
+  if (!PLUTO_LOAD_HOOK(s))
+    luaL_error(L, "chunk failed content moderation policy");
+#endif
     const char *chunkname = luaL_optstring(L, 2, s);
     status = luaL_loadbufferx(L, s, l, chunkname, mode);
+#ifndef PLUTO_DISABLE_UNMODERATED_LOAD
   }
   else {  /* loading from a reader function */
     const char *chunkname = luaL_optstring(L, 2, "=(load)");
@@ -419,6 +434,7 @@ static int luaB_load (lua_State *L) {
     lua_settop(L, RESERVEDSLOT);  /* create reserved slot */
     status = lua_load(L, generic_reader, NULL, chunkname, mode);
   }
+#endif
   return load_aux(L, status, env);
 }
 

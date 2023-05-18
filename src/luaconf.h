@@ -943,11 +943,21 @@
 // If defined, Pluto will not load compiled Lua or Pluto code.
 //#define PLUTO_DISABLE_COMPILED
 
+// If defined, the provided function will be called as bool(const char* code).
+// It needs to have C ABI linkage (extern "C").
+// If it returns false, a Lua error is raised.
+//#define PLUTO_LOAD_HOOK ContmodOnLoad
+
 // If defined, the provided function will be called as bool(const char* filename).
 // It needs to have C ABI linkage (extern "C").
 // If it returns false, a Lua error is raised.
 // This will affect require and dofile.
 //#define PLUTO_LOADFILE_HOOK ContmodOnLoadfile
+
+// It is possible to pass a reader function to the load function.
+// Pluto currently offers no way to moderate code loaded like this,
+// so you may define this to disable this method of code-loading.
+//#define PLUTO_DISABLE_UNMODERATED_LOAD
 
 /*
 ** {====================================================================
