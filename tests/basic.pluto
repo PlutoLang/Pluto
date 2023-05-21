@@ -268,6 +268,17 @@ end
 print "Testing new 'in' expressions."
 if ("hel" in "hello") != true then error() end
 if ("abc" in "hello") != false then error() end
+do
+    -- table must be global for this failure case
+    t = {
+        subt = {}
+    }
+    local function proxy(b)
+        assert(b == false)
+    end
+    proxy(42 in t.subt)
+    t = nil
+end
 
 print "Testing break N syntax."
 do
