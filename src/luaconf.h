@@ -896,7 +896,7 @@
 ** the VM is about to be terminated.
 */
 #ifndef PLUTO_ETL_TIMESUP
-#define PLUTO_ETL_TIMESUP
+#define PLUTO_ETL_TIMESUP luaG_runerror(L, "Execution time limit exceeded");
 #endif
 #endif
 
