@@ -1720,11 +1720,26 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   for (const auto& tidx : fallbacks) {
     if (tidx != 0) {
       enterlevel(ls);
-      expdesc lv;
-      Vardesc *vd = getlocalvardesc(ls->fs, fallback_idx);
-      singlevaraux(ls->fs, vd->vd.name, &lv, 1);
-      luaX_setpos(ls, tidx - 1);
-      compoundassign(ls, &lv, OPR_COAL);
+      FuncState *fs = ls->fs;
+
+      expdesc nilable;
+      Vardesc *vd = getlocalvardesc(fs, fallback_idx);
+      singlevaraux(fs, vd->vd.name, &nilable, 0);
+
+      luaX_setpos(ls, tidx);
+      expdesc nilexp;
+      luaK_infix(fs, OPR_NE, &nilable);
+      init_exp(&nilexp, VNIL, 0);
+      luaK_posfix(fs, OPR_NE, &nilable, &nilexp, ls->getLineNumber());
+      auto pc = nilable.u.info;
+
+      expdesc fallback;
+      expr(ls, &fallback);
+      luaK_setoneret(fs, &fallback);
+      singlevaraux(fs, vd->vd.name, &nilable, 0);
+      luaK_storevar(fs, &nilable, &fallback);
+
+      luaK_patchtohere(fs, pc);
       leavelevel(ls);
     }
     ++fallback_idx;
