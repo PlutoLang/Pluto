@@ -2458,7 +2458,7 @@ static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeDesc *prop
   expsuffix(ls, v, flags, prop);
 }
 
-static void expsuffix (LexState* ls, expdesc* v, int flags, TypeDesc* prop) {
+static void expsuffix (LexState *ls, expdesc *v, int flags, TypeDesc* prop) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
   for (;;) {
