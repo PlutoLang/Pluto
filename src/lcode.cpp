@@ -1838,6 +1838,7 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
     }  /* FALLTHROUGH */
     case OPR_LT: case OPR_LE: {
       codeorder(fs, opr, e1, e2);
+      break;
     }
     default: lua_assert(0);
   }
