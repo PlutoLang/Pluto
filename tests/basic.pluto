@@ -769,6 +769,13 @@ do
     assert(t[2] == 2)
     assert(t[3] == 3)
 end
+do
+    local function f(a = true)
+        return a
+    end
+    assert(f() == true)
+    assert(f(false) == false)
+end
 
 print "Testing walrus operator."
 do
