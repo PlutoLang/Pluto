@@ -1716,7 +1716,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
   parlist(ls, &fallbacks, &varargname);
   checknext(ls, ')');
   const auto saved_pos = luaX_getpos(ls);
-  int fallback_idx = 0;
+  int fallback_idx = (ismethod ? 1 : 0);
   for (const auto& tidx : fallbacks) {
     if (tidx != 0) {
       enterlevel(ls);
