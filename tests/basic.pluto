@@ -776,6 +776,18 @@ do
     assert(f() == true)
     assert(f(false) == false)
 end
+do
+    local t = {
+        function foo(a = "hello")
+            return a
+        end
+    }
+    function t:bar(a = "world")
+        return a
+    end
+    assert(t:foo() == "hello")
+    assert(t:bar() == "world")
+end
 
 print "Testing walrus operator."
 do
