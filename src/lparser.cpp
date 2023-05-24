@@ -2525,6 +2525,7 @@ static void expsuffix (LexState *ls, expdesc *v, int flags, TypeDesc* prop) {
               }
               break;
             }
+            lua_assert(idx < efs->nups);
             uv = &efs->f->upvalues[idx];
             efs = efs->prev;
             idx = uv->idx;
