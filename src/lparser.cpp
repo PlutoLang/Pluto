@@ -2515,7 +2515,7 @@ static void expsuffix (LexState *ls, expdesc *v, int flags, TypeDesc* prop) {
           Upvaldesc *uv = &ls->fs->f->upvalues[v->u.info];
           FuncState *efs = ls->fs->prev;
           int idx = v->u.info;
-          while (true) {
+          while (efs) { /* efs == nullptr && instack if resolving _ENV */
             if (uv->instack) {
               for (int i = 0; i != efs->nactvar; ++i) {
                 vd = getlocalvardesc(efs, i);
