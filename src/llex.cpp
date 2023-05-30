@@ -221,7 +221,7 @@ static void inclinenumber (LexState *ls) {
 }
 
 
-static int llex(LexState* ls, SemInfo* seminfo);
+static int llex (LexState *ls, SemInfo *seminfo);
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
                     int firstchar) {
   ls->t.token = 0;
