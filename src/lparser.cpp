@@ -2054,77 +2054,6 @@ static void safe_navigation(LexState *ls, expdesc *v) {
 }
 
 
-struct StringChain {
-  LexState* ls;
-  expdesc* v;
-
-  StringChain(LexState* ls, expdesc* v) noexcept
-    : ls(ls), v(v)
-  {
-    enterlevel(ls);
-    v->k = VVOID;
-  }
-
-  ~StringChain() noexcept {
-    if (v->k == VVOID) { /* ensure we produce at least an empty string */
-      codestring(v, luaS_new(ls->L, ""));
-    }
-    leavelevel(ls);
-  }
-
-  void add(const char* str) noexcept {
-    if (v->k == VVOID) { /* first chain entry? */
-      codestring(v, luaS_new(ls->L, str));
-    } else {
-      luaK_infix(ls->fs, OPR_CONCAT, v);
-      expdesc v2;
-      codestring(&v2, luaS_new(ls->L, str));
-      luaK_posfix(ls->fs, OPR_CONCAT, v, &v2, ls->getLineNumber());
-    }
-  }
-
-  void addVar(const char* varname) noexcept {
-    if (v->k == VVOID) { /* first chain entry? */
-      singlevarinner(ls, luaS_new(ls->L, varname), v);
-    } else {
-      luaK_infix(ls->fs, OPR_CONCAT, v);
-      expdesc v2;
-      singlevarinner(ls, luaS_new(ls->L, varname), &v2);
-      luaK_posfix(ls->fs, OPR_CONCAT, v, &v2, ls->getLineNumber());
-    }
-  }
-};
-
-
-static void fstring (LexState *ls, expdesc *v) {
-  auto str = ls->t.seminfo.ts->toCpp();
-
-  StringChain sc(ls, v);
-  for (size_t i = 0;; ) {
-    size_t del = str.find('{', i);
-    auto chunk = str.substr(i, del - i);
-    if (!chunk.empty()) {
-      sc.add(chunk.c_str());
-    }
-    if (del == std::string::npos) {
-      break;
-    }
-    ++del;
-    size_t del2 = str.find('}', del);
-    if (del2 == std::string::npos) {
-      luaX_syntaxerror(ls, "Improper $-string with unterminated varname");
-      break;
-    }
-    auto varname_len = (del2 - del);
-    auto varname = str.substr(del, varname_len);
-    del += varname_len + 1;
-    sc.addVar(varname.c_str());
-    i = del;
-  }
-
-  luaX_next(ls); /* skip string */
-}
-
 
 static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
   auto line = ls->getLineNumber();
@@ -2434,12 +2363,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
     }
     case '$': {
       luaX_next(ls); /* skip '$' */
-      if (ls->t.token == TK_STRING) {
-        fstring(ls, v);
-      }
-      else {
-        const_expr(ls, v);
-      }
+      const_expr(ls, v);
       return;
     }
     case TK_PARENT:
