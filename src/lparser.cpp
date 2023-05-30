@@ -1263,7 +1263,7 @@ typedef struct ConsControl {
 } ConsControl;
 
 
-static void recfield (LexState *ls, ConsControl *cc) {
+static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   /* recfield -> (NAME | '['exp']') = exp */
   FuncState *fs = ls->fs;
   int reg = ls->fs->freereg;
@@ -1274,11 +1274,21 @@ static void recfield (LexState *ls, ConsControl *cc) {
   }
   else  /* ls->t.token == '[' */
     yindex(ls, &key);
+  if (for_class)
+    UNUSED(gettypehint(ls));
   cc->nh++;
-  checknext(ls, '=');
   tab = *cc->t;
   luaK_indexed(fs, &tab, &key);
-  expr(ls, &val);
+  if (for_class) {
+    if (testnext(ls, '='))
+      expr(ls, &val);
+    else
+      init_exp(&val, VNIL, 0);
+  }
+  else {
+    checknext(ls, '=');
+    expr(ls, &val);
+  }
   luaK_storevar(fs, &tab, &val);
   fs->freereg = reg;  /* free registers */
 }
@@ -1350,7 +1360,7 @@ static void funcfield (LexState *ls, struct ConsControl *cc, bool ismethod) {
 }
 
 
-static void field (LexState *ls, ConsControl *cc) {
+static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
   /* field -> listfield | recfield | funcfield */
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
@@ -1363,10 +1373,10 @@ static void field (LexState *ls, ConsControl *cc) {
   else switch(ls->t.token) {
     case TK_NAME: {  /* may be 'listfield', 'recfield' or static 'funcfield' */
       if (strcmp(ls->t.seminfo.ts->contents, "static") != 0) {
-        if (luaX_lookahead(ls) != '=')  /* expression? */
+        if (!for_class && luaX_lookahead(ls) != '=')  /* expression? */
           listfield(ls, cc);
         else
-          recfield(ls, cc);
+          recfield(ls, cc, for_class);
       }
       else { /* static function */
         luaX_next(ls);
@@ -1376,7 +1386,7 @@ static void field (LexState *ls, ConsControl *cc) {
       break;
     }
     case '[': {
-      recfield(ls, cc);
+      recfield(ls, cc, for_class);
       break;
     }
     case TK_FUNCTION: {
@@ -1389,6 +1399,8 @@ static void field (LexState *ls, ConsControl *cc) {
       break;
     }
     default: {
+      if (for_class)
+        luaX_syntaxerror(ls, "syntax error");
       listfield(ls, cc);
       break;
     }
@@ -1519,7 +1531,7 @@ static void classexpr (LexState *ls, expdesc *t) {
   while (ls->t.token != TK_END) {
     lua_assert(cc.v.k == VVOID || cc.tostore > 0);
     closelistfield(fs, &cc);
-    field(ls, &cc);
+    field(ls, &cc, true);
     (testnext(ls, ',') || testnext(ls, ';'));
   }
   check_match(ls, TK_END, TK_CLASS, line);
