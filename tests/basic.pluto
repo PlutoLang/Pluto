@@ -883,12 +883,16 @@ do
     assert(red == nil)
 end
 
-print "Testing format strings."
+print "Testing interpolated strings."
 do
     f_string_global = "foo"
     local f_string_local = "bar"
     assert($"a{f_string_global}b{f_string_local}c" == "afoobbarc")
     assert($"{f_string_global}{f_string_local}" == "foobar")
+end
+do
+    local t = { a = "hello" }
+    assert($"{t.a} world" == "hello world")
 end
 
 print "Testing ++ operator."
