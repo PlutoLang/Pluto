@@ -893,6 +893,23 @@ end
 do
     local t = { a = "hello" }
     assert($"{t.a} world" == "hello world")
+
+    local class Person
+        name;
+        age;
+
+        function __construct(name, age)
+            self.name = name
+            self.age = age
+        end
+
+        function printInformation()
+            return $"My name is {self.name} & my age is {self.age}."
+        end
+    end
+
+    local person = new Person("John", 25)
+    assert($"{person:printInformation()}" == "My name is John & my age is 25.")
 end
 
 print "Testing ++ operator."
