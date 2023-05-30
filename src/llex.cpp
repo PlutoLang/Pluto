@@ -792,6 +792,7 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
           t.token = TK_STRING;
           t.line = (int)ls->lines.size();
           t.seminfo.ts = luaX_newstring(ls, luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
+          luaZ_resetbuffer(ls->buff);
         }
         next(ls);  /* skip '"' */
         ls->appendLineBuff('"');
