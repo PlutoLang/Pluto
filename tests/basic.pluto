@@ -1060,6 +1060,12 @@ do
     c.num = 42
     assert(c.num == 42)
 end
+do
+    local class ClassParsingTest
+        property_no_value
+        property_type_hint: string
+    end
+end
 
 print "Testing named varargs."
 do
