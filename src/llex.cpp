@@ -221,7 +221,7 @@ static void inclinenumber (LexState *ls) {
 }
 
 
-static int llex (LexState *ls, SemInfo *seminfo);
+static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string);
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
                     int firstchar) {
   ls->t.token = 0;
@@ -234,11 +234,28 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
   luaZ_resizebuffer(ls->L, ls->buff, LUA_MINBUFFER);  /* initialize buffer */
 
   while (true) {  /* perform lexer pass */
-    Token& t = ls->tokens.emplace_back(Token{});
-    t.token = llex(ls, &t.seminfo);
+    Token t;
+    t.token = llex(ls, &t.seminfo, false);
     t.line = (int)ls->lines.size();
+    ls->tokens.emplace_back(std::move(t));
     if (t.token == TK_EOS) break;
   }
+
+#if false
+  luaX_setpos(ls, 0);
+  int line = 0;
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.line != line) {
+      line = ls->t.line;
+      std::cout << "\nLine " << line << ":";
+    }
+    std::cout << " " << luaX_token2str_noq(ls, ls->t.token);
+    luaX_next(ls);
+  }
+  std::cout << "\n";
+  lua_assert(ls->tidx + 1 == ls->tokens.size());
+  luaX_setpos(ls, 0);
+#endif
 }
 
 
@@ -544,7 +561,7 @@ static int llex_augmented (lua_Integer& i, int c) {
   }
 }
 
-static int llex (LexState *ls, SemInfo *seminfo) {
+static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
   luaZ_resetbuffer(ls->buff);
   for (;;) {
     switch (ls->current) {
@@ -698,12 +715,87 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           return ':';
         }
       }
-      case '"': case '\'': {  /* short literal strings */
+      case '"':
+        if (for_interpolated_string)
+          lexerror(ls, "unfinished string expression", TK_STRING);
+        [[fallthrough]];
+      case '\'': {  /* short literal strings */
         read_string(ls, ls->current, seminfo);
-        ls->appendLineBuff("\"");
+        ls->appendLineBuff('"');
         ls->appendLineBuff(seminfo->ts->contents);
-        ls->appendLineBuff("\"");
+        ls->appendLineBuff('"');
         return TK_STRING;
+      }
+      case '$': {  /* interpolated strings */
+        next(ls);  /* skip '$' */
+        ls->appendLineBuff('$');
+        if (!check_next1(ls, '"'))
+          return '$';
+        ls->appendLineBuff('"');
+        bool need_concat = false;
+        while (ls->current != '"') {
+          switch (ls->current) {
+            case '{':
+              if (need_concat) {
+                need_concat = false;
+
+                Token& t = ls->tokens.emplace_back(Token{});
+                t.token = TK_CONCAT;
+                t.line = (int)ls->lines.size();
+              }
+              if (luaZ_bufflen(ls->buff) != 0) {
+                { Token& t = ls->tokens.emplace_back(Token{});
+                t.token = TK_STRING;
+                t.line = (int)ls->lines.size();
+                t.seminfo.ts = luaX_newstring(ls, luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
+                luaZ_resetbuffer(ls->buff); }
+
+                { Token& t = ls->tokens.emplace_back(Token{});
+                t.token = TK_CONCAT;
+                t.line = (int)ls->lines.size(); }
+              }
+              next(ls);  /* skip '{' */
+              ls->appendLineBuff('{');
+              while (true) {
+                Token t;
+                t.token = llex(ls, &t.seminfo, true);
+                t.line = (int)ls->lines.size();
+                if (t.token == '}' || t.token == TK_EOS) break;
+                ls->tokens.emplace_back(std::move(t));
+              }
+              need_concat = true;
+              break;
+            case EOZ:
+              lexerror(ls, "unfinished string", TK_EOS);
+              break;  /* to avoid warnings */
+            case '\n':
+            case '\r':
+              lexerror(ls, "unfinished string", TK_STRING);
+              break;  /* to avoid warnings */
+            case '\\':  /* escape sequences */
+              process_string_escape(ls);
+              break;
+            default:
+              save_and_next(ls);
+          }
+        }
+        if (luaZ_bufflen(ls->buff) != 0) {
+          if (need_concat) {
+            need_concat = false;
+          
+            Token& t = ls->tokens.emplace_back(Token{});
+            t.token = TK_CONCAT;
+            t.line = (int)ls->lines.size();
+          }
+          
+          Token& t = ls->tokens.emplace_back(Token{});
+          t.token = TK_STRING;
+          t.line = (int)ls->lines.size();
+          t.seminfo.ts = luaX_newstring(ls, luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
+        }
+        next(ls);  /* skip '"' */
+        ls->appendLineBuff('"');
+        break;
       }
       case '.': {  /* '.', '..', '...', or number */
         save_and_next(ls);
