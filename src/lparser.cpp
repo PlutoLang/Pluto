@@ -1518,7 +1518,6 @@ static void classexpr (LexState *ls, expdesc *t) {
   init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
   while (ls->t.token != TK_END) {
     lua_assert(cc.v.k == VVOID || cc.tostore > 0);
-    if (ls->t.token == '}') break;
     closelistfield(fs, &cc);
     field(ls, &cc);
     (testnext(ls, ',') || testnext(ls, ';'));
