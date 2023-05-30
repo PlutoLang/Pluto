@@ -445,6 +445,47 @@ static int readdecesc (LexState *ls) {
 }
 
 
+static void process_string_escape (LexState *ls) {
+  int c;  /* final character to be saved */
+  save_and_next(ls);  /* keep '\\' for error messages */
+  switch (ls->current) {
+    case 'a': c = '\a'; goto read_save;
+    case 'b': c = '\b'; goto read_save;
+    case 'f': c = '\f'; goto read_save;
+    case 'n': c = '\n'; goto read_save;
+    case 'r': c = '\r'; goto read_save;
+    case 't': c = '\t'; goto read_save;
+    case 'v': c = '\v'; goto read_save;
+    case 'x': c = readhexaesc(ls); goto read_save;
+    case 'u': utf8esc(ls);  return;  /* no save */
+    case '\n': case '\r':
+      inclinenumber(ls); c = '\n'; goto only_save;
+    case '\\': case '\"': case '\'':
+      c = ls->current; goto read_save;
+    case EOZ: return;  /* no save, will raise an error next loop */
+    case 'z': {  /* zap following span of spaces */
+      luaZ_buffremove(ls->buff, 1);  /* remove '\\' */
+      next(ls);  /* skip the 'z' */
+      while (lisspace(ls->current)) {
+        if (currIsNewline(ls)) inclinenumber(ls);
+        else next(ls);
+      }
+      return;  /* no save */
+    }
+    default: {
+      esccheck(ls, lisdigit(ls->current), "invalid escape sequence");
+      c = readdecesc(ls);  /* digital escape '\ddd' */
+      goto only_save;
+    }
+  }
+ read_save:
+   next(ls);
+   /* go through */
+ only_save:
+   luaZ_buffremove(ls->buff, 1);  /* remove '\\' */
+   save(ls, c);
+}
+
 static void read_string (LexState *ls, int del, SemInfo *seminfo) {
   next(ls);  /* keep delimiter (for error messages) */
   while (ls->current != del) {
@@ -456,48 +497,9 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
       case '\r':
         lexerror(ls, "unfinished string", TK_STRING);
         break;  /* to avoid warnings */
-      case '\\': {  /* escape sequences */
-        int c;  /* final character to be saved */
-        save_and_next(ls);  /* keep '\\' for error messages */
-        switch (ls->current) {
-          case 'a': c = '\a'; goto read_save;
-          case 'b': c = '\b'; goto read_save;
-          case 'f': c = '\f'; goto read_save;
-          case 'n': c = '\n'; goto read_save;
-          case 'r': c = '\r'; goto read_save;
-          case 't': c = '\t'; goto read_save;
-          case 'v': c = '\v'; goto read_save;
-          case 'x': c = readhexaesc(ls); goto read_save;
-          case 'u': utf8esc(ls);  goto no_save;
-          case '\n': case '\r':
-            inclinenumber(ls); c = '\n'; goto only_save;
-          case '\\': case '\"': case '\'':
-            c = ls->current; goto read_save;
-          case EOZ: goto no_save;  /* will raise an error next loop */
-          case 'z': {  /* zap following span of spaces */
-            luaZ_buffremove(ls->buff, 1);  /* remove '\\' */
-            next(ls);  /* skip the 'z' */
-            while (lisspace(ls->current)) {
-              if (currIsNewline(ls)) inclinenumber(ls);
-              else next(ls);
-            }
-            goto no_save;
-          }
-          default: {
-            esccheck(ls, lisdigit(ls->current), "invalid escape sequence");
-            c = readdecesc(ls);  /* digital escape '\ddd' */
-            goto only_save;
-          }
-        }
-       read_save:
-         next(ls);
-         /* go through */
-       only_save:
-         luaZ_buffremove(ls->buff, 1);  /* remove '\\' */
-         save(ls, c);
-         /* go through */
-       no_save: break;
-      }
+      case '\\':  /* escape sequences */
+        process_string_escape(ls);
+        break;
       default:
         save_and_next(ls);
     }
