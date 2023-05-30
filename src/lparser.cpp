@@ -1283,7 +1283,7 @@ static void recfield (LexState *ls, ConsControl *cc) {
   fs->freereg = reg;  /* free registers */
 }
 
-static void prenamedfield(LexState* ls, ConsControl* cc, const char* name) {
+static void prenamedfield (LexState *ls, ConsControl *cc, const char *name) {
   FuncState* fs = ls->fs;
   int reg = ls->fs->freereg;
   expdesc tab, key, val;
