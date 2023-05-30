@@ -29,6 +29,13 @@
 #include "ltable.h"
 #include "lzio.h"
 
+// Note that this may sometimes break parsing.
+#define TOKENDUMP false
+
+#if TOKENDUMP
+#include <iostream>
+#endif
+
 
 
 #define next(ls)	(ls->current = zgetc(ls->z))
@@ -241,7 +248,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
     if (t.token == TK_EOS) break;
   }
 
-#if false
+#if TOKENDUMP
   luaX_setpos(ls, 0);
   int line = 0;
   while (ls->t.token != TK_EOS) {
