@@ -827,13 +827,15 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
   int status, readstatus;
   int c;
   int fnameindex = lua_gettop(L) + 1;  /* index of filename on the stack */
+  size_t filename_len;
   if (filename == NULL) {
     lua_pushliteral(L, "=stdin");
     lf.f = stdin;
   }
   else {
     lua_pushfstring(L, "@%s", filename);
-    lf.f = luaL_fopen(filename, strlen(filename), "r", sizeof("r") - sizeof(char));
+    filename_len = strlen(filename);
+    lf.f = luaL_fopen(filename, filename_len, "r", sizeof("r") - sizeof(char));
     if (lf.f == NULL) return errfile(L, "open", fnameindex);
   }
   lf.n = 0;
@@ -842,7 +844,12 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
   if (c == LUA_SIGNATURE[0]) {  /* binary file? */
     lf.n = 0;  /* remove possible newline */
     if (filename) {  /* "real" file? */
+#ifdef _WIN32
+      std::wstring wfilename = luaL_utf8_to_utf16(filename, filename_len);
+      lf.f = _wfreopen(wfilename.c_str(), L"rb", lf.f);  /* reopen in binary mode */
+#else
       lf.f = freopen(filename, "rb", lf.f);  /* reopen in binary mode */
+#endif
       if (lf.f == NULL) return errfile(L, "reopen", fnameindex);
       skipcomment(lf.f, &c);  /* re-read initial portion */
     }
