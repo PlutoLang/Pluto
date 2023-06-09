@@ -1081,6 +1081,17 @@ do
         property_type_hint: string
     end
 end
+-- Constructor promotion
+do
+    local class Point
+        function __construct(public x: int, public y: int = 0)
+        end
+    end
+
+    local p = new Point(3)
+    assert(p.x == 3)
+    assert(p.y == 0)
+end
 
 print "Testing named varargs."
 do
