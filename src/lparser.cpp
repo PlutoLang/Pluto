@@ -1344,7 +1344,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 
 
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop = nullptr);
-static void funcfield (LexState *ls, struct ConsControl *cc, bool ismethod) {
+static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
   int reg = ls->fs->freereg;
@@ -1352,6 +1352,8 @@ static void funcfield (LexState *ls, struct ConsControl *cc, bool ismethod) {
   cc->nh++;
   luaX_next(ls); /* skip TK_FUNCTION */
   codename(ls, &key);
+  if (ismethod)
+    ismethod += (strcmp(key.u.strval->contents, "__construct") == 0);
   tab = *cc->t;
   luaK_indexed(fs, &tab, &key);
   body(ls, &val, ismethod, ls->getLineNumber());
@@ -1671,7 +1673,7 @@ static void skip_over_simpleexp_within_parenlist (LexState *ls) {
 }
 
 
-static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr, TString** varargname = nullptr) {
+static void parlist (LexState *ls, std::vector<TString*>* promotions = {}, std::vector<size_t>* fallbacks = nullptr, TString** varargname = nullptr) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -1681,6 +1683,10 @@ static void parlist (LexState *ls, std::vector<size_t>* fallbacks = nullptr, TSt
     do {
       if (isnametkn(ls, N_OVERRIDABLE)) {
         auto parname = str_checkname(ls, N_OVERRIDABLE);
+        if (promotions && strcmp(parname->contents, "public") == 0) {
+          parname = str_checkname(ls, N_OVERRIDABLE);
+          promotions->emplace_back(parname);
+        }
         auto parhint = gettypehint(ls);
         new_localvar(ls, parname, parhint);
         if (fallbacks) {
@@ -1727,9 +1733,10 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     new_localvarliteral(ls, "self");  /* create 'self' parameter */
     adjustlocalvars(ls, 1);
   }
+  std::vector<TString*> promotions{};
   std::vector<size_t> fallbacks{};
   TString* varargname = nullptr;
-  parlist(ls, &fallbacks, &varargname);
+  parlist(ls, (ismethod == 2 ? &promotions : nullptr), &fallbacks, &varargname);
   checknext(ls, ')');
   const auto saved_pos = luaX_getpos(ls);
   int fallback_idx = (ismethod ? 1 : 0);
@@ -1761,6 +1768,20 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     ++fallback_idx;
   }
   luaX_setpos(ls, saved_pos);
+  for (const auto& promotion : promotions) {
+    FuncState *fs = ls->fs;
+    expdesc tab, key, val;
+
+    /* self["promotion"] */
+    singlevaraux(fs, luaS_newliteral(ls->L, "self"), &tab, 0);
+    init_exp(&key, VKSTR, 0);
+    key.u.strval = promotion;
+    luaK_indexed(fs, &tab, &key);
+
+    /* ... = promotion */
+    singlevaraux(fs, promotion, &val, 0);
+    luaK_storevar(fs, &tab, &val);
+  }
   if (varargname) {
     enterlevel(ls);
     new_localvar(ls, varargname);
