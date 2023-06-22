@@ -45,12 +45,28 @@ namespace soup
 
 		[[nodiscard]] static constexpr uint8_t getBitsNeededToEncodeRange(size_t range_size) // aka. ceil(log2(range_size))
 		{
-			uint8_t bits = 0;
-			while ((((size_t)1) << bits) < range_size)
+#if SOUP_CPP20
+			if (std::is_constant_evaluated()
+#if SOUP_BITS > 32
+				|| range_size > 0xFFFFFFFF
+#endif
+				)
 			{
-				++bits;
+#endif
+				uint8_t bits = 0;
+				while ((((size_t)1) << bits) < range_size)
+				{
+					++bits;
+				}
+				return bits;
+#if SOUP_CPP20
 			}
-			return bits;
+			else
+			{
+				SOUP_ASSERT(range_size != 0);
+				return getMostSignificantSetBit((uint32_t)range_size) + 1;
+			}
+#endif
 		}
 
 		[[nodiscard]] static unsigned int getLeastSignificantSetBit(unsigned int mask) // UB if mask = 0
@@ -58,10 +74,21 @@ namespace soup
 			// These intrinsic functions just use the bsf instruction.
 #if defined(_MSC_VER) && !defined(__clang__)
 			unsigned long ret;
-			_BitScanForward((unsigned long*)&ret, mask);
+			_BitScanForward(&ret, mask);
 			return ret;
 #else
 			return __builtin_ctz(mask);
+#endif
+		}
+
+		[[nodiscard]] static unsigned int getMostSignificantSetBit(unsigned int mask) // UB if mask = 0
+		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			unsigned long ret;
+			_BitScanReverse(&ret, mask);
+			return ret;
+#else
+ 			return 31 - __builtin_clz(mask);
 #endif
 		}
 

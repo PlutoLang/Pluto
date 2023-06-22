@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm> // transform
-#include <cctype> // tolower
 #include <cmath> // fmod
 #include <cstdint>
 #include <cstring> // strlen
@@ -9,6 +8,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+
+#undef min
 
 #include "base.hpp"
 
@@ -181,6 +182,12 @@ namespace soup
 			return isNumberChar(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 		}
 
+		template <typename T>
+		[[nodiscard]] static constexpr bool isWordChar(const T c) noexcept
+		{
+			return isLetter(c) || isNumberChar(c) || c == '_';
+		}
+
 		// string attributes
 
 		template <typename T>
@@ -214,7 +221,7 @@ namespace soup
 			return false;
 		}
 
-		template <typename T>
+		template <typename T = std::string>
 		[[nodiscard]] static bool equalsIgnoreCase(const T& a, const T& b)
 		{
 			if (a.size() != b.size())
@@ -229,6 +236,53 @@ namespace soup
 				}
 			}
 			return true;
+		}
+
+		template <typename T = std::string>
+		[[nodiscard]] static size_t levenshtein(const T& a, const T& b)
+		{
+			// Adapted from https://github.com/guilhermeagostinelli/levenshtein/blob/master/levenshtein.cpp & https://gist.github.com/TheRayTracer/2644387
+
+			size_t n = a.size() + 1;
+			size_t m = b.size() + 1;
+
+			auto d = new size_t[n * m];
+
+			//memset(d, 0, n * m * sizeof(size_t));
+			for (size_t i = 0; i != n; ++i)
+			{
+				d[0 * n + i] = i;
+			}
+			for (size_t j = 0; j != m; ++j)
+			{
+				d[j * n + 0] = j;
+			}
+
+			for (size_t i = 1, im = 0; i < m; ++i, ++im)
+			{
+				for (size_t j = 1, jn = 0; j < n; ++j, ++jn)
+				{
+					size_t cost = (a[jn] == b[im]) ? 0 : 1;
+
+					if (a[jn] == b[im])
+					{
+						d[(i * n) + j] = d[((i - 1) * n) + (j - 1)];
+					}
+					else
+					{
+						d[(i * n) + j] = std::min(
+							std::min(d[(i - 1) * n + j], d[i * n + (j - 1)]) + 1,
+							d[(i - 1) * n + (j - 1)] + cost
+						);
+					}
+				}
+			}
+
+			const auto r = d[n * m - 1];
+
+			delete[] d;
+
+			return r;
 		}
 
 		// conversions
@@ -804,9 +858,13 @@ namespace soup
 		template <typename Str>
 		static void lower(Str& str)
 		{
-			std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c)
+			std::transform(str.begin(), str.end(), str.begin(), [](typename Str::value_type c) -> typename Str::value_type
 			{
-				return std::tolower(c);
+				if (c >= 'A' && c <= 'Z')
+				{
+					return c - 'A' + 'a';
+				}
+				return c;
 			});
 		}
 
@@ -820,9 +878,13 @@ namespace soup
 		template <typename Str>
 		static void upper(Str& str)
 		{
-			std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c)
+			std::transform(str.begin(), str.end(), str.begin(), [](typename Str::value_type c) -> typename Str::value_type
 			{
-				return std::toupper(c);
+				if (c >= 'a' && c <= 'z')
+				{
+					return c - 'a' + 'A';
+				}
+				return c;
 			});
 		}
 

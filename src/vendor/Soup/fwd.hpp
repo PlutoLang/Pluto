@@ -24,7 +24,6 @@ namespace soup
 
 	// data
 	struct Oid;
-	struct XmlTag;
 
 	// data.asn1
 	struct Asn1Sequence;
@@ -39,6 +38,18 @@ namespace soup
 	struct JsonInt;
 	struct JsonObject;
 	struct JsonString;
+
+	// data.regex
+	struct RegexConstraintTransitionable;
+	struct RegexGroup;
+	struct RegexMatcher;
+
+	// data.xml
+	struct PlistDict;
+	struct PlistArray;
+	struct PlistString;
+	struct XmlTag;
+	struct XmlText;
 
 	// io.bits
 	class BitReader;
@@ -110,13 +121,16 @@ namespace soup
 
 	// net
 	class IpAddr;
+	struct netConfig;
 	class Server;
 	struct ServerService;
+	struct ServerServiceUdp;
 	class Socket;
 	struct SocketAddr;
 
 	// net.dns.resolver
 	struct dnsResolver;
+	struct dnsName;
 	struct dnsHttpResolver;
 
 	// net.tls
@@ -126,6 +140,7 @@ namespace soup
 
 	// net.web
 	class HttpRequest;
+	class HttpRequestTask;
 	struct HttpResponse;
 	struct Uri;
 
