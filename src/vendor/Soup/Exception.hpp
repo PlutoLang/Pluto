@@ -20,9 +20,4 @@ namespace soup
 			throw Exception("Logic error");
 		}
 	};
-
-	inline void throwAssertionFailed()
-	{
-		throw Exception("Assertion failed");
-	}
 }

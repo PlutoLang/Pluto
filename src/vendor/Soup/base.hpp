@@ -126,8 +126,9 @@
 
 // === Development helper macros
 
-namespace soup { extern void throwAssertionFailed(); }
+namespace soup { void throwAssertionFailed(); }
 #define SOUP_ASSERT(x) SOUP_IF_UNLIKELY (!(x)) { ::soup::throwAssertionFailed(); }
+#define SOUP_ASSERT_UNREACHABLE ::soup::throwAssertionFailed();
 
 #define SOUP_ASSERT_ARG(x) SOUP_ASSERT(x)
 #define SOUP_ASSERT_LOGIC(x) SOUP_ASSERT(x)
