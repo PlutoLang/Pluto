@@ -2683,7 +2683,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
     case TK_PNEW: {
       if (prop) *prop = VT_TABLE;
       newexpr(ls, v);
-      return;
+      break;
     }
 #ifndef PLUTO_COMPATIBLE_CLASS
     case TK_CLASS:
