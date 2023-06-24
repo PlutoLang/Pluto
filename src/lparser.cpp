@@ -4156,7 +4156,7 @@ static void statement (LexState *ls, TypeDesc *prop) {
       classstat(ls);
       break;
     }
-    case TK_LOCAL: {  /* stat -> localstat */
+    case TK_LOCAL: case TK_LET: {  /* stat -> localstat */
       luaX_next(ls);  /* skip LOCAL */
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
@@ -4561,6 +4561,8 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
 #ifdef PLUTO_COMPATIBLE_EXPORT
   disablekeyword(&lexstate, TK_EXPORT);
 #endif
+  for (int i = FIRST_OPTIONAL; i != FIRST_SPECIAL; ++i)
+    disablekeyword(&lexstate, i);
   mainfunc(&lexstate, &funcstate);
   lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
   /* all scopes should be correctly finished */
