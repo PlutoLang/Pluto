@@ -250,6 +250,18 @@ struct TypeHint {
     return contains(VT_NIL);
   }
 
+  void fixTypes() {
+    if (descs[1].type != VT_DUNNO) { /* contains more than 1 type? */
+      /* convert 'void' to 'nil' */
+      for (auto& desc : descs) {
+        if (desc.type == VT_VOID) {
+          desc.type = VT_NIL;
+          break;
+        }
+      }
+    }
+  }
+
   [[nodiscard]] std::string toString() const {
     std::string str{};
     if (isNullable())
