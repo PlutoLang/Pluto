@@ -190,6 +190,8 @@ struct TypeHint {
     emplaceTypeDesc(vt);
   }
 
+  void operator=(ValType) = delete;
+
   void clear() noexcept {
     for (auto& desc : descs) {
       desc.type = VT_DUNNO;
