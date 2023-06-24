@@ -95,6 +95,7 @@ enum ValType : lu_byte {
     case VT_STR: return "string";
     case VT_TABLE: return "table";
     case VT_FUNC: return "function";
+    default:;
   }
   return "ERROR";
 }
