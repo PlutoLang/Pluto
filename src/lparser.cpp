@@ -1499,7 +1499,8 @@ static void applyextends (LexState *ls, expdesc *v, TString *parent, int line) {
   FuncState *fs = ls->fs;
 
   expdesc f;
-  singlevar(ls, &f, luaS_newliteral(ls->L, "Pluto_operator_extends"));
+  singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_extends"), &f, 1);
+  lua_assert(f.k != VVOID);
   luaK_exp2nextreg(fs, &f);
 
   expdesc args = *v;
