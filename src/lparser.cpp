@@ -430,7 +430,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
 
 static void exp_propagate(LexState* ls, const expdesc& e, TypeHint& t) noexcept {
   if (e.k == VLOCAL) {
-    t.merge(getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop);
+    t.merge(*getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop);
   }
   else if (e.k == VCONST) {
     TValue* val = &ls->dyd->actvar.arr[e.u.info].k;
@@ -448,11 +448,11 @@ static void exp_propagate(LexState* ls, const expdesc& e, TypeHint& t) noexcept 
 
 
 static void process_assign(LexState* ls, Vardesc* var, const TypeHint& t, int line) {
-  auto hinted = !var->vd.hint.empty();
+  auto hinted = !var->vd.hint->empty();
   auto knownvalue = !t.empty();
-  auto incompatible = !var->vd.hint.isCompatibleWith(t);
+  auto incompatible = !var->vd.hint->isCompatibleWith(t);
   if (hinted && knownvalue && incompatible) {
-    const auto hint = var->vd.hint.toString();
+    const auto hint = var->vd.hint->toString();
     std::string err = var->vd.name->toCpp();
     err.insert(0, "'");
     err.append("' type-hinted as '" + hint);
@@ -467,7 +467,7 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeHint& t, int li
       throw_warn(ls, "variable type mismatch", err.c_str(), line, WT_TYPE_MISMATCH);
     }
   }
-  var->vd.prop.merge(t); /* propagate type */
+  var->vd.prop->merge(t); /* propagate type */
 }
 
 
@@ -510,6 +510,11 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
 }
 
 
+static TypeHint* new_typehint (LexState *ls) {
+  return ::new (ls->parse_time_allocations.emplace_back(malloc(sizeof(TypeHint)))) TypeHint();
+}
+
+
 /*
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
@@ -536,8 +541,10 @@ static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = 
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
-  var->vd.hint = std::move(hint);
-  var->vd.prop.clear();
+  var->vd.hint = new_typehint(ls);
+  var->vd.prop = new_typehint(ls);
+  if (!hint.empty())
+    *var->vd.hint = std::move(hint);
   var->vd.name = name;
   var->vd.line = line;
   return dyd->actvar.n - 1 - fs->firstlocal;
@@ -1717,11 +1724,6 @@ static void parlist (LexState *ls, std::vector<TString*>* promotions = {}, std::
 }
 
 
-static TypeHint* new_typehint (LexState *ls) {
-  return ::new (ls->parse_time_allocations.emplace_back(malloc(sizeof(TypeHint)))) TypeHint();
-}
-
-
 static void compoundassign(LexState *ls, expdesc *v, BinOpr op);
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *funcdesc) {
   /* body ->  '(' parlist ')' block END */
@@ -1827,8 +1829,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     *funcdesc->retn = retprop;
     int vidx = new_fs.firstlocal;
     for (lu_byte i = 0; i != funcdesc->getNumTypedParams(); ++i) {
-      funcdesc->params[i] = new_typehint(ls);
-      *funcdesc->params[i] = ls->dyd->actvar.arr[vidx].vd.hint;
+      funcdesc->params[i] = ls->dyd->actvar.arr[vidx].vd.hint;
       ++vidx;
     }
   }
@@ -2472,10 +2473,10 @@ static void expsuffix (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
         if (v->k == VLOCAL) {
           vd = getlocalvardesc(ls->fs, v->u.var.vidx);
         _funcdesc_from_vd:
-          if (vd->vd.prop.descs[0].type == VT_FUNC) { /* just in case... */
-            funcdesc = &vd->vd.prop.descs[0];
+          if (vd->vd.prop->descs[0].type == VT_FUNC) { /* just in case... */
+            funcdesc = &vd->vd.prop->descs[0];
             if (prop) { /* propagate return type */
-              *prop = *vd->vd.prop.descs[0].retn;
+              *prop = *vd->vd.prop->descs[0].retn;
             }
           }
         }
@@ -3687,7 +3688,7 @@ static void localfunc (LexState *ls) {
   adjustlocalvars(ls, 1);  /* enter its scope */
   TypeDesc funcdesc;
   body(ls, &b, 0, ls->getLineNumber(), &funcdesc);  /* function created in next register */
-  getlocalvardesc(fs, fvar)->vd.prop.emplaceTypeDesc(std::move(funcdesc));
+  getlocalvardesc(fs, fvar)->vd.prop->emplaceTypeDesc(std::move(funcdesc));
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
 }
@@ -3833,7 +3834,7 @@ static void localstat (LexState *ls) {
     kind = getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
-    var->vd.hint = hint;
+    *var->vd.hint = hint;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
       if (toclose != -1) { /* one already present? */
         luaX_setpos(ls, starting_tidx);
