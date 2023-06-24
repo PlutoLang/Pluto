@@ -42,6 +42,7 @@ enum RESERVED {
   TK_PUSE, // New compatibility keywords.
   TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT,
   TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, // New non-compatible keywords.
+  TK_LET, // New optional keywords.
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
@@ -66,6 +67,7 @@ enum RESERVED {
 
 #define FIRST_COMPAT TK_PUSE
 #define FIRST_NON_COMPAT TK_SWITCH
+#define FIRST_OPTIONAL TK_LET
 #define FIRST_SPECIAL TK_SUGGEST_0
 #define LAST_RESERVED TK_WHILE
 
@@ -149,6 +151,11 @@ struct Token {
   [[nodiscard]] bool IsNonCompatible() const noexcept
   {
       return (token >= FIRST_NON_COMPAT && token < FIRST_SPECIAL);
+  }
+
+  [[nodiscard]] bool IsOptional() const noexcept
+  {
+      return (token >= FIRST_OPTIONAL && token < FIRST_SPECIAL);
   }
 
   [[nodiscard]] bool IsSpecial() const noexcept
