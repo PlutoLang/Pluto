@@ -226,7 +226,8 @@ struct TypeHint {
   }
 
   [[nodiscard]] bool isCompatibleWith(const TypeDesc& td) const noexcept {
-    return contains(td.type);
+    return contains(td.type)
+        || ((td.type == VT_INT || td.type == VT_FLT) && contains(VT_NUMBER));
   }
 
   [[nodiscard]] bool isCompatibleWith(const TypeHint& b) const noexcept {
