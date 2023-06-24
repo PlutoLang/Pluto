@@ -56,6 +56,7 @@ static const char *const luaX_tokens [] = {
     "pluto_use",
     "pluto_switch", "pluto_continue", "pluto_enum", "pluto_new", "pluto_class", "pluto_parent", "pluto_export",
           "switch",       "continue",       "enum",       "new",       "class",       "parent",       "export",
+    "let",
     "pluto_suggest_0", "pluto_suggest_1",
     "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=",
