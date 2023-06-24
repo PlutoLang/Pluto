@@ -774,7 +774,7 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
       break;
     }
     case VLOCAL: {  /* already in a register */
-      e->code_primitive = getlocalvardesc(fs, e->u.var.vidx)->vd.prop.getType();
+      e->code_primitive = getlocalvardesc(fs, e->u.var.vidx)->vd.prop.toPrimitive();
       e->u.info = e->u.var.ridx;
       e->k = VNONRELOC;  /* becomes a non-relocatable value */
       break;

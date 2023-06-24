@@ -72,7 +72,6 @@ enum ValType : lu_byte {
   VT_DUNNO = 0,
   VT_VOID,
   VT_NIL,
-  VT_MIXED,
   VT_NUMBER,
   VT_INT,
   VT_FLT,
@@ -84,12 +83,20 @@ enum ValType : lu_byte {
   NUL_VAL_TYPES
 };
 
-[[nodiscard]] inline bool vtIsNull(ValType vt) {
-  return vt == VT_VOID || vt == VT_NIL;
-}
-
-[[nodiscard]] inline bool vtCanBeNullable(ValType vt) {
-  return !vtIsNull(vt) && vt != VT_MIXED;
+[[nodiscard]] inline const char* vtToString(ValType vt) {
+  switch (vt) {
+    case VT_DUNNO: return "dunno";
+    case VT_VOID: return "void";
+    case VT_NIL: return "nil";
+    case VT_NUMBER: return "number";
+    case VT_INT: return "int";
+    case VT_FLT: return "float";
+    case VT_BOOL: return "boolean";
+    case VT_STR: return "string";
+    case VT_TABLE: return "table";
+    case VT_FUNC: return "function";
+  }
+  return "ERROR";
 }
 
 typedef struct expdesc {
@@ -125,109 +132,26 @@ typedef struct expdesc {
 #define RDKCONSTEXP	4   /* [Pluto] enforced compile-time constant */
 #define RDKENUM		5   /* [Pluto] named enum */
 
-struct PrimitiveType {
-  /* 4 bits for ValType, and 1 bit for nullable. */
-  lu_byte data;
-  static_assert((NUL_VAL_TYPES - 1) <= 0b1111);
+struct TypeHint;
 
-  PrimitiveType()
-    : PrimitiveType(VT_DUNNO)
-  {
-  }
-
-  PrimitiveType(ValType vt, bool nullable = false)
-    : data(vt | (nullable << 4))
-  {
-  }
-
-  [[nodiscard]] ValType getType() const noexcept {
-    return (ValType)(data & 0b1111);
-  }
-
-  [[nodiscard]] bool isNullable() const noexcept {
-    return (data >> 4) & 1;
-  }
-
-  void setNullable() noexcept {
-    data |= (1 << 4);
-  }
-
-  [[nodiscard]] bool isCompatibleWith(const PrimitiveType& b) const noexcept {
-    const auto a_t = getType();
-    const auto b_t = b.getType();
-    return (a_t == b_t)
-        ? (isNullable() || !b.isNullable()) /* if same type, b can't be nullable if a isn't nullable */
-        : ((vtIsNull(b_t) && isNullable()) /* if different type, b might still be compatible if a is nullable and b is null (void or nil) */
-          || (a_t == VT_NUMBER && (b_t == VT_INT || b_t == VT_FLT)) /* if different type, b might still be compatible if a is number and b is int or float */
-          )
-        ;
-  }
-
-  [[nodiscard]] std::string toString() const {
-    std::string str{};
-    if (isNullable())
-      str.push_back('?');
-    switch (getType())
-    {
-    case VT_DUNNO: str.append("dunno"); break;
-    case VT_VOID: str.append("void"); break;
-    case VT_NIL: str.append("nil"); break;
-    case VT_MIXED: str.append("mixed"); break;
-    case VT_NUMBER: str.append("number"); break;
-    case VT_INT: str.append("int"); break;
-    case VT_FLT: str.append("float"); break;
-    case VT_BOOL: str.append("boolean"); break;
-    case VT_STR: str.append("string"); break;
-    case VT_TABLE: str.append("table"); break;
-    case VT_FUNC: str.append("function"); break;
-    default: str.append("ERROR"); break;
-    }
-    return str;
-  }
-};
-
-union Vardesc;
-
-struct TypeDesc
-{
-  PrimitiveType primitive;
+struct TypeDesc {
+  ValType type;
 
   /* function info */
   Proto* proto;
-  PrimitiveType retn;
+  TypeHint* retn;
   static constexpr int MAX_TYPED_PARAMS = 10;
-  PrimitiveType params[MAX_TYPED_PARAMS];
+  TypeHint* params[MAX_TYPED_PARAMS];
 
   TypeDesc() = default;
 
-  TypeDesc(ValType vt, bool nullable = false)
-    : primitive(vt, nullable)
-  {
-  }
-
-  TypeDesc(PrimitiveType p)
-    : primitive(p)
+  TypeDesc(ValType type)
+    : type(type)
   {
   }
 
   [[nodiscard]] ValType getType() const noexcept {
-    return primitive.getType();
-  }
-
-  [[nodiscard]] bool isNullable() const noexcept {
-    return primitive.isNullable();
-  }
-
-  void setNullable() noexcept {
-    primitive.setNullable();
-  }
-
-  [[nodiscard]] ValType getReturnType() const noexcept {
-    return retn.getType();
-  }
-
-  [[nodiscard]] bool isReturnNullable() const noexcept {
-    return retn.isNullable();
+    return type;
   }
 
   [[nodiscard]] lu_byte getNumParams() noexcept {
@@ -250,18 +174,92 @@ struct TypeDesc
     return p;
   }
 
-  [[nodiscard]] bool isCompatibleWith(const TypeDesc& b) const noexcept {
-    return primitive.isCompatibleWith(b.primitive);
+  [[nodiscard]] std::string toString() const;
+};
+
+struct TypeHint {
+  TypeDesc descs[3];
+
+  TypeHint() {
+    clear();
+  }
+
+  TypeHint(ValType vt) {
+    clear();
+    emplaceTypeDesc(vt);
+  }
+
+  void clear() noexcept {
+    for (auto& desc : descs) {
+      desc.type = VT_DUNNO;
+    }
+  }
+
+  [[nodiscard]] bool empty() const noexcept {
+    return descs[0].type == VT_DUNNO;
+  }
+
+  bool emplaceTypeDesc(TypeDesc td) {
+    for (auto& desc : descs) {
+      if (desc.type == VT_DUNNO) {
+        desc = std::move(td);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void merge(const TypeHint& b) {
+    for (auto& desc : b.descs) {
+      emplaceTypeDesc(desc.type);
+    }
+  }
+
+  [[nodiscard]] bool contains(ValType vt) const noexcept {
+    for (const auto& desc : descs) {
+      if (desc.type == vt) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  [[nodiscard]] bool isCompatibleWith(const TypeDesc& td) const noexcept {
+    return contains(td.type);
+  }
+
+  [[nodiscard]] bool isCompatibleWith(const TypeHint& b) const noexcept {
+    for (const auto& desc : b.descs) {
+      if (!isCompatibleWith(desc)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  [[nodiscard]] ValType toPrimitive() const noexcept {
+    if (descs[1].type == VT_DUNNO) {
+      return descs[0].type;
+    }
+    return VT_DUNNO;
+  }
+
+  [[nodiscard]] bool isNullable() const noexcept {
+    return contains(VT_NIL);
   }
 
   [[nodiscard]] std::string toString() const {
-    std::string str = primitive.toString();
-    if (primitive.getType() == VT_FUNC &&
-        getReturnType() != VT_DUNNO) {
-      str.push_back('(');
-      str.append(retn.toString());
-      str.push_back(')');
+    std::string str{};
+    if (isNullable())
+      str.push_back('?');
+    for (const auto& desc : descs) {
+      if (desc.type != VT_DUNNO && desc.type != VT_NIL) {
+        str.append(desc.toString());
+        str.push_back('|');
+      }
     }
+    if (!str.empty() && str.back() == '|')
+      str.pop_back();
     return str;
   }
 };
@@ -271,8 +269,8 @@ typedef union Vardesc {
   struct {
     TValuefields;  /* constant value (if it is a compile-time constant) */
     lu_byte kind;
-    TypeDesc hint;
-    TypeDesc prop; /* type propagation */
+    TypeHint hint;
+    TypeHint prop; /* type propagation */
     lu_byte ridx;  /* register holding the variable */
     short pidx;  /* index of the variable in the Proto's 'locvars' array */
     TString *name;  /* variable name */

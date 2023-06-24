@@ -311,6 +311,7 @@ struct LexState {
   std::stack<TString*> parent_classes{};
   std::vector<EnumDesc> enums{};
   std::vector<TString*> export_symbols{};
+  std::vector<void*> parse_time_allocations{};
 
   LexState()
     : lines{ std::string{} }, warnconfs{ WarningConfig(0) }
@@ -318,6 +319,12 @@ struct LexState {
     laststat = Token {};
     laststat.token = TK_EOS;
     parser_context_stck.push(PARCTX_NONE); /* ensure there is at least 1 item on the parser context stack */
+  }
+
+  ~LexState() {
+    for (auto& a : parse_time_allocations) {
+      free(a);
+    }
   }
 
   [[nodiscard]] bool hasDoneLexerPass() const noexcept {

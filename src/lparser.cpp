@@ -59,6 +59,18 @@
 #define luaO_fmt luaO_pushfstring
 
 
+std::string TypeDesc::toString() const {
+  std::string str = vtToString(type);
+  if (type == VT_FUNC &&
+      !retn->empty()) {
+    str.push_back('(');
+    str.append(retn->toString());
+    str.push_back(')');
+  }
+  return str;
+}
+
+
 /*
 ** nodes for block list (list of active blocks)
 */
@@ -79,8 +91,8 @@ typedef struct BlockCnt {
 /*
 ** prototypes for recursive non-terminal functions
 */
-static void statement (LexState *ls, TypeDesc *prop = nullptr);
-static void expr (LexState *ls, expdesc *v, TypeDesc *prop = nullptr, int flags = 0);
+static void statement (LexState *ls, TypeHint *prop = nullptr);
+static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, int flags = 0);
 
 
 /*
@@ -376,73 +388,78 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
       luaX_newstring(ls, "" v, (sizeof(v)/sizeof(char)) - 1));
 
 
-[[nodiscard]] static TypeDesc gettypehint (LexState *ls, bool funcret = false) noexcept {
-  /* TYPEHINT -> [':' Typedesc] */
+[[nodiscard]] static TypeHint gettypehint (LexState *ls, bool funcret = false) noexcept {
+  /* TYPEHINT -> [':' TYPEDESC { '|' TYPEDESC } ] */
+  TypeHint th;
   if (testnext(ls, ':')) {
-    const bool nullable = testnext(ls, '?');
-    const char* tname = getstr(str_checkname(ls));
-    if (strcmp(tname, "number") == 0)
-      return { VT_NUMBER, nullable };
-    else if (strcmp(tname, "int") == 0)
-      return { VT_INT, nullable };
-    else if (strcmp(tname, "float") == 0)
-      return { VT_FLT, nullable };
-    else if (strcmp(tname, "table") == 0)
-      return { VT_TABLE, nullable };
-    else if (strcmp(tname, "string") == 0)
-      return { VT_STR, nullable };
-    else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
-      return { VT_BOOL, nullable };
-    else if (strcmp(tname, "function") == 0)
-      return { VT_FUNC, nullable };
-    else if (strcmp(tname, "void") == 0) {
-      if (!nullable && funcret)
-        return { VT_VOID, nullable };
-      throw_warn(ls, "'void' is not a valid type hint in this context", "invalid type hint", WT_TYPE_MISMATCH);
-    }
-    else if (strcmp(tname, "userdata") != 0) {
-      luaX_prev(ls);
-      throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", WT_TYPE_MISMATCH);
-      ls->L->top.p--;
-      luaX_next(ls); // Preserve a6c8e359857644f4311c022f85cf19d85d95c25d
-    }
+    if (testnext(ls, '?'))
+      th.emplaceTypeDesc(VT_NIL);
+    do {
+      const char* tname = getstr(str_checkname(ls));
+      if (strcmp(tname, "number") == 0)
+        th.emplaceTypeDesc(VT_NUMBER);
+      else if (strcmp(tname, "int") == 0)
+        th.emplaceTypeDesc(VT_INT);
+      else if (strcmp(tname, "float") == 0)
+        th.emplaceTypeDesc(VT_FLT);
+      else if (strcmp(tname, "table") == 0)
+        th.emplaceTypeDesc(VT_TABLE);
+      else if (strcmp(tname, "string") == 0)
+        th.emplaceTypeDesc(VT_STR);
+      else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
+        th.emplaceTypeDesc(VT_BOOL);
+      else if (strcmp(tname, "function") == 0)
+        th.emplaceTypeDesc(VT_FUNC);
+      else if (strcmp(tname, "void") == 0) {
+        if (funcret)
+          th.emplaceTypeDesc(VT_VOID); // TODO: Emit warning if void is not the only hinted type
+        else
+          throw_warn(ls, "'void' is not a valid type hint in this context", "invalid type hint", WT_TYPE_MISMATCH);
+      }
+      else if (strcmp(tname, "userdata") != 0) {
+        luaX_prev(ls);
+        throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", WT_TYPE_MISMATCH);
+        ls->L->top.p--;
+        luaX_next(ls); // Preserve a6c8e359857644f4311c022f85cf19d85d95c25d
+      }
+    } while (testnext(ls, '|'));
   }
-  return VT_DUNNO;
+  return th;
 }
 
 
-static void exp_propagate(LexState* ls, const expdesc& e, TypeDesc& t) noexcept {
+static void exp_propagate(LexState* ls, const expdesc& e, TypeHint& t) noexcept {
   if (e.k == VLOCAL) {
-    t = getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop;
+    t.merge(getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop);
   }
   else if (e.k == VCONST) {
     TValue* val = &ls->dyd->actvar.arr[e.u.info].k;
     switch (ttype(val))
     {
-    case LUA_TNIL: t = VT_NIL; break;
-    case LUA_TBOOLEAN: t = VT_BOOL; break;
-    case LUA_TNUMBER: t = ((ttypetag(val) == LUA_VNUMINT) ? VT_INT : VT_FLT); break;
-    case LUA_TSTRING: t = VT_STR; break;
-    case LUA_TTABLE: t = VT_TABLE; break;
-    case LUA_TFUNCTION: t = VT_FUNC; break;
+    case LUA_TNIL: t.emplaceTypeDesc(VT_NIL); break;
+    case LUA_TBOOLEAN: t.emplaceTypeDesc(VT_BOOL); break;
+    case LUA_TNUMBER: t.emplaceTypeDesc((ttypetag(val) == LUA_VNUMINT) ? VT_INT : VT_FLT); break;
+    case LUA_TSTRING: t.emplaceTypeDesc(VT_STR); break;
+    case LUA_TTABLE: t.emplaceTypeDesc(VT_TABLE); break;
+    case LUA_TFUNCTION: t.emplaceTypeDesc(VT_FUNC); break;
     }
   }
 }
 
 
-static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int line) {
-  auto hinted = var->vd.hint.getType() != VT_DUNNO;
-  auto knownvalue = td.getType() != VT_DUNNO;
-  auto incompatible = !var->vd.hint.isCompatibleWith(td);
+static void process_assign(LexState* ls, Vardesc* var, const TypeHint& t, int line) {
+  auto hinted = !var->vd.hint.empty();
+  auto knownvalue = !t.empty();
+  auto incompatible = !var->vd.hint.isCompatibleWith(t);
   if (hinted && knownvalue && incompatible) {
     const auto hint = var->vd.hint.toString();
     std::string err = var->vd.name->toCpp();
     err.insert(0, "'");
     err.append("' type-hinted as '" + hint);
     err.append("', but assigned a ");
-    err.append(td.toString());
+    err.append(t.toString());
     err.append(" value.");
-    if (td.getType() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
+    if (t.toPrimitive() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
       throw_warn(ls, "variable type mismatch", err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line, WT_TYPE_MISMATCH);
       ls->L->top.p--; // luaO_fmt
     }
@@ -450,7 +467,7 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeDesc& td, int l
       throw_warn(ls, "variable type mismatch", err.c_str(), line, WT_TYPE_MISMATCH);
     }
   }
-  var->vd.prop = td; /* propagate type */
+  var->vd.prop.merge(t); /* propagate type */
 }
 
 
@@ -497,7 +514,7 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
 */
-static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& hint = VT_DUNNO) {
+static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = {}) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -519,15 +536,15 @@ static int new_localvar (LexState *ls, TString *name, int line, const TypeDesc& 
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = VDKREG;  /* default */
-  var->vd.hint = hint;
-  var->vd.prop = VT_DUNNO;
+  var->vd.hint = std::move(hint);
+  var->vd.prop.clear();
   var->vd.name = name;
   var->vd.line = line;
   return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
-static int new_localvar (LexState *ls, TString *name, const TypeDesc& hint = VT_DUNNO) {
-  return new_localvar(ls, name, ls->getLineNumber(), hint);
+static int new_localvar (LexState *ls, TString *name, TypeHint hint = {}) {
+  return new_localvar(ls, name, ls->getLineNumber(), std::move(hint));
 }
 
 
@@ -1101,49 +1118,27 @@ static int block_follow (LexState *ls, int withuntil) {
 }
 
 
-static void propagate_return_type(TypeDesc*& prop, TypeDesc&& ret) {
-  if (prop->getType() != VT_DUNNO) { /* had previous return path(s)? */
-    if (vtIsNull(prop->getType())) {
-      if (vtCanBeNullable(ret.getType())) {
-        ret.setNullable();
-        *prop = ret;
-      }
-    }
-    else if (vtIsNull(ret.getType())) {
-      if (vtCanBeNullable(prop->getType()))
-      prop->setNullable();
-    }
-    else if (!prop->isCompatibleWith(ret)) {
-      *prop = VT_MIXED; /* set return type to mixed */
-      prop = nullptr; /* and don't update it again */
-    }
-  }
-  else {
-    *prop = ret; /* save return type */
-  }
-}
-
-static bool statlist (LexState *ls, TypeDesc *prop = nullptr, bool no_ret_implies_void = false) {
+static bool statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implies_void = false) {
   /* statlist -> { stat [';'] } */
   bool ret = false;
   while (!block_follow(ls, 1)) {
     ret = (ls->t.token == TK_RETURN);
-    TypeDesc p = VT_DUNNO;
+    TypeHint p{};
 #if defined LUAI_ASSERT
     const auto levels = ls->L->nCcalls;
 #endif
     statement(ls, &p);
     lua_assert(levels == ls->L->nCcalls);
     if (prop && /* do we need to propagate the return type? */
-        p.getType() != VT_DUNNO) { /* is there a return path here? */
-      propagate_return_type(prop, p.getType());
+        !p.empty()) { /* is there a return path here? */
+      prop->merge(p);
     }
     if (ret) break;
   }
   if (prop && /* do we need to propagate the return type? */
       !ret && /* had no return statement? */
       no_ret_implies_void) { /* does that imply a void return? */
-    propagate_return_type(prop, VT_VOID); /* propagate */
+      prop->emplaceTypeDesc(VT_VOID); /* propagate */
   }
   return ret;
 }
@@ -1343,7 +1338,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 }
 
 
-static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop = nullptr);
+static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *funcdesc = nullptr);
 static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
@@ -1602,7 +1597,7 @@ enum expflags {
   E_NO_CALL  = 1 << 1,
 };
 
-static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeDesc *prop = nullptr);
+static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr);
 static void simpleexp_with_unary_support (LexState *ls, expdesc *v) {
   if (testnext(ls, '-')) { /* Negative constant? */
     check(ls, TK_INT);
@@ -1719,8 +1714,13 @@ static void parlist (LexState *ls, std::vector<TString*>* promotions = {}, std::
 }
 
 
+static TypeHint* new_typehint (LexState *ls) {
+  return ::new (ls->parse_time_allocations.emplace_back(malloc(sizeof(TypeHint)))) TypeHint();
+}
+
+
 static void compoundassign(LexState *ls, expdesc *v, BinOpr op);
-static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *prop) {
+static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *funcdesc) {
   /* body ->  '(' parlist ')' block END */
   ls->pushContext(PARCTX_BODY);
   FuncState new_fs;
@@ -1805,25 +1805,27 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *pr
     adjustlocalvars(ls, 1);
     leavelevel(ls);
   }
-  TypeDesc rethint = gettypehint(ls, true);
-  TypeDesc p = VT_DUNNO;
-  statlist(ls, &p, true);
-  if (rethint.getType() != VT_DUNNO && /* has type hint for return type? */
-      p.getType() != VT_DUNNO && /* return type is known? */
-      !rethint.isCompatibleWith(p)) { /* incompatible? */
+  TypeHint rethint = gettypehint(ls, true);
+  TypeHint retprop{};
+  statlist(ls, &retprop, true);
+  if (!rethint.empty() && /* has type hint for return type? */
+      !retprop.empty() && /* return type is known? */
+      !rethint.isCompatibleWith(retprop)) { /* incompatible? */
     std::string err = "function was hinted to return ";
     err.append(rethint.toString());
     err.append(" but actually returns ");
-    err.append(p.toString());
+    err.append(retprop.toString());
     throw_warn(ls, err.c_str(), line, WT_TYPE_MISMATCH);
   }
-  if (prop) { /* propagate type of function */
-    *prop = VT_FUNC;
-    prop->proto = new_fs.f;
-    prop->retn = p.primitive;
+  if (funcdesc) { /* propagate type of function */
+    funcdesc->type = VT_FUNC;
+    funcdesc->proto = new_fs.f;
+    funcdesc->retn = new_typehint(ls);
+    *funcdesc->retn = retprop;
     int vidx = new_fs.firstlocal;
-    for (lu_byte i = 0; i != prop->getNumTypedParams(); ++i) {
-      prop->params[i] = ls->dyd->actvar.arr[vidx].vd.hint.primitive;
+    for (lu_byte i = 0; i != funcdesc->getNumTypedParams(); ++i) {
+      funcdesc->params[i] = new_typehint(ls);
+      *funcdesc->params[i] = ls->dyd->actvar.arr[vidx].vd.hint;
       ++vidx;
     }
   }
@@ -1860,44 +1862,44 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
 }
 
 
-static void expr_propagate(LexState *ls, expdesc *v, TypeDesc& td) {
-  expr(ls, v, &td);
-  exp_propagate(ls, *v, td);
+static void expr_propagate(LexState *ls, expdesc *v, TypeHint& t) {
+  expr(ls, v, &t);
+  exp_propagate(ls, *v, t);
 }
 
-static int explist (LexState *ls, expdesc *v, std::vector<TypeDesc>& prop) {
+static int explist (LexState *ls, expdesc *v, std::vector<TypeHint>& prop) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
-  expr_propagate(ls, v, prop.emplace_back(VT_DUNNO));
+  expr_propagate(ls, v, prop.emplace_back(TypeHint{}));
   while (testnext(ls, ',')) {
     luaK_exp2nextreg(ls->fs, v);
-    expr_propagate(ls, v, prop.emplace_back(VT_DUNNO));
+    expr_propagate(ls, v, prop.emplace_back(TypeHint{}));
     n++;
   }
   return n;
 }
 
-static void explist_nonlinear_arg (LexState *ls, expdesc *v, size_t tidx, TypeDesc& td) {
+static void explist_nonlinear_arg (LexState *ls, expdesc *v, size_t tidx, TypeHint& t) {
   if (tidx == 0) {
     init_exp(v, VNIL, 0);
-    td = VT_NIL;
+    t.emplaceTypeDesc(VT_NIL);
   }
   else {
     luaX_setpos(ls, tidx);
-    expr_propagate(ls, v, td);
+    expr_propagate(ls, v, t);
   }
 }
 
-static void explist_nonlinear (LexState *ls, expdesc *v, const std::vector<size_t>& argtis, std::vector<TypeDesc>& prop) {
+static void explist_nonlinear (LexState *ls, expdesc *v, const std::vector<size_t>& argtis, std::vector<TypeHint>& prop) {
   prop.reserve(argtis.size());
-  explist_nonlinear_arg(ls, v, argtis.at(0), prop.emplace_back(VT_DUNNO));
+  explist_nonlinear_arg(ls, v, argtis.at(0), prop.emplace_back(TypeHint{}));
   for (size_t i = 1; i != argtis.size(); ++i) {
     luaK_exp2nextreg(ls->fs, v);
-    explist_nonlinear_arg(ls, v, argtis.at(i), prop.emplace_back(VT_DUNNO));
+    explist_nonlinear_arg(ls, v, argtis.at(i), prop.emplace_back(TypeHint{}));
   }
 }
 
-static int explist (LexState *ls, expdesc *v, TypeDesc *prop = nullptr) {
+static int explist (LexState *ls, expdesc *v, TypeHint *prop = nullptr) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
   expr(ls, v, prop);
@@ -1913,7 +1915,7 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
   ls->pushContext(PARCTX_FUNCARGS);
   FuncState *fs = ls->fs;
   expdesc args;
-  std::vector<TypeDesc> argdescs;
+  std::vector<TypeHint> argdescs;
   int base, nparams;
   switch (ls->t.token) {
     case '(': {  /* funcargs -> '(' [ explist ] ')' */
@@ -1957,12 +1959,12 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       break;
     }
     case '{': {  /* funcargs -> constructor */
-      argdescs = { TypeDesc{ VT_TABLE } };
+      argdescs = { TypeHint{ VT_TABLE } };
       constructor(ls, &args);
       break;
     }
     case TK_STRING: {  /* funcargs -> STRING */
-      argdescs = { TypeDesc{ VT_STR } };
+      argdescs = { TypeHint{ VT_STR } };
       codestring(&args, ls->t.seminfo.ts);
       luaX_next(ls);  /* must use 'seminfo' before 'next' */
       break;
@@ -1973,20 +1975,20 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
   }
   if (funcdesc) {
     for (lu_byte i = 0; i != funcdesc->getNumTypedParams(); ++i) {
-      const PrimitiveType& param_hint = funcdesc->params[i];
-      if (param_hint.getType() == VT_DUNNO)
+      const TypeHint* param_hint = funcdesc->params[i];
+      if (param_hint->empty())
         continue; /* skip parameters without type hint */
-      TypeDesc arg = VT_NIL;
+      TypeHint arg{};
       if (i < (int)argdescs.size()) {
         arg = argdescs.at(i);
-        if (arg.getType() == VT_DUNNO)
+        if (arg.empty())
           continue; /* skip arguments without propagated type */
       }
-      if (!param_hint.isCompatibleWith(arg.primitive)) {
+      if (!param_hint->isCompatibleWith(arg)) {
         std::string err = "Function's ";;
         err.append(funcdesc->proto->locvars[i].varname->contents, funcdesc->proto->locvars[i].varname->size());
         err.append(" parameter was type-hinted as ");
-        err.append(param_hint.toString());
+        err.append(param_hint->toString());
         err.append(" but provided with ");
         err.append(arg.toString());
         throw_warn(ls, err.c_str(), "argument type mismatch", line, WT_TYPE_MISMATCH);
@@ -2412,16 +2414,16 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
-static void expsuffix (LexState* ls, expdesc* v, int flags, TypeDesc* prop);
+static void expsuffix (LexState* ls, expdesc* v, int flags, TypeHint *prop);
 
-static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeDesc *prop = nullptr) {
+static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   primaryexp(ls, v);
   expsuffix(ls, v, flags, prop);
 }
 
-static void expsuffix (LexState *ls, expdesc *v, int flags, TypeDesc* prop) {
+static void expsuffix (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
   for (;;) {
@@ -2467,10 +2469,10 @@ static void expsuffix (LexState *ls, expdesc *v, int flags, TypeDesc* prop) {
         if (v->k == VLOCAL) {
           vd = getlocalvardesc(ls->fs, v->u.var.vidx);
         _funcdesc_from_vd:
-          if (vd->vd.prop.getType() == VT_FUNC) { /* just in case... */
-            funcdesc = &vd->vd.prop;
+          if (vd->vd.prop.descs[0].type == VT_FUNC) { /* just in case... */
+            funcdesc = &vd->vd.prop.descs[0];
             if (prop) { /* propagate return type */
-              *prop = vd->vd.prop.retn;
+              *prop = *vd->vd.prop.descs[0].retn;
             }
           }
         }
@@ -2567,7 +2569,7 @@ static void instanceof (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
+static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   if (ls->t.token != TK_EOS) {
@@ -2581,39 +2583,39 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
   }
   switch (ls->t.token) {
     case TK_FLT: {
-      if (prop) *prop = VT_FLT;
+      if (prop) prop->emplaceTypeDesc(VT_FLT);
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       luaX_next(ls);
       break;
     }
     case TK_INT: {
-      if (prop) *prop = VT_INT;
+      if (prop) prop->emplaceTypeDesc(VT_INT);
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       luaX_next(ls);
       break;
     }
     case TK_STRING: {
-      if (prop) *prop = VT_STR;
+      if (prop) prop->emplaceTypeDesc(VT_STR);
       codestring(v, ls->t.seminfo.ts);
       luaX_next(ls);
       break;
     }
     case TK_NIL: {
-      if (prop) *prop = VT_NIL;
+      if (prop) prop->emplaceTypeDesc(VT_NIL);
       init_exp(v, VNIL, 0);
       luaX_next(ls);
       break;
     }
     case TK_TRUE: {
-      if (prop) *prop = VT_BOOL;
+      if (prop) prop->emplaceTypeDesc(VT_BOOL);
       init_exp(v, VTRUE, 0);
       luaX_next(ls);
       break;
     }
     case TK_FALSE: {
-      if (prop) *prop = VT_BOOL;
+      if (prop) prop->emplaceTypeDesc(VT_BOOL);
       init_exp(v, VFALSE, 0);
       luaX_next(ls);
       break;
@@ -2627,13 +2629,15 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
       break;
     }
     case '{': {  /* constructor */
-      if (prop) *prop = VT_TABLE;
+      if (prop) prop->emplaceTypeDesc(VT_TABLE);
       constructor(ls, v);
       break;
     }
     case TK_FUNCTION: {
       luaX_next(ls);
-      body(ls, v, 0, ls->getLineNumber(), prop);
+      TypeDesc funcdesc;
+      body(ls, v, 0, ls->getLineNumber(), &funcdesc);
+      prop->emplaceTypeDesc(std::move(funcdesc));
       return;
     }
     case '|': {
@@ -2642,13 +2646,13 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
     }
     case TK_NEW:
     case TK_PNEW: {
-      if (prop) *prop = VT_TABLE;
+      if (prop) prop->emplaceTypeDesc(VT_TABLE);
       newexpr(ls, v);
       break;
     }
     case TK_CLASS:
     case TK_PCLASS: {
-      if (prop) *prop = VT_TABLE;
+      if (prop) prop->emplaceTypeDesc(VT_TABLE);
       luaX_next(ls); /* skip 'class' */
       classexpr(ls, v);
       return;
@@ -2777,7 +2781,7 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nullptr, int flags = 0) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nullptr, int flags = 0) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
@@ -2810,7 +2814,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
     simpleexp(ls, v, flags, prop);
     if (ls->t.token == TK_IN) {
       inexpr(ls, v);
-      if (prop) *prop = VT_BOOL;
+      if (prop) prop->emplaceTypeDesc(VT_BOOL);
     }
   }
   if (ls->t.token == '+' && luaX_lookahead(ls) == '+') { /* disambiguate '+' operator and '++' as next statement */
@@ -2835,7 +2839,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
 }
 
 
-static void expr (LexState *ls, expdesc *v, TypeDesc *prop, int flags) {
+static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
   luaX_checkspecial(ls);
   subexpr(ls, v, 0, prop, flags);
   if (testnext(ls, '?')) { /* ternary expression? */
@@ -2852,7 +2856,7 @@ static void expr (LexState *ls, expdesc *v, TypeDesc *prop, int flags) {
     expr(ls, v);
     luaK_exp2reg(fs, v, reg);
     luaK_patchtohere(fs, escape);
-    if (prop) *prop = VT_MIXED; /* reset propagated type */
+    // TODO: Update propagated type, e.g. (x ? "" : 0) should have string|int propagated.
   }
 }
 
@@ -3065,7 +3069,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       return;  /* avoid default */
     }
     else if (testnext(ls, '=')) { /* no requested binop, continue */
-      TypeDesc prop = VT_DUNNO;
+      TypeHint prop{};
       ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
       ls->pushContext(ctx);
       int nexps = explist(ls, &e, &prop);
@@ -3613,7 +3617,7 @@ static void forstat (LexState *ls, int line) {
 }
 
 
-static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
+static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   /* test_then_block -> [IF | ELSEIF] cond THEN block */
   BlockCnt bl;
   FuncState *fs = ls->fs;
@@ -3653,7 +3657,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeDesc *prop) {
 }
 
 
-static void ifstat (LexState *ls, int line, TypeDesc *prop = nullptr) {
+static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
   FuncState *fs = ls->fs;
   int escapelist = NO_JUMP;  /* exit list for finished parts */
@@ -3675,7 +3679,7 @@ static void localfunc (LexState *ls) {
   adjustlocalvars(ls, 1);  /* enter its scope */
   TypeDesc funcdesc;
   body(ls, &b, 0, ls->getLineNumber(), &funcdesc);  /* function created in next register */
-  getlocalvardesc(fs, fvar)->vd.prop = std::move(funcdesc);
+  getlocalvardesc(fs, fvar)->vd.prop.emplaceTypeDesc(std::move(funcdesc));
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
 }
@@ -3806,7 +3810,7 @@ static void localstat (LexState *ls) {
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
   int vidx, kind;  /* index and kind of last variable */
-  TypeDesc hint = VT_DUNNO;
+  TypeHint hint{};
   int nvars = 0;
   int nexps;
   expdesc e;
@@ -3834,17 +3838,17 @@ static void localstat (LexState *ls) {
     }
     nvars++;
   } while (testnext(ls, ','));
-  std::vector<TypeDesc> tds;
+  std::vector<TypeHint> ts;
   if (testnext(ls, '=')) {
     ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
     ls->pushContext(ctx);
-    nexps = explist(ls, &e, tds);
+    nexps = explist(ls, &e, ts);
     ls->popContext(ctx);
   }
   else {
     e.k = VVOID;
     nexps = 0;
-    process_assign(ls, var, VT_NIL, line);
+    process_assign(ls, var, TypeHint{ VT_NIL }, line);
   }
   if (is_constexpr) {
     if (nvars != nexps) {
@@ -3864,9 +3868,9 @@ static void localstat (LexState *ls) {
     }
     else {
       vidx = vidx - nvars + 1;
-      for (TypeDesc& td : tds) {
-        exp_propagate(ls, e, td);
-        process_assign(ls, getlocalvardesc(fs, vidx), td, line);
+      for (TypeHint& t : ts) {
+        exp_propagate(ls, e, t);
+        process_assign(ls, getlocalvardesc(fs, vidx), t, line);
         ++vidx;
       }
       adjust_assign(ls, nvars, nexps, &e);
@@ -3926,7 +3930,7 @@ static void exprstat (LexState *ls) {
 }
 
 
-static void retstat (LexState *ls, TypeDesc *prop) {
+static void retstat (LexState *ls, TypeHint *prop) {
   /* stat -> RETURN [explist] [';'] */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -4083,7 +4087,7 @@ static void usestat (LexState *ls) {
 }
 
 
-static void statement (LexState *ls, TypeDesc *prop) {
+static void statement (LexState *ls, TypeHint *prop) {
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
     ss.push("stat", "if");
