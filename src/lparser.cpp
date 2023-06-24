@@ -2635,9 +2635,14 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
     }
     case TK_FUNCTION: {
       luaX_next(ls);
-      TypeDesc funcdesc;
-      body(ls, v, 0, ls->getLineNumber(), &funcdesc);
-      prop->emplaceTypeDesc(std::move(funcdesc));
+      if (prop) {
+        TypeDesc funcdesc;
+        body(ls, v, 0, ls->getLineNumber(), &funcdesc);
+        prop->emplaceTypeDesc(std::move(funcdesc));
+      }
+      else {
+        body(ls, v, 0, ls->getLineNumber());
+      }
       return;
     }
     case '|': {
