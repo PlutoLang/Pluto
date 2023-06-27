@@ -3727,7 +3727,7 @@ static void restdestructuring (LexState *ls, int line, std::vector<std::pair<TSt
   expr(ls, &t);
 
   /* ensure table has a place to stay */
-  TString* temporary = nullptr;
+  TString *temporary = nullptr;
   if (t.k != VLOCAL) {
     if (pairs.size() == 1) {
       luaK_exp2anyreg(ls->fs, &t);
