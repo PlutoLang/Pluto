@@ -2814,6 +2814,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeDesc *prop = nul
     }
   }
   if (ls->t.token == '+' && luaX_lookahead(ls) == '+') { /* disambiguate '+' operator and '++' as next statement */
+    leavelevel(ls);
     return OPR_NOBINOPR;
   }
   /* expand while operators have priorities higher than 'limit' */
