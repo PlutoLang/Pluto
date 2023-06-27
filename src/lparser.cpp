@@ -1527,6 +1527,7 @@ static void applyextends (LexState *ls, expdesc *v, TString *parent, int line) {
 static void classexpr (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
+  testnext(ls, TK_BEGIN);
   int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
   ConsControl cc;
   luaK_code(fs, 0);  /* space for extra arg. */
