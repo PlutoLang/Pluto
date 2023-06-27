@@ -291,6 +291,11 @@ do
     proxy(42 in t.subt)
     t = nil
 end
+do
+    -- temporary table
+    assert("apple" in { apple = true })
+    assert(not "banana" in { apple = true })
+end
 
 print "Testing break N syntax."
 do
