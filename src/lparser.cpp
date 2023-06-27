@@ -4079,8 +4079,7 @@ static void usestat (LexState *ls) {
   } while (testnext(ls, ','));
 
   /* update ls->t */
-  luaX_prev(ls);
-  luaX_next(ls);
+  luaX_setpos(ls, luaX_getpos(ls));
 }
 
 
