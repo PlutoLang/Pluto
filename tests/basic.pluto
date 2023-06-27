@@ -295,6 +295,7 @@ do
     -- temporary table
     assert("apple" in { apple = true })
     assert(not "banana" in { apple = true })
+    assert(type("apple" in { apple = true }) == "boolean")
 end
 
 print "Testing break N syntax."
