@@ -2706,11 +2706,11 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeDesc *prop) {
 static void inexpr (LexState *ls, expdesc *v) {
   expdesc v2;
   checknext(ls, TK_IN);
-  simpleexp(ls, &v2);
-  luaK_dischargevars(ls->fs, &v2);
   luaK_exp2nextreg(ls->fs, v);
   lua_assert(v->k == VNONRELOC);
   int base = v->u.info;
+  simpleexp(ls, &v2);
+  luaK_dischargevars(ls->fs, &v2);
   luaK_exp2nextreg(ls->fs, &v2);
   luaK_codeABC(ls->fs, OP_IN, v->u.info, v2.u.info, 0);
   ls->fs->freereg = base + 1;
