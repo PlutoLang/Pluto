@@ -44,6 +44,10 @@ do
         end
         return ""
     end
+
+    -- TypeHint::merge should copy over function info
+    local f = function(a) end
+    f(1)
 end
 
 print "Testing compound assignment."
