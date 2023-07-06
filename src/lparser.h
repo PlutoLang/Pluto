@@ -214,7 +214,7 @@ struct TypeHint {
 
   void merge(const TypeHint& b) {
     for (auto& desc : b.descs) {
-      emplaceTypeDesc(desc.type);
+      emplaceTypeDesc(desc);
     }
   }
 
