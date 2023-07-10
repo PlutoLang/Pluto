@@ -826,8 +826,8 @@
 */
 
 // If defined, Pluto will assign 'pluto_' to new keywords which break previously valid Lua identifiers.
-// So, for example, the 'switch' keyword becomes 'pluto_switch'.
-// Note that the 'pluto_' variants are valid even if this is not defined.
+// So, for example, the 'switch' keyword becomes 'pluto_switch'. The 'pluto_' variants are valid even if this is not defined.
+// As of Pluto 0.7.0, scripts can individually set compatibility modes via 'pluto_use'.
 //#define PLUTO_COMPATIBLE_MODE
 
 #ifdef PLUTO_COMPATIBLE_MODE
