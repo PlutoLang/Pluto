@@ -846,6 +846,15 @@
 
 /*
 ** {====================================================================
+** Pluto configuration: Optional keywords
+** =====================================================================}
+*/
+
+// If defined, Pluto will imply 'pluto_use let' at the beginning of every script.
+//#define PLUTO_USE_LET
+
+/*
+** {====================================================================
 ** Pluto configuration: Infinite Loop Prevention (ILP)
 **
 ** This is only useful in game regions, where a long loop may block the main thread and crash the game.
