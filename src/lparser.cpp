@@ -1916,6 +1916,16 @@ static int explist (LexState *ls, expdesc *v, TypeHint *prop = nullptr) {
   return n;
 }
 
+static bool isnamedarg (LexState *ls) {
+  bool is_named = false;
+  if (ls->t.token != TK_EOS) {
+    luaX_next(ls); /* skip name */
+    is_named = (ls->t.token == '=');
+    luaX_prev(ls); /* back to name */
+  }
+  return is_named;
+}
+
 static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = nullptr) {
   ls->pushContext(PARCTX_FUNCARGS);
   FuncState *fs = ls->fs;
@@ -1928,24 +1938,34 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       if (ls->t.token == ')')  /* arg list is empty? */
         args.k = VVOID;
       else {
-        bool is_named = false;
-        if (ls->t.token != TK_EOS) {
-          luaX_next(ls); /* skip name */
-          is_named = (ls->t.token == '=');
-          luaX_prev(ls); /* back to name */
+        int num_positional_args = 0;
+        if (!isnamedarg(ls)) {
+          num_positional_args++;
+          expr_propagate(ls, &args, argdescs.emplace_back(TypeHint{}));
+          while (testnext(ls, ',')) {
+            luaK_exp2nextreg(ls->fs, &args);
+            if (isnamedarg(ls))
+              break;
+            expr_propagate(ls, &args, argdescs.emplace_back(TypeHint{}));
+            num_positional_args++;
+          }
         }
-        if (is_named) {
+        if (ls->t.token != ')') {
           if (!funcdesc) {
             luaX_syntaxerror(ls, "can't used named arguments here because the function was not found at parse-time");
           }
           std::vector<size_t> argtis{};
-          argtis.resize(funcdesc->getNumParams());
+          argtis.resize(funcdesc->getNumParams() - num_positional_args);
           do {
             TString *pname = str_checkname(ls, 0);
             int pi = funcdesc->findParamByName(pname);
             if (pi == -1) {
               throwerr(ls, luaO_fmt(ls->L, "function does not have a %s parameter", pname->contents), "unknown parameter");
             }
+            if (num_positional_args > pi) {
+              throwerr(ls, luaO_fmt(ls->L, "%s parameter was already assigned to positionally", pname->contents), "double-assignment of parameter");
+            }
+            pi -= num_positional_args;
             checknext(ls, '=');
             argtis.at(pi) = luaX_getpos(ls);
             skip_over_simpleexp_within_parenlist(ls);
@@ -1953,9 +1973,6 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
           const auto tidx = luaX_getpos(ls);
           explist_nonlinear(ls, &args, argtis, argdescs);
           luaX_setpos(ls, tidx);
-        }
-        else {
-          explist(ls, &args, argdescs);
         }
         if (hasmultret(args.k))
           luaK_setmultret(fs, &args);
