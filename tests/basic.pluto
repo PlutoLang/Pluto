@@ -976,6 +976,14 @@ do
         return "Planet"
     end
     assert(getGreeting(name=getName(), greeting="Hello") == "Hello, Planet!")
+
+    local function mixedArgs(file, mode = "r", version = 1)
+        return file, mode, version
+    end
+    local file, mode, version = mixedArgs("Hello", version = 2)
+    assert(file == "Hello")
+    assert(mode == "r")
+    assert(version == 2)
 end
 
 print "Testing classes."
