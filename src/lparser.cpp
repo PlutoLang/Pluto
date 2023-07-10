@@ -4592,8 +4592,9 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
 #ifdef PLUTO_COMPATIBLE_EXPORT
   disablekeyword(&lexstate, TK_EXPORT);
 #endif
-  for (int i = FIRST_OPTIONAL; i != FIRST_SPECIAL; ++i)
-    disablekeyword(&lexstate, i);
+#ifndef PLUTO_USE_LET
+  disablekeyword(&lexstate, TK_LET);
+#endif
   mainfunc(&lexstate, &funcstate);
   lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
   /* all scopes should be correctly finished */
