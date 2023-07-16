@@ -3698,7 +3698,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   int jf;  /* instruction to skip 'then' code (if condition is false) */
   luaX_next(ls);  /* skip IF or ELSEIF */
   expr(ls, &v);  /* read condition */
-  if (luaK_isalwayfalse(fs, &v))
+  if (luaK_isalwayfalse(ls, &v))
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
   checknext(ls, TK_THEN);
   if (ls->t.token == TK_BREAK && luaX_lookahead(ls) != TK_INT) {  /* 'if x then break' and not 'if x then break int' ? */
@@ -3747,9 +3747,9 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
 static void constexprifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   expdesc c;
   expr(ls, &c);
-  const bool disposition = luaK_isalwaytrue(ls->fs, &c);
+  const bool disposition = luaK_isalwaytrue(ls, &c);
   if (disposition == false) {
-    if (!luaK_isalwayfalse(ls->fs, &c)) {
+    if (!luaK_isalwayfalse(ls, &c)) {
       luaX_syntaxerror(ls, "Compile-time 'if' must have a condition that can be evaluated at compile-time");
     }
   }
