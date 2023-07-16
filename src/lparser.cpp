@@ -1116,6 +1116,13 @@ static void close_func (LexState *ls) {
 */
 static int block_follow (LexState *ls, int withuntil) {
   switch (ls->t.token) {
+    case '$': {
+      int ret;
+      luaX_next(ls);
+      ret = block_follow(ls, withuntil);
+      luaX_prev(ls);
+      return ret;
+    }
     case TK_ELSE: case TK_ELSEIF:
     case TK_END: case TK_EOS:
       return 1;
@@ -1673,6 +1680,45 @@ static void skip_over_simpleexp_within_parenlist (LexState *ls) {
       if (parens == 0 && curlys == 0) {
         break;
       }
+    }
+    luaX_next(ls);
+  }
+}
+
+/* keep advancing until we hit non-nested 'else' or 'end' */
+static void skip_block (LexState *ls) {
+  int ends = 0;
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.token == TK_THEN || ls->t.token == TK_DO) {
+      ends++;
+    }
+    else if (ls->t.token == TK_ELSEIF) {
+      ends--; /* "elseif ... then" should offset `ends` by 0, but the 'then' would increment it by 1, so we countact this here. */
+    }
+    else if (ls->t.token == TK_ELSE) {
+      if (ends == 0) {
+        break;
+      }
+    }
+    else if (ls->t.token == TK_END) {
+      if (ends == 0) {
+        break;
+      }
+      ends--;
+    }
+    else if (ls->t.token == '$') {
+      if (luaX_lookahead(ls) == TK_ELSE) {
+        if (ends == 0) {
+          break;
+        }
+      }
+      else if (luaX_lookahead(ls) == TK_END) {
+        if (ends == 0) {
+          break;
+        }
+        ends--;
+      }
+      luaX_next(ls);
     }
     luaX_next(ls);
   }
@@ -3698,6 +3744,32 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
 }
 
 
+static void constexprifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
+  expdesc c;
+  expr(ls, &c);
+  const bool disposition = luaK_isalwaytrue(ls->fs, &c);
+  if (disposition == false) {
+    if (!luaK_isalwayfalse(ls->fs, &c)) {
+      luaX_syntaxerror(ls, "Compile-time 'if' must have a condition that can be evaluated at compile-time");
+    }
+  }
+  checknext(ls, TK_THEN);
+  if (disposition == true)
+    block(ls);
+  else
+    skip_block(ls);
+  if (testnext(ls, '$')) check(ls, TK_ELSE);
+  if (testnext(ls, TK_ELSE)) {
+    if (disposition == false)
+      block(ls);
+    else
+      skip_block(ls);
+  }
+  testnext(ls, '$');
+  check_match(ls, TK_END, TK_IF, line);
+}
+
+
 static void localfunc (LexState *ls) {
   expdesc b;
   FuncState *fs = ls->fs;
@@ -4158,6 +4230,12 @@ static void statement (LexState *ls, TypeHint *prop) {
     }
     case TK_IF: {  /* stat -> ifstat */
       ifstat(ls, line, prop);
+      break;
+    }
+    case '$': {
+      luaX_next(ls);
+      checknext(ls, TK_IF);
+      constexprifstat(ls, line, prop);
       break;
     }
     case TK_WHILE: {  /* stat -> whilestat */
