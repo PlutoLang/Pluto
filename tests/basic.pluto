@@ -1215,6 +1215,31 @@ do
     class Human end
 end
 
+print "Testing compile-time conditionals."
+do
+    local debug_bytecode = string.dump(load([[
+        local DEBUG <constexpr> = true
+        $if DEBUG then
+            print("Script running in debug mode")
+        $else
+            print("Script running in release mode")
+        $end
+    ]], ""))
+    local release_bytecode = string.dump(load([[
+        local DEBUG <constexpr> = false
+        $if DEBUG then
+            print("Script running in debug mode")
+        $else
+            print("Script running in release mode")
+        $end
+    ]], ""))
+
+    assert(debug_bytecode:find("Script running in debug mode") ~= nil)
+    assert(debug_bytecode:find("Script running in release mode") == nil)
+    assert(release_bytecode:find("Script running in debug mode") == nil)
+    assert(release_bytecode:find("Script running in release mode") ~= nil)
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
