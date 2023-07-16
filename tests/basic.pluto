@@ -1097,6 +1097,10 @@ do
     local class ClassParsingTest
         property_no_value
         property_type_hint: string
+
+        public property_public
+        protected property_protected
+        private property_private
     end
 end
 -- Constructor promotion

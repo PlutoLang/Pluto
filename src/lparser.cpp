@@ -1274,7 +1274,14 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   expdesc tab, key, val;
   if (ls->t.token == TK_NAME) {
     checklimit(fs, cc->nh, MAX_INT, "items in a constructor");
-    codename(ls, &key);
+    TString *name = str_checkname(ls);
+    if (for_class && (strcmp(name->contents, "public") == 0
+      || strcmp(name->contents, "protected") == 0
+      || strcmp(name->contents, "private") == 0
+    )) {
+      name = str_checkname(ls);
+    }
+    codestring(&key, name);
   }
   else  /* ls->t.token == '[' */
     yindex(ls, &key);
