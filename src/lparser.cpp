@@ -4278,6 +4278,14 @@ static void statement (LexState *ls, TypeHint *prop) {
       prefixplusplus(ls, &v, true);
       break;
     }
+    case TK_NEW:
+    case TK_PNEW: {
+      if (prop) prop->emplaceTypeDesc(VT_TABLE);
+      expdesc v;
+      newexpr(ls, &v);
+      expsuffix(ls, &v, 0, prop);
+      break;
+    }
     default: {  /* stat -> func | assignment */
       exprstat(ls);
       break;
