@@ -1132,8 +1132,35 @@ static int jumponcond (FuncState *fs, expdesc *e, int cond) {
 }
 
 
-LUAI_FUNC bool luaK_isalwaytrue(expdesc *e) {
+LUAI_FUNC bool luaK_isalwaytrue (FuncState *fs, expdesc *e) {
+  if (e->k == VCONST) {
+    Vardesc *vd = &fs->ls->dyd->actvar.arr[e->u.info];
+    lua_assert(vd->kind == RDKCTC);
+    if (ttisnumber(&vd->k) || ttisstring(&vd->k)) {
+      return true;
+    }
+    if (ttisboolean(&vd->k) && ttistrue(&vd->k)) {
+      return true;
+    }
+    return false;
+  }
   return e->k == VK || e->k == VKFLT || e->k == VKINT || e->k == VKSTR || e->k == VTRUE;
+}
+
+
+LUAI_FUNC bool luaK_isalwayfalse (FuncState *fs, expdesc *e) {
+  if (e->k == VCONST) {
+    Vardesc *vd = &fs->ls->dyd->actvar.arr[e->u.info];
+    lua_assert(vd->kind == RDKCTC);
+    if (ttisnil(&vd->k)) {
+      return true;
+    }
+    if (ttisboolean(&vd->k) && ttisfalse(&vd->k)) {
+      return true;
+    }
+    return false;
+  }
+  return e->k == VNIL || e->k == VFALSE;
 }
 
 
@@ -1143,7 +1170,7 @@ LUAI_FUNC bool luaK_isalwaytrue(expdesc *e) {
 void luaK_goiftrue (FuncState *fs, expdesc *e) {
   int pc;  /* pc of new jump */
   luaK_dischargevars(fs, e);
-  if (luaK_isalwaytrue(e)) {
+  if (luaK_isalwaytrue(fs, e)) {
     pc = NO_JUMP;  /* always true; do nothing */
   }
   else switch (e->k) {
@@ -1169,13 +1196,12 @@ void luaK_goiftrue (FuncState *fs, expdesc *e) {
 void luaK_goiffalse (FuncState *fs, expdesc *e) {
   int pc;  /* pc of new jump */
   luaK_dischargevars(fs, e);
-  switch (e->k) {
+  if (luaK_isalwayfalse(fs, e)) {
+    pc = NO_JUMP;  /* always false; do nothing */
+  }
+  else switch (e->k) {
     case VJMP: {
       pc = e->u.info;  /* already jump if true */
-      break;
-    }
-    case VNIL: case VFALSE: {
-      pc = NO_JUMP;  /* always false; do nothing */
       break;
     }
     default: {
