@@ -220,7 +220,6 @@ static int dolibrary (lua_State *L, char *globname) {
   int status;
   char *suffix = NULL;
   char *modname = strchr(globname, '=');
-  if (modname == NULL)  /* no explicit name? */
   if (modname == NULL) {  /* no explicit name? */
     modname = globname;  /* module name is equal to global name */
     suffix = strchr(modname, *LUA_IGMARK);  /* look for a suffix mark */
