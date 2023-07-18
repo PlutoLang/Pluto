@@ -4212,6 +4212,9 @@ static void statement (LexState *ls, TypeHint *prop) {
     ss.push("stat", "goto");
     ss.push("stat", "switch");
     ss.push("stat", "enum");
+    ss.push("stat", "pluto_use");
+    ss.push("stat", "new");
+    ss.push("stat", "pluto_new");
     if (ls->fs->bl->previous)
       ss.push("stat", "end");
     ss.pushLocals();
