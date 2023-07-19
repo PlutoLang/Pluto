@@ -2385,7 +2385,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
       }
       check(ls, TK_NAME);
       for (const auto& e : ed->enumerators) {
-        if (eqstr(e.name->contents, ls->t.seminfo.ts->contents)) {
+        if (eqstr(e.name, ls->t.seminfo.ts)) {
           init_exp(v, VKINT, 0);
           v->u.ival = e.value;
           luaX_next(ls);
