@@ -16,6 +16,10 @@ typedef struct CallInfo CallInfo;
 #include "ltm.h"
 #include "lzio.h"
 
+#ifdef PLUTO_ETL_ENABLE
+#include <chrono>
+#endif
+
 
 /*
 ** Some notes about garbage-collected objects: All objects in Lua must
@@ -300,6 +304,12 @@ typedef struct global_State {
   void *ud_warn;         /* auxiliary data to 'warnf' */
 #ifndef PLUTO_LUA_LINKABLE
   void* user_data;       /* a pointer to data you, the user, would like to specify */
+#endif
+#ifdef PLUTO_ETL_ENABLE
+  #ifdef PLUTO_LUA_LINKABLE
+    #error PLUTO_ETL_ENABLE can not be used with PLUTO_LUA_LINKABLE
+  #endif
+  std::time_t deadline;
 #endif
 } global_State;
 
