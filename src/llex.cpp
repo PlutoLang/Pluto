@@ -728,10 +728,11 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
           lexerror(ls, "unfinished string expression", TK_STRING);
         [[fallthrough]];
       case '\'': {  /* short literal strings */
-        read_string(ls, ls->current, seminfo);
-        ls->appendLineBuff('"');
+        const char del = ls->current;
+        read_string(ls, del, seminfo);
+        ls->appendLineBuff(del);
         ls->appendLineBuff(seminfo->ts->contents);
-        ls->appendLineBuff('"');
+        ls->appendLineBuff(del);
         return TK_STRING;
       }
       case '$': {  /* interpolated strings */
