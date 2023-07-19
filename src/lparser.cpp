@@ -2611,7 +2611,8 @@ static void newexpr (LexState *ls, expdesc *v) {
 
   luaX_next(ls);
 
-  singlevar(ls, v, luaS_newliteral(ls->L, "Pluto_operator_new"));
+  singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_new"), v, 1);
+  lua_assert(v->k != VVOID);
   luaK_exp2nextreg(fs, v);
 
   expdesc first_arg;
@@ -2626,7 +2627,8 @@ static void instanceof (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
 
-  singlevar(ls, v, luaS_newliteral(ls->L, "Pluto_operator_instanceof"));
+  singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_instanceof"), v, 1);
+  lua_assert(v->k != VVOID);
   luaK_exp2nextreg(fs, v);
 
   expdesc args;
