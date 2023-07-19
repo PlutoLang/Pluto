@@ -1327,10 +1327,6 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
 #ifdef PLUTO_ILP_ENABLE
   int sequentialJumps = 0;
 #endif
-#ifdef PLUTO_ETL_ENABLE
-  std::time_t deadline = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()
-                         + PLUTO_ETL_NANOS;
-#endif
 #if (defined(__GNUC__) || defined(__clang__)) && !defined(PLUTO_VMDUMP)
 #include "ljumptabgcc.h"
 #endif
@@ -2686,7 +2682,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
     }
 #ifdef PLUTO_ETL_ENABLE
-    if (deadline < std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) {
+    if (L->l_G->deadline < std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) {
       PLUTO_ETL_TIMESUP
       return;
     }
