@@ -21,6 +21,9 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#ifdef PLUTO_ETL_ENABLE
+#include "lstate.h"
+#endif
 
 
 /*
@@ -387,6 +390,13 @@ static int os_nanos(lua_State* L) {
 
 static int os_sleep (lua_State *L) {
   std::chrono::milliseconds timespan(luaL_checkinteger(L, 1));
+#ifdef PLUTO_ETL_ENABLE
+  std::time_t t = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+  t += std::chrono::duration_cast<std::chrono::nanoseconds>(timespan).count();
+  if (L->l_G->deadline < t) {
+    luaL_error(L, "os.sleep would exceed execution time limit");
+  }
+#endif
   std::this_thread::sleep_for(timespan);
   return 0;
 }
