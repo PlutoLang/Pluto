@@ -1603,7 +1603,8 @@ static void localclass (LexState *ls) {
 
   if (parent) {
     expdesc v;
-    singlevar(ls, &v, name);
+    singlevaraux(ls->fs, name, &v, 1);
+    lua_assert(v.k != VVOID);
     applyextends(ls, &v, parent, line);
   }
 }
