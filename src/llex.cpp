@@ -724,10 +724,9 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
         }
       }
       case '"':
+      case '\'': {  /* short literal strings */
         if (for_interpolated_string)
           lexerror(ls, "unfinished string expression", TK_STRING);
-        [[fallthrough]];
-      case '\'': {  /* short literal strings */
         const char del = ls->current;
         read_string(ls, del, seminfo);
         ls->appendLineBuff(del);
@@ -738,11 +737,12 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
       case '$': {  /* interpolated strings */
         next(ls);  /* skip '$' */
         ls->appendLineBuff('$');
-        if (!check_next1(ls, '"'))
+        const char del = ls->current;
+        if (!check_next1(ls, '"') && !check_next1(ls, '\''))
           return '$';
-        ls->appendLineBuff('"');
+        ls->appendLineBuff(del);
         bool need_concat = false;
-        while (ls->current != '"') {
+        while (ls->current != del) {
           switch (ls->current) {
             case '{':
               if (need_concat) {
@@ -803,8 +803,8 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
           t.seminfo.ts = luaX_newstring(ls, luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
           luaZ_resetbuffer(ls->buff);
         }
-        next(ls);  /* skip '"' */
-        ls->appendLineBuff('"');
+        next(ls);  /* skip delimiter */
+        ls->appendLineBuff(del);
         break;
       }
       case '.': {  /* '.', '..', '...', or number */
