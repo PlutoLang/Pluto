@@ -1135,7 +1135,7 @@ static int jumponcond (FuncState *fs, expdesc *e, int cond) {
 LUAI_FUNC bool luaK_isalwaytrue (LexState *ls, expdesc *e) {
   if (e->k == VCONST) {
     Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
-    lua_assert(vd->kind == RDKCTC);
+    lua_assert(vd->vd.kind == RDKCTC);
     if (ttisnumber(&vd->k) || ttisstring(&vd->k)) {
       return true;
     }
@@ -1151,7 +1151,7 @@ LUAI_FUNC bool luaK_isalwaytrue (LexState *ls, expdesc *e) {
 LUAI_FUNC bool luaK_isalwayfalse (LexState *ls, expdesc *e) {
   if (e->k == VCONST) {
     Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
-    lua_assert(vd->kind == RDKCTC);
+    lua_assert(vd->vd.kind == RDKCTC);
     if (ttisnil(&vd->k)) {
       return true;
     }
