@@ -897,6 +897,7 @@ end
 do
     local t = { a = "hello" }
     assert($"{t.a} world" == "hello world")
+    assert($'{t.a} world' == "hello world")
 
     local class Person
         name;
