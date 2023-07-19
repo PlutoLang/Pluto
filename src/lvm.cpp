@@ -1331,7 +1331,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   std::time_t deadline = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()
                          + PLUTO_ETL_NANOS;
 #endif
-#if defined(__GNUC__) || defined(__clang__)
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(PLUTO_VMDUMP)
 #include "ljumptabgcc.h"
 #endif
  startfunc:
