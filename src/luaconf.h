@@ -861,6 +861,9 @@
 // If defined, Pluto will imply 'pluto_use let' at the beginning of every script.
 //#define PLUTO_USE_LET
 
+// If defined, Pluto will imply 'pluto_use const' at the beginning of every script.
+//#define PLUTO_USE_CONST
+
 /*
 ** {====================================================================
 ** Pluto configuration: Infinite Loop Prevention (ILP)
