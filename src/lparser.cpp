@@ -3920,7 +3920,6 @@ static void localstat (LexState *ls) {
     else {
       vidx = vidx - nvars + 1;
       for (TypeHint& t : ts) {
-        exp_propagate(ls, e, t);
         process_assign(ls, getlocalvardesc(fs, vidx), t, line);
         ++vidx;
       }
