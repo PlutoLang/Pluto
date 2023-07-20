@@ -473,6 +473,7 @@ static int readdecesc (LexState *ls) {
 static void process_string_escape (LexState *ls) {
   int c;  /* final character to be saved */
   save_and_next(ls);  /* keep '\\' for error messages */
+  ls->appendLineBuff((char)ls->current);
   switch (ls->current) {
     case 'a': c = '\a'; goto read_save;
     case 'b': c = '\b'; goto read_save;
@@ -512,8 +513,10 @@ static void process_string_escape (LexState *ls) {
 }
 
 static void read_string (LexState *ls, int del, SemInfo *seminfo) {
+  ls->appendLineBuff((char)del);
   next(ls);  /* keep delimiter (for error messages) */
   while (ls->current != del) {
+    ls->appendLineBuff((char)ls->current);
     switch (ls->current) {
       case EOZ:
         lexerror(ls, "unfinished string", TK_EOS);
@@ -529,6 +532,7 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
         save_and_next(ls);
     }
   }
+  ls->appendLineBuff((char)del);
   next(ls);  /* skip delimiter */
   seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
   if (ls->current == del) {  // Chained, implicit string literal concatenation.
@@ -727,11 +731,7 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
       case '\'': {  /* short literal strings */
         if (for_interpolated_string)
           lexerror(ls, "unfinished string expression", TK_STRING);
-        const char del = ls->current;
-        read_string(ls, del, seminfo);
-        ls->appendLineBuff(del);
-        ls->appendLineBuff(seminfo->ts->contents);
-        ls->appendLineBuff(del);
+        read_string(ls, ls->current, seminfo);
         return TK_STRING;
       }
       case '$': {  /* interpolated strings */
@@ -779,12 +779,15 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
               break;  /* to avoid warnings */
             case '\n':
             case '\r':
+              ls->appendLineBuff((char)ls->current);
               lexerror(ls, "unfinished string", TK_STRING);
               break;  /* to avoid warnings */
             case '\\':  /* escape sequences */
+              ls->appendLineBuff((char)ls->current);
               process_string_escape(ls);
               break;
             default:
+              ls->appendLineBuff((char)ls->current);
               save_and_next(ls);
           }
         }
