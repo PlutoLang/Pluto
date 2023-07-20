@@ -741,6 +741,11 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
         if (!check_next1(ls, '"') && !check_next1(ls, '\''))
           return '$';
         ls->appendLineBuff(del);
+        {
+          Token& t = ls->tokens.emplace_back(Token{});
+          t.token = '(';
+          t.line = (int)ls->lines.size();
+        }
         bool need_concat = false;
         while (ls->current != del) {
           switch (ls->current) {
@@ -808,6 +813,11 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
         }
         next(ls);  /* skip delimiter */
         ls->appendLineBuff(del);
+        {
+          Token& t = ls->tokens.emplace_back(Token{});
+          t.token = ')';
+          t.line = (int)ls->lines.size();
+        }
         break;
       }
       case '.': {  /* '.', '..', '...', or number */
