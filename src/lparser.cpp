@@ -3924,6 +3924,40 @@ static void localstat (LexState *ls) {
   checktoclose(fs, toclose);
 }
 
+static void conststat (LexState *ls) {
+  FuncState *fs = ls->fs;
+  auto line = ls->getLineNumber(); /* in case we need to emit a warning */
+  int vidx = new_localvar(ls, str_checkname(ls, N_OVERRIDABLE), line);
+  TypeHint hint = gettypehint(ls);
+  Vardesc *var = getlocalvardesc(fs, vidx);
+  var->vd.kind = RDKCONST;
+  *var->vd.hint = hint;
+
+  expdesc e;
+  if (testnext(ls, '=')) {
+    ls->pushContext(PARCTX_CREATE_VAR);
+    TypeHint t;
+    expr_propagate(ls, &e, t);
+    ls->popContext(PARCTX_CREATE_VAR);
+    if (luaK_exp2const(fs, &e, &var->k)) {  /* compile-time constant? */
+      var->vd.kind = RDKCTC;  /* variable is a compile-time constant */
+      fs->nactvar++;  /* don't adjustlocalvars, but count it */
+    }
+    else {
+      exp_propagate(ls, e, t);
+      process_assign(ls, var, t, line);
+      adjust_assign(ls, 1, 1, &e);
+      adjustlocalvars(ls, 1);
+    }
+  }
+  else {
+    e.k = VVOID;
+    process_assign(ls, var, TypeHint{ VT_NIL }, line);
+    adjust_assign(ls, 1, 0, &e);
+    adjustlocalvars(ls, 1);
+  }
+}
+
 
 static int funcname (LexState *ls, expdesc *v) {
   /* funcname -> NAME {fieldsel} [':' NAME] */
@@ -4224,6 +4258,11 @@ static void statement (LexState *ls, TypeHint *prop) {
         localclass(ls);
       else
         localstat(ls);
+      break;
+    }
+    case TK_CONST: {
+      luaX_next(ls);  /* skip CONST */
+      conststat(ls);
       break;
     }
     case TK_EXPORT:
@@ -4624,6 +4663,9 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
 #endif
 #ifndef PLUTO_USE_LET
   disablekeyword(&lexstate, TK_LET);
+#endif
+#ifndef PLUTO_USE_CONST
+  disablekeyword(&lexstate, TK_CONST);
 #endif
   mainfunc(&lexstate, &funcstate);
   lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
