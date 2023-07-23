@@ -2009,6 +2009,9 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
           }
         }
         if (ls->t.token != ')') {
+          if (!isnametkn(ls, 0)) {  /* is this not a named argument? */
+            error_expected(ls, ')');  /* then raise syntax error similar to Lua */
+          }
           if (!funcdesc) {
             luaX_syntaxerror(ls, "can't used named arguments here because the function was not found at parse-time");
           }
