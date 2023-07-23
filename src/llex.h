@@ -302,7 +302,7 @@ struct LexState {
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
   int lastline = 0;  /* line of last token 'consumed' */
   Token laststat;  /* the last statement */
-  size_t tidx = -1;
+  size_t tidx = -1;  /* [Pluto] token index of the parser, -1 during lexer pass */
   std::vector<Token> tokens;
   Token t;  /* current token */
   struct FuncState *fs;  /* current function (parser) */
@@ -339,6 +339,9 @@ struct LexState {
   }
 
   [[nodiscard]] int getLineNumber() const noexcept {
+    if (!tokens.empty() && tokens.back().token != TK_EOS) {  /* doing lexer pass? */
+      return tokens.back().line;
+    }
     return tidx == (size_t)-1 ? 1 : tokens.at(tidx).line;
   }
 
