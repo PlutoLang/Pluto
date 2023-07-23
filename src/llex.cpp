@@ -229,7 +229,7 @@ static void inclinenumber (LexState *ls) {
 }
 
 
-static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string);
+static int llex (LexState *ls, SemInfo *seminfo);
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
                     int firstchar) {
   ls->t.token = 0;
@@ -243,7 +243,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
 
   while (true) {  /* perform lexer pass */
     Token t;
-    t.token = llex(ls, &t.seminfo, false);
+    t.token = llex(ls, &t.seminfo);
     t.line = (int)ls->lines.size();
     ls->tokens.emplace_back(std::move(t));
     if (t.token == TK_EOS) break;
@@ -573,7 +573,7 @@ static int llex_augmented (lua_Integer& i, int c) {
   }
 }
 
-static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
+static int llex (LexState *ls, SemInfo *seminfo) {
   luaZ_resetbuffer(ls->buff);
   for (;;) {
     switch (ls->current) {
@@ -729,8 +729,6 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
       }
       case '"':
       case '\'': {  /* short literal strings */
-        if (for_interpolated_string)
-          lexerror(ls, "unfinished string expression", TK_STRING);
         read_string(ls, ls->current, seminfo);
         return TK_STRING;
       }
@@ -772,7 +770,7 @@ static int llex (LexState *ls, SemInfo *seminfo, bool for_interpolated_string) {
               ls->appendLineBuff('{');
               while (true) {
                 Token t;
-                t.token = llex(ls, &t.seminfo, true);
+                t.token = llex(ls, &t.seminfo);
                 t.line = (int)ls->lines.size();
                 if (t.token == '}' || t.token == TK_EOS) break;
                 ls->tokens.emplace_back(std::move(t));
