@@ -955,10 +955,28 @@ int l_rename(lua_State *L)
 }
 
 
+static int currentdir(lua_State *L) {
+  if (lua_gettop(L) == 0) {
+    /* getter */
+    std::filesystem::path cd;
+    Protect(cd = std::filesystem::current_path());
+    lua_pushstring(L, (const char*)cd.u8string().c_str());
+    return 1;
+  }
+  else {
+    /* setter */
+    std::filesystem::path cd = getStringStreamPath(L);
+    Protect(std::filesystem::current_path(cd));
+    return 0;
+  }
+}
+
+
 /*
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
+  {"currentdir", currentdir},
   {"rename", l_rename},
   {"remove", l_remove},
   {"listdir", listdir},
