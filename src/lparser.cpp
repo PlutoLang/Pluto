@@ -4231,17 +4231,17 @@ static void statement (LexState *ls, TypeHint *prop) {
     return;
   }
   int line = ls->getLineNumber();
-  if ((ls->laststat.IsEscapingToken()
-    || (ls->laststat.Is(TK_GOTO) && !ls->findWithinLine(line, luaX_lookbehind(ls).seminfo.ts->toCpp()))) /* Don't warn if this statement is the goto's label. */
-    && ls->t.token != ';') /* Don't warn if this is only a semicolon */
-  {
-    throw_warn(ls,
-      "unreachable code",
-        luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)), WT_UNREACHABLE_CODE);
-    ls->L->top.p--;
-  }
-  if (ls->t.token != ';')
+  if (ls->t.token != ';') {
+    if (ls->laststat.IsEscapingToken()
+      || (ls->laststat.Is(TK_GOTO) && !ls->findWithinLine(line, luaX_lookbehind(ls).seminfo.ts->toCpp()))) /* Don't warn if this statement is the goto's label. */
+    {
+      throw_warn(ls,
+        "unreachable code",
+          luaO_fmt(ls->L, "this code comes after an escaping %s statement.", luaX_token2str(ls, ls->laststat.token)), WT_UNREACHABLE_CODE);
+      ls->L->top.p--;
+    }
     ls->laststat.token = ls->t.token;
+  }
   enterlevel(ls);
   switch (ls->t.token) {
     case ';': {  /* stat -> ';' (empty statement) */
