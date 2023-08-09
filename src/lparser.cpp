@@ -4233,7 +4233,7 @@ static void statement (LexState *ls, TypeHint *prop) {
   int line = ls->getLineNumber();
   if (ls->t.token != ';') {
     if (ls->laststat.IsEscapingToken()
-      || (ls->laststat.Is(TK_GOTO) && !ls->findWithinLine(line, luaX_lookbehind(ls).seminfo.ts->toCpp()))) /* Don't warn if this statement is the goto's label. */
+      || (ls->laststat.Is(TK_GOTO) && ls->t.token != TK_DBCOLON)) /* Don't warn if this statement is a goto label. */
     {
       throw_warn(ls,
         "unreachable code",
