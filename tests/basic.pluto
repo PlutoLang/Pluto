@@ -758,6 +758,16 @@ do
     assert(string.lower("HELLO", -14) == "HELLO")
 end
 
+print "Testing default table metatable."
+do
+    -- Note: This behavior may be disabled by defining the PLUTO_NO_DEFAULT_TABLE_METATABLE macro.
+
+    local t = { "apple", "banana" }
+    assert(t:contains("apple") == 1)
+    assert(t:contains("banana") == 2)
+    assert(t:contains("orange") == nil)
+end
+
 print "Testing default arguments."
 do
     local CONST_VAL <const> = 69
