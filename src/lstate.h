@@ -311,6 +311,9 @@ typedef struct global_State {
   #endif
   std::time_t deadline;
 #endif
+#ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
+  TValue table_mt;
+#endif
 } global_State;
 
 class Registry {
