@@ -1656,6 +1656,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         pc++;  /* skip extra argument */
         L->top.p = ra + 1;  /* correct top in case of emergency GC */
         t = luaH_new(L);  /* memory allocation */
+#ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
+        luaH_initmetatable(L, t);
+#endif
         sethvalue2s(L, ra, t);
         if (b != 0 || c != 0)
           luaH_resize(L, t, c, b);  /* idem */
