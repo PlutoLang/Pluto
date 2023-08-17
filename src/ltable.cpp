@@ -641,6 +641,27 @@ Table *luaH_new (lua_State *L) {
 }
 
 
+#ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
+void luaH_initmetatable (lua_State *L, Table *t) {
+  if (ttisnil(&G(L)->table_mt)) {
+    Table *table_mt = luaH_new(L);
+    sethvalue(L, &G(L)->table_mt, table_mt);
+    lua_pushnil(L);
+    sethvalue(L, s2v(L->top.p - 1), table_mt);
+    lua_pushstring(L, "__index");
+    lua_getglobal(L, "table");
+    lua_settable(L, -3);
+  }
+  else {
+    lua_pushnil(L);
+    sethvalue(L, s2v(L->top.p - 1), hvalue(&G(L)->table_mt));
+  }
+  t->metatable = hvalue(s2v(L->top.p - 1));
+  lua_pop(L, 1);
+}
+#endif
+
+
 void luaH_free (lua_State *L, Table *t) {
   freehash(L, t);
   luaM_freearray(L, t->array, luaH_realasize(t));
