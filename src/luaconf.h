@@ -827,6 +827,9 @@
 // This is generally slower and complicates exception handling.
 //#define PLUTO_USE_THROW
 
+// If defined, Pluto won't imbue tables with a metatable by default.
+//#define PLUTO_NO_DEFAULT_TABLE_METATABLE
+
 /*
 ** {====================================================================
 ** Pluto configuration: Compatibility
