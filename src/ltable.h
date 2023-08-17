@@ -44,6 +44,7 @@ LUAI_FUNC void luaH_set (lua_State *L, Table *t, const TValue *key,
 LUAI_FUNC void luaH_finishset (lua_State *L, Table *t, const TValue *key,
                                        const TValue *slot, TValue *value);
 LUAI_FUNC Table *luaH_new (lua_State *L);
+LUAI_FUNC void luaH_initmetatable (lua_State *L, Table *t);
 LUAI_FUNC void luaH_resize (lua_State *L, Table *t, unsigned int nasize,
                                                     unsigned int nhsize);
 LUAI_FUNC void luaH_resizearray (lua_State *L, Table *t, unsigned int nasize);
