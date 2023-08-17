@@ -238,6 +238,9 @@ static void f_luaopen (lua_State *L, void *ud) {
   luaX_init(L);
   g->gcstp = 0;  /* allow gc */
   setnilvalue(&g->nilvalue);  /* now state is complete */
+#ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
+  setnilvalue(&g->table_mt);
+#endif
   luai_userstateopen(L);
 }
 
