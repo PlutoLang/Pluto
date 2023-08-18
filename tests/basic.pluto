@@ -756,6 +756,13 @@ do
     assert(string.lower("HELLO", -2) == "HELlO")
     assert(string.lower("HELLO", -14) == "HELLO")
 end
+do
+    local t = { 5, 4, 3, 2, 1 }
+    t = table.filter(t, |x| -> x % 2 ~= 0)
+    assert(t[1] == 5)
+    assert(t[2] == 3)
+    assert(t[3] == 1)
+end
 
 print "Testing default table metatable."
 do
