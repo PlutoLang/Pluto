@@ -319,6 +319,9 @@ struct LexState {
   std::vector<EnumDesc> enums{};
   std::vector<TString*> export_symbols{};
   std::vector<void*> parse_time_allocations{};
+  TString* tsOperatorNew = nullptr;
+  TString* tsOperatorExtends = nullptr;
+  TString* tsOperatorInstanceof = nullptr;
 
   LexState()
     : lines{ std::string{} }, warnconfs{ WarningConfig(0) }

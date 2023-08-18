@@ -1520,12 +1520,8 @@ static void applyextends (LexState *ls, expdesc *v, TString *parent, int line) {
   FuncState *fs = ls->fs;
 
   expdesc f;
-  singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_extends"), &f, 1);
-  //lua_assert(f.k != VVOID);
-  if (f.k == VVOID) {
-    luaX_prev(ls);
-    luaX_syntaxerror(ls, "It seems 'Pluto_operator_extends' has disappeared. If you know how to reproduce this, please get in touch at <https://github.com/PlutoLang/Pluto/issues>.");
-  }
+  singlevaraux(fs, ls->tsOperatorExtends, &f, 1);
+  lua_assert(f.k != VVOID);
   luaK_exp2nextreg(fs, &f);
 
   expdesc args = *v;
@@ -2618,7 +2614,7 @@ static void newexpr (LexState *ls, expdesc *v) {
 
   luaX_next(ls);
 
-  singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_new"), v, 1);
+  singlevaraux(fs, ls->tsOperatorNew, v, 1);
   lua_assert(v->k != VVOID);
   luaK_exp2nextreg(fs, v);
 
@@ -2634,7 +2630,7 @@ static void instanceof (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
 
-  singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_instanceof"), v, 1);
+  singlevaraux(fs, ls->tsOperatorInstanceof, v, 1);
   lua_assert(v->k != VVOID);
   luaK_exp2nextreg(fs, v);
 
@@ -4427,10 +4423,12 @@ static void builtinoperators (LexState *ls) {
     ls->tokens = {}; /* avoid use of moved warning */
 
     if (uses_new) {
+      ls->tsOperatorNew = luaS_newliteral(ls->L, "Pluto_operator_new");
+
       // local function Pluto_operator_new(mt, ...)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_FUNCTION));
-      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "Pluto_operator_new")));
+      ls->tokens.emplace_back(Token(TK_NAME, ls->tsOperatorNew));
       ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "mt")));
       ls->tokens.emplace_back(Token(','));
@@ -4517,10 +4515,12 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_END));
     }
     if (uses_extends) {
+      ls->tsOperatorExtends = luaS_newliteral(ls->L, "Pluto_operator_extends");
+
       // local function Pluto_operator_extends(c, p)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_FUNCTION));
-      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "Pluto_operator_extends")));
+      ls->tokens.emplace_back(Token(TK_NAME, ls->tsOperatorExtends));
       ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "c")));
       ls->tokens.emplace_back(Token(','));
@@ -4550,10 +4550,12 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_END));
     }
     if (uses_instanceof) {
+      ls->tsOperatorInstanceof = luaS_newliteral(ls->L, "Pluto_operator_instanceof");
+
       // local function Pluto_operator_instanceof(t, mt)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_FUNCTION));
-      ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "Pluto_operator_instanceof")));
+      ls->tokens.emplace_back(Token(TK_NAME, ls->tsOperatorInstanceof));
       ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_NAME, luaS_newliteral(ls->L, "t")));
       ls->tokens.emplace_back(Token(','));
