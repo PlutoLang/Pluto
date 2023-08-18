@@ -783,6 +783,14 @@ do
     assert(t[1] == 5)
     assert(t[2] == 3)
     assert(t[3] == 1)
+
+    local menu = {
+        { id = 1, name = "Pizza" },
+        { id = 2, name = "Doener" }
+    }
+    local betterDoener = { id = 2, name = "Better Doener" }
+    menu = table.map(menu, |item| -> item.id == betterDoener.id ? betterDoener : item)
+    assert(menu[2].name == "Better Doener")
 end
 
 print "Testing default table metatable."
