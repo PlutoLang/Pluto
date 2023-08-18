@@ -453,7 +453,7 @@ static int tisfrozen (lua_State *L) {
 #endif
 
 
-static int tcontains(lua_State* L) {
+static int tcontains (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checkany(L, 2);
 
@@ -476,7 +476,7 @@ static int tcontains(lua_State* L) {
 }
 
 
-static int tfilter(lua_State *L) {
+static int tfilter (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
 
