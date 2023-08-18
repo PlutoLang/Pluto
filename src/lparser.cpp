@@ -1520,6 +1520,7 @@ static void applyextends (LexState *ls, expdesc *v, TString *parent, int line) {
   FuncState *fs = ls->fs;
 
   expdesc f;
+  lua_assert(ls->tsOperatorExtends != nullptr);
   singlevaraux(fs, ls->tsOperatorExtends, &f, 1);
   lua_assert(f.k != VVOID);
   luaK_exp2nextreg(fs, &f);
@@ -2614,6 +2615,7 @@ static void newexpr (LexState *ls, expdesc *v) {
 
   luaX_next(ls);
 
+  lua_assert(ls->tsOperatorNew != nullptr);
   singlevaraux(fs, ls->tsOperatorNew, v, 1);
   lua_assert(v->k != VVOID);
   luaK_exp2nextreg(fs, v);
@@ -2630,6 +2632,7 @@ static void instanceof (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
 
+  lua_assert(ls->tsOperatorInstanceof != nullptr);
   singlevaraux(fs, ls->tsOperatorInstanceof, v, 1);
   lua_assert(v->k != VVOID);
   luaK_exp2nextreg(fs, v);
