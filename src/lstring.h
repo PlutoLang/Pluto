@@ -26,6 +26,10 @@
 #define luaS_newliteral(L, s)	(luaS_newlstr(L, "" s, \
                                  (sizeof(s)/sizeof(char))-1))
 
+#define luaX_newliteral(ls, s)	(luaX_newstring(ls, "" s, \
+                                 (sizeof(s)/sizeof(char))-1))
+
+
 
 /*
 ** test whether a string is a reserved word
