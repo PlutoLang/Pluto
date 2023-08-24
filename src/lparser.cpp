@@ -1521,11 +1521,7 @@ static void applyextends (LexState *ls, expdesc *v, TString *parent, int line) {
 
   expdesc f;
   singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_extends"), &f, 1);
-  //lua_assert(f.k != VVOID);
-  if (f.k == VVOID) {
-    luaX_prev(ls);
-    luaX_syntaxerror(ls, "It seems 'Pluto_operator_extends' has disappeared. If you know how to reproduce this, please get in touch at <https://github.com/PlutoLang/Pluto/issues>.");
-  }
+  lua_assert(f.k != VVOID);
   luaK_exp2nextreg(fs, &f);
 
   expdesc args = *v;
