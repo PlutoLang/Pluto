@@ -603,6 +603,23 @@ do
         case y + 1: -- x == y + 1
     end
 end
+do
+    local function getResponse(word)
+        switch word do
+            case "hi", "hello":
+                return "Greetings!"
+            default:
+                return "Unrecognised word"
+            case "bye", "goodbye":
+                return "Farewell!"
+        end
+    end
+    assert(getResponse("hi") == "Greetings!")
+    assert(getResponse("hello") == "Greetings!")
+    assert(getResponse("bye") == "Farewell!")
+    assert(getResponse("goodbye") == "Farewell!")
+    assert(getResponse("deez") == "Unrecognised word")
+end
 
 print "Testing table freezing."
 do
