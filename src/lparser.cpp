@@ -3200,9 +3200,27 @@ inline bool testnext2 (LexState *ls, int token1, int token2) {
 }
 
 
-static void casecond (LexState *ls, int case_line, expdesc& lcase) {
-  expr(ls, &lcase, nullptr, E_NO_COLON);
+static std::vector<int> casecond (LexState *ls, const expdesc& control) {
+  std::vector<int> jumps{};
+  FuncState *fs = ls->fs;
+  const auto case_line = ls->getLineNumber();
+
+  expdesc e, cmpval;
+  e = control;
+  luaK_infix(fs, OPR_EQ, &e);
+  expr(ls, &cmpval, nullptr, E_NO_COLON);
+  luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
+  jumps.emplace_back(e.u.info);
+  while (testnext(ls, ',')) {
+    e = control;
+    luaK_infix(fs, OPR_EQ, &e);
+    expr(ls, &cmpval, nullptr, E_NO_COLON);
+    luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
+    jumps.emplace_back(e.u.info);
+  }
   checknext(ls, ':');
+
+  return jumps;
 }
 
 
@@ -3220,7 +3238,7 @@ static void switchstat (LexState *ls, int line) {
   BlockCnt sbl;
   enterblock(fs, &sbl, 1);
 
-  expdesc crtl, save, first;
+  expdesc crtl, save;
   expr(ls, &crtl);
   luaK_exp2nextreg(ls->fs, &crtl);
   init_exp(&save, VLOCAL, crtl.u.info);
@@ -3229,27 +3247,19 @@ static void switchstat (LexState *ls, int line) {
   new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
   adjustlocalvars(ls, 1);
 
+  std::vector<int> first{};
   TString* const begin_switch = luaS_newliteral(ls->L, "pluto_begin_switch");
   TString* const end_switch = luaS_newliteral(ls->L, "pluto_end_switch");
   TString* default_case = nullptr;
-  int default_pc;
+  int first_pc, default_pc;
 
   if (gett(ls) == TK_CASE) {
-    int case_line = ls->getLineNumber();
-
     luaX_next(ls); /* Skip 'case' */
-
-    first = save;
-
-    luaK_infix(fs, OPR_NE, &first);
-    expdesc lcase;
-    casecond(ls, case_line, lcase);
-    luaK_posfix(fs, OPR_NE, &first, &lcase, ls->getLineNumber());
-
+    first = casecond(ls, save);
+    first_pc = luaK_getlabel(fs);
     caselist(ls);
   }
   else {
-    first.k = VVOID;
     newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
   }
 
@@ -3279,8 +3289,12 @@ static void switchstat (LexState *ls, int line) {
   /* handle possible fallthrough, don't loop infinitely */
   newgotoentry(ls, end_switch, ls->getLineNumber(), luaK_jump(fs)); // goto end_switch
 
-  if (first.k != VVOID) {
-    luaK_patchtohere(fs, first.u.info);
+  if (!first.empty()) {
+    for (int i = 0; i != first.size() - 1; ++i) {
+      luaK_patchlist(fs, first.at(i), first_pc);
+    }
+    luaK_invertcond(fs, first.back());
+    luaK_patchtohere(fs, first.back());
   }
   else {
     createlabel(ls, begin_switch, ls->getLineNumber(), false); // ::begin_switch::
@@ -3298,17 +3312,13 @@ static void switchstat (LexState *ls, int line) {
     }
   }
 
-  expdesc test;
   for (auto& c : cases) {
-    test = save;
-    luaK_infix(fs, OPR_EQ, &test);
     auto pos = luaX_getpos(ls);
     luaX_setpos(ls, c.tidx);
-    expdesc cc;
-    casecond(ls, ls->getLineNumber(), cc);
+    for (const auto& j : casecond(ls, save)) {
+      luaK_patchlist(fs, j, c.pc);
+    }
     luaX_setpos(ls, pos);
-    luaK_posfix(fs, OPR_EQ, &test, &cc, ls->getLineNumber());
-    luaK_patchlist(fs, test.u.info, c.pc);
   }
 
   if (default_case != nullptr)
