@@ -643,6 +643,7 @@ Table *luaH_new (lua_State *L) {
 
 #ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
 void luaH_initmetatable (lua_State *L, Table *t) {
+  L->ci->top.p++;
   lua_pushnil(L); /* space on the stack where the metatable will go */
   if (ttisnil(&G(L)->table_mt)) {
     /* create metatable */
@@ -661,6 +662,7 @@ void luaH_initmetatable (lua_State *L, Table *t) {
   /* set stack value as metatable and pop */
   t->metatable = hvalue(s2v(L->top.p - 1));
   lua_pop(L, 1);
+  L->ci->top.p--;
 }
 #endif
 
