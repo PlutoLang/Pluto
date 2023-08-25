@@ -1971,3 +1971,10 @@ void luaK_exp2reg (FuncState *fs, expdesc *e, int reg) {
   freeexp(fs, e);
   exp2reg(fs, e, reg);
 }
+
+
+void luaK_invertcond (FuncState *fs, int list) {
+  expdesc e;
+  e.u.info = list;
+  negatecondition(fs, &e);
+}
