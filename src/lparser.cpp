@@ -3277,7 +3277,7 @@ static void switchstat (LexState *ls, int line) {
   luaX_next(ls); // Skip switch statement.
   testnext(ls, '(');
 
-  FuncState* fs = ls->fs;
+  FuncState *fs = ls->fs;
   BlockCnt sbl;
   enterblock(fs, &sbl, 1);
 
