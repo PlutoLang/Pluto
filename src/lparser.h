@@ -233,6 +233,9 @@ struct TypeHint {
   }
 
   [[nodiscard]] bool isCompatibleWith(const TypeHint& b) const noexcept {
+    if (b.empty()) {
+      return isNullable();
+    }
     for (const auto& desc : b.descs) {
       if (!isCompatibleWith(desc)) {
         return false;
@@ -265,6 +268,9 @@ struct TypeHint {
   }
 
   [[nodiscard]] std::string toString() const {
+    if (empty()) {
+      return "nil";
+    }
     std::string str{};
     if (isNullable())
       str.push_back('?');
