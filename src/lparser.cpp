@@ -3261,7 +3261,7 @@ inline bool testnext2 (LexState *ls, int token1, int token2) {
 }
 
 
-static void casecond(LexState* ls, int case_line, expdesc& lcase) {
+static void casecond (LexState *ls, int case_line, expdesc& lcase) {
   expr(ls, &lcase, nullptr, E_NO_COLON);
   checknext(ls, ':');
 }
