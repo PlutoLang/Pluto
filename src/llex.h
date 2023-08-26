@@ -186,6 +186,7 @@ enum WarningType : int
   WT_EXCESSIVE_ARGUMENTS,
   WT_DEPRECATED,
   WT_BAD_PRACTICE,
+  WT_POSSIBLE_TYPO,
 
   NUM_WARNING_TYPES
 };
@@ -199,6 +200,7 @@ inline const char* const luaX_warnNames[] = {
   "excessive-arguments",
   "deprecated",
   "bad-practice",
+  "possible-typo",
 };
 
 
