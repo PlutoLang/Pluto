@@ -3895,6 +3895,17 @@ static void localstat (LexState *ls) {
     else if (kind == RDKCONSTEXP) {
       is_constexpr = true;
     }
+    else if (kind == VDKREG) {
+      if (line == ls->getLineNumber() && ls->t.token == TK_NAME) {
+        if (strcmp(ls->t.seminfo.ts->contents, "const") == 0
+          || strcmp(ls->t.seminfo.ts->contents, "constexpr") == 0
+          || strcmp(ls->t.seminfo.ts->contents, "close") == 0
+          ) {
+          throw_warn(ls, "Possibly mistyped attribute", luaO_fmt(ls->L, "Did you mean '<%s>'?", ls->t.seminfo.ts->contents), WT_POSSIBLE_TYPO);
+          ls->L->top.p--;
+        }
+      }
+    }
     nvars++;
   } while (testnext(ls, ','));
   std::vector<TypeHint> ts;
