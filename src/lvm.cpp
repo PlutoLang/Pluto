@@ -1205,39 +1205,7 @@ LUAI_FUNC int luaB_ipairsaux (lua_State *L);
 {
   std::ostringstream str { };
 
-  switch (ttype(t))
-  {
-    case LUA_TNIL:
-      str << "nil";
-      break;
-    case LUA_TBOOLEAN: 
-      str << "boolean";
-      break;
-    case LUA_TLIGHTUSERDATA: 
-      str << "lightuserdata";
-      break;
-    case LUA_TNUMBER:
-      str << "number";
-      break;
-    case LUA_TSTRING:
-      str << "string";
-      break;
-    case LUA_TTABLE:
-      str << "table";
-      break;
-    case LUA_TFUNCTION:
-      str << "function";
-      break;
-    case LUA_TUSERDATA:
-      str << "userdata";
-      break;
-    case LUA_TTHREAD:
-      str << "thread";
-      break;
-    default:
-      str << "unknown";
-  }
-  
+  str << ttypename(ttype(t));
   str << "-";
   str << (void*)t;
 
