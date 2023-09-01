@@ -20,6 +20,8 @@
 #include "lprefix.h"
 #include "lauxlib.h"
 #include "lualib.h"
+#include "lobject.h"
+#include "lstate.h"
 
 
 static int luaB_print (lua_State *L) {
@@ -551,7 +553,55 @@ static int luaB_newuserdata (lua_State *L) {
 }
 
 
+TValue *index2value (lua_State *L, int idx);
+
+static void luaB_dump_impl (lua_State *L, int indents, Table *recursion_marker) {
+  if (lua_type(L, -1) != LUA_TTABLE) {
+    luaL_tolstring(L, -1, NULL);
+    return;
+  }
+  if (indents != 1 && hvalue(index2value(L, -1)) == recursion_marker) {
+    lua_pushstring(L, "*RECURSION*");
+    return;
+  }
+  std::string dump(1, '{');
+  lua_pushnil(L);
+  bool empty = true;
+  while (lua_next(L, -2)) {
+    if (empty) {
+      empty = false;
+      dump.push_back('\n');
+    }
+
+    dump.append(indents, '\t');
+    dump.push_back('[');
+    dump.append(luaL_tolstring(L, -2, NULL));
+    lua_pop(L, 1);
+    dump.append("] = ");
+
+    lua_pushvalue(L, -1);
+    luaB_dump_impl(L, indents + 1, recursion_marker);
+    dump.append(lua_tostring(L, -1));
+    lua_pop(L, 2);
+    dump.append(",\n");
+    dump.append(indents - 1, '\t');
+
+    lua_pop(L, 1);
+  }
+  dump.push_back('}');
+  pluto_pushstring(L, dump);
+}
+
+static int luaB_dump (lua_State *L) {
+  luaL_checkany(L, 1);
+  lua_pushvalue(L, 1);
+  luaB_dump_impl(L, 1, hvalue(index2value(L, -1)));
+  return 1;
+}
+
+
 static const luaL_Reg base_funcs[] = {
+  {"dump", luaB_dump},
   {"newuserdata", luaB_newuserdata},
   {"assert", luaB_assert},
   {"collectgarbage", luaB_collectgarbage},
