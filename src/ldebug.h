@@ -55,3 +55,4 @@ LUAI_FUNC const char *luaG_addinfo (lua_State *L, const char *msg,
                                                   TString *src, int line);
 [[noreturn]] LUAI_FUNC void luaG_errormsg (lua_State *L);
 LUAI_FUNC int luaG_traceexec (lua_State *L, const Instruction *pc);
+LUAI_FUNC int luaG_tracecall (lua_State *L);
