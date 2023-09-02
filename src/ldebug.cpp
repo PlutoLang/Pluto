@@ -444,7 +444,7 @@ static const char *getobjname (const Proto *p, int lastpc, int reg,
 */
 static void kname (const Proto *p, int c, const char **name) {
   TValue *kvalue = &p->k[c];
-  *name = (ttisstring(kvalue)) ? svalue(kvalue) : "?";
+  *name = (ttisstring(kvalue)) ? getstr(tsvalue(kvalue)) : "?";
 }
 
 
@@ -587,7 +587,7 @@ static const char *getobjname (const Proto *p, int lastpc, int reg,
         int b = (op == OP_LOADK) ? GETARG_Bx(i)
                                  : GETARG_Ax(p->code[pc + 1]);
         if (ttisstring(&p->k[b])) {
-          *name = svalue(&p->k[b]);
+          *name = getstr(tsvalue(&p->k[b]));
           return "constant";
         }
         break;
@@ -645,7 +645,7 @@ static const char *funcnamefromcode (lua_State *L, const Proto *p,
     default:
       return NULL;  /* cannot find a reasonable name */
   }
-  *name = getstr(G(L)->tmname[tm]) + 2;
+  *name = getshrstr(G(L)->tmname[tm]) + 2;
   return "metamethod";
 }
 
