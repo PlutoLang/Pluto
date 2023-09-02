@@ -556,7 +556,7 @@ static int luaB_newuserdata (lua_State *L) {
 TValue *index2value (lua_State *L, int idx);
 void addquoted (luaL_Buffer *b, const char *s, size_t len);
 
-static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marker) {
+static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marker, bool is_export) {
   if (lua_type(L, -1) != LUA_TTABLE) {
     if (lua_type(L, -1) == LUA_TSTRING) {
       size_t l;
@@ -572,6 +572,9 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
     return;
   }
   if (indents != 1 && hvalue(index2value(L, -1)) == recursion_marker) {
+    if (is_export) {
+      luaL_error(L, "exportvar does not handle recursion");
+    }
     lua_pushstring(L, "*RECURSION*");
     return;
   }
@@ -587,13 +590,13 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
     dump.append(indents, '\t');
     dump.push_back('[');
     lua_pushvalue(L, -2);
-    luaB_dumpvar_impl(L, indents + 1, recursion_marker);
+    luaB_dumpvar_impl(L, indents + 1, recursion_marker, is_export);
     dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append("] = ");
 
     lua_pushvalue(L, -1);
-    luaB_dumpvar_impl(L, indents + 1, recursion_marker);
+    luaB_dumpvar_impl(L, indents + 1, recursion_marker, is_export);
     dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append(",\n");
@@ -608,12 +611,20 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
 static int luaB_dumpvar (lua_State *L) {
   luaL_checkany(L, 1);
   lua_pushvalue(L, 1);
-  luaB_dumpvar_impl(L, 1, hvalue(index2value(L, -1)));
+  luaB_dumpvar_impl(L, 1, hvalue(index2value(L, -1)), false);
+  return 1;
+}
+
+static int luaB_exportvar (lua_State *L) {
+  luaL_checkany(L, 1);
+  lua_pushvalue(L, 1);
+  luaB_dumpvar_impl(L, 1, hvalue(index2value(L, -1)), true);
   return 1;
 }
 
 
 static const luaL_Reg base_funcs[] = {
+  {"exportvar", luaB_exportvar},
   {"dumpvar", luaB_dumpvar},
   {"newuserdata", luaB_newuserdata},
   {"assert", luaB_assert},
