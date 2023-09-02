@@ -556,7 +556,7 @@ static int luaB_newuserdata (lua_State *L) {
 TValue *index2value (lua_State *L, int idx);
 void addquoted (luaL_Buffer *b, const char *s, size_t len);
 
-static void luaB_dump_impl (lua_State *L, int indents, Table *recursion_marker) {
+static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marker) {
   if (lua_type(L, -1) != LUA_TTABLE) {
     if (lua_type(L, -1) == LUA_TSTRING) {
       size_t l;
@@ -587,13 +587,13 @@ static void luaB_dump_impl (lua_State *L, int indents, Table *recursion_marker) 
     dump.append(indents, '\t');
     dump.push_back('[');
     lua_pushvalue(L, -2);
-    luaB_dump_impl(L, indents + 1, recursion_marker);
+    luaB_dumpvar_impl(L, indents + 1, recursion_marker);
     dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append("] = ");
 
     lua_pushvalue(L, -1);
-    luaB_dump_impl(L, indents + 1, recursion_marker);
+    luaB_dumpvar_impl(L, indents + 1, recursion_marker);
     dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append(",\n");
@@ -605,16 +605,16 @@ static void luaB_dump_impl (lua_State *L, int indents, Table *recursion_marker) 
   pluto_pushstring(L, dump);
 }
 
-static int luaB_dump (lua_State *L) {
+static int luaB_dumpvar (lua_State *L) {
   luaL_checkany(L, 1);
   lua_pushvalue(L, 1);
-  luaB_dump_impl(L, 1, hvalue(index2value(L, -1)));
+  luaB_dumpvar_impl(L, 1, hvalue(index2value(L, -1)));
   return 1;
 }
 
 
 static const luaL_Reg base_funcs[] = {
-  {"dump", luaB_dump},
+  {"dumpvar", luaB_dumpvar},
   {"newuserdata", luaB_newuserdata},
   {"assert", luaB_assert},
   {"collectgarbage", luaB_collectgarbage},
