@@ -79,6 +79,8 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
+      - name: Ensure LLVM is up-to-date
+        run: choco upgrade llvm
       - uses: actions/checkout@v3
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
@@ -95,6 +97,8 @@ jobs:
   windows-dll:
     runs-on: windows-latest
     steps:
+      - name: Ensure LLVM is up-to-date
+        run: choco upgrade llvm
       - uses: actions/checkout@v3
       - run: php scripts/make_dll_c.php clang
       - name: Ensure files exist
