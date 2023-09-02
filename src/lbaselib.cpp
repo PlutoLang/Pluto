@@ -557,7 +557,12 @@ TValue *index2value (lua_State *L, int idx);
 
 static void luaB_dump_impl (lua_State *L, int indents, Table *recursion_marker) {
   if (lua_type(L, -1) != LUA_TTABLE) {
-    luaL_tolstring(L, -1, NULL);
+    if (lua_type(L, -1) == LUA_TSTRING) {
+      luaO_pushfstring(L, "\"%s\"", lua_tostring(L, -1));
+    }
+    else {
+      luaL_tolstring(L, -1, NULL);
+    }
     return;
   }
   if (indents != 1 && hvalue(index2value(L, -1)) == recursion_marker) {
@@ -575,8 +580,10 @@ static void luaB_dump_impl (lua_State *L, int indents, Table *recursion_marker) 
 
     dump.append(indents, '\t');
     dump.push_back('[');
-    dump.append(luaL_tolstring(L, -2, NULL));
-    lua_pop(L, 1);
+    lua_pushvalue(L, -2);
+    luaB_dump_impl(L, indents + 1, recursion_marker);
+    dump.append(lua_tostring(L, -1));
+    lua_pop(L, 2);
     dump.append("] = ");
 
     lua_pushvalue(L, -1);
