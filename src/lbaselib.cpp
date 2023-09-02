@@ -557,19 +557,29 @@ TValue *index2value (lua_State *L, int idx);
 void addquoted (luaL_Buffer *b, const char *s, size_t len);
 
 static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marker, bool is_export) {
-  if (lua_type(L, -1) != LUA_TTABLE) {
-    if (lua_type(L, -1) == LUA_TSTRING) {
+  switch (lua_type(L, -1)) {
+    default:
+      if (is_export) {
+        luaL_error(L, luaO_pushfstring(L, "can not export variables of type %s", ttypename(lua_type(L, -1))));
+      }
+      [[fallthrough]];
+    case LUA_TNUMBER:
+    case LUA_TBOOLEAN:
+    case LUA_TNIL:
+      luaL_tolstring(L, -1, NULL);
+      return;
+
+    case LUA_TSTRING: {
       size_t l;
       const char *s = lua_tolstring(L, -1, &l);
       luaL_Buffer b;
       luaL_buffinit(L, &b);
       addquoted(&b, s, l);
       luaL_pushresult(&b);
+      return;
     }
-    else {
-      luaL_tolstring(L, -1, NULL);
-    }
-    return;
+
+    case LUA_TTABLE:;
   }
   if (indents != 1 && hvalue(index2value(L, -1)) == recursion_marker) {
     if (is_export) {
