@@ -11,6 +11,7 @@
 #include <stack>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "lobject.h"
@@ -316,6 +317,7 @@ struct LexState {
   std::vector<EnumDesc> enums{};
   std::vector<TString*> export_symbols{};
   std::vector<void*> parse_time_allocations{};
+  std::unordered_map<const TString*, void*> global_props{};
 
   LexState()
     : lines{ std::string{} }, warnconfs{ WarningConfig(0) }
