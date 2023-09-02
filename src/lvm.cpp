@@ -295,9 +295,9 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
       if (isValueString) { /* index for character of string */
         lua_Integer index = ivalue(key);
         if (index < 0) { /* negative index, index from end of string */
-          index += vslen(t) + 1;
+          index += tsslen(tsvalue(t)) + 1;
         }
-        if (((lua_Integer)vslen(t) < index) || (index < 1)) { /* invalid index */
+        if (((lua_Integer)tsslen(tsvalue(t)) < index) || (index < 1)) { /* invalid index */
           setnilvalue(s2v(val));
           return;
         }
@@ -2645,7 +2645,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         std::string old = stringify_tvalue(a);  /* RA will be changed below. */
 #endif
         if (ttisstring(a) && ttisstring(b)) {
-          if (strstr(svalue(b), svalue(a)) != nullptr)
+          if (strstr(getstr(tsvalue(b)), getstr(tsvalue(a))) != nullptr)
             setbtvalue(s2v(ra));
           else
             setbfvalue(s2v(ra));
