@@ -476,6 +476,16 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeHint& t, int li
 }
 
 
+static TypeHint& get_global_prop(LexState* ls, const TString* name) {
+  if (auto e = ls->global_props.find(name); e != ls->global_props.end()) {
+    return *reinterpret_cast<TypeHint*>(e->second);
+  }
+  auto th = new_typehint(ls);
+  ls->global_props.emplace(name, th);
+  return *th;
+}
+
+
 /*
 ** Convert 'nvar', a compiler index level, to its corresponding
 ** register. For that, search for the highest variable below that level
@@ -2501,6 +2511,12 @@ static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   int line = ls->getLineNumber();
   primaryexp(ls, v);
+  if (prop) {
+    if (v->k == VINDEXUP) {
+      TValue *key = &ls->fs->f->k[v->u.ind.idx];
+      prop->merge(get_global_prop(ls, tsvalue(key)));
+    }
+  }
   expsuffix(ls, v, line, flags, prop);
 }
 
@@ -3098,6 +3114,11 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       adjust_assign(ls, nvars, nexps, &e);
     else {
       luaK_setoneret(ls->fs, &e);  /* close last expression */
+      if (lh->v.k == VINDEXUP) {
+        TValue *key = &ls->fs->f->k[lh->v.u.ind.idx];
+        lua_assert(ttype(key) == LUA_TSTRING);
+        get_global_prop(ls, tsvalue(key)).merge(prop);
+      }
       if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
         exp_propagate(ls, e, prop);
         process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), prop, line);
