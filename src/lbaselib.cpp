@@ -554,11 +554,17 @@ static int luaB_newuserdata (lua_State *L) {
 
 
 TValue *index2value (lua_State *L, int idx);
+void addquoted (luaL_Buffer *b, const char *s, size_t len);
 
 static void luaB_dump_impl (lua_State *L, int indents, Table *recursion_marker) {
   if (lua_type(L, -1) != LUA_TTABLE) {
     if (lua_type(L, -1) == LUA_TSTRING) {
-      luaO_pushfstring(L, "\"%s\"", lua_tostring(L, -1));
+      size_t l;
+      const char *s = lua_tolstring(L, -1, &l);
+      luaL_Buffer b;
+      luaL_buffinit(L, &b);
+      addquoted(&b, s, l);
+      luaL_pushresult(&b);
     }
     else {
       luaL_tolstring(L, -1, NULL);
