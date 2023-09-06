@@ -1518,7 +1518,7 @@ static TString *checkextends (LexState *ls) {
   return parent;
 }
 
-static void applyextends (LexState *ls, expdesc *v, TString *parent, int line) {
+static void applyextends (LexState *ls, TString *name, TString *parent, int line) {
   FuncState *fs = ls->fs;
 
   expdesc f;
@@ -1526,7 +1526,8 @@ static void applyextends (LexState *ls, expdesc *v, TString *parent, int line) {
   lua_assert(f.k != VVOID);
   luaK_exp2nextreg(fs, &f);
 
-  expdesc args = *v;
+  expdesc args;
+  singlevarinner(ls, name, &args);
   luaK_exp2nextreg(fs, &args);
   singlevar(ls, &args, parent);
 
@@ -1568,10 +1569,11 @@ static void classstat (LexState *ls) {
   auto line = ls->getLineNumber();
   luaX_next(ls); /* skip 'class' */
 
-  expdesc v;
-  singlevar(ls, &v);
-
+  TString *name = str_checkname(ls, 0);
   TString *parent = checkextends(ls);
+
+  expdesc v;
+  singlevarinner(ls, name, &v);
 
   expdesc t;
   classexpr(ls, &t);
@@ -1583,7 +1585,7 @@ static void classstat (LexState *ls) {
   ls->parent_classes.pop();
 
   if (parent)
-    applyextends(ls, &v, parent, line);
+    applyextends(ls, name, parent, line);
 }
 
 
@@ -1603,12 +1605,8 @@ static void localclass (LexState *ls) {
   lua_assert(ls->getParentClass() == parent);
   ls->parent_classes.pop();
 
-  if (parent) {
-    expdesc v;
-    singlevaraux(ls->fs, name, &v, 1);
-    lua_assert(v.k != VVOID);
-    applyextends(ls, &v, parent, line);
-  }
+  if (parent)
+    applyextends(ls, name, parent, line);
 }
 
 /* }====================================================================== */
