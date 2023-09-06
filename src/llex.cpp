@@ -62,7 +62,7 @@ static const char *const luaX_tokens [] = {
     "//", "..", "...", "==", ">=", "<=", "~=",
     "<<", ">>", "::", "<eof>",
     "<number>", "<integer>", "<name>", "<string>",
-    "**", "??", ":=",
+    "**", "??", ":=", "->",
 };
 
 
@@ -557,13 +557,17 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         next(ls);
         break;
       }
-      case '-': {  /* '-' or '--' (comment) */
+      case '-': {  /* '-', '--' (comment), or '->' (arrow) */
         next(ls);
         ls->appendLineBuff('-');
         if (check_next1(ls, '=')) { /* compound op */
           ls->appendLineBuff('=');
           seminfo->i = '-';
           return '=';
+        }
+        else if (check_next1(ls, '>')) {
+          ls->appendLineBuff('>');
+          return TK_ARROW;
         }
         else {
           if (ls->current != '-') {
