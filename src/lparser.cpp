@@ -2706,19 +2706,19 @@ static void lgoto (LexState *ls, TString *name, int line) {
 }
 
 
-static std::vector<int> casecond (LexState *ls, const expdesc& control, int tk) {
+static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
   std::vector<int> jumps{};
   FuncState *fs = ls->fs;
   const auto case_line = ls->getLineNumber();
 
   expdesc e, cmpval;
-  e = control;
+  e = ctrl;
   luaK_infix(fs, OPR_EQ, &e);
   expr(ls, &cmpval, nullptr, E_NO_COLON);
   luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
   jumps.emplace_back(e.u.info);
   while (testnext(ls, ',')) {
-    e = control;
+    e = ctrl;
     luaK_infix(fs, OPR_EQ, &e);
     expr(ls, &cmpval, nullptr, E_NO_COLON);
     luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
