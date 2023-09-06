@@ -1092,6 +1092,7 @@ static void open_func (LexState *ls, FuncState *fs, BlockCnt *bl) {
   fs->firstlocal = ls->dyd->actvar.n;
   fs->firstlabel = ls->dyd->label.n;
   fs->bl = NULL;
+  fs->pinnedreg = -1;
   f->source = ls->source;
   luaC_objbarrier(ls->L, f, f->source);
   f->maxstacksize = 2;  /* registers 0/1 are always valid */
@@ -2743,14 +2744,22 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     luaK_reserveregs(ls->fs, 1);
   }
 
-  expdesc ctrl, save;
-  expr(ls, &ctrl);
-  luaK_exp2nextreg(ls->fs, &ctrl);
-  init_exp(&save, VLOCAL, ctrl.u.info);
-  testnext(ls, ')');
-  checknext(ls, TK_DO);
-  new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
-  adjustlocalvars(ls, 1);
+  expdesc ctrl;
+  if (tk == TK_ARROW) {
+    expr(ls, &ctrl);
+    luaK_exp2nextreg(ls->fs, &ctrl);
+    fs->pinnedreg = ctrl.u.info;
+    testnext(ls, ')');
+    checknext(ls, TK_DO);
+  }
+  else {
+    expr(ls, &ctrl);
+    luaK_exp2nextreg(ls->fs, &ctrl);
+    testnext(ls, ')');
+    checknext(ls, TK_DO);
+    new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
+    adjustlocalvars(ls, 1);
+  }
 
   std::vector<int> first{};
   TString* const begin_switch = luaS_newliteral(ls->L, "pluto_begin_switch");
@@ -2760,7 +2769,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   if (gett(ls) == TK_CASE) {
     luaX_next(ls); /* Skip 'case' */
-    first = casecond(ls, save, tk);
+    first = casecond(ls, ctrl, tk);
     first_pc = luaK_getlabel(fs);
     caselist(ls, ud);
   }
@@ -2820,7 +2829,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   for (auto& c : cases) {
     auto pos = luaX_getpos(ls);
     luaX_setpos(ls, c.tidx);
-    for (const auto& j : casecond(ls, save, tk)) {
+    for (const auto& j : casecond(ls, ctrl, tk)) {
       luaK_patchlist(fs, j, c.pc);
     }
     luaX_setpos(ls, pos);
@@ -2830,6 +2839,11 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     lgoto(ls, default_case, ls->getLineNumber());
 
   createlabel(ls, end_switch, ls->getLineNumber(), true); // ::end_switch::
+
+  if (tk == TK_ARROW) {
+    fs->pinnedreg = -1;
+    luaK_freeexp(fs, &ctrl);
+  }
 
   check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);

@@ -486,7 +486,7 @@ void luaK_reserveregs (FuncState *fs, int n) {
 )
 */
 static void freereg (FuncState *fs, int reg) {
-  if (reg >= luaY_nvarstack(fs)) {
+  if (reg != fs->pinnedreg && reg >= luaY_nvarstack(fs)) {
     fs->freereg--;
     lua_assert(reg == fs->freereg);
   }
@@ -1971,6 +1971,11 @@ void luaK_exp2reg (FuncState *fs, expdesc *e, int reg) {
   luaK_dischargevars(fs, e);
   freeexp(fs, e);
   exp2reg(fs, e, reg);
+}
+
+
+void luaK_freeexp (FuncState *fs, expdesc *e) {
+  freeexp(fs, e);
 }
 
 
