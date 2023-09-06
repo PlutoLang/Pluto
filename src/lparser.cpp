@@ -2741,10 +2741,10 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   BlockCnt sbl;
   enterblock(fs, &sbl, 1);
 
-  expdesc crtl, save;
-  expr(ls, &crtl);
-  luaK_exp2nextreg(ls->fs, &crtl);
-  init_exp(&save, VLOCAL, crtl.u.info);
+  expdesc ctrl, save;
+  expr(ls, &ctrl);
+  luaK_exp2nextreg(ls->fs, &ctrl);
+  init_exp(&save, VLOCAL, ctrl.u.info);
   testnext(ls, ')');
   checknext(ls, TK_DO);
   new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
