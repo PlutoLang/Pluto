@@ -3077,29 +3077,29 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
     leavelevel(ls);
   }
   else {  /* restassign -> '=' explist */
+    check(ls, '=');
     BinOpr op = getbinopr((int)ls->t.seminfo.i);  /* binary operation from lexer state */
     if (op != OPR_NOBINOPR) {  /* is there a saved binop? */
       check_condition(ls, nvars == 1, "unsupported tuple assignment");
       compoundassign(ls, &lh->v, op);  /* perform binop & assignment */
       return;  /* avoid default */
     }
-    else if (testnext(ls, '=')) { /* no requested binop, continue */
-      TypeHint prop{};
-      ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
-      ls->pushContext(ctx);
-      int nexps = explist(ls, &e, &prop);
-      ls->popContext(ctx);
-      if (nexps != nvars)
-        adjust_assign(ls, nvars, nexps, &e);
-      else {
-        luaK_setoneret(ls->fs, &e);  /* close last expression */
-        if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
-          exp_propagate(ls, e, prop);
-          process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), prop, line);
-        }
-        luaK_storevar(ls->fs, &lh->v, &e);
-        return;  /* avoid default */
+    luaX_next(ls);
+    TypeHint prop{};
+    ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
+    ls->pushContext(ctx);
+    int nexps = explist(ls, &e, &prop);
+    ls->popContext(ctx);
+    if (nexps != nvars)
+      adjust_assign(ls, nvars, nexps, &e);
+    else {
+      luaK_setoneret(ls->fs, &e);  /* close last expression */
+      if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
+        exp_propagate(ls, e, prop);
+        process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), prop, line);
       }
+      luaK_storevar(ls->fs, &lh->v, &e);
+      return;  /* avoid default */
     }
   }
   init_exp(&e, VNONRELOC, ls->fs->freereg-1);  /* default assignment */
