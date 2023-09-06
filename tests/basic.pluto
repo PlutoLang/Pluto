@@ -644,6 +644,20 @@ do
     assert(int2eng(2) == "Two")
     assert(int2eng(69) == "Other")
 end
+do
+    local function getResponse(word)
+        return switch word do
+            case "hi", "hello" -> "Greetings!"
+            default -> "Unrecognised word"
+            case "bye", "goodbye" -> "Farewell!"
+        end
+    end
+    assert(getResponse("hi") == "Greetings!")
+    assert(getResponse("hello") == "Greetings!")
+    assert(getResponse("bye") == "Farewell!")
+    assert(getResponse("goodbye") == "Farewell!")
+    assert(getResponse("deez") == "Unrecognised word")
+end
 
 print "Testing table freezing."
 do
