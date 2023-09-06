@@ -2737,6 +2737,12 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   BlockCnt sbl;
   enterblock(fs, &sbl, 1);
 
+  if (tk == TK_ARROW) {
+    /* doing this only now so 'enterblock' doesn't assert */
+    init_exp(reinterpret_cast<expdesc*>(ud), VNONRELOC, ls->fs->freereg);
+    luaK_reserveregs(ls->fs, 1);
+  }
+
   expdesc ctrl, save;
   expr(ls, &ctrl);
   luaK_exp2nextreg(ls->fs, &ctrl);
@@ -2849,9 +2855,6 @@ static void switchstat (LexState *ls) {
 }
 
 static void switchexpr (LexState *ls, expdesc *v) {
-  init_exp(v, VNONRELOC, ls->fs->freereg);
-  luaK_reserveregs(ls->fs, 1);
-
   switchimpl(ls, TK_ARROW, [](LexState *ls, void *ud) {
     const auto line = ls->getLineNumber();
     const auto reg = reinterpret_cast<expdesc*>(ud)->u.info;
@@ -2860,6 +2863,7 @@ static void switchexpr (LexState *ls, expdesc *v) {
     luaK_exp2reg(ls->fs, &cv, reg);
     lbreak(ls, 1, line);
   }, v);
+  ls->fs->freereg++;
 }
 
 
