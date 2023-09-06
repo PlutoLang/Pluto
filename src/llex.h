@@ -54,15 +54,9 @@ enum RESERVED {
   TK_EOS, TK_FLT, 
   TK_INT, TK_NAME, TK_STRING,
   /* Pluto symbols */
-  TK_CSUB, TK_CSHL,     /* subtraction & shift left    */
-  TK_CSHR, TK_CBAND,    /* shift right & bitwise AND   */
-  TK_CADD, TK_CMUL,     /* addition and multiplication */
-  TK_CMOD, TK_CBOR,     /* modulo and bitwise OR       */
-  TK_CBXOR,             /* bitwise XOR                 */
-  TK_CIDIV, TK_CDIV,    /* integer and float division  */
-  TK_CPOW, TK_POW,      /* exponents / power           */
-  TK_CCAT, TK_COAL,     /* concatenation & null coal.  */
-  TK_WALRUS,            /* walrus operator */
+  TK_POW,     /* exponents / power */
+  TK_COAL,    /* null coal.        */
+  TK_WALRUS,  /* walrus operator   */
 };
 
 #define FIRST_COMPAT TK_PUSE
