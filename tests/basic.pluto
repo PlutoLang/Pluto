@@ -621,6 +621,33 @@ do
     assert(getResponse("deez") == "Unrecognised word")
 end
 
+print "Testing switch expression."
+do
+    local function int2eng(i)
+        return switch i do
+            case 1 -> "One"
+            case 2 -> "Two"
+            default -> "Other"
+        end
+    end
+    assert(int2eng(1) == "One")
+    assert(int2eng(2) == "Two")
+    assert(int2eng(69) == "Other")
+end
+do
+    local function int2eng(i)
+        local ret = switch i do
+            case 1 -> "One"
+            case 2 -> "Two"
+            default -> "Other"
+        end
+        return ret
+    end
+    assert(int2eng(1) == "One")
+    assert(int2eng(2) == "Two")
+    assert(int2eng(69) == "Other")
+end
+
 print "Testing table freezing."
 do
     local t = table.freeze({ 1, 2, 3, "hello", "world" })
