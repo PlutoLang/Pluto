@@ -58,6 +58,7 @@ enum RESERVED {
   TK_POW,     /* exponents / power */
   TK_COAL,    /* null coal.        */
   TK_WALRUS,  /* walrus operator   */
+  TK_ARROW,
 };
 
 #define FIRST_COMPAT TK_PUSE
