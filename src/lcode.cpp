@@ -1966,6 +1966,7 @@ void luaK_finish (FuncState *fs) {
   }
 }
 
+
 void luaK_exp2reg (FuncState *fs, expdesc *e, int reg) {
   luaK_dischargevars(fs, e);
   freeexp(fs, e);
