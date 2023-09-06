@@ -256,6 +256,12 @@ static int testnext (LexState *ls, int c) {
 }
 
 
+// Test the next token to see if it's either 'token1' or 'token2'.
+static bool testnext2 (LexState *ls, int token1, int token2) {
+  return testnext(ls, token1) || testnext(ls, token2);
+}
+
+
 /*
 ** Check that next token is 'c'.
 */
@@ -3182,12 +3188,6 @@ static void breakstat (LexState *ls) {
   else {
     throwerr(ls, "break can't skip that many blocks", "try a smaller number", line);
   }
-}
-
-
-// Test the next token to see if it's either 'token1' or 'token2'.
-inline bool testnext2 (LexState *ls, int token1, int token2) {
-  return testnext(ls, token1) || testnext(ls, token2);
 }
 
 
