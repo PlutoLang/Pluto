@@ -1,5 +1,5 @@
 -- Expectation (Lua): Parse-time error due to too many locals
--- Expectation (Pluto): Prints "Hello255"
+-- Expectation (Pluto): Returns "Hello255"
 enum begin
 	OPTION_0 = 0,
 	OPTION_1,
@@ -259,4 +259,4 @@ enum begin
 	OPTION_255
 end
 local deez = "Hello"
-print(deez .. OPTION_255)
+return deez .. OPTION_255
