@@ -21,7 +21,7 @@ jobs:
             src/plutoc
             src/libpluto.so
             src/libpluto.a
-      - run: src/pluto testes/basic.pluto
+      - run: src/pluto testes/_driver.pluto
   ubuntu-20-04:
     runs-on: ubuntu-20.04
     steps:
@@ -39,7 +39,7 @@ jobs:
             src/plutoc
             src/libpluto.so
             src/libpluto.a
-      - run: src/pluto testes/basic.pluto
+      - run: src/pluto testes/_driver.pluto
   debian-10:
     runs-on: [debian-10]
     steps:
@@ -57,7 +57,7 @@ jobs:
             src/plutoc
             src/libpluto.so
             src/libpluto.a
-      - run: src/pluto testes/basic.pluto
+      - run: src/pluto testes/_driver.pluto
   macos:
     runs-on: macos-latest
     steps:
@@ -75,7 +75,7 @@ jobs:
             src/plutoc
             src/libpluto.so
             src/libpluto.a
-      - run: src/pluto testes/basic.pluto
+      - run: src/pluto testes/_driver.pluto
   windows:
     runs-on: windows-latest
     steps:
@@ -93,7 +93,7 @@ jobs:
             src/pluto.exe
             src/plutoc.exe
             src/libpluto.a
-      - run: src/pluto.exe testes/basic.pluto
+      - run: src/pluto.exe testes/_driver.pluto
   windows-dll:
     runs-on: windows-latest
     steps:
