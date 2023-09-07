@@ -402,9 +402,8 @@ static void read_long_string (LexState *ls, SemInfo *seminfo, size_t sep) {
       }
     }
   } endloop:
-  if (seminfo)
-    seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 1,
-                                     luaZ_bufflen(ls->buff) - sep - 1);
+  seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 1,
+                                   luaZ_bufflen(ls->buff) - sep - 1);
 }
 
 
