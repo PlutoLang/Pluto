@@ -1,1 +1,3 @@
 dofile("pluto/basic.pluto")
+assert(dofile("pluto/many-consts.pluto") == "Hello255")
+assert(pcall(dofile, "pluto/many-locals.pluto") == false)
