@@ -1268,9 +1268,8 @@ static void checkformat (lua_State *L, const char *form, const char *flags,
       spec = get2digits(spec);  /* skip precision */
     }
   }
-  if (!isalpha(uchar(*spec))) {  /* did not go to the end? */
-    luaL_error(L, "bad conversion format (unknown, or too long): '%s'", form);
-  }
+  if (!isalpha(uchar(*spec)))  /* did not go to the end? */
+    luaL_error(L, "invalid conversion specification: '%s'", form);
 }
 
 
