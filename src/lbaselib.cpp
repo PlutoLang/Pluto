@@ -63,6 +63,34 @@ static int luaB_warn (lua_State *L) {
 }
 
 
+void warnfon (void *ud, const char *message, int tocont);
+static int luaB_wcall (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TFUNCTION);
+
+  /* write all warnings to a buffer */
+  luaL_Buffer b;
+  luaL_buffinit(L, &b);
+  lua_setwarnf(L, [](void *ud, const char *message, int tocont) {
+    auto B = reinterpret_cast<luaL_Buffer*>(ud);
+    luaL_addstring(B, message);
+    if (!tocont) {
+      luaL_addchar(B, '\n');
+    }
+  }, &b);
+
+  /* call provided function */
+  lua_pushvalue(L, 1);
+  lua_call(L, 0, 0);
+
+  /* revert warnf */
+  lua_setwarnf(L, warnfon, L);
+
+  /* return warnings buffer */
+  luaL_pushresult(&b);
+  return 1;
+}
+
+
 #define SPACECHARS	" \f\n\r\t\v"
 
 static const char *b_str2int (const char *s, int base, lua_Integer *pn) {
@@ -692,6 +720,7 @@ static const luaL_Reg base_funcs[] = {
   {"pcall", luaB_pcall},
   {"print", luaB_print},
   {"warn", luaB_warn},
+  {"wcall", luaB_wcall},
   {"rawequal", luaB_rawequal},
   {"rawlen", luaB_rawlen},
   {"rawget", luaB_rawget},
