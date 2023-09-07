@@ -7,8 +7,10 @@ assert(pcall(dofile, "pluto/many-locals.pluto") == false)
 warn("@off")
 print "--- Lua tests ---"
 
-local f = assert(loadfile('gc.lua'))
-f()
+do
+  local f = assert(loadfile('gc.lua'))
+  f()
+end
 
 dofile('db.lua')
 assert(dofile('calls.lua') == deep and deep)
