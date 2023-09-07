@@ -1149,11 +1149,21 @@ static int lua_number2strx (lua_State *L, char *buff, int sz,
 
 
 void addquoted (luaL_Buffer *b, const char *s, size_t len) {
+  const bool prefer_single_line = (*s == '\x1b');
   luaL_addchar(b, '"');
   while (len--) {
-    if (*s == '"' || *s == '\\' || *s == '\n') {
+    if (*s == '"' || *s == '\\') {
       luaL_addchar(b, '\\');
       luaL_addchar(b, *s);
+    }
+    else if (*s == '\n') {
+      luaL_addchar(b, '\\');
+      if (prefer_single_line) {
+        luaL_addchar(b, 'n');
+      }
+      else {
+        luaL_addchar(b, '\n');
+      }
     }
     else if (iscntrl(uchar(*s))) {
       char buff[10];
