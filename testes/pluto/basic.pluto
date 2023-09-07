@@ -1433,51 +1433,6 @@ do
     end
 end
 assert(("deez" .. 69) == "deez69")
---- @pluto_warnings: disable-unreachable-code
-do
-    -- From lua/testes/closure.lua
-    for i = 1, 10 do
-        if i % 3 == 0 then
-            local y = 0
-        elseif i % 3 == 1 then
-            goto L1
-            error'should not have reached this line of code'
-            ::L1::
-        end
-    end
-end
-do
-    -- From lua/testes/goto.lua
-    local function testG (a)
-        if a == 1 then
-            goto l1
-            error("should never be here!")
-        elseif a == 2 then goto l2
-        elseif a == 3 then goto l3
-        elseif a == 4 then
-            goto l1  -- go to inside the block
-            error("should never be here!")
-            ::l1:: a = a + 1   -- must go to 'if' end
-        else
-            goto l4
-            ::l4a:: a = a * 2; goto l4b
-            error("should never be here!")
-            ::l4:: goto l4a
-            error("should never be here!")
-            ::l4b::
-        end
-        do return a end
-        ::l2:: do return "2" end
-        ::l3:: do return "3" end
-        ::l1:: return "1"
-    end
-    assert(testG(1) == "1")
-    assert(testG(2) == "2")
-    assert(testG(3) == "3")
-    assert(testG(4) == 5)
-    assert(testG(5) == 10)
-end
---- @pluto_warnings: enable-unreachable-code
 
 print "Testing universal functions."
 do
