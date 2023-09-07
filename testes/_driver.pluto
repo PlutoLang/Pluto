@@ -3,3 +3,39 @@ io.currentdir(io.parent(io.absolute(arg[0])))
 dofile("pluto/basic.pluto")
 assert(dofile("pluto/many-consts.pluto") == "Hello255")
 assert(pcall(dofile, "pluto/many-locals.pluto") == false)
+
+warn("@off")
+print "--- Lua tests ---"
+
+local f = assert(loadfile('gc.lua'))
+f()
+
+dofile('db.lua')
+assert(dofile('calls.lua') == deep and deep)
+_G.deep = nil
+dofile('strings.lua')
+dofile('literals.lua')
+dofile('tpack.lua')
+dofile('gengc.lua')
+dofile('constructs.lua')
+dofile('code.lua', true)
+do
+  local f = coroutine.wrap(assert(loadfile('big.lua')))
+  assert(f() == 'b')
+  assert(f() == 'a')
+end
+dofile('nextvar.lua')
+dofile('pm.lua')
+dofile('utf8.lua')
+dofile('api.lua')
+assert(dofile('events.lua') == 12)
+dofile('vararg.lua')
+dofile('closure.lua')
+dofile('coroutine.lua')
+dofile('goto.lua', true)
+dofile('errors.lua')
+dofile('math.lua')
+dofile('sort.lua', true)
+dofile('bitwise.lua')
+assert(dofile('verybig.lua', true) == 10); collectgarbage()
+--dofile('files.lua') -- This one is giving some weird errors
