@@ -860,6 +860,18 @@ static int absolute (lua_State *L)
 }
 
 
+static int parent (lua_State *L)
+{
+  Protect(
+    const std::filesystem::path f = getStringStreamPath(L);
+    const auto r = f.parent_path();
+    lua_pushstring(L, (const char*)r.u8string().c_str());
+  );
+
+  return 1;
+}
+
+
 static int makedir (lua_State *L)
 {
   Protect(
@@ -983,6 +995,7 @@ static const luaL_Reg iolib[] = {
   {"makedir", makedir},
   {"makedirs", makedirs},
   {"absolute", absolute},
+  {"parent", parent},
   {"copyto", copyto},
   {"exists", exists},
   {"filesize", filesize},
