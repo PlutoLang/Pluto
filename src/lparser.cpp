@@ -2668,14 +2668,14 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       luaX_next(ls);
-      break;
+      return;
     }
     case TK_INT: {
       if (prop) prop->emplaceTypeDesc(VT_INT);
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       luaX_next(ls);
-      break;
+      return;
     }
     case TK_STRING: {
       if (prop) prop->emplaceTypeDesc(VT_STR);
@@ -2687,19 +2687,19 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       if (prop) prop->emplaceTypeDesc(VT_NIL);
       init_exp(v, VNIL, 0);
       luaX_next(ls);
-      break;
+      return;
     }
     case TK_TRUE: {
       if (prop) prop->emplaceTypeDesc(VT_BOOL);
       init_exp(v, VTRUE, 0);
       luaX_next(ls);
-      break;
+      return;
     }
     case TK_FALSE: {
       if (prop) prop->emplaceTypeDesc(VT_BOOL);
       init_exp(v, VFALSE, 0);
       luaX_next(ls);
-      break;
+      return;
     }
     case TK_DOTS: {  /* vararg */
       FuncState *fs = ls->fs;
