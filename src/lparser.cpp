@@ -3027,7 +3027,7 @@ static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
   reserves N registers (where N = local variables on stack)
   preforms binary operation and assignment
 */ 
-static void compoundassign(LexState *ls, expdesc *v, BinOpr op) {
+static void compoundassign (LexState *ls, expdesc *v, BinOpr op) {
   luaX_next(ls);
   int line = ls->getLineNumber();
   FuncState *fs = ls->fs;
