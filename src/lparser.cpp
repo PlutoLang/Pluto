@@ -3078,8 +3078,9 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
   }
   else {  /* restassign -> '=' explist */
     check(ls, '=');
-    BinOpr op = getbinopr((int)ls->t.seminfo.i);  /* binary operation from lexer state */
-    if (op != OPR_NOBINOPR) {  /* is there a saved binop? */
+    if ((int)ls->t.seminfo.i != 0) {  /* is there a saved binop? */
+      BinOpr op = getbinopr((int)ls->t.seminfo.i);  /* binary operation from lexer state */
+      lua_assert(op != OPR_NOBINOPR);
       check_condition(ls, nvars == 1, "unsupported tuple assignment");
       compoundassign(ls, &lh->v, op);  /* perform binop & assignment */
       return;  /* avoid default */
