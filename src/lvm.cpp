@@ -1262,7 +1262,7 @@ inline void padUntilGoal(std::string& s, const size_t goal) noexcept
   {
     case LUA_TSTRING:
       str.push_back('"');
-      str.append(svalue(o));
+      str.append(getstr(tsvalue(o)));
       str.push_back('"');
       break;
     case LUA_TNUMBER:
