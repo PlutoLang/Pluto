@@ -233,7 +233,7 @@ typedef l_uint32 Instruction;
 ** the size of the C stack.)
 */
 #if !defined(LUAI_MAXCCALLS)
-#define LUAI_MAXCCALLS		200
+#define LUAI_MAXCCALLS		160
 #endif
 
 
