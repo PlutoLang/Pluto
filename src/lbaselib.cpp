@@ -574,6 +574,12 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
       const char *s = lua_tolstring(L, -1, &l);
       luaL_Buffer b;
       luaL_buffinit(L, &b);
+      if (!is_export) {
+        luaL_addstring(&b, "string(");
+        lua_pushinteger(L, l);
+        luaL_addvalue(&b);
+        luaL_addstring(&b, ") ");
+      }
       addquoted(&b, s, l);
       luaL_pushresult(&b);
       return;
