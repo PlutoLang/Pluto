@@ -1,8 +1,16 @@
+print "Welcome to the test suite."
+
+-- Testing warnings
 do
-    local a = 1
-    local a = 2
+    local function assert_warn(code)
+        assert(wcall(function(msg)
+            load(code)()
+        end) ~= "")
+    end
+    assert_warn([[local a; local a]]) -- var-shadow
+    assert_warn([[local a = 69; local b: string = a]]) -- type mismatch in local-to-local assignment
+    assert_warn([[g = 69; local l: string = g]]) -- type mismatch in global-to-local assignment
 end
-print "Welcome to the test suite. There should have been exactly 1 parser warning."
 
 -- Testing type hints (there should be no warnings here)
 do
