@@ -556,6 +556,21 @@ static int luaB_newuserdata (lua_State *L) {
 TValue *index2value (lua_State *L, int idx);
 void addquoted (luaL_Buffer *b, const char *s, size_t len);
 
+struct FuncDumpWriter {
+  int init;
+  luaL_Buffer B;
+
+  static int write (lua_State *L, const void *b, size_t size, void *ud) {
+    auto state = (FuncDumpWriter*)ud;
+    if (!state->init) {
+      state->init = 1;
+      luaL_buffinit(L, &state->B);
+    }
+    luaL_addlstring(&state->B, (const char *)b, size);
+    return 0;
+  }
+};
+
 static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marker, bool is_export) {
   switch (lua_type(L, -1)) {
     default:
@@ -574,6 +589,27 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
       const char *s = lua_tolstring(L, -1, &l);
       luaL_Buffer b;
       luaL_buffinit(L, &b);
+      addquoted(&b, s, l);
+      luaL_pushresult(&b);
+      return;
+    }
+
+    case LUA_TFUNCTION: {
+      /* collect function dump */
+      FuncDumpWriter state;
+      state.init = 0;
+      if (l_unlikely(lua_dump(L, FuncDumpWriter::write, &state, 0) != 0))
+        luaL_error(L, "unable to dump given function");
+      luaL_pushresult(&state.B);
+      size_t l;
+      const char *s = lua_tolstring(L, -1, &l);
+      lua_pop(L, 1);
+      /* we have it as a single string now */
+      luaL_Buffer b;
+      luaL_buffinit(L, &b);
+      if (!is_export) {
+        luaL_addstring(&b, "function ");
+      }
       addquoted(&b, s, l);
       luaL_pushresult(&b);
       return;
