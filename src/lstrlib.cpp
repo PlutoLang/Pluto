@@ -123,7 +123,8 @@ static int str_reverse (lua_State *L) {
 static int str_lower (lua_State *L) {
   size_t l;
   size_t i;
-  std::string s_ = luaL_checklstring(L, 1, &l);
+  const char *_s = luaL_checklstring(L, 1, &l);
+  std::string s_(_s, l);
   lua_Integer i_ = lua_tointeger(L, 2);
   if (i_)  /* Convert a specific index. */
   {
@@ -151,7 +152,8 @@ static int str_upper (lua_State *L)
 {
   size_t l;
   size_t i;
-  std::string s_ = luaL_checklstring(L, 1, &l);
+  const char *_s = luaL_checklstring(L, 1, &l);
+  std::string s_(_s, l);
   lua_Integer i_ = lua_tointeger(L, 2);
   if (i_)  /* Convert a specific index. */
   {
