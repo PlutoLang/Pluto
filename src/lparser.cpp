@@ -992,6 +992,7 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
     msg = "no visible label '%s' for <goto> at line %d";
     msg = luaO_pushfstring(ls->L, msg, getstr(gt->name), gt->line);
   }
+  ls->setLineNumber(gt->line);
   luaK_semerror(ls, msg);
 }
 
@@ -3117,9 +3118,8 @@ int cond (LexState *ls) {
 }
 
 
-static void lgoto(LexState *ls, TString *name) {
+static void lgoto (LexState *ls, TString *name, int line) {
   FuncState *fs = ls->fs;
-  int line = ls->getLineNumber();
   Labeldesc *lb = findlabel(ls, name);
   if (lb == NULL)  /* no label? */
     /* forward jump; will be resolved when the label is declared */
@@ -3135,7 +3135,8 @@ static void lgoto(LexState *ls, TString *name) {
 }
 
 static void gotostat (LexState *ls) {
-  lgoto(ls, str_checkname(ls, N_RESERVED));
+  const auto line = ls->getLineNumber();
+  lgoto(ls, str_checkname(ls, N_RESERVED), line);
 }
 
 
@@ -3303,7 +3304,7 @@ static void switchstat (LexState *ls, int line) {
   }
 
   if (default_case != nullptr)
-    lgoto(ls, default_case);
+    lgoto(ls, default_case, ls->getLineNumber());
 
   createlabel(ls, end_switch, ls->getLineNumber(), block_follow(ls, 0)); // ::end_switch::
 

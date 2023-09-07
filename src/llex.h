@@ -332,6 +332,16 @@ struct LexState {
     return !tokens.empty() && tokens.back().token == TK_EOS;
   }
 
+  void setLineNumber(int l) {
+    tidx = 0;
+    for (auto& tk : tokens) {
+      if (tk.line == l) {
+        break;
+      }
+      ++tidx;
+    }
+  }
+
   [[nodiscard]] int getLineNumber() const noexcept {
     if (!tokens.empty() && tokens.back().token != TK_EOS) {  /* doing lexer pass? */
       return tokens.back().line;
