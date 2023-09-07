@@ -2494,18 +2494,18 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
-static void expsuffix (LexState* ls, expdesc* v, int flags, TypeHint *prop);
+static void expsuffix (LexState* ls, expdesc* v, int line, int flags, TypeHint *prop);
 
 static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
+  int line = ls->getLineNumber();
   primaryexp(ls, v);
-  expsuffix(ls, v, flags, prop);
+  expsuffix(ls, v, line, flags, prop);
 }
 
-static void expsuffix (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
+static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *prop) {
   FuncState *fs = ls->fs;
-  int line = ls->getLineNumber();
   for (;;) {
     switch (ls->t.token) {
       case '?': {  /* safe navigation or ternary */
@@ -2749,7 +2749,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       return;
     }
   }
-  expsuffix(ls, v, flags, prop);
+  expsuffix(ls, v, ls->getLineNumber(), flags, prop);
 }
 
 
@@ -4308,7 +4308,7 @@ static void statement (LexState *ls, TypeHint *prop) {
       if (prop) prop->emplaceTypeDesc(VT_TABLE);
       expdesc v;
       newexpr(ls, &v);
-      expsuffix(ls, &v, 0, prop);
+      expsuffix(ls, &v, line, 0, prop);
       break;
     }
     default: {  /* stat -> func | assignment */
