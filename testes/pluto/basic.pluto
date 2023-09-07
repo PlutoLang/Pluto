@@ -1499,5 +1499,3 @@ do
         or (os.setlocale(nil) == "fr-FR.UTF-8") -- For Windows, actually do the assert, tho. :)
         )
 end
-
-print "Finished."
