@@ -924,7 +924,26 @@ static int listdir(lua_State *L)
 }
 
 
-int l_remove(lua_State *L)
+int l_os_remove (lua_State *L)
+{
+  const auto path = getStringStreamPath(L);;
+
+  try
+  {
+    std::filesystem::remove(path);
+  }
+  catch (const std::exception& e)
+  {
+    lua_pushboolean(L, 0);
+    lua_pushstring(L, e.what());
+    return 2;
+  }
+
+  lua_pushboolean(L, 1);
+  return 1;
+}
+
+static int l_remove (lua_State *L)
 {
   const auto path = getStringStreamPath(L);;
   const auto recursive = lua_istrue(L, 2);
@@ -944,7 +963,27 @@ int l_remove(lua_State *L)
 }
 
 
-int l_rename(lua_State *L)
+int l_os_rename (lua_State *L)
+{
+  const auto oldP = getStringStreamPath(L);
+  const auto newP = luaL_checkstring(L, 2);
+
+  try
+  {
+    std::filesystem::rename(oldP, newP);
+  }
+  catch (const std::exception& e)
+  {
+    lua_pushboolean(L, 0);
+    lua_pushstring(L, e.what());
+    return 2;
+  }
+
+  lua_pushboolean(L, 1);
+  return 1;
+}
+
+static int l_rename (lua_State *L)
 {
   const auto oldP = getStringStreamPath(L);
   const auto newP = luaL_checkstring(L, 2);
