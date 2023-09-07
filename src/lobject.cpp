@@ -35,11 +35,12 @@
 int luaO_ceillog2 (unsigned int x) {
   lua_assert(x != 0);
 #if defined(__clang__) || defined(__GNUC__)
-  return 32 - __builtin_clz(x);
+  return (x > 1) ? (32 - __builtin_clz(x - 1)) : 0;
 #elif defined(_MSC_VER)
-  unsigned long ret;
-  _BitScanReverse(&ret, x);
-  return ret + 1;
+  unsigned long index;
+  if (x > 1 && _BitScanReverse(&index, cast(unsigned long, x) - 1))
+    return cast_int(index + 1);
+  return 0;
 #else
   static const lu_byte log_2[256] = {  /* log_2[i] = ceil(log2(i - 1)) */
     0,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
