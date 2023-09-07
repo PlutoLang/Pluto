@@ -403,8 +403,8 @@ static void read_long_string (LexState *ls, SemInfo *seminfo, size_t sep) {
     }
   } endloop:
   if (seminfo)
-    seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + sep,
-                                     luaZ_bufflen(ls->buff) - 2 * sep);
+    seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 1,
+                                     luaZ_bufflen(ls->buff) - sep - 1);
 }
 
 
@@ -594,6 +594,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       case '[': {  /* long string or simply '[' */
         ls->appendLineBuff('[');
         size_t sep = skip_sep(ls);
+        luaZ_resetbuffer(ls->buff);
         if (sep >= 2) {
           read_long_string(ls, seminfo, sep);
           return TK_STRING;
