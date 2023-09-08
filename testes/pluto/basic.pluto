@@ -669,6 +669,23 @@ do
     assert(getResponse("goodbye") == "Farewell!")
     assert(getResponse("deez") == "Unrecognised word")
 end
+-- Test method call within casecond
+do
+    local class Human
+        function __construct(public name)
+        end
+
+        function getName()
+            return self.name
+        end
+    end
+    local h = new Human("John")
+    local str = switch "John" do
+        case h:getName() -> "Same name"
+        default -> "Different name"
+    end
+    assert(str == "Same name")
+end
 
 print "Testing table freezing."
 do
