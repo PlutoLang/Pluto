@@ -84,6 +84,8 @@ typedef struct BlockCnt {
   lu_byte upval;  /* true if some variable in the block is an upvalue */
   lu_byte isloop;  /* true if 'block' is a loop */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
+
+  [[nodiscard]] bool isSwitch() const noexcept { return isloop == 2; }
 } BlockCnt;
 
 
@@ -991,7 +993,8 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
   bl->insidetbc = static_cast<lu_byte>(fs->bl != NULL && fs->bl->insidetbc);
   bl->previous = fs->bl;
   fs->bl = bl;
-  lua_assert(fs->freereg == luaY_nvarstack(fs));
+  if (!bl->isSwitch())  /* switch expression won't touch registers */
+    lua_assert(fs->freereg == luaY_nvarstack(fs));
 }
 
 
@@ -1024,7 +1027,8 @@ static void leaveblock (FuncState *fs) {
     hasclose = createlabel(ls, luaS_newliteral(ls->L, "break"), 0, 0);
   if (!hasclose && bl->previous && bl->upval)  /* still need a 'close'? */
     luaK_codeABC(fs, OP_CLOSE, stklevel, 0, 0);
-  fs->freereg = stklevel;  /* free registers */
+  if (!bl->isSwitch())
+    fs->freereg = stklevel;  /* free registers */
   ls->dyd->label.n = bl->firstlabel;  /* remove local labels */
   fs->bl = bl->previous;  /* current block now is previous one */
   if (bl->previous)  /* was it a nested block? */
@@ -2739,7 +2743,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   FuncState *fs = ls->fs;
   BlockCnt sbl;
-  enterblock(fs, &sbl, 1);
+  enterblock(fs, &sbl, 2);
 
   if (tk == TK_ARROW) {
     /* doing this only now so 'enterblock' doesn't assert */
@@ -2880,7 +2884,6 @@ static void switchexpr (LexState *ls, expdesc *v) {
     luaK_exp2reg(ls->fs, &cv, reg);
     lbreak(ls, 1, line);
   }, v);
-  ls->fs->freereg++;
 }
 
 
