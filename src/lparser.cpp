@@ -2703,16 +2703,21 @@ static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
   FuncState *fs = ls->fs;
   const auto case_line = ls->getLineNumber();
 
+  int expr_flags = 0;
+  if (tk == ':') {
+    expr_flags |= E_NO_COLON;
+  }
+
   expdesc e, cmpval;
   e = ctrl;
   luaK_infix(fs, OPR_EQ, &e);
-  expr(ls, &cmpval, nullptr, E_NO_COLON);
+  expr(ls, &cmpval, nullptr, expr_flags);
   luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
   jumps.emplace_back(e.u.info);
   while (testnext(ls, ',')) {
     e = ctrl;
     luaK_infix(fs, OPR_EQ, &e);
-    expr(ls, &cmpval, nullptr, E_NO_COLON);
+    expr(ls, &cmpval, nullptr, expr_flags);
     luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
     jumps.emplace_back(e.u.info);
   }
