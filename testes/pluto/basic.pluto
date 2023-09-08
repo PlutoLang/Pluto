@@ -683,6 +683,22 @@ do
     end
     assert(str == "Same name")
 end
+-- Test that switchexpr doesn't displace registers so we get "attempt to call a string value" or something
+do
+    class Human
+        function __construct(public name)
+        end
+
+        function getName()
+            return self.name
+        end
+    end
+    local h = new Human("John")
+    assert(switch "John" do
+        case (h:getName()) -> "Same name"
+        default -> "Different name"
+    end)
+end
 
 print "Testing table freezing."
 do
