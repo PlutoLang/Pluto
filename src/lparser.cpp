@@ -1891,7 +1891,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
 /*
 ** Lambda implementation.
 ** Shorthands lambda expressions into `function (...) return ... end`.
-** The '|' token was chosen because it's not commonly used as an unary operator in programming.
+** The '|' token was chosen because it's not commonly used as a unary operator in programming.
 ** The '->' arrow syntax looked more visually appealing than a colon. It also plays along with common lambda tokens.
 */
 static void lambdabody (LexState *ls, expdesc *e, int line) {
