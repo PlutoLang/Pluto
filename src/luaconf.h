@@ -849,6 +849,8 @@
     #define PLUTO_COMPATIBLE_CLASS
     #define PLUTO_COMPATIBLE_PARENT
     #define PLUTO_COMPATIBLE_EXPORT
+    #define PLUTO_COMPATIBLE_TRY
+    #define PLUTO_COMPATIBLE_CATCH
 #endif
 
 // If defined, Pluto disables optimisations of Lua macros that would make your code unable to be linked
