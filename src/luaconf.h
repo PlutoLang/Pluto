@@ -879,7 +879,7 @@
 ** If exceeded, the backward jump is ignored to escape the loop.
 */
 #ifndef PLUTO_ILP_MAX_ITERATIONS
-#define PLUTO_ILP_MAX_ITERATIONS			1000000
+#define PLUTO_ILP_MAX_ITERATIONS			1'000'000
 #endif
 
 // If you want (i.e) `luaB_next` to reset iteration counters, define as `luaB_next`.
