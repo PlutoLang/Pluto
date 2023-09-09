@@ -4150,6 +4150,7 @@ static void statement (LexState *ls, TypeHint *prop) {
     ss.push("stat", "continue");
     ss.push("stat", "goto");
     ss.push("stat", "switch");
+    ss.push("stat", "pluto_switch");
     ss.push("stat", "enum");
     ss.push("stat", "pluto_use");
     ss.push("stat", "new");
