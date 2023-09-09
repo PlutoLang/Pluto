@@ -699,6 +699,14 @@ do
         default -> "Different name"
     end)
 end
+-- Assert that default return value is nil, not whatever was in the register before
+do
+    function f()
+        assert("dummy")
+        return switch 42 do end
+    end
+    assert(f() == nil)
+end
 
 print "Testing table freezing."
 do
