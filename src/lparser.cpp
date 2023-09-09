@@ -2813,6 +2813,20 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     }
   }
 
+  /* if switch expression has no default case, generate one to guarantee nil in that case
+     otherwise, the value returned by the expression would be whatever was in the register before */
+  if (tk == TK_ARROW && default_case == nullptr) {
+    default_case = luaS_newliteral(ls->L, "pluto_default_case");
+    default_pc = luaK_getlabel(fs);
+    createlabel(ls, default_case, ls->getLineNumber(), false);
+    const auto line = ls->getLineNumber();
+    const auto reg = reinterpret_cast<expdesc*>(ud)->u.info;
+    expdesc cv;
+    init_exp(&cv, VNIL, 0);
+    luaK_exp2reg(ls->fs, &cv, reg);
+    lbreak(ls, 1, line);
+  }
+
   /* handle possible fallthrough, don't loop infinitely */
   newgotoentry(ls, end_switch, ls->getLineNumber(), luaK_jump(fs)); // goto end_switch
 
