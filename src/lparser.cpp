@@ -547,7 +547,7 @@ static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = 
     Vardesc *desc = getlocalvardesc(fs, i);
     LocVar *local = localdebuginfo(fs, i);
     std::string n = name->toCpp();
-    if ((n != "(for state)" && n != "(switch control value)") && (local && local->varname == name)) { // Got a match.
+    if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
       throw_warn(ls,
         "duplicate local declaration",
           luaO_fmt(L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
@@ -1147,6 +1147,7 @@ static int block_follow (LexState *ls, int withuntil) {
     }
     case TK_ELSE: case TK_ELSEIF:
     case TK_END: case TK_EOS:
+    case TK_CATCH: case TK_PCATCH:
       return 1;
     case TK_UNTIL: return withuntil;
     default: return 0;
@@ -4203,7 +4204,10 @@ static void usestat (LexState *ls) {
     }
     else if (ls->t.token == TK_STRING) {
       is_version = true;
-      if (strcmp(ls->t.seminfo.ts->contents, "0.6.0") == 0) {
+      if (strcmp(ls->t.seminfo.ts->contents, "0.8.0") == 0) {
+        tokens = { TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, TK_TRY, TK_CATCH };
+      }
+      else if (strcmp(ls->t.seminfo.ts->contents, "0.6.0") == 0) {
         tokens = { TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT };
       }
       else if (strcmp(ls->t.seminfo.ts->contents, "0.5.0") == 0) {
@@ -4212,7 +4216,7 @@ static void usestat (LexState *ls) {
       else if (strcmp(ls->t.seminfo.ts->contents, "0.2.0") == 0) {
         tokens = { TK_SWITCH, TK_CONTINUE };
       }
-      else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", ls->t.seminfo.ts->contents), "did you mean \"0.6.0\", \"0.5.0\" or \"0.2.0\"?");
+      else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", ls->t.seminfo.ts->contents), "did you mean \"0.8.0\", \"0.6.0\", \"0.5.0\" or \"0.2.0\"?");
       luaX_next(ls);
     }
     else {
@@ -4229,7 +4233,7 @@ static void usestat (LexState *ls) {
 
     /* catch stupid stuff */
     if (is_all && enable)
-      throw_warn(ls, "'pluto_use *' is a bad idea because future Pluto versions may add keywords that will break your script", "consider using 'pluto_use \"0.6.0\"' instead", line, WT_BAD_PRACTICE);
+      throw_warn(ls, "'pluto_use *' is a bad idea because future Pluto versions may add keywords that will break your script", "consider using 'pluto_use \"0.8.0\"' instead", line, WT_BAD_PRACTICE);
     if (is_version && !enable)
       throwerr(ls, "'pluto_use <version>' is not valid for disabling tokens", "did you mean 'pluto_use * = false'?");
 
@@ -4255,6 +4259,137 @@ static void usestat (LexState *ls) {
 }
 
 
+static void trystat (LexState *ls) {
+  const auto line = ls->getLineNumber();
+  luaX_next(ls);
+
+  const auto results_vidx = new_localvarliteral(ls, "(try results)");
+
+  int pc = luaK_codeABC(ls->fs, OP_NEWTABLE, 0, 0, 0);
+  expdesc t;
+  ConsControl cc;
+  luaK_code(ls->fs, 0);  /* space for extra arg. */
+  cc.na = cc.nh = cc.tostore = 0;
+  cc.t = &t;
+  init_exp(&t, VNONRELOC, ls->fs->freereg);  /* table will be at stack top */
+  luaK_reserveregs(ls->fs, 1);
+
+  singlevar(ls, &cc.v, luaX_newliteral(ls, "pcall"));
+  luaK_exp2nextreg(ls->fs, &cc.v);
+  lua_assert(cc.v.k == VNONRELOC);
+
+  FuncState new_fs;
+  BlockCnt bl;
+  new_fs.f = addprototype(ls);
+  new_fs.f->linedefined = ls->getLineNumber();
+  open_func(ls, &new_fs, &bl);
+  
+  TypeHint prop{};
+  statlist(ls, &prop);
+  
+  new_fs.f->lastlinedefined = ls->getLineNumber();
+  expdesc lambda;
+  codeclosure(ls, &lambda);
+  close_func(ls);
+  luaK_exp2nextreg(ls->fs, &lambda);
+
+  auto base = cc.v.u.info;  /* base register for call */
+  {
+    constexpr auto nparams = 1;
+    init_exp(&cc.v, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
+  }
+  ls->fs->freereg = base + 1;
+
+  cc.tostore++;
+  lastlistfield(ls->fs, &cc);
+  luaK_settablesize(ls->fs, pc, t.u.info, cc.na, cc.nh);
+
+  adjust_assign(ls, 1, 1, &t);
+  adjustlocalvars(ls, 1);
+
+  if (!testnext(ls, TK_CATCH))
+    check_match(ls, TK_PCATCH, TK_PTRY, line);
+
+  const auto ok_vidx = new_localvarliteral(ls, "(try ok)");
+
+  expdesc tremove;
+  singlevar(ls, &tremove, luaX_newliteral(ls, "table"));
+  luaK_exp2anyregup(ls->fs, &tremove);
+  expdesc key;
+  codestring(&key, luaX_newliteral(ls, "remove"));
+  luaK_indexed(ls->fs, &tremove, &key);
+  luaK_exp2nextreg(ls->fs, &tremove);
+  lua_assert(tremove.k == VNONRELOC);
+
+  expdesc args;
+  init_var(ls->fs, &args, results_vidx);
+  luaK_exp2nextreg(ls->fs, &args);
+
+  init_exp(&args, VKINT, 0);
+  args.u.ival = 1;
+  luaK_exp2nextreg(ls->fs, &args);
+
+  base = tremove.u.info;  /* base register for call */
+  {
+    constexpr auto nparams = 2;
+    init_exp(&tremove, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
+  }
+  ls->fs->freereg = base + 1;
+
+  adjust_assign(ls, 1, 1, &tremove);
+  adjustlocalvars(ls, 1);
+
+  expdesc econd;
+  init_var(ls->fs, &econd, ok_vidx);
+  luaK_goiffalse(ls->fs, &econd);
+  enterblock(ls->fs, &bl, 0);
+
+  new_localvar(ls, str_checkname(ls, N_OVERRIDABLE));
+
+  const auto then_line = ls->getLineNumber();
+  checknext(ls, TK_THEN);
+
+  expdesc evar;
+  init_var(ls->fs, &evar, results_vidx);
+  luaK_exp2anyregup(ls->fs, &evar);
+  init_exp(&key, VKINT, 0);
+  key.u.ival = 1;
+  luaK_exp2val(ls->fs, &key);
+  luaK_indexed(ls->fs, &evar, &key);
+
+  adjust_assign(ls, 1, 1, &evar);
+  adjustlocalvars(ls, 1);
+
+  statlist(ls);
+
+  check_match(ls, TK_END, TK_PCATCH, then_line);
+  leaveblock(ls->fs);
+  luaK_patchtohere(ls->fs, econd.t);
+
+  if (!prop.empty()) {  /* try block has return statement? */
+    expdesc tunpack;
+    singlevar(ls, &tunpack, luaX_newliteral(ls, "table"));
+    luaK_exp2anyregup(ls->fs, &tunpack);
+    codestring(&key, luaX_newliteral(ls, "unpack"));
+    luaK_indexed(ls->fs, &tunpack, &key);
+    luaK_exp2nextreg(ls->fs, &tunpack);
+    lua_assert(tunpack.k == VNONRELOC);
+
+    init_var(ls->fs, &args, results_vidx);
+    luaK_exp2nextreg(ls->fs, &args);
+
+    base = tunpack.u.info;  /* base register for call */
+    constexpr auto nparams = 1;
+    init_exp(&tunpack, VCALL, luaK_codeABC(ls->fs, OP_TAILCALL, base, nparams + 1, 2));
+    ls->fs->freereg = base + 1;
+
+    int first = luaY_nvarstack(ls->fs);  /* first slot to be returned */
+    luaK_setmultret(ls->fs, &tunpack);
+    luaK_ret(ls->fs, first, LUA_MULTRET);
+  }
+}
+
+
 static void statement (LexState *ls, TypeHint *prop) {
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
@@ -4277,6 +4412,8 @@ static void statement (LexState *ls, TypeHint *prop) {
     ss.push("stat", "pluto_use");
     ss.push("stat", "new");
     ss.push("stat", "pluto_new");
+    ss.push("stat", "try");
+    ss.push("stat", "pluto_try");
     if (ls->fs->bl->previous)
       ss.push("stat", "end");
     ss.pushLocals();
@@ -4439,6 +4576,11 @@ static void statement (LexState *ls, TypeHint *prop) {
       expdesc v;
       newexpr(ls, &v);
       expsuffix(ls, &v, line, 0, prop);
+      break;
+    }
+    case TK_TRY:
+    case TK_PTRY: {
+      trystat(ls);
       break;
     }
     default: {  /* stat -> func | assignment */
@@ -4754,6 +4896,12 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
 #endif
 #ifdef PLUTO_COMPATIBLE_EXPORT
   disablekeyword(&lexstate, TK_EXPORT);
+#endif
+#ifdef PLUTO_COMPATIBLE_TRY
+  disablekeyword(&lexstate, TK_TRY);
+#endif
+#ifdef PLUTO_COMPATIBLE_CATCH
+  disablekeyword(&lexstate, TK_CATCH);
 #endif
 #ifndef PLUTO_USE_LET
   disablekeyword(&lexstate, TK_LET);
