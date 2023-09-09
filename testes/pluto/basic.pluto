@@ -695,7 +695,7 @@ do
     end
     local h = new Human("John")
     assert(switch "John" do
-        case (h:getName()) -> "Same name"
+        case h:getName() -> "Same name"
         default -> "Different name"
     end)
 end
