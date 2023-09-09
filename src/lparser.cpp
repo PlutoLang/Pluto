@@ -830,7 +830,7 @@ static void singlevar (LexState *ls, expdesc *var, TString *varname, bool localo
     luaX_next(ls);
     if (ls->getContext() == PARCTX_CREATE_VARS)
       throwerr(ls, "unexpected ':=' while creating multiple variable", "unexpected ':='");
-    if (ls->getContext() == PARCTX_FUNCARGS)
+    if (ls->getContext() == PARCTX_FUNCARGS)  /* could also be detected with `ls->fs->freereg != luaY_nvarstack(ls->fs)` */
       throwerr(ls, "unexpected ':=' while processing function arguments", "unexpected ':='");
     new_localvar(ls, varname);
     expr(ls, var);
