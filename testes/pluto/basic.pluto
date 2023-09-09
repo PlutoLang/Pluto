@@ -1473,6 +1473,11 @@ do
     end
 end
 assert(("deez" .. 69) == "deez69")
+do
+    local a = ""
+    (function (x) a=x end)("hello")
+    assert(a == "hello")
+end
 
 print "Testing universal functions."
 do
