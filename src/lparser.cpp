@@ -2745,7 +2745,6 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   const auto line = ls->getLineNumber();
   const auto switchToken = gett(ls);
   luaX_next(ls); // Skip switch statement.
-  testnext(ls, '(');
 
   FuncState *fs = ls->fs;
   BlockCnt sbl;
@@ -2759,7 +2758,6 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   expdesc ctrl;
   expr(ls, &ctrl);
-  testnext(ls, ')');
   checknext(ls, TK_DO);
   if (!vkhasregister(ctrl.k)) {
     luaK_exp2nextreg(ls->fs, &ctrl);
