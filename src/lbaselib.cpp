@@ -63,7 +63,6 @@ static int luaB_warn (lua_State *L) {
 }
 
 
-void warnfon (void *ud, const char *message, int tocont);
 static int luaB_wcall (lua_State *L) {
   luaL_checktype(L, 1, LUA_TFUNCTION);
 
