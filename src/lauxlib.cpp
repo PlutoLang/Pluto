@@ -1094,7 +1094,7 @@ static int panic (lua_State *L) {
 ** warnfcont: previous message is to be continued
 */
 static void warnfoff (void *ud, const char *message, int tocont);
-void warnfon (void *ud, const char *message, int tocont);
+static void warnfon (void *ud, const char *message, int tocont);
 static void warnfcont (void *ud, const char *message, int tocont);
 
 
@@ -1136,7 +1136,7 @@ static void warnfcont (void *ud, const char *message, int tocont) {
 }
 
 
-void warnfon (void *ud, const char *message, int tocont) {
+static void warnfon (void *ud, const char *message, int tocont) {
   if (checkcontrol((lua_State *)ud, message, tocont))  /* control message? */
     return;  /* nothing else to be done */
   warnfcont(ud, message, tocont);  /* finish processing */
