@@ -2758,13 +2758,15 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   expr(ls, &ctrl);
   testnext(ls, ')');
   checknext(ls, TK_DO);
-  luaK_exp2nextreg(ls->fs, &ctrl);
-  if (tk == TK_ARROW) {
-    fs->pinnedreg = ctrl.u.info;
-  }
-  else {
-    new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
-    adjustlocalvars(ls, 1);
+  if (!vkhasregister(ctrl.k)) {
+    luaK_exp2nextreg(ls->fs, &ctrl);
+    if (tk == TK_ARROW) {
+      fs->pinnedreg = ctrl.u.info;
+    }
+    else {
+      new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
+      adjustlocalvars(ls, 1);
+    }
   }
 
   std::vector<int> first{};
@@ -2860,7 +2862,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   createlabel(ls, end_switch, ls->getLineNumber(), true); // ::end_switch::
 
-  if (tk == TK_ARROW) {
+  if (tk == TK_ARROW && fs->pinnedreg != -1) {
     fs->pinnedreg = -1;
     luaK_freeexp(fs, &ctrl);
   }
