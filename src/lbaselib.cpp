@@ -602,7 +602,7 @@ struct FuncDumpWriter {
   }
 };
 
-static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marker, bool is_export) {
+static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marker, bool is_export, bool is_key = false) {
   switch (lua_type(L, -1)) {
     default:
       if (is_export) {
@@ -620,7 +620,7 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
       const char *s = lua_tolstring(L, -1, &l);
       luaL_Buffer b;
       luaL_buffinit(L, &b);
-      if (!is_export) {
+      if (!is_export && !is_key) {
         luaL_addstring(&b, "string(");
         lua_pushinteger(L, l);
         luaL_addvalue(&b);
@@ -673,7 +673,7 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
     dump.append(indents, '\t');
     dump.push_back('[');
     lua_pushvalue(L, -2);
-    luaB_dumpvar_impl(L, indents + 1, recursion_marker, is_export);
+    luaB_dumpvar_impl(L, indents + 1, recursion_marker, is_export, true);
     dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append("] = ");
