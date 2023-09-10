@@ -64,6 +64,10 @@ typedef enum {
   return k == VNIL || k == VTRUE || k == VFALSE || k == VKFLT || k == VKINT || k == VKSTR || k == VCONST;
 }
 
+[[nodiscard]] constexpr bool vkhasregister(lu_byte k) noexcept {
+  return k == VNONRELOC || k == VLOCAL;
+}
+
 #define vkisvar(k)	(VLOCAL <= (k) && (k) <= VINDEXSTR)
 #define vkisindexed(k)	(VINDEXED <= (k) && (k) <= VINDEXSTR)
 
