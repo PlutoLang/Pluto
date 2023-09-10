@@ -1406,6 +1406,44 @@ do
     assert(release_bytecode:find("Script running in release mode") ~= nil)
 end
 
+print "Testing try/catch."
+do
+    -- Test case: Try does not return
+    local function test(x)
+        local ret
+        try
+            if x then
+                error("error", 0)
+            end
+            ret = true
+        catch e then
+            ret = false
+        end
+        return ret
+    end
+    assert(test(false) == true)
+    assert(test(true) == false)
+end
+do
+    -- Test case: Try does return
+    local function test(x)
+        try
+            if x then
+                error("error", 0)
+            end
+            return true, "ok"
+        catch e then
+            return false, e
+        end
+    end
+    local b, s = test(false)
+    assert(b == true)
+    assert(s == "ok")
+    b, s = test(true)
+    assert(b == false)
+    assert(s == "error")
+end
+
 print "Testing compatibility."
 do
     local a = "Hi"
