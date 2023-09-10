@@ -1094,6 +1094,30 @@ do
     c.num = 42
     assert(c.num == 42)
 end
+-- Metamethod inheritance
+do
+    local class Base
+        function __tostring()
+            return "A based object"
+        end
+
+        function __call()
+            return "You called?"
+        end
+    end
+
+    local class Child extends Base
+    end
+
+    local b = new Base()
+    local c = new Child()
+
+    assert(tostring(b) == "A based object")
+    assert(tostring(c) == "A based object")
+
+    assert(b() == "You called?")
+    assert(c() == "You called?")
+end
 do
     local class ClassParsingTest
         property_no_value
