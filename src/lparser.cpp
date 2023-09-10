@@ -2755,18 +2755,14 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   }
 
   expdesc ctrl;
+  expr(ls, &ctrl);
+  testnext(ls, ')');
+  checknext(ls, TK_DO);
+  luaK_exp2nextreg(ls->fs, &ctrl);
   if (tk == TK_ARROW) {
-    expr(ls, &ctrl);
-    luaK_exp2nextreg(ls->fs, &ctrl);
     fs->pinnedreg = ctrl.u.info;
-    testnext(ls, ')');
-    checknext(ls, TK_DO);
   }
   else {
-    expr(ls, &ctrl);
-    luaK_exp2nextreg(ls->fs, &ctrl);
-    testnext(ls, ')');
-    checknext(ls, TK_DO);
     new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
     adjustlocalvars(ls, 1);
   }
