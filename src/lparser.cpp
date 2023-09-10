@@ -203,10 +203,6 @@ static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
       throwerr(ls,
         "expected 'end' to terminate block.", "expected 'end' symbol after or on this line.");
     }
-    case TK_THEN: {
-      throwerr(ls,
-        "expected 'then' to delimit condition.", "expected 'then' symbol.");
-    }
     case TK_NAME: {
       throwerr(ls,
         "expected an identifier.", "this needs a name.");
