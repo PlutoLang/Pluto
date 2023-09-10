@@ -67,6 +67,9 @@ void warnfon (void *ud, const char *message, int tocont);
 static int luaB_wcall (lua_State *L) {
   luaL_checktype(L, 1, LUA_TFUNCTION);
 
+  const auto og_ud_warn = G(L)->ud_warn;
+  const auto og_warnf = G(L)->warnf;
+
   /* write all warnings to a buffer */
   luaL_Buffer b;
   luaL_buffinit(L, &b);
@@ -83,7 +86,8 @@ static int luaB_wcall (lua_State *L) {
   lua_call(L, 0, 0);
 
   /* revert warnf */
-  lua_setwarnf(L, warnfon, L);
+  G(L)->ud_warn = og_ud_warn;
+  G(L)->warnf = og_warnf;
 
   /* return warnings buffer */
   luaL_pushresult(&b);
