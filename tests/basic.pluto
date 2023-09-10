@@ -1107,13 +1107,16 @@ do
     end
 
     local class Child extends Base
+        function __tostring()
+            return parent:__tostring() .. ": The sequel"
+        end
     end
 
     local b = new Base()
     local c = new Child()
 
     assert(tostring(b) == "A based object")
-    assert(tostring(c) == "A based object")
+    assert(tostring(c) == "A based object: The sequel")
 
     assert(b() == "You called?")
     assert(c() == "You called?")
