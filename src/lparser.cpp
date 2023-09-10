@@ -1980,6 +1980,7 @@ static bool isnamedarg (LexState *ls) {
   return is_named;
 }
 
+static void newexpr (LexState *ls, expdesc *v);
 static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = nullptr) {
   ls->pushContext(PARCTX_FUNCARGS);
   FuncState *fs = ls->fs;
@@ -2046,6 +2047,11 @@ static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = n
       argdescs = { TypeHint{ VT_STR } };
       codestring(&args, ls->t.seminfo.ts);
       luaX_next(ls);  /* must use 'seminfo' before 'next' */
+      break;
+    }
+    case TK_NEW: case TK_PNEW: {  /* funcargs -> new */
+      argdescs = { TypeHint{ VT_TABLE } };
+      newexpr(ls, &args);
       break;
     }
     default: {
@@ -2545,7 +2551,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         funcargs(ls, v, line);
         break;
       }
-      case '(': case TK_STRING: case '{': {  /* funcargs */
+      case '(': case TK_STRING: case '{': case TK_NEW: case TK_PNEW: {  /* funcargs */
         if (flags & E_NO_CALL) {
           return;
         }
