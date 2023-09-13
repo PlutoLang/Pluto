@@ -764,11 +764,37 @@ LUAMOD_API int luaopen_base (lua_State *L) {
 #endif
   lua_setfield(L, -2, "_PSOUP");
   const auto startup_code = R"EOC(
+pluto_class Exception
+    __name = "Exception"
+
+    function __construct(public what)
+        local caller
+        local i = 2
+        while true do
+            caller = debug.getinfo(i)
+            if caller == nil then
+                error("Exception instances must be created with 'pluto_new'", 0)
+            end
+            ++i
+            if caller.name == "Pluto_operator_new" then
+                caller = debug.getinfo(i)
+                break
+            end
+        end
+        self.where = $"{caller.short_src}:{caller.currentline}"
+        error(self, 0)
+    end
+
+    function __tostring()
+        return $"{self.where}: {tostring(self.what)}"
+    end
+end
+
 function instanceof(a, b)
   return a instanceof b
 end
 )EOC";
-  luaL_loadbuffer(L, startup_code, strlen(startup_code), "Pluto");
+  luaL_loadbuffer(L, startup_code, strlen(startup_code), "Pluto Supplemental Standard Library");
   lua_pcall(L, 0, LUA_MULTRET, 0);
   return 1;
 }
