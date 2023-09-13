@@ -795,7 +795,13 @@ function instanceof(a, b)
 end
 )EOC";
   luaL_loadbuffer(L, startup_code, strlen(startup_code), "Pluto Supplemental Standard Library");
+#ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
+  G(L)->ready_for_table_mt = false;
+#endif
   lua_pcall(L, 0, 0, 0);
+#ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
+  G(L)->ready_for_table_mt = true;
+#endif
   return 1;
 }
 
