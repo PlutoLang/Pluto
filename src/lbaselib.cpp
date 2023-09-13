@@ -795,7 +795,7 @@ function instanceof(a, b)
 end
 )EOC";
   luaL_loadbuffer(L, startup_code, strlen(startup_code), "Pluto Supplemental Standard Library");
-  lua_pcall(L, 0, LUA_MULTRET, 0);
+  lua_pcall(L, 0, 0, 0);
   return 1;
 }
 
