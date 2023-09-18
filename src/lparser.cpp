@@ -1980,12 +1980,13 @@ static bool isnamedarg (LexState *ls) {
   return is_named;
 }
 
-static void funcargs (LexState *ls, expdesc *f, int line, TypeDesc *funcdesc = nullptr) {
+static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
   ls->pushContext(PARCTX_FUNCARGS);
   FuncState *fs = ls->fs;
   expdesc args;
   std::vector<TypeHint> argdescs;
   int base, nparams;
+  const auto line = ls->getLineNumber();
   switch (ls->t.token) {
     case '(': {  /* funcargs -> '(' [ explist ] ')' */
       luaX_next(ls);
@@ -2411,8 +2412,6 @@ static void parentexp (LexState *ls, expdesc *v) {
     if (ls->getParentClass() == nullptr)
       luaX_syntaxerror(ls, "attempt to use 'parent' outside of a class that inherits from another class");
 
-    auto line = ls->getLineNumber();
-
     singlevar(ls, v, ls->getParentClass());
     luaK_exp2nextreg(ls->fs, v);
 
@@ -2425,7 +2424,7 @@ static void parentexp (LexState *ls, expdesc *v) {
     singlevar(ls, &first_arg, luaS_newliteral(ls->L, "self"));
     luaK_exp2nextreg(ls->fs, &first_arg);
 
-    funcargs(ls, v, line);
+    funcargs(ls, v);
   }
   else {
     singlevar(ls, v, luaS_newliteral(ls->L, "self"));
@@ -2545,7 +2544,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         luaX_next(ls);
         codename(ls, &key);
         luaK_self(fs, v, &key);
-        funcargs(ls, v, line);
+        funcargs(ls, v);
         break;
       }
       case '(': case TK_STRING: case '{': {  /* funcargs */
@@ -2585,7 +2584,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
           }
         }
         luaK_exp2nextreg(fs, v);
-        funcargs(ls, v, line, funcdesc);
+        funcargs(ls, v, funcdesc);
         break;
       }
       default: return;
@@ -2619,7 +2618,6 @@ static void ifexpr (LexState *ls, expdesc *v) {
 
 static void newexpr (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
-  int line = ls->getLineNumber();
 
   luaX_next(ls);
 
@@ -2631,7 +2629,7 @@ static void newexpr (LexState *ls, expdesc *v) {
   expr(ls, &first_arg, nullptr, E_NO_CALL);
   luaK_exp2nextreg(fs, &first_arg);
 
-  funcargs(ls, v, line);
+  funcargs(ls, v);
 }
 
 
