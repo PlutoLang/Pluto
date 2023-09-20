@@ -2487,6 +2487,9 @@ static void primaryexp (LexState *ls, expdesc *v) {
       return;
     }
     default: {
+      if (ls->t.token == ')' && ls->getContext() == PARCTX_BODY) {
+        throwerr(ls, "unexpected ')', expected 'end' to close function.", "missing 'end' before ')'.");
+      }
       const char *token = luaX_token2str(ls, ls->t.token);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
