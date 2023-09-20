@@ -737,12 +737,22 @@ static int llex (LexState *ls, SemInfo *seminfo) {
               }
               next(ls);  /* skip '{' */
               ls->appendLineBuff('{');
+              {
+                Token& t = ls->tokens.emplace_back(Token{});
+                t.token = '(';
+                t.line = (int)ls->lines.size();
+              }
               while (true) {
                 Token t;
                 t.token = llex(ls, &t.seminfo);
                 t.line = (int)ls->lines.size();
                 if (t.token == '}' || t.token == TK_EOS) break;
                 ls->tokens.emplace_back(std::move(t));
+              }
+              {
+                Token& t = ls->tokens.emplace_back(Token{});
+                t.token = ')';
+                t.line = (int)ls->lines.size();
               }
               need_concat = true;
               break;
