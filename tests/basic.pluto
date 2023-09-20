@@ -916,6 +916,7 @@ do
     local person = new Person("John", 25)
     assert($"{person:printInformation()}" == "My name is John & my age is 25.")
 end
+assert($"{true ? 'true' : 'false'} is the value" == "true is the value")
 
 print "Testing ++ operator."
 do
