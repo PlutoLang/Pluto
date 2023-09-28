@@ -54,32 +54,17 @@ static const luaL_Reg loadedlibs[] = {
 };
 
 
-static const luaL_Reg preloadedLibs[] = {
-#ifdef PLUTO_USE_SOUP
-  {"json", luaopen_json},
-  {"base32", luaopen_base32},
-  {"base58", luaopen_base58},
-  {"base64", luaopen_base64},
-#endif
-  {"crypto", luaopen_crypto},
-  {NULL, NULL}
-};
-
-
-LUALIB_API void luaL_openlibs (lua_State *L)
-{
+LUALIB_API void luaL_openlibs (lua_State *L) {
   const luaL_Reg *lib;
 
-  for (lib = loadedlibs; lib->func; lib++)
-  {
+  for (lib = loadedlibs; lib->func; lib++) {
     luaL_requiref(L, lib->name, lib->func, 1);
     lua_pop(L, 1);  /* remove lib */
   }
 
-  for (lib = preloadedLibs; lib->func; lib++)
-  {
+  for (const Pluto::PreloadedLibrary* lib : Pluto::all_preloaded) {
     luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
-    lua_pushcfunction(L, lib->func);
+    lua_pushcfunction(L, lib->init);
     lua_setfield(L, -2, lib->name);
     lua_pop(L, 1);
   }

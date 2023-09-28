@@ -2259,10 +2259,10 @@ int luaB_utostring (lua_State *L);
 static void const_expr (LexState *ls, expdesc *v) {
   switch (ls->t.token) {
     case TK_NAME: {
-      const Pluto::Preloaded* lib = nullptr;
-      for (const auto& preloaded : Pluto::all_preloaded) {
-        if (strcmp(preloaded->name, ls->t.seminfo.ts->contents) == 0) {
-          lib = preloaded;
+      const Pluto::PreloadedLibrary* lib = nullptr;
+      for (const auto& library : Pluto::all_preloaded) {
+        if (strcmp(library->name, ls->t.seminfo.ts->contents) == 0) {
+          lib = library;
           break;
         }
       }
