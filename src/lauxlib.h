@@ -42,11 +42,19 @@ typedef struct luaL_Reg {
 
 
 namespace Pluto {
-  struct Preloaded {
+  struct PreloadedLibrary {
     const char* name;
     const luaL_Reg* funcs;
+    const lua_CFunction init;
+
+    PreloadedLibrary(const char* name, const luaL_Reg* funcs, lua_CFunction init)
+      : name(name), funcs(funcs), init(init)
+    {}
   };
 }
+
+
+#define PLUTO_NEWLIB(name) LUAMOD_API int luaopen_##name(lua_State *L) { luaL_newlib(L, funcs); return 1; } const Pluto::PreloadedLibrary Pluto::preloaded_##name { #name, funcs, &luaopen_##name };
 
 
 #define LUAL_NUMSIZES	(sizeof(lua_Integer)*16 + sizeof(lua_Number))
