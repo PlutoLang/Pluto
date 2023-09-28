@@ -974,6 +974,11 @@
 // so you may define this to disable this method of code-loading.
 //#define PLUTO_DISABLE_UNMODERATED_LOAD
 
+// If defined, the provided function will be called as bool(lua_State* L, const char* path).
+// If it returns false, a Lua eror is raised.
+// This will affect require and package.loadlib.
+//#define PLUTO_LOADCLIB_HOOK ContmodOnLoadCLib
+
 /*
 ** {====================================================================
 ** Pluto configuration: Performance

@@ -367,6 +367,10 @@ static int gctm (lua_State *L) {
 #define ERRLIB		1
 #define ERRFUNC		2
 
+#ifdef PLUTO_LOADCLIB_HOOK
+extern bool PLUTO_LOADCLIB_HOOK(lua_State* L, const char* path);
+#endif
+
 /*
 ** Look for a C function named 'sym' in a dynamically loaded library
 ** 'path'.
@@ -381,6 +385,10 @@ static int gctm (lua_State *L) {
 static int lookforfunc (lua_State *L, const char *path, const char *sym) {
   void *reg = checkclib(L, path);  /* check loaded C libraries */
   if (reg == NULL) {  /* must load library? */
+#ifdef PLUTO_LOADCLIB_HOOK
+    if (!PLUTO_LOADCLIB_HOOK(L, path))
+      luaL_error(L, "library failed content moderation policy");
+#endif
     reg = lsys_load(L, path, *sym == '*');  /* global symbols if 'sym'=='*' */
     if (reg == NULL) return ERRLIB;  /* unable to load library */
     addtoclib(L, path, reg);
