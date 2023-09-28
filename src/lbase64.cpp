@@ -36,11 +36,6 @@ static const luaL_Reg funcs[] = {
 	{nullptr, nullptr}
 };
 
-const Pluto::Preloaded Pluto::preloaded_base64{ "base64", funcs };
-
-LUAMOD_API int luaopen_base64(lua_State* L) {
-	luaL_newlib(L, funcs);
-	return 1;
-}
+PLUTO_NEWLIB(base64)
 
 #endif
