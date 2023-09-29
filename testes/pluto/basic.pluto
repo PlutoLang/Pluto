@@ -1589,3 +1589,19 @@ do
         or (os.setlocale(nil) == "fr-FR.UTF-8") -- For Windows, actually do the assert, tho. :)
         )
 end
+
+print("Testing modified require semantics.")
+do
+    local currentdir = io.absolute(io.currentdir())
+    if not io.currentdir():endswith("testes") then
+        io.currentdir("testes")
+    end
+    package.preload["example_module"] = || -> "Test Value"
+    assert(select(2, require("example_module")):contains("example_module.pluto"))
+    assert(select(1, require("pluto:example_module")) == "Test Value")
+    package.preload["example_module"] = nil
+    assert(select(2, pcall(|| -> require("a"))):contains("module 'a' not found"))
+    assert(select(2, pcall(|| -> require("pluto:a"))):contains("is not a valid pluto library"))
+    io.currentdir(currentdir)
+    -- check cwd if this fails.
+end
