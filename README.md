@@ -11,7 +11,7 @@ Pluto is a unique dialect of Lua, which aims to specialize for general-purpose p
 
 - **Drag & Drop Compatibility.**
   - Compatible with Lua 5.4 source & bytecode.
-  - The only Lua dialect that's proven it can be dropped into massive [communities](https://stand.gg/) (50K> users), and not break any existing scripts.
+  - The only Lua dialect that's proven it can be dropped into massive [communities](https://stand.gg/) (100K> users), and not break any existing scripts.
 
 ## Documentation
 
