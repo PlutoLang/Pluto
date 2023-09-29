@@ -46,6 +46,10 @@
 #define LUA_OFSEP	"_"
 
 
+/* prefix to explicitly specify a require argument wants a pluto library */
+#define PLUTO_REQUIRE_PREFIX "pluto:"
+
+
 /*
 ** key for table in the registry that keeps handles
 ** for all loaded C libraries
@@ -620,7 +624,17 @@ static void findloader (lua_State *L, const char *name) {
                  != LUA_TTABLE))
     luaL_error(L, "'package.searchers' must be a table");
   luaL_buffinit(L, &msg);
-  /*  iterate over available searchers to find a loader */
+  /* find available searchers to find a loader */
+  if (strncmp(name, PLUTO_REQUIRE_PREFIX, sizeof(PLUTO_REQUIRE_PREFIX) - 1) == 0) {
+    const char* package_name = name + sizeof(PLUTO_REQUIRE_PREFIX) - 1;
+    lua_pushcfunction(L, searcher_preload);
+    lua_pushstring(L, package_name);
+    lua_call(L, 1, 2);
+    if (!lua_isfunction(L, -2)) {
+      luaL_error(L, "'%s' is not a valid pluto library", package_name);
+    }
+    return;
+  }
   for (i = 1; ; i++) {
     luaL_addstring(&msg, "\n\t");  /* error-message prefix */
     if (l_unlikely(lua_rawgeti(L, 3, i) == LUA_TNIL)) {  /* no more searchers? */
