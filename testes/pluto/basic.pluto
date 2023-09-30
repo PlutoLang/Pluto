@@ -282,21 +282,29 @@ if ("hel" in "hello") != true then error() end
 if ("abc" in "hello") != false then error() end
 do
     local t = {
-        apple = true,
-        [69] = true,
+        nil,
+        key = "KEY",
+        nil,
+        "ARRAY"
     }
-    assert("apple" in t)
-    assert("banana" in t == false)
-    assert(42 in t == false)
-    assert(69 in t)
-    assert(true in t == false)
-    assert(false in t == false)
+    assert(nil in t)
+    assert("KEY" in t)
+    assert("ARRAY" in t)
+    assert(("NOTHING" in t) == false)
 end
 do
     -- table must be global for this failure case
     t = {
-        subt = {}
+        subt = {
+            nil,
+            key = "KEY",
+            nil,
+            "ARRAY"
+        }
     }
+    assert(nil in t.subt)
+    assert("KEY" in t.subt)
+    assert("ARRAY" in t.subt)
     local function proxy(b)
         assert(b == false)
     end
@@ -305,9 +313,39 @@ do
 end
 do
     -- temporary table
-    assert("apple" in { apple = true })
+    assert("apple" in { 1, nil, "aaaa", "apple" })
     assert(not "banana" in { apple = true })
     assert(type("apple" in { apple = true }) == "boolean")
+end
+do -- check stack corruption
+    local t = {
+        nil,
+        key = "KEY",
+        nil,
+        "ARRAY"
+    }
+
+    local a = "KEY"
+    assert(a in t)
+    assert(a == "KEY")
+    local b = || -> "Hello World"
+    local c = "ARRAY"
+    local d = nil
+    assert(c in t)
+    assert(d in t)
+    local e = "NOTHING"
+    assert(not e in t)
+    assert(a == "KEY")
+    assert(b() == "Hello World")
+    assert(c == "ARRAY")
+    assert(d == nil)
+    assert(e == "NOTHING")
+end
+do 
+    local t = {key="value"}
+    assert(("key" in t) == false)
+    t[1] = "world"
+    assert((1 in t) == false)
 end
 
 print "Testing break N syntax."
