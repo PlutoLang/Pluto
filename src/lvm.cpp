@@ -749,6 +749,26 @@ void luaV_objlen (lua_State *L, StkId ra, const TValue *rb) {
 
 
 /*
+** Searches the elements (both array & key values) of a table for a TValue.
+*/
+bool luaV_searchelement (lua_State* L, const Table* t, const TValue* element) {
+  unsigned int i = 0;
+  unsigned int array_size = luaH_realasize(t);
+  for (i = 0; i < array_size; i++) {
+    if (luaV_equalobj(L, element, &t->array[i])) {
+      return true;
+    }
+  }
+  for (i -= array_size; cast_int(i) < sizenode(t); i++) {
+    if (luaV_equalobj(L, element, gval(gnode(t, i)))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+/*
 ** Integer division; return 'm // n', that is, floor(m/n).
 ** C division truncates its result (rounds towards zero).
 ** 'floor(q) == trunc(q)' when 'q >= 0' or when 'q' is integer,
@@ -2616,26 +2636,21 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         std::string old = stringify_tvalue(a);  /* RA will be changed below. */
 #endif
         if (ttisstring(a) && ttisstring(b)) {
-          if (strstr(getstr(tsvalue(b)), getstr(tsvalue(a))) != nullptr)
+          if (strstr(getstr(tsvalue(b)), getstr(tsvalue(a))) != nullptr) {
             setbtvalue(s2v(ra));
-          else
+          } else {
             setbfvalue(s2v(ra));
-        } else {
-          /* fetch table key */
-          const TValue* slot;
-          lua_Integer n;
-          if (ttisinteger(a)
-              ? (cast_void(n = ivalue(a)), luaV_fastgeti(L, b, n, slot))
-              : luaV_fastget(L, b, a, slot, luaH_get)) {
-            setobj2s(L, ra, slot);
           }
-          else
-            Protect(luaV_finishget(L, b, a, ra, slot));
-          /* check if nil */
-          if (ttisnil(s2v(ra)))
-            setbfvalue(s2v(ra));
-          else
-            setbtvalue(s2v(ra));
+        } else {
+          if (!ttistable(b)) {
+            luaG_runerror(L, "expected second 'in' operand to be table, got %s", ttypename(ttype(b)));
+          } else {
+            if (luaV_searchelement(L, hvalue(b), a)) {
+              setbtvalue(s2v(ra));
+            } else {
+              setbfvalue(s2v(ra));
+            }
+          }
         }
         vmDumpInit();
         vmDumpAddA();
