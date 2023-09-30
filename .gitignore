@@ -1,14 +1,9 @@
-/doc
-/src/*.o
-/src/*.exe
-/src/*.dll
-/src/*.a
-/src/*.lib
-/src/*.exp
-/src/vendor/Soup/*.lib
-/tbytecode.script
-/luac.out
-/tests/quick.lua
+*.o
+*.exe
+*.dll
+*.a
+*.lib
+*.exp
 
 # VS Code
 /.vscode/
