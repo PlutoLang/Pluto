@@ -486,7 +486,7 @@ static void process_string_escape (LexState *ls) {
     case 'u': utf8esc(ls);  return;  /* no save */
     case '\n': case '\r':
       inclinenumber(ls); c = '\n'; goto only_save;
-    case '\\': case '\"': case '\'':
+    case '\\': case '\"': case '\'': case '{':
       c = ls->current; goto read_save;
     case EOZ: return;  /* no save, will raise an error next loop */
     case 'z': {  /* zap following span of spaces */
