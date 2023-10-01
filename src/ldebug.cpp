@@ -291,7 +291,16 @@ static void funcinfo (lua_Debug *ar, Closure *cl) {
     }
     ar->linedefined = p->linedefined;
     ar->lastlinedefined = p->lastlinedefined;
-    ar->what = (ar->linedefined == 0) ? "main" : "Lua";
+    if (ar->linedefined == 'plin') {
+      ar->source = "=[Pluto-injected code]";
+      ar->srclen = LL("=[Pluto-injected code]");
+      ar->linedefined = -1;
+      ar->lastlinedefined = -1;
+      ar->what = "Pluto-injected code";
+    }
+    else {
+      ar->what = (ar->linedefined == 0) ? "main" : "Lua";
+    }
   }
   luaO_chunkid(ar->short_src, ar->source, ar->srclen);
 }
@@ -353,6 +362,8 @@ static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
       }
       case 'l': {
         ar->currentline = (ci && isLua(ci)) ? getcurrentline(ci) : -1;
+        if (ar->currentline == 'plin')
+          ar->currentline = -1;
         break;
       }
       case 'u': {
