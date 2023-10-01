@@ -2632,25 +2632,30 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         StkId ra = RA(i);
         TValue *a = s2v(ra);
         TValue *b = vRB(i);
+        bool result = false;
 #ifdef PLUTO_VMDUMP
         std::string old = stringify_tvalue(a);  /* RA will be changed below. */
 #endif
         if (ttisstring(a) && ttisstring(b)) {
           if (strstr(getstr(tsvalue(b)), getstr(tsvalue(a))) != nullptr) {
-            setbtvalue(s2v(ra));
-          } else {
-            setbfvalue(s2v(ra));
+            result = true;
           }
         } else {
           if (!ttistable(b)) {
             luaG_runerror(L, "expected second 'in' operand to be table, got %s", ttypename(ttype(b)));
           } else {
             if (luaV_searchelement(L, hvalue(b), a)) {
-              setbtvalue(s2v(ra));
-            } else {
-              setbfvalue(s2v(ra));
+              result = true;
             }
           }
+        }
+        if (GETARG_C(i) == 1) { /* R(C) = invert bool */
+          result = !result;
+        }
+        if (result) {
+          setbtvalue(s2v(ra));
+        } else {
+          setbfvalue(s2v(ra));
         }
         vmDumpInit();
         vmDumpAddA();
