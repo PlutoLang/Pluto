@@ -94,7 +94,8 @@ struct Token {
 
   Token() = default;
 
-  static constexpr int LINE_INJECTED = -1886153070; /* -'plin' */
+  // Can't be negative to avoid issues with precompiled code.
+  static constexpr int LINE_INJECTED = 'plin';
 
   Token(int token)
     : token(token), line(LINE_INJECTED)
