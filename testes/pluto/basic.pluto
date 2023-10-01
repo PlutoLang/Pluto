@@ -1106,6 +1106,12 @@ do
     assert($"{person:printInformation()}" == "My name is John & my age is 25.")
 end
 assert($"{true ? 'true' : 'false'} is the value" == "true is the value")
+do -- escaping
+    local a = "world"
+    assert($"hello {a}, \{}" == "hello world, {}")
+    assert($"hello {a}, {1 == 1}, \{1 == 1}" == "hello world, true, {1 == 1}")
+    assert($"hello {a}, {1 == 1}, \\{1 == 1}" == "hello world, true, \\true")
+end
 
 print "Testing ++ operator."
 do
