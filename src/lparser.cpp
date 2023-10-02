@@ -532,6 +532,23 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
 }
 
 
+static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int line) {
+  int locals = luaY_nvarstack(fs);
+  for (int i = fs->firstlocal; i < locals; i++) {
+    Vardesc *desc = getlocalvardesc(fs, i);
+    LocVar *local = localdebuginfo(fs, i);
+    std::string n = name->toCpp();
+    if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
+      throw_warn(ls,
+        "duplicate local declaration",
+          luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
+      ls->L->top.p--; /* pop result of luaO_fmt */
+      break;
+    }
+  }
+}
+
+
 /*
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
@@ -541,19 +558,7 @@ static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = 
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
   Vardesc *var;
-  int locals = luaY_nvarstack(fs);
-  for (int i = fs->firstlocal; i < locals; i++) {
-    Vardesc *desc = getlocalvardesc(fs, i);
-    LocVar *local = localdebuginfo(fs, i);
-    std::string n = name->toCpp();
-    if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
-      throw_warn(ls,
-        "duplicate local declaration",
-          luaO_fmt(L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
-      L->top.p--; /* pop result of luaO_fmt */
-      break;
-    }
-  }
+  checkforshadowing(ls, fs, name, line);
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
