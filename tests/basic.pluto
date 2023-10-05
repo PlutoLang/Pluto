@@ -682,7 +682,7 @@ else
     print("Soup is not linked, skipping relevant tests.")
 end
 do
-    local t = {}
+    local t = { key = "value" }
     table.insert(t, 0)
     table.insert(t, "Hello")
     table.insert(t, true)
@@ -692,6 +692,7 @@ do
     assert(table.contains(t, false) == nil)
     assert(table.contains(t, 0) == 1)
     assert(table.contains(t, 1) == nil)
+    assert(table.contains(t, "value") == "key")
     assert(string.isascii("hello world") == true)
     assert(string.isascii("hello.world") == true)
     assert(string.isascii("hello1world") == true)

@@ -462,7 +462,7 @@ static int tcontains(lua_State* L) {
   while (lua_next(L, -2)) {
     lua_pushvalue(L, -2);
     if (lua_compare(L, 2, -2, LUA_OPEQ)) {
-      lua_pushinteger(L, lua_tointeger(L, -1));
+      lua_pushvalue(L, -1);
       return 1;
     }
     else {
