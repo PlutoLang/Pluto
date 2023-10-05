@@ -456,18 +456,20 @@ static int tisfrozen (lua_State *L) {
 static int tcontains (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checkany(L, 2);
+  const bool only_array = !lua_istrue(L, 3);
 
   lua_pushvalue(L, 1);
   lua_pushnil(L);
   while (lua_next(L, -2)) {
     lua_pushvalue(L, -2);
     if (lua_compare(L, 2, -2, LUA_OPEQ)) {
-      lua_pushinteger(L, lua_tointeger(L, -1));
-      return 1;
+      const bool is_int = lua_isinteger(L, -1);
+      if ((only_array && is_int) || (!only_array && !is_int)) {
+        lua_pushvalue(L, -1);
+        return 1;
+      }
     }
-    else {
-      lua_pop(L, 2);
-    }
+    lua_pop(L, 2); /* Pop result of lua_compare */
   }
   
   lua_pop(L, 1);
