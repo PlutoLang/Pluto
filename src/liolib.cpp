@@ -164,6 +164,7 @@ typedef luaL_Stream LStream;
 
 
 static int io_type (lua_State *L) {
+  FS_FUNCTION
   LStream *p;
   luaL_checkany(L, 1);
   p = (LStream *)luaL_testudata(L, 1, LUA_FILEHANDLE);
@@ -215,6 +216,7 @@ static LStream *newprefile (lua_State *L) {
 ** 32 bits).
 */
 static int aux_close (lua_State *L) {
+  FS_FUNCTION
   LStream *p = tolstream(L);
   volatile lua_CFunction cf = p->closef;
   p->closef = NULL;  /* mark stream as closed */
@@ -223,12 +225,14 @@ static int aux_close (lua_State *L) {
 
 
 static int f_close (lua_State *L) {
+  FS_FUNCTION
   tofile(L);  /* make sure argument is an open stream */
   return aux_close(L);
 }
 
 
 static int io_close (lua_State *L) {
+  FS_FUNCTION
   if (lua_isnone(L, 1))  /* no argument? */
     lua_getfield(L, LUA_REGISTRYINDEX, IO_OUTPUT);  /* use default output */
   return f_close(L);
@@ -236,6 +240,7 @@ static int io_close (lua_State *L) {
 
 
 static int f_gc (lua_State *L) {
+  FS_FUNCTION
   LStream *p = tolstream(L);
   if (!isclosed(p) && p->f != NULL)
     aux_close(L);  /* ignore closed and incompletely open files */
@@ -247,6 +252,7 @@ static int f_gc (lua_State *L) {
 ** function to close regular files
 */
 static int io_fclose (lua_State *L) {
+  FS_FUNCTION
   LStream *p = tolstream(L);
   int res = fclose(p->f);
   return luaL_fileresult(L, (res == 0), NULL);
@@ -254,6 +260,7 @@ static int io_fclose (lua_State *L) {
 
 
 static LStream *newfile (lua_State *L) {
+  FS_FUNCTION
   LStream *p = newprefile(L);
   p->f = NULL;
   p->closef = &io_fclose;
@@ -270,6 +277,7 @@ static void opencheck (lua_State *L, const char *fname, const char *mode) {
 
 
 static int io_open (lua_State *L) {
+  FS_FUNCTION
   size_t filename_len, mode_len;
   const char *filename = luaL_checklstring(L, 1, &filename_len);
   const char *mode = luaL_optlstring(L, 2, "r", &mode_len);
@@ -297,6 +305,7 @@ static int io_open (lua_State *L) {
 ** function to close 'popen' files
 */
 static int io_pclose (lua_State *L) {
+  FS_FUNCTION
   LStream *p = tolstream(L);
   errno = 0;
   return luaL_execresult(L, l_pclose(L, p->f));
@@ -304,6 +313,7 @@ static int io_pclose (lua_State *L) {
 
 
 static int io_popen (lua_State *L) {
+  FS_FUNCTION
   const char *filename = luaL_checkstring(L, 1);
   const char *mode = luaL_optstring(L, 2, "r");
   LStream *p = newprefile(L);
@@ -327,6 +337,7 @@ static int io_popen (lua_State *L) {
 
 
 static int io_tmpfile (lua_State *L) {
+  FS_FUNCTION
   LStream *p = newfile(L);
   p->f = tmpfile();
   return (p->f == NULL) ? luaL_fileresult(L, 0, NULL) : 1;
@@ -361,11 +372,13 @@ static int g_iofile (lua_State *L, const char *f, const char *mode) {
 
 
 static int io_input (lua_State *L) {
+  FS_FUNCTION
   return g_iofile(L, IO_INPUT, "r");
 }
 
 
 static int io_output (lua_State *L) {
+  FS_FUNCTION
   return g_iofile(L, IO_OUTPUT, "w");
 }
 
@@ -400,6 +413,7 @@ static void aux_lines (lua_State *L, int toclose) {
 
 
 static int f_lines (lua_State *L) {
+  FS_FUNCTION
   tofile(L);  /* check that it's a valid file handle */
   aux_lines(L, 0);
   return 1;
@@ -412,6 +426,7 @@ static int f_lines (lua_State *L) {
 ** closed as the state at the exit of a generic for).
 */
 static int io_lines (lua_State *L) {
+  FS_FUNCTION
   int toclose;
   if (lua_isnone(L, 1)) lua_pushnil(L);  /* at least one argument */
   if (lua_isnil(L, 1)) {  /* no file name? */
@@ -642,11 +657,13 @@ static int g_read (lua_State *L, FILE *f, int first) {
 
 
 static int io_read (lua_State *L) {
+  FS_FUNCTION
   return g_read(L, getiofile(L, IO_INPUT), 1);
 }
 
 
 static int f_read (lua_State *L) {
+  FS_FUNCTION
   return g_read(L, tofile(L), 2);
 }
 
@@ -655,6 +672,7 @@ static int f_read (lua_State *L) {
 ** Iteration function for 'lines'.
 */
 static int io_readline (lua_State *L) {
+  FS_FUNCTION
   LStream *p = (LStream *)lua_touserdata(L, lua_upvalueindex(1));
   int i;
   int n = (int)lua_tointeger(L, lua_upvalueindex(2));
@@ -711,11 +729,13 @@ static int g_write (lua_State *L, FILE *f, int arg) {
 
 
 static int io_write (lua_State *L) {
+  FS_FUNCTION
   return g_write(L, getiofile(L, IO_OUTPUT), 1);
 }
 
 
 static int f_write (lua_State *L) {
+  FS_FUNCTION
   FILE *f = tofile(L);
   lua_pushvalue(L, 1);  /* push file at the stack top (to be returned) */
   return g_write(L, f, 2);
@@ -723,6 +743,7 @@ static int f_write (lua_State *L) {
 
 
 static int f_seek (lua_State *L) {
+  FS_FUNCTION
   static const int mode[] = {SEEK_SET, SEEK_CUR, SEEK_END};
   static const char *const modenames[] = {"set", "cur", "end", NULL};
   FILE *f = tofile(L);
@@ -742,6 +763,7 @@ static int f_seek (lua_State *L) {
 
 
 static int f_setvbuf (lua_State *L) {
+  FS_FUNCTION
   static const int mode[] = {_IONBF, _IOFBF, _IOLBF};
   static const char *const modenames[] = {"no", "full", "line", NULL};
   FILE *f = tofile(L);
@@ -754,11 +776,13 @@ static int f_setvbuf (lua_State *L) {
 
 
 static int io_flush (lua_State *L) {
+  FS_FUNCTION
   return luaL_fileresult(L, fflush(getiofile(L, IO_OUTPUT)) == 0, NULL);
 }
 
 
 static int f_flush (lua_State *L) {
+  FS_FUNCTION
   return luaL_fileresult(L, fflush(tofile(L)) == 0, NULL);
 }
 
@@ -787,6 +811,7 @@ static int f_flush (lua_State *L) {
 
 static int isdir (lua_State *L)
 {
+  FS_FUNCTION
   Protect(
     const auto dir = getStringStreamPath(L);
     lua_pushboolean(L, std::filesystem::is_directory(dir));
@@ -798,6 +823,7 @@ static int isdir (lua_State *L)
 
 static int isfile (lua_State *L)
 {
+  FS_FUNCTION
   Protect(
     const auto dir = getStringStreamPath(L);
     lua_pushboolean(L, std::filesystem::is_regular_file(dir));
@@ -809,6 +835,7 @@ static int isfile (lua_State *L)
 
 static int filesize (lua_State *L)
 {
+  FS_FUNCTION
   Protect(
     const auto f = getStringStreamPath(L);
     const auto s = (lua_Integer)std::filesystem::file_size(f);
@@ -821,6 +848,7 @@ static int filesize (lua_State *L)
 
 static int exists (lua_State *L)
 {
+  FS_FUNCTION
   Protect(
     const auto f = getStringStreamPath(L);
     lua_pushboolean(L, std::filesystem::exists(f));
@@ -832,6 +860,7 @@ static int exists (lua_State *L)
 
 static int copyto (lua_State *L)
 {
+  FS_FUNCTION
   Protect(
     const auto from = getStringStreamPath(L);
     const auto to = getStringStreamPath(L, 2);
@@ -850,6 +879,7 @@ static int copyto (lua_State *L)
 
 static int absolute (lua_State *L)
 {
+  FS_FUNCTION
   Protect(
     const auto f = getStringStreamPath(L);
     const auto r = std::filesystem::absolute(f);
@@ -862,6 +892,7 @@ static int absolute (lua_State *L)
 
 static int parent (lua_State *L)
 {
+  FS_FUNCTION
   Protect(
     const std::filesystem::path f = getStringStreamPath(L);
     const auto r = f.parent_path();
@@ -874,6 +905,7 @@ static int parent (lua_State *L)
 
 static int makedir (lua_State *L)
 {
+  FS_FUNCTION
   Protect(
     const auto path = getStringStreamPath(L);
     lua_pushboolean(L, std::filesystem::create_directory(path))
@@ -885,6 +917,7 @@ static int makedir (lua_State *L)
 
 static int makedirs (lua_State *L)
 {
+  FS_FUNCTION
   Protect(
     const auto path = getStringStreamPath(L);
     lua_pushboolean(L, std::filesystem::create_directories(path))
@@ -917,6 +950,7 @@ static void listdir_r(lua_State* L, lua_Integer& i, const std::filesystem::path&
 
 static int listdir(lua_State *L)
 {
+  FS_FUNCTION
   const auto f = getStringStreamPath(L);
   const auto recursive = lua_istrue(L, 2);
   lua_newtable(L);
@@ -938,6 +972,7 @@ static int listdir(lua_State *L)
 
 int l_os_remove (lua_State *L)
 {
+  FS_FUNCTION
   const auto path = getStringStreamPath(L);;
 
   try
@@ -957,6 +992,7 @@ int l_os_remove (lua_State *L)
 
 static int l_remove (lua_State *L)
 {
+  FS_FUNCTION
   const auto path = getStringStreamPath(L);;
   const auto recursive = lua_istrue(L, 2);
 
@@ -977,6 +1013,7 @@ static int l_remove (lua_State *L)
 
 int l_os_rename (lua_State *L)
 {
+  FS_FUNCTION
   const auto oldP = getStringStreamPath(L);
   const auto newP = luaL_checkstring(L, 2);
 
@@ -997,6 +1034,7 @@ int l_os_rename (lua_State *L)
 
 static int l_rename (lua_State *L)
 {
+  FS_FUNCTION
   const auto oldP = getStringStreamPath(L);
   const auto newP = luaL_checkstring(L, 2);
 
@@ -1007,6 +1045,7 @@ static int l_rename (lua_State *L)
 
 
 static int currentdir(lua_State *L) {
+  FS_FUNCTION
   if (lua_gettop(L) == 0) {
     /* getter */
     std::filesystem::path cd;
@@ -1118,6 +1157,7 @@ static void createstdfile (lua_State *L, FILE *f, const char *k,
 
 
 LUAMOD_API int luaopen_io (lua_State *L) {
+  FS_FUNCTION
   luaL_newlib(L, iolib);  /* new module */
   createmeta(L);
   /* create (and set) default files */
