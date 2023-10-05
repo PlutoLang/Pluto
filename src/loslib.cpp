@@ -144,6 +144,9 @@
 
 
 static int os_execute (lua_State *L) {
+#ifdef PLUTO_NO_OS_EXECUTE
+  return 0;
+#else
   const char *cmd = luaL_optstring(L, 1, NULL);
   int stat;
   errno = 0;
@@ -154,6 +157,7 @@ static int os_execute (lua_State *L) {
     lua_pushboolean(L, stat);  /* true if there is a shell */
     return 1;
   }
+#endif
 }
 
 
@@ -438,11 +442,15 @@ static const luaL_Reg syslib[] = {
   {"clock",       os_clock},
   {"date",        os_date},
   {"difftime",    os_difftime},
+#ifndef PLUTO_NO_OS_EXECUTE
   {"execute",     os_execute},
+#endif
   {"exit",        os_exit},
   {"getenv",      os_getenv},
+#ifndef PLUTO_NO_FILESYSTEM
   {"remove",      l_os_remove},
   {"rename",      l_os_rename},
+#endif
   {"setlocale",   os_setlocale},
   {"time",        os_time},
   {"tmpname",     os_tmpname},
