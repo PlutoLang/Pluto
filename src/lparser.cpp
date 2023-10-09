@@ -574,15 +574,16 @@ inline const char* const common_global_names[] = {
 };
 
 
+static int searchvar (FuncState *fs, TString *n, expdesc *var);
 static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int line, bool check_globals = true, bool check_locals = true) {
   FuncState *current_fs = fs;
   while (current_fs != nullptr) {
-    int locals = luaY_nvarstack(current_fs);
-    for (int i = current_fs->firstlocal; i < locals; i++) {
-      std::string n = name->toCpp();
-      if (check_locals) {
-        Vardesc* desc = getlocalvardesc(current_fs, i);
-        LocVar* local = localdebuginfo(current_fs, i);
+    std::string n = name->toCpp();
+    if (check_locals) {
+      expdesc var;
+	  if (searchvar(fs, name, &var) != -1) {
+        Vardesc* desc = getlocalvardesc(current_fs, var.u.var.vidx);
+        LocVar* local = localdebuginfo(current_fs, var.u.var.vidx);
         if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
           throw_warn(ls,
             "duplicate local declaration",
@@ -591,15 +592,15 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
           return;
         }
       }
-      if (check_globals) {
-        for (const auto& global_name : common_global_names) {
-          if (n == global_name) {
-            throw_warn(ls,
-              "duplicate global declaration",
-              luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_VAR_SHADOW);
-            ls->L->top.p--;
-            return;
-          }
+    }
+    if (check_globals) {
+      for (const auto& global_name : common_global_names) {
+        if (n == global_name) {
+          throw_warn(ls,
+            "duplicate global declaration",
+            luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_VAR_SHADOW);
+          ls->L->top.p--;
+          return;
         }
       }
     }
