@@ -19,6 +19,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 #include "lua.h"
 #include "lualib.h" // Pluto::all_preloaded
@@ -577,28 +578,32 @@ inline const char* const common_global_names[] = {
 };
 
 
-static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int line) {
+static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int line, bool check_globals = true, bool check_locals = true) {
   FuncState *current_fs = fs;
   while (current_fs != nullptr) {
     int locals = luaY_nvarstack(current_fs);
     for (int i = current_fs->firstlocal; i < locals; i++) {
-      Vardesc *desc = getlocalvardesc(current_fs, i);
-      LocVar *local = localdebuginfo(current_fs, i);
       std::string n = name->toCpp();
-      if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
-        throw_warn(ls,
-          "duplicate local declaration",
-            luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
-        ls->L->top.p--; /* pop result of luaO_fmt */
-        return;
-      }
-      for (const auto& global_name : common_global_names) {
-        if (n == global_name) {
+      if (check_locals) {
+        Vardesc* desc = getlocalvardesc(current_fs, i);
+        LocVar* local = localdebuginfo(current_fs, i);
+        if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
           throw_warn(ls,
-            "duplicate global declaration",
-            luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_VAR_SHADOW);
-          ls->L->top.p--;
+            "duplicate local declaration",
+              luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
+          ls->L->top.p--; /* pop result of luaO_fmt */
           return;
+        }
+      }
+      if (check_globals) {
+        for (const auto& global_name : common_global_names) {
+          if (n == global_name) {
+            throw_warn(ls,
+              "duplicate global declaration",
+              luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_VAR_SHADOW);
+            ls->L->top.p--;
+            return;
+          }
         }
       }
     }
@@ -611,12 +616,12 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
 */
-static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = {}) {
+static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = {}, bool check_globals = true, bool check_locals = true) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
   Vardesc *var;
-  checkforshadowing(ls, fs, name, line);
+  checkforshadowing(ls, fs, name, line, check_globals, check_locals);
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
@@ -1987,10 +1992,26 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
 }
 
 
-static void expr_propagate(LexState *ls, expdesc *v, TypeHint& t) {
+static void expr_propagate (LexState *ls, expdesc *v, TypeHint& t) {
   expr(ls, v, &t);
   exp_propagate(ls, *v, t);
 }
+
+
+static void expr_propagate_warn (LexState *ls, expdesc *v, TypeHint& t, std::unordered_set<TString*>& names) {
+  expr(ls, v, &t);
+  exp_propagate(ls, *v, t);
+  if (v->k == VINDEXUP) {
+    TString *key = tsvalue(&ls->fs->f->k[v->u.ind.idx]);
+    for (auto global : common_global_names) {
+      if (strncmp(getstr(key), global, sizeof(global) - 1) == 0) {
+        names.emplace(key);
+        break;
+      }
+    }
+  }
+}
+
 
 static int explist (LexState *ls, expdesc *v, std::vector<TypeHint>& prop) {
   /* explist -> expr { ',' expr } */
@@ -4026,10 +4047,14 @@ static void localstat (LexState *ls) {
   auto line = ls->getLineNumber(); /* in case we need to emit a warning */
   size_t starting_tidx = ls->tidx; /* code snippets on tuple assignments can have inaccurate line readings because the parser skips lines until it can close the statement */
   bool is_constexpr = false;
+  std::unordered_set<TString*> variable_names;
+  std::unordered_set<TString*> expression_names;
   do {
     if (is_constexpr)
       luaK_semerror(ls, "<constexpr> must only be used on the last variable in local list");
-    vidx = new_localvar(ls, str_checkname(ls, N_OVERRIDABLE), line);
+    TString* name = str_checkname(ls, N_OVERRIDABLE);
+    vidx = new_localvar(ls, name, line, {}, false);
+    variable_names.emplace(name);
     hint = gettypehint(ls);
     kind = getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
@@ -4062,8 +4087,19 @@ static void localstat (LexState *ls) {
   if (testnext(ls, '=')) {
     ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
     ls->pushContext(ctx);
-    nexps = explist(ls, &e, ts);
+    nexps = 1;
+    expr_propagate_warn(ls, &e, ts.emplace_back(TypeHint{}), expression_names);
+    while (testnext(ls, ',')) {
+      luaK_exp2nextreg(ls->fs, &e);
+      expr_propagate_warn(ls, &e, ts.emplace_back(TypeHint{}), expression_names);
+      nexps++;
+    }
     ls->popContext(ctx);
+    for (auto variable_name : variable_names) {
+      if (expression_names.find(variable_name) == expression_names.end()) { // Not a localization optimization?
+        checkforshadowing(ls, fs, variable_name, line, true, false); // new_localvar already checked for local duplication
+      }
+    }
   }
   else {
     e.k = VVOID;
