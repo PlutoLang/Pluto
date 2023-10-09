@@ -177,6 +177,33 @@ static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
 
 
 /*
+** Responsible for the following:
+**   - Non-portable keyword usage. (class, switch, etc)
+**   - Non-portable bytecode generation. (nil-coalesce, "in" expressions)
+**  
+** Missing coverage:
+**   - Implicit pairs for-loops. If I knew how to check this at compile-time, the feature would be Lua-bytecode compatible.
+**   - String indexing.
+** 
+** Worth considering:
+**   - Non-portable standard library usage. Some of our functions are so 'expected' to exist that people forget Lua doesn't have them.
+**   - We could alternatively inject Lua-versions of our standard library into files intended to be portable, but this might be a lot of work for little.
+*/
+static void portability_warn (LexState *ls, WarningType wt) {
+  if (ls->t.IsNonCompatible()) {
+    throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "try using 'pluto_%s' instead to ensure keyword portability.", luaX_token2str_noq(ls, ls->t.token)), wt);
+    ls->L->top.p--;
+    return;
+  }
+
+  if (ls->t.token == TK_COAL || ls->t.seminfo.i == TK_COAL || ls->t.token == TK_IN) {
+    throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", wt);
+    return;
+  }
+}
+
+
+/*
 ** This function will throw an exception and terminate the program.
 */
 [[noreturn]] static void error_expected (LexState *ls, int token) {
@@ -1596,6 +1623,9 @@ static void classstat (LexState *ls) {
 
 
 static void localclass (LexState *ls) {
+  luaX_prev(ls);
+  portability_warn(ls, WT_NON_PORTABLE_CODE);
+  luaX_next(ls);
   auto line = ls->getLineNumber();
   TString *name = str_checkname(ls, 0);
   TString *parent = checkextends(ls);
@@ -2915,6 +2945,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       return;
     }
   }
+  portability_warn(ls, WT_NON_PORTABLE_CODE);
   switch (ls->t.token) {
     case TK_FLT: {
       if (prop) prop->emplaceTypeDesc(VT_FLT);
@@ -3163,6 +3194,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nul
       if (inverted_in) {
         testnext(ls, TK_NOT);
       }
+      portability_warn(ls, WT_NON_PORTABLE_BYTECODE);
       inexpr(ls, v, inverted_in);
       if (prop) prop->emplaceTypeDesc(VT_BOOL);
     }
@@ -3172,6 +3204,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nul
     return OPR_NOBINOPR;
   }
   /* expand while operators have priorities higher than 'limit' */
+  portability_warn(ls, WT_NON_PORTABLE_BYTECODE);
   op = getbinopr(ls->t.token);
   while (op != OPR_NOBINOPR && priority[op].left > limit) {
     expdesc v2;
@@ -3342,6 +3375,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
   }
   else {  /* restassign -> '=' explist */
     check(ls, '=');
+    portability_warn(ls, WT_NON_PORTABLE_BYTECODE);
     if ((int)ls->t.seminfo.i != 0) {  /* is there a saved binop? */
       BinOpr op = getbinopr((int)ls->t.seminfo.i);  /* binary operation from lexer state */
       lua_assert(op != OPR_NOBINOPR);
@@ -4452,6 +4486,7 @@ static void statement (LexState *ls, TypeHint *prop) {
     ls->laststat.token = ls->t.token;
   }
   enterlevel(ls);
+  portability_warn(ls, WT_NON_PORTABLE_CODE);
   switch (ls->t.token) {
     case ';': {  /* stat -> ';' (empty statement) */
       luaX_next(ls);  /* skip ';' */
