@@ -101,67 +101,54 @@ struct Token {
 
   Token(int token)
     : token(token), line(LINE_INJECTED)
-  {
-  }
+  {}
 
   Token(int token, TString* ts)
     : token(token), seminfo(ts), line(LINE_INJECTED)
-  {
-  }
+  {}
 
-  [[nodiscard]] bool Is(int t) const noexcept
-  {
+  [[nodiscard]] bool Is(int t) const noexcept {
     return token == t;
   }
 
-  [[nodiscard]] bool IsReserved() const noexcept
-  {
+  [[nodiscard]] bool IsReserved() const noexcept {
     return token >= FIRST_RESERVED && token <= LAST_RESERVED;
   }
 
-  /// Does this token escape control flow? I.e, a TK_BREAK or TK_CONTINUE?
-  [[nodiscard]] bool IsEscapingToken() const noexcept
-  {
+  [[nodiscard]] bool IsEscapingToken() const noexcept {
     return token == TK_BREAK || token == TK_CONTINUE;
   }
 
-  [[nodiscard]] bool IsReservedNonValue() const noexcept
-  {
+  [[nodiscard]] bool IsReservedNonValue() const noexcept {
     return IsReserved() && token != TK_TRUE && token != TK_FALSE && token != TK_NIL
       && token != TK_PPARENT
       && token != TK_PARENT
       ;
   }
 
-  [[nodiscard]] bool IsNarrow() const noexcept
-  {
+  [[nodiscard]] bool IsNarrow() const noexcept {
     return token == TK_IN
       || (token >= TK_CASE && token < FIRST_COMPAT)
       ;
   }
 
-  [[nodiscard]] bool IsCompatible() const noexcept
-  {
+  [[nodiscard]] bool IsCompatible() const noexcept {
       return (token >= FIRST_COMPAT && token < FIRST_NON_COMPAT);
   }
 
-  [[nodiscard]] bool IsNonCompatible() const noexcept
-  {
+  [[nodiscard]] bool IsNonCompatible() const noexcept {
       return (token >= FIRST_NON_COMPAT && token < FIRST_SPECIAL);
   }
 
-  [[nodiscard]] bool IsOptional() const noexcept
-  {
+  [[nodiscard]] bool IsOptional() const noexcept {
       return (token >= FIRST_OPTIONAL && token < FIRST_SPECIAL);
   }
 
-  [[nodiscard]] bool IsSpecial() const noexcept
-  {
+  [[nodiscard]] bool IsSpecial() const noexcept {
       return (token >= FIRST_SPECIAL && token < TK_RETURN);
   }
 
-  [[nodiscard]] bool IsOverridable() const noexcept
-  {
+  [[nodiscard]] bool IsOverridable() const noexcept {
       return token == TK_PARENT || token == TK_PPARENT;
   }
 };
@@ -173,8 +160,7 @@ struct Token {
 */
 
 
-enum WarningType : int
-{
+enum WarningType : int {
   ALL_WARNINGS = 0,
 
   WT_VAR_SHADOW,
@@ -229,33 +215,26 @@ public:
     }
   }
 
-  void copyFrom(const WarningConfig& b) noexcept
-  {
+  void copyFrom(const WarningConfig& b) noexcept {
     memcpy(toggles, b.toggles, sizeof(toggles));
   }
 
-  [[nodiscard]] bool Get(WarningType type) const noexcept
-  {
+  [[nodiscard]] bool get(WarningType type) const noexcept {
     return toggles[type];
   }
   
-  [[nodiscard]] bool& Get(WarningType type) noexcept
-  {
+  [[nodiscard]] bool& get(WarningType type) noexcept {
     return toggles[type];
   }
 
-  void setAllTo(bool newState) noexcept
-  {
-    for (int id = 0; id != NUM_WARNING_TYPES; ++id)
-    {
+  void setAllTo(bool newState) noexcept {
+    for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
       toggles[id] = newState;
     }
   }
 
-  void processComment(const std::string& line) noexcept
-  {
-    for (int id = 0; id != NUM_WARNING_TYPES; ++id)
-    {
+  void processComment(const std::string& line) noexcept {
+    for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
       std::string enable  = "enable-";
       std::string disable = "disable-";
 
@@ -264,25 +243,21 @@ public:
       enable += name;
       disable += name;
 
-      if (line.find(enable) != std::string::npos)
-      {
+      if (line.find(enable) != std::string::npos) {
         if (name != "all")
-          Get((WarningType)id) = true;
+          get((WarningType)id) = true;
         else
           setAllTo(true);
-      }
-      else if (line.find(disable) != std::string::npos)
-      {
+      } else if (line.find(disable) != std::string::npos) {
         if (name != "all")
-          Get((WarningType)id) = false;
+          get((WarningType)id) = false;
         else
           setAllTo(false);
       }
     }
   }
 
-  [[nodiscard]] static const char* getWarningName(const WarningType w)
-  {
+  [[nodiscard]] static const char* getWarningName(const WarningType w) {
     lua_assert((size_t)w >= 0 && (size_t)w < NUM_WARNING_TYPES);
     return luaX_warnNames[(size_t)w];
   }
@@ -337,9 +312,7 @@ struct LexState {
   std::vector<void*> parse_time_allocations{};
   std::unordered_map<const TString*, void*> global_props{};
 
-  LexState()
-    : lines{ std::string{} }, warnconfs{ WarningConfig(0) }
-  {
+  LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
     laststat.token = TK_EOS;
     parser_context_stck.push(PARCTX_NONE); /* ensure there is at least 1 item on the parser context stack */
@@ -443,7 +416,7 @@ struct LexState {
   [[nodiscard]] bool shouldEmitWarning(int line, WarningType warning_type) const {
     const auto& linebuff = this->getLineString(line);
     const auto& lastattr = line > 1 ? this->getLineString(line - 1) : linebuff;
-    return lastattr.find("@pluto_warnings: disable-next") == std::string::npos && getWarningConfig().Get(warning_type);
+    return lastattr.find("@pluto_warnings: disable-next") == std::string::npos && getWarningConfig().get(warning_type);
   }
 
   [[nodiscard]] bool shouldSuggest() const noexcept {
