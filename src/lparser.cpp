@@ -612,12 +612,12 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
 */
-static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = {}, bool check_globals = true, bool check_locals = true) {
+static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = {}, bool check_globals = true) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
   Vardesc *var;
-  checkforshadowing(ls, fs, name, line, check_globals, check_locals);
+  checkforshadowing(ls, fs, name, line, check_globals, true);
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
