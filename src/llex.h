@@ -184,6 +184,8 @@ enum WarningType : int
   WT_DEPRECATED,
   WT_BAD_PRACTICE,
   WT_POSSIBLE_TYPO,
+  WT_NON_PORTABLE_CODE,
+  WT_NON_PORTABLE_BYTECODE,
 
   NUM_WARNING_TYPES
 };
@@ -198,18 +200,33 @@ inline const char* const luaX_warnNames[] = {
   "deprecated",
   "bad-practice",
   "possible-typo",
+  "non-portable-code",
+  "non-portable-bytecode",
 };
 
 
-struct WarningConfig
+class WarningConfig
 {
+public:
   const size_t begins_at;
   bool toggles[NUM_WARNING_TYPES];
 
-  WarningConfig(size_t begins_at) noexcept
-    : begins_at(begins_at)
-  {
-    setAllTo(true);
+private:
+  [[nodiscard]] static bool getDefaultState(WarningType type) noexcept {
+    switch (type) {
+    case WT_NON_PORTABLE_CODE:
+    case WT_NON_PORTABLE_BYTECODE:
+      return false;
+    default:
+      return true;
+    }
+  }
+
+public:
+  WarningConfig(size_t begins_at) noexcept : begins_at(begins_at) {
+    for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
+      toggles[id] = getDefaultState((WarningType)id);
+    }
   }
 
   void copyFrom(const WarningConfig& b) noexcept
