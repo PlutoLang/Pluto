@@ -556,6 +556,27 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
 }
 
 
+/*
+** Arbitrary selection. Based on probability to be used as an identifier.
+** For example:
+**   - 'dumpvar' is vulnerable to 'string.dump' results.
+**   - 'type' is vulnerable to anything that needs to allocate the type of anything.
+**   - 'next' is obvious. Probably one of the most probable victims. 
+**   - 'arg' is an absurdly common variable name but also the command-line interface.
+*/
+inline const char* const common_global_names[] = {
+#ifdef PLUTO_EXTENDED_COMMON_GLOBAL_NAMES
+  PLUTO_EXTENDED_COMMON_GLOBAL_NAMES,
+#endif
+  "table",
+  "dumpvar",
+  "arg",
+  "string",
+  "type",
+  "next"
+};
+
+
 static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int line) {
   int locals = luaY_nvarstack(fs);
   for (int i = fs->firstlocal; i < locals; i++) {
@@ -567,7 +588,16 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
         "duplicate local declaration",
           luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
       ls->L->top.p--; /* pop result of luaO_fmt */
-      break;
+      return;
+    }
+    for (const auto& global_name : common_global_names) {
+      if (n == global_name) {
+        throw_warn(ls,
+          "duplicate global declaration",
+          luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_VAR_SHADOW);
+        ls->L->top.p--;
+        return;
+      }
     }
   }
 }
