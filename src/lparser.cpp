@@ -578,27 +578,31 @@ inline const char* const common_global_names[] = {
 
 
 static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int line) {
-  int locals = luaY_nvarstack(fs);
-  for (int i = fs->firstlocal; i < locals; i++) {
-    Vardesc *desc = getlocalvardesc(fs, i);
-    LocVar *local = localdebuginfo(fs, i);
-    std::string n = name->toCpp();
-    if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
-      throw_warn(ls,
-        "duplicate local declaration",
-          luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
-      ls->L->top.p--; /* pop result of luaO_fmt */
-      return;
-    }
-    for (const auto& global_name : common_global_names) {
-      if (n == global_name) {
+  FuncState *current_fs = fs;
+  while (current_fs != nullptr) {
+    int locals = luaY_nvarstack(current_fs);
+    for (int i = current_fs->firstlocal; i < locals; i++) {
+      Vardesc *desc = getlocalvardesc(current_fs, i);
+      LocVar *local = localdebuginfo(current_fs, i);
+      std::string n = name->toCpp();
+      if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
         throw_warn(ls,
-          "duplicate global declaration",
-          luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_VAR_SHADOW);
-        ls->L->top.p--;
+          "duplicate local declaration",
+            luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
+        ls->L->top.p--; /* pop result of luaO_fmt */
         return;
       }
+      for (const auto& global_name : common_global_names) {
+        if (n == global_name) {
+          throw_warn(ls,
+            "duplicate global declaration",
+            luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_VAR_SHADOW);
+          ls->L->top.p--;
+          return;
+        }
+      }
     }
+    current_fs = current_fs->prev;
   }
 }
 
