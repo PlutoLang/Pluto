@@ -598,13 +598,20 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
         if (n == global_name) {
           throw_warn(ls,
             "duplicate global declaration",
-            luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_VAR_SHADOW);
+              luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_VAR_SHADOW);
           ls->L->top.p--;
           return;
         }
       }
     }
     current_fs = current_fs->prev;
+  }
+}
+
+
+static void checkforshadowing (LexState *ls, FuncState *fs, std::unordered_set<TString*>&& names, int line) {
+  for (auto variable_name : names) {
+    checkforshadowing(ls, fs, variable_name, line, true, false);
   }
 }
 
@@ -4074,6 +4081,7 @@ static void localstat (LexState *ls) {
     e.k = VVOID;
     nexps = 0;
     process_assign(ls, var, TypeHint{ VT_NIL }, line);
+    checkforshadowing(ls, fs, std::move(variable_names), line);
   }
   if (is_constexpr) {
     if (nvars != nexps) {
