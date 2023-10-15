@@ -103,6 +103,9 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, int flags 
   err = luaG_addinfo(ls->L, err, ls->source, line);
   Pluto::ErrorMessage msg{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
   msg.addMsg(err)
+    .addMsg(" (near ")
+    .addMsg(luaX_token2str(ls, ls->t.token))
+    .addMsg(")")
     .addSrcLine(line)
     .addGenericHere(here)
     .finalizeAndThrow();
@@ -300,7 +303,7 @@ static void check_match (LexState *ls, int what, int who, int where) {
         throwerr(ls, msg.c_str(), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
       }
       else {
-        Pluto::ErrorMessage err{ ls, RED "syntax error: " BWHT }; // Doesn't use throwerr since I replicated old code. Couldn't find problematic code to repro error, so went safe.
+        Pluto::ErrorMessage err{ ls, RED "syntax error: " BWHT };
         err.addMsg(luaX_token2str(ls, what))
           .addMsg(" expected (to close ")
           .addMsg(luaX_token2str(ls, who))

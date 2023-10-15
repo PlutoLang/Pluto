@@ -483,9 +483,22 @@ static int incomplete (lua_State *L, int status) {
   if (status == LUA_ERRSYNTAX) {
     size_t lmsg;
     const char *msg = lua_tolstring(L, -1, &lmsg);
-    if (lmsg >= marklen && strcmp(msg + lmsg - marklen, EOFMARK) == 0) {
-      lua_pop(L, 1);
-      return 1;
+    if (lmsg >= marklen) {
+#ifdef PLUTO_SHORT_ERRORS
+      if (strstr(msg, EOFMARK) != nullptr) { // No code snippet, no need to check specific parks of the error message.
+        lua_pop(L, 1);
+        return 1;
+      }
+#else
+      std::string error = msg;
+      if (auto snippet_start = error.find(" | "); snippet_start != std::string::npos) {
+        error.resize(snippet_start);
+        if (error.find(EOFMARK) != std::string::npos) {
+          lua_pop(L, 1);
+          return 1;
+        }
+      }
+#endif
     }
   }
   return 0;  /* else... */
