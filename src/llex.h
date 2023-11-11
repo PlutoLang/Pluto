@@ -272,7 +272,7 @@ public:
 #pragma warning( disable: 26495 )
 #endif
 
-enum ParserContext {
+enum ParserContext : uint8_t {
   PARCTX_NONE,
   PARCTX_CREATE_VAR,
   PARCTX_CREATE_VARS,
