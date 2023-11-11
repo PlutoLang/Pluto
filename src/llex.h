@@ -137,7 +137,7 @@ struct Token {
   }
 
   [[nodiscard]] bool IsNonCompatible() const noexcept {
-      return (token >= FIRST_NON_COMPAT && token < FIRST_SPECIAL);
+      return (token >= FIRST_NON_COMPAT && token < FIRST_OPTIONAL);
   }
 
   [[nodiscard]] bool IsOptional() const noexcept {
