@@ -175,6 +175,7 @@ LUALIB_API void (luaL_requiref) (lua_State *L, const char *modname,
 
 #define luaL_loadbuffer(L,s,sz,n)	luaL_loadbufferx(L,s,sz,n,NULL)
 
+#define luaL_check(L, cond, msg) if (l_unlikely(cond)) { luaL_error(L, msg); }
 
 /*
 ** Perform arithmetic operations on lua_Integer values with wrap-around
