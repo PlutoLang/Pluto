@@ -199,13 +199,21 @@ public:
 
 private:
   [[nodiscard]] static bool getDefaultState(WarningType type) noexcept {
+#if defined(PLUTO_WARN_NON_PORTABLE_CODE) && defined(PLUTO_WARN_NON_PORTABLE_BYTECODE)
+    return true;
+#else
     switch (type) {
+#ifndef PLUTO_WARN_NON_PORTABLE_CODE
     case WT_NON_PORTABLE_CODE:
+#endif
+#ifndef PLUTO_WARN_NON_PORTABLE_BYTECODE
     case WT_NON_PORTABLE_BYTECODE:
+#endif
       return false;
     default:
       return true;
     }
+#endif
   }
 
 public:
