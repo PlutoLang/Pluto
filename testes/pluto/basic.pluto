@@ -912,6 +912,10 @@ do
     assert(string.truncate("Hello", 4, true) == "H...")
     assert(string.truncate("Hello", 6) == "Hello")
     assert(string.truncate("Hello", 6, true) == "Hello")
+    assert(string.replace("hello world", "joe", "abc") == "hello world")
+    assert(string.replace("hello world", " ", "") == "helloworld")
+    assert(string.replace("LLLL", "L", "X") == "XXXX")
+    assert(string.replace("LLLL", "L", "X", 2) == "XXLL")
 end
 do
     local t = { 5, 4, 3, 2, 1 }
