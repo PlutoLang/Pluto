@@ -830,10 +830,22 @@
 // If defined, Pluto won't imbue tables with a metatable by default.
 //#define PLUTO_NO_DEFAULT_TABLE_METATABLE
 
+/*
+** {====================================================================
+** Pluto configuration: Warnings
+** =====================================================================}
+*/
+
 // Extend the known common globals for variable shadow warnings.
 // It should look like this: #define PLUTO_EXTENDED_COMMON_GLOBAL_NAMES "global", "anotherglobal", "and_another_global"
 // This cannot remain empty. Commas are only required to separate names. No trailing comma is required.
 //#define PLUTO_EXTENDED_COMMON_GLOBAL_NAMES
+
+// If defined, the "non-portable-code" warning is enabled by default.
+//#define PLUTO_WARN_NON_PORTABLE_CODE
+
+// If defined, the "non-portable-bytecode" warning is enabled by default.
+//#define PLUTO_WARN_NON_PORTABLE_BYTECODE
 
 /*
 ** {====================================================================
