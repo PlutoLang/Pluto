@@ -4239,7 +4239,7 @@ static int checkkeyword (LexState *ls) {
         luaX_next(ls);
         return i;
       }
-  if (!ls->t.IsNonCompatible()) {
+  if (!ls->t.IsNonCompatible() && !ls->t.IsOptional()) {
     if (ls->t.IsCompatible())
       luaX_syntaxerror(ls, "expected non-compatible keyword");
     luaX_syntaxerror(ls, "expected keyword");
