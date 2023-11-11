@@ -600,7 +600,11 @@ LUA_API const char *lua_pushstring (lua_State *L, const char *s) {
 }
 
 PLUTO_API const char* pluto_pushstring(lua_State* L, const std::string& str) {
-  return lua_pushstring(L, str.c_str());
+  return lua_pushlstring(L, str.c_str(), str.length());
+}
+
+PLUTO_API const char* pluto_pushstring(lua_State* L, const std::string_view&& str) {
+  return lua_pushlstring(L, str.data(), str.length());
 }
 
 
