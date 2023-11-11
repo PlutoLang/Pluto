@@ -365,6 +365,14 @@ enum NameFlags {
       ;
 }
 
+[[nodiscard]] static bool find_non_compat_tkn_by_name (LexState *ls, const char *str) {
+  for (int i = FIRST_NON_COMPAT; i != END_NON_COMPAT; ++i) {
+    if (strcmp(luaX_token2str_noq(ls, i), str) == 0) {
+      return i;
+    }
+  }
+  return 0;
+}
 
 static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
   TString *ts;
@@ -376,6 +384,12 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
     error_expected(ls, TK_NAME);
   }
   ts = ls->t.seminfo.ts;
+  if (auto t = find_non_compat_tkn_by_name(ls, ts->contents)) {
+    if (ls->getKeywordGuarantee(t) != KG_DISABLED) {
+      throw_warn(ls, "non-portable name", luaO_fmt(ls->L, "use a different name, or use 'pluto_use' to disable this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)), WT_NON_PORTABLE_CODE);
+      ls->L->top.p--;
+    }
+  }
   luaX_next(ls);
   return ts;
 }
