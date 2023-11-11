@@ -67,6 +67,11 @@ enum RESERVED {
 #define FIRST_SPECIAL TK_SUGGEST_0
 #define LAST_RESERVED TK_WHILE
 
+#define END_COMPAT FIRST_NON_COMPAT
+#define END_NON_COMPAT FIRST_OPTIONAL
+
+#define NUM_NON_COMPAT (END_NON_COMPAT - FIRST_NON_COMPAT)
+
 /* number of reserved words */
 #define NUM_RESERVED	(cast_int(LAST_RESERVED-FIRST_RESERVED + 1))
 
@@ -133,11 +138,11 @@ struct Token {
   }
 
   [[nodiscard]] bool IsCompatible() const noexcept {
-      return (token >= FIRST_COMPAT && token < FIRST_NON_COMPAT);
+      return (token >= FIRST_COMPAT && token < END_COMPAT);
   }
 
   [[nodiscard]] bool IsNonCompatible() const noexcept {
-      return (token >= FIRST_NON_COMPAT && token < FIRST_OPTIONAL);
+      return (token >= FIRST_NON_COMPAT && token < END_NON_COMPAT);
   }
 
   [[nodiscard]] bool IsOptional() const noexcept {
@@ -288,6 +293,12 @@ struct EnumDesc {
   std::vector<Enumerator> enumerators;
 };
 
+enum KeywordGuarantee : uint8_t {
+  KG_NONE,
+  KG_ENABLED,
+  KG_DISABLED,
+};
+
 struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
@@ -311,11 +322,15 @@ struct LexState {
   std::vector<TString*> export_symbols{};
   std::vector<void*> parse_time_allocations{};
   std::unordered_map<const TString*, void*> global_props{};
+  KeywordGuarantee keyword_guarantees[NUM_NON_COMPAT];
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
     laststat.token = TK_EOS;
     parser_context_stck.push(PARCTX_NONE); /* ensure there is at least 1 item on the parser context stack */
+    for (auto& kg : keyword_guarantees) {
+      kg = KG_NONE;
+    }
   }
 
   ~LexState() {
@@ -421,6 +436,14 @@ struct LexState {
 
   [[nodiscard]] bool shouldSuggest() const noexcept {
     return t.token == TK_SUGGEST_0 || t.token == TK_SUGGEST_1;
+  }
+
+  [[nodiscard]] KeywordGuarantee getKeywordGuarantee(int t) const noexcept {
+    return keyword_guarantees[t - FIRST_NON_COMPAT];
+  }
+
+  void setKeywordGuarantee(int t, KeywordGuarantee kg) noexcept {
+    keyword_guarantees[t - FIRST_NON_COMPAT] = kg;
   }
 };
 

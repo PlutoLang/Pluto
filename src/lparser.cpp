@@ -191,8 +191,8 @@ static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
 **   - We could alternatively inject Lua-versions of our standard library into files intended to be portable, but this might be a lot of work for little.
 */
 static void portability_warn (LexState *ls, WarningType wt) {
-  if (ls->t.IsNonCompatible()) {
-    throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "try using 'pluto_%s' instead to ensure keyword portability.", luaX_token2str_noq(ls, ls->t.token)), wt);
+  if (ls->t.IsNonCompatible() && ls->getKeywordGuarantee(ls->t.token) == KG_NONE) {
+    throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)), wt);
     ls->L->top.p--;
     return;
   }
@@ -4277,6 +4277,8 @@ static void enablekeyword (LexState *ls, int token) {
 }
 
 static void togglekeyword (LexState *ls, int token, bool enable) {
+  if (token >= FIRST_NON_COMPAT && token < END_NON_COMPAT)
+    ls->setKeywordGuarantee(token, enable ? KG_ENABLED : KG_DISABLED);
   if (enable)
     enablekeyword(ls, token);
   else
@@ -4288,7 +4290,6 @@ static void usestat (LexState *ls) {
   luaX_next(ls); /* skip 'pluto_use' */
   do {
     /* check affected tokens */
-    bool is_enabled = (ls->t.token != TK_NAME);
     bool is_all = false;
     bool is_version = false;
     std::vector<int> tokens{};
@@ -4346,7 +4347,7 @@ static void usestat (LexState *ls) {
         togglekeyword(ls, token, enable);
       }
     }
-    else if (is_enabled != enable) {
+    else {
       togglekeyword(ls, tokens.at(0), enable);
     }
   } while (testnext(ls, ','));
