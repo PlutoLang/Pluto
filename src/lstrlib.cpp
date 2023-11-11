@@ -2201,10 +2201,41 @@ static int str_find_last_not_of (lua_State *L) {
 }
 
 
+static int str_truncate (lua_State *L) {
+  size_t len;
+  std::string s = luaL_checklstring(L, 1, &len);
+  const size_t dlen = luaL_checkinteger(L, 2);
+
+  if (len == dlen) {
+    lua_settop(L, 1);
+    return 1;
+  }
+
+  const auto elipsis = (bool)lua_toboolean(L, 3);
+
+  if (len > dlen) {
+    s.resize(dlen);
+
+    if (elipsis && dlen >= 3) {
+      char* data = s.data();
+
+      data[dlen - 3] = '.';
+      data[dlen - 2] = '.';
+      data[dlen - 1] = '.';
+    }
+  }
+
+  pluto_pushstring(L, s);
+
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"truncate", str_truncate},
   {"find_last_not_of", str_find_last_not_of},
   {"find_last_of", str_find_last_of},
   {"find_first_not_of", str_find_first_not_of},
