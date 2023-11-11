@@ -1897,7 +1897,7 @@ static int str_endswith (lua_State *L) {
 
 static int str_partition (lua_State *L) {
   size_t sepsize, sepindex;
-  std::string str = luaL_checkstring(L, 1);
+  std::string_view str = luaL_checkstring(L, 1);
   const char *sep = luaL_checklstring(L, 2, &sepsize);
 
   if (lua_toboolean(L, 3)) {
@@ -1908,8 +1908,8 @@ static int str_partition (lua_State *L) {
   }
 
   if (sepindex != std::string::npos) {
-    lua_pushstring(L, str.substr(0, sepindex).c_str());
-    lua_pushstring(L, str.substr(sepindex + sepsize).c_str());
+    pluto_pushstring(L, str.substr(0, sepindex));
+    pluto_pushstring(L, str.substr(sepindex + sepsize));
   }
   else {
     lua_pushnil(L);
@@ -2044,7 +2044,7 @@ static int str_isascii (lua_State* L) {
 
 
 static int str_contains (lua_State *L)  {
-  std::string s = luaL_checkstring(L, 1);
+  std::string_view s = luaL_checkstring(L, 1);
   lua_pushboolean(L, s.find(luaL_checkstring(L, 2)) != std::string::npos);
   return 1;
 }
@@ -2102,8 +2102,8 @@ static int str_strip (lua_State *L) {
 
 static int str_rfind (lua_State *L) {
   size_t pos;
-  std::string s = luaL_checkstring(L, 1);
-  const char *sub = luaL_checkstring(L, 2);
+  std::string_view s = luaL_checkstring(L, 1);
+  std::string_view sub = luaL_checkstring(L, 2);
   
   pos = s.rfind(sub);
   if (pos != std::string::npos) {
@@ -2119,8 +2119,8 @@ static int str_rfind (lua_State *L) {
 
 static int str_lfind (lua_State *L) {
   size_t pos;
-  std::string s = luaL_checkstring(L, 1);
-  const char *sub = luaL_checkstring(L, 2);
+  std::string_view s = luaL_checkstring(L, 1);
+  std::string_view sub = luaL_checkstring(L, 2);
   
   pos = s.find(sub);
   if (pos != std::string::npos) {
@@ -2136,8 +2136,8 @@ static int str_lfind (lua_State *L) {
 
 static int str_find_first_of (lua_State *L) {
   size_t pos;
-  std::string s = luaL_checkstring(L, 1);
-  const char *d = luaL_checkstring(L, 2);
+  std::string_view s = luaL_checkstring(L, 1);
+  std::string_view d = luaL_checkstring(L, 2);
 
   pos = s.find_first_of(d);
   if (pos != std::string::npos) {
@@ -2153,8 +2153,8 @@ static int str_find_first_of (lua_State *L) {
 
 static int str_find_first_not_of (lua_State *L) {
   size_t pos;
-  std::string s = luaL_checkstring(L, 1);
-  const char *d = luaL_checkstring(L, 2);
+  std::string_view s = luaL_checkstring(L, 1);
+  std::string_view d = luaL_checkstring(L, 2);
 
   pos = s.find_first_not_of(d);
   if (pos != std::string::npos) {
@@ -2170,8 +2170,8 @@ static int str_find_first_not_of (lua_State *L) {
 
 static int str_find_last_of (lua_State *L) {
   size_t pos;
-  std::string s = luaL_checkstring(L, 1);
-  const char *d = luaL_checkstring(L, 2);
+  std::string_view s = luaL_checkstring(L, 1);
+  std::string_view d = luaL_checkstring(L, 2);
 
   pos = s.find_last_of(d);
   if (pos != std::string::npos) {
@@ -2187,8 +2187,8 @@ static int str_find_last_of (lua_State *L) {
 
 static int str_find_last_not_of (lua_State *L) {
   size_t pos;
-  std::string s = luaL_checkstring(L, 1);
-  const char *d = luaL_checkstring(L, 2);
+  std::string_view s = luaL_checkstring(L, 1);
+  std::string_view d = luaL_checkstring(L, 2);
 
   pos = s.find_last_not_of(d);
   if (pos != std::string::npos) {
