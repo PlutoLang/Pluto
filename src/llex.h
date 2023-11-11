@@ -277,7 +277,7 @@ public:
 #pragma warning( disable: 26495 )
 #endif
 
-enum ParserContext : uint8_t {
+enum ParserContext : lu_byte {
   PARCTX_NONE,
   PARCTX_CREATE_VAR,
   PARCTX_CREATE_VARS,
@@ -293,7 +293,7 @@ struct EnumDesc {
   std::vector<Enumerator> enumerators;
 };
 
-enum KeywordGuarantee : uint8_t {
+enum KeywordGuarantee : lu_byte {
   KG_NONE,
   KG_ENABLED,
   KG_DISABLED,
