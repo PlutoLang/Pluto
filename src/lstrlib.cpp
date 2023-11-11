@@ -9,6 +9,7 @@
 
 #include "lprefix.h"
 #include <string>
+#include <string_view>
 #include <ctype.h>
 #include <float.h>
 #include <limits.h>
@@ -2230,11 +2231,47 @@ static int str_truncate (lua_State *L) {
   return 1;
 }
 
+static int str_replace (lua_State *L) {
+  size_t pos = 0;
+  size_t oglen = 0;
+  size_t sublen = 0;
+  size_t newlen = 0;
+
+  std::string og = luaL_checklstring(L, 1, &oglen);
+  const std::string_view sub = luaL_checklstring(L, 2, &sublen);
+  const std::string_view new_ = luaL_checklstring(L, 3, &newlen);
+  const auto max_replace = luaL_optinteger(L, 4, 0);
+
+  luaL_check(L, oglen == 0, "argument 'original' for string.replace cannot be empty");
+  luaL_check(L, sublen == 0, "argument 'substitute' for string.replace cannot be empty");
+  luaL_check(L, max_replace < 0, "argument 'max_replace' for string.replace cannot be negative");
+
+  const bool erase = newlen == 0;
+  size_t replacements = 0;
+  while ((pos = og.find(sub, pos)) != std::string::npos) {
+    if (max_replace != 0 && replacements++ == max_replace) {
+      break;
+    }
+
+    if (erase) {
+      og.erase(pos, sublen);
+    }
+    else {
+      og.replace(pos, sublen, new_);
+      pos += newlen;
+    }
+  }
+
+  pluto_pushstring(L, og);
+  return 1;
+}
+
 
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"replace", str_replace},
   {"truncate", str_truncate},
   {"find_last_not_of", str_find_last_not_of},
   {"find_last_of", str_find_last_of},
