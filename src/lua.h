@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <string>
+#include <string_view>
 
 
 #define PLUTO_VERSION "Pluto 0.8.0"
@@ -247,6 +248,7 @@ LUA_API void        (lua_pushinteger) (lua_State *L, lua_Integer n);
 LUA_API const char *(lua_pushlstring) (lua_State *L, const char *s, size_t len);
 LUA_API const char *(lua_pushstring) (lua_State *L, const char *s);
 PLUTO_API const char *(pluto_pushstring) (lua_State* L, const std::string& str);
+PLUTO_API const char *(pluto_pushstring) (lua_State* L, const std::string_view&& str);
 LUA_API const char *(lua_pushvfstring) (lua_State *L, const char *fmt,
                                                       va_list argp);
 LUA_API const char *(lua_pushfstring) (lua_State *L, const char *fmt, ...);
