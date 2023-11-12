@@ -5,13 +5,13 @@
 #include <cstdint>
 #include <cstring> // strlen
 #include <filesystem>
-#include <optional>
 #include <string>
 #include <vector>
 
-#undef min
-
 #include "base.hpp"
+#include "Optional.hpp"
+
+#undef min
 
 namespace soup
 {
@@ -78,9 +78,13 @@ namespace soup
 			else
 			{
 				std::string str = std::to_string(f);
-				while (str.at(str.size() - 1) == '0')
+				while (str.back() == '0')
 				{
-					str.erase(str.size() - 1);
+					str.pop_back();
+				}
+				if (str.back() == '.')
+				{
+					str.push_back('0');
 				}
 				return str;
 			}
@@ -287,17 +291,17 @@ namespace soup
 
 		// conversions
 
-		[[nodiscard]] static std::string bin2hex(const std::string& str)
+		[[nodiscard]] static std::string bin2hex(const std::string& str, bool spaces = false)
 		{
-			return bin2hexImpl(str, charset_hex);
+			return bin2hexImpl(str, spaces, charset_hex);
 		}
 
-		[[nodiscard]] static std::string bin2hexLower(const std::string& str)
+		[[nodiscard]] static std::string bin2hexLower(const std::string& str, bool spaces = false)
 		{
-			return bin2hexImpl(str, charset_hex_lower);
+			return bin2hexImpl(str, spaces, charset_hex_lower);
 		}
 
-		[[nodiscard]] static std::string bin2hexImpl(std::string str, const char* map)
+		[[nodiscard]] static std::string bin2hexImpl(const std::string& str, bool spaces, const char* map)
 		{
 			std::string res{};
 			res.reserve(str.size() * 2);
@@ -305,10 +309,18 @@ namespace soup
 			{
 				res.push_back(map[(unsigned char)c >> 4]);
 				res.push_back(map[c & 0b1111]);
+				if (spaces)
+				{
+					res.push_back(' ');
+				}
+			}
+			if (spaces && !res.empty())
+			{
+				res.pop_back();
 			}
 			return res;
 		}
-		
+
 		enum ToIntFlags : uint8_t
 		{
 			TI_FULL = 1 << 0, // The entire string must be processed. If the string is too long or contains invalid characters, nullopt or fallback will be returned.
@@ -357,7 +369,7 @@ namespace soup
 		}
 
 		template <typename IntT, typename CharT>
-		[[nodiscard]] static std::optional<IntT> toIntOpt(const CharT*& it) noexcept
+		[[nodiscard]] static Optional<IntT> toIntOpt(const CharT*& it) noexcept
 		{
 			bool had_number_char = false;
 			IntT val = 0;
@@ -405,7 +417,7 @@ namespace soup
 		}
 
 		template <typename IntT, uint8_t Flags = 0, typename CharT>
-		[[nodiscard]] static std::optional<IntT> toInt(const CharT* it) noexcept
+		[[nodiscard]] static Optional<IntT> toInt(const CharT* it) noexcept
 		{
 			bool neg = false;
 			if (*it == '\0')
@@ -439,17 +451,17 @@ namespace soup
 			{
 				val *= -1;
 			}
-			return std::optional<IntT>(std::move(val));
+			return Optional<IntT>(std::move(val));
 		}
 
 		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static std::optional<IntT> toInt(const std::string& str) noexcept
+		[[nodiscard]] static Optional<IntT> toInt(const std::string& str) noexcept
 		{
 			return toInt<IntT, Flags>(str.c_str());
 		}
 
 		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static std::optional<IntT> toInt(const std::wstring& str) noexcept
+		[[nodiscard]] static Optional<IntT> toInt(const std::wstring& str) noexcept
 		{
 			return toInt<IntT, Flags>(str.c_str());
 		}
@@ -457,14 +469,9 @@ namespace soup
 		template <typename IntT, uint8_t Flags = 0>
 		[[nodiscard]] static IntT toInt(const char* str, IntT fallback) noexcept
 		{
-			auto res = toInt<IntT, Flags>(str);
-			if (res.has_value())
-			{
-				return res.value();
-			}
-			return fallback;
+			return toInt<IntT, Flags>(str).value_or(fallback);
 		}
-		
+
 		template <typename IntT, uint8_t Flags = 0>
 		[[nodiscard]] static IntT toInt(const std::string& str, IntT fallback) noexcept
 		{
@@ -474,12 +481,7 @@ namespace soup
 		template <typename IntT, uint8_t Flags = 0>
 		[[nodiscard]] static IntT toInt(const wchar_t* str, IntT fallback) noexcept
 		{
-			auto res = toInt<IntT, Flags>(str);
-			if (res.has_value())
-			{
-				return res.value();
-			}
-			return fallback;
+			return toInt<IntT, Flags>(str).value_or(fallback);
 		}
 
 		template <typename IntT, uint8_t Flags = 0>
@@ -544,7 +546,7 @@ namespace soup
 		}
 
 		template <typename IntT, uint8_t Flags = 0, typename CharT>
-		[[nodiscard]] static std::optional<IntT> hexToInt(const CharT* it) noexcept
+		[[nodiscard]] static Optional<IntT> hexToInt(const CharT* it) noexcept
 		{
 			if (*it == '\0')
 			{
@@ -562,17 +564,17 @@ namespace soup
 					return std::nullopt;
 				}
 			}
-			return std::optional<IntT>(std::move(val));
+			return Optional<IntT>(std::move(val));
 		}
 
 		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static std::optional<IntT> hexToInt(const std::string& str) noexcept
+		[[nodiscard]] static Optional<IntT> hexToInt(const std::string& str) noexcept
 		{
 			return hexToInt<IntT, Flags>(str.c_str());
 		}
 
 		template <typename IntT, uint8_t Flags>
-		[[nodiscard]] static std::optional<IntT> hexToInt(const std::wstring& str) noexcept
+		[[nodiscard]] static Optional<IntT> hexToInt(const std::wstring& str) noexcept
 		{
 			return hexToInt<IntT, Flags>(str.c_str());
 		}
@@ -580,12 +582,7 @@ namespace soup
 		template <typename IntT, uint8_t Flags = 0>
 		[[nodiscard]] static IntT hexToInt(const char* str, IntT fallback) noexcept
 		{
-			auto res = hexToInt<IntT, Flags>(str);
-			if (res.has_value())
-			{
-				return res.value();
-			}
-			return fallback;
+			return hexToInt<IntT, Flags>(str).value_or(fallback);
 		}
 
 		template <typename IntT, uint8_t Flags = 0>
@@ -597,12 +594,7 @@ namespace soup
 		template <typename IntT, uint8_t Flags = 0>
 		[[nodiscard]] static IntT hexToInt(const wchar_t* str, IntT fallback) noexcept
 		{
-			auto res = hexToInt<IntT, Flags>(str);
-			if (res.has_value())
-			{
-				return res.value();
-			}
-			return fallback;
+			return hexToInt<IntT, Flags>(str).value_or(fallback);
 		}
 
 		template <typename IntT, uint8_t Flags = 0>
@@ -705,20 +697,7 @@ namespace soup
 					prev = del_pos + len(delim);
 				}
 				auto remain_len = (str.length() - prev);
-				if (remain_len != 0)
-				{
-					res.emplace_back(str.substr(prev, remain_len));
-				}
-				else
-				{
-					if constexpr (std::is_same_v<D, char> || std::is_same_v<D, wchar_t>)
-					{
-						if (str.at(str.length() - 1) == delim)
-						{
-							res.emplace_back(S{});
-						}
-					}
-				}
+				res.emplace_back(str.substr(prev, remain_len));
 			}
 			return res;
 		}
@@ -851,21 +830,49 @@ namespace soup
 			std::u8string u8 = std::move(*reinterpret_cast<std::u8string*>(&str));
 			return u8;
 		}
+#else
+		[[nodiscard]] static std::string fixType(std::string str)
+		{
+			return str;
+		}
 #endif
 
+		template <typename T>
+		static void truncateWithEllipsis(T& str, size_t max_len)
+		{
+			if (str.size() > max_len)
+			{
+				str.resize(max_len);
+				auto* data = str.data();
+				data[max_len - 3] = '.';
+				data[max_len - 2] = '.';
+				data[max_len - 1] = '.';
+			}
+		}
+
+		template <typename T>
+		[[nodiscard]] static T truncateWithEllipsis(T&& str, size_t max_len)
+		{
+			truncateWithEllipsis(str, max_len);
+			return str;
+		}
+
 		// char mutation
+
+		template <typename Char>
+		[[nodiscard]] static Char lower_char(Char c)
+		{
+			if (c >= 'A' && c <= 'Z')
+			{
+				return c - 'A' + 'a';
+			}
+			return c;
+		}
 
 		template <typename Str>
 		static void lower(Str& str)
 		{
-			std::transform(str.begin(), str.end(), str.begin(), [](typename Str::value_type c) -> typename Str::value_type
-			{
-				if (c >= 'A' && c <= 'Z')
-				{
-					return c - 'A' + 'a';
-				}
-				return c;
-			});
+			std::transform(str.begin(), str.end(), str.begin(), &lower_char<typename Str::value_type>);
 		}
 
 		template <typename Str>
@@ -875,23 +882,56 @@ namespace soup
 			return str;
 		}
 
+		template <typename Char>
+		[[nodiscard]] static Char upper_char(Char c)
+		{
+			if (c >= 'a' && c <= 'z')
+			{
+				return c - 'a' + 'A';
+			}
+			return c;
+		}
+
 		template <typename Str>
 		static void upper(Str& str)
 		{
-			std::transform(str.begin(), str.end(), str.begin(), [](typename Str::value_type c) -> typename Str::value_type
-			{
-				if (c >= 'a' && c <= 'z')
-				{
-					return c - 'a' + 'A';
-				}
-				return c;
-			});
+			std::transform(str.begin(), str.end(), str.begin(), &upper_char<typename Str::value_type>);
 		}
 
 		template <typename Str>
 		[[nodiscard]] static Str upper(Str&& str)
 		{
 			upper(str);
+			return str;
+		}
+
+		// "hello world" -> "Hello World"
+		template <typename Str>
+		static void title(Str& str)
+		{
+			bool first = true;
+			for (auto& c : str)
+			{
+				if (first)
+				{
+					first = false;
+					c = upper_char(c);
+				}
+				else
+				{
+					c = lower_char(c);
+				}
+				if (isSpace(c))
+				{
+					first = true;
+				}
+			}
+		}
+
+		template <typename Str>
+		[[nodiscard]] static Str title(Str&& str)
+		{
+			title(str);
 			return str;
 		}
 
@@ -924,5 +964,7 @@ namespace soup
 
 		[[nodiscard]] static std::string fromFile(const std::string& file);
 		[[nodiscard]] static std::string fromFilePath(const std::filesystem::path& file);
+		static void toFile(const std::string& file, const std::string& contents);
+		static void toFilePath(const std::filesystem::path& file, const std::string& contents);
 	};
 }
