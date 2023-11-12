@@ -486,6 +486,7 @@
     <ClCompile Include="src\vendor\Soup\JsonNull.cpp" />
     <ClCompile Include="src\vendor\Soup\JsonObject.cpp" />
     <ClCompile Include="src\vendor\Soup\JsonString.cpp" />
+    <ClCompile Include="src\vendor\Soup\Optional.hpp" />
     <ClCompile Include="src\vendor\Soup\unicode.cpp" />
   </ItemGroup>
   <ItemGroup>
