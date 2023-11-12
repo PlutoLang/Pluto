@@ -2267,10 +2267,53 @@ static int str_replace (lua_State *L) {
 }
 
 
+static int str_formatint (lua_State *L) {
+  luaL_check(L, !lua_isinteger(L, 1) && !lua_isstring(L, 1), "argument 'integer' for string.formatint must be an integer or a string which represents an integer");
+
+  std::string num = lua_tostring(L, 1);
+
+  if (lua_isstring(L, 1)) {
+    size_t pos = 0;
+    bool exhausted_unary = false;
+
+    while ((pos = num.find_first_not_of("0123456789", pos)) != std::string::npos) {
+      const auto c = num.at(pos);
+
+      if ((c == '-' || c == '+') && !exhausted_unary) {
+        exhausted_unary = true;
+        pos++;
+      }
+      else {
+        luaL_error(L, "argument 'integer' for string.formatint was a string, but does not represent a valid integer (bad character: '%c')", c);
+      }
+    }
+  }
+
+  size_t seplen;
+  const auto sep = luaL_optlstring(L, 2, ",", &seplen);
+  const auto group = luaL_optinteger(L, 3, 3);
+
+  luaL_check(L, group < 1, "argument 'group' for string.formatint must be larger than zero");
+  luaL_check(L, seplen != 1, "argument 'sep' for string.formatint must have a length of 1");
+
+  for (size_t i = num.size() - group; i > 0 && i < num.size(); i -= group) {
+    const auto c = num.at(i - 1);
+
+    if (c != '-' && c != '+') {
+      num.insert(i, 1, *sep);
+    }
+  }
+
+  pluto_pushstring(L, num);
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"formatint", str_formatint},
   {"replace", str_replace},
   {"truncate", str_truncate},
   {"find_last_not_of", str_find_last_not_of},
