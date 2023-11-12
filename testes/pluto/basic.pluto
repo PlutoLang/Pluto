@@ -131,6 +131,18 @@ do
     b >>= 1
     assert(a == 0)
     assert(b == 1)
+
+    local t = {
+        tt = {
+            ttt = {
+                tttt = {
+                    v = 1
+                }
+            }
+        }
+    }
+    t.tt.ttt.tttt.v += 499
+    assert(t.tt.ttt.tttt.v == 500)
 end
 
 print "Testing string indexing."
