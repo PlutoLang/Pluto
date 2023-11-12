@@ -916,6 +916,50 @@ do
     assert(string.replace("hello world", " ", "") == "helloworld")
     assert(string.replace("LLLL", "L", "X") == "XXXX")
     assert(string.replace("LLLL", "L", "X", 2) == "XXLL")
+    local function septest(sep)
+        local fn = |...| -> string.formatint(...)
+
+        assert(fn(100, sep) == "100")
+        assert(fn(1000, sep) == $"1{sep}000")
+        assert(fn(10000, sep) == $"10{sep}000")
+        assert(fn(100000, sep) == $"100{sep}000")
+        assert(fn(1000000, sep) == $"1{sep}000{sep}000")
+        assert(fn(10000000, sep) == $"10{sep}000{sep}000")
+
+        assert(fn(-100, sep) == "-100")
+        assert(fn(-1000, sep) == $"-1{sep}000")
+        assert(fn(-10000, sep) == $"-10{sep}000")
+        assert(fn(-100000, sep) == $"-100{sep}000")
+        assert(fn(-1000000, sep) == $"-1{sep}000{sep}000")
+        assert(fn(-10000000, sep) == $"-10{sep}000{sep}000")
+    end
+
+    septest(",")
+    septest(".")
+    septest(" ")
+    local _, err = pcall(|| -> septest("..."))
+    assert(err:contains("length of 1"))
+
+    local function septest2(sep)
+        local fn = |...| -> string.formatint(...)
+
+        assert(fn(100, sep, 2) == $"1{sep}00")
+        assert(fn(1000, sep, 2) == $"10{sep}00")
+        assert(fn(10000, sep, 2) == $"1{sep}00{sep}00")
+        assert(fn(100000, sep, 2) == $"10{sep}00{sep}00")
+
+        assert(fn(-100, sep, 2) == $"-1{sep}00")
+        assert(fn(-1000, sep, 2) == $"-10{sep}00")
+        assert(fn(-10000, sep, 2) == $"-1{sep}00{sep}00")
+        assert(fn(-100000, sep, 2) == $"-10{sep}00{sep}00")
+    end
+
+    septest2(",")
+    septest2(".")
+    septest2(" ")
+
+    assert(string.formatint("+3249230492345645324234234234234234234234234324242343243242342343423242344") == "+3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
+    assert(string.formatint("-3249230492345645324234234234234234234234234324242343243242342343423242344") == "-3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
 end
 do
     local t = { 5, 4, 3, 2, 1 }
