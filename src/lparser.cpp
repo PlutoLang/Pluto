@@ -4342,6 +4342,12 @@ static void builtinoperators (LexState *ls) {
   /* discover what operators are used */
   for (const auto& t : ls->tokens) {
     switch (t.token) {
+      case TK_NAME:
+        if (strcmp(t.seminfo.ts->contents, "new") == 0) {
+          uses_new = true;
+        }
+        break;
+
       case TK_NEW:
       case TK_PNEW:
         uses_new = true;
