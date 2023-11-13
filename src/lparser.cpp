@@ -191,7 +191,7 @@ static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
 **   - We could alternatively inject Lua-versions of our standard library into files intended to be portable, but this might be a lot of work for little.
 */
 static void portability_warn (LexState *ls, WarningType wt) {
-  if (ls->t.IsNonCompatible() && ls->getKeywordGuarantee(ls->t.token) == KG_NONE) {
+  if (ls->t.IsNonCompatible() && !ls->t.IsOverridable() && ls->getKeywordGuarantee(ls->t.token) == KG_NONE) {
     throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)), wt);
     ls->L->top.p--;
     return;
@@ -384,7 +384,7 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
     error_expected(ls, TK_NAME);
   }
   ts = ls->t.seminfo.ts;
-  if (auto t = find_non_compat_tkn_by_name(ls, ts->contents)) {
+  if (auto t = find_non_compat_tkn_by_name(ls, ts->contents); t != 0 && t != TK_PARENT) {
     if (ls->getKeywordGuarantee(t) != KG_DISABLED) {
       throw_warn(
         ls,
