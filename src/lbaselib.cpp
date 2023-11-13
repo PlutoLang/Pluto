@@ -683,10 +683,10 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
     dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append(",\n");
-    dump.append(indents - 1, '\t');
 
     lua_pop(L, 1);
   }
+  dump.append(indents - 1, '\t');
   dump.push_back('}');
   pluto_pushstring(L, dump);
 }
