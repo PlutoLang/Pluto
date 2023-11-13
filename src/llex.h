@@ -159,12 +159,6 @@ struct Token {
 };
 
 
-/*
-** If you wish to add a new warning type, you need to update WarningType from the bottom.
-** Then, you need to enter the 'name' of your warning at the bottom of luaX_warnIds, so the user can toggle it during runtime.
-*/
-
-
 enum WarningType : int {
   ALL_WARNINGS = 0,
 
@@ -196,6 +190,7 @@ inline const char* const luaX_warnNames[] = {
   "non-portable-code",
   "non-portable-bytecode",
 };
+static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
 
 class WarningConfig
