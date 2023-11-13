@@ -390,15 +390,17 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
     error_expected(ls, TK_NAME);
   }
   ts = ls->t.seminfo.ts;
-  if (auto t = find_non_compat_tkn_by_name(ls, ts->contents); t != 0 && t != TK_PARENT) {
-    if (ls->getKeywordGuarantee(t) != KG_DISABLED) {
-      throw_warn(
-        ls,
-        luaO_fmt(ls->L, "'%s' is a non-portable name", ts->contents),
-        luaO_fmt(ls->L, "use a different name, or use 'pluto_use' to disable this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)),
-        WT_NON_PORTABLE_CODE
-      );
-      ls->L->top.p -= 2;
+  if (!(flags & N_RESERVED)) {
+    if (auto t = find_non_compat_tkn_by_name(ls, ts->contents); t != 0 && t != TK_PARENT) {
+      if (ls->getKeywordGuarantee(t) != KG_DISABLED) {
+        throw_warn(
+          ls,
+          luaO_fmt(ls->L, "'%s' is a non-portable name", ts->contents),
+          luaO_fmt(ls->L, "use a different name, or use 'pluto_use' to disable this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)),
+          WT_NON_PORTABLE_CODE
+        );
+        ls->L->top.p -= 2;
+      }
     }
   }
   luaX_next(ls);
