@@ -981,6 +981,14 @@ do
         assert(string.urlencode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
         assert(string.urlencode(str):urldecode() == str)
     end
+
+    assert("*":duplicate(3) == "***")
+    assert(string.duplicate("*", 3) == "***")
+    local _, err = pcall(|| -> "*":duplicate(0))
+    assert(err:contains("larger than"))
+    assert("*":duplicate(1) == "*")
+    assert("hello world":duplicate(1) == "hello world")
+    assert("hello world":duplicate(2) == "hello worldhello world")
 end
 do
     local t = { 5, 4, 3, 2, 1 }
