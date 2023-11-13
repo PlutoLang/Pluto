@@ -169,6 +169,7 @@ enum WarningType : int {
   ALL_WARNINGS = 0,
 
   WT_VAR_SHADOW,
+  WT_GLOBAL_SHADOW,
   WT_TYPE_MISMATCH,
   WT_UNREACHABLE_CODE,
   WT_EXCESSIVE_ARGUMENTS,
@@ -185,6 +186,7 @@ enum WarningType : int {
 inline const char* const luaX_warnNames[] = {
   "all",
   "var-shadow",
+  "global-shadow",
   "type-mismatch",
   "unreachable-code",
   "excessive-arguments",
