@@ -447,11 +447,13 @@ struct LexState {
   }
 
   [[nodiscard]] KeywordGuarantee getKeywordGuarantee(int t) const noexcept {
+    lua_assert(t >= FIRST_NON_COMPAT && t < END_NON_COMPAT);
     return keyword_guarantees[t - FIRST_NON_COMPAT];
   }
 
   void setKeywordGuarantee(int t, KeywordGuarantee kg) noexcept {
-    keyword_guarantees[t - FIRST_NON_COMPAT] = kg;
+    if (t >= FIRST_NON_COMPAT && t < END_NON_COMPAT)
+      keyword_guarantees[t - FIRST_NON_COMPAT] = kg;
   }
 };
 
