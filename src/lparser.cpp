@@ -4390,6 +4390,8 @@ static void trystat (LexState *ls) {
 
   const auto results_vidx = new_localvarliteral(ls, "(try results)");
 
+  const bool vararg = ls->fs->f->is_vararg;
+
   int pc = luaK_codeABC(ls->fs, OP_NEWTABLE, 0, 0, 0);
   expdesc t;
   ConsControl cc;
@@ -4408,6 +4410,8 @@ static void trystat (LexState *ls) {
   new_fs.f = addprototype(ls);
   new_fs.f->linedefined = ls->getLineNumber();
   open_func(ls, &new_fs, &bl);
+  if (vararg)
+    setvararg(&new_fs, 0);
   
   TypeHint prop{};
   statlist(ls, &prop);
@@ -4418,9 +4422,15 @@ static void trystat (LexState *ls) {
   close_func(ls);
   luaK_exp2nextreg(ls->fs, &lambda);
 
+  if (vararg) {
+    expdesc va;
+	init_exp(&va, VVARARG, luaK_codeABC(ls->fs, OP_VARARG, 0, 0, 1));
+	luaK_exp2nextreg(ls->fs, &va);
+  }
+
   auto base = cc.v.u.info;  /* base register for call */
   {
-    constexpr auto nparams = 1;
+    const auto nparams = vararg ? 2 : 1;
     init_exp(&cc.v, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
   }
   ls->fs->freereg = base + 1;
