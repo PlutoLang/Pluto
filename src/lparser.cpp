@@ -2767,7 +2767,8 @@ static void lbreak (LexState *ls, lua_Integer backwards, int line) {
     };
   }
   if (bl) {
-    if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
+    if (upval || bl->isSwitch())
+      luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
     luaK_concat(fs, &bl->breaklist, luaK_jump(fs));
   }
   else {
