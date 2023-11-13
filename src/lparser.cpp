@@ -1114,6 +1114,15 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
 }
 
 
+static void closelocals (FuncState *fs, int nactvar) {
+  int stklevel = reglevel(fs, nactvar);  /* level outside the block */
+  removevars(fs, nactvar);  /* remove block locals */
+  lua_assert(nactvar == fs->nactvar);  /* back to level on entry */
+  //luaK_codeABC(fs, OP_CLOSE, stklevel, 0, 0);
+  //fs->freereg = stklevel;
+}
+
+
 static void leaveblock (FuncState *fs) {
   BlockCnt *bl = fs->bl;
   LexState *ls = fs->ls;
@@ -2861,9 +2870,8 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   luaX_next(ls); // Skip switch statement.
 
   FuncState *fs = ls->fs;
-  BlockCnt sbl, cbl;
+  BlockCnt sbl;
   enterblock(fs, &sbl, 2);
-  bool in_cbl = false;
 
   if (tk == TK_ARROW) {
     /* doing this only now so 'enterblock' doesn't assert */
@@ -2890,18 +2898,17 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   TString* const end_switch = luaS_newliteral(ls->L, "pluto_end_switch");
   TString* default_case = nullptr;
   int first_pc, default_pc;
+  int cbl = -1;
 
   if (gett(ls) == TK_CASE) {
     luaX_next(ls); /* Skip 'case' */
     first = casecond(ls, ctrl, tk);
     first_pc = luaK_getlabel(fs);
-    enterblock(fs, &cbl, 2);
+    cbl = fs->nactvar;
     caselist(ls, ud);
     if (luaX_lookbehind(ls).token == TK_BREAK) {
-      leaveblock(fs);
-    }
-    else {
-      in_cbl = true;
+      closelocals(fs, cbl);
+      cbl = -1;
     }
   }
   else {
@@ -2911,23 +2918,18 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   std::vector<SwitchCase> cases{};
 
   while (gett(ls) != TK_END) {
+	if (cbl == -1) {
+	  cbl = fs->nactvar;
+	}
     auto case_line = ls->getLineNumber();
     if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
       checknext(ls, tk);
       if (default_case != nullptr)
         throwerr(ls, "switch statement already has a default case", "second default case", case_line);
-      if (in_cbl) {
-        in_cbl = false;
-        leaveblock(fs);
-      }
       default_case = luaS_newliteral(ls->L, "pluto_default_case");
       default_pc = luaK_getlabel(fs);
       createlabel(ls, default_case, ls->getLineNumber(), false);
-      if (!in_cbl) {
-        in_cbl = true;
-        enterblock(fs, &cbl, 2);
-      }
       caselist(ls, ud);
     }
     else {
@@ -2935,20 +2937,16 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
       cases.emplace_back(SwitchCase{ luaX_getpos(ls), luaK_getlabel(fs) });
       skip_until(ls, tk); /* skip over casecond */
       checknext(ls, tk);
-      if (!in_cbl) {
-        in_cbl = true;
-        enterblock(fs, &cbl, 2);
-      }
       caselist(ls, ud);
     }
     if (luaX_lookbehind(ls).token == TK_BREAK) {
-      leaveblock(fs);
-      in_cbl = false;
+      closelocals(fs, cbl);
+      cbl = -1;
     }
   }
 
-  if (in_cbl) {
-    leaveblock(fs);
+  if (cbl != -1) {
+    closelocals(fs, cbl);
   }
 
   /* if switch expression has no default case, generate one to guarantee nil in that case
