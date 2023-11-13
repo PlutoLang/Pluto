@@ -617,7 +617,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
         if (n == global_name) {
           throw_warn(ls,
             "duplicate global declaration",
-              luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_VAR_SHADOW);
+              luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_GLOBAL_SHADOW);
           ls->L->top.p--;
           return;
         }
