@@ -2861,8 +2861,9 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   luaX_next(ls); // Skip switch statement.
 
   FuncState *fs = ls->fs;
-  BlockCnt sbl;
+  BlockCnt sbl, cbl;
   enterblock(fs, &sbl, 2);
+  bool in_cbl = false;
 
   if (tk == TK_ARROW) {
     /* doing this only now so 'enterblock' doesn't assert */
@@ -2894,7 +2895,14 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     luaX_next(ls); /* Skip 'case' */
     first = casecond(ls, ctrl, tk);
     first_pc = luaK_getlabel(fs);
+    enterblock(fs, &cbl, 2);
     caselist(ls, ud);
+    if (luaX_lookbehind(ls).token == TK_BREAK) {
+      leaveblock(fs);
+    }
+    else {
+      in_cbl = true;
+    }
   }
   else {
     newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
@@ -2903,6 +2911,10 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   std::vector<SwitchCase> cases{};
 
   while (gett(ls) != TK_END) {
+    if (!in_cbl) {
+      in_cbl = true;
+      enterblock(fs, &cbl, 2);
+    }
     auto case_line = ls->getLineNumber();
     if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
@@ -2921,6 +2933,14 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
       checknext(ls, tk);
       caselist(ls, ud);
     }
+    if (luaX_lookbehind(ls).token == TK_BREAK) {
+      leaveblock(fs);
+      in_cbl = false;
+    }
+  }
+
+  if (in_cbl) {
+    leaveblock(fs);
   }
 
   /* if switch expression has no default case, generate one to guarantee nil in that case
