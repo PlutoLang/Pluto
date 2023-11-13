@@ -365,7 +365,7 @@ enum NameFlags {
       ;
 }
 
-[[nodiscard]] static bool find_non_compat_tkn_by_name (LexState *ls, const char *str) {
+[[nodiscard]] static int find_non_compat_tkn_by_name (LexState *ls, const char *str) {
   for (int i = FIRST_NON_COMPAT; i != END_NON_COMPAT; ++i) {
     if (strcmp(luaX_token2str_noq(ls, i), str) == 0) {
       return i;
