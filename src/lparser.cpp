@@ -2883,19 +2883,23 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   std::vector<SwitchCase> cases{};
 
   while (gett(ls) != TK_END) {
-    if (!in_cbl) {
-      in_cbl = true;
-      enterblock(fs, &cbl, 2);
-    }
     auto case_line = ls->getLineNumber();
     if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
       checknext(ls, tk);
       if (default_case != nullptr)
         throwerr(ls, "switch statement already has a default case", "second default case", case_line);
+      if (in_cbl) {
+        in_cbl = false;
+        leaveblock(fs);
+      }
       default_case = luaS_newliteral(ls->L, "pluto_default_case");
       default_pc = luaK_getlabel(fs);
       createlabel(ls, default_case, ls->getLineNumber(), false);
+      if (!in_cbl) {
+        in_cbl = true;
+        enterblock(fs, &cbl, 2);
+      }
       caselist(ls, ud);
     }
     else {
@@ -2903,6 +2907,10 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
       cases.emplace_back(SwitchCase{ luaX_getpos(ls), luaK_getlabel(fs) });
       skip_until(ls, tk); /* skip over casecond */
       checknext(ls, tk);
+      if (!in_cbl) {
+        in_cbl = true;
+        enterblock(fs, &cbl, 2);
+      }
       caselist(ls, ud);
     }
     if (luaX_lookbehind(ls).token == TK_BREAK) {
