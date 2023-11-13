@@ -1627,6 +1627,17 @@ do
     assert(b == false)
     assert(s == "error")
 end
+do
+    -- Should work seamlessly with vararg functions
+    local function ensure_error(callback, ...)
+        try
+            callback(...)
+        catch e then
+            return e
+        end
+    end
+    assert(ensure_error(error, { what = "err" }).what == "err")
+end
 
 print "Testing compatibility."
 do
