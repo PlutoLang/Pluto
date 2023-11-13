@@ -79,6 +79,9 @@
       <Filter>vendor\Soup</Filter>
     </ClCompile>
     <ClCompile Include="src\luac.cpp" />
+    <ClCompile Include="src\vendor\Soup\urlenc.cpp">
+      <Filter>vendor\Soup</Filter>
+    </ClCompile>
     <ClCompile Include="src\vendor\Soup\Optional.hpp">
       <Filter>vendor\Soup</Filter>
     </ClCompile>
@@ -201,6 +204,9 @@
       <Filter>vendor\Soup</Filter>
     </ClInclude>
     <ClInclude Include="src\lsuggestions.hpp" />
+    <ClInclude Include="src\vendor\Soup\urlenc.hpp">
+      <Filter>vendor\Soup</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="vendor">

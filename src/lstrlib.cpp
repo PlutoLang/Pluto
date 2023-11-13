@@ -26,6 +26,11 @@
 #include "lualib.h"
 
 
+#ifdef PLUTO_USE_SOUP
+#include "vendor/Soup/urlenc.hpp"
+#endif
+
+
 /*
 ** maximum number of captures that a pattern can do during
 ** pattern-matching. This limit is arbitrary, but must fit in
@@ -2309,10 +2314,30 @@ static int str_formatint (lua_State *L) {
 }
 
 
+#ifdef PLUTO_USE_SOUP
+static int str_urlencode (lua_State* L) {
+  const auto input = luaL_checkstring(L, 1);
+  pluto_pushstring(L, soup::urlenc::encode(input));
+  return 1;
+}
+
+
+static int str_urldecode (lua_State *L) {
+  const auto input = luaL_checkstring(L, 1);
+  pluto_pushstring(L, soup::urlenc::decode(input));
+  return 1;
+}
+#endif
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+#ifdef PLUTO_USE_SOUP
+  {"urldecode", str_urldecode},
+  {"urlencode", str_urlencode},
+#endif
   {"formatint", str_formatint},
   {"replace", str_replace},
   {"truncate", str_truncate},
