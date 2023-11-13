@@ -172,6 +172,7 @@ enum WarningType : int {
   WT_POSSIBLE_TYPO,
   WT_NON_PORTABLE_CODE,
   WT_NON_PORTABLE_BYTECODE,
+  WT_NON_PORTABLE_NAME,
 
   NUM_WARNING_TYPES
 };
@@ -189,6 +190,7 @@ inline const char* const luaX_warnNames[] = {
   "possible-typo",
   "non-portable-code",
   "non-portable-bytecode",
+  "non-portable-name",
 };
 static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
@@ -207,6 +209,9 @@ private:
 #endif
 #ifndef PLUTO_WARN_NON_PORTABLE_BYTECODE
     case WT_NON_PORTABLE_BYTECODE:
+#endif
+#ifndef PLUTO_WARN_NON_PORTABLE_NAME
+    case WT_NON_PORTABLE_NAME:
 #endif
     case NUM_WARNING_TYPES:  /* dummy case so compiler doesn't cry when all macros are set */
       return false;
