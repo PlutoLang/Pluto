@@ -487,8 +487,10 @@
     <ClCompile Include="src\vendor\Soup\JsonObject.cpp" />
     <ClCompile Include="src\vendor\Soup\JsonString.cpp" />
     <ClCompile Include="src\vendor\Soup\Optional.hpp" />
+    <ClCompile Include="src\vendor\Soup\spaceship.cpp" />
     <ClCompile Include="src\vendor\Soup\unicode.cpp" />
     <ClCompile Include="src\vendor\Soup\urlenc.cpp" />
+    <ClCompile Include="src\vendor\Soup\version_compare.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\lerrormessage.hpp" />
@@ -547,12 +549,14 @@
     <ClInclude Include="src\vendor\Soup\JsonObject.hpp" />
     <ClInclude Include="src\vendor\Soup\JsonString.hpp" />
     <ClInclude Include="src\vendor\Soup\Reader.hpp" />
+    <ClInclude Include="src\vendor\Soup\spaceship.hpp" />
     <ClInclude Include="src\vendor\Soup\string.hpp" />
     <ClInclude Include="src\vendor\Soup\TreeNode.hpp" />
     <ClInclude Include="src\vendor\Soup\type_traits.hpp" />
     <ClInclude Include="src\vendor\Soup\unicode.hpp" />
     <ClInclude Include="src\vendor\Soup\UniquePtr.hpp" />
     <ClInclude Include="src\vendor\Soup\urlenc.hpp" />
+    <ClInclude Include="src\vendor\Soup\version_compare.hpp" />
     <ClInclude Include="src\vendor\Soup\Writer.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
