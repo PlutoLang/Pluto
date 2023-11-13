@@ -201,9 +201,6 @@ public:
 
 private:
   [[nodiscard]] static bool getDefaultState(WarningType type) noexcept {
-#if defined(PLUTO_WARN_NON_PORTABLE_CODE) && defined(PLUTO_WARN_NON_PORTABLE_BYTECODE)
-    return true;
-#else
     switch (type) {
 #ifndef PLUTO_WARN_NON_PORTABLE_CODE
     case WT_NON_PORTABLE_CODE:
@@ -211,11 +208,11 @@ private:
 #ifndef PLUTO_WARN_NON_PORTABLE_BYTECODE
     case WT_NON_PORTABLE_BYTECODE:
 #endif
+    case NUM_WARNING_TYPES:  /* dummy case so compiler doesn't cry when all macros are set */
       return false;
     default:
       return true;
     }
-#endif
   }
 
 public:
