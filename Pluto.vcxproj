@@ -488,6 +488,7 @@
     <ClCompile Include="src\vendor\Soup\JsonString.cpp" />
     <ClCompile Include="src\vendor\Soup\Optional.hpp" />
     <ClCompile Include="src\vendor\Soup\unicode.cpp" />
+    <ClCompile Include="src\vendor\Soup\urlenc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\lerrormessage.hpp" />
@@ -550,6 +551,7 @@
     <ClInclude Include="src\vendor\Soup\type_traits.hpp" />
     <ClInclude Include="src\vendor\Soup\unicode.hpp" />
     <ClInclude Include="src\vendor\Soup\UniquePtr.hpp" />
+    <ClInclude Include="src\vendor\Soup\urlenc.hpp" />
     <ClInclude Include="src\vendor\Soup\Writer.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
