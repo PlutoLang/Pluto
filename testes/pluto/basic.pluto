@@ -666,6 +666,27 @@ do
     end
 end
 do
+    local pluto_class CloseMe
+        function __construct(public closed = false)
+        end
+
+        function __close()
+            self.closed = true
+        end
+    end
+    local c = pluto_new CloseMe()
+    do
+        switch 1 do
+            case 1:
+                local _ <close> = c
+                break
+            default:
+                error()
+        end
+    end
+    assert(c.closed)
+end
+do
     local function getResponse(word)
         switch word do
             case "hi", "hello":
