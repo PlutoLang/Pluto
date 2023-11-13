@@ -782,6 +782,18 @@ do
     end
     assert(f() == nil)
 end
+-- This simply shouldn't raise any warnings
+do
+    local a = 3
+    switch a do
+        case 1:
+            local scoped_local = 1
+            break
+        case 2:
+            local scoped_local = 2
+            break
+    end
+end
 
 print "Testing table freezing."
 do
