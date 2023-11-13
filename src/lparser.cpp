@@ -3696,7 +3696,7 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
 }
 
 
-static void constexprifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
+static void constexprifstat (LexState *ls, int line) {
   expdesc c;
   expr(ls, &c);
   const bool disposition = luaK_isalwaytrue(ls, &c);
@@ -4191,7 +4191,7 @@ static void statement (LexState *ls, TypeHint *prop) {
     case '$': {
       luaX_next(ls);
       checknext(ls, TK_IF);
-      constexprifstat(ls, line, prop);
+      constexprifstat(ls, line);
       break;
     }
     case TK_WHILE: {  /* stat -> whilestat */
