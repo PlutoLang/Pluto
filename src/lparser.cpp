@@ -1383,7 +1383,7 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   expdesc tab, key, val;
   if (ls->t.token == TK_NAME) {
     checklimit(fs, cc->nh, MAX_INT, "items in a constructor");
-    TString *name = str_checkname(ls);
+    TString *name = str_checkname(ls, N_RESERVED);  /* we already know this is a TK_NAME, but don't wanna raise non-portable-code, so passing N_RESERVED */
     if (for_class && (strcmp(name->contents, "public") == 0
       || strcmp(name->contents, "protected") == 0
       || strcmp(name->contents, "private") == 0
