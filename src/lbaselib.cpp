@@ -23,6 +23,10 @@
 #include "lobject.h"
 #include "lstate.h"
 
+#ifdef PLUTO_USE_SOUP
+#include "vendor/Soup/version_compare.hpp"
+#endif
+
 
 static int luaB_print (lua_State *L) {
 #ifdef PLUTO_VMDUMP
@@ -706,7 +710,18 @@ static int luaB_exportvar (lua_State *L) {
 }
 
 
+#ifdef PLUTO_USE_SOUP
+static int luaB_version_compare (lua_State *L) {
+  lua_pushinteger(L, SOUP_STRONG_ORDERING_TO_INT(soup::version_compare(luaL_checkstring(L, 1), luaL_checkstring(L, 2))));
+  return 1;
+}
+#endif
+
+
 static const luaL_Reg base_funcs[] = {
+#ifdef PLUTO_USE_SOUP
+  {"version_compare", luaB_version_compare},
+#endif
   {"exportvar", luaB_exportvar},
   {"dumpvar", luaB_dumpvar},
   {"newuserdata", luaB_newuserdata},

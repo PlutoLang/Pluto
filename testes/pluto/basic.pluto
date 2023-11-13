@@ -1002,6 +1002,14 @@ do
     menu = table.map(menu, |item| -> item.id == betterDoener.id ? betterDoener : item)
     assert(menu[2].name == "Better Doener")
 end
+if _PSOUP then
+    assert(version_compare("0.1.0", "0.1.0") == 0)
+    assert(version_compare("0.1.0", "0.2.0") ~= 0)
+    assert(version_compare("0.2.0", "0.1.0") > 0)
+    assert(version_compare("0.2.0", "0.1.0") >= 0)
+    assert(version_compare("0.1.0", "0.2.0") < 0)
+    assert(version_compare("0.1.0", "0.1.0") <= 0)
+end
 
 print "Testing default table metatable."
 do
