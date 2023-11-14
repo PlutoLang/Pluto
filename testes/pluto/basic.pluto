@@ -58,6 +58,93 @@ do
     f(1)
 end
 
+print "Testing assertion library"
+do
+    local assert = require("assert")
+
+    local function noerror(callback, ...)
+        local status, msg = pcall(callback, ...)
+        assert(status == true)
+    end
+    local function haserror(callback, ...)
+        local status, msg = pcall(callback, ...)
+        assert(status == false)
+    end
+    local function containserror(sub, callback, ...)
+        local status, msg = pcall(callback, ...)
+        assert((status == false) and msg:contains(sub))
+    end
+
+    noerror(assert.isnil, nil)
+    haserror(assert.isnil, 1)
+    containserror("Intended Value: nil", assert.isnil, 1)
+    noerror(assert.istrue, true)
+    haserror(assert.istrue, 1)
+    containserror("true", assert.istrue, 1)
+    noerror(assert.isfalse, false)
+    haserror(assert.isfalse, 1)
+    containserror("false", assert.isfalse, 1)
+    noerror(assert.falsy, nil)
+    haserror(assert.falsy, { 1, 2, 3 })
+    containserror("nil or false", assert.falsy, 99)
+    noerror(assert.truthy, {})
+    haserror(assert.truthy, false)
+    containserror("not nil or false", assert.truthy, nil)
+    noerror(assert.notnil, false)
+    haserror(assert.notnil, nil)
+    containserror("not nil", assert.notnil, nil)
+    local fn = || -> 0
+    local t1 = {
+        1, 2, 3, 4, 5, 6, 7, 9, 0,
+        k = {
+            tabbb = {
+                anothertab = {
+                    1, 2, 3, 4, another_tab = {
+                        ["a"] = fn
+                    }
+                }
+            }
+        }
+    }
+    local t2 = {
+        1, 2, 3, 4, 5, 6, 7, 9, 0,
+        k = {
+            tabbb = {
+                anothertab = {
+                    1, 2, 3, 4, another_tab = {
+                        ["a"] = fn
+                    }
+                }
+            }
+        }
+    }
+    assert.equal(t1, t2)
+    noerror(assert.equal, t1, t2)
+    noerror(assert.equal, t1, t1)
+    haserror(assert.equal, t1, { 1, 2, 3, 4 })
+    haserror(assert.nequal, t1, t2)
+    noerror(assert.nequal, t1, { 1, 2, 3, k = 5 })
+    noerror(assert.nequal, 1, 2)
+    noerror(assert.lessthan, 1, 2)
+    containserror("<", assert.lessthan, 2, 2)
+    noerror(assert.lessthaneq, 2, 2)
+    containserror("<=", assert.lessthaneq, 3, 2)
+    containserror("Expression", assert.lessthaneq, 3, 2)
+    noerror(assert.greaterthan, 2, 1)
+    containserror(">", assert.greaterthan, 1, 2)
+    noerror(assert.greaterthaneq, 2, 2)
+    containserror(">=", assert.greaterthaneq, 2, 3)
+    noerror(assert.noerror, tostring, 5)
+    containserror("An error was raised:", assert.noerror, error, 5)
+    noerror(assert.haserror, error, "hello world")
+    containserror("Expected", assert.haserror, tostring, "hello")
+    noerror(assert.containserror, "hello world", error, "hello world")
+    containserror("Expected", assert.containserror, "hello world", tostring, "hello world")
+    containserror("Absent", assert.containserror, "hello world", error, "abc")
+    assert.equal({}, {})
+    assert.nequal({}, { 1 })
+end
+
 print "Testing compound assignment."
 do
     local a, b = 1, 2
