@@ -3158,6 +3158,7 @@ static BinOpr getbinopr (int op) {
     case TK_OR: return OPR_OR;
     case TK_COAL: return OPR_COAL;
     case TK_POW: return OPR_POW;  /* '**' operator support */
+    case TK_INSTANCEOF: return OPR_INSTANCEOF;
     default: return OPR_NOBINOPR;
   }
 }
@@ -3213,7 +3214,8 @@ static const struct {
    {9, 8},                   /* '..' (right associative) */
    {3, 3}, {3, 3}, {3, 3},   /* ==, <, <= */
    {3, 3}, {3, 3}, {3, 3},   /* ~=, >, >= */
-   {2, 2}, {1, 1}, {1, 1}    /* and, or, ?? */
+   {2, 2}, {1, 1}, {1, 1},   /* and, or, ?? */
+   {3, 3},                   /* instanceof */
 };
 
 #define UNARY_PRIORITY	12  /* priority for unary operators */
@@ -3276,10 +3278,16 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nul
     BinOpr nextop;
     int line = ls->getLineNumber();
     luaX_next(ls);  /* skip operator */
-    luaK_infix(ls->fs, op, v);
-    /* read sub-expression with higher priority */
-    nextop = subexpr(ls, &v2, priority[op].right, nullptr, flags);
-    luaK_posfix(ls->fs, op, v, &v2, line);
+    if (op == OPR_INSTANCEOF) {
+      instanceof(ls, v);
+      nextop = OPR_NOBINOPR;
+    }
+    else {
+      luaK_infix(ls->fs, op, v);
+      /* read sub-expression with higher priority */
+      nextop = subexpr(ls, &v2, priority[op].right, nullptr, flags);
+      luaK_posfix(ls->fs, op, v, &v2, line);
+    }
     op = nextop;
   }
   leavelevel(ls);
@@ -3290,9 +3298,6 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nul
 static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
   luaX_checkspecial(ls);
   subexpr(ls, v, 0, prop, flags);
-  if (testnext(ls, TK_INSTANCEOF)) {
-    instanceof(ls, v);
-  }
   if (testnext(ls, '?')) { /* ternary expression? */
     int escape = NO_JUMP;
     v->normaliseFalse();
