@@ -1324,6 +1324,9 @@ do
     assert(e instanceof Human == false)
     assert(h instanceof Entity == true)
     assert(h instanceof Human == true)
+
+    assert(new Entity() instanceof Entity)
+    assert(new Human() instanceof Entity)
 end
 do
     local class Entity
