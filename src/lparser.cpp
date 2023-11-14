@@ -2086,13 +2086,7 @@ static int explist (LexState *ls, expdesc *v, TypeHint *prop = nullptr) {
 }
 
 static bool isnamedarg (LexState *ls) {
-  bool is_named = false;
-  if (ls->t.token != TK_EOS) {
-    luaX_next(ls); /* skip name */
-    is_named = (ls->t.token == '=');
-    luaX_prev(ls); /* back to name */
-  }
-  return is_named;
+  return ls->t.token != TK_EOS && luaX_lookahead(ls) == '=';
 }
 
 static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
