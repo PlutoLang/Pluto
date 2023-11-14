@@ -2918,9 +2918,9 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   std::vector<SwitchCase> cases{};
 
   while (gett(ls) != TK_END) {
-	if (cbl == -1) {
-	  cbl = fs->nactvar;
-	}
+    if (cbl == -1) {
+      cbl = fs->nactvar;
+    }
     auto case_line = ls->getLineNumber();
     if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
@@ -4479,8 +4479,8 @@ static void trystat (LexState *ls) {
 
   if (vararg) {
     expdesc va;
-	init_exp(&va, VVARARG, luaK_codeABC(ls->fs, OP_VARARG, 0, 0, 1));
-	luaK_exp2nextreg(ls->fs, &va);
+    init_exp(&va, VVARARG, luaK_codeABC(ls->fs, OP_VARARG, 0, 0, 1));
+    luaK_exp2nextreg(ls->fs, &va);
   }
 
   auto base = cc.v.u.info;  /* base register for call */
