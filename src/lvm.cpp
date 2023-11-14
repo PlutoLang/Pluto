@@ -2035,7 +2035,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         StkId ra = RA(i);
         vmDumpInit();
         vmDumpAddA();
-        vmDumpOut ("; close all upvalues with an ID >= " << ivalue(s2v(ra)));
+        vmDumpOut ("; close TBC upvalues");
         Protect(luaF_close(L, ra, LUA_OK, 1));
         vmbreak;
       }
