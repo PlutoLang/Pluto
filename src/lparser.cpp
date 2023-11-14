@@ -3019,10 +3019,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   if (ls->t.token != TK_EOS) {
-    luaX_next(ls);
-    const bool is_instanceof = (ls->t.token == TK_INSTANCEOF);
-    luaX_prev(ls);
-    if (is_instanceof) {
+    if (luaX_lookahead(ls) == TK_INSTANCEOF) {
       instanceof(ls, v);
       return;
     }
