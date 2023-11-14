@@ -3280,7 +3280,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nul
     luaX_next(ls);  /* skip operator */
     if (op == OPR_INSTANCEOF) {
       instanceof(ls, v);
-      nextop = OPR_NOBINOPR;
+      nextop = getbinopr(ls->t.token);
     }
     else {
       luaK_infix(ls->fs, op, v);
