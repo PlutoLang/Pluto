@@ -698,14 +698,20 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
 static int luaB_dumpvar (lua_State *L) {
   luaL_checkany(L, 1);
   lua_pushvalue(L, 1);
-  luaB_dumpvar_impl(L, 1, hvalue(index2value(L, -1)), false);
+  Table* t = nullptr;
+  if (ttistable(index2value(L, -1)))
+    t = hvalue(index2value(L, -1));
+  luaB_dumpvar_impl(L, 1, t, false);
   return 1;
 }
 
 static int luaB_exportvar (lua_State *L) {
   luaL_checkany(L, 1);
   lua_pushvalue(L, 1);
-  luaB_dumpvar_impl(L, 1, hvalue(index2value(L, -1)), true);
+  Table* t = nullptr;
+  if (ttistable(index2value(L, -1)))
+    t = hvalue(index2value(L, -1));
+  luaB_dumpvar_impl(L, 1, t, true);
   return 1;
 }
 
