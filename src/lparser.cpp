@@ -2758,19 +2758,17 @@ static void instanceof (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
 
-  singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_instanceof"), v, 1);
+  expdesc func;
+  singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_instanceof"), &func, 1);
   lua_assert(v->k != VVOID);
-  luaK_exp2nextreg(fs, v);
-
-  expdesc args;
-  singlevar(ls, &args);
-  luaK_exp2nextreg(fs, &args);
-  luaX_next(ls);
-  singlevar(ls, &args);
-
+  luaK_prepcallfirstarg(fs, v, &func);
   lua_assert(v->k == VNONRELOC);
   int base = v->u.info;  /* base register for call */
-  luaK_exp2nextreg(fs, &args);  /* close last argument */
+
+  expdesc arg2;
+  singlevar(ls, &arg2);
+  luaK_exp2nextreg(fs, &arg2);
+
   int nparams = fs->freereg - (base + 1);
   init_exp(v, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
   luaK_fixline(fs, line);
@@ -3040,12 +3038,6 @@ static void switchexpr (LexState *ls, expdesc *v) {
 static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
-  if (ls->t.token != TK_EOS) {
-    if (luaX_lookahead(ls) == TK_INSTANCEOF) {
-      instanceof(ls, v);
-      return;
-    }
-  }
   check_for_non_portable_code(ls);
   switch (ls->t.token) {
     case TK_FLT: {
@@ -3326,6 +3318,9 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nul
 static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
   luaX_checkspecial(ls);
   subexpr(ls, v, 0, prop, flags);
+  if (testnext(ls, TK_INSTANCEOF)) {
+    instanceof(ls, v);
+  }
   if (testnext(ls, '?')) { /* ternary expression? */
     int escape = NO_JUMP;
     v->normaliseFalse();
