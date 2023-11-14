@@ -784,12 +784,6 @@ LUAMOD_API int luaopen_base (lua_State *L) {
   lua_pushboolean(L, false);
 #endif
   lua_setfield(L, -2, "_PSOUP");
-#ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
-  G(L)->ready_for_table_mt = false;
-#endif
-#ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
-  G(L)->ready_for_table_mt = true;
-#endif
   return 1;
 }
 
