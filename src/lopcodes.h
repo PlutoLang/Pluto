@@ -318,6 +318,8 @@ else
   push R(A)[R(B)] ~= nil
 */
 
+OP_PREPCALLFIRSTARG,/*	A B C	R[A+1] := R[B]; R[A] := R[C]	*/
+
 NUM_OPCODES
 } OpCode;
 
