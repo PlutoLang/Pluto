@@ -2245,11 +2245,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if ((newci = luaD_precall(L, ra, nresults)) == NULL)  /* C call; nothing else to be done */
         {
           updatetrap(ci);
-          vmDumpOut("; call cfunc (nresults=" << nresults << " nparams=" << (b - 1) << ")");
+          vmDumpOut("; call C " << stringify_tvalue(s2v(ra)) << " (nresults=" << nresults << " nparams=" << (b - 1) << ")");
         }
         else  /* Lua call: run function in this same C frame */
         {
-          vmDumpOut("; call lfunc (nresults=" << nresults << " nparams=" << (b - 1) << ")");
+          vmDumpOut("; call Lua "<< stringify_tvalue(s2v(ra)) <<  " (nresults=" << nresults << " nparams=" << (b - 1) << ")");
           ci = newci;
           goto startfunc;
         }
