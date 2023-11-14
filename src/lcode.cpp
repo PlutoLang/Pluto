@@ -1103,13 +1103,12 @@ void luaK_self (FuncState *fs, expdesc *e, expdesc *key) {
 /*
 ** Emit PREPCALLFIRSTARG instruction (convert expression 'e' into 'func(e,').
 */
-void luaK_prepcallfirstarg(FuncState *fs, expdesc *e, expdesc *func) {
+void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   luaK_exp2anyreg(fs, e);
   luaK_exp2anyreg(fs, func);
   int ereg = e->u.info;  /* register where 'e' was placed */
   int freg = func->u.info;  /* register where 'func' was placed */
-  freeexp(fs, e);
-  freeexp(fs, func);
+  freeexps(fs, e, func);
   e->u.info = fs->freereg;  /* base register for op_prepcallfirstarg */
   e->k = VNONRELOC;  /* expression has a fixed register */
   luaK_reserveregs(fs, 2);  /* function and first arg produced by op_prepcallfirstarg */
