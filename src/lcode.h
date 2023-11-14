@@ -72,6 +72,7 @@ LUAI_FUNC void luaK_exp2anyregup (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_exp2nextreg (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_exp2val (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_self (FuncState *fs, expdesc *e, expdesc *key);
+LUAI_FUNC void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func);
 LUAI_FUNC void luaK_indexed (FuncState *fs, expdesc *t, expdesc *k);
 LUAI_FUNC bool luaK_isalwaytrue (LexState *ls, expdesc *e);
 LUAI_FUNC bool luaK_isalwayfalse (LexState *ls, expdesc *e);
