@@ -643,8 +643,6 @@ Table *luaH_new (lua_State *L) {
 
 #ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
 void luaH_initmetatable (lua_State *L, Table *t) {
-  if (!G(L)->ready_for_table_mt)
-    return;
   L->ci->top.p++;
   lua_pushnil(L); /* space on the stack where the metatable will go */
   if (ttisnil(&G(L)->table_mt)) {

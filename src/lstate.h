@@ -312,7 +312,6 @@ typedef struct global_State {
   std::time_t deadline;
 #endif
 #ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
-  bool ready_for_table_mt;
   TValue table_mt;
 #endif
 } global_State;
