@@ -1129,6 +1129,10 @@ if _PSOUP then
     assert(version_compare("0.1.0", "0.2.0") < 0)
     assert(version_compare("0.1.0", "0.1.0") <= 0)
 end
+do
+    assert(math.isnan(0 / 0) == true)
+    assert(math.isnan(69) == false)
+end
 
 print "Testing default table metatable."
 do
