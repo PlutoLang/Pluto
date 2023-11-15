@@ -1230,7 +1230,12 @@ LUAI_FUNC int luaB_ipairsaux (lua_State *L);
 
   str << ttypename(ttype(t));
   str << "-";
-  str << (void*)t;
+  switch (ttypetag(t)) {
+    case LUA_VLCF: str << cast_voidp(cast_sizet(fvalue(t))); break;
+    case LUA_VUSERDATA: str << getudatamem(uvalue(t)); break;
+    case LUA_VLIGHTUSERDATA: str << pvalue(t); break;
+    default: str << gcvalue(t);
+  }
 
   return str.str();
 }
@@ -1258,6 +1263,9 @@ inline void padUntilGoal(std::string& s, const size_t goal) noexcept
         str += std::to_string(ivalue(o));
       else
         str += std::to_string(nvalue(o));
+      break;
+    case LUA_TNIL:
+      str += "nil";
       break;
     case LUA_TBOOLEAN:
       str += ttistrue(o) ? "true" : "false";
