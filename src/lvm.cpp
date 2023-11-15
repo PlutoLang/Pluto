@@ -1689,8 +1689,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         StkId ra = RA(i);
         TValue *rb = vRB(i);
         TValue *rc = vRC(i);
-        setobj2s(L, ra + 1, rb);  /* first arg */
-        setobj2s(L, ra, rc);  /* function */
+        TValue b, c;
+        setobj(L, &b, rb);
+        setobj(L, &c, rc);
+        setobj2s(L, ra, &c);  /* function */
+        setobj2s(L, ra + 1, &b);  /* first arg */
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
