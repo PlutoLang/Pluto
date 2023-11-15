@@ -890,6 +890,19 @@ static int absolute (lua_State *L)
 }
 
 
+static int canonical (lua_State *L)
+{
+  FS_FUNCTION
+  Protect(
+    const auto f = getStringStreamPath(L);
+    const auto r = std::filesystem::canonical(f);
+    lua_pushstring(L, (const char*)r.u8string().c_str());
+  );
+
+  return 1;
+}
+
+
 static int parent (lua_State *L)
 {
   FS_FUNCTION
@@ -1073,6 +1086,7 @@ static const luaL_Reg iolib[] = {
   {"makedir", makedir},
   {"makedirs", makedirs},
   {"absolute", absolute},
+  {"canonical", canonical},
   {"parent", parent},
   {"copyto", copyto},
   {"exists", exists},
