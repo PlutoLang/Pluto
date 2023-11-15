@@ -1610,8 +1610,14 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
 }
 
 
-static TString *checkextends (LexState *ls) {
-  TString *parent = nullptr;
+static void classname (LexState *ls, expdesc *v) {
+  singlevarinner(ls, str_checkname(ls, 0), v);
+  while (ls->t.token == '.')
+    fieldsel(ls, v);
+}
+
+static size_t checkextends (LexState *ls) {
+  size_t pos = 0;
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
     ss.push("stat", "extends");
@@ -1621,13 +1627,15 @@ static TString *checkextends (LexState *ls) {
   }
   if (ls->t.token == TK_EXTENDS) {
     luaX_next(ls);
-    parent = str_checkname(ls, 0);
+    pos = luaX_getpos(ls);
+    expdesc dummy;
+    classname(ls, &dummy);
   }
-  ls->parent_classes.emplace(parent);
-  return parent;
+  ls->parent_classes.emplace(pos);
+  return pos;
 }
 
-static void applyextends (LexState *ls, TString *name, TString *parent, int line) {
+static void applyextends (LexState *ls, size_t name_pos, size_t parent_pos, int line) {
   FuncState *fs = ls->fs;
 
   expdesc f;
@@ -1636,9 +1644,13 @@ static void applyextends (LexState *ls, TString *name, TString *parent, int line
   luaK_exp2nextreg(fs, &f);
 
   expdesc args;
-  singlevarinner(ls, name, &args);
+  auto pos = luaX_getpos(ls);
+  luaX_setpos(ls, name_pos);
+  classname(ls, &args);
   luaK_exp2nextreg(fs, &args);
-  singlevar(ls, &args, parent);
+  luaX_setpos(ls, parent_pos);
+  classname(ls, &args);
+  luaX_setpos(ls, pos);
 
   lua_assert(f.k == VNONRELOC);
   int base = f.u.info;  /* base register for call */
@@ -1678,11 +1690,11 @@ static void classstat (LexState *ls) {
   auto line = ls->getLineNumber();
   luaX_next(ls); /* skip 'class' */
 
-  TString *name = str_checkname(ls, 0);
-  TString *parent = checkextends(ls);
-
+  size_t name_pos = luaX_getpos(ls);
   expdesc v;
-  singlevarinner(ls, name, &v);
+  classname(ls, &v);
+
+  size_t parent_pos = checkextends(ls);
 
   expdesc t;
   classexpr(ls, &t);
@@ -1690,11 +1702,11 @@ static void classstat (LexState *ls) {
   luaK_storevar(ls->fs, &v, &t);
   luaK_fixline(ls->fs, line);
 
-  lua_assert(ls->getParentClass() == parent);
+  lua_assert(ls->getParentClassPos() == parent_pos);
   ls->parent_classes.pop();
 
-  if (parent)
-    applyextends(ls, name, parent, line);
+  if (parent_pos)
+    applyextends(ls, name_pos, parent_pos, line);
 }
 
 
@@ -1703,8 +1715,10 @@ static void localclass (LexState *ls) {
   check_for_non_portable_code(ls);
   luaX_next(ls);
   auto line = ls->getLineNumber();
+
+  size_t name_pos = luaX_getpos(ls);
   TString *name = str_checkname(ls, 0);
-  TString *parent = checkextends(ls);
+  size_t parent_pos = checkextends(ls);
 
   new_localvar(ls, name, ls->getLineNumber());
 
@@ -1714,11 +1728,11 @@ static void localclass (LexState *ls) {
   adjust_assign(ls, 1, 1, &t);
   adjustlocalvars(ls, 1);
 
-  lua_assert(ls->getParentClass() == parent);
+  lua_assert(ls->getParentClassPos() == parent_pos);
   ls->parent_classes.pop();
 
-  if (parent)
-    applyextends(ls, name, parent, line);
+  if (parent_pos)
+    applyextends(ls, name_pos, parent_pos, line);
 }
 
 /* }====================================================================== */
@@ -2530,10 +2544,13 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
 
 static void parentexp (LexState *ls, expdesc *v) {
   if (testnext(ls, ':')) {
-    if (ls->getParentClass() == nullptr)
+    if (!ls->getParentClassPos())
       luaX_syntaxerror(ls, "attempt to use 'parent' outside of a class that inherits from another class");
 
-    singlevar(ls, v, ls->getParentClass());
+    auto pos = luaX_getpos(ls);
+    luaX_setpos(ls, ls->getParentClassPos());
+    classname(ls, v);
+    luaX_setpos(ls, pos);
     luaK_exp2nextreg(ls->fs, v);
 
     expdesc key;
