@@ -250,9 +250,7 @@ static void check_for_non_portable_bytecode (LexState *ls) {
     }
     default: {
       _default:
-      throwerr(ls,
-        luaO_fmt(ls->L, "%s expected (got %s)",
-          luaX_token2str(ls, token), luaX_token2str(ls, ls->t.token)), "this is invalid syntax.");
+      throwerr(ls, luaO_fmt(ls->L, "%s expected", luaX_token2str(ls, token)), "this is invalid syntax.");
     }
   }
 }
