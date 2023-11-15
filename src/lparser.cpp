@@ -2139,7 +2139,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
           }
         }
         if (ls->t.token != ')') {
-          if (!isnametkn(ls, 0)) {  /* is this not a named argument? */
+          if (!isnamedarg(ls)) {  /* is this not a named argument? */
             error_expected(ls, ')');  /* then raise syntax error similar to Lua */
           }
           if (!funcdesc) {
