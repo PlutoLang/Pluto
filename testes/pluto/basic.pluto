@@ -1569,6 +1569,15 @@ do
     assert(ctored == true)
     assert(method_called == true)
 end
+do
+    local namespace = {}
+
+    class namespace.Base end
+    class namespace.Derived extends namespace.Base end
+
+    assert(new namespace.Base() instanceof namespace.Base)
+    assert(new namespace.Derived() instanceof namespace.Base)
+end
 
 print "Testing named varargs."
 do
