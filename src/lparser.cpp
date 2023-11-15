@@ -3111,7 +3111,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
 }
 
 
-static void inexpr (LexState *ls, expdesc *v, bool invert = false) {
+static void inexpr (LexState *ls, expdesc *v) {
   expdesc v2;
   checknext(ls, TK_IN);
   luaK_exp2nextreg(ls->fs, v);
@@ -3120,7 +3120,7 @@ static void inexpr (LexState *ls, expdesc *v, bool invert = false) {
   simpleexp(ls, &v2);
   luaK_dischargevars(ls->fs, &v2);
   luaK_exp2nextreg(ls->fs, &v2);
-  luaK_codeABC(ls->fs, OP_IN, v->u.info, v2.u.info, invert ? 1 : 0);
+  luaK_codeABC(ls->fs, OP_IN, v->u.info, v2.u.info, 0);
   ls->fs->freereg = base + 1;
 }
 
@@ -3260,13 +3260,8 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   }
   else {
     simpleexp(ls, v, flags, prop);
-    const bool inverted_in = ls->t.token == TK_NOT && luaX_lookahead(ls) == TK_IN;
-    if (ls->t.token == TK_IN || inverted_in) {
-      if (inverted_in) {
-        testnext(ls, TK_NOT);
-      }
-      check_for_non_portable_bytecode(ls);
-      inexpr(ls, v, inverted_in);
+    if (ls->t.token == TK_IN) {
+      inexpr(ls, v);
       if (prop) prop->emplaceTypeDesc(VT_BOOL);
     }
   }

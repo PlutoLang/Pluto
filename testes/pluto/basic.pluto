@@ -393,7 +393,6 @@ do
     assert("KEY" in t)
     assert("ARRAY" in t)
     assert(("NOTHING" in t) == false)
-    assert("NOTHING" not in t)
 end
 do
     -- table must be global for this failure case
@@ -412,7 +411,6 @@ do
         assert(b == false)
     end
     proxy(42 in t.subt)
-    assert("NOTHING" not in t.subt)
     t = nil
 end
 do
@@ -420,7 +418,6 @@ do
     assert("apple" in { 1, nil, "aaaa", "apple" })
     assert(not "banana" in { apple = true })
     assert(type("apple" in { apple = true }) == "boolean")
-    assert("banana" not in { apple = true })
 end
 do -- check stack corruption
     local t = {
@@ -445,7 +442,6 @@ do -- check stack corruption
     assert(c == "ARRAY")
     assert(d == nil)
     assert(e == "NOTHING")
-    assert(e not in t)
 end
 do 
     local t = {key="value"}
