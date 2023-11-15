@@ -3185,11 +3185,12 @@ static BinOpr getbinopr (int op) {
     case TK_LE: return OPR_LE;
     case '>': return OPR_GT;
     case TK_GE: return OPR_GE;
+    case TK_SPACESHIP: return OPR_SPACESHIP;
+    case TK_INSTANCEOF: return OPR_INSTANCEOF;
     case TK_AND: return OPR_AND;
     case TK_OR: return OPR_OR;
     case TK_COAL: return OPR_COAL;
     case TK_POW: return OPR_POW;  /* '**' operator support */
-    case TK_INSTANCEOF: return OPR_INSTANCEOF;
     default: return OPR_NOBINOPR;
   }
 }
@@ -3245,8 +3246,8 @@ static const struct {
    {9, 8},                   /* '..' (right associative) */
    {3, 3}, {3, 3}, {3, 3},   /* ==, <, <= */
    {3, 3}, {3, 3}, {3, 3},   /* ~=, >, >= */
+   {3, 3}, {3, 3},           /* <=>, instanceof */
    {2, 2}, {1, 1}, {1, 1},   /* and, or, ?? */
-   {3, 3},                   /* instanceof */
 };
 
 #define UNARY_PRIORITY	12  /* priority for unary operators */
@@ -3256,7 +3257,7 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nullptr, int flags = 0) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int flags) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
@@ -3311,6 +3312,10 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nul
     luaX_next(ls);  /* skip operator */
     if (op == OPR_INSTANCEOF) {
       custombinaryoperator(ls, v, luaS_newliteral(ls->L, "Pluto_operator_instanceof"));
+      nextop = getbinopr(ls->t.token);
+    }
+    else if (op == OPR_SPACESHIP) {
+      custombinaryoperator(ls, v, luaS_newliteral(ls->L, "Pluto_operator_spaceship"));
       nextop = getbinopr(ls->t.token);
     }
     else {
@@ -4793,6 +4798,7 @@ static void builtinoperators (LexState *ls) {
   bool uses_new = false;
   bool uses_extends = false;
   bool uses_instanceof = false;
+  bool uses_spaceship = false;
 
   /* discover what operators are used */
   for (const auto& t : ls->tokens) {
@@ -4813,11 +4819,14 @@ static void builtinoperators (LexState *ls) {
       case TK_INSTANCEOF:
         uses_instanceof = true;
         break;
+      case TK_SPACESHIP:
+        uses_spaceship = true;
+        break;
     }
   }
 
   /* inject implementers */
-  if (uses_new || uses_extends || uses_instanceof) {
+  if (uses_new || uses_extends || uses_instanceof || uses_spaceship) {
     /* capture state */
     std::vector<Token> tokens = std::move(ls->tokens);
 
@@ -5083,6 +5092,36 @@ static void builtinoperators (LexState *ls) {
       //   return false
       ls->tokens.emplace_back(Token(TK_RETURN));
       ls->tokens.emplace_back(Token(TK_FALSE));
+
+      // end
+      ls->tokens.emplace_back(Token(TK_END));
+    }
+    if (uses_spaceship) {
+      // local function Pluto_operator_spaceship(a, b)
+      ls->tokens.emplace_back(Token(TK_LOCAL));
+      ls->tokens.emplace_back(Token(TK_FUNCTION));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "Pluto_operator_spaceship")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "a")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "b")));
+      ls->tokens.emplace_back(Token(')'));
+
+      //   return a ~= b ? a < b ? -1 : +1 : 0
+      ls->tokens.emplace_back(Token(TK_RETURN));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "a")));
+      ls->tokens.emplace_back(Token(TK_NE));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "b")));
+      ls->tokens.emplace_back(Token('?'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "a")));
+      ls->tokens.emplace_back(Token('<'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "b")));
+      ls->tokens.emplace_back(Token('?'));
+      ls->tokens.emplace_back(Token(TK_INT, (lua_Integer)-1));
+      ls->tokens.emplace_back(Token(':'));
+      ls->tokens.emplace_back(Token(TK_INT, (lua_Integer)+1));
+      ls->tokens.emplace_back(Token(':'));
+      ls->tokens.emplace_back(Token(TK_INT, (lua_Integer)0));
 
       // end
       ls->tokens.emplace_back(Token(TK_END));

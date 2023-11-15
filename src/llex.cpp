@@ -59,7 +59,7 @@ static const char *const luaX_tokens [] = {
     "let", "const",
     "pluto_suggest_0", "pluto_suggest_1",
     "return", "then", "true", "until", "while",
-    "//", "..", "...", "==", ">=", "<=", "~=",
+    "//", "..", "...", "==", ">=", "<=", "~=", "<=>",
     "<<", ">>", "::", "<eof>",
     "<number>", "<integer>", "<name>", "<string>",
     "**", "??", ":=", "->",
@@ -620,8 +620,14 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       case '<': {
         next(ls);
         if (check_next1(ls, '=')) {
-          ls->appendLineBuff("<=");
-          return TK_LE;  /* '<=' */
+          if (check_next1(ls, '>')) {
+            ls->appendLineBuff("<=>");
+            return TK_SPACESHIP;  /* '<=>' */
+          }
+          else {
+            ls->appendLineBuff("<=");
+            return TK_LE;  /* '<=' */
+          }
         }
         else if (check_next1(ls, '<')) {
           if (check_next1(ls, '=')) {  /* compound support */
