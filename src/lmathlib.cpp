@@ -242,6 +242,12 @@ static int math_type (lua_State *L) {
 }
 
 
+static int math_isnan (lua_State *L) {
+  lua_pushboolean(L, lua_type(L, 1) == LUA_TNUMBER && isnan(lua_tonumber(L, 1)));
+  return 1;
+}
+
+
 
 /*
 ** {==================================================================
@@ -745,6 +751,7 @@ static const luaL_Reg mathlib[] = {
   {"sqrt",  math_sqrt},
   {"tan",   math_tan},
   {"type", math_type},
+  {"isnan", math_isnan},
 #if defined(LUA_COMPAT_MATHLIB)
   {"atan2", math_atan},
   {"cosh",   math_cosh},
