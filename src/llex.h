@@ -326,7 +326,7 @@ struct LexState {
 
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
-  std::stack<TString*> parent_classes{};
+  std::stack<size_t> parent_classes{};
   std::vector<EnumDesc> enums{};
   std::vector<TString*> export_symbols{};
   std::vector<void*> parse_time_allocations{};
@@ -408,9 +408,9 @@ struct LexState {
 
   void popContext(ParserContext ctx);
 
-  [[nodiscard]] TString* getParentClass() const noexcept {
+  [[nodiscard]] size_t getParentClassPos() const noexcept {
     if (parent_classes.empty())
-      return nullptr;
+      return 0;
     return parent_classes.top();
   }
 
