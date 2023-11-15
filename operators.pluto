@@ -46,3 +46,7 @@ local function Pluto_operator_instanceof(t, mt)
   end
   return false
 end
+
+local function Pluto_operator_spaceship(a, b)
+  return a ~= b ? a < b ? -1 : +1 : 0
+end
