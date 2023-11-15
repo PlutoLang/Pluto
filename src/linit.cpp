@@ -390,6 +390,187 @@ package.preload["assert"] = function()
 
   return module
 end
+
+package.preload["Vector3"] = function()
+  local Vector3
+   class Vector3
+    __name = "Vector3"
+
+    function __construct(x, y, z)
+      if x ~= nil and y == nil and z == nil then
+        -- (a) -> (a, a, a)
+        self.x = x
+        self.y = x
+        self.z = x
+      else
+        -- (a, b) -> (a, b, 0)
+        -- (a, b, c) -> (a, b, c)
+        self.x = x ?? 0
+        self.y = y ?? 0
+        self.z = z ?? 0
+      end
+    end
+
+    function __add(b)
+      if b instanceof Vector3 then
+        return new Vector3(self.x + b.x, self.y + b.y, self.z + b.z)
+      end
+      return new Vector3(self.x + b, self.y + b, self.z + b)
+    end
+
+    function __sub(b)
+      if b instanceof Vector3 then
+        return new Vector3(self.x - b.x, self.y - b.y, self.z - b.z)
+      end
+      return new Vector3(self.x - b, self.y - b, self.z - b)
+    end
+
+    function __mul(b)
+      if b instanceof Vector3 then
+        return new Vector3(self.x * b.x, self.y * b.y, self.z * b.z)
+      end
+      return new Vector3(self.x * b, self.y * b, self.z * b)
+    end
+
+    function __div(b)
+      if b instanceof Vector3 then
+        return new Vector3(self.x / b.x, self.y / b.y, self.z / b.z)
+      end
+      return new Vector3(self.x / b, self.y / b, self.z / b)
+    end
+
+    function __eq(b)
+      return self.x == b.x and self.y == b.y and self.z == b.z
+    end
+
+    function __len()
+      return self:magnitude()
+    end
+
+    function __tostring()
+      return $"Vector3({self.x}, {self.y}, {self.z})"
+    end
+
+    function magnitude()
+      local accum = 0
+      for self as axis do
+        accum += axis^2
+      end
+      return math.sqrt(accum)
+    end
+
+    function distance(b)
+      return (self - b):magnitude()
+    end
+
+    function sum()
+      local accum = 0
+      for self as axis do
+        accum += axis
+      end
+      return accum
+    end
+
+    function min()
+      local min = math.huge
+      for self as axis do
+        if min > axis then
+          min = axis
+        end
+      end
+      return min
+    end
+
+    function max()
+      local max = 0
+      for self as axis do
+        if max < axis then
+          max = axis
+        end
+      end
+      return max
+    end
+
+    function dot(b)
+      return (self * b):sum()
+    end
+
+    function crossProduct(b)
+      return new Vector3(
+        self.y * b.z - self.z * b.y,
+        self.z * b.x - self.x * b.z,
+        self.x * b.y - self.y * b.x
+      )
+    end
+
+    function toAbs()
+      return new Vector3(math.abs(self.x), math.abs(self.y), math.abs(self.z))
+    end
+
+    function toNormalised()
+      return self / self:magnitude()
+    end
+
+    function toNormalized()
+      return self / self:magnitude()
+    end
+
+    function toRotYUp()
+      local yaw = -math.atan(self.x, self.z) / math.pi * 180
+      local pitch = math.asin(self.y / self:magnitude()) / math.pi * 180
+      return new Vector3(
+        math.isnan(pitch) ? 0 : pitch,
+        yaw,
+        0
+      )
+    end
+
+    function toRotZUp()
+      local yaw = -math.atan(self.x, self.y) / math.pi * 180
+      local pitch = math.asin(self.z / self:magnitude()) / math.pi * 180
+      return new Vector3(
+        math.isnan(pitch) ? 0 : pitch,
+        0,
+        yaw
+      )
+    end
+
+    function lookAtZUp(b)
+      local dir = (b - self)
+      return dir:toRotZUp()
+    end
+
+    function toDirYUp()
+      local deg_to_rad_factor <const> = math.pi / 180
+      local yaw_radians = self.z * deg_to_rad_factor
+      local pitch_radians = self.x * deg_to_rad_factor * -1
+      return new Vector3(
+        math.cos(pitch_radians) * math.sin(yaw_radians) * -1,
+        math.sin(pitch_radians) * -1,
+        math.cos(pitch_radians) * math.cos(yaw_radians)
+      )
+    end
+
+    function toDirZUp()
+      local deg_to_rad_factor <const> = math.pi / 180
+      local yaw_radians = self.z * deg_to_rad_factor
+      local pitch_radians = self.x * deg_to_rad_factor * -1
+      return new Vector3(
+        math.cos(pitch_radians) * math.sin(yaw_radians) * -1,
+        math.cos(pitch_radians) * math.cos(yaw_radians),
+        math.sin(pitch_radians) * -1
+      )
+    end
+  end
+
+  setmetatable(Vector3, {
+    function __call(x, y, z)
+      return new Vector3(x, y, z)
+    end
+  })
+
+  return Vector3
+end
 )EOC";
   luaL_loadbuffer(L, startup_code, strlen(startup_code), "Pluto Standard Library");
   lua_call(L, 0, 0);
