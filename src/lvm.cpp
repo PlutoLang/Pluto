@@ -1695,7 +1695,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAddB();
         vmDumpAddC();
-        vmDumpOut("; push " << stringify_tvalue(rc) << " and first arg " << stringify_tvalue(rb));
+        vmDumpOut("; push " << stringify_tvalue(s2v(ra)) << " and first arg " << stringify_tvalue(s2v(ra + 1)));
         vmbreak;
       }
       vmcase(OP_ADDI) {
