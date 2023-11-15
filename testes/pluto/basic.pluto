@@ -1866,6 +1866,11 @@ do
     assert(0 <=> 0 == 0)
     assert(0 <=> 1 == -1)
     assert(1 <=> 0 == +1)
+
+    local function get_val()
+        return 1
+    end
+    assert(get_val() <=> get_val() == 0)
 end
 
 print("Testing modified require semantics.")
