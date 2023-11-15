@@ -622,6 +622,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         if (check_next1(ls, '=')) {
           if (check_next1(ls, '>')) {
             ls->appendLineBuff("<=>");
+            ls->uses_spaceship = true;
             return TK_SPACESHIP;  /* '<=>' */
           }
           else {
@@ -970,8 +971,19 @@ static int llex (LexState *ls, SemInfo *seminfo) {
                                   luaZ_bufflen(ls->buff));
           seminfo->ts = ts;
           ls->appendLineBuff(ts->toCpp());
-          if (isreserved(ts))  /* reserved word? */
-            return ts->extra - 1 + FIRST_RESERVED;
+          if (isreserved(ts)) {  /* reserved word? */
+            int t = ts->extra - 1 + FIRST_RESERVED;
+            if (t == TK_NEW || t == TK_PNEW) {
+              ls->uses_new = true;
+            }
+            else if (t == TK_EXTENDS) {
+              ls->uses_extends = true;
+            }
+            else if (t == TK_INSTANCEOF) {
+              ls->uses_instanceof = true;
+            }
+            return t;
+          }
           else {
             return TK_NAME;
           }

@@ -4762,44 +4762,13 @@ static void statement (LexState *ls, TypeHint *prop) {
 
 
 static void builtinoperators (LexState *ls) {
-  bool uses_new = false;
-  bool uses_extends = false;
-  bool uses_instanceof = false;
-  bool uses_spaceship = false;
-
-  /* discover what operators are used */
-  for (const auto& t : ls->tokens) {
-    switch (t.token) {
-      case TK_NAME:
-        if (strcmp(t.seminfo.ts->contents, "new") == 0) {
-          uses_new = true;
-        }
-        break;
-
-      case TK_NEW:
-      case TK_PNEW:
-        uses_new = true;
-        break;
-      case TK_EXTENDS:
-        uses_extends = true;
-        break;
-      case TK_INSTANCEOF:
-        uses_instanceof = true;
-        break;
-      case TK_SPACESHIP:
-        uses_spaceship = true;
-        break;
-    }
-  }
-
-  /* inject implementers */
-  if (uses_new || uses_extends || uses_instanceof || uses_spaceship) {
+  if (ls->uses_new || ls->uses_extends || ls->uses_instanceof || ls->uses_spaceship) {
     /* capture state */
     std::vector<Token> tokens = std::move(ls->tokens);
 
     ls->tokens = {}; /* avoid use of moved warning */
 
-    if (uses_new) {
+    if (ls->uses_new) {
       // local function Pluto_operator_new(mt, ...)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_FUNCTION));
@@ -4889,7 +4858,7 @@ static void builtinoperators (LexState *ls) {
       // end
       ls->tokens.emplace_back(Token(TK_END));
     }
-    if (uses_extends) {
+    if (ls->uses_extends) {
       // local function Pluto_operator_extends(c, p)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_FUNCTION));
@@ -5008,7 +4977,7 @@ static void builtinoperators (LexState *ls) {
       // end
       ls->tokens.emplace_back(Token(TK_END));
     }
-    if (uses_instanceof) {
+    if (ls->uses_instanceof) {
       // local function Pluto_operator_instanceof(t, mt)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_FUNCTION));
@@ -5063,7 +5032,7 @@ static void builtinoperators (LexState *ls) {
       // end
       ls->tokens.emplace_back(Token(TK_END));
     }
-    if (uses_spaceship) {
+    if (ls->uses_spaceship) {
       // local function Pluto_operator_spaceship(a, b)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_FUNCTION));

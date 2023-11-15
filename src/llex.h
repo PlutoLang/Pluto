@@ -318,6 +318,12 @@ struct LexState {
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
+
+  bool uses_new = false;
+  bool uses_extends = false;
+  bool uses_instanceof = false;
+  bool uses_spaceship = false;
+
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
   std::stack<TString*> parent_classes{};
