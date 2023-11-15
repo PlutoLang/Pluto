@@ -2754,25 +2754,28 @@ static void newexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void instanceof (LexState *ls, expdesc *v) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nullptr, int flags = 0);
+static BinOpr custombinaryoperator (LexState *ls, expdesc *v, TString *impl) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
 
   expdesc func;
-  singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_instanceof"), &func, 1);
+  singlevaraux(fs, impl, &func, 1);
   lua_assert(v->k != VVOID);
   luaK_prepcallfirstarg(fs, v, &func);
   lua_assert(v->k == VNONRELOC);
   int base = v->u.info;  /* base register for call */
 
   expdesc arg2;
-  singlevar(ls, &arg2);
+  auto nextop = subexpr(ls, &arg2, 3);
   luaK_exp2nextreg(fs, &arg2);
 
   int nparams = fs->freereg - (base + 1);
   init_exp(v, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
   luaK_fixline(fs, line);
   fs->freereg = base + 1;
+
+  return nextop;
 }
 
 
@@ -3307,7 +3310,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nul
     int line = ls->getLineNumber();
     luaX_next(ls);  /* skip operator */
     if (op == OPR_INSTANCEOF) {
-      instanceof(ls, v);
+      custombinaryoperator(ls, v, luaS_newliteral(ls->L, "Pluto_operator_instanceof"));
       nextop = getbinopr(ls->t.token);
     }
     else {
