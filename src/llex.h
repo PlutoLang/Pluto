@@ -300,10 +300,11 @@ struct EnumDesc {
   std::vector<Enumerator> enumerators;
 };
 
-enum KeywordGuarantee : lu_byte {
-  KG_NONE,
-  KG_ENABLED,
-  KG_DISABLED,
+enum KeywordState : lu_byte {
+  KS_ENABLED_BY_ENV,
+  KS_DISABLED_BY_ENV,
+  KS_ENABLED_BY_USER,
+  KS_DISABLED_BY_USER,
 };
 
 struct LexState {
@@ -329,14 +330,14 @@ struct LexState {
   std::vector<TString*> export_symbols{};
   std::vector<void*> parse_time_allocations{};
   std::unordered_map<const TString*, void*> global_props{};
-  KeywordGuarantee keyword_guarantees[NUM_NON_COMPAT];
+  KeywordState keyword_states[NUM_NON_COMPAT];
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
     laststat.token = TK_EOS;
     parser_context_stck.push(PARCTX_NONE); /* ensure there is at least 1 item on the parser context stack */
-    for (auto& kg : keyword_guarantees) {
-      kg = KG_NONE;
+    for (auto& ks : keyword_states) {
+      ks = KS_ENABLED_BY_ENV;
     }
   }
 
@@ -445,14 +446,26 @@ struct LexState {
     return t.token == TK_SUGGEST_0 || t.token == TK_SUGGEST_1;
   }
 
-  [[nodiscard]] KeywordGuarantee getKeywordGuarantee(int t) const noexcept {
-    lua_assert(t >= FIRST_NON_COMPAT && t < END_NON_COMPAT);
-    return keyword_guarantees[t - FIRST_NON_COMPAT];
+  [[nodiscard]] static bool hasKeywordState(int t) noexcept {
+    return t >= FIRST_NON_COMPAT && t < END_NON_COMPAT;
   }
 
-  void setKeywordGuarantee(int t, KeywordGuarantee kg) noexcept {
-    if (t >= FIRST_NON_COMPAT && t < END_NON_COMPAT)
-      keyword_guarantees[t - FIRST_NON_COMPAT] = kg;
+  [[nodiscard]] bool isKeywordEnabled(int t) const noexcept {
+    static_assert((KS_ENABLED_BY_USER & 1) == 0);
+    static_assert((KS_ENABLED_BY_ENV & 1) == 0);
+    static_assert((KS_DISABLED_BY_USER & 1) != 0);
+    static_assert((KS_DISABLED_BY_ENV & 1) != 0);
+    return (getKeywordState(t) & 1) == 0;
+  }
+
+  [[nodiscard]] KeywordState getKeywordState(int t) const noexcept {
+    lua_assert(hasKeywordState(t));
+    return keyword_states[t - FIRST_NON_COMPAT];
+  }
+
+  void setKeywordState(int t, KeywordState ks) noexcept {
+    if (hasKeywordState(t))
+      keyword_states[t - FIRST_NON_COMPAT] = ks;
   }
 };
 
