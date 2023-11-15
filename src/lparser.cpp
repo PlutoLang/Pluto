@@ -182,7 +182,7 @@ static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
 **   - Non-portable keyword usage. (class, switch, etc)
 */
 static void check_for_non_portable_code (LexState *ls) {
-  if (ls->t.IsNonCompatible() && !ls->t.IsOverridable() && ls->getKeywordGuarantee(ls->t.token) == KG_NONE) {
+  if (ls->t.IsNonCompatible() && !ls->t.IsOverridable() && ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_ENV) {
     throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)), WT_NON_PORTABLE_CODE);
     ls->L->top.p--;
     return;
@@ -392,7 +392,7 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
   ts = ls->t.seminfo.ts;
   if (!(flags & N_RESERVED) && !(flags & N_RESERVED_NON_VALUE)) {
     if (auto t = find_non_compat_tkn_by_name(ls, ts->contents); t != 0 && t != TK_PARENT) {
-      if (ls->getKeywordGuarantee(t) != KG_DISABLED) {
+      if (ls->getKeywordState(t) != KS_DISABLED_BY_USER) {
         throw_warn(
           ls,
           luaO_fmt(ls->L, "'%s' is a non-portable name", ts->contents),
@@ -4322,7 +4322,9 @@ static int checkkeyword (LexState *ls) {
   return token;
 }
 
-static void disablekeyword (LexState *ls, int token) {
+static void disablekeyword (LexState *ls, int token, bool due_to_compat_mode = false) {
+  if (due_to_compat_mode)
+    ls->setKeywordState(token, KS_DISABLED_BY_ENV);
   auto i = ls->tokens.begin();
   if (ls->tidx != -1)
     i += ls->tidx;  /* don't apply retroactively */
@@ -4349,12 +4351,14 @@ static void enablekeyword (LexState *ls, int token) {
         i->token = token;
 }
 
-static void togglekeyword (LexState *ls, int token, bool enable) { 
-  ls->setKeywordGuarantee(token, enable ? KG_ENABLED : KG_DISABLED);
-  if (enable)
-    enablekeyword(ls, token);
-  else
-    disablekeyword(ls, token);
+static void togglekeyword (LexState *ls, int token, bool enable) {
+  if (!ls->hasKeywordState(token) || ls->isKeywordEnabled(token) != enable) {
+    ls->setKeywordState(token, enable ? KS_ENABLED_BY_USER : KS_DISABLED_BY_USER);
+    if (enable)
+      enablekeyword(ls, token);
+    else
+      disablekeyword(ls, token, false);
+  }
 }
 
 static void usestat (LexState *ls) {
@@ -4412,8 +4416,10 @@ static void usestat (LexState *ls) {
       if (is_version) {
         /* disable all non-compatible keywords as of this Pluto version, then enable those from the elected Pluto version. */
         for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i) {
-          ls->setKeywordGuarantee(i, KG_DISABLED);
-          disablekeyword(ls, i);
+          if (ls->isKeywordEnabled(i)) {
+            ls->setKeywordState(i, KS_DISABLED_BY_USER);
+            disablekeyword(ls, i, false);
+          }
         }
       }
       for (const auto& token : tokens) {
@@ -5152,31 +5158,31 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
   luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
 #ifdef PLUTO_COMPATIBLE_SWITCH
-  disablekeyword(&lexstate, TK_SWITCH);
+  disablekeyword(&lexstate, TK_SWITCH, true);
 #endif
 #ifdef PLUTO_COMPATIBLE_CONTINUE
-  disablekeyword(&lexstate, TK_CONTINUE);
+  disablekeyword(&lexstate, TK_CONTINUE, true);
 #endif
 #ifdef PLUTO_COMPATIBLE_ENUM
-  disablekeyword(&lexstate, TK_ENUM);
+  disablekeyword(&lexstate, TK_ENUM, true);
 #endif
 #ifdef PLUTO_COMPATIBLE_NEW
-  disablekeyword(&lexstate, TK_NEW);
+  disablekeyword(&lexstate, TK_NEW, true);
 #endif
 #ifdef PLUTO_COMPATIBLE_CLASS
-  disablekeyword(&lexstate, TK_CLASS);
+  disablekeyword(&lexstate, TK_CLASS, true);
 #endif
 #ifdef PLUTO_COMPATIBLE_PARENT
-  disablekeyword(&lexstate, TK_PARENT);
+  disablekeyword(&lexstate, TK_PARENT, true);
 #endif
 #ifdef PLUTO_COMPATIBLE_EXPORT
-  disablekeyword(&lexstate, TK_EXPORT);
+  disablekeyword(&lexstate, TK_EXPORT, true);
 #endif
 #ifdef PLUTO_COMPATIBLE_TRY
-  disablekeyword(&lexstate, TK_TRY);
+  disablekeyword(&lexstate, TK_TRY, true);
 #endif
 #ifdef PLUTO_COMPATIBLE_CATCH
-  disablekeyword(&lexstate, TK_CATCH);
+  disablekeyword(&lexstate, TK_CATCH, true);
 #endif
 #ifndef PLUTO_USE_LET
   disablekeyword(&lexstate, TK_LET);
