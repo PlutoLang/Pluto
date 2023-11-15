@@ -33,9 +33,9 @@ typedef enum BinOpr {
   /* comparison operators */
   OPR_EQ, OPR_LT, OPR_LE,
   OPR_NE, OPR_GT, OPR_GE,
+  OPR_SPACESHIP, OPR_INSTANCEOF,
   /* logical operators */
   OPR_AND, OPR_OR, OPR_COAL,
-  OPR_INSTANCEOF,
   OPR_NOBINOPR,
 } BinOpr;
 

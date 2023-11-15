@@ -47,13 +47,10 @@ enum RESERVED {
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
-  TK_IDIV, TK_CONCAT,
-  TK_DOTS, TK_EQ,
-  TK_GE, TK_LE,
-  TK_NE, TK_SHL,
-  TK_SHR, TK_DBCOLON, 
-  TK_EOS, TK_FLT, 
-  TK_INT, TK_NAME, TK_STRING,
+  TK_IDIV, TK_CONCAT, TK_DOTS,
+  TK_EQ, TK_GE, TK_LE, TK_NE, TK_SPACESHIP,
+  TK_SHL, TK_SHR, TK_DBCOLON, TK_EOS,
+  TK_FLT, TK_INT, TK_NAME, TK_STRING,
   /* Pluto symbols */
   TK_POW,     /* exponents / power */
   TK_COAL,    /* null coal.        */
@@ -82,15 +79,9 @@ union SemInfo {
   lua_Integer i;
   TString *ts;
 
-  SemInfo()
-    : ts(nullptr)
-  {
-  }
-
-  SemInfo(TString *ts)
-    : ts(ts)
-  {
-  }
+  SemInfo() : ts(nullptr) {}
+  SemInfo(TString *ts) : ts(ts) {}
+  SemInfo(lua_Integer i) : i(i) {}
 };
 
 
@@ -110,6 +101,10 @@ struct Token {
 
   Token(int token, TString* ts)
     : token(token), seminfo(ts), line(LINE_INJECTED)
+  {}
+
+  Token(int token, lua_Integer i)
+    : token(token), seminfo(i), line(LINE_INJECTED)
   {}
 
   [[nodiscard]] bool Is(int t) const noexcept {
