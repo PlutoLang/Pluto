@@ -4812,10 +4812,16 @@ static void builtinoperators (LexState *ls) {
     ls->tokens = {}; /* avoid use of moved warning */
 
     if (ls->uses_new) {
-      // local function Pluto_operator_new(mt, ...)
+      // local Pluto_operator_new <const> = function(mt, ...)
       ls->tokens.emplace_back(Token(TK_LOCAL));
-      ls->tokens.emplace_back(Token(TK_FUNCTION));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "Pluto_operator_new")));
+#ifndef PLUTO_LET_ME_MESS_AROUND
+      ls->tokens.emplace_back(Token('<'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "const")));
+      ls->tokens.emplace_back(Token('>'));
+#endif
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_FUNCTION));
       ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
       ls->tokens.emplace_back(Token(','));
@@ -4902,10 +4908,16 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_END));
     }
     if (ls->uses_extends) {
-      // local function Pluto_operator_extends(c, p)
+      // local Pluto_operator_extends <const> = function(c, p)
       ls->tokens.emplace_back(Token(TK_LOCAL));
-      ls->tokens.emplace_back(Token(TK_FUNCTION));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "Pluto_operator_extends")));
+#ifndef PLUTO_LET_ME_MESS_AROUND
+      ls->tokens.emplace_back(Token('<'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "const")));
+      ls->tokens.emplace_back(Token('>'));
+#endif
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_FUNCTION));
       ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "c")));
       ls->tokens.emplace_back(Token(','));
@@ -5021,10 +5033,16 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_END));
     }
     if (ls->uses_instanceof) {
-      // local function Pluto_operator_instanceof(t, mt)
+      // local Pluto_operator_instanceof <const> = function(t, mt)
       ls->tokens.emplace_back(Token(TK_LOCAL));
-      ls->tokens.emplace_back(Token(TK_FUNCTION));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "Pluto_operator_instanceof")));
+#ifndef PLUTO_LET_ME_MESS_AROUND
+      ls->tokens.emplace_back(Token('<'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "const")));
+      ls->tokens.emplace_back(Token('>'));
+#endif
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_FUNCTION));
       ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "t")));
       ls->tokens.emplace_back(Token(','));
@@ -5076,10 +5094,16 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_END));
     }
     if (ls->uses_spaceship) {
-      // local function Pluto_operator_spaceship(a, b)
+      // local Pluto_operator_spaceship <const> = function(a, b)
       ls->tokens.emplace_back(Token(TK_LOCAL));
-      ls->tokens.emplace_back(Token(TK_FUNCTION));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "Pluto_operator_spaceship")));
+#ifndef PLUTO_LET_ME_MESS_AROUND
+      ls->tokens.emplace_back(Token('<'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "const")));
+      ls->tokens.emplace_back(Token('>'));
+#endif
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_FUNCTION));
       ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "a")));
       ls->tokens.emplace_back(Token(','));
