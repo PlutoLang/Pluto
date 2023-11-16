@@ -516,8 +516,8 @@ package.preload["Vector3"] = function()
     end
 
     function toRotYUp()
-      local yaw = -math.atan(self.x, self.z) / math.pi * 180
-      local pitch = math.asin(self.y / self:magnitude()) / math.pi * 180
+      local yaw = math.deg(math.atan(self.x, self.z)) * -1
+      local pitch = math.deg(math.asin(self.y / self:magnitude()))
       return new Vector3(
         math.isnan(pitch) ? 0 : pitch,
         yaw,
@@ -526,8 +526,8 @@ package.preload["Vector3"] = function()
     end
 
     function toRotZUp()
-      local yaw = -math.atan(self.x, self.y) / math.pi * 180
-      local pitch = math.asin(self.z / self:magnitude()) / math.pi * 180
+      local yaw = math.deg(math.atan(self.x, self.y)) * -1
+      local pitch = math.deg(math.asin(self.z / self:magnitude()))
       return new Vector3(
         math.isnan(pitch) ? 0 : pitch,
         0,
@@ -541,9 +541,8 @@ package.preload["Vector3"] = function()
     end
 
     function toDirYUp()
-      local deg_to_rad_factor <const> = math.pi / 180
-      local yaw_radians = self.z * deg_to_rad_factor
-      local pitch_radians = self.x * deg_to_rad_factor * -1
+      local yaw_radians = math.rad(self.z)
+      local pitch_radians = math.rad(self.x) * -1
       return new Vector3(
         math.cos(pitch_radians) * math.sin(yaw_radians) * -1,
         math.sin(pitch_radians) * -1,
@@ -552,9 +551,8 @@ package.preload["Vector3"] = function()
     end
 
     function toDirZUp()
-      local deg_to_rad_factor <const> = math.pi / 180
-      local yaw_radians = self.z * deg_to_rad_factor
-      local pitch_radians = self.x * deg_to_rad_factor * -1
+      local yaw_radians = math.rad(self.z)
+      local pitch_radians = math.rad(self.x) * -1
       return new Vector3(
         math.cos(pitch_radians) * math.sin(yaw_radians) * -1,
         math.cos(pitch_radians) * math.cos(yaw_radians),
