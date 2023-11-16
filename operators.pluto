@@ -1,6 +1,6 @@
 -- lparser.cpp's builtinoperators
 
-local function Pluto_operator_new(mt, ...)
+local Pluto_operator_new <const> = function(mt, ...)
   if type(mt) ~= "table" then
     error "'new' used on non-table value"
   end
@@ -15,7 +15,7 @@ local function Pluto_operator_new(mt, ...)
   return t
 end
 
-local function Pluto_operator_extends(c, p)
+local Pluto_operator_extends <const> = function(c, p)
   for {
     -- luaT_eventname
     "__gc", "__mode", "__len", "__eq",
@@ -36,7 +36,7 @@ local function Pluto_operator_extends(c, p)
   c.__parent = p
 end
 
-local function Pluto_operator_instanceof(t, mt)
+local Pluto_operator_instanceof <const> = function(t, mt)
   t = getmetatable(t)
   while t do
     if t == mt then
@@ -47,6 +47,6 @@ local function Pluto_operator_instanceof(t, mt)
   return false
 end
 
-local function Pluto_operator_spaceship(a, b)
+local Pluto_operator_spaceship <const> = function(a, b)
   return a ~= b ? a < b ? -1 : +1 : 0
 end
