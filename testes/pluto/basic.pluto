@@ -1600,6 +1600,21 @@ do
     assert(new namespace.Base() instanceof namespace.Base)
     assert(new namespace.Derived() instanceof namespace.Base)
 end
+do
+    local class Class
+        private whatever = 69
+
+        function getWhatever()
+            return self.whatever
+        end
+    end
+
+    local inst = new Class()
+    assert(inst:getWhatever() == 69)
+    assert(inst.whatever == nil)
+    inst.whatever = 42
+    assert(inst:getWhatever() == 69)
+end
 
 print "Testing named varargs."
 do
