@@ -890,8 +890,10 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       }
       case '!': {
         next(ls);
-        if (check_next1(ls, '=')) return TK_NE;  /* '!=' */
-        else return '!';
+        if (check_next1(ls, '='))
+          return TK_NE;  /* '!=' */
+        seminfo->ts = luaX_newliteral(ls, "!");
+        return TK_NOT;
       }
       case '?': {
         next(ls);
