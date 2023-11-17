@@ -287,6 +287,10 @@ enum ParserContext : lu_byte {
   PARCTX_BODY,
 };
 
+struct ClassData {
+  size_t parent_name_pos = 0;
+};
+
 struct EnumDesc {
   struct Enumerator {
     TString* name;
@@ -326,7 +330,7 @@ struct LexState {
 
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
-  std::stack<size_t> parent_classes{};
+  std::stack<ClassData> classes{};
   std::vector<EnumDesc> enums{};
   std::vector<TString*> export_symbols{};
   std::vector<void*> parse_time_allocations{};
@@ -409,9 +413,9 @@ struct LexState {
   void popContext(ParserContext ctx);
 
   [[nodiscard]] size_t getParentClassPos() const noexcept {
-    if (parent_classes.empty())
+    if (classes.empty())
       return 0;
-    return parent_classes.top();
+    return classes.top().parent_name_pos;
   }
 
   WarningConfig& lexPushWarningOverride() {
