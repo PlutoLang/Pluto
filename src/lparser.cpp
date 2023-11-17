@@ -60,6 +60,9 @@
 #define luaO_fmt luaO_pushfstring
 
 
+//#define PLUTO_ALLOW_FUNCTION_INJECTION_REASSIGNMENT
+
+
 std::string TypeDesc::toString() const {
   std::string str = vtToString(type);
   if (type == VT_FUNC &&
@@ -4816,7 +4819,7 @@ static void builtinoperators (LexState *ls) {
       // local Pluto_operator_new <const> = function(mt, ...)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "Pluto_operator_new")));
-#ifndef PLUTO_LET_ME_MESS_AROUND
+#ifndef PLUTO_ALLOW_FUNCTION_INJECTION_REASSIGNMENT
       ls->tokens.emplace_back(Token('<'));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "const")));
       ls->tokens.emplace_back(Token('>'));
@@ -4912,7 +4915,7 @@ static void builtinoperators (LexState *ls) {
       // local Pluto_operator_extends <const> = function(c, p)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "Pluto_operator_extends")));
-#ifndef PLUTO_LET_ME_MESS_AROUND
+#ifndef PLUTO_ALLOW_FUNCTION_INJECTION_REASSIGNMENT
       ls->tokens.emplace_back(Token('<'));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "const")));
       ls->tokens.emplace_back(Token('>'));
@@ -5037,7 +5040,7 @@ static void builtinoperators (LexState *ls) {
       // local Pluto_operator_instanceof <const> = function(t, mt)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "Pluto_operator_instanceof")));
-#ifndef PLUTO_LET_ME_MESS_AROUND
+#ifndef PLUTO_ALLOW_FUNCTION_INJECTION_REASSIGNMENT
       ls->tokens.emplace_back(Token('<'));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "const")));
       ls->tokens.emplace_back(Token('>'));
@@ -5098,7 +5101,7 @@ static void builtinoperators (LexState *ls) {
       // local Pluto_operator_spaceship <const> = function(a, b)
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "Pluto_operator_spaceship")));
-#ifndef PLUTO_LET_ME_MESS_AROUND
+#ifndef PLUTO_ALLOW_FUNCTION_INJECTION_REASSIGNMENT
       ls->tokens.emplace_back(Token('<'));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "const")));
       ls->tokens.emplace_back(Token('>'));
