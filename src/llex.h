@@ -289,6 +289,15 @@ enum ParserContext : lu_byte {
 
 struct ClassData {
   size_t parent_name_pos = 0;
+  std::vector<std::string> private_fields{};
+  
+  [[nodiscard]] bool isPrivate(const char* fieldname) const noexcept {
+    for (const auto& pf : private_fields) {
+      if (pf == fieldname)
+        return true;
+    }
+    return false;
+  }
 };
 
 struct EnumDesc {
