@@ -1633,7 +1633,7 @@ static size_t checkextends (LexState *ls) {
     expdesc dummy;
     classname(ls, &dummy);
   }
-  ls->parent_classes.emplace(pos);
+  ls->classes.top().parent_name_pos = pos;
   return pos;
 }
 
@@ -1692,6 +1692,8 @@ static void classstat (LexState *ls) {
   auto line = ls->getLineNumber();
   luaX_next(ls); /* skip 'class' */
 
+  ls->classes.emplace();
+
   size_t name_pos = luaX_getpos(ls);
   expdesc v;
   classname(ls, &v);
@@ -1705,7 +1707,7 @@ static void classstat (LexState *ls) {
   luaK_fixline(ls->fs, line);
 
   lua_assert(ls->getParentClassPos() == parent_pos);
-  ls->parent_classes.pop();
+  ls->classes.pop();
 
   if (parent_pos)
     applyextends(ls, name_pos, parent_pos, line);
@@ -1717,6 +1719,8 @@ static void localclass (LexState *ls) {
   check_for_non_portable_code(ls);
   luaX_next(ls);
   auto line = ls->getLineNumber();
+
+  ls->classes.emplace();
 
   size_t name_pos = luaX_getpos(ls);
   TString *name = str_checkname(ls, 0);
@@ -1731,7 +1735,7 @@ static void localclass (LexState *ls) {
   adjustlocalvars(ls, 1);
 
   lua_assert(ls->getParentClassPos() == parent_pos);
-  ls->parent_classes.pop();
+  ls->classes.pop();
 
   if (parent_pos)
     applyextends(ls, name_pos, parent_pos, line);
@@ -3141,7 +3145,9 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
     case TK_PCLASS: {
       if (prop) prop->emplaceTypeDesc(VT_TABLE);
       luaX_next(ls); /* skip 'class' */
+      ls->classes.emplace();
       classexpr(ls, v);
+      ls->classes.pop();
       return;
     }
     case TK_SWITCH:
