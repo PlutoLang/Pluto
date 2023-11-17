@@ -495,7 +495,7 @@ package.preload["Vector3"] = function()
       return (self * b):sum()
     end
 
-    function crossProduct(b)
+    function cross_product(b)
       return new Vector3(
         self.y * b.z - self.z * b.y,
         self.z * b.x - self.x * b.z,
@@ -503,19 +503,19 @@ package.preload["Vector3"] = function()
       )
     end
 
-    function toAbs()
+    function to_abs()
       return new Vector3(math.abs(self.x), math.abs(self.y), math.abs(self.z))
     end
 
-    function toNormalised()
+    function to_normalised()
       return self / self:magnitude()
     end
 
-    function toNormalized()
+    function to_normalized()
       return self / self:magnitude()
     end
 
-    function toRotYUp()
+    function to_rot_y_up()
       local yaw = math.deg(math.atan(self.x, self.z)) * -1
       local pitch = math.deg(math.asin(self.y / self:magnitude()))
       return new Vector3(
@@ -525,7 +525,7 @@ package.preload["Vector3"] = function()
       )
     end
 
-    function toRotZUp()
+    function to_rot_z_up()
       local yaw = math.deg(math.atan(self.x, self.y)) * -1
       local pitch = math.deg(math.asin(self.z / self:magnitude()))
       return new Vector3(
@@ -535,17 +535,17 @@ package.preload["Vector3"] = function()
       )
     end
 
-    function lookAtYUp(b)
+    function look_at_y_up(b)
       local dir = (b - self)
       return dir:toRotYUp()
     end
 
-    function lookAtZUp(b)
+    function look_at_z_up(b)
       local dir = (b - self)
       return dir:toRotZUp()
     end
 
-    function toDirYUp()
+    function to_dir_y_up()
       local yaw_radians = math.rad(self.z)
       local pitch_radians = math.rad(self.x) * -1
       return new Vector3(
@@ -555,7 +555,7 @@ package.preload["Vector3"] = function()
       )
     end
 
-    function toDirZUp()
+    function to_dir_z_up()
       local yaw_radians = math.rad(self.z)
       local pitch_radians = math.rad(self.x) * -1
       return new Vector3(
