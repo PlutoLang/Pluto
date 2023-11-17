@@ -2354,10 +2354,10 @@ static int str_urldecode (lua_State *L) {
 static const luaL_Reg strlib[] = {
   {"duplicate", str_duplicate},
 #ifdef PLUTO_USE_SOUP
-  {"urldecode", str_urldecode},
-  {"urlencode", str_urlencode},
+  {"url_decode", str_urldecode},
+  {"url_encode", str_urlencode},
 #endif
-  {"formatint", str_formatint},
+  {"format_int", str_formatint},
   {"replace", str_replace},
   {"truncate", str_truncate},
   {"find_last_not_of", str_find_last_not_of},
