@@ -363,6 +363,14 @@ do
     T.K.Z = {}
     assert(T?.K?.Z == T.K.Z)
 end
+do
+    local function func()
+        return true
+    end
+
+    assert(func?() == true)
+    assert(optional_func?() == nil)
+end
 
 print "Testing shorthand ternary."
 do
