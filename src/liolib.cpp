@@ -858,7 +858,7 @@ static int exists (lua_State *L)
 }
 
 
-static int copyto (lua_State *L)
+static int io_copy (lua_State *L)
 {
   FS_FUNCTION
   Protect(
@@ -1088,7 +1088,8 @@ static const luaL_Reg iolib[] = {
   {"absolute", absolute},
   {"canonical", canonical},
   {"parent", parent},
-  {"copyto", copyto},
+  {"copyto", io_copy}, /* deprecated */
+  {"copy", io_copy}, /* added in Pluto 0.8.0 */
   {"exists", exists},
   {"filesize", filesize},
   {"isfile", isfile},
