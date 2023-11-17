@@ -388,6 +388,7 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
     error_expected(ls, TK_NAME);
   }
   ts = ls->t.seminfo.ts;
+  lua_assert(ts != nullptr);
   if (!(flags & N_RESERVED) && !(flags & N_RESERVED_NON_VALUE)) {
     if (auto t = find_non_compat_tkn_by_name(ls, ts->contents); t != 0 && t != TK_PARENT) {
       if (ls->getKeywordState(t) != KS_DISABLED_BY_USER) {
