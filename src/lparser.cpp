@@ -1395,11 +1395,19 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   if (ls->t.token == TK_NAME) {
     checklimit(fs, cc->nh, MAX_INT, "items in a constructor");
     TString *name = str_checkname(ls, N_RESERVED);  /* we already know this is a TK_NAME, but don't wanna raise non-portable-name, so passing N_RESERVED */
-    if (for_class && (strcmp(name->contents, "public") == 0
-      || strcmp(name->contents, "protected") == 0
-      || strcmp(name->contents, "private") == 0
-    )) {
-      name = str_checkname(ls);
+    if (for_class) {
+      if (strcmp(name->contents, "public") == 0) {
+        name = str_checkname(ls);
+      }
+      else if (strcmp(name->contents, "protected") == 0) {
+        name = str_checkname(ls);
+      }
+      else if (strcmp(name->contents, "private") == 0) {
+        std::string name_tmp = str_checkname(ls)->contents;
+        ls->classes.top().private_fields.emplace_back(name_tmp);
+        name_tmp.insert(0, "__restricted__");
+        name = luaX_newstring(ls, name_tmp.c_str());
+      }
     }
     codestring(&key, name);
   }
@@ -2520,6 +2528,23 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
 }
 
 
+static void selfexp (LexState *ls, expdesc *v) {
+  if (testnext(ls, '.')) {
+    luaK_exp2anyregup(ls->fs, v);
+    expdesc key;
+    TString *keystr = str_checkname(ls, N_RESERVED);
+    if (ls->classes.top().isPrivate(keystr->contents)) {
+      std::string realname = "__restricted__";
+      realname.append(keystr->contents);
+      codestring(&key, luaX_newstring(ls, realname.c_str()));
+    }
+    else
+      codestring(&key, keystr);
+    luaK_indexed(ls->fs, v, &key);
+  }
+}
+
+
 static void parentexp (LexState *ls, expdesc *v) {
   if (testnext(ls, ':')) {
     if (!ls->getParentClassPos())
@@ -2557,6 +2582,10 @@ static void primaryexp (LexState *ls, expdesc *v) {
     const bool is_overridable = ls->t.IsOverridable();
     TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
     singlevar(ls, v, varname, is_overridable);
+    if (!ls->classes.empty() && strcmp(varname->contents, "self") == 0) {
+      selfexp(ls, v);
+      return;
+    }
     if (v->k == VENUM) {
       enumexp(ls, v, varname);
     }
