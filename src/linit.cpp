@@ -535,6 +535,11 @@ package.preload["Vector3"] = function()
       )
     end
 
+    function lookAtYUp(b)
+      local dir = (b - self)
+      return dir:toRotYUp()
+    end
+
     function lookAtZUp(b)
       local dir = (b - self)
       return dir:toRotZUp()
