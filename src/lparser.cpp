@@ -2656,12 +2656,12 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
   for (;;) {
     switch (ls->t.token) {
       case '?': {  /* safe navigation or ternary */
-        luaX_next(ls); /* skip '?' */
-        if (gett(ls) != '[' && gett(ls) != '.') {
+        auto t = luaX_lookahead(ls);
+        if (t != '[' && t != '.') {
           /* it's a ternary but we have to deal with that later */
-          luaX_prev(ls); /* unskip '?' */
           return; /* back to primaryexp */
         }
+        luaX_next(ls); /* skip '?' */
         safe_navigation(ls, v);
         break;
       }
