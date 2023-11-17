@@ -85,6 +85,8 @@
     <ClCompile Include="src\vendor\Soup\Optional.hpp">
       <Filter>vendor\Soup</Filter>
     </ClCompile>
+    <ClCompile Include="src\vendor\Soup\spaceship.cpp" />
+    <ClCompile Include="src\vendor\Soup\version_compare.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -207,6 +209,9 @@
     <ClInclude Include="src\vendor\Soup\urlenc.hpp">
       <Filter>vendor\Soup</Filter>
     </ClInclude>
+    <ClInclude Include="src\lstdenum.hpp" />
+    <ClInclude Include="src\vendor\Soup\spaceship.hpp" />
+    <ClInclude Include="src\vendor\Soup\version_compare.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="vendor">
