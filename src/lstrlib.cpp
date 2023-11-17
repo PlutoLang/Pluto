@@ -2379,8 +2379,10 @@ static const luaL_Reg strlib[] = {
   {"islower", str_islower},
   {"split", str_split},
   {"partition", str_partition},
-  {"endswith", str_endswith},
-  {"startswith", str_startswith},
+  {"endswith", str_endswith}, /* deprecated */
+  {"startswith", str_startswith}, /* deprecated */
+  {"ends_with", str_endswith}, /* added in Pluto 0.8.0 */
+  {"starts_with", str_startswith}, /* added in Pluto 0.8.0 */
   {"byte", str_byte},
   {"char", str_char},
   {"dump", str_dump},
