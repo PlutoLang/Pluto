@@ -1097,7 +1097,7 @@ do
 
     assert("*":duplicate(3) == "***")
     assert(string.duplicate("*", 3) == "***")
-    local _, err = pcall(|| -> "*":duplicate(0))
+    _, err = pcall(|| -> "*":duplicate(0))
     assert(err:contains("larger than"))
     assert("*":duplicate(1) == "*")
     assert("hello world":duplicate(1) == "hello world")
