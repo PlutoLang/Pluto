@@ -1607,16 +1607,25 @@ do
     local class Class
         private whatever = 69
 
+        function __construct(private promoted)
+        end
+
         function getWhatever()
             return self.whatever
         end
+
+        function getPromoted()
+            return self.promoted
+        end
     end
 
-    local inst = new Class()
-    assert(inst:getWhatever() == 69)
+    local inst = new Class(1337)
     assert(inst.whatever == nil)
+    assert(inst.promoted == nil)
     inst.whatever = 42
+    inst.promoted = 42
     assert(inst:getWhatever() == 69)
+    assert(inst:getPromoted() == 1337)
 end
 
 print "Testing named varargs."
