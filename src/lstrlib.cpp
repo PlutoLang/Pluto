@@ -564,8 +564,10 @@ static const char *start_capture (MatchState *ms, const char *s,
   const char *res;
   int level = ms->level;
   if (level == INT_MAX) luaL_error(ms->L, "too many captures");
-  lua_assert(ms->capture.size() == level);
-  ms->capture.emplace_back(MatchState::Capture{ s, what });
+  if (level >= ms->capture.size())
+    ms->capture.emplace_back();
+  ms->capture[level].init = s;
+  ms->capture[level].len = what;
   ms->level = level+1;
   if ((res=match(ms, s, p)) == NULL)  /* match failed? */
     ms->level--;  /* undo capture */
