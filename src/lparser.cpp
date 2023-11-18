@@ -1865,7 +1865,7 @@ static void skip_block (LexState *ls) {
 }
 
 
-static void parlist (LexState *ls, std::vector<TString*>* promotions = {}, std::vector<size_t>* fallbacks = nullptr, TString** varargname = nullptr) {
+static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* promotions = {}, std::vector<size_t>* fallbacks = nullptr, TString** varargname = nullptr) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -1877,7 +1877,7 @@ static void parlist (LexState *ls, std::vector<TString*>* promotions = {}, std::
         auto parname = str_checkname(ls, N_OVERRIDABLE);
         if (promotions && strcmp(parname->contents, "public") == 0) {
           parname = str_checkname(ls, N_OVERRIDABLE);
-          promotions->emplace_back(parname);
+          promotions->emplace_back(parname, parname);
         }
         auto parhint = gettypehint(ls);
         new_localvar(ls, parname, parhint);
@@ -1925,7 +1925,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     new_localvarliteral(ls, "self");  /* create 'self' parameter */
     adjustlocalvars(ls, 1);
   }
-  std::vector<TString*> promotions{};
+  std::vector<std::pair<TString*, TString*>> promotions{};
   std::vector<size_t> fallbacks{};
   TString* varargname = nullptr;
   parlist(ls, (ismethod == 2 ? &promotions : nullptr), &fallbacks, &varargname);
@@ -1960,18 +1960,18 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     ++fallback_idx;
   }
   luaX_setpos(ls, saved_pos);
-  for (const auto& promotion : promotions) {
+  for (const auto& e : promotions) {
     FuncState *fs = ls->fs;
     expdesc tab, key, val;
 
-    /* self["promotion"] */
+    /* self[field] */
     singlevaraux(fs, luaS_newliteral(ls->L, "self"), &tab, 0);
     init_exp(&key, VKSTR, 0);
-    key.u.strval = promotion;
+    key.u.strval = e.second;
     luaK_indexed(fs, &tab, &key);
 
-    /* ... = promotion */
-    singlevaraux(fs, promotion, &val, 0);
+    /* ... = arg */
+    singlevaraux(fs, e.first, &val, 0);
     luaK_storevar(fs, &tab, &val);
   }
   if (varargname) {
