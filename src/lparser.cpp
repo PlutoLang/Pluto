@@ -1407,7 +1407,7 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
         name = str_checkname(ls);
       }
       else if (strcmp(name->contents, "private") == 0) {
-        std::string name_tmp = str_checkname(ls)->contents;
+        std::string name_tmp = str_checkname(ls)->toCpp();
         ls->classes.top().private_fields.emplace_back(name_tmp);
         name_tmp.insert(0, "__restricted__");
         name = luaX_newstring(ls, name_tmp.c_str());
