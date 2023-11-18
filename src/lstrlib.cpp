@@ -2272,7 +2272,7 @@ static int str_replace (lua_State *L) {
 
 
 static int str_formatint (lua_State *L) {
-  luaL_check(L, !lua_isinteger(L, 1) && !lua_isstring(L, 1), "argument 'integer' for string.formatint must be an integer or a string which represents an integer");
+  luaL_check(L, !lua_isinteger(L, 1) && !lua_isstring(L, 1), "argument 'integer' for string.format_int must be an integer or a string which represents an integer");
 
   std::string num = lua_tostring(L, 1);
 
@@ -2288,7 +2288,7 @@ static int str_formatint (lua_State *L) {
         pos++;
       }
       else {
-        luaL_error(L, "argument 'integer' for string.formatint was a string, but does not represent a valid integer (bad character: '%c')", c);
+        luaL_error(L, "argument 'integer' for string.format_int was a string, but does not represent a valid integer (bad character: '%c')", c);
       }
     }
   }
