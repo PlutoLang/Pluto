@@ -226,7 +226,7 @@ static void check_for_non_portable_bytecode (LexState *ls) {
         "expected '|' to control parameters.",
         "expected '|' to begin & terminate the lambda's paramater list.");
     }
-    case '-': {
+    case TK_ARROW: {
       if (luaX_lookahead(ls) == '>') {
         throwerr(ls,
           "impromper lambda definition",
