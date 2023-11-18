@@ -991,6 +991,24 @@ end
 
 print "Testing classes."
 do
+    local a, b
+    class BaseClass
+        function __construct()
+            a = true
+        end
+    end
+
+    class ClassWithAnExceptionallySpecificAndLongName extends BaseClass
+        function __construct()
+            parent:__construct()
+            b = true
+        end
+    end
+
+    local inst = new ClassWithAnExceptionallySpecificAndLongName()
+    assert(a == true and b == true)
+end
+do
     do
         class globalclass
         end
