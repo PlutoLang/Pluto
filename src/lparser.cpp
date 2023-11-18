@@ -2127,23 +2127,7 @@ static void safe_navigation(LexState *ls, expdesc *v) {
     switch(ls->t.token) {
       case '[': {
         luaX_next(ls);  /* skip the '[' */
-        if (ls->t.token == '-') {
-          expr(ls, &key);
-          switch (key.k) {
-            case VKINT: {
-              key.u.ival *= -1;
-              break;
-            }
-            case VKFLT: {
-              key.u.nval *= -1;
-              break;
-            }
-            default: {
-              throwerr(ls, "unexpected symbol during navigation.", "unary '-' on non-numeral type.");
-            }
-          }
-        }
-        else expr(ls, &key);
+        expr(ls, &key);
         checknext(ls, ']');
         luaK_indexed(fs, v, &key);
         break; 
