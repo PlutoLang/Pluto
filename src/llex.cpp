@@ -159,7 +159,7 @@ const char* luaX_reserved2str (int token) {
   err.addMsg(msg);
   if (token) {
     err.addMsg(" near ")
-       .addMsg(luaX_token2str_noq(ls, token))
+       .addMsg(luaX_token2str(ls, token))
        .addSrcLine(ls->getLineNumber())
        .addGenericHere()
        .finalize();
