@@ -312,7 +312,7 @@ if os.setlocale("pt_BR") or os.setlocale("ptb") then
   assert(assert(load(string.format("return %q", 4.51)))() == 4.51)
 
   local a,b = load("return 4.5.")
-  assert(string.find(b, "malformed number near 4.5.")) -- [Pluto] updated error message
+  assert(string.find(b, "'4%.5%.'"))
 
   assert(os.setlocale("C"))
 else
