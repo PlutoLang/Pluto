@@ -1539,7 +1539,7 @@ do
         property_type_hint: string
 
         public property_public
-        protected property_protected
+        --protected property_protected
         private property_private
     end
 end
