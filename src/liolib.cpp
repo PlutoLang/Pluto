@@ -1075,10 +1075,40 @@ static int currentdir (lua_State *L) {
 }
 
 
+[[nodiscard]] static std::time_t file_time_to_unix_time (std::filesystem::file_time_type ft) {
+  return std::chrono::duration_cast<std::chrono::seconds>(
+    std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+      ft - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now()
+    ).time_since_epoch()
+  ).count();
+}
+
+[[nodiscard]] static std::filesystem::file_time_type unix_time_to_file_time (std::time_t ut) {
+  std::chrono::system_clock::time_point tp = std::chrono::system_clock::from_time_t(ut);
+  return tp - std::chrono::system_clock::now() + std::filesystem::file_time_type::clock::now();
+}
+
+static int last_write_time (lua_State *L) {
+  FS_FUNCTION
+  std::filesystem::path file = getStringStreamPath(L);
+  if (lua_gettop(L) == 1) {
+    /* getter */
+    lua_pushinteger(L, file_time_to_unix_time(std::filesystem::last_write_time(file)));
+    return 1;
+  }
+  else {
+    /* setter */
+    std::filesystem::last_write_time(file, unix_time_to_file_time(luaL_checkinteger(L, 2)));
+    return 0;
+  }
+}
+
+
 /*
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
+  {"last_write_time", last_write_time},
   {"currentdir", currentdir},
   {"rename", l_rename},
   {"remove", l_remove},
