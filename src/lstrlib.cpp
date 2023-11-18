@@ -2247,7 +2247,6 @@ static int str_replace (lua_State *L) {
   const std::string_view new_ = luaL_checklstring(L, 3, &newlen);
   const auto max_replace = luaL_optinteger(L, 4, 0);
 
-  luaL_check(L, oglen == 0, "argument 'original' for string.replace cannot be empty");
   luaL_check(L, sublen == 0, "argument 'substitute' for string.replace cannot be empty");
   luaL_check(L, max_replace < 0, "argument 'max_replace' for string.replace cannot be negative");
 
