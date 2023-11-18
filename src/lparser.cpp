@@ -1875,9 +1875,21 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
     do {
       if (isnametkn(ls, N_OVERRIDABLE)) {
         auto parname = str_checkname(ls, N_OVERRIDABLE);
-        if (promotions && strcmp(parname->contents, "public") == 0) {
-          parname = str_checkname(ls, N_OVERRIDABLE);
-          promotions->emplace_back(parname, parname);
+        if (promotions) {
+          if (strcmp(parname->contents, "public") == 0) {
+            parname = str_checkname(ls, N_OVERRIDABLE);
+            promotions->emplace_back(parname, parname);
+          }
+          else if (strcmp(parname->contents, "protected") == 0) {
+            luaX_syntaxerror(ls, "'protected' is reserved in this context");
+          }
+          else if (strcmp(parname->contents, "private") == 0) {
+            parname = str_checkname(ls, N_OVERRIDABLE);
+            std::string field_name = parname->toCpp();
+            ls->classes.top().private_fields.emplace_back(field_name);
+            field_name.insert(0, "__restricted__");
+            promotions->emplace_back(parname, luaX_newstring(ls, field_name.c_str()));
+          }
         }
         auto parhint = gettypehint(ls);
         new_localvar(ls, parname, parhint);
