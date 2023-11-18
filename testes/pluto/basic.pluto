@@ -368,8 +368,8 @@ do
         return true
     end
 
-    assert(func?() == true)
-    assert(optional_func?() == nil)
+    assert(func?.() == true)
+    assert(optional_func?.() == nil)
 end
 
 print "Testing shorthand ternary."
@@ -382,6 +382,8 @@ do
     assert((a == 4 ? "yes" : "no") == "no")
     assert((3 == a ? "yes" : "no") == "yes")
     assert((4 == a ? "yes" : "no") == "no")
+    local cond = true
+    assert((cond?(69):42) == 69)
 end
 
 print "Testing 'in' expressions."
