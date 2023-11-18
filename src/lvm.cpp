@@ -2209,11 +2209,17 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           vmbreak;
         }
 #endif // PLUTO_ILP_ENABLE
-        docondjump();
         vmDumpInit();
         vmDumpAddA();
-        vmDumpAdd (GETARG_k(i));
-        vmDumpOut (";");
+        vmDumpAdd(GETARG_k(i));
+        vmDumpAdd(GETARG_sJ(*pc));
+        if (cond) {
+          vmDumpOut("; conditional jump: condition is true");
+        }
+        else {
+          vmDumpOut("; conditional jump: condition is false");
+        }
+        docondjump();
         vmbreak;
       }
       vmcase(OP_TESTSET) {
