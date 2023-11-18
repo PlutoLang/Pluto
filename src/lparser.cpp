@@ -2303,7 +2303,6 @@ static void safe_navigation(LexState *ls, expdesc *v) {
         break;
       }
       case ':': {
-        expdesc key;
         luaX_next(ls);
         codename(ls, &key);
         luaK_self(fs, v, &key);
