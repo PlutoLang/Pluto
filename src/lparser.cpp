@@ -2302,6 +2302,14 @@ static void safe_navigation(LexState *ls, expdesc *v) {
         luaK_indexed(fs, v, &key);
         break;
       }
+      case ':': {
+        expdesc key;
+        luaX_next(ls);
+        codename(ls, &key);
+        luaK_self(fs, v, &key);
+        funcargs(ls, v);
+        break;
+      }
       default: {
         luaX_syntaxerror(ls, "unexpected symbol");
       }
@@ -2690,7 +2698,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
     switch (ls->t.token) {
       case '?': {  /* safe navigation or ternary */
         auto t = luaX_lookahead(ls);
-        if (t != '[' && t != '.') {
+        if (t != '[' && t != '.' && t != ':') {
           /* it's a ternary but we have to deal with that later */
           return; /* back to primaryexp */
         }

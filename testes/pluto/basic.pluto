@@ -365,6 +365,18 @@ do
 
     local t = { [-1] = 1 }
     assert(t?[-1] == 1)
+
+    local class Class
+        val: bool = true
+
+        function method()
+            return self.val
+        end
+    end
+
+    local inst = new Class()
+    assert(inst?:method() == true)
+    assert(optinst?:method() == nil)
 end
 
 print "Testing shorthand ternary."
