@@ -2263,16 +2263,29 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
 */
 
 
+static void method_call_funcargs (LexState *ls, expdesc *v) {
+  if (testnext(ls, '?')) {
+    FuncState *fs = ls->fs;
+    luaK_codeABC(fs, OP_TEST, v->u.info, NO_REG, 0);
+    int j = luaK_jump(fs);
+    funcargs(ls, v);
+    luaK_exp2nextreg(fs, v);
+    luaK_patchtohere(fs, j);
+  }
+  else
+    funcargs(ls, v);
+}
+
 /*
-** Safe navigation is entirely accredited to SvenOlsen.
+** Safe navigation is based on a patch published by SvenOlsen.
 ** http://lua-users.org/wiki/SvenOlsen
 */
-static void safe_navigation(LexState *ls, expdesc *v) {
+static void safe_navigation (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
   luaK_exp2nextreg(fs, v);
-  luaK_codeABC(fs, OP_TEST, v->u.info, NO_REG, 0 );
+  luaK_codeABC(fs, OP_TEST, v->u.info, NO_REG, 0);
   {
-    int old_free = fs->freereg;             
+    int old_free = fs->freereg;
     int vreg = v->u.info;
     int j = luaK_jump(fs);
     expdesc key;
@@ -2294,7 +2307,7 @@ static void safe_navigation(LexState *ls, expdesc *v) {
         luaX_next(ls);
         codename(ls, &key);
         luaK_self(fs, v, &key);
-        funcargs(ls, v);
+        method_call_funcargs(ls, v);
         break;
       }
       default: {
@@ -2712,7 +2725,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         luaX_next(ls);
         codename(ls, &key);
         luaK_self(fs, v, &key);
-        funcargs(ls, v);
+        method_call_funcargs(ls, v);
         break;
       }
       case '(': case TK_STRING: case '{': {  /* funcargs */
