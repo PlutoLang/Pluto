@@ -1057,7 +1057,7 @@ static int l_rename (lua_State *L)
 }
 
 
-static int currentdir(lua_State *L) {
+static int currentdir (lua_State *L) {
   FS_FUNCTION
   if (lua_gettop(L) == 0) {
     /* getter */
