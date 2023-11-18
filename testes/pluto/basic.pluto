@@ -377,6 +377,11 @@ do
     local inst = new Class()
     assert(inst?:method() == true)
     assert(optinst?:method() == nil)
+    assert(inst:method?() == true)
+    assert(inst:optmethod?() == nil)
+    assert(inst?:method?() == true)
+    assert(inst?:optmethod?() == nil)
+    assert(optinst?:method?() == nil)
 end
 
 print "Testing shorthand ternary."
