@@ -1093,12 +1093,14 @@ static int last_write_time (lua_State *L) {
   std::filesystem::path file = getStringStreamPath(L);
   if (lua_gettop(L) == 1) {
     /* getter */
-    lua_pushinteger(L, file_time_to_unix_time(std::filesystem::last_write_time(file)));
+    std::time_t ut;
+    Protect(ut = file_time_to_unix_time(std::filesystem::last_write_time(file)));
+    lua_pushinteger(L, ut);
     return 1;
   }
   else {
     /* setter */
-    std::filesystem::last_write_time(file, unix_time_to_file_time(luaL_checkinteger(L, 2)));
+    Protect(std::filesystem::last_write_time(file, unix_time_to_file_time(luaL_checkinteger(L, 2))));
     return 0;
   }
 }
