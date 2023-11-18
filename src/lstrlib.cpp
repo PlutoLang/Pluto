@@ -31,16 +31,6 @@
 #endif
 
 
-/*
-** maximum number of captures that a pattern can do during
-** pattern-matching. This limit is arbitrary, but must fit in
-** an unsigned char.
-*/
-#if !defined(LUA_MAXCAPTURES)
-#define LUA_MAXCAPTURES		32
-#endif
-
-
 /* macro to 'unsign' a character */
 #define uchar(c)	((unsigned char)(c))
 
@@ -392,16 +382,18 @@ static const luaL_Reg stringmetamethods[] = {
 
 
 typedef struct MatchState {
+  struct Capture {
+    const char *init;
+    ptrdiff_t len;
+  };
+
   const char *src_init;  /* init of source string */
   const char *src_end;  /* end ('\0') of source string */
   const char *p_end;  /* end ('\0') of pattern */
   lua_State *L;
   int matchdepth;  /* control for recursive depth (to avoid C stack overflow) */
   unsigned char level;  /* total number of captures (finished or unfinished) */
-  struct {
-    const char *init;
-    ptrdiff_t len;
-  } capture[LUA_MAXCAPTURES];
+  std::vector<Capture> capture{};
 } MatchState;
 
 
@@ -571,9 +563,9 @@ static const char *start_capture (MatchState *ms, const char *s,
                                     const char *p, int what) {
   const char *res;
   int level = ms->level;
-  if (level >= LUA_MAXCAPTURES) luaL_error(ms->L, "too many captures");
-  ms->capture[level].init = s;
-  ms->capture[level].len = what;
+  if (level == INT_MAX) luaL_error(ms->L, "too many captures");
+  lua_assert(ms->capture.size() == level);
+  ms->capture.emplace_back(MatchState::Capture{ s, what });
   ms->level = level+1;
   if ((res=match(ms, s, p)) == NULL)  /* match failed? */
     ms->level--;  /* undo capture */
@@ -895,6 +887,17 @@ static int gmatch (lua_State *L) {
   GMatchState *gm;
   lua_settop(L, 2);  /* keep strings on closure to avoid being collected */
   gm = (GMatchState *)lua_newuserdatauv(L, sizeof(GMatchState), 0);
+
+  ::new (gm) GMatchState();  /* run constructors */
+  lua_newtable(L);
+  lua_pushstring(L, "__gc");
+  lua_pushcfunction(L, [](lua_State* L) {
+    std::destroy_at<>((GMatchState*)lua_touserdata(L, 1));
+    return 0;
+  });
+  lua_settable(L, -3);
+  lua_setmetatable(L, -2);
+
   if (init > ls)  /* start after string's end? */
     init = ls + 1;  /* avoid overflows in 's + init' */
   prepstate(&gm->ms, L, s, ls, p, lp);
