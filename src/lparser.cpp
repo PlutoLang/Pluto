@@ -1400,6 +1400,7 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
         name = str_checkname(ls);
       }
       else if (strcmp(name->contents, "protected") == 0) {
+        luaX_syntaxerror(ls, "'protected' is reserved in this context");
         name = str_checkname(ls);
       }
       else if (strcmp(name->contents, "private") == 0) {
