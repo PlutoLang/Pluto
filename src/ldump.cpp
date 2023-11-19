@@ -16,6 +16,7 @@
 #include "lua.h"
 
 #include "lobject.h"
+#include "lopcodes.h"
 #include "lstate.h"
 #include "lundump.h"
 
@@ -26,6 +27,7 @@ typedef struct {
   void *data;
   int strip;
   int status;
+  bool lua_vm_compatible;
 } DumpState;
 
 
@@ -201,13 +203,24 @@ static void dumpFunction (DumpState *D, const Proto *f, TString *psource) {
 static void dumpHeader (DumpState *D) {
   dumpLiteral(D, LUA_SIGNATURE);
   dumpByte(D, LUAC_VERSION);
-  dumpByte(D, LUAC_FORMAT);
+  dumpByte(D, D->lua_vm_compatible ? LUAC_FORMAT : 'P');
   dumpLiteral(D, LUAC_DATA);
   dumpByte(D, sizeof(Instruction));
   dumpByte(D, sizeof(lua_Integer));
   dumpByte(D, sizeof(lua_Number));
   dumpInteger(D, LUAC_INT);
   dumpNumber(D, LUAC_NUM);
+}
+
+
+// This is O(n) complexity.
+// We can probably do better by setting a flag somewhere when producing an incompatible instruction.
+static bool is_lua_vm_compatible (const Proto *f) {
+  for (int i = 0; i != f->sizecode; ++i) {
+    if (GET_OPCODE(f->code[i]) >= OP_IN)
+      return false;
+  }
+  return true;
 }
 
 
@@ -222,6 +235,7 @@ int luaU_dump(lua_State *L, const Proto *f, lua_Writer w, void *data,
   D.data = data;
   D.strip = strip;
   D.status = 0;
+  D.lua_vm_compatible = is_lua_vm_compatible(f);
   dumpHeader(&D);
   dumpByte(&D, f->sizeupvalues);
   dumpFunction(&D, f, NULL);
