@@ -168,9 +168,6 @@ int luaB_utonumber(lua_State *L) {
     lua_concat(L, 2);
   }
   lua_error(L);
-#if PLUTO_C_LINKAGE
-  return 0;
-#endif
 }
 
 
