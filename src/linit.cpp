@@ -73,7 +73,9 @@ LUALIB_API void luaL_openlibs (lua_State *L) {
   }
 
   const auto startup_code = R"EOC(
-pluto_class Exception
+pluto_use "0.6.0"
+
+class Exception
     __name = "Exception"
 
     function __construct(public what)
