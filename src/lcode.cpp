@@ -1652,7 +1652,7 @@ static void codeeq (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2) {
   int im;
   int isfloat = 0;  /* not needed here, but kept for symmetry */
   OpCode op;
-  if (e1->k != VNONRELOC) {
+  if (e1->k != VNONRELOC && e1->k != VSAFECALL) {
     lua_assert(e1->k == VK || e1->k == VKINT || e1->k == VKFLT);
     swapexps(e1, e2);
   }
