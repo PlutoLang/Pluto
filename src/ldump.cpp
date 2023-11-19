@@ -217,8 +217,13 @@ static void dumpHeader (DumpState *D) {
 // We can probably do better by setting a flag somewhere when producing an incompatible instruction.
 static bool is_lua_vm_compatible (const Proto *f) {
   for (int i = 0; i != f->sizecode; ++i) {
-    if (GET_OPCODE(f->code[i]) >= OP_IN)
+    if (GET_OPCODE(f->code[i]) == OP_TESTSET) {
+      if (GETARG_C(f->code[i]) == NULL_COALESCE)
+        return false;
+    }
+    else if (GET_OPCODE(f->code[i]) >= OP_IN) {
       return false;
+    }
   }
   for (int i = 0; i != f->sizep; ++i) {
     if (!is_lua_vm_compatible(f->p[i]))
