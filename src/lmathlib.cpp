@@ -761,6 +761,8 @@ static const luaL_Reg mathlib[] = {
   {"frexp", math_frexp},
   {"ldexp", math_ldexp},
   {"log10", math_log10},
+#else
+  {"atan2", math_atan},  /* [Pluto] Everyone calls it atan2, so just make atan2 work if that's what was written. */
 #endif
   /* placeholders */
   {"random", NULL},
