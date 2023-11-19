@@ -4841,7 +4841,6 @@ static void statement (LexState *ls, TypeHint *prop) {
     }
     case TK_NEW:
     case TK_PNEW: {
-      if (prop) prop->emplaceTypeDesc(VT_TABLE);
       expdesc v;
       newexpr(ls, &v);
       expsuffix(ls, &v, line, 0, prop);
