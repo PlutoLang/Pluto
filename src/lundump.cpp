@@ -294,7 +294,7 @@ static void checkHeader (LoadState *S) {
   checkliteral(S, &LUA_SIGNATURE[1], "not a binary chunk");
   if (loadByte(S) != LUAC_VERSION)
     error(S, "version mismatch");
-  if (loadByte(S) != LUAC_FORMAT)
+  if (auto format = loadByte(S); format != LUAC_FORMAT && format != 'P')
     error(S, "format mismatch");
   checkliteral(S, LUAC_DATA, "corrupted chunk");
   checksize(S, Instruction);
