@@ -578,6 +578,11 @@ typedef struct Proto {
   LocVar *locvars;  /* information about local variables (debug information) */
   TString  *source;  /* used for debug information */
   GCObject *gclist;
+  bool lua_vm_compatible;
+
+  void onPlutoOpUsed(int8_t min_required_version) noexcept {
+    lua_vm_compatible = false;
+  }
 } Proto;
 
 /* }================================================================== */
