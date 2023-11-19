@@ -56,6 +56,7 @@ typedef enum {
   VRELOC,  /* expression can put result in any register;
               info = instruction pc */
   VCALL,  /* expression is a function call; info = instruction pc */
+  VSAFECALL,  /* expression is a conditional function call; info2 = result register; info2 = instruction pc */
   VVARARG,  /* vararg expression; info = instruction pc */
   VENUM
 } expkind;
@@ -110,7 +111,10 @@ typedef struct expdesc {
     lua_Integer ival;    /* for VKINT */
     lua_Number nval;  /* for VKFLT */
     TString *strval;  /* for VKSTR */
-    int info;  /* for generic use */
+    struct {  /* for generic use */
+      int info;
+      int info2;
+    };
     struct {  /* for indexed variables */
       short idx;  /* index (R or "long" K) */
       lu_byte t;  /* table (register or upvalue) */

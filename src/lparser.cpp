@@ -2269,7 +2269,16 @@ static void method_call_funcargs (LexState *ls, expdesc *v) {
     luaK_codeABC(fs, OP_TEST, v->u.info, NO_REG, 0);
     int j = luaK_jump(fs);
     funcargs(ls, v);
+#if false
     luaK_exp2nextreg(fs, v);
+#else
+    lua_assert(v->k == VCALL);
+    const auto pc = v->u.info;
+    luaK_exp2nextreg(fs, v);
+    lua_assert(v->k == VNONRELOC);
+    v->k = VSAFECALL;
+    v->u.info2 = pc;  /* instruction pc */
+#endif
     luaK_patchtohere(fs, j);
   }
   else
@@ -4327,7 +4336,7 @@ static void exprstat (LexState *ls) {
   }
   else {  /* stat -> func */
     Instruction *inst;
-    check_condition(ls, v.v.k == VCALL, "syntax error");
+    check_condition(ls, v.v.k == VCALL || v.v.k == VSAFECALL, "syntax error");
     inst = &getinstruction(fs, &v.v);
     SETARG_C(*inst, 1);  /* call statement uses no results */
   }
