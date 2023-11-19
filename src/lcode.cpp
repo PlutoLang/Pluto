@@ -1113,6 +1113,7 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   e->k = VNONRELOC;  /* expression has a fixed register */
   luaK_reserveregs(fs, 2);  /* function and first arg produced by op_prepcallfirstarg */
   luaK_codeABCk(fs, OP_PREPCALLFIRSTARG, e->u.reg, ereg, freg, 0);
+  fs->f->onPlutoOpUsed(0);
 }
 
 
@@ -1258,6 +1259,7 @@ void luaK_goifnil (FuncState *fs, expdesc *e) {
     discharge2anyreg(fs, e);
     freeexp(fs, e);
     luaK_codeABCk(fs, OP_TESTSET, NO_REG, e->u.reg, NULL_COALESCE, 1);
+    fs->f->onPlutoOpUsed(0);
     pc = luaK_jump(fs);  /* jump if nil */
   }
   luaK_concat(fs, &e->t, pc);  /* insert new jump in 't' list */
