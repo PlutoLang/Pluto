@@ -512,7 +512,7 @@ static void freeregs (FuncState *fs, int r1, int r2) {
 ** Free register used by expression 'e' (if any)
 */
 static void freeexp (FuncState *fs, expdesc *e) {
-  if (e->k == VNONRELOC)
+  if (e->k == VNONRELOC || e->k == VSAFECALL)
     freereg(fs, e->u.info);
 }
 
@@ -522,8 +522,8 @@ static void freeexp (FuncState *fs, expdesc *e) {
 ** order.
 */
 static void freeexps (FuncState *fs, expdesc *e1, expdesc *e2) {
-  int r1 = (e1->k == VNONRELOC) ? e1->u.info : -1;
-  int r2 = (e2->k == VNONRELOC) ? e2->u.info : -1;
+  int r1 = (e1->k == VNONRELOC || e1->k == VSAFECALL) ? e1->u.info : -1;
+  int r2 = (e2->k == VNONRELOC || e2->k == VSAFECALL) ? e2->u.info : -1;
   freeregs(fs, r1, r2);
 }
 
@@ -749,7 +749,7 @@ static void str2K (FuncState *fs, expdesc *e) {
 ** to be fixed.)
 */
 void luaK_setoneret (FuncState *fs, expdesc *e) {
-  if (e->k == VCALL) {  /* expression is an open function call? */
+  if (e->k == VCALL || e->k == VSAFECALL) {  /* expression is an open function call? */
     /* already returns 1 value */
     lua_assert(GETARG_C(getinstruction(fs, e)) == 2);
     e->k = VNONRELOC;  /* result has fixed position */
@@ -862,7 +862,7 @@ static void discharge2reg (FuncState *fs, expdesc *e, int reg) {
       SETARG_A(*pc, reg);  /* instruction will put result in 'reg' */
       break;
     }
-    case VNONRELOC: {
+    case VNONRELOC: case VSAFECALL: {
       if (reg != e->u.info)
         luaK_codeABC(fs, OP_MOVE, reg, e->u.info, 0);
       break;
@@ -883,7 +883,7 @@ static void discharge2reg (FuncState *fs, expdesc *e, int reg) {
 ** (Expression still may have jump lists.)
 */
 static void discharge2anyreg (FuncState *fs, expdesc *e) {
-  if (e->k != VNONRELOC) {  /* no fixed register yet? */
+  if (e->k != VNONRELOC&& e->k != VSAFECALL) {  /* no fixed register yet? */
     luaK_reserveregs(fs, 1);  /* get a register */
     discharge2reg(fs, e, fs->freereg-1);  /* put value there */
   }
@@ -958,7 +958,7 @@ void luaK_exp2nextreg (FuncState *fs, expdesc *e) {
 */
 int luaK_exp2anyreg (FuncState *fs, expdesc *e) {
   luaK_dischargevars(fs, e);
-  if (e->k == VNONRELOC) {  /* expression already has a register? */
+  if (e->k == VNONRELOC || e->k == VSAFECALL) {  /* expression already has a register? */
     if (!hasjumps(e))  /* no jumps? */
       return e->u.info;  /* result is already in a register */
     if (e->u.info >= luaY_nvarstack(fs)) {  /* reg. is not a local? */
