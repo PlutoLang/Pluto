@@ -6,7 +6,7 @@ for_each_obj(function($file)
 {
 	echo "$file\n";
 	global $compiler;
-	passthru($compiler." -o int/{$file}.o -c src/{$file}.cpp -D LUA_BUILD_AS_DLL -D PLUTO_C_LINKAGE=true -Wno-return-type -Wno-invalid-noreturn");
+	passthru($compiler." -o int/{$file}.o -c src/{$file}.cpp -D LUA_BUILD_AS_DLL -D PLUTO_C_LINKAGE=true");
 });
 
 $cmd = $compiler." -shared -o src/pluto.dll";
