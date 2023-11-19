@@ -202,8 +202,14 @@ static void dumpFunction (DumpState *D, const Proto *f, TString *psource) {
 
 static void dumpHeader (DumpState *D) {
   dumpLiteral(D, LUA_SIGNATURE);
-  dumpByte(D, LUAC_VERSION);
-  dumpByte(D, D->lua_vm_compatible ? LUAC_FORMAT : 'P');
+  if (D->lua_vm_compatible) {
+    dumpByte(D, LUAC_VERSION);
+    dumpByte(D, LUAC_FORMAT);
+  }
+  else {
+    dumpByte(D, 0);  /* Pluto 0.8.0 or upwards required for NULL_COALESCE, OP_IN, and/or OP_PREPCALLFIRSTARG */
+    dumpByte(D, 'P');
+  }
   dumpLiteral(D, LUAC_DATA);
   dumpByte(D, sizeof(Instruction));
   dumpByte(D, sizeof(lua_Integer));
