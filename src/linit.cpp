@@ -286,7 +286,7 @@ package.preload["assert"] = function()
 
   function module.truthy(value)
     if not value then
-      return new AssertionError("falsy", "not nil or false", value):setHardcoded():raise()
+      return new AssertionError("truthy", "not nil or false", value):setHardcoded():raise()
     end
   end
 
