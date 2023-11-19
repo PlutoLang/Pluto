@@ -1148,6 +1148,19 @@ static int jumponcond (FuncState *fs, expdesc *e, int cond) {
 }
 
 
+LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e) {
+  if (e->k == VCONST) {
+    Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
+    lua_assert(vd->vd.kind == RDKCTC);
+    if (ttisnil(&vd->k)) {
+      return true;
+    }
+    return false;
+  }
+  return e->k == VNIL;
+}
+
+
 LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e) {
   if (e->k == VCONST) {
     Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
@@ -1238,10 +1251,15 @@ void luaK_goiffalse (FuncState *fs, expdesc *e) {
 void luaK_goifnil (FuncState *fs, expdesc *e) {
   int pc;  /* pc of new jump */
   luaK_dischargevars(fs, e);
-  discharge2anyreg(fs, e);
-  freeexp(fs, e);
-  luaK_codeABCk(fs, OP_TESTSET, NO_REG, e->u.reg, NULL_COALESCE, 1);
-  pc = luaK_jump(fs);
+  if (luaK_isalwaysnil(fs->ls, e)) {
+    pc = NO_JUMP;  /* always nil; do nothing*/
+  }
+  else {
+    discharge2anyreg(fs, e);
+    freeexp(fs, e);
+    luaK_codeABCk(fs, OP_TESTSET, NO_REG, e->u.reg, NULL_COALESCE, 1);
+    pc = luaK_jump(fs);  /* jump if nil */
+  }
   luaK_concat(fs, &e->t, pc);  /* insert new jump in 't' list */
   luaK_patchtohere(fs, e->f);  /* false list jumps to here (to go through) */
   e->f = NO_JUMP;
