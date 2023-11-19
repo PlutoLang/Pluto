@@ -54,7 +54,7 @@ typedef enum {
   VRELOC,  /* expression can put result in any register */
   VCALL,  /* expression is a function call */
   VVARARG,  /* vararg expression */
-  VSAFECALL,  /* expression is a conditional function callc */
+  VSAFECALL,  /* expression is a conditional function call */
   VENUM
 } expkind;
 
