@@ -292,9 +292,17 @@ static void fchecksize (LoadState *S, size_t size, const char *tname) {
 static void checkHeader (LoadState *S) {
   /* skip 1st char (already read and checked) */
   checkliteral(S, &LUA_SIGNATURE[1], "not a binary chunk");
-  if (loadByte(S) != LUAC_VERSION)
-    error(S, "version mismatch");
-  if (auto format = loadByte(S); format != LUAC_FORMAT && format != 'P')
+  auto version = loadByte(S);
+  auto format = loadByte(S);
+  if (format == LUAC_FORMAT) {
+    if (version != LUAC_VERSION)
+     error(S, "version mismatch");
+  }
+  else if (format == 'P') {
+    if (version > 0)
+      error(S, "version mismatch");
+  }
+  else
     error(S, "format mismatch");
   checkliteral(S, LUAC_DATA, "corrupted chunk");
   checksize(S, Instruction);
