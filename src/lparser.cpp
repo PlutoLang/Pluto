@@ -416,7 +416,7 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
 static void init_exp (expdesc *e, expkind k, int i) {
   e->f = e->t = NO_JUMP;
   e->k = k;
-  e->u.info = i;
+  e->u.info = e->u.pc = e->u.reg = i;
 }
 
 
@@ -1456,7 +1456,7 @@ static void closelistfield (FuncState *fs, ConsControl *cc) {
   luaK_exp2nextreg(fs, &cc->v);
   cc->v.k = VVOID;
   if (cc->tostore == LFIELDS_PER_FLUSH) {
-    luaK_setlist(fs, cc->t->u.info, cc->na, cc->tostore);  /* flush */
+    luaK_setlist(fs, cc->t->u.reg, cc->na, cc->tostore);  /* flush */
     cc->na += cc->tostore;
     cc->tostore = 0;  /* no more items pending */
   }
@@ -1467,13 +1467,13 @@ static void lastlistfield (FuncState *fs, ConsControl *cc) {
   if (cc->tostore == 0) return;
   if (hasmultret(cc->v.k)) {
     luaK_setmultret(fs, &cc->v);
-    luaK_setlist(fs, cc->t->u.info, cc->na, LUA_MULTRET);
+    luaK_setlist(fs, cc->t->u.reg, cc->na, LUA_MULTRET);
     cc->na--;  /* do not count last expression (unknown number of elements) */
   }
   else {
     if (cc->v.k != VVOID)
       luaK_exp2nextreg(fs, &cc->v);
-    luaK_setlist(fs, cc->t->u.info, cc->na, cc->tostore);
+    luaK_setlist(fs, cc->t->u.reg, cc->na, cc->tostore);
   }
   cc->na += cc->tostore;
 }
@@ -1575,7 +1575,7 @@ static void constructor (LexState *ls, expdesc *t) {
   } while (testnext(ls, ',') || testnext(ls, ';'));
   check_match(ls, '}', '{', line);
   lastlistfield(fs, &cc);
-  luaK_settablesize(fs, pc, t->u.info, cc.na, cc.nh);
+  luaK_settablesize(fs, pc, t->u.reg, cc.na, cc.nh);
 }
 
 
@@ -1593,7 +1593,7 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
     closelistfield(fs, &cc);
   }
   lastlistfield(fs, &cc);
-  luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
+  luaK_settablesize(fs, pc, v->u.reg, cc.na, cc.nh);
 }
 
 static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc *key, expdesc *val)>& gen) {
@@ -1620,7 +1620,7 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
     fs->freereg = reg;
   }
   lastlistfield(fs, &cc);
-  luaK_settablesize(fs, pc, v->u.info, cc.na, cc.nh);
+  luaK_settablesize(fs, pc, v->u.reg, cc.na, cc.nh);
 }
 
 
@@ -1667,7 +1667,7 @@ static void applyextends (LexState *ls, size_t name_pos, size_t parent_pos, int 
   luaX_setpos(ls, pos);
 
   lua_assert(f.k == VNONRELOC);
-  int base = f.u.info;  /* base register for call */
+  int base = f.u.reg;  /* base register for call */
   luaK_exp2nextreg(fs, &args);  /* close last argument */
   int nparams = fs->freereg - (base + 1);
   init_exp(&f, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
@@ -1696,7 +1696,7 @@ static void classexpr (LexState *ls, expdesc *t) {
   }
   check_match(ls, TK_END, TK_CLASS, line);
   lastlistfield(fs, &cc);
-  luaK_settablesize(fs, pc, t->u.info, cc.na, cc.nh);
+  luaK_settablesize(fs, pc, t->u.reg, cc.na, cc.nh);
 }
 
 
@@ -1958,7 +1958,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
       luaK_infix(fs, OPR_NE, &nilable);
       init_exp(&nilexp, VNIL, 0);
       luaK_posfix(fs, OPR_NE, &nilable, &nilexp, ls->getLineNumber());
-      auto pc = nilable.u.info;
+      auto pc = nilable.u.pc;
 
       expdesc fallback;
       expr(ls, &fallback);
@@ -2003,7 +2003,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     init_exp(&cc.v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
     cc.tostore++;
     lastlistfield(fs, &cc);
-    luaK_settablesize(fs, pc, t.u.info, cc.na, cc.nh);
+    luaK_settablesize(fs, pc, t.u.reg, cc.na, cc.nh);
 
     adjust_assign(ls, 1, 1, &t);
     adjustlocalvars(ls, 1);
@@ -2238,7 +2238,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
     }
   }
   lua_assert(f->k == VNONRELOC);
-  base = f->u.info;  /* base register for call */
+  base = f->u.reg;  /* base register for call */
   if (hasmultret(args.k))
     nparams = LUA_MULTRET;  /* open call */
   else {
@@ -2266,18 +2266,18 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
 static void method_call_funcargs (LexState *ls, expdesc *v) {
   if (testnext(ls, '?')) {
     FuncState *fs = ls->fs;
-    luaK_codeABC(fs, OP_TEST, v->u.info, NO_REG, 0);
+    luaK_codeABC(fs, OP_TEST, v->u.reg, NO_REG, 0);
     int j = luaK_jump(fs);
     funcargs(ls, v);
 #if false
     luaK_exp2nextreg(fs, v);
 #else
     lua_assert(v->k == VCALL);
-    const auto pc = v->u.info;
+    const auto pc = v->u.pc;
     luaK_exp2nextreg(fs, v);
     lua_assert(v->k == VNONRELOC);
     v->k = VSAFECALL;
-    v->u.info2 = pc;  /* instruction pc */
+    v->u.pc = pc;  /* instruction pc */
 #endif
     luaK_patchtohere(fs, j);
   }
@@ -2292,10 +2292,10 @@ static void method_call_funcargs (LexState *ls, expdesc *v) {
 static void safe_navigation (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
   luaK_exp2nextreg(fs, v);
-  luaK_codeABC(fs, OP_TEST, v->u.info, NO_REG, 0);
+  luaK_codeABC(fs, OP_TEST, v->u.reg, NO_REG, 0);
   {
     int old_free = fs->freereg;
-    int vreg = v->u.info;
+    int vreg = v->u.reg;
     int j = luaK_jump(fs);
     expdesc key;
     switch(ls->t.token) {
@@ -2325,9 +2325,9 @@ static void safe_navigation (LexState *ls, expdesc *v) {
     }
     luaK_exp2nextreg(fs, v);
     fs->freereg = old_free;
-    if (v->u.info != vreg) {
-      luaK_codeABC(fs, OP_MOVE, vreg, v->u.info, 0);
-      v->u.info = vreg;
+    if (v->u.reg != vreg) {
+      luaK_codeABC(fs, OP_MOVE, vreg, v->u.reg, 0);
+      v->u.reg = vreg;
     }
     luaK_patchtohere(fs, j);
   }
@@ -2833,7 +2833,7 @@ static BinOpr custombinaryoperator (LexState *ls, expdesc *v, TString *impl) {
   lua_assert(v->k != VVOID);
   luaK_prepcallfirstarg(fs, v, &func);
   lua_assert(v->k == VNONRELOC);
-  int base = v->u.info;  /* base register for call */
+  int base = v->u.reg;  /* base register for call */
 
   expdesc arg2;
   auto nextop = subexpr(ls, &arg2, 3);
@@ -2910,13 +2910,13 @@ static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
   luaK_infix(fs, OPR_EQ, &e);
   expr(ls, &cmpval, nullptr, expr_flags);
   luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
-  jumps.emplace_back(e.u.info);
+  jumps.emplace_back(e.u.pc);
   while (testnext(ls, ',')) {
     e = ctrl;
     luaK_infix(fs, OPR_EQ, &e);
     expr(ls, &cmpval, nullptr, expr_flags);
     luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
-    jumps.emplace_back(e.u.info);
+    jumps.emplace_back(e.u.pc);
   }
   checknext(ls, tk);
 
@@ -2949,7 +2949,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   if (!vkhasregister(ctrl.k)) {
     luaK_exp2nextreg(ls->fs, &ctrl);
     if (tk == TK_ARROW) {
-      fs->pinnedreg = ctrl.u.info;
+      fs->pinnedreg = ctrl.u.reg;
     }
     else {
       new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
@@ -3020,7 +3020,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     default_pc = luaK_getlabel(fs);
     createlabel(ls, default_case, ls->getLineNumber(), false);
     const auto line = ls->getLineNumber();
-    const auto reg = reinterpret_cast<expdesc*>(ud)->u.info;
+    const auto reg = reinterpret_cast<expdesc*>(ud)->u.reg;
     expdesc cv;
     init_exp(&cv, VNIL, 0);
     luaK_exp2reg(ls->fs, &cv, reg);
@@ -3098,7 +3098,7 @@ static void switchstat (LexState *ls) {
 static void switchexpr (LexState *ls, expdesc *v) {
   switchimpl(ls, TK_ARROW, [](LexState *ls, void *ud) {
     const auto line = ls->getLineNumber();
-    const auto reg = reinterpret_cast<expdesc*>(ud)->u.info;
+    const auto reg = reinterpret_cast<expdesc*>(ud)->u.reg;
     expdesc cv;
     expr(ls, &cv);
     luaK_exp2reg(ls->fs, &cv, reg);
@@ -3215,11 +3215,11 @@ static void inexpr (LexState *ls, expdesc *v) {
   checknext(ls, TK_IN);
   luaK_exp2nextreg(ls->fs, v);
   lua_assert(v->k == VNONRELOC);
-  int base = v->u.info;
+  int base = v->u.reg;
   simpleexp(ls, &v2);
   luaK_dischargevars(ls->fs, &v2);
   luaK_exp2nextreg(ls->fs, &v2);
-  luaK_codeABC(ls->fs, OP_IN, v->u.info, v2.u.info, 0);
+  luaK_codeABC(ls->fs, OP_IN, v->u.reg, v2.u.reg, 0);
   ls->fs->freereg = base + 1;
 }
 
@@ -4554,7 +4554,7 @@ static void trystat (LexState *ls) {
     luaK_exp2nextreg(ls->fs, &va);
   }
 
-  auto base = cc.v.u.info;  /* base register for call */
+  auto base = cc.v.u.reg;  /* base register for call */
   {
     const auto nparams = vararg ? 2 : 1;
     init_exp(&cc.v, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
@@ -4563,7 +4563,7 @@ static void trystat (LexState *ls) {
 
   cc.tostore++;
   lastlistfield(ls->fs, &cc);
-  luaK_settablesize(ls->fs, pc, t.u.info, cc.na, cc.nh);
+  luaK_settablesize(ls->fs, pc, t.u.reg, cc.na, cc.nh);
 
   adjust_assign(ls, 1, 1, &t);
   adjustlocalvars(ls, 1);
@@ -4590,7 +4590,7 @@ static void trystat (LexState *ls) {
   args.u.ival = 1;
   luaK_exp2nextreg(ls->fs, &args);
 
-  base = tremove.u.info;  /* base register for call */
+  base = tremove.u.reg;  /* base register for call */
   {
     constexpr auto nparams = 2;
     init_exp(&tremove, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
@@ -4639,7 +4639,7 @@ static void trystat (LexState *ls) {
     init_var(ls->fs, &args, results_vidx);
     luaK_exp2nextreg(ls->fs, &args);
 
-    base = tunpack.u.info;  /* base register for call */
+    base = tunpack.u.reg;  /* base register for call */
     constexpr auto nparams = 1;
     init_exp(&tunpack, VCALL, luaK_codeABC(ls->fs, OP_TAILCALL, base, nparams + 1, 2));
     ls->fs->freereg = base + 1;
