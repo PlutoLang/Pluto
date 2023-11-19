@@ -220,6 +220,10 @@ static bool is_lua_vm_compatible (const Proto *f) {
     if (GET_OPCODE(f->code[i]) >= OP_IN)
       return false;
   }
+  for (int i = 0; i != f->sizep; ++i) {
+    if (!is_lua_vm_compatible(f->p[i]))
+      return false;
+  }
   return true;
 }
 
