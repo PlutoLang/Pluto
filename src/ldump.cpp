@@ -219,18 +219,9 @@ static void dumpHeader (DumpState *D) {
 }
 
 
-// This is O(n) complexity.
-// We can probably do better by setting a flag somewhere when producing an incompatible instruction.
-static bool is_lua_vm_compatible (const Proto *f) {
-  for (int i = 0; i != f->sizecode; ++i) {
-    if (GET_OPCODE(f->code[i]) == OP_TESTSET) {
-      if (GETARG_C(f->code[i]) == NULL_COALESCE)
-        return false;
-    }
-    else if (GET_OPCODE(f->code[i]) >= OP_IN) {
-      return false;
-    }
-  }
+[[nodiscard]] static bool is_lua_vm_compatible (const Proto *f) {
+  if (!f->lua_vm_compatible)
+    return false;
   for (int i = 0; i != f->sizep; ++i) {
     if (!is_lua_vm_compatible(f->p[i]))
       return false;
