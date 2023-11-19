@@ -2313,11 +2313,11 @@ static int str_formatint (lua_State *L) {
 }
 
 
-static int str_duplicate (lua_State *L) {
+static int str_repeat (lua_State *L) {
   std::string_view input = luaL_checkstring(L, 1);
   auto count = static_cast<size_t>(luaL_checkinteger(L, 2));
 
-  luaL_check(L, count < 1, "argument 'count' for string.duplicate must be larger than zero");
+  luaL_check(L, count < 1, "argument 'count' for string.repeat must be larger than zero");
 
   std::string buffer;
   buffer.reserve(input.size() * count);
@@ -2351,7 +2351,7 @@ static int str_urldecode (lua_State *L) {
 
 
 static const luaL_Reg strlib[] = {
-  {"duplicate", str_duplicate},
+  {"repeat", str_repeat},
 #ifdef PLUTO_USE_SOUP
   {"url_decode", str_urldecode},
   {"url_encode", str_urlencode},
