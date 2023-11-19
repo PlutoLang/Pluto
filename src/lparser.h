@@ -32,8 +32,7 @@ typedef enum {
   VKINT,  /* integer constant; ival = numerical integer value */
   VKSTR,  /* string constant; strval = TString address;
              (string is fixed by the lexer) */
-  VNONRELOC,  /* expression has its value in a fixed register;
-                 info = result register */
+  VNONRELOC,  /* expression has its value in a fixed register */
   VLOCAL,  /* local variable; var.ridx = register index;
               var.vidx = relative index in 'actvar.arr'  */
   VUPVAL,  /* upvalue variable; info = index of upvalue in 'upvalues' */
@@ -51,13 +50,11 @@ typedef enum {
   VINDEXSTR, /* indexed variable with literal string;
                 ind.t = table register;
                 ind.idx = key's K index */
-  VJMP,  /* expression is a test/comparison;
-            info = pc of corresponding jump instruction */
-  VRELOC,  /* expression can put result in any register;
-              info = instruction pc */
-  VCALL,  /* expression is a function call; info = instruction pc */
-  VSAFECALL,  /* expression is a conditional function call; info2 = result register; info2 = instruction pc */
-  VVARARG,  /* vararg expression; info = instruction pc */
+  VJMP,  /* expression is a test/comparison */
+  VRELOC,  /* expression can put result in any register */
+  VCALL,  /* expression is a function call */
+  VVARARG,  /* vararg expression */
+  VSAFECALL,  /* expression is a conditional function callc */
   VENUM
 } expkind;
 
@@ -111,9 +108,10 @@ typedef struct expdesc {
     lua_Integer ival;    /* for VKINT */
     lua_Number nval;  /* for VKFLT */
     TString *strval;  /* for VKSTR */
-    struct {  /* for generic use */
-      int info;
-      int info2;
+    int info;  /* for generic use (VK, VUPVAL & VCONST) */
+    struct {
+      int reg;  /* for VNONRELOC & VSAFECALL */
+      int pc;  /* for VJMP, VRELOC, VCALL, VVARARG & VSAFECALL */
     };
     struct {  /* for indexed variables */
       short idx;  /* index (R or "long" K) */
