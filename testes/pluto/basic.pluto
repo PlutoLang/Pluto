@@ -1115,13 +1115,13 @@ do
         assert(string.url_encode(str):url_decode() == str)
     end
 
-    assert("*":duplicate(3) == "***")
-    assert(string.duplicate("*", 3) == "***")
-    _, err = pcall(|| -> "*":duplicate(0))
+    assert("*":repeat(3) == "***")
+    assert(string.repeat("*", 3) == "***")
+    _, err = pcall(|| -> "*":repeat(0))
     assert(err:contains("larger than"))
-    assert("*":duplicate(1) == "*")
-    assert("hello world":duplicate(1) == "hello world")
-    assert("hello world":duplicate(2) == "hello worldhello world")
+    assert("*":repeat(1) == "*")
+    assert("hello world":repeat(1) == "hello world")
+    assert("hello world":repeat(2) == "hello worldhello world")
 end
 do
     local t = { 5, 4, 3, 2, 1 }
