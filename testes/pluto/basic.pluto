@@ -382,6 +382,8 @@ do
     assert(inst?:method?() == true)
     assert(inst?:optmethod?() == nil)
     assert(optinst?:method?() == nil)
+    inst:method?()
+    inst:optmethod?()
 end
 
 print "Testing shorthand ternary."

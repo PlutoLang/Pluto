@@ -2281,7 +2281,7 @@ static void method_call_funcargs (LexState *ls, expdesc *v) {
     luaK_codeABC(fs, OP_TEST, v->u.info, NO_REG, 0);
     int j = luaK_jump(fs);
     funcargs(ls, v);
-    luaK_exp2nextreg(fs, v);
+    //luaK_exp2nextreg(fs, v);
     luaK_patchtohere(fs, j);
   }
   else
