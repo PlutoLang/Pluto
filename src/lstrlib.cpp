@@ -37,7 +37,7 @@
 ** an unsigned char.
 */
 #if !defined(LUA_MAXCAPTURES)
-#define LUA_MAXCAPTURES		32
+#define LUA_MAXCAPTURES		64  /* [Pluto] Raised from 32 to 64. We'd hit "pattern too complex" if we went significantly higher. */
 #endif
 
 
