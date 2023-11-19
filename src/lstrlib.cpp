@@ -2210,7 +2210,7 @@ static int str_find_last_not_of (lua_State *L) {
 static int str_truncate (lua_State *L) {
   size_t len;
   std::string s = luaL_checklstring(L, 1, &len);
-  const size_t dlen = luaL_checkinteger(L, 2);
+  const size_t dlen = static_cast<size_t>(luaL_checkinteger(L, 2));
 
   if (len == dlen) {
     lua_settop(L, 1);
@@ -2295,7 +2295,7 @@ static int str_formatint (lua_State *L) {
 
   size_t seplen;
   const auto sep = luaL_optlstring(L, 2, ",", &seplen);
-  const auto group = luaL_optinteger(L, 3, 3);
+  const auto group = static_cast<size_t>(luaL_optinteger(L, 3, 3));
 
   luaL_check(L, group < 1, "argument 'group' for string.formatint must be larger than zero");
   luaL_check(L, seplen != 1, "argument 'sep' for string.formatint must have a length of 1");
@@ -2315,7 +2315,7 @@ static int str_formatint (lua_State *L) {
 
 static int str_duplicate (lua_State *L) {
   std::string_view input = luaL_checkstring(L, 1);
-  lua_Integer count = luaL_checkinteger(L, 2);
+  auto count = static_cast<size_t>(luaL_checkinteger(L, 2));
 
   luaL_check(L, count < 1, "argument 'count' for string.duplicate must be larger than zero");
 
