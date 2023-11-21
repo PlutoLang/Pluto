@@ -22,9 +22,12 @@ Maintainer: Sainan <sainan@calamity.gg>
 Description: A superset of Lua 5.4 — with unique features, optimizations, and improvements.
 
 EOC);
+chmod("pluto/DEBIAN/control", 0644);
 mkdir("pluto/usr");
 mkdir("pluto/usr/local");
 mkdir("pluto/usr/local/bin");
 copy("src/pluto", "pluto/usr/local/bin/pluto");
 copy("src/plutoc", "pluto/usr/local/bin/plutoc");
+chmod("pluto/usr/local/bin/pluto", 0755);
+chmod("pluto/usr/local/bin/plutoc", 0755);
 passthru("dpkg-deb --build pluto");
