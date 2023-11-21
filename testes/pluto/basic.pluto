@@ -392,6 +392,7 @@ end
 print "Testing shorthand ternary."
 do
     local a = 3
+    -- @pluto_warnings: disable-unreachable-code
     assert((true ? "yes" : "no") == "yes")
     assert((false ? "yes" : "no") == "no")
     assert((a ? "yes" : "no") == "yes")
@@ -400,6 +401,7 @@ do
     assert((3 == a ? "yes" : "no") == "yes")
     assert((4 == a ? "yes" : "no") == "no")
     assert((nil and nil) ? false : true) -- possible pitfall if we try optimizing for 'always false' conditions
+    -- @pluto_warnings: enable-unreachable-code
 end
 
 print "Testing 'in' expressions."
@@ -1326,6 +1328,7 @@ do
     local person = new Person("John", 25)
     assert($"{person:printInformation()}" == "My name is John & my age is 25.")
 end
+-- @pluto_warnings: disable-next
 assert($"{true ? 'true' : 'false'} is the value" == "true is the value")
 do -- escaping
     local a = "world"
