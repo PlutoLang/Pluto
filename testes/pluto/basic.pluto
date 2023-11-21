@@ -399,6 +399,7 @@ do
     assert((a == 4 ? "yes" : "no") == "no")
     assert((3 == a ? "yes" : "no") == "yes")
     assert((4 == a ? "yes" : "no") == "no")
+    assert((nil and nil) ? false : true) -- possible pitfall if we try optimizing for 'always false' conditions
 end
 
 print "Testing 'in' expressions."
