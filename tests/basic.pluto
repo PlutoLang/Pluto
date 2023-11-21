@@ -885,7 +885,11 @@ do
         blue
     end
     assert(colours.red == 1)
+    assert(colours.green == 2)
+    assert(colours.blue == 3)
     assert(red == nil)
+    assert(green == nil)
+    assert(blue == nil)
 end
 
 print "Testing interpolated strings."

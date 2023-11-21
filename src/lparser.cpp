@@ -3373,9 +3373,9 @@ static void enumstat (LexState *ls) {
       auto var = getlocalvardesc(ls->fs, vidx);
       var->vd.kind = RDKCTC;
       setivalue(&var->k, i);
-      i++;
       ls->fs->nactvar++;
     }
+    i++;
     if (gett(ls) != ',') break;
     luaX_next(ls);
   }
