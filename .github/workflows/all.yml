@@ -36,6 +36,11 @@ jobs:
             src/libpluto.so
             src/libpluto.a
       - run: src/pluto testes/_driver.pluto
+      - run: php scripts/bundle_deb.php
+      - uses: actions/upload-artifact@v3
+        with:
+          name: "Debian 10 and above - .deb Package"
+          path: pluto.deb
   macos:
     runs-on: macos-latest
     steps:
