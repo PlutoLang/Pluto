@@ -94,7 +94,10 @@ jobs:
             src/pluto.exe
             src/plutoc.exe
             src/libpluto.a
-            plutolang/*.nupkg
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Windows Chocolatey Package
+          path: plutolang/*.nupkg
       - run: src/pluto.exe testes/_driver.pluto
   windows-dll:
     runs-on: windows-latest
