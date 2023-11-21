@@ -3419,8 +3419,14 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
   if (testnext(ls, '?')) { /* ternary expression? */
     int escape = NO_JUMP;
     v->normaliseFalse();
-    luaK_goiftrue(ls->fs, v);
-    int condition = v->f;
+    int condition;
+    if (luaK_isalwaysfalse(ls, v)) {
+      condition = luaK_jump(ls->fs);
+    }
+    else {
+      luaK_goiftrue(ls->fs, v);
+      condition = v->f;
+    }
     expr(ls, v, nullptr, true);
     auto fs = ls->fs;
     auto reg = luaK_exp2anyreg(fs, v);
