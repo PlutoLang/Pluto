@@ -10,6 +10,14 @@ do
     assert_warn([[local a; local a]]) -- var-shadow
     assert_warn([[local a = 69; local b: string = a]]) -- type mismatch in local-to-local assignment
     assert_warn([[g = 69; local l: string = g]]) -- type mismatch in global-to-local assignment
+
+    -- type mismatch when assigning function parameter to local
+    assert_warn [[
+    local function f(a: int)
+        local b: string = a
+        print(b)
+    end
+    ]]
 end
 
 -- Testing type hints (there should be no warnings here)
