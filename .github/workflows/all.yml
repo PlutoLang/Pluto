@@ -10,17 +10,6 @@ jobs:
       - uses: actions/checkout@v3
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
-      - run: php scripts/link_plutoc.php clang
-      - run: php scripts/link_shared.php clang
-      - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v3
-        with:
-          name: "Ubuntu 22.04"
-          path: |
-            src/pluto
-            src/plutoc
-            src/libpluto.so
-            src/libpluto.a
       - run: src/pluto testes/_driver.pluto
   ubuntu-20-04:
     runs-on: ubuntu-20.04
@@ -28,17 +17,6 @@ jobs:
       - uses: actions/checkout@v3
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
-      - run: php scripts/link_plutoc.php clang
-      - run: php scripts/link_shared.php clang
-      - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v3
-        with:
-          name: "Debian 11, Ubuntu 20.04"
-          path: |
-            src/pluto
-            src/plutoc
-            src/libpluto.so
-            src/libpluto.a
       - run: src/pluto testes/_driver.pluto
   debian-10:
     runs-on: [debian-10]
@@ -51,7 +29,7 @@ jobs:
       - run: php scripts/link_static.php
       - uses: actions/upload-artifact@v3
         with:
-          name: "Debian 10"
+          name: "Debian 10 and above"
           path: |
             src/pluto
             src/plutoc
