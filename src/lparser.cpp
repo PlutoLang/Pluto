@@ -3401,6 +3401,13 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       nextop = getbinopr(ls->t.token);
     }
     else {
+      if (op == OPR_COAL) {
+        if (luaK_isalwaysnil(ls, v)) {
+          /* weird, but nothing worth talking about... */
+        }
+        else if (luaK_isalwaystrue(ls, v) || luaK_isalwaysfalse(ls, v))
+          throw_warn(ls, "unreachable code", "the expression before the '??' is never nil, hence the expression after the '??' is never used.", WT_UNREACHABLE_CODE);
+      }
       luaK_infix(ls->fs, op, v);
       /* read sub-expression with higher priority */
       nextop = subexpr(ls, &v2, priority[op].right, nullptr, flags);
