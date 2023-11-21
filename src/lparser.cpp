@@ -3410,8 +3410,11 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
     int condition;
     if (luaK_isalwaysfalse(ls, v)) {
       condition = luaK_jump(ls->fs);
+      throw_warn(ls, "unreachable code", "the condition before the '?' is always falsy, hence the expression before the ':' is never used", WT_UNREACHABLE_CODE);
     }
     else {
+      if (luaK_isalwaystrue(ls, v))
+        throw_warn(ls, "unreachable code", "the condition before the '?' is always truthy, hence the expression after the ':' is never used", WT_UNREACHABLE_CODE);
       luaK_goiftrue(ls->fs, v);
       condition = v->f;
     }
