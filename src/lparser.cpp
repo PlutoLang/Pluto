@@ -3970,6 +3970,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   int jf;  /* instruction to skip 'then' code (if condition is false) */
   luaX_next(ls);  /* skip IF or ELSEIF */
   expr(ls, &v);  /* read condition */
+  const bool alwaystrue = luaK_isalwaystrue(ls, &v);
   if (luaK_isalwaysfalse(ls, &v))
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
   checknext(ls, TK_THEN);
@@ -3996,8 +3997,11 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   statlist(ls, prop);  /* 'then' part */
   leaveblock(fs);
   if (ls->t.token == TK_ELSE ||
-      ls->t.token == TK_ELSEIF)  /* followed by 'else'/'elseif'? */
+      ls->t.token == TK_ELSEIF) {  /* followed by 'else'/'elseif'? */
     luaK_concat(fs, escapelist, luaK_jump(fs));  /* must jump over it */
+    if (alwaystrue)
+      throw_warn(ls, "unreachable code", "the condition in the if block is always truthy, hence this else block is unreachable.", WT_UNREACHABLE_CODE);
+  }
   luaK_patchtohere(fs, jf);
 }
 
