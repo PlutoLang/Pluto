@@ -4508,7 +4508,7 @@ static void usestat (LexState *ls) {
       if (is_version) {
         /* disable all non-compatible keywords as of this Pluto version, then enable those from the elected Pluto version. */
         for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i) {
-          if (ls->isKeywordEnabled(i)) {
+          if (!ls->hasKeywordState(i) || ls->isKeywordEnabled(i)) {
             ls->setKeywordState(i, KS_DISABLED_BY_USER);
             disablekeyword(ls, i, false);
           }
