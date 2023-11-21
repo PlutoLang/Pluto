@@ -528,7 +528,7 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeHint& t, int li
     std::string err = var->vd.name->toCpp();
     err.insert(0, "'");
     err.append("' type-hinted as '" + hint);
-    err.append("', but assigned a ");
+    err.append("', but provided with ");
     err.append(t.toString());
     err.append(" value.");
     if (t.toPrimitive() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
