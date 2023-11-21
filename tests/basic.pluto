@@ -880,6 +880,13 @@ do
     end
     assert(CST_VAL == 1)
     assert(CPY_VAL == 1)
+
+    enum RelativeEnum begin
+        RE_MAGIC = 42,
+        RE_MAGIC_PLUS_2 = RE_MAGIC + 2
+    end
+    assert(RE_MAGIC == 42)
+    assert(RE_MAGIC_PLUS_2 == 44)
 end
 do
     enum class colours begin

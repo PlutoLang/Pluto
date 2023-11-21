@@ -1626,18 +1626,6 @@ enum expflags {
 };
 
 static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr);
-static void simpleexp_with_unary_support (LexState *ls, expdesc *v) {
-  if (testnext(ls, '-')) { /* Negative constant? */
-    check(ls, TK_INT);
-    init_exp(v, VKINT, 0);
-    v->u.ival = (ls->t.seminfo.i * -1);
-    luaX_next(ls);
-  }
-  else {
-    testnext(ls, '+'); /* support pseudo-unary '+' */
-    simpleexp(ls, v, E_NO_COLON);
-  }
-}
 
 
 /* keep advancing until we hit `token` */
@@ -3337,7 +3325,7 @@ static void enumstat (LexState *ls) {
     }
     if (testnext(ls, '=')) {
       expdesc v;
-      simpleexp_with_unary_support(ls, &v);
+      expr(ls, &v);
       if (v.k == VCONST) { /* compile-time constant? */
         TValue *k = &ls->dyd->actvar.arr[v.u.info].k;
         if (ttype(k) == LUA_TNUMBER && ttisinteger(k)) { /* integer value? */
