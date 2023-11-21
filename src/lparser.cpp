@@ -1893,7 +1893,8 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
           }
         }
         auto parhint = gettypehint(ls);
-        new_localvar(ls, parname, parhint);
+        auto vidx = new_localvar(ls, parname, parhint);
+        *getlocalvardesc(fs, vidx)->vd.prop = parhint;  /* set hinted type as propagated type */
         if (fallbacks) {
           if (testnext(ls, '=')) {
             fallbacks->emplace_back(luaX_getpos(ls));
