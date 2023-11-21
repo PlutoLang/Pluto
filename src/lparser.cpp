@@ -4009,18 +4009,14 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   test_then_block(ls, &escapelist, prop);  /* IF cond THEN block */
   while (ls->t.token == TK_ELSEIF)
     test_then_block(ls, &escapelist, prop);  /* ELSEIF cond THEN block */
-  size_t else_if = 0;
+  int else_if = 0;
   if (testnext(ls, TK_ELSE)) {
     if (ls->t.token == TK_IF)
-      else_if = luaX_getpos(ls);
+      else_if = ls->getLineNumber();
     block(ls);  /* 'else' part */
   }
-  if (ls->t.token != TK_END && else_if) {
-    auto pos = luaX_getpos(ls);
-    luaX_setpos(ls, else_if);
-    throw_warn(ls, "'else if' is not the same as 'elseif' in Lua/Pluto", "did you mean 'elseif'?", WT_POSSIBLE_TYPO);
-    luaX_setpos(ls, pos);
-  }
+  if (ls->t.token != TK_END && else_if)
+    throw_warn(ls, "'else if' is not the same as 'elseif' in Lua/Pluto", "did you mean 'elseif'?", else_if, WT_POSSIBLE_TYPO);
   check_match(ls, TK_END, TK_IF, line);
   luaK_patchtohere(fs, escapelist);  /* patch escape list to 'if' end */
 }
