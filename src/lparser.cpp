@@ -2219,9 +2219,9 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
           continue; /* skip arguments without propagated type */
       }
       if (!param_hint->isCompatibleWith(arg)) {
-        std::string err = "Function's ";;
+        std::string err = "Function's '";;
         err.append(funcdesc->proto->locvars[i].varname->contents, funcdesc->proto->locvars[i].varname->size());
-        err.append(" parameter was type-hinted as ");
+        err.append("' parameter was type-hinted as ");
         err.append(param_hint->toString());
         err.append(" but provided with ");
         err.append(arg.toString());
