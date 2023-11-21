@@ -613,7 +613,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
     std::string n = name->toCpp();
     if (check_locals) {
       expdesc var;
-      if (searchvar(fs, name, &var) != -1) {
+      if (searchvar(current_fs, name, &var) != -1) {
         Vardesc* desc = getlocalvardesc(current_fs, var.u.var.vidx);
         LocVar* local = localdebuginfo(current_fs, var.u.var.vidx);
         if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
