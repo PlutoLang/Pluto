@@ -86,6 +86,7 @@ jobs:
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
       - run: php scripts/link_static.php
+      - run: php scripts/bundle_nupkg.php
       - uses: actions/upload-artifact@v3
         with:
           name: Windows
@@ -93,6 +94,7 @@ jobs:
             src/pluto.exe
             src/plutoc.exe
             src/libpluto.a
+            plutolang/*.nupkg
       - run: src/pluto.exe testes/_driver.pluto
   windows-dll:
     runs-on: windows-latest
