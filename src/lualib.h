@@ -7,7 +7,6 @@
 
 #include "lua.h"
 #include "lauxlib.h" // Pluto::Preloaded
-#include "lstdenum.hpp"
 
 
 /* version suffix for environment variable names */
