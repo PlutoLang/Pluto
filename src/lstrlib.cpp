@@ -2144,6 +2144,13 @@ static int str_find_first_of (lua_State *L) {
   std::string_view s = luaL_checkstring(L, 1);
   std::string_view d = luaL_checkstring(L, 2);
 
+  {
+    std::string msg = "find_first_of could be replaced with find using pattern [";
+    msg.append(d);
+    msg.push_back(']');
+    lua_warning(L, msg.c_str(), 0);
+  }
+
   pos = s.find_first_of(d);
   if (pos != std::string::npos) {
     lua_pushinteger(L, ++pos);
@@ -2160,6 +2167,13 @@ static int str_find_first_not_of (lua_State *L) {
   size_t pos;
   std::string_view s = luaL_checkstring(L, 1);
   std::string_view d = luaL_checkstring(L, 2);
+
+  {
+    std::string msg = "find_first_not_of could be replaced with find using pattern [^";
+    msg.append(d);
+    msg.push_back(']');
+    lua_warning(L, msg.c_str(), 0);
+  }
 
   pos = s.find_first_not_of(d);
   if (pos != std::string::npos) {
