@@ -524,7 +524,6 @@
     <ClInclude Include="src\lundump.h" />
     <ClInclude Include="src\lvm.h" />
     <ClInclude Include="src\lzio.h" />
-    <ClInclude Include="src\vendor\Soup\alpha2decodetbl.hpp" />
     <ClInclude Include="src\vendor\Soup\base.hpp" />
     <ClInclude Include="src\vendor\Soup\base32.hpp" />
     <ClInclude Include="src\vendor\Soup\base64.hpp" />
