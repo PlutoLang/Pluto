@@ -807,10 +807,6 @@ static void reprepstate (MatchState *ms) {
 
 
 static int str_find_aux (lua_State *L, const char *s, size_t ls, const char *p, size_t lp, size_t init, int find) {
-  if (init > ls) {  /* start after string's end? */
-    luaL_pushfail(L);  /* cannot find anything */
-    return 1;
-  }
   /* explicit request or no special characters? */
   if (find && (find == 2 || nospecials(p, lp))) {
     /* do a plain search */
@@ -852,6 +848,10 @@ static int str_find_aux (lua_State *L, int find) {
   const char *s = luaL_checklstring(L, 1, &ls);
   const char *p = luaL_checklstring(L, 2, &lp);
   size_t init = posrelatI(luaL_optinteger(L, 3, 1), ls) - 1;
+  if (init > ls) {  /* start after string's end? */
+    luaL_pushfail(L);  /* cannot find anything */
+    return 1;
+  }
   if (find && lua_toboolean(L, 4))
     find = 2;
   return str_find_aux(L, s, ls, p, lp, init, find);
@@ -2115,11 +2115,25 @@ static int str_rfind (lua_State *L) {
   size_t ls, lp;
   const char *s = luaL_checklstring(L, 1, &ls);
   const char *p = luaL_checklstring(L, 2, &lp);
+  size_t init = posrelatI(luaL_optinteger(L, 3, ls + 1), ls) - 1;
+  if (init > ls) {  /* start after string's end? */
+    luaL_pushfail(L);  /* cannot find anything */
+    return 1;
+  }
+  int find = 1;
+  if (lua_toboolean(L, 4))
+    find = 2;
 
-  for (auto i = ls; i != 0; ) {
-    if (str_find_aux(L, s, ls, p, lp, --i, 1) == 2)
-      return 2;
-    lua_pop(L, 1);
+  for (auto i = init; i != 0; ) {
+    if (str_find_aux(L, s, ls, p, lp, --i, find) == 2) {
+      if (static_cast<size_t>(lua_tointeger(L, -2)) <= init) {
+        return 2;
+      }
+      else
+        lua_pop(L, 2);
+    }
+    else
+      lua_pop(L, 1);
   }
 
   lua_pushnil(L);
