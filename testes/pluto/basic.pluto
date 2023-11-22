@@ -987,8 +987,8 @@ if _PSOUP then -- Soup is linked.
         local base64 = require("base64")
         assert(base64.encode("Hello") == "SGVsbG8")
         assert(base64.decode("SGVsbG8") == "Hello")
-        assert(base64.url_encode("Hello") == "SGVsbG8")
-        assert(base64.url_decode("SGVsbG8") == "Hello")
+        assert(base64.urlencode("Hello") == "SGVsbG8")
+        assert(base64.urldecode("SGVsbG8") == "Hello")
         assert(base64.decode(base64.encode("Hello", true)) == "Hello")
     end
 else
