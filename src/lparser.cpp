@@ -3011,8 +3011,13 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     }
   }
 
-  if (cbl != -1) {
+  if (cbl != -1) {  /* last block did not have 'break'? */
     closelocals(fs, cbl);
+
+    if (tk == ':') {  /* switch statement? */
+      /* jump to the end of switch as otherwise we would loop infinitely */
+      newgotoentry(ls, end_switch, ls->getLineNumber(), luaK_jump(fs)); // goto end_switch
+    }
   }
 
   /* if switch expression has no default case, generate one to guarantee nil in that case
@@ -3027,11 +3032,6 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     init_exp(&cv, VNIL, 0);
     luaK_exp2reg(ls->fs, &cv, reg);
     lbreak(ls, 1, line);
-  }
-
-  /* for switch statement, handle possible fallthrough from last case so we don't loop infinitely */
-  if (tk != TK_ARROW) {
-    newgotoentry(ls, end_switch, ls->getLineNumber(), luaK_jump(fs)); // goto end_switch
   }
 
   if (!first.empty()) {
