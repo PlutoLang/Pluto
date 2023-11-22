@@ -28,13 +28,23 @@ static int urlDecode(lua_State* L) {
 	return 1;
 }
 
+static int urlEncodeDeprecated(lua_State* L) {
+	lua_warning(L, "base64: url_encode is deprecated, replace the call with urlencode.", 0);
+	return urlEncode(L);
+}
+
+static int urlDecodeDeprecated(lua_State* L) {
+	lua_warning(L, "base64: url_decode is deprecated, replace the call with urldecode.", 0);
+	return urlDecode(L);
+}
+
 static const luaL_Reg funcs[] = {
 	{"encode", encode},
 	{"decode", decode},
 	{"urlencode", urlEncode},  /* added in Pluto 0.8.0 */
 	{"urldecode", urlDecode},  /* added in Pluto 0.8.0 */
-	{"url_encode", urlEncode},  /* deprecated */
-	{"url_decode", urlDecode},  /* deprecated */
+	{"url_encode", urlEncodeDeprecated},  /* deprecated as of Pluto 0.8.0 */
+	{"url_decode", urlDecodeDeprecated},  /* deprecated as of Pluto 0.8.0 */
 	{nullptr, nullptr}
 };
 
