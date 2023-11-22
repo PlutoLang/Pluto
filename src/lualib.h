@@ -47,7 +47,6 @@ namespace Pluto {
 #ifdef PLUTO_USE_SOUP
   extern const PreloadedLibrary preloaded_json;
   extern const PreloadedLibrary preloaded_base32;
-  extern const PreloadedLibrary preloaded_base58;
   extern const PreloadedLibrary preloaded_base64;
 #endif
 
@@ -56,7 +55,6 @@ namespace Pluto {
 #ifdef PLUTO_USE_SOUP
     &preloaded_json,
     &preloaded_base32,
-    &preloaded_base58,
     &preloaded_base64,
 #endif
   };
@@ -66,7 +64,6 @@ LUAMOD_API int (luaopen_crypto) (lua_State *L);
 #ifdef PLUTO_USE_SOUP
 LUAMOD_API int (luaopen_json)   (lua_State *L);
 LUAMOD_API int (luaopen_base32) (lua_State *L);
-LUAMOD_API int (luaopen_base58) (lua_State *L);
 LUAMOD_API int (luaopen_base64) (lua_State *L);
 #endif
 
