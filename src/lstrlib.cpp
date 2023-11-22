@@ -2127,6 +2127,8 @@ static int str_lfind (lua_State *L) {
   std::string_view s = luaL_checkstring(L, 1);
   std::string_view sub = luaL_checkstring(L, 2);
   
+  lua_warning(L, "string.lfind(s, sub) is deprecated, replace the call with string.find(s, sub, 1, true).", 0);
+
   pos = s.find(sub);
   if (pos != std::string::npos) {
     lua_pushinteger(L, pos + 1);
@@ -2377,7 +2379,7 @@ static const luaL_Reg strlib[] = {
   {"find_last_of", str_find_last_of},
   {"find_first_not_of", str_find_first_not_of},
   {"find_first_of", str_find_first_of},
-  {"lfind", str_lfind},
+  {"lfind", str_lfind},  /* deprecated since Pluto 0.8.0 */
   {"rfind", str_rfind},
   {"strip", str_strip},
   {"rstrip", str_rstrip},
