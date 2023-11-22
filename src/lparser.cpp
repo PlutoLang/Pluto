@@ -2961,7 +2961,6 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   std::vector<int> first{};
   TString* const begin_switch = luaS_newliteral(ls->L, "pluto_begin_switch");
-  TString* const end_switch = luaS_newliteral(ls->L, "pluto_end_switch");
   TString* default_case = nullptr;
   int first_pc, default_pc;
   int cbl = -1;
@@ -3016,7 +3015,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
     if (tk == ':') {  /* switch statement? */
       /* jump to the end of switch as otherwise we would loop infinitely */
-      newgotoentry(ls, end_switch, ls->getLineNumber(), luaK_jump(fs)); // goto end_switch
+      lbreak(ls, 1, ls->getLineNumber());
     }
   }
 
@@ -3068,8 +3067,6 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   if (default_case != nullptr)
     lgoto(ls, default_case, ls->getLineNumber());
-
-  createlabel(ls, end_switch, ls->getLineNumber(), true); // ::end_switch::
 
   if (tk == TK_ARROW && fs->pinnedreg != -1) {
     fs->pinnedreg = -1;
