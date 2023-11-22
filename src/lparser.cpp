@@ -3029,8 +3029,10 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     lbreak(ls, 1, line);
   }
 
-  /* handle possible fallthrough, don't loop infinitely */
-  newgotoentry(ls, end_switch, ls->getLineNumber(), luaK_jump(fs)); // goto end_switch
+  /* for switch statement, handle possible fallthrough from last case so we don't loop infinitely */
+  if (tk != TK_ARROW) {
+    newgotoentry(ls, end_switch, ls->getLineNumber(), luaK_jump(fs)); // goto end_switch
+  }
 
   if (!first.empty()) {
     for (int i = 0; i != first.size() - 1; ++i) {
