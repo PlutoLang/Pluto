@@ -262,21 +262,21 @@ package.preload["assert"] = function()
     end
   end
 
-  function module.is_nil(value)
+  function module.isnil(value)
     if value ~= nil then
-      return new AssertionError("is_nil", "nil", value):setHardcoded():raise()
+      return new AssertionError("isnil", "nil", value):setHardcoded():raise()
     end
   end
 
-  function module.is_true(value)
+  function module.istrue(value)
     if value ~= true then
-      return new AssertionError("is_true", "true", value):setHardcoded():raise()
+      return new AssertionError("istrue", "true", value):setHardcoded():raise()
     end
   end
 
-  function module.is_false(value)
+  function module.isfalse(value)
     if value ~= false then
-      return new AssertionError("is_false", "false", value):setHardcoded():raise()
+      return new AssertionError("isfalse", "false", value):setHardcoded():raise()
     end
   end
 
@@ -292,9 +292,9 @@ package.preload["assert"] = function()
     end
   end
 
-   function module.not_nil(value)
+   function module.notnil(value)
     if value == nil then
-      return new AssertionError("not_nil", "not nil", value):setHardcoded():raise()
+      return new AssertionError("notnil", "not nil", value):setHardcoded():raise()
     end
   end
 
@@ -328,9 +328,9 @@ package.preload["assert"] = function()
     end
   end
 
-  function module.less_eq(value1, value2)
+  function module.lesseq(value1, value2)
     if not (value1 <= value2) then
-      return new AssertionError("less_eq", value1, value2):setOperatorComparison("<="):raise()
+      return new AssertionError("lesseq", value1, value2):setOperatorComparison("<="):raise()
     end
   end
 
@@ -340,32 +340,32 @@ package.preload["assert"] = function()
     end
   end
 
-  function module.greater_eq(value1, value2)
+  function module.greatereq(value1, value2)
     if not (value1 >= value2) then
-      return new AssertionError("greater_eq", value1, value2):setOperatorComparison(">="):raise()
+      return new AssertionError("greatereq", value1, value2):setOperatorComparison(">="):raise()
     end
   end
 
-  function module.no_error(callback, ...)
+  function module.noerror(callback, ...)
     local status, err = pcall(callback, ...)
     if status == false then
-      return new AssertionError("no_error", nil, nil):setSimple("An error was raised: " .. tostring(err)):raise()
+      return new AssertionError("noerror", nil, nil):setSimple("An error was raised: " .. tostring(err)):raise()
     end
   end
 
-  function module.has_error(callback, ...)
+  function module.haserror(callback, ...)
     local status, err = pcall(callback, ...)
     if status == true then
-      return new AssertionError("has_error", nil, nil):setSimple("Expected an error, but there was none."):raise()
+      return new AssertionError("haserror", nil, nil):setSimple("Expected an error, but there was none."):raise()
     end
   end
 
-  function module.search_error(substring, callback, ...)
+  function module.searcherror(substring, callback, ...)
     local status, err = pcall(callback, ...)
     if status == true then
-      return new AssertionError("search_error", nil, nil):setSimple("Expected an error, but there was none."):raise()
+      return new AssertionError("searcherror", nil, nil):setSimple("Expected an error, but there was none."):raise()
     elseif not tostring(err):contains(substring) then
-      return new AssertionError("search_error", substring, tostring(err)):setDontDump():setNameOverride("Absent String", "Error Message"):raise()
+      return new AssertionError("searcherror", substring, tostring(err)):setDontDump():setNameOverride("Absent String", "Error Message"):raise()
     end
   end
 
