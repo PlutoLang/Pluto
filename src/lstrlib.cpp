@@ -806,17 +806,13 @@ static void reprepstate (MatchState *ms) {
 }
 
 
-static int str_find_aux (lua_State *L, int find) {
-  size_t ls, lp;
-  const char *s = luaL_checklstring(L, 1, &ls);
-  const char *p = luaL_checklstring(L, 2, &lp);
-  size_t init = posrelatI(luaL_optinteger(L, 3, 1), ls) - 1;
+static int str_find_aux (lua_State *L, const char *s, size_t ls, const char *p, size_t lp, size_t init, int find) {
   if (init > ls) {  /* start after string's end? */
     luaL_pushfail(L);  /* cannot find anything */
     return 1;
   }
   /* explicit request or no special characters? */
-  if (find && (lua_toboolean(L, 4) || nospecials(p, lp))) {
+  if (find && (find == 2 || nospecials(p, lp))) {
     /* do a plain search */
     const char *s2 = lmemfind(s + init, ls - init, p, lp);
     if (s2) {
@@ -849,6 +845,16 @@ static int str_find_aux (lua_State *L, int find) {
   }
   luaL_pushfail(L);  /* not found */
   return 1;
+}
+
+static int str_find_aux (lua_State *L, int find) {
+  size_t ls, lp;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *p = luaL_checklstring(L, 2, &lp);
+  size_t init = posrelatI(luaL_optinteger(L, 3, 1), ls) - 1;
+  if (find && lua_toboolean(L, 4))
+    find = 2;
+  return str_find_aux(L, s, ls, p, lp, init, find);
 }
 
 
@@ -2106,18 +2112,17 @@ static int str_strip (lua_State *L) {
 
 
 static int str_rfind (lua_State *L) {
-  size_t pos;
-  std::string_view s = luaL_checkstring(L, 1);
-  std::string_view sub = luaL_checkstring(L, 2);
-  
-  pos = s.rfind(sub);
-  if (pos != std::string::npos) {
-    lua_pushinteger(L, pos + 1);
-  }
-  else {
-    lua_pushnil(L);
+  size_t ls, lp;
+  const char *s = luaL_checklstring(L, 1, &ls);
+  const char *p = luaL_checklstring(L, 2, &lp);
+
+  for (auto i = ls; i != 0; ) {
+    if (str_find_aux(L, s, ls, p, lp, --i, 1) == 2)
+      return 2;
+    lua_pop(L, 1);
   }
 
+  lua_pushnil(L);
   return 1;
 }
 
