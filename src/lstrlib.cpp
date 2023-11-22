@@ -2152,7 +2152,7 @@ static int str_find_first_of (lua_State *L) {
   std::string_view d = luaL_checkstring(L, 2);
 
   {
-    std::string msg = "find_first_of could be replaced with find using pattern [";
+    std::string msg = "string.find_first_of could be replaced with string.find using pattern [";
     msg.append(d);
     msg.push_back(']');
     lua_warning(L, msg.c_str(), 0);
@@ -2176,7 +2176,7 @@ static int str_find_first_not_of (lua_State *L) {
   std::string_view d = luaL_checkstring(L, 2);
 
   {
-    std::string msg = "find_first_not_of could be replaced with find using pattern [^";
+    std::string msg = "string.find_first_not_of could be replaced with string.find using pattern [^";
     msg.append(d);
     msg.push_back(']');
     lua_warning(L, msg.c_str(), 0);
@@ -2199,6 +2199,13 @@ static int str_find_last_of (lua_State *L) {
   std::string_view s = luaL_checkstring(L, 1);
   std::string_view d = luaL_checkstring(L, 2);
 
+  {
+    std::string msg = "string.find_last_of could be replaced with string.rfind using pattern [";
+    msg.append(d);
+    msg.push_back(']');
+    lua_warning(L, msg.c_str(), 0);
+  }
+
   pos = s.find_last_of(d);
   if (pos != std::string::npos) {
     lua_pushinteger(L, ++pos);
@@ -2215,6 +2222,13 @@ static int str_find_last_not_of (lua_State *L) {
   size_t pos;
   std::string_view s = luaL_checkstring(L, 1);
   std::string_view d = luaL_checkstring(L, 2);
+
+  {
+    std::string msg = "string.find_last_not_of could be replaced with string.rfind using pattern [^";
+    msg.append(d);
+    msg.push_back(']');
+    lua_warning(L, msg.c_str(), 0);
+  }
 
   pos = s.find_last_not_of(d);
   if (pos != std::string::npos) {
@@ -2380,11 +2394,17 @@ static const luaL_Reg strlib[] = {
   {"formatint", str_formatint},
   {"replace", str_replace},
   {"truncate", str_truncate},
+
+  /* Below is deprecated as of 0.8.0 */
+
   {"find_last_not_of", str_find_last_not_of},
   {"find_last_of", str_find_last_of},
   {"find_first_not_of", str_find_first_not_of},
   {"find_first_of", str_find_first_of},
-  {"lfind", str_lfind},  /* deprecated since Pluto 0.8.0 */
+  {"lfind", str_lfind},
+
+  /* Above is deprecated as of 0.8.0 */
+
   {"rfind", str_rfind},
   {"strip", str_strip},
   {"rstrip", str_rstrip},
