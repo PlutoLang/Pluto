@@ -497,7 +497,7 @@ package.preload["Vector3"] = function()
       return (self * b):sum()
     end
 
-    function cross_product(b)
+    function crossproduct(b)
       return new Vector3(
         self.y * b.z - self.z * b.y,
         self.z * b.x - self.x * b.z,
@@ -505,66 +505,65 @@ package.preload["Vector3"] = function()
       )
     end
 
-    function to_abs()
+    function abs()
       return new Vector3(math.abs(self.x), math.abs(self.y), math.abs(self.z))
     end
 
-    function to_normalised()
+    function normalised()
       return self / self:magnitude()
     end
 
-    function to_normalized()
+    function normalized()
       return self / self:magnitude()
     end
 
-    function to_rot_y_up()
-      local yaw = math.deg(math.atan(self.x, self.z)) * -1
-      local pitch = math.deg(math.asin(self.y / self:magnitude()))
-      return new Vector3(
-        math.isnan(pitch) ? 0 : pitch,
-        yaw,
-        0
-      )
+    function torot(up)
+      if up == "y" then
+        local yaw = math.deg(math.atan(self.x, self.z)) * -1
+        local pitch = math.deg(math.asin(self.y / self:magnitude()))
+        return new Vector3(
+          math.isnan(pitch) ? 0 : pitch,
+          yaw,
+          0
+        )
+      elseif up == "z" then
+        local yaw = math.deg(math.atan(self.x, self.y)) * -1
+        local pitch = math.deg(math.asin(self.z / self:magnitude()))
+        return new Vector3(
+          math.isnan(pitch) ? 0 : pitch,
+          0,
+          yaw
+        )
+      else
+        assert("Expected \"y\" or \"z\" for 'up' parameter")
+      end
     end
 
-    function to_rot_z_up()
-      local yaw = math.deg(math.atan(self.x, self.y)) * -1
-      local pitch = math.deg(math.asin(self.z / self:magnitude()))
-      return new Vector3(
-        math.isnan(pitch) ? 0 : pitch,
-        0,
-        yaw
-      )
-    end
-
-    function look_at_y_up(b)
+    function lookat(up)
       local dir = (b - self)
-      return dir:toRotYUp()
+      return dir:torot(up)
     end
 
-    function look_at_z_up(b)
-      local dir = (b - self)
-      return dir:toRotZUp()
-    end
-
-    function to_dir_y_up()
-      local yaw_radians = math.rad(self.z)
-      local pitch_radians = math.rad(self.x) * -1
-      return new Vector3(
-        math.cos(pitch_radians) * math.sin(yaw_radians) * -1,
-        math.sin(pitch_radians) * -1,
-        math.cos(pitch_radians) * math.cos(yaw_radians)
-      )
-    end
-
-    function to_dir_z_up()
-      local yaw_radians = math.rad(self.z)
-      local pitch_radians = math.rad(self.x) * -1
-      return new Vector3(
-        math.cos(pitch_radians) * math.sin(yaw_radians) * -1,
-        math.cos(pitch_radians) * math.cos(yaw_radians),
-        math.sin(pitch_radians) * -1
-      )
+    function todir(up)
+      if up == "y" then
+        local yaw_radians = math.rad(self.z)
+        local pitch_radians = math.rad(self.x) * -1
+        return new Vector3(
+          math.cos(pitch_radians) * math.sin(yaw_radians) * -1,
+          math.sin(pitch_radians) * -1,
+          math.cos(pitch_radians) * math.cos(yaw_radians)
+        )
+      elseif up == "z" then
+        local yaw_radians = math.rad(self.z)
+        local pitch_radians = math.rad(self.x) * -1
+        return new Vector3(
+          math.cos(pitch_radians) * math.sin(yaw_radians) * -1,
+          math.cos(pitch_radians) * math.cos(yaw_radians),
+          math.sin(pitch_radians) * -1
+        )
+      else
+        assert("Expected \"y\" or \"z\" for 'up' parameter")
+      end
     end
   end
 
