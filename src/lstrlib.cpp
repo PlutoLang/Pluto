@@ -2085,7 +2085,7 @@ static int str_casefold (lua_State *L) {
 
 static int str_lstrip (lua_State *L) {
   std::string s = pluto_checkstring(L, 1);
-  std::string delim = pluto_checkstring(L, 2);
+  std::string delim = pluto_optstring(L, 2, std::string(" \n\r\t\v\0", 6));
   s.erase(0, s.find_first_not_of(delim));
   pluto_pushstring(L, s);
   return 1;
@@ -2094,7 +2094,7 @@ static int str_lstrip (lua_State *L) {
 
 static int str_rstrip (lua_State *L) {
   std::string s = pluto_checkstring(L, 1);
-  std::string delim = pluto_checkstring(L, 2);
+  std::string delim = pluto_optstring(L, 2, std::string(" \n\r\t\v\0", 6));
   s.erase(s.find_last_not_of(delim) + 1);
   pluto_pushstring(L, s);
   return 1;
@@ -2103,7 +2103,7 @@ static int str_rstrip (lua_State *L) {
 
 static int str_strip (lua_State *L) {
   std::string s = pluto_checkstring(L, 1);
-  std::string delim = pluto_checkstring(L, 2);
+  std::string delim = pluto_optstring(L, 2, std::string(" \n\r\t\v\0", 6));
   s.erase(0, s.find_first_not_of(delim));
   s.erase(s.find_last_not_of(delim) + 1);
   pluto_pushstring(L, s);
