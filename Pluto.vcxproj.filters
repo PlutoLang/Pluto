@@ -68,9 +68,6 @@
     <ClCompile Include="src\vendor\Soup\JsonString.cpp">
       <Filter>vendor\Soup</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\Soup\base58.cpp">
-      <Filter>vendor\Soup</Filter>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\json.cpp">
       <Filter>vendor\Soup</Filter>
     </ClCompile>

@@ -474,7 +474,6 @@
     <ClCompile Include="src\lvm.cpp" />
     <ClCompile Include="src\lzio.cpp" />
     <ClCompile Include="src\vendor\Soup\base32.cpp" />
-    <ClCompile Include="src\vendor\Soup\base58.cpp" />
     <ClCompile Include="src\vendor\Soup\base64.cpp" />
     <ClCompile Include="src\vendor\Soup\json.cpp" />
     <ClCompile Include="src\vendor\Soup\JsonArray.cpp" />
@@ -528,7 +527,6 @@
     <ClInclude Include="src\vendor\Soup\alpha2decodetbl.hpp" />
     <ClInclude Include="src\vendor\Soup\base.hpp" />
     <ClInclude Include="src\vendor\Soup\base32.hpp" />
-    <ClInclude Include="src\vendor\Soup\base58.hpp" />
     <ClInclude Include="src\vendor\Soup\base64.hpp" />
     <ClInclude Include="src\vendor\Soup\bitutil.hpp" />
     <ClInclude Include="src\vendor\Soup\Endian.hpp" />
