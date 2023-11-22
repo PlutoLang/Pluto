@@ -177,9 +177,6 @@
     <ClInclude Include="src\vendor\Soup\bitutil.hpp">
       <Filter>vendor\Soup</Filter>
     </ClInclude>
-    <ClInclude Include="src\vendor\Soup\alpha2decodetbl.hpp">
-      <Filter>vendor\Soup</Filter>
-    </ClInclude>
     <ClInclude Include="src\vendor\Soup\Exception.hpp">
       <Filter>vendor\Soup</Filter>
     </ClInclude>
