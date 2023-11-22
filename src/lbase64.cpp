@@ -29,10 +29,12 @@ static int urlDecode(lua_State* L) {
 }
 
 static const luaL_Reg funcs[] = {
-	{"url_encode", urlEncode},
-	{"url_decode", urlDecode},
 	{"encode", encode},
 	{"decode", decode},
+	{"urlencode", urlEncode},  /* added in Pluto 0.8.0 */
+	{"urldecode", urlDecode},  /* added in Pluto 0.8.0 */
+	{"url_encode", urlEncode},  /* deprecated */
+	{"url_decode", urlDecode},  /* deprecated */
 	{nullptr, nullptr}
 };
 
