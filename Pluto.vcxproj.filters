@@ -36,7 +36,6 @@
     <ClCompile Include="src\ltablib.cpp" />
     <ClCompile Include="src\lcryptolib.cpp" />
     <ClCompile Include="src\lbase64.cpp" />
-    <ClCompile Include="src\lbase58.cpp" />
     <ClCompile Include="src\lbase32.cpp" />
     <ClCompile Include="src\ljson.cpp" />
     <ClCompile Include="src\vendor\Soup\base32.cpp">
@@ -209,7 +208,6 @@
     <ClInclude Include="src\vendor\Soup\urlenc.hpp">
       <Filter>vendor\Soup</Filter>
     </ClInclude>
-    <ClInclude Include="src\lstdenum.hpp" />
     <ClInclude Include="src\vendor\Soup\spaceship.hpp" />
     <ClInclude Include="src\vendor\Soup\version_compare.hpp" />
   </ItemGroup>
