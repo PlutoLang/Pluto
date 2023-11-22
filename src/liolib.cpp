@@ -876,6 +876,12 @@ static int io_copy (lua_State *L)
   return 0;
 }
 
+static int io_copyto (lua_State *L)
+{
+  lua_warning(L, "io.copyto is deprecated, replace the call with io.copy.", 0);
+  return io_copy(L);
+}
+
 
 static int absolute (lua_State *L)
 {
@@ -1120,8 +1126,8 @@ static const luaL_Reg iolib[] = {
   {"absolute", absolute},
   {"canonical", canonical},
   {"parent", parent},
-  {"copyto", io_copy}, /* deprecated */
   {"copy", io_copy}, /* added in Pluto 0.8.0 */
+  {"copyto", io_copyto}, /* deprecated as of Pluto 0.8.0 */
   {"exists", exists},
   {"filesize", filesize},
   {"isfile", isfile},
