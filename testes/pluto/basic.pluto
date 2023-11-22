@@ -1081,7 +1081,7 @@ do
     assert(string.replace("LLLL", "L", "X") == "XXXX")
     assert(string.replace("LLLL", "L", "X", 2) == "XXLL")
     local function septest(sep)
-        local fn = |...| -> string.format_int(...)
+        local fn = |...| -> string.formatint(...)
 
         assert(fn(100, sep) == "100")
         assert(fn(1000, sep) == $"1{sep}000")
@@ -1105,7 +1105,7 @@ do
     assert(err:contains("length of 1"))
 
     local function septest2(sep)
-        local fn = |...| -> string.format_int(...)
+        local fn = |...| -> string.formatint(...)
 
         assert(fn(100, sep, 2) == $"1{sep}00")
         assert(fn(1000, sep, 2) == $"10{sep}00")
@@ -1122,13 +1122,13 @@ do
     septest2(".")
     septest2(" ")
 
-    assert(string.format_int("+3249230492345645324234234234234234234234234324242343243242342343423242344") == "+3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
-    assert(string.format_int("-3249230492345645324234234234234234234234234324242343243242342343423242344") == "-3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
+    assert(string.formatint("+3249230492345645324234234234234234234234234324242343243242342343423242344") == "+3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
+    assert(string.formatint("-3249230492345645324234234234234234234234234324242343243242342343423242344") == "-3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
 
     if _PSOUP then
         local str = "Hello, World! == %% 20 <> //\\"
-        assert(string.url_encode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
-        assert(string.url_encode(str):url_decode() == str)
+        assert(string.urlencode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
+        assert(string.urlencode(str):urldecode() == str)
     end
 
     assert("*":repeat(3) == "***")
