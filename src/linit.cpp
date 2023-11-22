@@ -535,7 +535,7 @@ package.preload["Vector3"] = function()
           yaw
         )
       else
-        assert("Expected \"y\" or \"z\" for 'up' parameter")
+        error("Expected \"y\" or \"z\" for 'up' parameter")
       end
     end
 
@@ -562,7 +562,7 @@ package.preload["Vector3"] = function()
           math.sin(pitch_radians) * -1
         )
       else
-        assert("Expected \"y\" or \"z\" for 'up' parameter")
+        error("Expected \"y\" or \"z\" for 'up' parameter")
       end
     end
   end
