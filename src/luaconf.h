@@ -1015,11 +1015,6 @@
 // 
 // It's suggested you implement PLUTO_LOADCLIB_HOOK, etc, for even more powerful coverage. Package.loadlib can still load other Pluto/Lua libraries and use their lua_CFunction objects.
 //#define PLUTO_NO_FILESYSTEM
-#ifdef PLUTO_NO_FILESYSTEM
-#define FS_FUNCTION return 0;
-#else
-#define FS_FUNCTION
-#endif
 
 //#define PLUTO_NO_OS_EXECUTE
 

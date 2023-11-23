@@ -23,6 +23,13 @@
 #include "lualib.h"
 
 
+#ifdef PLUTO_NO_FILESYSTEM
+#define FS_FUNCTION return 0;
+#else
+#define FS_FUNCTION
+#endif
+
+
 /* Basic error handling. Exceptions have better error messages than error_codes. */
 #define Protect(c) \
   try { c; } catch (const std::exception& err) { luaL_error(L, err.what()); } 
