@@ -320,6 +320,9 @@ static int io_pclose (lua_State *L) {
 
 
 static int io_popen (lua_State *L) {
+#ifdef PLUTO_NO_OS_EXECUTE
+  return 0;
+#endif
   FS_FUNCTION
   const char *filename = luaL_checkstring(L, 1);
   const char *mode = luaL_optstring(L, 2, "r");
