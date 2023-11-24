@@ -9,6 +9,8 @@ foreach (file("src/lua.h") as $line)
 }
 $pluto_version or die("Failed to determine Pluto version");
 
+$arch = trim(shell_exec("dpkg --print-architecture"));
+
 mkdir("pluto");
 mkdir("pluto/DEBIAN");
 file_put_contents("pluto/DEBIAN/control", <<<EOC
@@ -16,7 +18,7 @@ Package: pluto
 Version: $pluto_version
 Section: custom
 Priority: optional
-Architecture: all
+Architecture: $arch
 Essential: no
 Maintainer: Sainan <sainan@calamity.gg>
 Description: A superset of Lua 5.4 — with unique features, optimizations, and improvements.
