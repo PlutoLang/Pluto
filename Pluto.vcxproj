@@ -472,6 +472,7 @@
     </ClCompile>
     <ClCompile Include="src\lundump.cpp" />
     <ClCompile Include="src\lutf8lib.cpp" />
+    <ClCompile Include="src\lvector3lib.cpp" />
     <ClCompile Include="src\lvm.cpp" />
     <ClCompile Include="src\lzio.cpp" />
     <ClCompile Include="src\vendor\Soup\base32.cpp" />
