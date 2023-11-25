@@ -272,8 +272,11 @@ struct TypeHint {
       return "nil";
     }
     std::string str{};
-    if (isNullable())
+    if (isNullable()) {
+      if (descs[1].type == VT_DUNNO)
+        return "nil";
       str.push_back('?');
+    }
     for (const auto& desc : descs) {
       if (desc.type != VT_DUNNO && desc.type != VT_NIL) {
         str.append(desc.toString());
