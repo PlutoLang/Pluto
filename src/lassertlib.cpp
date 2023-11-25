@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "lualib.h"
 
 static const luaL_Reg funcs[] = {
