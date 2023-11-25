@@ -65,12 +65,12 @@ LUALIB_API void luaL_openlibs (lua_State *L) {
     lua_pop(L, 1);  /* remove lib */
   }
 
+  luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
   for (const Pluto::PreloadedLibrary* lib : Pluto::all_preloaded) {
-    luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
     lua_pushcfunction(L, lib->init);
     lua_setfield(L, -2, lib->name);
-    lua_pop(L, 1);
   }
+  lua_pop(L, 1);
 
   const auto startup_code = R"EOC(
 pluto_use "0.6.0"
