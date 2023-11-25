@@ -202,14 +202,15 @@ struct TypeHint {
     return descs[0].type == VT_DUNNO;
   }
 
-  bool emplaceTypeDesc(TypeDesc td) {
-    for (auto& desc : descs) {
-      if (desc.type == VT_DUNNO) {
-        desc = std::move(td);
-        return true;
+  void emplaceTypeDesc(TypeDesc td) {
+    if (!contains(td)) {
+      for (auto& desc : descs) {
+        if (desc.type == VT_DUNNO) {
+          desc = std::move(td);
+          break;
+        }
       }
     }
-    return false;
   }
 
   void merge(const TypeHint& b) {
@@ -221,6 +222,16 @@ struct TypeHint {
   [[nodiscard]] bool contains(ValType vt) const noexcept {
     for (const auto& desc : descs) {
       if (desc.type == vt) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  [[nodiscard]] bool contains(const TypeDesc& td) const noexcept {
+    for (const auto& desc : descs) {
+      if (desc.type == td.type) {
+        // TODO: Might need better logic in regards to VT_FUNC
         return true;
       }
     }
@@ -257,10 +268,11 @@ struct TypeHint {
 
   void fixTypes() {
     if (descs[1].type != VT_DUNNO) { /* contains more than 1 type? */
-      /* convert 'void' to 'nil' */
+      /* convert 'void' to 'nil' (or 'dunno' if we already have a 'nil') */
+      const bool already_has_nil = isNullable();
       for (auto& desc : descs) {
         if (desc.type == VT_VOID) {
-          desc.type = VT_NIL;
+          desc.type = already_has_nil ? VT_DUNNO : VT_NIL;
           break;
         }
       }
