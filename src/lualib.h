@@ -49,6 +49,7 @@ namespace Pluto {
   extern const PreloadedLibrary preloaded_base32;
   extern const PreloadedLibrary preloaded_base64;
 #endif
+  extern const PreloadedLibrary preloaded_assert;
 
   inline const PreloadedLibrary* const all_preloaded[] = {
     &preloaded_crypto,
@@ -57,6 +58,7 @@ namespace Pluto {
     &preloaded_base32,
     &preloaded_base64,
 #endif
+    &preloaded_assert,
   };
 }
 
