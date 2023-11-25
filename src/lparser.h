@@ -155,7 +155,7 @@ struct TypeDesc {
     return type;
   }
 
-  [[nodiscard]] lu_byte getNumParams() noexcept {
+  [[nodiscard]] lu_byte getNumParams() const noexcept {
     return proto->numparams;
   }
 
