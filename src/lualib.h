@@ -68,6 +68,7 @@ LUAMOD_API int (luaopen_json)   (lua_State *L);
 LUAMOD_API int (luaopen_base32) (lua_State *L);
 LUAMOD_API int (luaopen_base64) (lua_State *L);
 #endif
+LUAMOD_API int (luaopen_assert) (lua_State *L);
 
 /* open all previous libraries */
 LUALIB_API void (luaL_openlibs) (lua_State *L);

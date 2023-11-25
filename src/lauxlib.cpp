@@ -417,14 +417,14 @@ LUALIB_API const char *luaL_optlstring (lua_State *L, int arg,
 }
 
 
-LUALIB_API std::string pluto_checkstring (lua_State *L, int arg) {
+PLUTOLIB_API std::string pluto_checkstring (lua_State *L, int arg) {
   size_t len;
   const char *str = luaL_checklstring(L, arg, &len);
   return std::string(str, len);
 }
 
 
-LUALIB_API std::string pluto_optstring (lua_State *L, int arg, std::string def) {
+PLUTOLIB_API std::string pluto_optstring (lua_State *L, int arg, std::string def) {
   if (lua_isnoneornil(L, arg))
     return def;
   return pluto_checkstring(L, arg);
