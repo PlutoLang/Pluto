@@ -105,7 +105,7 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, int flags 
 ** Throws an exception into Lua, which will promptly close the program.
 ** This is only called for vital errors, like lexer and/or syntax problems.
 */
-[[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here, int line) {
+static l_noret throwerr (LexState *ls, const char *err, const char *here, int line) {
   const bool has_near = (strstr(err, " near ") != nullptr);
   err = luaG_addinfo(ls->L, err, ls->source, line);
   Pluto::ErrorMessage msg{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
@@ -120,7 +120,7 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, int flags 
      .finalizeAndThrow();
 }
 
-[[noreturn]] static void throwerr (LexState *ls, const char *err, const char *here) {
+static l_noret throwerr (LexState *ls, const char *err, const char *here) {
   throwerr(ls, err, here, ls->getLineNumber());
 }
 
@@ -219,7 +219,7 @@ static void check_for_non_portable_bytecode (LexState *ls) {
 /*
 ** This function will throw an exception and terminate the program.
 */
-[[noreturn]] static void error_expected (LexState *ls, int token) {
+static l_noret error_expected (LexState *ls, int token) {
   switch (token) {
     case '|': {
       throwerr(ls,
@@ -262,7 +262,7 @@ static void check_for_non_portable_bytecode (LexState *ls) {
 }
 
 
-[[noreturn]] static void errorlimit (FuncState *fs, int limit, const char *what) {
+static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
   lua_State *L = fs->ls->L;
   const char *msg;
   int line = fs->f->linedefined;
@@ -957,7 +957,7 @@ static void singlevar (LexState *ls, expdesc *var) {
 ** Generates an error that a goto jumps into the scope of some
 ** local variable.
 */
-[[noreturn]] static void jumpscopeerror (LexState *ls, Labeldesc *gt) {
+static l_noret jumpscopeerror (LexState *ls, Labeldesc *gt) {
   const char *varname = getstr(getlocalvardesc(ls->fs, gt->nactvar)->vd.name);
   const char *msg = "<goto %s> at line %d jumps into the scope of local '%s'";
   msg = luaO_pushfstring(ls->L, msg, getstr(gt->name), gt->line, varname);
@@ -1104,7 +1104,7 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
 /*
 ** generates an error for an undefined 'goto'.
 */
-[[noreturn]] static void undefgoto (LexState *ls, Labeldesc *gt) {
+static l_noret undefgoto (LexState *ls, Labeldesc *gt) {
   const char *msg;
   if (eqstr(gt->name, luaS_newliteral(ls->L, "break"))) {
     msg = "break outside loop at line %d";

@@ -98,7 +98,7 @@ LUAI_FUNC void luaK_settablesize (FuncState *fs, int pc,
                                   int ra, int asize, int hsize);
 LUAI_FUNC void luaK_setlist (FuncState *fs, int base, int nelems, int tostore);
 LUAI_FUNC void luaK_finish (FuncState *fs);
-[[noreturn]] LUAI_FUNC void luaK_semerror (LexState *ls, const char *msg);
+LUAI_FUNC l_noret luaK_semerror (LexState *ls, const char *msg);
 LUAI_FUNC void luaK_exp2reg (FuncState *fs, expdesc *e, int reg);
 LUAI_FUNC void luaK_freeexp (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_invertcond (FuncState *fs, int list);

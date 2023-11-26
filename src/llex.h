@@ -499,7 +499,7 @@ LUAI_FUNC void luaX_prev (LexState *ls);
 LUAI_FUNC void luaX_setpos(LexState *ls, size_t pos);
 LUAI_FUNC int luaX_lookahead(LexState *ls);
 LUAI_FUNC const Token& luaX_lookbehind(LexState *ls);
-[[noreturn]] LUAI_FUNC void luaX_syntaxerror (LexState *ls, const char *s);
+LUAI_FUNC l_noret luaX_syntaxerror (LexState *ls, const char *s);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);
 LUAI_FUNC const char *luaX_reserved2str (int token);
