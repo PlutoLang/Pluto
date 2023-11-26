@@ -2257,18 +2257,17 @@ static int str_find_last_not_of (lua_State *L) {
 
 
 static int str_truncate (lua_State *L) {
-  size_t len;
-  std::string s = luaL_checklstring(L, 1, &len);
+  std::string s = pluto_checkstring(L, 1);
   const size_t dlen = static_cast<size_t>(luaL_checkinteger(L, 2));
 
-  if (len == dlen) {
+  if (s.length() == dlen) {
     lua_settop(L, 1);
     return 1;
   }
 
   const auto elipsis = (bool)lua_toboolean(L, 3);
 
-  if (len > dlen) {
+  if (s.length() > dlen) {
     s.resize(dlen);
 
     if (elipsis && dlen >= 3) {
@@ -2363,7 +2362,7 @@ static int str_formatint (lua_State *L) {
 
 
 static int str_repeat (lua_State *L) {
-  std::string_view input = luaL_checkstring(L, 1);
+  const auto input = pluto_checkstring(L, 1);
   auto count = static_cast<size_t>(luaL_checkinteger(L, 2));
 
   luaL_check(L, count < 1, "argument 'count' for string.repeat must be larger than zero");
@@ -2382,14 +2381,14 @@ static int str_repeat (lua_State *L) {
 
 #ifdef PLUTO_USE_SOUP
 static int str_urlencode (lua_State* L) {
-  const auto input = luaL_checkstring(L, 1);
+  const auto input = pluto_checkstring(L, 1);
   pluto_pushstring(L, soup::urlenc::encode(input));
   return 1;
 }
 
 
 static int str_urldecode (lua_State *L) {
-  const auto input = luaL_checkstring(L, 1);
+  const auto input = pluto_checkstring(L, 1);
   pluto_pushstring(L, soup::urlenc::decode(input));
   return 1;
 }
