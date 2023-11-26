@@ -8,7 +8,9 @@ static const luaL_Reg funcs[] = {
 };
 
 LUAMOD_API int luaopen_Vector3(lua_State* L) {
-    const auto code = R"EOC(local Vector3
+    const auto code = R"EOC(pluto_use "0.6.0"
+
+local Vector3
  class Vector3
   __name = "Vector3"
 

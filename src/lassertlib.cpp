@@ -8,7 +8,9 @@ static const luaL_Reg funcs[] = {
 };
 
 LUAMOD_API int luaopen_assert(lua_State *L) {
-  const auto code = R"EOC(local module = {}
+  const auto code = R"EOC(pluto_use "0.6.0"
+
+local module = {}
 
 local function deepCompare(t1, t2)
   if t1 == t2 then
