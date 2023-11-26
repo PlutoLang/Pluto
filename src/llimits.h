@@ -160,6 +160,22 @@ typedef LUAI_UACINT l_uacInt;
 
 
 /*
+** non-return type
+*/
+#if !defined(l_noret)
+
+#if defined(__GNUC__)
+#define l_noret		void __attribute__((noreturn))
+#elif defined(_MSC_VER) && _MSC_VER >= 1200
+#define l_noret		void __declspec(noreturn)
+#else
+#define l_noret		void
+#endif
+
+#endif
+
+
+/*
 ** Inline functions
 */
 #if !defined(LUA_USE_C89)

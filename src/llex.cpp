@@ -69,7 +69,7 @@ static const char *const luaX_tokens [] = {
 #define save_and_next(ls) (save(ls, ls->current), next(ls))
 
 
-[[noreturn]] static void lexerror (LexState *ls, const char *msg, int token);
+static l_noret lexerror (LexState *ls, const char *msg, int token);
 
 
 void LexState::popContext(ParserContext ctx) {
@@ -153,7 +153,7 @@ const char* luaX_reserved2str (int token) {
 }
 
 
-[[noreturn]] static void lexerror (LexState *ls, const char *msg, int token) {
+static l_noret lexerror (LexState *ls, const char *msg, int token) {
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->getLineNumber());
   Pluto::ErrorMessage err{ ls, HRED "syntax error: " BWHT };
   err.addMsg(msg);
@@ -173,7 +173,7 @@ const char* luaX_reserved2str (int token) {
 }
 
 
-void luaX_syntaxerror (LexState *ls, const char *msg) {
+l_noret luaX_syntaxerror (LexState *ls, const char *msg) {
   lexerror(ls, msg, ls->t.token);
 }
 

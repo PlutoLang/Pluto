@@ -36,23 +36,23 @@
 LUAI_FUNC int luaG_getfuncline (const Proto *f, int pc);
 LUAI_FUNC const char *luaG_findlocal (lua_State *L, CallInfo *ci, int n,
                                                     StkId *pos);
-[[noreturn]] LUAI_FUNC void luaG_typeerror (lua_State *L, const TValue *o,
+LUAI_FUNC l_noret luaG_typeerror (lua_State *L, const TValue *o,
                                                 const char *opname);
-[[noreturn]] LUAI_FUNC void luaG_callerror (lua_State *L, const TValue *o);
-[[noreturn]] LUAI_FUNC void luaG_forerror (lua_State *L, const TValue *o,
+LUAI_FUNC l_noret luaG_callerror (lua_State *L, const TValue *o);
+LUAI_FUNC l_noret luaG_forerror (lua_State *L, const TValue *o,
                                                const char *what);
-[[noreturn]] LUAI_FUNC void luaG_concaterror (lua_State *L, const TValue *p1,
+LUAI_FUNC l_noret luaG_concaterror (lua_State *L, const TValue *p1,
                                                   const TValue *p2);
-[[noreturn]] LUAI_FUNC void luaG_opinterror (lua_State *L, const TValue *p1,
+LUAI_FUNC l_noret luaG_opinterror (lua_State *L, const TValue *p1,
                                                  const TValue *p2,
                                                  const char *msg);
-[[noreturn]] LUAI_FUNC void luaG_tointerror (lua_State *L, const TValue *p1,
+LUAI_FUNC l_noret luaG_tointerror (lua_State *L, const TValue *p1,
                                                  const TValue *p2);
-[[noreturn]] LUAI_FUNC void luaG_ordererror (lua_State *L, const TValue *p1,
+LUAI_FUNC l_noret luaG_ordererror (lua_State *L, const TValue *p1,
                                                  const TValue *p2);
-[[noreturn]] LUAI_FUNC void luaG_runerror (lua_State *L, const char *fmt, ...);
+LUAI_FUNC l_noret luaG_runerror (lua_State *L, const char *fmt, ...);
 LUAI_FUNC const char *luaG_addinfo (lua_State *L, const char *msg,
                                                   TString *src, int line);
-[[noreturn]] LUAI_FUNC void luaG_errormsg (lua_State *L);
+LUAI_FUNC l_noret luaG_errormsg (lua_State *L);
 LUAI_FUNC int luaG_traceexec (lua_State *L, const Instruction *pc);
 LUAI_FUNC int luaG_tracecall (lua_State *L);
