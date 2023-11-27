@@ -190,14 +190,20 @@ inline const char* const luaX_warnNames[] = {
 static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
 
+enum WarningState : lu_byte {
+  WS_OFF,
+  WS_ON,
+};
+
+
 class WarningConfig
 {
 public:
   const size_t begins_at;
-  bool toggles[NUM_WARNING_TYPES];
+  WarningState states[NUM_WARNING_TYPES];
 
 private:
-  [[nodiscard]] static bool getDefaultState(WarningType type) noexcept {
+  [[nodiscard]] static WarningState getDefaultState(WarningType type) noexcept {
     switch (type) {
 #ifndef PLUTO_WARN_NON_PORTABLE_CODE
     case WT_NON_PORTABLE_CODE:
@@ -209,34 +215,30 @@ private:
     case WT_NON_PORTABLE_NAME:
 #endif
     case NUM_WARNING_TYPES:  /* dummy case so compiler doesn't cry when all macros are set */
-      return false;
+      return WS_OFF;
     default:
-      return true;
+      return WS_ON;
     }
   }
 
 public:
   WarningConfig(size_t begins_at) noexcept : begins_at(begins_at) {
     for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
-      toggles[id] = getDefaultState((WarningType)id);
+      states[id] = getDefaultState((WarningType)id);
     }
   }
 
   void copyFrom(const WarningConfig& b) noexcept {
-    memcpy(toggles, b.toggles, sizeof(toggles));
+    memcpy(states, b.states, sizeof(states));
   }
 
-  [[nodiscard]] bool get(WarningType type) const noexcept {
-    return toggles[type];
-  }
-  
-  [[nodiscard]] bool& get(WarningType type) noexcept {
-    return toggles[type];
+  [[nodiscard]] bool isEnabled(WarningType type) const noexcept {
+    return states[type] != WS_OFF;
   }
 
-  void setAllTo(bool newState) noexcept {
+  void setAllTo(WarningState newState) noexcept {
     for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
-      toggles[id] = newState;
+      states[id] = newState;
     }
   }
 
@@ -254,14 +256,14 @@ public:
 
       if (line.find(enable) != std::string::npos) {
         if (name != "all")
-          get((WarningType)id) = true;
+          states[id] = WS_ON;
         else
-          setAllTo(true);
+          setAllTo(WS_ON);
       } else if (line.find(disable) != std::string::npos) {
         if (name != "all")
-          get((WarningType)id) = false;
+          states[id] = WS_OFF;
         else
-          setAllTo(false);
+          setAllTo(WS_OFF);
       }
     }
   }
@@ -455,7 +457,7 @@ struct LexState {
   [[nodiscard]] bool shouldEmitWarning(int line, WarningType warning_type) const {
     const auto& linebuff = this->getLineString(line);
     const auto& lastattr = line > 1 ? this->getLineString(line - 1) : linebuff;
-    return lastattr.find("@pluto_warnings: disable-next") == std::string::npos && getWarningConfig().get(warning_type);
+    return lastattr.find("@pluto_warnings: disable-next") == std::string::npos && getWarningConfig().isEnabled(warning_type);
   }
 
   [[nodiscard]] bool shouldSuggest() const noexcept {
