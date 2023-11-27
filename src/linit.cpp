@@ -75,8 +75,8 @@ LUALIB_API void luaL_openlibs (lua_State *L) {
   const auto startup_code = R"EOC(
 pluto_use "0.6.0"
 
-class Exception
-    __name = "Exception"
+class exception
+    __name = "exception"
 
     function __construct(public what)
         local caller
@@ -84,7 +84,7 @@ class Exception
         while true do
             caller = debug.getinfo(i)
             if caller == nil then
-                error("Exception instances must be created with 'pluto_new'", 0)
+                error("exception instances must be created with 'pluto_new'", 0)
             end
             ++i
             if caller.name == "Pluto_operator_new" then
