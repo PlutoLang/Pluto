@@ -242,10 +242,12 @@ public:
 
   void processComment(const std::string& line) noexcept {
     for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
-      std::string enable  = "enable-";
-      std::string disable = "disable-";
-
       const std::string& name = luaX_warnNames[id];
+      if (line.find(name) == std::string::npos)
+        continue;
+
+      std::string enable = "enable-";
+      std::string disable = "disable-";
 
       enable += name;
       disable += name;
