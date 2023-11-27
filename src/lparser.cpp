@@ -137,6 +137,8 @@ static void throw_warn (LexState *ls, const char *raw_err, const char *here, int
       .addSrcLine(line)
       .addGenericHere(here)
       .finalize();
+    if (ls->getWarningConfig().isFatal(warningType))
+      luaD_throw(ls->L, LUA_ERRSYNTAX);
     lua_warning(ls->L, msg.content.c_str(), 0);
     ls->L->top.p -= 2; // Pluto::ErrorMessage::finalize & luaG_addinfo
   }
@@ -155,6 +157,8 @@ static void throw_warn(LexState* ls, const char* raw_err, const char* here, cons
       .addGenericHere(here)
       .addNote(note)
       .finalize();
+    if (ls->getWarningConfig().isFatal(warningType))
+      luaD_throw(ls->L, LUA_ERRSYNTAX);
     lua_warning(ls->L, msg.content.c_str(), 0);
     ls->L->top.p -= 2; // Pluto::ErrorMessage::finalize & luaG_addinfo
   }
@@ -171,6 +175,10 @@ static void throw_warn(LexState *ls, const char *err, int line, WarningType warn
     msg.append(" [");
     msg.append(ls->getWarningConfig().getWarningName(warningType));
     msg.push_back(']');
+    if (ls->getWarningConfig().isFatal(warningType)) {
+      lua_pushstring(ls->L, msg.c_str());
+      luaD_throw(ls->L, LUA_ERRSYNTAX);
+    }
     lua_warning(ls->L, msg.c_str(), 0);
     ls->L->top.p -= 1; // luaG_addinfo
   }

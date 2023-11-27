@@ -193,6 +193,7 @@ static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES)
 enum WarningState : lu_byte {
   WS_OFF,
   WS_ON,
+  WS_ERROR,
 };
 
 
@@ -236,6 +237,10 @@ public:
     return states[type] != WS_OFF;
   }
 
+  [[nodiscard]] bool isFatal(WarningType type) const noexcept {
+    return states[type] == WS_ERROR;
+  }
+
   void setAllTo(WarningState newState) noexcept {
     for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
       states[id] = newState;
@@ -250,9 +255,11 @@ public:
 
       std::string enable = "enable-";
       std::string disable = "disable-";
+      std::string error = "error-";
 
       enable += name;
       disable += name;
+      error += name;
 
       if (line.find(enable) != std::string::npos) {
         if (name != "all")
@@ -264,6 +271,11 @@ public:
           states[id] = WS_OFF;
         else
           setAllTo(WS_OFF);
+      } else if (line.find(error) != std::string::npos) {
+        if (name != "all")
+          states[id] = WS_ERROR;
+        else
+          setAllTo(WS_ERROR);
       }
     }
   }
