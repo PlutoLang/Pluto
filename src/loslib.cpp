@@ -386,6 +386,12 @@ static int os_millis(lua_State* L) {
 }
 
 
+static int os_micros(lua_State* L) {
+  lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+  return 1;
+}
+
+
 static int os_nanos(lua_State* L) {
   lua_pushinteger(L, (lua_Integer)std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
   return 1;
@@ -457,6 +463,7 @@ static const luaL_Reg syslib[] = {
   {"unixseconds", os_unixseconds},
   {"seconds",     os_seconds},
   {"millis",      os_millis},
+  {"micros",      os_micros},
   {"nanos",       os_nanos},
   {NULL, NULL}
 };
