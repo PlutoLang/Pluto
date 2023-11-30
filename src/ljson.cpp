@@ -36,6 +36,13 @@ static const luaL_Reg funcs[] = {
 	{nullptr, nullptr}
 };
 
-PLUTO_NEWLIB(json);
+LUAMOD_API int luaopen_json(lua_State* L)
+{
+	luaL_newlib(L, funcs);
+	lua_pushlightuserdata(L, reinterpret_cast<void*>(static_cast<uintptr_t>('PJNL')));
+	lua_setfield(L, -2, "null");
+	return 1;
+}
+const Pluto::PreloadedLibrary Pluto::preloaded_json{ "json", funcs, &luaopen_json };
 
 #endif
