@@ -544,10 +544,29 @@ static int tmap (lua_State *L) {
 }
 
 
+static int treverse (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+
+  const lua_Unsigned l = lua_rawlen(L, 1);
+  for (lua_Integer i = 1; i != l; ++i) {
+    lua_pushinteger(L, l - i + 1);
+    lua_pushinteger(L, i);
+    lua_rawget(L, 1);
+    lua_pushinteger(L, i);
+    lua_pushinteger(L, l - i + 1);
+    lua_rawget(L, 1);
+    lua_rawset(L, 1);
+    lua_rawset(L, 1);
+  }
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"reverse", treverse},
   {"map", tmap},
   {"filter", tfilter},
   {"foreach", foreach},
