@@ -548,7 +548,7 @@ static int treverse (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
 
   const lua_Unsigned l = lua_rawlen(L, 1);
-  for (lua_Integer i = 1; i != l; ++i) {
+  for (lua_Unsigned i = 1; i <= l/2; ++i) {
     lua_pushinteger(L, l - i + 1);
     lua_pushinteger(L, i);
     lua_rawget(L, 1);
