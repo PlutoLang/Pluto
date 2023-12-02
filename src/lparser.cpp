@@ -4392,6 +4392,8 @@ static void retstat (LexState *ls, TypeHint *prop) {
   }
   else {
     nret = explist(ls, &e, prop);  /* optional return values */
+    if (prop && prop->empty())
+      prop->emplaceTypeDesc(VT_NIL);  /* propagate that we are returning something even tho we don't know what it is. this is needed for trystat. */
     if (hasmultret(e.k)) {
       luaK_setmultret(fs, &e);
       if (e.k == VCALL && nret == 1 && !fs->bl->insidetbc) {  /* tail call? */
