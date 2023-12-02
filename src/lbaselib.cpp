@@ -651,6 +651,8 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
         luaL_pushresult(&b);
         return;
       }
+      else if (is_export)
+        luaL_error(L, "Can't export C function");
       luaL_tolstring(L, -1, NULL);
       return;
     }
@@ -659,7 +661,7 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
   }
   if (indents != 1 && hvalue(index2value(L, -1)) == recursion_marker) {
     if (is_export) {
-      luaL_error(L, "exportvar does not handle recursion");
+      luaL_error(L, "Can't export recursive table");
     }
     lua_pushstring(L, "*RECURSION*");
     return;
