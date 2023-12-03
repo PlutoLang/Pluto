@@ -4610,31 +4610,13 @@ static void trystat (LexState *ls) {
 
   const auto ok_vidx = new_localvarliteral(ls, "(try ok)");
 
-  expdesc tremove;
-  singlevar(ls, &tremove, luaX_newliteral(ls, "table"));
-  luaK_exp2anyregup(ls->fs, &tremove);
   expdesc key;
-  codestring(&key, luaX_newliteral(ls, "remove"));
-  luaK_indexed(ls->fs, &tremove, &key);
-  luaK_exp2nextreg(ls->fs, &tremove);
-  lua_assert(tremove.k == VNONRELOC);
+  init_var(ls->fs, &t, results_vidx);
+  init_exp(&key, VKINT, 0);
+  key.u.ival = 1;
+  luaK_indexed(ls->fs, &t, &key);
 
-  expdesc args;
-  init_var(ls->fs, &args, results_vidx);
-  luaK_exp2nextreg(ls->fs, &args);
-
-  init_exp(&args, VKINT, 0);
-  args.u.ival = 1;
-  luaK_exp2nextreg(ls->fs, &args);
-
-  base = tremove.u.reg;  /* base register for call */
-  {
-    constexpr auto nparams = 2;
-    init_exp(&tremove, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
-  }
-  ls->fs->freereg = base + 1;
-
-  adjust_assign(ls, 1, 1, &tremove);
+  adjust_assign(ls, 1, 1, &t);
   adjustlocalvars(ls, 1);
 
   expdesc econd;
@@ -4673,11 +4655,16 @@ static void trystat (LexState *ls) {
     luaK_exp2nextreg(ls->fs, &tunpack);
     lua_assert(tunpack.k == VNONRELOC);
 
+    expdesc args;
     init_var(ls->fs, &args, results_vidx);
     luaK_exp2nextreg(ls->fs, &args);
 
+    init_exp(&args, VKINT, 0);
+    args.u.ival = 2;
+    luaK_exp2nextreg(ls->fs, &args);
+
     base = tunpack.u.reg;  /* base register for call */
-    constexpr auto nparams = 1;
+    constexpr auto nparams = 2;
     init_exp(&tunpack, VCALL, luaK_codeABC(ls->fs, OP_TAILCALL, base, nparams + 1, 2));
     ls->fs->freereg = base + 1;
 
