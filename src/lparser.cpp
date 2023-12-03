@@ -4674,6 +4674,12 @@ static void trystat (LexState *ls) {
 
   check_match(ls, TK_END, TK_PCATCH, then_line);
   leaveblock(ls->fs);
+
+  int escapelist = NO_JUMP;
+  if (!prop.empty()) {  /* try block has return statement? */
+    luaK_concat(ls->fs, &escapelist, luaK_jump(ls->fs));  /* catch block has to skip over the try-return code */
+  }
+
   luaK_patchtohere(ls->fs, econd.t);
 
   if (!prop.empty()) {  /* try block has return statement? */
@@ -4704,6 +4710,8 @@ static void trystat (LexState *ls) {
     int first = luaY_nvarstack(ls->fs);  /* first slot to be returned */
     luaK_setmultret(ls->fs, &tunpack);
     luaK_ret(ls->fs, first, LUA_MULTRET);
+
+    luaK_patchtohere(ls->fs, escapelist);
   }
 }
 
