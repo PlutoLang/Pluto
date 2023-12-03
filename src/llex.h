@@ -206,6 +206,9 @@ public:
 private:
   [[nodiscard]] static WarningState getDefaultState(WarningType type) noexcept {
     switch (type) {
+#ifndef PLUTO_WARN_GLOBAL_SHADOW
+    case WT_GLOBAL_SHADOW:
+#endif
 #ifndef PLUTO_WARN_NON_PORTABLE_CODE
     case WT_NON_PORTABLE_CODE:
 #endif
