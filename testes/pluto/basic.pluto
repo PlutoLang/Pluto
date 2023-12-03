@@ -1857,6 +1857,17 @@ do
     end
     assert(ensure_error(error, { what = "err" }).what == "err")
 end
+do
+    -- Nil values should be returned as nil, not void.
+    -- (This is most noticable with functions such as print which would say "" instead of "nil")
+    local function f()
+        try
+            return nil
+        catch e then
+        end
+    end
+    assert(table.limit({ f() }) == 1)
+end
 
 print "Testing compatibility."
 do
