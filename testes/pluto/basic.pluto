@@ -395,6 +395,10 @@ do
     local r1, r2 = inst:optmethod?()
     assert(r1 == nil)
     assert(r2 == nil)
+    inst?:method()
+    inst?:optmethod?()
+    optinst?:method()
+    optinst?:optmethod?()
 end
 
 print "Testing shorthand ternary."

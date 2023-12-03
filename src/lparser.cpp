@@ -2296,12 +2296,13 @@ static void safe_navigation (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
   luaK_exp2nextreg(fs, v);
   luaK_codeABC(fs, OP_TEST, v->u.reg, NO_REG, 0);
+  const bool is_method_call = (ls->t.token == ':');
   {
     int old_free = fs->freereg;
     int vreg = v->u.reg;
     int j = luaK_jump(fs);
     expdesc key;
-    switch(ls->t.token) {
+    switch (ls->t.token) {
       case '[': {
         luaX_next(ls);  /* skip the '[' */
         expr(ls, &key);
@@ -2333,6 +2334,9 @@ static void safe_navigation (LexState *ls, expdesc *v) {
       v->u.reg = vreg;
     }
     luaK_patchtohere(fs, j);
+  }
+  if (is_method_call) {
+    v->k = VSAFECALL;
   }
 }
 
