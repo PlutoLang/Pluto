@@ -4633,7 +4633,7 @@ static void trystat (LexState *ls) {
   init_var(ls->fs, &evar, results_vidx);
   luaK_exp2anyregup(ls->fs, &evar);
   init_exp(&key, VKINT, 0);
-  key.u.ival = 1;
+  key.u.ival = 2;
   luaK_exp2val(ls->fs, &key);
   luaK_indexed(ls->fs, &evar, &key);
 
