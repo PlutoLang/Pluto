@@ -624,7 +624,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
       if (searchvar(current_fs, name, &var) != -1) {
         Vardesc* desc = getlocalvardesc(current_fs, var.u.var.vidx);
         LocVar* local = localdebuginfo(current_fs, var.u.var.vidx);
-        if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
+        if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)" && n != "(try len)") && (local && local->varname == name)) { // Got a match.
           throw_warn(ls,
             "duplicate local declaration",
               luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
@@ -4608,6 +4608,36 @@ static void trystat (LexState *ls) {
   if (!testnext(ls, TK_CATCH))
     check_match(ls, TK_PCATCH, TK_PTRY, line);
 
+  int len_vidx;
+  if (!prop.empty()) {  /* try block has return statement? */
+    len_vidx = new_localvarliteral(ls, "(try len)");
+
+    ls->fs->f->onPlutoOpUsed(0);  /* not bytecode-incompatible, but this will not run on Lua without errors. */
+
+    expdesc tlimit;
+    singlevar(ls, &tlimit, luaX_newliteral(ls, "table"));
+    luaK_exp2anyregup(ls->fs, &tlimit);
+    expdesc key;
+    codestring(&key, luaX_newliteral(ls, "limit"));
+    luaK_indexed(ls->fs, &tlimit, &key);
+    luaK_exp2nextreg(ls->fs, &tlimit);
+    lua_assert(tlimit.k == VNONRELOC);
+
+    expdesc args;
+    init_var(ls->fs, &args, results_vidx);
+    luaK_exp2nextreg(ls->fs, &args);
+
+    base = tlimit.u.reg;  /* base register for call */
+    {
+      constexpr auto nparams = 1;
+      init_exp(&tlimit, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
+    }
+    ls->fs->freereg = base + 1;
+
+    adjust_assign(ls, 1, 1, &tlimit);
+    adjustlocalvars(ls, 1);
+  }
+
   const auto ok_vidx = new_localvarliteral(ls, "(try ok)");
 
   expdesc key;
@@ -4663,8 +4693,11 @@ static void trystat (LexState *ls) {
     args.u.ival = 2;
     luaK_exp2nextreg(ls->fs, &args);
 
+    init_var(ls->fs, &args, len_vidx);
+    luaK_exp2nextreg(ls->fs, &args);
+
     base = tunpack.u.reg;  /* base register for call */
-    constexpr auto nparams = 2;
+    constexpr auto nparams = 3;
     init_exp(&tunpack, VCALL, luaK_codeABC(ls->fs, OP_TAILCALL, base, nparams + 1, 2));
     ls->fs->freereg = base + 1;
 
