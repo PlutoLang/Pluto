@@ -18,6 +18,8 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "lstate.h"
+#include "ltable.h"
 
 
 /*
@@ -562,10 +564,19 @@ static int treverse (lua_State *L) {
 }
 
 
+TValue *index2value (lua_State *L, int idx);
+static int tlimit(lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  lua_pushinteger(L, hvalue(index2value(L, 1))->alimit);
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"limit", tlimit},
   {"reverse", treverse},
   {"map", tmap},
   {"filter", tfilter},
