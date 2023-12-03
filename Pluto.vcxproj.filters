@@ -83,6 +83,8 @@
     </ClCompile>
     <ClCompile Include="src\vendor\Soup\spaceship.cpp" />
     <ClCompile Include="src\vendor\Soup\version_compare.cpp" />
+    <ClCompile Include="src\lassertlib.cpp" />
+    <ClCompile Include="src\lvector3lib.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -157,9 +159,6 @@
       <Filter>vendor\Soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\string.hpp">
-      <Filter>vendor\Soup</Filter>
-    </ClInclude>
-    <ClInclude Include="src\vendor\Soup\base58.hpp">
       <Filter>vendor\Soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\base.hpp">
