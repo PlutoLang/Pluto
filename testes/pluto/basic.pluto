@@ -1872,6 +1872,17 @@ do
     end
     assert(table.limit({ f() }) == 1)
 end
+do
+    -- If try block returns, catch block needs to jump over the try-return code (in case it doesn't return.)
+    local function f()
+        try
+            return error("deez")
+        catch e then
+        end
+        return true
+    end
+    assert(f() == true)
+end
 
 print "Testing compatibility."
 do
