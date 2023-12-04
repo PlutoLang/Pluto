@@ -1497,7 +1497,9 @@ do
     assert(h instanceof Entity == true)
     assert(h instanceof Human == true)
 
-    assert(new Entity() instanceof Entity)
+    local a, b = (new Entity() instanceof Entity)
+    assert(a == true)
+    assert(b == nil)
     assert(new Human() instanceof Entity)
 end
 do
