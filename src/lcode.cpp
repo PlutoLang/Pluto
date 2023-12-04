@@ -1122,7 +1122,6 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   if (e->u.reg + 1 != ereg) {  /* ensure argument is in correct register */
     luaK_codeABC(fs, OP_MOVE, e->u.reg + 1, ereg, 0);
   }
-  fs->f->onPlutoOpUsed(0);
 }
 
 
