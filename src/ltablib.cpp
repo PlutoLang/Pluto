@@ -482,35 +482,32 @@ static int tfilter (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
 
-  lua_newtable(L);
   lua_Integer idx = 1;
   lua_pushvalue(L, 1);
   lua_pushnil(L);
-  /* stack now: out, in, key */
+  /* stack now: table, key */
   while (lua_next(L, -2)) {
-    /* stack now: out, in, key, value */
+    /* stack now: table, key, value */
     lua_pushvalue(L, 2);
     lua_pushvalue(L, -2);
-    /* stack now: out, in, key, value, function, value */
+    /* stack now: table, key, value, function, value */
     lua_call(L, 1, 1);
-    /* stack now: out, in, key, value, bKeep */
+    /* stack now: table, key, value, bKeep */
     const bool bKeep = lua_toboolean(L, -1);
     lua_pop(L, 1);
-    /* stack now: out, in, key, value */
+    /* stack now: table, key, value */
     if (bKeep) {
       lua_pushinteger(L, idx++);
-      /* stack now: out, in, key, value, idx */
+      /* stack now: table, key, value, idx */
       lua_pushvalue(L, -2);
-      /* stack now: out, in, key, value, idx, value */
-      lua_settable(L, -6);
-      /* stack now: out, in, key, value */
+      /* stack now: table, key, value, idx, value */
+      lua_settable(L, -5);
+      /* stack now: table, key, value */
     }
     lua_pop(L, 1);
-    /* stack now: out, in, key */
+    /* stack now: table, key */
   }
-  /* stack now: out, in */
-  lua_pop(L, 1);
-  /* stack now: out */
+  /* stack now: table */
   return 1;
 }
 
@@ -522,25 +519,23 @@ static int tmap (lua_State *L) {
   lua_newtable(L);
   lua_pushvalue(L, 1);
   lua_pushnil(L);
-  /* stack now: out, in, key */
+  /* stack now: table, key */
   while (lua_next(L, -2)) {
-    /* stack now: out, in, key, value */
+    /* stack now: table, key, value */
     lua_pushvalue(L, 2);
     lua_pushvalue(L, -2);
-    /* stack now: out, in, key, value, function, value */
+    /* stack now: table, key, value, function, value */
     lua_call(L, 1, 1);
-    /* stack now: out, in, key, value, mapped_value */
+    /* stack now: table, key, value, mapped_value */
     lua_pushvalue(L, -3);
     lua_pushvalue(L, -2);
-    /* stack now: out, in, key, value, mapped_value, key, mapped_value */
-    lua_settable(L, -7);
-    /* stack now: out, in, key, value, mapped_value */
+    /* stack now: table, key, value, mapped_value, key, mapped_value */
+    lua_settable(L, -6);
+    /* stack now: table, key, value, mapped_value */
     lua_pop(L, 2);
-    /* stack now: out, in, key */
+    /* stack now: table, key */
   }
-  /* stack now: out, in */
-  lua_pop(L, 1);
-  /* stack now: out */
+  /* stack now: table */
   return 1;
 }
 

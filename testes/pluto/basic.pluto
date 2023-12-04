@@ -1152,7 +1152,7 @@ do
 end
 do
     local t = { 5, 4, 3, 2, 1 }
-    t = table.filter(t, |x| -> x % 2 ~= 0)
+    table.filter(t, |x| -> x % 2 ~= 0)
     assert(t[1] == 5)
     assert(t[2] == 3)
     assert(t[3] == 1)
@@ -1163,12 +1163,12 @@ do
         { id = 2, name = "Doener" }
     }
     local betterDoener = { id = 2, name = "Better Doener" }
-    menu = table.map(menu, |item| -> item.id == betterDoener.id ? betterDoener : item)
+    table.map(menu, |item| -> item.id == betterDoener.id ? betterDoener : item)
     assert(menu[2].name == "Better Doener")
 end
 do
     local t = { 1, 2, 3, key = 4 }
-    t = table.map(t, |x| -> x * 2)
+    table.map(t, |x| -> x * 2)
     assert(t[1] == 2)
     assert(t[2] == 4)
     assert(t[3] == 6)
