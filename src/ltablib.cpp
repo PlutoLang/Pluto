@@ -478,11 +478,12 @@ static int tcontains (lua_State *L) {
 }
 
 
+TValue *index2value (lua_State *L, int idx);
 static int tfilter (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
 
-  lua_Integer idx = 1;
+  unsigned int idx = 1;
   lua_pushvalue(L, 1);
   lua_pushnil(L);
   /* stack now: table, key */
@@ -507,6 +508,7 @@ static int tfilter (lua_State *L) {
     lua_pop(L, 1);
     /* stack now: table, key */
   }
+  luaH_resizearray(L, hvalue(index2value(L, 1)), idx - 1);
   /* stack now: table */
   return 1;
 }
@@ -558,7 +560,6 @@ static int treverse (lua_State *L) {
 }
 
 
-TValue *index2value (lua_State *L, int idx);
 static int tlimit(lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   lua_pushinteger(L, hvalue(index2value(L, 1))->alimit);
