@@ -1156,6 +1156,7 @@ do
     assert(t[1] == 5)
     assert(t[2] == 3)
     assert(t[3] == 1)
+    assert(#t == 3) -- there should be only 3 items in the array part
 end
 do
     local menu = {
