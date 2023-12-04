@@ -96,7 +96,6 @@ static const char *const opnames[] = {
   "EXTRAARG",
   // end of lua opcodes
   "IN",
-  "PREPCALLFA",  /* OP_PREPCALLFIRSTARG */
   // end of pluto opcodes
   NULL
 };
