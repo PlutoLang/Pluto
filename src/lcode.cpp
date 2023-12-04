@@ -1104,8 +1104,8 @@ void luaK_self (FuncState *fs, expdesc *e, expdesc *key) {
 ** Convert expression 'e' into 'func(e,'.
 */
 void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
-  luaK_exp2anyreg(fs, e);
   luaK_exp2anyreg(fs, func);
+  luaK_exp2anyreg(fs, e);
   int ereg = e->u.reg;  /* register where 'e' was placed */
   int freg = func->u.reg;  /* register where 'func' was placed */
   freeexps(fs, e, func);
