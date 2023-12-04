@@ -1165,6 +1165,14 @@ do
     menu = table.map(menu, |item| -> item.id == betterDoener.id ? betterDoener : item)
     assert(menu[2].name == "Better Doener")
 end
+do
+    local t = { 1, 2, 3, key = 4 }
+    t = table.map(t, |x| -> x * 2)
+    assert(t[1] == 2)
+    assert(t[2] == 4)
+    assert(t[3] == 6)
+    assert(t.key == 8)
+end
 if _PSOUP then
     assert(version_compare("0.1.0", "0.1.0") == 0)
     assert(version_compare("0.1.0", "0.2.0") ~= 0)
