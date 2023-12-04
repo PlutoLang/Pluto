@@ -1156,7 +1156,8 @@ do
     assert(t[1] == 5)
     assert(t[2] == 3)
     assert(t[3] == 1)
-
+end
+do
     local menu = {
         { id = 1, name = "Pizza" },
         { id = 2, name = "Doener" }
