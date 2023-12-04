@@ -1112,6 +1112,10 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   e->u.reg = fs->freereg;  /* base register for call */
   e->k = VNONRELOC;  /* expression has a fixed register */
   luaK_reserveregs(fs, 2);  /* function and first arg */
+  if (ereg == e->u.reg) {  /* argument is in the register where the function should be? */
+    luaK_codeABC(fs, OP_MOVE, e->u.reg + 1, ereg, 0);  /* move it where it should be */
+    ereg = e->u.reg + 1;  /* and don't do it again */
+  }
   if (e->u.reg != freg) {  /* ensure function is in correct register */
     luaK_codeABC(fs, OP_MOVE, e->u.reg, freg, 0);
   }
