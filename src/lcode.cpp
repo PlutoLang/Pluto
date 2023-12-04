@@ -1105,16 +1105,36 @@ void luaK_self (FuncState *fs, expdesc *e, expdesc *key) {
 */
 void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   luaK_exp2anyreg(fs, func);
-  int freg = func->u.reg;  /* register where 'func' was placed */
-  freeexps(fs, e, func);
-  const int basereg = fs->freereg;  /* base register for call */
-  exp2reg(fs, e, basereg + 1);
-  luaK_reserveregs(fs, 2);  /* function and first arg */
-  if (basereg != freg) {  /* ensure function is in correct register */
-    luaK_codeABC(fs, OP_MOVE, basereg, freg, 0);
+  const int freg = func->u.reg;  /* register where 'func' was placed */
+  if (e->k == VNIL || e->k == VFALSE || e->k == VTRUE || e->k == VKSTR || e->k == VK || e->k == VKFLT || e->k == VKINT || e->k == VRELOC) {  /* 'e' is yet to be loaded into a register? */
+    freeexp(fs, func);
+    const int basereg = fs->freereg;  /* base register for call */
+    exp2reg(fs, e, basereg + 1);
+    luaK_reserveregs(fs, 2);  /* function and first arg */
+    if (basereg != freg) {  /* ensure function is in correct register */
+      luaK_codeABC(fs, OP_MOVE, basereg, freg, 0);
+    }
+    e->u.reg = basereg;
+    e->k = VNONRELOC;  /* expression has a fixed register */
   }
-  e->u.reg = basereg;
-  e->k = VNONRELOC;  /* expression has a fixed register */
+  else {
+    luaK_exp2anyreg(fs, e);
+    int ereg = e->u.reg;  /* register where 'e' was placed */
+    freeexps(fs, e, func);
+    e->u.reg = fs->freereg;  /* base register for call */
+    e->k = VNONRELOC;  /* expression has a fixed register */
+    luaK_reserveregs(fs, 2);  /* function and first arg */
+    if (ereg == e->u.reg) {  /* argument is in the register where the function should be? */
+      luaK_codeABC(fs, OP_MOVE, e->u.reg + 1, ereg, 0);  /* move it where it should be */
+      ereg = e->u.reg + 1;  /* and don't do it again */
+    }
+    if (e->u.reg != freg) {  /* ensure function is in correct register */
+      luaK_codeABC(fs, OP_MOVE, e->u.reg, freg, 0);
+    }
+    if (e->u.reg + 1 != ereg) {  /* ensure argument is in correct register */
+      luaK_codeABC(fs, OP_MOVE, e->u.reg + 1, ereg, 0);
+    }
+  }
 }
 
 
