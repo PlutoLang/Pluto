@@ -520,7 +520,6 @@ static int tmap (lua_State *L) {
   luaL_checktype(L, 2, LUA_TFUNCTION);
 
   lua_newtable(L);
-  lua_Integer idx = 1;
   lua_pushvalue(L, 1);
   lua_pushnil(L);
   /* stack now: out, in, key */
@@ -531,9 +530,9 @@ static int tmap (lua_State *L) {
     /* stack now: out, in, key, value, function, value */
     lua_call(L, 1, 1);
     /* stack now: out, in, key, value, mapped_value */
-    lua_pushinteger(L, idx++);
+    lua_pushvalue(L, -3);
     lua_pushvalue(L, -2);
-    /* stack now: out, in, key, value, mapped_value, idx, mapped_value */
+    /* stack now: out, in, key, value, mapped_value, key, mapped_value */
     lua_settable(L, -7);
     /* stack now: out, in, key, value, mapped_value */
     lua_pop(L, 2);
