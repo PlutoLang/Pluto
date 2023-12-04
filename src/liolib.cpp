@@ -1104,7 +1104,7 @@ static int currentdir (lua_State *L) {
   return tp - std::chrono::system_clock::now() + std::filesystem::file_time_type::clock::now();
 }
 
-static int last_write_time (lua_State *L) {
+static int writetime (lua_State *L) {
   FS_FUNCTION
   std::filesystem::path file = getStringStreamPath(L);
   if (lua_gettop(L) == 1) {
@@ -1126,7 +1126,7 @@ static int last_write_time (lua_State *L) {
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
-  {"last_write_time", last_write_time},
+  {"writetime", writetime},
   {"currentdir", currentdir},
   {"rename", l_rename},
   {"remove", l_remove},
