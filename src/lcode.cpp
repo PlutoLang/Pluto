@@ -1101,7 +1101,7 @@ void luaK_self (FuncState *fs, expdesc *e, expdesc *key) {
 
 
 /*
-** Emit PREPCALLFIRSTARG instruction (convert expression 'e' into 'func(e,').
+** Convert expression 'e' into 'func(e,'.
 */
 void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   luaK_exp2anyreg(fs, e);
@@ -1109,10 +1109,15 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   int ereg = e->u.reg;  /* register where 'e' was placed */
   int freg = func->u.reg;  /* register where 'func' was placed */
   freeexps(fs, e, func);
-  e->u.reg = fs->freereg;  /* base register for op_prepcallfirstarg */
+  e->u.reg = fs->freereg;  /* base register for call */
   e->k = VNONRELOC;  /* expression has a fixed register */
-  luaK_reserveregs(fs, 2);  /* function and first arg produced by op_prepcallfirstarg */
-  luaK_codeABCk(fs, OP_PREPCALLFIRSTARG, e->u.reg, ereg, freg, 0);
+  luaK_reserveregs(fs, 2);  /* function and first arg */
+  if (e->u.reg != freg) {  /* ensure function is in correct register */
+    luaK_codeABC(fs, OP_MOVE, e->u.reg, freg, 0);
+  }
+  if (e->u.reg + 1 != ereg) {  /* ensure argument is in correct register */
+    luaK_codeABC(fs, OP_MOVE, e->u.reg + 1, ereg, 0);
+  }
   fs->f->onPlutoOpUsed(0);
 }
 
