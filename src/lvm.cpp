@@ -1685,21 +1685,6 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpOut ("; push self to call '" << getstr(key) << "'");
         vmbreak;
       }
-      vmcase(OP_PREPCALLFIRSTARG) {
-        StkId ra = RA(i);
-        TValue *rb = vRB(i);
-        TValue *rc = vRC(i);
-        TValue b;
-        setobj(L, &b, rb);
-        setobj2s(L, ra, rc);  /* function */
-        setobj2s(L, ra + 1, &b);  /* first arg */
-        vmDumpInit();
-        vmDumpAddA();
-        vmDumpAddB();
-        vmDumpAddC();
-        vmDumpOut("; push " << stringify_tvalue(s2v(ra)) << " and first arg " << stringify_tvalue(s2v(ra + 1)));
-        vmbreak;
-      }
       vmcase(OP_ADDI) {
         vmDumpInit();
         vmDumpAddA();

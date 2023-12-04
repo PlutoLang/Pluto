@@ -318,8 +318,6 @@ else
   push R(B):contains(R(A)) ~= nil
 */
 
-OP_PREPCALLFIRSTARG,/*	A B C	R[A+1] := R[B]; R[A] := R[C]	*/
-
 NUM_OPCODES
 } OpCode;
 
