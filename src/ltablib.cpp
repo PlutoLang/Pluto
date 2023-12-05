@@ -561,9 +561,37 @@ static int treverse (lua_State *L) {
 
 
 TValue *index2value (lua_State *L, int idx);
-static int tlimit(lua_State *L) {
+static int tlimit (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   lua_pushinteger(L, hvalue(index2value(L, 1))->alimit);
+  return 1;
+}
+
+
+static int treorder (lua_State* L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+
+  lua_pushvalue(L, 1); // stack: table
+  lua_pushnil(L); // stack: table, key
+
+  lua_Integer idx = 1;
+  while (lua_next(L, -2)) { // stack: table, key, value
+    if (lua_isinteger(L, -2)) {
+      if (auto val = lua_tointeger(L, -2); val > idx) {
+        lua_pushinteger(L, val); // stack: table, key, value, key
+        lua_pushnil(L); // stack: table, key, value, key, value
+        lua_settable(L, 1); // stack: table, key, value
+      }
+
+      lua_pushinteger(L, idx++); // stack: table, key, value, key
+      lua_pushvalue(L, -2); // stack; table, key, value, key, value
+      lua_settable(L, 1); // stack; table, key, value
+    }
+
+    lua_pop(L, 1); // stack: table, key
+  }
+
+  lua_settop(L, 1);
   return 1;
 }
 
@@ -572,6 +600,7 @@ static int tlimit(lua_State *L) {
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"reorder", treorder},
   {"limit", tlimit},
   {"reverse", treverse},
   {"map", tmap},

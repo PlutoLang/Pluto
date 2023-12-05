@@ -1160,6 +1160,25 @@ do
     assert(t[5] == 1)
 end
 do
+    do
+        local t = { 1, nil, 2, nil, nil, 3, nil, nil, nil, 4, nil }
+        t:reorder()
+        assert(t[1] == 1)
+        assert(t[2] == 2)
+        assert(t[3] == 3)
+        assert(t[4] == 4)
+        assert(t[5] == nil)
+    end
+
+    do
+        local t = { 1, 2, 3, "hello" }:reorder()
+        assert(t[1] == 1)
+        assert(t[2] == 2)
+        assert(t[3] == 3)
+        assert(t[4] == "hello")
+    end
+end
+do
     local menu = {
         { id = 1, name = "Pizza" },
         { id = 2, name = "Doener" }
