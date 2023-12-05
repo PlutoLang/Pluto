@@ -38,6 +38,7 @@
 #include "lsuggestions.hpp"
 #include "ltable.h"
 #include "lauxlib.h"
+#include "lvm.h"
 
 #include "lerrormessage.hpp"
 
@@ -3383,6 +3384,18 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       if (op == OPR_CONCAT) {
         if (prop)
           prop->emplaceTypeDesc(VT_STR);
+        if (v->k == VKSTR && ls->t.token == TK_STRING) {
+          setsvalue2s(ls->L, ls->L->top.p, v->u.strval);
+          ls->L->top.p++;
+          setsvalue2s(ls->L, ls->L->top.p, ls->t.seminfo.ts);
+          ls->L->top.p++;
+          luaV_concat(ls->L, 2);
+		  ls->L->top.p--;
+          v->u.strval = tsvalue(s2v(ls->L->top.p));
+          luaX_next(ls);
+		  op = getbinopr(ls->t.token);
+          continue;
+        }
       }
       else if (op == OPR_COAL) {
         if (luaK_isalwaysnil(ls, v)) {
