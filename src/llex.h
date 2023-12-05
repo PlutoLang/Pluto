@@ -356,6 +356,7 @@ struct LexState {
   bool uses_instanceof = false;
   bool uses_spaceship = false;
 
+  int else_if = 0;  /* line on which 'else if' was seen, to raise warning in case of missing 'end' */
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
   std::stack<ClassData> classes{};

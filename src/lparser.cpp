@@ -343,6 +343,8 @@ static void check_match (LexState *ls, int what, int who, int where) {
       error_expected(ls, what);  /* do not need a complex message */
     else {
       if (what == TK_END) {
+        if (ls->else_if)
+          throw_warn(ls, "'else if' is not the same as 'elseif' in Lua/Pluto", "did you mean 'elseif'?", ls->else_if, WT_POSSIBLE_TYPO);
         std::string msg = "missing 'end' to terminate ";
         msg.append(luaX_token2str(ls, who));
         if (who != TK_BEGIN) {
@@ -4025,14 +4027,11 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   test_then_block(ls, &escapelist, prop);  /* IF cond THEN block */
   while (ls->t.token == TK_ELSEIF)
     test_then_block(ls, &escapelist, prop);  /* ELSEIF cond THEN block */
-  int else_if = 0;
   if (testnext(ls, TK_ELSE)) {
     if (ls->t.token == TK_IF)
-      else_if = ls->getLineNumber();
+      ls->else_if = ls->getLineNumber();
     block(ls);  /* 'else' part */
   }
-  if (ls->t.token != TK_END && else_if)
-    throw_warn(ls, "'else if' is not the same as 'elseif' in Lua/Pluto", "did you mean 'elseif'?", else_if, WT_POSSIBLE_TYPO);
   check_match(ls, TK_END, TK_IF, line);
   luaK_patchtohere(fs, escapelist);  /* patch escape list to 'if' end */
 }
