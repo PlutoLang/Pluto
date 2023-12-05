@@ -81,8 +81,6 @@ enum ValType : lu_byte {
   VT_STR,
   VT_TABLE,
   VT_FUNC,
-
-  NUL_VAL_TYPES
 };
 
 [[nodiscard]] inline const char* vtToString(ValType vt) {
