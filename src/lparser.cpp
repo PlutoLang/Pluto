@@ -2015,9 +2015,9 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   TypeHint rethint = gettypehint(ls, true);
   TypeHint retprop{};
   statlist(ls, &retprop, true);
-  if (!rethint.empty() && /* has type hint for return type? */
-      !retprop.empty() && /* return type is known? */
-      !rethint.isCompatibleWith(retprop)) { /* incompatible? */
+  if (!rethint.empty() /* has type hint for return type? */
+      && !retprop.empty() && retprop.descs[0].type != VT_DUNNO /* return type is known? */
+      && !rethint.isCompatibleWith(retprop)) { /* incompatible? */
     std::string err = "function was hinted to return ";
     err.append(rethint.toString());
     err.append(" but actually returns ");
