@@ -71,7 +71,8 @@ typedef enum {
 
 /* types of values, for type hinting and propagation */
 enum ValType : lu_byte {
-  VT_DUNNO = 0,
+  VT_NONE = 0,
+  VT_DUNNO,
   VT_VOID,
   VT_NIL,
   VT_NUMBER,
@@ -85,6 +86,7 @@ enum ValType : lu_byte {
 
 [[nodiscard]] inline const char* vtToString(ValType vt) {
   switch (vt) {
+    case VT_NONE: return "none";
     case VT_DUNNO: return "dunno";
     case VT_VOID: return "void";
     case VT_NIL: return "nil";
@@ -198,18 +200,18 @@ struct TypeHint {
 
   void clear() noexcept {
     for (auto& desc : descs) {
-      desc.type = VT_DUNNO;
+      desc.type = VT_NONE;
     }
   }
 
   [[nodiscard]] bool empty() const noexcept {
-    return descs[0].type == VT_DUNNO;
+    return descs[0].type == VT_NONE;
   }
 
   void emplaceTypeDesc(TypeDesc td) {
     if (!contains(td)) {
       for (auto& desc : descs) {
-        if (desc.type == VT_DUNNO) {
+        if (desc.type == VT_NONE) {
           desc = std::move(td);
           break;
         }
@@ -260,7 +262,7 @@ struct TypeHint {
   }
 
   [[nodiscard]] ValType toPrimitive() const noexcept {
-    if (descs[1].type == VT_DUNNO) {
+    if (descs[1].type == VT_NONE) {
       return descs[0].type;
     }
     return VT_DUNNO;
@@ -271,12 +273,12 @@ struct TypeHint {
   }
 
   void fixTypes() {
-    if (descs[1].type != VT_DUNNO) { /* contains more than 1 type? */
-      /* convert 'void' to 'nil' (or 'dunno' if we already have a 'nil') */
+    if (descs[1].type != VT_NONE) { /* contains more than 1 type? */
+      /* convert 'void' to 'nil' (or 'none' if we already have a 'nil') */
       const bool already_has_nil = isNullable();
       for (auto& desc : descs) {
         if (desc.type == VT_VOID) {
-          desc.type = already_has_nil ? VT_DUNNO : VT_NIL;
+          desc.type = already_has_nil ? VT_NONE : VT_NIL;
           break;
         }
       }
@@ -289,12 +291,12 @@ struct TypeHint {
     }
     std::string str{};
     if (isNullable()) {
-      if (descs[1].type == VT_DUNNO)
+      if (descs[1].type == VT_NONE)
         return "nil";
       str.push_back('?');
     }
     for (const auto& desc : descs) {
-      if (desc.type != VT_DUNNO && desc.type != VT_NIL) {
+      if (desc.type != VT_NONE && desc.type != VT_NIL) {
         str.append(desc.toString());
         str.push_back('|');
       }
