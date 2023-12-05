@@ -508,6 +508,9 @@ static TypeHint* new_typehint (LexState *ls) {
 }
 
 
+/*
+** Propgates type from 'e' into 't'.
+*/
 static void exp_propagate(LexState* ls, const expdesc& e, TypeHint& t) noexcept {
   if (e.k == VLOCAL) {
     t.merge(*getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop);
@@ -2124,6 +2127,8 @@ static int explist (LexState *ls, expdesc *v, TypeHint *prop = nullptr) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
   expr(ls, v, prop);
+  if (prop)
+    exp_propagate(ls, *v, *prop);
   while (testnext(ls, ',')) {
     luaK_exp2nextreg(ls->fs, v);
     expr(ls, v);
