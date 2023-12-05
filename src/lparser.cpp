@@ -3394,7 +3394,11 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       nextop = getbinopr(ls->t.token);
     }
     else {
-      if (op == OPR_COAL) {
+      if (op == OPR_CONCAT) {
+        if (prop)
+          prop->emplaceTypeDesc(VT_STR);
+      }
+      else if (op == OPR_COAL) {
         if (luaK_isalwaysnil(ls, v)) {
           /* weird, but nothing worth talking about... */
         }
