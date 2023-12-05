@@ -591,6 +591,7 @@ static int treorder (lua_State* L) {
     lua_pop(L, 1); // stack: table, key
   }
 
+  luaH_resizearray(L, hvalue(index2value(L, 1)), (unsigned int)idx);
   lua_settop(L, 1);
   return 1;
 }
