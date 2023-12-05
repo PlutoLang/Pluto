@@ -85,7 +85,7 @@ local class AssertionError
     error(message, 0)
   end
 
-  function dumpValue(value, should_dump: bool = self.should_dump)
+  function dumpValue(value, should_dump: bool = self.should_dump): string
     if type(value) == "function" or should_dump == false then
       return tostring(value)
     end
@@ -103,7 +103,7 @@ local class AssertionError
     return dump
   end
 
-  function getFileInformation()
+  function getFileInformation(): string
     local caller
 
     for i = 2, 255 do
@@ -119,7 +119,7 @@ local class AssertionError
     return $"{short_src}:{currentline}"
   end
 
-  function getExtraInformation()
+  function getExtraInformation(): string
     return $"({self.assertion_name})"
   end
 
