@@ -52,7 +52,7 @@ jobs:
       - run: php scripts/link_static.php
       - uses: actions/upload-artifact@v3
         with:
-          name: MacOS
+          name: "MacOS (X86)"
           path: |
             src/pluto
             src/plutoc
