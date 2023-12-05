@@ -1152,11 +1152,12 @@ do
 end
 do
     local t = { 5, 4, 3, 2, 1 }
-    t = table.filter(t, |x| -> x % 2 ~= 0)
+    table.filter(t, |x| -> x % 2 ~= 0)
     assert(t[1] == 5)
-    assert(t[2] == 3)
-    assert(t[3] == 1)
-    assert(#t == 3) -- there should be only 3 items in the array part
+    assert(t[2] == nil)
+    assert(t[3] == 3)
+    assert(t[4] == nil)
+    assert(t[5] == 1)
 end
 do
     local menu = {
