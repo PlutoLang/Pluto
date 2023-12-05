@@ -1151,13 +1151,15 @@ do
     assert("hello world":repeat(2) == "hello worldhello world")
 end
 do
-    local t = { 5, 4, 3, 2, 1 }
+    local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
     table.filter(t, |x| -> x % 2 ~= 0)
     assert(t[1] == 5)
     assert(t[2] == nil)
     assert(t[3] == 3)
     assert(t[4] == nil)
     assert(t[5] == 1)
+    assert(t.even == nil)
+    assert(t.odd == 9)
 end
 do
     do
