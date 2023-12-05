@@ -3425,16 +3425,15 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
       throw_warn(ls, "unreachable code", "the condition before the '?' is always falsy, hence the expression before the ':' is never used.", WT_UNREACHABLE_CODE);
     luaK_goiftrue(ls->fs, v);
     int condition = v->f;
-    expr(ls, v, nullptr, true);
+    expr(ls, v, prop, true);
     auto fs = ls->fs;
     auto reg = luaK_exp2anyreg(fs, v);
     luaK_concat(fs, &escape, luaK_jump(fs));
     luaK_patchtohere(fs, condition);
     checknext(ls, ':');
-    expr(ls, v);
+    expr(ls, v, prop);
     luaK_exp2reg(fs, v, reg);
     luaK_patchtohere(fs, escape);
-    // TODO: Update propagated type, e.g. (x ? "" : 0) should have string|int propagated.
   }
 }
 
