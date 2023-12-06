@@ -1931,7 +1931,6 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
 }
 
 
-static void compoundassign(LexState *ls, expdesc *v, BinOpr op);
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *funcdesc) {
   /* body ->  '(' parlist ')' block END */
   ls->pushContext(PARCTX_BODY);
