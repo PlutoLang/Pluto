@@ -205,26 +205,6 @@ static void check_for_non_portable_code (LexState *ls) {
 
 
 /*
-** Responsible for the following:
-**   - Non-portable bytecode generation. (nil-coalesce, "in" expressions)
-**
-** Missing coverage:
-**   - Implicit pairs for-loops. If I knew how to check this at compile-time, the feature would be Lua-bytecode compatible.
-**   - String indexing.
-**
-** Worth considering:
-**   - Non-portable standard library usage. Some of our functions are so 'expected' to exist that people forget Lua doesn't have them.
-**   - We could alternatively inject Lua-versions of our standard library into files intended to be portable, but this might be a lot of work for little.
-*/
-static void check_for_non_portable_bytecode (LexState *ls) {
-  if (ls->t.token == TK_COAL || ls->t.seminfo.i == TK_COAL || ls->t.token == TK_IN) {
-    throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
-    return;
-  }
-}
-
-
-/*
 ** This function will throw an exception and terminate the program.
 */
 static l_noret error_expected (LexState *ls, int token) {
@@ -3375,6 +3355,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   else {
     simpleexp(ls, v, flags, prop);
     if (ls->t.token == TK_IN) {
+      throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
       inexpr(ls, v);
       if (prop) prop->emplaceTypeDesc(VT_BOOL);
     }
@@ -3384,7 +3365,6 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
     return OPR_NOBINOPR;
   }
   /* expand while operators have priorities higher than 'limit' */
-  check_for_non_portable_bytecode(ls);
   op = getbinopr(ls->t.token);
   while (op != OPR_NOBINOPR && priority[op].left > limit) {
     expdesc v2;
@@ -3408,8 +3388,11 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
         if (luaK_isalwaysnil(ls, v)) {
           /* weird, but nothing worth talking about... */
         }
-        else if (luaK_isalwaystrue(ls, v) || luaK_isalwaysfalse(ls, v))
-          throw_warn(ls, "unreachable code", "the expression before the '?\?' is never nil, hence the expression after the '?\?' is never used.", WT_UNREACHABLE_CODE);
+        else {
+          if (luaK_isalwaystrue(ls, v) || luaK_isalwaysfalse(ls, v))
+            throw_warn(ls, "unreachable code", "the expression before the '?\?' is never nil, hence the expression after the '?\?' is never used.", WT_UNREACHABLE_CODE);
+          throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
+        }
       }
       luaK_infix(ls->fs, op, v);
       /* read sub-expression with higher priority */
@@ -3581,9 +3564,10 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
   }
   else {  /* restassign -> '=' explist */
     check(ls, '=');
-    check_for_non_portable_bytecode(ls);
     if ((int)ls->t.seminfo.i != 0) {  /* is there a saved binop? */
       BinOpr op = getbinopr((int)ls->t.seminfo.i);  /* binary operation from lexer state */
+      if (op == OPR_COAL)
+        throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
       lua_assert(op != OPR_NOBINOPR);
       check_condition(ls, nvars == 1, "unsupported tuple assignment");
       compoundassign(ls, &lh->v, op);  /* perform binop & assignment */
