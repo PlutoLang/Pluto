@@ -4601,6 +4601,10 @@ static void trystat (LexState *ls) {
 
     ls->fs->f->onPlutoOpUsed(0);  /* not bytecode-incompatible, but this will not run on Lua without errors. */
 
+    int return_line = ls->getLineNumber() - 1;
+    if (return_line < line) return_line = line;
+    throw_warn(ls, "non-portable statement usage", "returning from a try block generates bytecode which is incompatible with Lua.", return_line, WT_NON_PORTABLE_BYTECODE);
+
     expdesc tlimit;
     singlevar(ls, &tlimit, luaX_newliteral(ls, "table"));
     luaK_exp2anyregup(ls->fs, &tlimit);
