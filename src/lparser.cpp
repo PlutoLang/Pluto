@@ -3395,11 +3395,11 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
           setsvalue2s(ls->L, ls->L->top.p, ls->t.seminfo.ts);
           ls->L->top.p++;
           luaV_concat(ls->L, 2);
-		  ls->L->top.p--;
+          ls->L->top.p--;
           v->k = VKSTR;
           v->u.strval = tsvalue(s2v(ls->L->top.p));
           luaX_next(ls);
-		  op = getbinopr(ls->t.token);
+          op = getbinopr(ls->t.token);
           continue;
         }
       }
