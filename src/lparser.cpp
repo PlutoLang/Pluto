@@ -217,7 +217,7 @@ static void check_for_non_portable_code (LexState *ls) {
 **   - We could alternatively inject Lua-versions of our standard library into files intended to be portable, but this might be a lot of work for little.
 */
 static void check_for_non_portable_bytecode (LexState *ls) {
-  if (ls->t.token == TK_COAL || ls->t.seminfo.i == TK_COAL || ls->t.token == TK_IN || ls->t.token == TK_INSTANCEOF || ls->t.token == TK_SPACESHIP) {
+  if (ls->t.token == TK_COAL || ls->t.seminfo.i == TK_COAL || ls->t.token == TK_IN) {
     throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
     return;
   }
