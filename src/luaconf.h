@@ -1025,7 +1025,7 @@
 // Eliminate any loading of any binaries. This removes package.loadlib and prevents 'require' from loading any C modules or shared libraries.
 //#define PLUTO_NO_BINARIES
 #ifdef PLUTO_NO_BINARIES
-#define PLUTO_NO_BINARIES_FAIL luaL_error(L, "binary modules cannot be loaded in this environment"); return 0;
+#define PLUTO_NO_BINARIES_FAIL luaL_error(L, "binary modules cannot be loaded in this environment");
 #endif
 
 /*
