@@ -28,6 +28,7 @@
 
 #ifdef PLUTO_USE_SOUP
 #include "vendor/Soup/urlenc.hpp"
+#include "vendor/Soup/version_compare.hpp"
 #endif
 
 
@@ -2392,6 +2393,12 @@ static int str_urldecode (lua_State *L) {
   pluto_pushstring(L, soup::urlenc::decode(input));
   return 1;
 }
+
+
+static int str_versioncompare (lua_State *L) {
+  lua_pushinteger(L, SOUP_STRONG_ORDERING_TO_INT(soup::version_compare(luaL_checkstring(L, 1), luaL_checkstring(L, 2))));
+  return 1;
+}
 #endif
 
 
@@ -2403,6 +2410,7 @@ static const luaL_Reg strlib[] = {
 #ifdef PLUTO_USE_SOUP
   {"urldecode", str_urldecode},
   {"urlencode", str_urlencode},
+  {"versioncompare", str_versioncompare},
 #endif
   {"formatint", str_formatint},
   {"replace", str_replace},
