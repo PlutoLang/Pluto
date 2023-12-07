@@ -797,21 +797,17 @@ static int f_flush (lua_State *L) {
 }
 
 
-[[nodiscard]] static std::filesystem::path getStringStreamPath(lua_State *L, int idx = 1)
-{
+[[nodiscard]] static std::filesystem::path getStringStreamPath(lua_State *L, int idx = 1) {
   const char* f;
 
-  if (lua_isuserdata(L, idx))
-  {
+  if (lua_isuserdata(L, idx)) {
     lua_getmetatable(L, idx);
     lua_getfield(L, -1, "__path");
-    if ((f = lua_tostring(L, -1)) == nullptr)
-    {
+    if ((f = lua_tostring(L, -1)) == nullptr) {
       luaL_error(L, "cannot find path attribute of file stream (this stream is a temporary file).");
     }
   }
-  else
-  {
+  else {
     f = luaL_checkstring(L, idx);
   }
 
@@ -819,8 +815,7 @@ static int f_flush (lua_State *L) {
 }
 
 
-static int isdir (lua_State *L)
-{
+static int isdir (lua_State *L) {
   FS_FUNCTION
   Protect(
     const auto dir = getStringStreamPath(L);
@@ -831,8 +826,7 @@ static int isdir (lua_State *L)
 }
 
 
-static int isfile (lua_State *L)
-{
+static int isfile (lua_State *L) {
   FS_FUNCTION
   Protect(
     const auto dir = getStringStreamPath(L);
@@ -843,8 +837,7 @@ static int isfile (lua_State *L)
 }
 
 
-static int filesize (lua_State *L)
-{
+static int filesize (lua_State *L) {
   FS_FUNCTION
   Protect(
     const auto f = getStringStreamPath(L);
@@ -856,8 +849,7 @@ static int filesize (lua_State *L)
 }
 
 
-static int exists (lua_State *L)
-{
+static int exists (lua_State *L) {
   FS_FUNCTION
   Protect(
     const auto f = getStringStreamPath(L);
@@ -868,15 +860,13 @@ static int exists (lua_State *L)
 }
 
 
-static int io_copy (lua_State *L)
-{
+static int io_copy (lua_State *L) {
   FS_FUNCTION
   Protect(
     const auto from = getStringStreamPath(L);
     const auto to = getStringStreamPath(L, 2);
 
-    if (std::filesystem::is_regular_file(to))
-    {
+    if (std::filesystem::is_regular_file(to)) {
       std::filesystem::remove(to);
     }
 
@@ -886,15 +876,13 @@ static int io_copy (lua_State *L)
   return 0;
 }
 
-static int io_copyto (lua_State *L)
-{
+static int io_copyto (lua_State *L) {
   lua_warning(L, "io.copyto is deprecated, replace the call with io.copy.", 0);
   return io_copy(L);
 }
 
 
-static int absolute (lua_State *L)
-{
+static int absolute (lua_State *L) {
   FS_FUNCTION
   Protect(
     const auto f = getStringStreamPath(L);
@@ -905,8 +893,7 @@ static int absolute (lua_State *L)
   return 1;
 }
 
-static int parent (lua_State *L)
-{
+static int parent (lua_State *L) {
   FS_FUNCTION
   Protect(
     const std::filesystem::path f = getStringStreamPath(L);
@@ -918,8 +905,7 @@ static int parent (lua_State *L)
 }
 
 
-static int makedir (lua_State *L)
-{
+static int makedir (lua_State *L) {
   FS_FUNCTION
   Protect(
     const auto path = getStringStreamPath(L);
@@ -930,8 +916,7 @@ static int makedir (lua_State *L)
 }
 
 
-static int makedirs (lua_State *L)
-{
+static int makedirs (lua_State *L) {
   FS_FUNCTION
   Protect(
     const auto path = getStringStreamPath(L);
@@ -947,36 +932,30 @@ static int makedirs (lua_State *L)
     - Second boolean parameter will toggle recursive iteration.
     - Returns an empty table instead of throwing an error if 'f' is not a directory.
 */
-static void listdir_r(lua_State* L, lua_Integer& i, const std::filesystem::path& f)
-{
+static void listdir_r (lua_State* L, lua_Integer& i, const std::filesystem::path& f) {
   std::error_code ec;
   std::filesystem::directory_iterator it(f, ec);
   if (ec) return; /* skip this directory if we failed to enter it */
-  for (auto const& dir_entry : it)
-  {
+  for (auto const& dir_entry : it) {
     lua_pushstring(L, (const char*)dir_entry.path().u8string().c_str());
     lua_rawseti(L, -2, ++i);
-    if (dir_entry.is_directory())
-    {
+    if (dir_entry.is_directory()) {
       listdir_r(L, i, dir_entry.path());
     }
   }
 }
 
-static int listdir(lua_State *L)
-{
+static int listdir (lua_State *L) {
   FS_FUNCTION
   const auto f = getStringStreamPath(L);
   const auto recursive = lua_istrue(L, 2);
   lua_newtable(L);
   lua_Integer i = 0;
   Protect(
-    for (auto const& dir_entry : std::filesystem::directory_iterator(f))
-    {
+    for (auto const& dir_entry : std::filesystem::directory_iterator(f)) {
       lua_pushstring(L, (const char*)dir_entry.path().u8string().c_str());
       lua_rawseti(L, -2, ++i);
-      if (recursive && dir_entry.is_directory())
-      {
+      if (recursive && dir_entry.is_directory()) {
         listdir_r(L, i, dir_entry.path());
       }
     }
@@ -985,17 +964,14 @@ static int listdir(lua_State *L)
 }
 
 
-int l_os_remove (lua_State *L)
-{
+int l_os_remove (lua_State *L) {
   FS_FUNCTION
   const auto path = getStringStreamPath(L);;
 
-  try
-  {
+  try {
     std::filesystem::remove(path);
   }
-  catch (const std::exception& e)
-  {
+  catch (const std::exception& e) {
     lua_pushboolean(L, 0);
     lua_pushstring(L, e.what());
     return 2;
@@ -1005,19 +981,16 @@ int l_os_remove (lua_State *L)
   return 1;
 }
 
-static int l_remove (lua_State *L)
-{
+static int l_remove (lua_State *L) {
   FS_FUNCTION
   const auto path = getStringStreamPath(L);;
   const auto recursive = lua_istrue(L, 2);
 
   Protect(
-    if (recursive)
-    {
+    if (recursive) {
       std::filesystem::remove_all(path);
     }
-    else
-    {
+    else {
       std::filesystem::remove(path);
     }
   );
@@ -1026,18 +999,15 @@ static int l_remove (lua_State *L)
 }
 
 
-int l_os_rename (lua_State *L)
-{
+int l_os_rename (lua_State *L) {
   FS_FUNCTION
   const auto oldP = getStringStreamPath(L);
   const auto newP = luaL_checkstring(L, 2);
 
-  try
-  {
+  try {
     std::filesystem::rename(oldP, newP);
   }
-  catch (const std::exception& e)
-  {
+  catch (const std::exception& e) {
     lua_pushboolean(L, 0);
     lua_pushstring(L, e.what());
     return 2;
@@ -1047,8 +1017,7 @@ int l_os_rename (lua_State *L)
   return 1;
 }
 
-static int l_rename (lua_State *L)
-{
+static int l_rename (lua_State *L) {
   FS_FUNCTION
   const auto oldP = getStringStreamPath(L);
   const auto newP = luaL_checkstring(L, 2);
