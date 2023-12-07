@@ -387,6 +387,7 @@ extern bool PLUTO_LOADCLIB_HOOK(lua_State* L, const char* path);
 ** errors, return an error code and an error message in the stack.
 */
 static int lookforfunc (lua_State *L, const char *path, const char *sym) {
+#ifndef PLUTO_NO_BINARIES
   void *reg = checkclib(L, path);  /* check loaded C libraries */
   if (reg == NULL) {  /* must load library? */
 #ifdef PLUTO_LOADCLIB_HOOK
@@ -408,10 +409,14 @@ static int lookforfunc (lua_State *L, const char *path, const char *sym) {
     lua_pushcfunction(L, f);  /* else create new function */
     return 0;  /* no errors */
   }
+#else
+  PLUTO_NO_BINARIES_FAIL
+#endif
 }
 
 
 static int ll_loadlib (lua_State *L) {
+#ifndef PLUTO_NO_BINARIES
   const char *path = luaL_checkstring(L, 1);
   const char *init = luaL_checkstring(L, 2);
   int stat = lookforfunc(L, path, init);
@@ -423,6 +428,9 @@ static int ll_loadlib (lua_State *L) {
     lua_pushstring(L, (stat == ERRLIB) ?  LIB_FAIL : "init");
     return 3;  /* return fail, error message, and where */
   }
+#else
+  PLUTO_NO_BINARIES_FAIL
+#endif
 }
 
 
@@ -563,6 +571,7 @@ static int searcher_Lua (lua_State *L) {
 ** look for a function named "luaopen_modname".
 */
 static int loadfunc (lua_State *L, const char *filename, const char *modname) {
+#ifndef PLUTO_NO_BINARIES
   const char *openfunc;
   const char *mark;
   modname = luaL_gsub(L, modname, ".", LUA_OFSEP);
@@ -577,18 +586,26 @@ static int loadfunc (lua_State *L, const char *filename, const char *modname) {
   }
   openfunc = lua_pushfstring(L, LUA_POF"%s", modname);
   return lookforfunc(L, filename, openfunc);
+#else
+  PLUTO_NO_BINARIES_FAIL
+#endif
 }
 
 
 static int searcher_C (lua_State *L) {
+#ifndef PLUTO_NO_BINARIES
   const char *name = luaL_checkstring(L, 1);
   const char *filename = findfile(L, name, "cpath", LUA_CSUBSEP);
   if (filename == NULL) return 1;  /* module not found in this path */
   return checkload(L, (loadfunc(L, filename, name) == 0), filename);
+#else
+  PLUTO_NO_BINARIES_FAIL
+#endif
 }
 
 
 static int searcher_Croot (lua_State *L) {
+#ifndef PLUTO_NO_BINARIES
   const char *filename;
   const char *name = luaL_checkstring(L, 1);
   const char *p = strchr(name, '.');
@@ -607,6 +624,9 @@ static int searcher_Croot (lua_State *L) {
   }
   lua_pushstring(L, filename);  /* will be 2nd argument to module */
   return 2;
+#else
+  PLUTO_NO_BINARIES_FAIL
+#endif
 }
 
 
@@ -702,7 +722,9 @@ static int ll_require (lua_State *L) {
 
 
 static const luaL_Reg pk_funcs[] = {
+#ifndef PLUTO_NO_BINARIES
   {"loadlib", ll_loadlib},
+#endif
   {"searchpath", ll_searchpath},
   /* placeholders */
   {"preload", NULL},
@@ -723,8 +745,10 @@ static const luaL_Reg ll_funcs[] = {
 static void createsearcherstable (lua_State *L) {
   static const lua_CFunction searchers[] = {
     searcher_Lua,
+#ifndef PLUTO_NO_BINARIES
     searcher_C,
     searcher_Croot,
+#endif
     searcher_preload,
     NULL
   };
@@ -760,7 +784,9 @@ LUAMOD_API int luaopen_package (lua_State *L) {
   createsearcherstable(L);
   /* set paths */
   setpath(L, "path", LUA_PATH_VAR, LUA_PATH_DEFAULT);
+#ifndef PLUTO_NO_BINARIES
   setpath(L, "cpath", LUA_CPATH_VAR, LUA_CPATH_DEFAULT);
+#endif
   /* store config information */
   lua_pushliteral(L, LUA_DIRSEP "\n" LUA_PATH_SEP "\n" LUA_PATH_MARK "\n"
                      LUA_EXEC_DIR "\n" LUA_IGMARK "\n");
