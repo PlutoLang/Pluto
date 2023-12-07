@@ -898,26 +898,12 @@ static int absolute (lua_State *L)
   FS_FUNCTION
   Protect(
     const auto f = getStringStreamPath(L);
-    const auto r = std::filesystem::absolute(f);
+    const auto r = lua_istrue(L, 2) ? std::filesystem::canonical(f) : std::filesystem::absolute(f);
     lua_pushstring(L, (const char*)r.u8string().c_str());
   );
 
   return 1;
 }
-
-
-static int canonical (lua_State *L)
-{
-  FS_FUNCTION
-  Protect(
-    const auto f = getStringStreamPath(L);
-    const auto r = std::filesystem::canonical(f);
-    lua_pushstring(L, (const char*)r.u8string().c_str());
-  );
-
-  return 1;
-}
-
 
 static int parent (lua_State *L)
 {
@@ -1134,7 +1120,6 @@ static const luaL_Reg iolib[] = {
   {"makedir", makedir},
   {"makedirs", makedirs},
   {"absolute", absolute},
-  {"canonical", canonical},
   {"parent", parent},
   {"copy", io_copy}, /* added in Pluto 0.8.0 */
   {"copyto", io_copyto}, /* deprecated as of Pluto 0.8.0 */
