@@ -1325,6 +1325,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   int trap;
 #ifdef PLUTO_ILP_ENABLE
   int sequentialJumps = 0;
+  int sequentialTailCalls = 0;
 #endif
 #if (defined(__GNUC__) || defined(__clang__)) && !defined(PLUTO_VMDUMP)
 #include "ljumptabgcc.h"
@@ -2271,6 +2272,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
       vmcase(OP_TAILCALL) {
+#ifdef PLUTO_ILP_ENABLE
+        if (++sequentialTailCalls == PLUTO_ILP_MAX_ITERATIONS) {
+          PLUTO_ILP_ERROR;
+          vmbreak;
+        }
+#endif
         StkId ra = RA(i);
         int b = GETARG_B(i);  /* number of arguments + 1 (function) */
         int n;  /* number of results when calling a C function */
@@ -2389,6 +2396,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if (ci->callstatus & CIST_FRESH)
           return;  /* end this frame */
         else {
+#ifdef PLUTO_ILP_ENABLE
+          sequentialTailCalls = 0;
+#endif
           ci = ci->previous;
           goto returning;  /* continue running caller in this frame */
         }
