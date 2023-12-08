@@ -1271,9 +1271,8 @@ static bool statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implie
   if (prop) { /* do we need to propagate the return type? */
     if (!ret && /* had no return statement? */
         no_ret_implies_void) { /* does that imply a void return? */
-      prop->emplaceTypeDesc(VT_VOID); /* propagate */
+      prop->emplaceTypeDesc(prop->emptyOr(VT_VOID) ? VT_VOID : VT_NIL); /* propagate 'void'; or 'nil' if it's not the only type */
     }
-    prop->fixTypes();
   }
   return ret;
 }
