@@ -157,6 +157,10 @@ struct TypeDesc {
   {
   }
 
+  void clear() noexcept {
+    type = VT_NONE;
+  }
+
   [[nodiscard]] ValType getType() const noexcept {
     return type;
   }
@@ -185,7 +189,9 @@ struct TypeDesc {
 };
 
 struct TypeHint {
-  TypeDesc descs[3];
+  static constexpr int MAX_TYPE_DESCS = 3;
+
+  TypeDesc descs[MAX_TYPE_DESCS];
 
   TypeHint() {
     clear();
@@ -200,7 +206,7 @@ struct TypeHint {
 
   void clear() noexcept {
     for (auto& desc : descs) {
-      desc.type = VT_NONE;
+      desc.clear();
     }
   }
 
@@ -226,6 +232,28 @@ struct TypeHint {
   void merge(const TypeHint& b) {
     for (auto& desc : b.descs) {
       emplaceTypeDesc(desc);
+    }
+  }
+
+  void erase(ValType vt) {
+    int target = -1;
+    for (int i = 0; i != MAX_TYPE_DESCS; ++i) {
+      if (descs[i].type == vt) {
+        target = i;
+        break;
+      }
+    }
+    if (target != -1) {
+      if (target == MAX_TYPE_DESCS - 1) {
+        /* if the target is at our end, this is easy peasy. */
+        descs[target].clear();
+      }
+      else {
+        /* otherwise, just move entries after the target one ahead. */
+        for (int i = target; i != MAX_TYPE_DESCS - 1; ++i) {
+          descs[i] = descs[i + 1];
+        }
+      }
     }
   }
 
