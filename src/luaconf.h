@@ -912,6 +912,15 @@
 // If defined, Pluto won't throw an error and instead just break out of the loop.
 //#define PLUTO_ILP_SILENT_BREAK
 
+// Allows you to customise how an ILP violation is raised to the runtime (or not).
+#ifdef PLUTO_ILP_SILENT_BREAK
+  #define PLUTO_ILP_ERROR ;
+#else
+  #ifndef PLUTO_ILP_ERROR
+    #define PLUTO_ILP_ERROR luaG_runerror(L, "infinite loop detected (exceeded max iterations: %d)", PLUTO_ILP_MAX_ITERATIONS);
+  #endif
+#endif
+
 #endif // PLUTO_ILP_ENABLE
 
 /*
