@@ -147,8 +147,8 @@ static void throw_warn (LexState *ls, const char *raw_err, const char *here, int
 
 // Note.
 static void throw_warn(LexState* ls, const char* raw_err, const char* here, const char* note, int line, WarningType warningType) {
-  std::string err(raw_err);
   if (ls->shouldEmitWarning(line, warningType)) {
+    std::string err(raw_err);
     Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
     err.append(" [");
     err.append(ls->getWarningConfig().getWarningName(warningType));
@@ -170,19 +170,7 @@ static void throw_warn(LexState *ls, const char* err, const char *here, WarningT
 }
 
 static void throw_warn(LexState *ls, const char *err, int line, WarningType warningType) {
-  if (ls->shouldEmitWarning(line, warningType)) {
-    std::string msg = luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line);
-    msg.append(err);
-    msg.append(" [");
-    msg.append(ls->getWarningConfig().getWarningName(warningType));
-    msg.push_back(']');
-    if (ls->getWarningConfig().isFatal(warningType)) {
-      lua_pushstring(ls->L, msg.c_str());
-      luaD_throw(ls->L, LUA_ERRSYNTAX);
-    }
-    lua_warning(ls->L, msg.c_str(), 0);
-    ls->L->top.p -= 1; // luaG_addinfo
-  }
+  return throw_warn(ls, err, "", line, warningType);
 }
 
 #pragma warning(disable : 4068) // unknown pragma
