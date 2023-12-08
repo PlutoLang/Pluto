@@ -43,6 +43,22 @@ end
     return s[1]
 end
 ]]
+
+    -- nullcoal stuff
+    assert_warn [[local function f(): ?bool
+    if x then
+        return nil
+    end
+    return true
+end
+local a: string = f() ?? true]]
+    assert_no_warn [[local function f(): ?bool
+    if x then
+        return nil
+    end
+    return true
+end
+local a: bool|int = f() ?? 0]]
 end
 
 -- Testing type hints (there should be no warnings here)

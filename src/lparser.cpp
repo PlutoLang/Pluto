@@ -3363,6 +3363,8 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   /* expand while operators have priorities higher than 'limit' */
   op = getbinopr(ls->t.token);
   while (op != OPR_NOBINOPR && priority[op].left > limit) {
+    if (prop && op != OPR_COAL)
+      prop->clear();
     expdesc v2;
     BinOpr nextop;
     int line = ls->getLineNumber();
@@ -3376,6 +3378,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       nextop = getbinopr(ls->t.token);
     }
     else {
+      TypeHint *subexpr_prop = nullptr;
       if (op == OPR_CONCAT) {
         if (prop)
           prop->emplaceTypeDesc(VT_STR);
@@ -3407,10 +3410,14 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
             throw_warn(ls, "unreachable code", "the expression before the '?\?' is never nil, hence the expression after the '?\?' is never used.", WT_UNREACHABLE_CODE);
           throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
         }
+        if (prop) {
+          prop->erase(VT_NIL);
+          subexpr_prop = prop;
+        }
       }
       luaK_infix(ls->fs, op, v);
       /* read sub-expression with higher priority */
-      nextop = subexpr(ls, &v2, priority[op].right, nullptr, flags);
+      nextop = subexpr(ls, &v2, priority[op].right, subexpr_prop, flags);
       luaK_posfix(ls->fs, op, v, &v2, line);
     }
     op = nextop;
