@@ -2065,10 +2065,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         else sequentialJumps = 0;
         if (sequentialJumps >= PLUTO_ILP_MAX_ITERATIONS) {
           sequentialJumps = 0;
-#ifndef PLUTO_ILP_SILENT_BREAK
           savepc(L);
-          luaG_runerror(L, "infinite loop detected (exceeded max iterations: %d)", PLUTO_ILP_MAX_ITERATIONS);
-#endif
+          PLUTO_ILP_ERROR
           vmbreak;
         }
 #endif // PLUTO_ILP_ENABLE
@@ -2188,9 +2186,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         else sequentialJumps = 0;
         if (sequentialJumps >= PLUTO_ILP_MAX_ITERATIONS) {
           sequentialJumps = 0;
-#ifndef PLUTO_ILP_SILENT_BREAK
-          luaG_runerror(L, "infinite loop detected (exceeded max iterations: %d)", PLUTO_ILP_MAX_ITERATIONS);
-#endif
+          PLUTO_ILP_ERROR;
           vmbreak;
         }
 #endif // PLUTO_ILP_ENABLE
