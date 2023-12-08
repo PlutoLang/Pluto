@@ -462,16 +462,24 @@ static TypeHint* new_typehint (LexState *ls) {
       else if (strcmp(tname, "function") == 0)
         th.emplaceTypeDesc(VT_FUNC);
       else if (strcmp(tname, "void") == 0) {
-        if (funcret)
-          th.emplaceTypeDesc(VT_VOID); // TODO: Emit warning if void is not the only hinted type
-        else
-          throw_warn(ls, "'void' is not a valid type hint in this context", "invalid type hint", WT_TYPE_MISMATCH);
+        if (funcret) {
+          if (!th.empty()) { /* already had a hinted type? */
+            luaX_prev(ls);
+            throw_warn(ls, "'void' must be the only return type if used", "invalid type hint", WT_TYPE_MISMATCH);
+            luaX_next(ls);
+          }
+          th.emplaceTypeDesc(VT_VOID);
+          if (testnext(ls, '|'))
+            throw_warn(ls, "'void' must be the only return type if used", "invalid type hint", WT_TYPE_MISMATCH);
+          break; /* no further type hints allowed */
+        }
+        throw_warn(ls, "'void' is not a valid type hint in this context", "invalid type hint", WT_TYPE_MISMATCH);
       }
       else if (strcmp(tname, "userdata") != 0) {
         luaX_prev(ls);
         throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", WT_TYPE_MISMATCH);
         ls->L->top.p--;
-        luaX_next(ls); // Preserve a6c8e359857644f4311c022f85cf19d85d95c25d
+        luaX_next(ls);
       }
     } while (testnext(ls, '|'));
   }
