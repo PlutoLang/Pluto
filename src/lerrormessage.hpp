@@ -43,6 +43,9 @@ namespace Pluto {
 
 		ErrorMessage& addGenericHere(const std::string& msg) { // TO-DO: Add '^^^' strings for specific keywords. Not accurate with a simple string search.
 #ifndef PLUTO_SHORT_ERRORS
+			if (msg.empty()) {
+				return addGenericHere();
+			}
 			this->content.push_back('\n');
 			this->content.append(std::string(this->line_len, ' ') + "| ");
 			this->content.append(HBLU + std::string(this->src_len, '^'));
