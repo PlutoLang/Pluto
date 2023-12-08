@@ -208,6 +208,10 @@ struct TypeHint {
     return descs[0].type == VT_NONE;
   }
 
+  [[nodiscard]] bool emptyOr(ValType type) const noexcept {
+    return empty() || descs[0].type == type;
+  }
+
   void emplaceTypeDesc(TypeDesc td) {
     if (!contains(td)) {
       for (auto& desc : descs) {
@@ -270,19 +274,6 @@ struct TypeHint {
 
   [[nodiscard]] bool isNullable() const noexcept {
     return contains(VT_NIL);
-  }
-
-  void fixTypes() {
-    if (descs[1].type != VT_NONE) { /* contains more than 1 type? */
-      /* convert 'void' to 'nil' (or 'none' if we already have a 'nil') */
-      const bool already_has_nil = isNullable();
-      for (auto& desc : descs) {
-        if (desc.type == VT_VOID) {
-          desc.type = already_has_nil ? VT_NONE : VT_NIL;
-          break;
-        }
-      }
-    }
   }
 
   [[nodiscard]] std::string toString() const {
