@@ -7,6 +7,13 @@ do
             load(code)()
         end) ~= "")
     end
+
+    local function assert_no_warn(code)
+        assert(wcall(function(msg)
+            load(code)()
+        end) == "")
+    end
+
     assert_warn([[local a; local a]]) -- var-shadow
     assert_warn([[local a = 69; local b: string = a]]) -- type mismatch in local-to-local assignment
     assert_warn([[g = 69; local l: string = g]]) -- type mismatch in global-to-local assignment
@@ -18,6 +25,24 @@ do
         print(b)
     end
     ]]
+
+    -- 'boolean' is a valid type hint for 'boolean|dunno' function
+    assert_no_warn [[local function f(): boolean
+    if s then
+        return true
+    end
+    return s[1]
+end
+]]
+
+    -- 'string' is not a valid type hint for 'boolean|dunno' function
+    assert_warn [[local function f(): string
+    if s then
+        return true
+    end
+    return s[1]
+end
+]]
 end
 
 -- Testing type hints (there should be no warnings here)

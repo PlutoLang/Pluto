@@ -250,6 +250,7 @@ struct TypeHint {
 
   [[nodiscard]] bool isCompatibleWith(const TypeDesc& td) const noexcept {
     return contains(td.type)
+        || td.type == VT_DUNNO
         || ((td.type == VT_INT || td.type == VT_FLT) && contains(VT_NUMBER));
   }
 
@@ -257,8 +258,6 @@ struct TypeHint {
     if (b.empty()) {
       return isNullable();
     }
-    if (b.contains(VT_DUNNO))
-      return true;  /* if *this is 'boolean' and b is 'boolean|dunno', we don't want a warning. */
     for (const auto& desc : b.descs) {
       if (!isCompatibleWith(desc)) {
         return false;
