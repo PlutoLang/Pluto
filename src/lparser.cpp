@@ -89,6 +89,7 @@ typedef struct BlockCnt {
   lu_byte upval;  /* true if some variable in the block is an upvalue */
   lu_byte isloop;  /* true if 'block' is a loop */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
+  std::vector<TString*> export_symbols{};
 
   [[nodiscard]] bool isSwitch() const noexcept { return isloop == 2; }
 } BlockCnt;
@@ -1251,7 +1252,8 @@ static int block_follow (LexState *ls, int withuntil) {
 }
 
 
-static bool statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implies_void = false) {
+static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc *key, expdesc *val)>& gen);
+static void statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implies_void = false) {
   /* statlist -> { stat [';'] } */
   bool ret = false;
   while (!block_follow(ls, 1)) {
@@ -1275,7 +1277,26 @@ static bool statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implie
     }
     prop->fixTypes();
   }
-  return ret;
+  if (!ls->fs->bl->export_symbols.empty()) {
+    if (ret) {
+      luaX_prev(ls);
+      luaX_syntaxerror(ls, "'export' used but body already returns something");
+    }
+    enterlevel(ls);
+    size_t i = 0;
+    expdesc t;
+    newtable(ls, &t, [ls, &i](expdesc *k, expdesc *v) {
+      if (i == ls->fs->bl->export_symbols.size())
+        return false;
+      codestring(k, ls->fs->bl->export_symbols.at(i));
+      singlevar(ls, v, ls->fs->bl->export_symbols.at(i));
+      ++i;
+      return true;
+    });
+    luaK_ret(ls->fs, luaK_exp2anyreg(ls->fs, &t), 1);
+    leavelevel(ls);
+    ls->fs->bl->export_symbols.clear();
+  }
 }
 
 
@@ -4840,8 +4861,6 @@ static void statement (LexState *ls, TypeHint *prop) {
     }
     case TK_EXPORT:
     case TK_PEXPORT: {
-      if (ls->fs->bl->previous)
-        luaX_syntaxerror(ls, "Attempt to use 'export' outside of global scope");
       luaX_next(ls);  /* skip EXPORT */
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
@@ -4851,17 +4870,17 @@ static void statement (LexState *ls, TypeHint *prop) {
         break;
       }
       if (testnext(ls, TK_FUNCTION)) {
-        ls->export_symbols.emplace_back(str_checkname(ls, 0));
+        ls->fs->bl->export_symbols.emplace_back(str_checkname(ls, 0));
         luaX_prev(ls);
         localfunc(ls);
       }
       else if (testnext2(ls, TK_CLASS, TK_PCLASS)) {
-        ls->export_symbols.emplace_back(str_checkname(ls, 0));
+        ls->fs->bl->export_symbols.emplace_back(str_checkname(ls, 0));
         luaX_prev(ls);
         localclass(ls);
       }
       else {
-        ls->export_symbols.emplace_back(str_checkname(ls, 0));
+        ls->fs->bl->export_symbols.emplace_back(str_checkname(ls, 0));
         luaX_prev(ls);
         localstat(ls);
       }
@@ -5293,27 +5312,8 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   luaC_objbarrier(ls->L, fs->f, env->name);
   builtinoperators(ls);
   luaX_next(ls);  /* read first token */
-  const bool ret = statlist(ls);  /* parse main body */
+  statlist(ls);  /* parse main body */
   check(ls, TK_EOS);
-  if (!ls->export_symbols.empty()) {
-    if (ret) {
-      luaX_prev(ls);
-      luaX_syntaxerror(ls, "'export' used but main body already returns something");
-    }
-    enterlevel(ls);
-    size_t i = 0;
-    expdesc t;
-    newtable(ls, &t, [ls, &i](expdesc *k, expdesc *v) {
-      if (i == ls->export_symbols.size())
-        return false;
-      codestring(k, ls->export_symbols.at(i));
-      singlevar(ls, v, ls->export_symbols.at(i));
-      ++i;
-      return true;
-    });
-    luaK_ret(ls->fs, luaK_exp2anyreg(fs, &t), 1);
-    leavelevel(ls);
-  }
   close_func(ls);
 }
 
