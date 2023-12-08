@@ -2069,8 +2069,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           sequentialJumps++;
         }
         else sequentialJumps = 0;
-        if (sequentialJumps >= PLUTO_ILP_MAX_ITERATIONS) {
-          sequentialJumps = 0;
+        if (l_unlikely(sequentialJumps == PLUTO_ILP_MAX_ITERATIONS)) {
           savepc(L);
           PLUTO_ILP_ERROR
           vmbreak;
@@ -2190,8 +2189,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           sequentialJumps++;
         }
         else sequentialJumps = 0;
-        if (sequentialJumps >= PLUTO_ILP_MAX_ITERATIONS) {
-          sequentialJumps = 0;
+        if (l_unlikely(sequentialJumps == PLUTO_ILP_MAX_ITERATIONS)) {
           PLUTO_ILP_ERROR;
           vmbreak;
         }
@@ -2273,7 +2271,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_TAILCALL) {
 #ifdef PLUTO_ILP_ENABLE
-        if (++sequentialTailCalls == PLUTO_ILP_MAX_ITERATIONS) {
+        ++sequentialTailCalls;
+        if (l_unlikely(sequentialTailCalls == PLUTO_ILP_MAX_ITERATIONS)) {
           PLUTO_ILP_ERROR;
           vmbreak;
         }
