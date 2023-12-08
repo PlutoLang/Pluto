@@ -1799,6 +1799,22 @@ do
     assert(t.func() == true)
     assert(type(t.Clazz) == "table")
 end
+do
+    local function export_in_non_main_function()
+        export var = 1337
+
+        export function func()
+            return true
+        end
+
+        export class Clazz
+        end
+    end
+    local t = export_in_non_main_function()
+    assert(t.var == 1337)
+    assert(t.func() == true)
+    assert(type(t.Clazz) == "table")
+end
 
 print "Testing optional parentheses."
 do

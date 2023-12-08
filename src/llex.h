@@ -361,7 +361,6 @@ struct LexState {
   std::stack<ParserContext> parser_context_stck{};
   std::stack<ClassData> classes{};
   std::vector<EnumDesc> enums{};
-  std::vector<TString*> export_symbols{};
   std::vector<void*> parse_time_allocations{};
   std::unordered_map<const TString*, void*> global_props{};
   KeywordState keyword_states[NUM_NON_COMPAT];
