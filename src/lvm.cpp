@@ -2071,7 +2071,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         else sequentialJumps = 0;
         if (l_unlikely(sequentialJumps == PLUTO_ILP_MAX_ITERATIONS)) {
           savepc(L);
-          PLUTO_ILP_ERROR
+          PLUTO_ILP_ERROR;
           vmbreak;
         }
 #endif // PLUTO_ILP_ENABLE
