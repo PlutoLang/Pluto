@@ -257,6 +257,8 @@ struct TypeHint {
     if (b.empty()) {
       return isNullable();
     }
+    if (b.contains(VT_DUNNO))
+      return true;  /* if *this is 'boolean' and b is 'boolean|dunno', we don't want a warning. */
     for (const auto& desc : b.descs) {
       if (!isCompatibleWith(desc)) {
         return false;
