@@ -244,16 +244,11 @@ struct TypeHint {
       }
     }
     if (target != -1) {
-      if (target == MAX_TYPE_DESCS - 1) {
-        /* if the target is at our end, this is easy peasy. */
-        descs[target].clear();
+      int i = target;
+      for (; i != MAX_TYPE_DESCS - 1; ++i) {
+        descs[i] = descs[i + 1];
       }
-      else {
-        /* otherwise, just move entries after the target one ahead. */
-        for (int i = target; i != MAX_TYPE_DESCS - 1; ++i) {
-          descs[i] = descs[i + 1];
-        }
-      }
+      descs[i].clear();
     }
   }
 
