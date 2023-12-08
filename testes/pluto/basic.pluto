@@ -15,6 +15,66 @@ do
     end
 
     assert_warn([[local a; local a]]) -- var-shadow
+
+    assert_no_warn[[
+    local function takesInt(a: int) end
+    takesInt(1)
+    ]]
+    assert_no_warn[[
+    local function takesFloat(a: float) end
+    takesFloat(1.0)
+    ]]
+    assert_no_warn[[
+    local function takesNumber(a: number) end
+    takesNumber(1)
+    takesNumber(1.0)
+    ]]
+    -- void|string
+    assert_no_warn[[
+    local function f(): ?string
+        if true then
+            return
+        end
+        return ""
+    end
+    ]]
+    assert_no_warn[[
+    local function f(): ?string
+        if true then
+            return ""
+        end
+    end
+    ]]
+    -- possible void|string false-positve
+    assert_no_warn[[
+    local function f(): string
+        if true then
+        end
+        return ""
+    end
+    ]]
+    -- nil|string
+    assert_no_warn[[
+    local function f(): ?string
+        if true then
+            return ""
+        end
+        return nil
+    end
+    ]]
+    assert_no_warn[[
+    local function f(): ?string
+        if true then
+            return nil
+        end
+        return ""
+    end
+    ]]
+
+    -- TypeHint::merge should copy over function info
+    local f = function(a) end
+    f(1)
+
     assert_warn([[local a = 69; local b: string = a]]) -- type mismatch in local-to-local assignment
     assert_warn([[g = 69; local l: string = g]]) -- type mismatch in global-to-local assignment
 
@@ -59,52 +119,6 @@ local a: string = f() ?? true]]
     return true
 end
 local a: bool|int = f() ?? 0]]
-end
-
--- Testing type hints (there should be no warnings here)
-do
-    local function takesInt(a: int) end
-    takesInt(1)
-    local function takesFloat(a: float) end
-    takesFloat(1.0)
-    local function takesNumber(a: number) end
-    takesNumber(1)
-    takesNumber(1.0)
-    -- void|string
-    local function f1(): ?string
-        if true then
-            return
-        end
-        return ""
-    end
-    local function f2(): ?string
-        if true then
-            return ""
-        end
-    end
-    -- possible void|string false-positve
-    local function f3(): string
-        if true then
-        end
-        return ""
-    end
-    -- nil|string
-    local function f4(): ?string
-        if true then
-            return ""
-        end
-        return nil
-    end
-    local function f5(): ?string
-        if true then
-            return nil
-        end
-        return ""
-    end
-
-    -- TypeHint::merge should copy over function info
-    local f = function(a) end
-    f(1)
 end
 
 print "Testing assertion library"
