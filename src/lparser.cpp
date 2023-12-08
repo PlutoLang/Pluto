@@ -3424,6 +3424,7 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
   luaX_checkspecial(ls);
   subexpr(ls, v, 0, prop, flags);
   if (testnext(ls, '?')) { /* ternary expression? */
+    if (prop) prop->clear(); /* we don't care what type the condition is/was */
     int escape = NO_JUMP;
     v->normaliseFalse();
     if (luaK_isalwaystrue(ls, v))
