@@ -1041,17 +1041,13 @@ do
     assert($crypto.hexdigest(1045060183) == "0x3e4a5a57")
     assert($crypto.joaat("hello world") == $tonumber($crypto.hexdigest($crypto.joaat("hello world"))))
 end
-if _PSOUP then -- Soup is linked.
-    do
-        local base64 = require("base64")
-        assert(base64.encode("Hello") == "SGVsbG8")
-        assert(base64.decode("SGVsbG8") == "Hello")
-        assert(base64.urlencode("Hello") == "SGVsbG8")
-        assert(base64.urldecode("SGVsbG8") == "Hello")
-        assert(base64.decode(base64.encode("Hello", true)) == "Hello")
-    end
-else
-    print("Soup is not linked, skipping relevant tests.")
+do
+    local base64 = require("base64")
+    assert(base64.encode("Hello") == "SGVsbG8")
+    assert(base64.decode("SGVsbG8") == "Hello")
+    assert(base64.urlencode("Hello") == "SGVsbG8")
+    assert(base64.urldecode("SGVsbG8") == "Hello")
+    assert(base64.decode(base64.encode("Hello", true)) == "Hello")
 end
 do
     local t = { key = "value" }
@@ -1191,12 +1187,10 @@ do
     assert(string.formatint("+3249230492345645324234234234234234234234234324242343243242342343423242344") == "+3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
     assert(string.formatint("-3249230492345645324234234234234234234234234324242343243242342343423242344") == "-3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
 
-    if _PSOUP then
-        local str = "Hello, World! == %% 20 <> //\\"
-        assert(string.urlencode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
-        assert(string.urlencode(str):urldecode() == str)
-    end
-
+    local str = "Hello, World! == %% 20 <> //\\"
+    assert(string.urlencode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
+    assert(string.urlencode(str):urldecode() == str)
+    
     assert("*":repeat(3) == "***")
     assert(string.repeat("*", 3) == "***")
     _, err = pcall(|| -> "*":repeat(0))
@@ -1252,7 +1246,7 @@ do
     assert(t[3] == 6)
     assert(t.key == 8)
 end
-if _PSOUP then
+do
     assert(version_compare("0.1.0", "0.1.0") == 0)
     assert(version_compare("0.1.0", "0.2.0") ~= 0)
     assert(version_compare("0.2.0", "0.1.0") > 0)
