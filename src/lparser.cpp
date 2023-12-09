@@ -42,6 +42,8 @@
 
 #include "lerrormessage.hpp"
 
+#include "vendor/Soup/version_compare.hpp"
+
 
 
 #define hasmultret(k)		((k) == VCALL || (k) == VSAFECALL || (k) == VVARARG)
@@ -4526,16 +4528,16 @@ static void usestat (LexState *ls) {
     }
     else if (ls->t.token == TK_STRING) {
       is_version = true;
-      if (strcmp(ls->t.seminfo.ts->contents, "0.8.0") == 0) {
+      if (soup::version_compare(ls->t.seminfo.ts->contents, "0.8.0") >= 0) {
         tokens = { TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, TK_TRY, TK_CATCH };
       }
-      else if (strcmp(ls->t.seminfo.ts->contents, "0.6.0") == 0) {
+      else if (soup::version_compare(ls->t.seminfo.ts->contents, "0.6.0") >= 0) {
         tokens = { TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT };
       }
-      else if (strcmp(ls->t.seminfo.ts->contents, "0.5.0") == 0) {
+      else if (soup::version_compare(ls->t.seminfo.ts->contents, "0.5.0") >= 0) {
         tokens = { TK_SWITCH, TK_CONTINUE, TK_ENUM };
       }
-      else if (strcmp(ls->t.seminfo.ts->contents, "0.2.0") == 0) {
+      else if (soup::version_compare(ls->t.seminfo.ts->contents, "0.2.0") >= 0) {
         tokens = { TK_SWITCH, TK_CONTINUE };
       }
       else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", ls->t.seminfo.ts->contents), "did you mean \"0.8.0\", \"0.6.0\", \"0.5.0\" or \"0.2.0\"?");
