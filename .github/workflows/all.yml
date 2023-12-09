@@ -101,3 +101,8 @@ jobs:
             src/pluto.dll
             src/pluto.lib
             src/pluto.exp
+  makefile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: make -j PLAT=linux
