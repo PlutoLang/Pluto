@@ -850,6 +850,20 @@ const char *luaG_addinfo (lua_State *L, const char *msg, TString *src,
 }
 
 
+/* Pushes a string that is 'src:line ' prefixed to 'msg', or returns false on failure. */
+bool luaG_addinfo_pluto (lua_State *L, const char *msg) {
+  CallInfo *ci = L->ci;
+  while (ci && !isLua(ci)) {
+    ci = ci->previous;
+  }
+  if (ci) {
+    luaG_addinfo(L, msg, ci_func(ci)->p->source, getcurrentline(ci));
+    return true;
+  }
+  return false;
+}
+
+
 l_noret luaG_errormsg (lua_State *L) {
   if (L->errfunc != 0) {  /* is there an error handling function? */
     StkId errfunc = restorestack(L, L->errfunc);
