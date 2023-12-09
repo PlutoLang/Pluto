@@ -2041,3 +2041,9 @@ void luaK_invertcond (FuncState *fs, int list) {
   e.u.pc = list;
   negatecondition(fs, &e);
 }
+
+
+void luaK_settop (FuncState *fs, int reg) {
+  /* OP_CONCAT with R(B) = 1 is a no-op BUT it does set L->top to R(A) - R(B), so that's a bytecode-compatible 'set top' for us. :) */
+  luaK_codeABC(fs, OP_CONCAT, reg - 1, 1, 0);
+}
