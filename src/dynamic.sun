@@ -3,7 +3,6 @@ dynamic
 cpp 17
 
 require vendor/Soup include_dir=.
-arg -DPLUTO_USE_SOUP
 
 +*.cpp
 -lua.cpp
