@@ -717,7 +717,7 @@ static void const2exp (TValue *v, expdesc *e) {
 */
 void luaK_setreturns (FuncState *fs, expdesc *e, int nresults) {
   Instruction *pc = &getinstruction(fs, e);
-  if (e->k == VCALL)  /* expression is an open function call? */
+  if (e->k == VCALL || e->k == VSAFECALL)  /* expression is an open function call? */
     SETARG_C(*pc, nresults + 1);
   else {
     lua_assert(e->k == VVARARG);
