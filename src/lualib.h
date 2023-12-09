@@ -44,32 +44,26 @@ LUAMOD_API int (luaopen_package) (lua_State *L);
 
 namespace Pluto {
   extern const PreloadedLibrary preloaded_crypto;
-#ifdef PLUTO_USE_SOUP
   extern const PreloadedLibrary preloaded_json;
   extern const PreloadedLibrary preloaded_base32;
   extern const PreloadedLibrary preloaded_base64;
-#endif
   extern const PreloadedLibrary preloaded_assert;
   extern const PreloadedLibrary preloaded_vector3;
 
   inline const PreloadedLibrary* const all_preloaded[] = {
     &preloaded_crypto,
-#ifdef PLUTO_USE_SOUP
     &preloaded_json,
     &preloaded_base32,
     &preloaded_base64,
-#endif
     &preloaded_assert,
     &preloaded_vector3,
   };
 }
 
 LUAMOD_API int (luaopen_crypto) (lua_State *L);
-#ifdef PLUTO_USE_SOUP
 LUAMOD_API int (luaopen_json)   (lua_State *L);
 LUAMOD_API int (luaopen_base32) (lua_State *L);
 LUAMOD_API int (luaopen_base64) (lua_State *L);
-#endif
 LUAMOD_API int (luaopen_assert) (lua_State *L);
 LUAMOD_API int (luaopen_vector3) (lua_State *L);
 

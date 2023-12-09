@@ -24,7 +24,7 @@ function check_compiler()
 	}
 
 	$compiler = resolve_installed_program($argv[1]);
-	$compiler .= " -std=c++17 -DPLUTO_USE_SOUP -O3";
+	$compiler .= " -std=c++17 -O3";
 	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 	{
 		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";

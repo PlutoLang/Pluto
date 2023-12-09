@@ -3,8 +3,6 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#ifdef PLUTO_USE_SOUP
-
 #include "vendor/Soup/base32.hpp"
 
 static int encode(lua_State* L) {
@@ -24,5 +22,3 @@ static const luaL_Reg funcs[] = {
 };
 
 PLUTO_NEWLIB(base32)
-
-#endif

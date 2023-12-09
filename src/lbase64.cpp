@@ -3,8 +3,6 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#ifdef PLUTO_USE_SOUP
-
 #include <string>
 #include "vendor/Soup/base64.hpp"
 
@@ -49,5 +47,3 @@ static const luaL_Reg funcs[] = {
 };
 
 PLUTO_NEWLIB(base64)
-
-#endif

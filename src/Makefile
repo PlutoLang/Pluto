@@ -7,7 +7,7 @@
 PLAT= mingw
 
 CXX= g++ -std=c++17 -O3 -flto
-CXXFLAGS= -Wall -Wextra -DPLUTO_USE_SOUP $(SYSCFLAGS) $(MYCFLAGS)
+CXXFLAGS= -Wall -Wextra $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm $(SYSLIBS) $(MYLIBS)
 

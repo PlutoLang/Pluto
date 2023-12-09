@@ -3,8 +3,6 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#ifdef PLUTO_USE_SOUP
-
 #include "ljson.hpp"
 
 static int encode(lua_State* L) {
@@ -44,5 +42,3 @@ LUAMOD_API int luaopen_json(lua_State* L)
 	return 1;
 }
 const Pluto::PreloadedLibrary Pluto::preloaded_json{ "json", funcs, &luaopen_json };
-
-#endif
