@@ -44,7 +44,7 @@
 
 
 
-#define hasmultret(k)		((k) == VCALL || (k) == VVARARG)
+#define hasmultret(k)		((k) == VCALL || (k) == VSAFECALL || (k) == VVARARG)
 
 
 /*
@@ -2274,19 +2274,20 @@ static void method_call_funcargs (LexState *ls, expdesc *v) {
   if (testnext(ls, '?')) {
     FuncState *fs = ls->fs;
     luaK_codeABC(fs, OP_TEST, v->u.reg, NO_REG, 0);
-    int j = luaK_jump(fs);
+    int jf = luaK_jump(fs);
     funcargs(ls, v);
-#if false
-    luaK_exp2nextreg(fs, v);
-#else
     lua_assert(v->k == VCALL);
     const auto pc = v->u.pc;
     luaK_exp2nextreg(fs, v);
     lua_assert(v->k == VNONRELOC);
     v->k = VSAFECALL;
     v->u.pc = pc;  /* instruction pc */
-#endif
-    luaK_patchtohere(fs, j);
+    int jt = luaK_jump(fs);
+    luaK_patchtohere(fs, jf);    
+    luaK_settop(fs, v->u.reg + 1);  /* because VSAFECALL is mulret, we need to manage L->top.
+                                       specifically, decrement it to discard the table that OP_SELF pushed. */
+    luaK_nil(fs, v->u.reg + 1, 1);  /* also set it to 'nil' because the assumption is that unused regs are nil */
+    luaK_patchtohere(fs, jt);
   }
   else
     funcargs(ls, v);
