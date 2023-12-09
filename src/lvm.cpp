@@ -1431,7 +1431,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
-        vmDumpOut ("; push " << b << " nil value(s)");
+        vmDumpOut ("; push " << (b + 1) << " nil value(s)");
         do {
           setnilvalue(s2v(ra++));
         } while (b--);
