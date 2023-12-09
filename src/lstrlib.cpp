@@ -26,9 +26,7 @@
 #include "lualib.h"
 
 
-#ifdef PLUTO_USE_SOUP
 #include "vendor/Soup/urlenc.hpp"
-#endif
 
 
 /*
@@ -2379,7 +2377,6 @@ static int str_repeat (lua_State *L) {
 }
 
 
-#ifdef PLUTO_USE_SOUP
 static int str_urlencode (lua_State* L) {
   const auto input = pluto_checkstring(L, 1);
   pluto_pushstring(L, soup::urlenc::encode(input));
@@ -2392,7 +2389,6 @@ static int str_urldecode (lua_State *L) {
   pluto_pushstring(L, soup::urlenc::decode(input));
   return 1;
 }
-#endif
 
 
 /* }====================================================== */
@@ -2400,10 +2396,8 @@ static int str_urldecode (lua_State *L) {
 
 static const luaL_Reg strlib[] = {
   {"repeat", str_repeat},
-#ifdef PLUTO_USE_SOUP
   {"urldecode", str_urldecode},
   {"urlencode", str_urlencode},
-#endif
   {"formatint", str_formatint},
   {"replace", str_replace},
   {"truncate", str_truncate},

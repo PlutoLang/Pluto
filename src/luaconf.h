@@ -803,12 +803,6 @@
 ** =====================================================================}
 */
 
-// !!IMPORTANT!!
-// Enabling this macro will greatly expand the preloaded standard libraries to your access.
-//   However, it will complicate the build process. Look at what features you need, and if they require Soup.
-// If defined, Pluto will link with Soup.
-//#define PLUTO_USE_SOUP
-
 // If defined, Pluto errors will use ANSI color codes.
 //#define PLUTO_USE_COLORED_OUTPUT
 
