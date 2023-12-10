@@ -2621,7 +2621,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpInit();
         vmDumpAddA();
         vmDumpAdd (GETARG_Bx(i));
-        vmDumpOut (";");
+        vmDumpOut ("; push " << stringify_tvalue(s2v(ra)));
         vmbreak;
       }
       vmcase(OP_VARARG) {
