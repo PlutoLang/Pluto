@@ -602,7 +602,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
       if (searchvar(current_fs, name, &var) != -1) {
         Vardesc* desc = getlocalvardesc(current_fs, var.u.var.vidx);
         LocVar* local = localdebuginfo(current_fs, var.u.var.vidx);
-        if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)" && n != "(try len)") && (local && local->varname == name)) { // Got a match.
+        if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
           throw_warn(ls,
             "duplicate local declaration",
               luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
@@ -4597,35 +4597,43 @@ static void usestat (LexState *ls) {
 static void trystat (LexState *ls) {
   const auto line = ls->getLineNumber();
   luaX_next(ls);
-
-  const auto results_vidx = new_localvarliteral(ls, "(try results)");
-
   const bool vararg = ls->fs->f->is_vararg;
 
-  int pc = luaK_codeABC(ls->fs, OP_NEWTABLE, 0, 0, 0);
-  expdesc t;
-  ConsControl cc;
-  luaK_code(ls->fs, 0);  /* space for extra arg. */
-  cc.na = cc.nh = cc.tostore = 0;
-  cc.t = &t;
-  init_exp(&t, VNONRELOC, ls->fs->freereg);  /* table will be at stack top */
-  luaK_reserveregs(ls->fs, 1);
+  /* local (try results) = */
+  const auto results_vidx = new_localvarliteral(ls, "(try results)");
 
-  singlevar(ls, &cc.v, luaX_newliteral(ls, "pcall"));
-  luaK_exp2nextreg(ls->fs, &cc.v);
+  /* local (try results) = table.pack */
+  expdesc tpack;
+  singlevar(ls, &tpack, luaX_newliteral(ls, "table"));
+  luaK_exp2anyregup(ls->fs, &tpack);
+  expdesc key;
+  codestring(&key, luaX_newliteral(ls, "pack"));
+  luaK_indexed(ls->fs, &tpack, &key);
+  luaK_exp2nextreg(ls->fs, &tpack);
+  lua_assert(tpack.k == VNONRELOC);
+
+  /* local (try results) = table.pack(pcall */
+  expdesc pcall;
+  singlevar(ls, &pcall, luaX_newliteral(ls, "pcall"));
+  luaK_exp2nextreg(ls->fs, &pcall);
   lua_assert(cc.v.k == VNONRELOC);
 
+  /* local (try results) = table.pack(pcall(function() */
   FuncState new_fs;
   BlockCnt bl;
   new_fs.f = addprototype(ls);
   new_fs.f->linedefined = ls->getLineNumber();
   open_func(ls, &new_fs, &bl);
-  if (vararg)
+  if (vararg) {
+    /* local (try results) = table.pack(pcall(function(...) */
     setvararg(&new_fs, 0);
-  
+  }
+
+  /* local (try results) = table.pack(pcall(function(...) STATLIST */
   TypeHint prop{};
   statlist(ls, &prop);
-  
+
+  /* local (try results) = table.pack(pcall(function(...) STATLIST end */
   new_fs.f->lastlinedefined = ls->getLineNumber();
   expdesc lambda;
   codeclosure(ls, &lambda);
@@ -4633,65 +4641,39 @@ static void trystat (LexState *ls) {
   luaK_exp2nextreg(ls->fs, &lambda);
 
   if (vararg) {
+    /* local (try results) = table.pack(pcall(function(...) STATLIST end, ... */
     expdesc va;
     init_exp(&va, VVARARG, luaK_codeABC(ls->fs, OP_VARARG, 0, 0, 1));
     luaK_exp2nextreg(ls->fs, &va);
   }
 
-  auto base = cc.v.u.reg;  /* base register for call */
+  /* local (try results) = table.pack(pcall(function(...) STATLIST end, ...) */
+  auto base = pcall.u.reg;
   {
     const auto nparams = vararg ? 2 : 1;
-    init_exp(&cc.v, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
+    init_exp(&pcall, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
   }
   ls->fs->freereg = base + 1;
+  lua_assert(hasmultret(pcall.k));
+  luaK_setmultret(ls->fs, &pcall);
+  luaK_exp2nextreg(ls->fs, &pcall);
 
-  cc.tostore++;
-  lastlistfield(ls->fs, &cc);
-  luaK_settablesize(ls->fs, pc, t.u.reg, cc.na, cc.nh);
-
-  adjust_assign(ls, 1, 1, &t);
+  /* local (try results) = table.pack(pcall(function(...) STATLIST end, ...)) */
+  base = tpack.u.reg;
+  {
+      const auto nparams = LUA_MULTRET;
+      init_exp(&tpack, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
+  }
+  ls->fs->freereg = base + 1;
+  adjust_assign(ls, 1, 1, &tpack);
   adjustlocalvars(ls, 1);
 
   if (!testnext(ls, TK_CATCH))
     check_match(ls, TK_PCATCH, TK_PTRY, line);
 
-  int len_vidx;
-  if (!prop.empty()) {  /* try block has return statement? */
-    len_vidx = new_localvarliteral(ls, "(try len)");
-
-    ls->fs->f->onPlutoOpUsed(0);  /* not bytecode-incompatible, but this will not run on Lua without errors. */
-
-    int return_line = ls->getLineNumber() - 1;
-    if (return_line < line) return_line = line;
-    throw_warn(ls, "non-portable statement usage", "returning from a try block generates bytecode which is incompatible with Lua.", return_line, WT_NON_PORTABLE_BYTECODE);
-
-    expdesc tlimit;
-    singlevar(ls, &tlimit, luaX_newliteral(ls, "table"));
-    luaK_exp2anyregup(ls->fs, &tlimit);
-    expdesc key;
-    codestring(&key, luaX_newliteral(ls, "limit"));
-    luaK_indexed(ls->fs, &tlimit, &key);
-    luaK_exp2nextreg(ls->fs, &tlimit);
-    lua_assert(tlimit.k == VNONRELOC);
-
-    expdesc args;
-    init_var(ls->fs, &args, results_vidx);
-    luaK_exp2nextreg(ls->fs, &args);
-
-    base = tlimit.u.reg;  /* base register for call */
-    {
-      constexpr auto nparams = 1;
-      init_exp(&tlimit, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, nparams + 1, 2));
-    }
-    ls->fs->freereg = base + 1;
-
-    adjust_assign(ls, 1, 1, &tlimit);
-    adjustlocalvars(ls, 1);
-  }
-
   const auto ok_vidx = new_localvarliteral(ls, "(try ok)");
 
-  expdesc key;
+  expdesc t;
   init_var(ls->fs, &t, results_vidx);
   init_exp(&key, VKINT, 0);
   key.u.ival = 1;
@@ -4734,6 +4716,7 @@ static void trystat (LexState *ls) {
   luaK_patchtohere(ls->fs, econd.t);
 
   if (!prop.empty()) {  /* try block has return statement? */
+    /* table.unpack */
     expdesc tunpack;
     singlevar(ls, &tunpack, luaX_newliteral(ls, "table"));
     luaK_exp2anyregup(ls->fs, &tunpack);
@@ -4742,23 +4725,30 @@ static void trystat (LexState *ls) {
     luaK_exp2nextreg(ls->fs, &tunpack);
     lua_assert(tunpack.k == VNONRELOC);
 
+    /* table.unpack(results */
     expdesc args;
     init_var(ls->fs, &args, results_vidx);
     luaK_exp2nextreg(ls->fs, &args);
 
+    /* table.unpack(results, 2 */
     init_exp(&args, VKINT, 0);
     args.u.ival = 2;
     luaK_exp2nextreg(ls->fs, &args);
 
-    init_var(ls->fs, &args, len_vidx);
+    /* table.unpack(results, 2, results.n */
+    init_var(ls->fs, &args, results_vidx);
+    codestring(&key, luaX_newliteral(ls, "n"));
+    luaK_indexed(ls->fs, &args, &key);
     luaK_exp2nextreg(ls->fs, &args);
 
-    base = tunpack.u.reg;  /* base register for call */
+    /* table.unpack(results, 2, results.n) */
+    base = tunpack.u.reg;
     constexpr auto nparams = 3;
     init_exp(&tunpack, VCALL, luaK_codeABC(ls->fs, OP_TAILCALL, base, nparams + 1, 2));
     ls->fs->freereg = base + 1;
 
-    int first = luaY_nvarstack(ls->fs);  /* first slot to be returned */
+    /* return table.unpack(results, 2, results.n) */
+    int first = luaY_nvarstack(ls->fs);
     luaK_setmultret(ls->fs, &tunpack);
     luaK_ret(ls->fs, first, LUA_MULTRET);
 
