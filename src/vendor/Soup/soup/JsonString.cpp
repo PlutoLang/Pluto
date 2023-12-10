@@ -46,22 +46,20 @@ namespace soup
 					++c;
 					if (c[0] && c[1] && c[2] && c[3])
 					{
-						try
+						if (char32_t w1; string::hexToInt<char32_t>(std::string(c, 4)).consume(w1))
 						{
-							char32_t w1 = std::stol(std::string(c, 4), nullptr, 16);
 							c += 4;
 							if ((w1 >> 10) == 0x36) // Surrogate pair?
 							{
 								if (c[0] == '\\' && c[1] == 'u' && c[2] && c[3] && c[4] && c[5])
 								{
 									c += 2;
-									try
+									if (char32_t w2; string::hexToInt<char32_t>(std::string(c, 4)).consume(w2))
 									{
-										char32_t w2 = std::stol(std::string(c, 4), nullptr, 16);
 										c += 4;
 										value.append(unicode::utf32_to_utf8(unicode::utf16_to_utf32(w1, w2)));
 									}
-									catch (std::exception&)
+									else
 									{
 										c -= 2;
 										c -= 4;
@@ -79,7 +77,7 @@ namespace soup
 								value.append(unicode::utf32_to_utf8(w1));
 							}
 						}
-						catch (std::exception&)
+						else
 						{
 							value.push_back('u');
 						}

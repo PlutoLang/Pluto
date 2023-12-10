@@ -12,7 +12,9 @@ namespace soup
 	// Note that per JSON spec, object keys must be strings, but for convenience, Soup allows any JSON type as a valid object key type.
 	struct JsonObject : public JsonNode
 	{
-		std::vector<std::pair<UniquePtr<JsonNode>, UniquePtr<JsonNode>>> children{};
+		using Container = std::vector<std::pair<UniquePtr<JsonNode>, UniquePtr<JsonNode>>>;
+
+		Container children{};
 
 		explicit JsonObject() noexcept;
 		explicit JsonObject(const char*& c) noexcept;
@@ -22,15 +24,20 @@ namespace soup
 
 		bool binaryEncode(Writer& w) const final;
 
-		[[nodiscard]] UniquePtr<JsonNode>* findUp(const JsonNode& k) noexcept;
-		[[nodiscard]] JsonNode* find(const JsonNode& k) const noexcept;
 		[[nodiscard]] JsonNode* find(std::string k) const noexcept;
+		[[nodiscard]] JsonNode* find(const JsonNode& k) const noexcept;
+		[[nodiscard]] UniquePtr<JsonNode>* findUp(std::string k) noexcept;
+		[[nodiscard]] UniquePtr<JsonNode>* findUp(const JsonNode& k) noexcept;
+		[[nodiscard]] Container::iterator findIt(std::string k) noexcept;
+		[[nodiscard]] Container::iterator findIt(const JsonNode& k) noexcept;
 		[[nodiscard]] bool contains(const JsonNode& k) const noexcept;
 		[[nodiscard]] bool contains(std::string k) const noexcept;
 		[[nodiscard]] JsonNode& at(const JsonNode& k) const;
 		[[nodiscard]] JsonNode& at(std::string k) const;
 		void erase(const JsonNode& k) noexcept;
 		void erase(std::string k) noexcept;
+		void erase(Container::const_iterator it) noexcept;
+		void clear() noexcept;
 		[[nodiscard]] auto begin() noexcept { return children.begin(); }
 		[[nodiscard]] auto end() noexcept { return children.end(); }
 		[[nodiscard]] auto begin() const noexcept { return children.begin(); }
@@ -42,6 +49,7 @@ namespace soup
 		void add(std::string k, int8_t v);
 		void add(std::string k, int16_t v);
 		void add(std::string k, int32_t v);
+		void add(std::string k, uint32_t v);
 		void add(std::string k, int64_t v);
 		void add(std::string k, bool v);
 

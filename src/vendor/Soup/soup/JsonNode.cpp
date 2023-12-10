@@ -58,7 +58,7 @@ namespace soup
 	{
 		if (!isArr())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsArr();
 	}
@@ -67,7 +67,7 @@ namespace soup
 	{
 		if (!isBool())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsBool();
 	}
@@ -76,7 +76,7 @@ namespace soup
 	{
 		if (!isFloat())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsFloat();
 	}
@@ -85,7 +85,7 @@ namespace soup
 	{
 		if (!isInt())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsInt();
 	}
@@ -94,7 +94,7 @@ namespace soup
 	{
 		if (!isObj())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsObj();
 	}
@@ -103,7 +103,7 @@ namespace soup
 	{
 		if (!isStr())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsStr();
 	}
@@ -112,7 +112,7 @@ namespace soup
 	{
 		if (!isArr())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsArr();
 	}
@@ -121,7 +121,7 @@ namespace soup
 	{
 		if (!isBool())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsBool();
 	}
@@ -130,7 +130,7 @@ namespace soup
 	{
 		if (!isFloat())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsFloat();
 	}
@@ -139,7 +139,7 @@ namespace soup
 	{
 		if (!isInt())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsInt();
 	}
@@ -148,7 +148,7 @@ namespace soup
 	{
 		if (!isObj())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsObj();
 	}
@@ -157,7 +157,7 @@ namespace soup
 	{
 		if (!isStr())
 		{
-			throw Exception("JsonNode has unexpected type");
+			SOUP_THROW(Exception("JsonNode has unexpected type"));
 		}
 		return reinterpretAsStr();
 	}
@@ -196,6 +196,8 @@ namespace soup
 	{
 		return type == JSON_STRING;
 	}
+
+	// Using reinterpret_cast instead of static_cast because not all of these types are known in this compilation unit
 
 	JsonArray& JsonNode::reinterpretAsArr() noexcept
 	{

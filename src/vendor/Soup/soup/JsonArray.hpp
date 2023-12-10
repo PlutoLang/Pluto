@@ -43,6 +43,7 @@ namespace soup
 		bool binaryEncode(Writer& w) const final;
 
 		[[nodiscard]] JsonNode& at(size_t i) const;
+		void clear() noexcept;
 		[[nodiscard]] JsonArrayIterator begin() const noexcept;
 		[[nodiscard]] JsonArrayIterator end() const noexcept;
 

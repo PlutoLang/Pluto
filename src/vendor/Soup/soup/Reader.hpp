@@ -138,7 +138,7 @@ namespace soup
 				if (first == 0xFC)
 				{
 					uint16_t val;
-					if (u16(val))
+					if (u16_le(val))
 					{
 						v = val;
 						return true;
@@ -147,7 +147,7 @@ namespace soup
 				if (first == 0xFD)
 				{
 					uint32_t val;
-					if (u24(val))
+					if (u24_le(val))
 					{
 						v = val;
 						return true;
@@ -156,7 +156,7 @@ namespace soup
 				if (first == 0xFE)
 				{
 					uint64_t val;
-					if (u64(val))
+					if (u64_le(val))
 					{
 						v = val;
 						return true;
@@ -187,6 +187,14 @@ namespace soup
 			return true;
 		}
 
+		// Length-prefixed string.
+		template <typename T>
+		bool str_lp(std::string& v, const T max_len = -1)
+		{
+			T len;
+			return ser<T>(len) && len <= max_len && str_impl(v, len);
+		}
+
 		// Length-prefixed string, using u64_dyn for the length prefix.
 		bool str_lp_u64_dyn(std::string& v)
 		{
@@ -204,38 +212,33 @@ namespace soup
 		}
 
 		// Length-prefixed string, using u8 for the length prefix.
-		bool str_lp_u8(std::string& v, const uint8_t max_len = 0xFF)
+		[[deprecated]] bool str_lp_u8(std::string& v, const uint8_t max_len = 0xFF)
 		{
-			uint8_t len;
-			return u8(len) && len <= max_len && str_impl(v, len);
+			return str_lp<u8_t>(v, max_len);
 		}
 
 		// Length-prefixed string, using u16 for the length prefix.
-		bool str_lp_u16(std::string& v, const uint16_t max_len = 0xFFFF)
+		[[deprecated]] bool str_lp_u16(std::string& v, const uint16_t max_len = 0xFFFF)
 		{
-			uint16_t len;
-			return ioBase::u16(len) && len <= max_len && str_impl(v, len);
+			return str_lp<u16_t>(v, max_len);
 		}
 
 		// Length-prefixed string, using u24 for the length prefix.
-		bool str_lp_u24(std::string& v, const uint32_t max_len = 0xFFFFFF)
+		[[deprecated]] bool str_lp_u24(std::string& v, const uint32_t max_len = 0xFFFFFF)
 		{
-			uint32_t len;
-			return ioBase::u24(len) && len <= max_len && str_impl(v, len);
+			return str_lp<u24_t>(v, max_len);
 		}
 
 		// Length-prefixed string, using u32 for the length prefix.
-		bool str_lp_u32(std::string& v, const uint32_t max_len = 0xFFFFFFFF)
+		[[deprecated]] bool str_lp_u32(std::string& v, const uint32_t max_len = 0xFFFFFFFF)
 		{
-			uint32_t len;
-			return ioBase::u32(len) && len <= max_len && str_impl(v, len);
+			return str_lp<u32_t>(v, max_len);
 		}
 
 		// Length-prefixed string, using u64 for the length prefix.
-		bool str_lp_u64(std::string& v)
+		[[deprecated]] bool str_lp_u64(std::string& v)
 		{
-			uint64_t len;
-			return ioBase::u64(len) && str_impl(v, (size_t)len);
+			return str_lp<u64_t>(v);
 		}
 
 		// String with known length.
@@ -332,7 +335,7 @@ namespace soup
 			return true;
 		}
 
-		// vector of str_lp_u24 with u24 byte length prefix.
+		// vector of str_lp<u24_t> with u24 byte length prefix.
 		bool vec_str_lp_u24_bl_u24(std::vector<std::string>& v)
 		{
 			uint32_t len;
@@ -345,7 +348,7 @@ namespace soup
 			while (len >= 3)
 			{
 				std::string entry;
-				if (!str_lp_u24(entry))
+				if (!str_lp<u24_t>(entry))
 				{
 					return false;
 				}
@@ -355,14 +358,14 @@ namespace soup
 			return true;
 		}
 
-		// Null-terminated vector of str_lp_u8.
+		// Null-terminated vector of str_lp<u8_t>.
 		bool vec_nt_str_lp_u8(std::vector<std::string>& v)
 		{
 			v.clear();
 			while (true)
 			{
 				std::string entry;
-				if (!str_lp_u8(entry))
+				if (!str_lp<u8_t>(entry))
 				{
 					return false;
 				}

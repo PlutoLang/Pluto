@@ -50,7 +50,7 @@ namespace soup
 			for (; i != 0; i /= Base)
 			{
 				const auto digit = (i % Base);
-				res.insert(0, 1, '0' + digit);
+				res.insert(0, 1, static_cast<typename Str::value_type>('0' + digit));
 			}
 			if (neg)
 			{
@@ -840,6 +840,7 @@ namespace soup
 		template <typename T>
 		static void truncateWithEllipsis(T& str, size_t max_len)
 		{
+			SOUP_ASSERT_PRECOND(max_len >= 3);
 			if (str.size() > max_len)
 			{
 				str.resize(max_len);

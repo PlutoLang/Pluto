@@ -10,6 +10,8 @@
 
 namespace soup
 {
+	using Container = JsonObject::Container;
+
 	JsonObject::JsonObject() noexcept
 		: JsonNode(JSON_OBJECT)
 	{
@@ -20,10 +22,7 @@ namespace soup
 	{
 		while (true)
 		{
-			while (string::isSpace(*c))
-			{
-				++c;
-			}
+			json::handleLeadingSpace(c);
 			if (*c == '}' || *c == 0)
 			{
 				break;
@@ -117,16 +116,9 @@ namespace soup
 		return true;
 	}
 
-	UniquePtr<JsonNode>* JsonObject::findUp(const JsonNode& k) noexcept
+	JsonNode* JsonObject::find(std::string k) const noexcept
 	{
-		for (auto& child : children)
-		{
-			if (*child.first == k)
-			{
-				return &child.second;
-			}
-		}
-		return nullptr;
+		return find(JsonString(std::move(k)));
 	}
 
 	JsonNode* JsonObject::find(const JsonNode& k) const noexcept
@@ -141,9 +133,39 @@ namespace soup
 		return nullptr;
 	}
 
-	JsonNode* JsonObject::find(std::string k) const noexcept
+	UniquePtr<JsonNode>* JsonObject::findUp(std::string k) noexcept
 	{
-		return find(JsonString(std::move(k)));
+		return findUp(JsonString(std::move(k)));
+	}
+
+	UniquePtr<JsonNode>* JsonObject::findUp(const JsonNode& k) noexcept
+	{
+		for (auto& child : children)
+		{
+			if (*child.first == k)
+			{
+				return &child.second;
+			}
+		}
+		return nullptr;
+	}
+
+	Container::iterator JsonObject::findIt(std::string k) noexcept
+	{
+		return findIt(JsonString(std::move(k)));
+	}
+
+	Container::iterator JsonObject::findIt(const JsonNode& k) noexcept
+	{
+		auto it = children.begin();
+		for (; it != children.end(); ++it)
+		{
+			if (*it->first == k)
+			{
+				break;
+			}
+		}
+		return it;
 	}
 
 	bool JsonObject::contains(const JsonNode& k) const noexcept
@@ -164,7 +186,7 @@ namespace soup
 		}
 		std::string err = "JsonObject has no member with key ";
 		err.append(k.encode());
-		throw Exception(std::move(err));
+		SOUP_THROW(Exception(std::move(err)));
 	}
 
 	JsonNode& JsonObject::at(std::string k) const
@@ -187,6 +209,16 @@ namespace soup
 	void JsonObject::erase(std::string k) noexcept
 	{
 		return erase(JsonString(std::move(k)));
+	}
+
+	void JsonObject::erase(Container::const_iterator it) noexcept
+	{
+		children.erase(it);
+	}
+
+	void JsonObject::clear() noexcept
+	{
+		children.clear();
 	}
 
 	void JsonObject::add(UniquePtr<JsonNode>&& k, UniquePtr<JsonNode>&& v)
@@ -215,6 +247,11 @@ namespace soup
 	}
 
 	void JsonObject::add(std::string k, int32_t v)
+	{
+		add(soup::make_unique<JsonString>(std::move(k)), soup::make_unique<JsonInt>(v));
+	}
+
+	void JsonObject::add(std::string k, uint32_t v)
 	{
 		add(soup::make_unique<JsonString>(std::move(k)), soup::make_unique<JsonInt>(v));
 	}
