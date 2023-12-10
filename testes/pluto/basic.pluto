@@ -438,8 +438,8 @@ do
     end
     local inst = new Class()
 
-    local function assert_1_ret(...args)
-        assert(table.limit(args) == 1)
+    local function assert_1_ret(...)
+        assert(table.pack(...).n == 1)
     end
 
     assert(inst?:method() == true)
@@ -1988,7 +1988,7 @@ do
         catch e then
         end
     end
-    assert(table.limit({ f() }) == 1)
+    assert(table.pack(f()).n == 1)
 end
 do
     -- If try block returns, catch block needs to jump over the try-return code (in case it doesn't return.)
