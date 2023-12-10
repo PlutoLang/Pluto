@@ -602,7 +602,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
       if (searchvar(current_fs, name, &var) != -1) {
         Vardesc* desc = getlocalvardesc(current_fs, var.u.var.vidx);
         LocVar* local = localdebuginfo(current_fs, var.u.var.vidx);
-        if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)" && n != "(try ok)") && (local && local->varname == name)) { // Got a match.
+        if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)") && (local && local->varname == name)) { // Got a match.
           throw_warn(ls,
             "duplicate local declaration",
               luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
@@ -4671,27 +4671,22 @@ static void trystat (LexState *ls) {
   if (!testnext(ls, TK_CATCH))
     check_match(ls, TK_PCATCH, TK_PTRY, line);
 
-  const auto ok_vidx = new_localvarliteral(ls, "(try ok)");
-
-  expdesc t;
-  init_var(ls->fs, &t, results_vidx);
+  /* if not (try results)[1] then */
+  expdesc econd;
+  init_var(ls->fs, &econd, results_vidx);
   init_exp(&key, VKINT, 0);
   key.u.ival = 1;
-  luaK_indexed(ls->fs, &t, &key);
-
-  adjust_assign(ls, 1, 1, &t);
-  adjustlocalvars(ls, 1);
-
-  expdesc econd;
-  init_var(ls->fs, &econd, ok_vidx);
+  luaK_indexed(ls->fs, &econd, &key);
   luaK_goiffalse(ls->fs, &econd);
   enterblock(ls->fs, &bl, 0);
 
+  /* local (e) */
   new_localvar(ls, str_checkname(ls, N_OVERRIDABLE));
 
   const auto then_line = ls->getLineNumber();
   checknext(ls, TK_THEN);
 
+  /* local (e) = (try results)[2] */
   expdesc evar;
   init_var(ls->fs, &evar, results_vidx);
   luaK_exp2anyregup(ls->fs, &evar);
@@ -4705,6 +4700,7 @@ static void trystat (LexState *ls) {
 
   statlist(ls);
 
+  /* end */
   check_match(ls, TK_END, TK_PCATCH, then_line);
   leaveblock(ls->fs);
 
