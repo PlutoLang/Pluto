@@ -80,7 +80,7 @@ function run_command_async($cmd)
 function await_commands()
 {
 	global $procs;
-	echo "\n";
+	echo "\r";
 	$output = "";
 	while (count($procs) != 0)
 	{
