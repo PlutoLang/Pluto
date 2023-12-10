@@ -11,6 +11,7 @@ for_each_obj(function($file)
 });
 await_commands();
 
+prepare_link();
 $cmd = $compiler." -shared -o src/pluto.dll";
 for_each_obj(function($file)
 {
