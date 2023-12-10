@@ -188,10 +188,14 @@ namespace soup
 			size_t len = v.size();
 			if (len <= max_len)
 			{
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable: 4267) // possible loss of data
+#endif
 				auto tl = static_cast<T>(len);
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 				ser<T>(tl);
 				write(v.data(), v.size());
 				return true;
