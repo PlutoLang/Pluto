@@ -27,7 +27,7 @@ SYSLIBS=
 
 MYCFLAGS=
 MYLDFLAGS=
-MYLIBS=-Lvendor/Soup -lsoup
+MYLIBS=-Lvendor/Soup/soup -lsoup
 MYOBJS=
 
 # Special flags for compiler modules; -Os reduces code size.
@@ -62,7 +62,7 @@ o:	$(ALL_O)
 a:	$(ALL_A)
 
 $(LUA_A): $(BASE_O)
-	cd vendor/Soup && $(MAKE) && cd ../..
+	cd vendor/Soup/soup && $(MAKE) && cd ../..
 	$(AR) $@ $(BASE_O)
 	$(RANLIB) $@
 
