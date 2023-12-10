@@ -23,7 +23,7 @@ function check_compiler()
 	}
 
 	$compiler = resolve_installed_program($argv[1]);
-	$compiler .= " -std=c++17 -O3 -L".__DIR__."/../src/vendor/Soup -lsoup";
+	$compiler .= " -std=c++17 -O3";
 	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 	{
 		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
@@ -36,6 +36,12 @@ function check_compiler()
 			$compiler .= " -fPIC -lstdc++fs -fuse-ld=lld";
 		}
 	}
+}
+
+function prepare_link()
+{
+	global $compiler;
+	$compiler .= " -L".__DIR__."/../src/vendor/Soup -lsoup";
 }
 
 function resolve_installed_program($exe)
