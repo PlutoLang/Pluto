@@ -1,6 +1,6 @@
 <?php
 // Initialise $dir to folder containing the "vendor" dir
-$dir = dirname(dirname(dirname(__FILE__)));
+$dir = dirname(dirname(dirname(dirname(__FILE__))));
 
 // Find Soup repository in parent folders
 $i = 0;
