@@ -222,7 +222,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -242,7 +242,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;PLUTO_C_LINKAGE=true;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;PLUTO_C_LINKAGE=true;SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -262,7 +262,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -282,7 +282,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;PLUTO_C_LINKAGE=false;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;PLUTO_C_LINKAGE=false;SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -302,7 +302,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -322,7 +322,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -342,7 +342,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;PLUTO_C_LINKAGE=true;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;PLUTO_C_LINKAGE=true;SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -362,7 +362,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -382,7 +382,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;PLUTO_C_LINKAGE=false;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;PLUTO_C_LINKAGE=false;SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -402,7 +402,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -417,6 +417,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Soup\Intrin\sha256_transform_intrin.cpp" />
     <ClCompile Include="src\lapi.cpp" />
     <ClCompile Include="src\lassertlib.cpp" />
     <ClCompile Include="src\lauxlib.cpp" />
@@ -475,8 +476,10 @@
     <ClCompile Include="src\lvector3lib.cpp" />
     <ClCompile Include="src\lvm.cpp" />
     <ClCompile Include="src\lzio.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\base.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base32.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base64.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\CpuInfo.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\json.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\JsonArray.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\JsonBool.cpp" />
@@ -486,6 +489,7 @@
     <ClCompile Include="src\vendor\Soup\soup\JsonNull.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\JsonObject.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\JsonString.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\sha256.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\spaceship.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\unicode.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\urlenc.cpp" />
@@ -529,11 +533,14 @@
     <ClInclude Include="src\vendor\Soup\soup\base32.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\base64.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\bitutil.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\CpuInfo.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\CryptoHashAlgo.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Endian.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Exception.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\fwd.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\IntStruct.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ioBase.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\ioSeekableReader.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\json.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\JsonArray.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\JsonBool.hpp" />
@@ -546,8 +553,11 @@
     <ClInclude Include="src\vendor\Soup\soup\JsonString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Optional.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Reader.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\sha256.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\ShortString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\spaceship.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\string.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\StringRefReader.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TreeNode.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\type_traits.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\unicode.hpp" />

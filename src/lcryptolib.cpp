@@ -14,6 +14,9 @@
 #include <sstream>
 #include <iomanip>
 
+#include "vendor/Soup/soup/sha256.hpp"
+#include "vendor/Soup/soup/string.hpp"
+
 
 static int fnv1(lua_State *L)
 {
@@ -259,10 +262,13 @@ static int lua(lua_State *L)
 static int l_sha256(lua_State *L)
 {
   size_t l;
-  char hex[SHA256_HEX_SIZE];
-  const auto text = luaL_checklstring(L, 1, &l);
-  sha256_hex(text, l, hex);
-  lua_pushstring(L, hex);
+  const char* text = luaL_checklstring(L, 1, &l);
+  const bool binary = (lua_gettop(L) >= 2 && lua_toboolean(L, 2));
+  auto digest = soup::sha256::hash(text, l);
+  if (!binary) {
+    digest = soup::string::bin2hex(digest);
+  }
+  pluto_pushstring(L, digest);
   return 1;
 }
 
