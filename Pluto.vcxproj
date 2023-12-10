@@ -417,7 +417,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Soup\Intrin\sha256_transform_intrin.cpp" />
     <ClCompile Include="src\lapi.cpp" />
     <ClCompile Include="src\lassertlib.cpp" />
     <ClCompile Include="src\lauxlib.cpp" />
@@ -476,6 +475,7 @@
     <ClCompile Include="src\lvector3lib.cpp" />
     <ClCompile Include="src\lvm.cpp" />
     <ClCompile Include="src\lzio.cpp" />
+    <ClCompile Include="src\vendor\Soup\Intrin\sha256_transform_intrin.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base32.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base64.cpp" />
