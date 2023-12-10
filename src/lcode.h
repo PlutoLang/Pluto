@@ -103,3 +103,4 @@ LUAI_FUNC void luaK_exp2reg (FuncState *fs, expdesc *e, int reg);
 LUAI_FUNC void luaK_freeexp (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_invertcond (FuncState *fs, int list);
 LUAI_FUNC void luaK_settop (FuncState *fs, int reg);
+LUAI_FUNC void luaK_dectop (FuncState *fs, int from, int to);

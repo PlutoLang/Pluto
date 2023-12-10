@@ -2284,9 +2284,8 @@ static void method_call_funcargs (LexState *ls, expdesc *v) {
     v->u.pc = pc;  /* instruction pc */
     int jt = luaK_jump(fs);
     luaK_patchtohere(fs, jf);    
-    luaK_settop(fs, v->u.reg + 1);  /* because VSAFECALL is mulret, we need to manage L->top.
-                                       specifically, decrement it to discard the table that OP_SELF pushed. */
-    luaK_nil(fs, v->u.reg + 1, 1);  /* also set it to 'nil' because the assumption is that unused regs are nil */
+    luaK_dectop(fs, v->u.reg + 2, v->u.reg + 1);  /* because VSAFECALL is mulret, we need to manage L->top.
+                                                     specifically, decrement it to discard the table that OP_SELF pushed. */
     luaK_patchtohere(fs, jt);
   }
   else
@@ -2302,10 +2301,11 @@ static void safe_navigation (LexState *ls, expdesc *v) {
   luaK_exp2nextreg(fs, v);
   luaK_codeABC(fs, OP_TEST, v->u.reg, NO_REG, 0);
   const bool is_method_call = (ls->t.token == ':');
+  int jt;
   {
     int old_free = fs->freereg;
     int vreg = v->u.reg;
-    int j = luaK_jump(fs);
+    int jf = luaK_jump(fs);
     expdesc key;
     switch (ls->t.token) {
       case '[': {
@@ -2338,10 +2338,15 @@ static void safe_navigation (LexState *ls, expdesc *v) {
       luaK_codeABC(fs, OP_MOVE, vreg, v->u.reg, 0);
       v->u.reg = vreg;
     }
-    luaK_patchtohere(fs, j);
+    if (is_method_call) {
+      jt = luaK_jump(fs);
+    }
+    luaK_patchtohere(fs, jf);
   }
   if (is_method_call) {
     v->k = VSAFECALL;
+    luaK_dectop(fs, v->u.reg + 2, v->u.reg + 1);
+    luaK_patchtohere(fs, jt);
   }
 }
 
