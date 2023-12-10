@@ -53,7 +53,9 @@ LUAI_FUNC l_noret luaG_ordererror (lua_State *L, const TValue *p1,
 LUAI_FUNC l_noret luaG_runerror (lua_State *L, const char *fmt, ...);
 LUAI_FUNC const char *luaG_addinfo (lua_State *L, const char *msg,
                                                   TString *src, int line);
+#ifndef PLUTO_LUA_LINKABLE
 LUAI_FUNC bool luaG_addinfo_pluto (lua_State *L, const char *msg);
+#endif
 LUAI_FUNC l_noret luaG_errormsg (lua_State *L);
 LUAI_FUNC int luaG_traceexec (lua_State *L, const Instruction *pc);
 LUAI_FUNC int luaG_tracecall (lua_State *L);
