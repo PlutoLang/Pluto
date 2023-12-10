@@ -73,24 +73,29 @@ function run_command_async($cmd)
 {
 	global $procs, $descriptorspec;
 	echo ".";
-	array_push($procs, proc_open($cmd, $descriptorspec, $pipes));
+	$proc = proc_open($cmd, $descriptorspec, $pipes);
+	array_push($procs, [ $proc, $pipes[1], $pipes[2] ]);
 }
 
 function await_commands()
 {
 	global $procs;
 	echo "\n";
+	$output = "";
 	while (count($procs) != 0)
 	{
 		foreach ($procs as $i => $proc)
 		{
-			if (!proc_get_status($proc)["running"])
+			if (!proc_get_status($proc[0])["running"])
 			{
 				echo "█";
+				$output .= stream_get_contents($proc[1]);
+				$output .= stream_get_contents($proc[2]);
 				unset($procs[$i]);
 			}
 		}
 		usleep(50000);
 	}
 	echo "\n";
+	echo $output;
 }
