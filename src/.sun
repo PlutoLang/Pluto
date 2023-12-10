@@ -2,7 +2,7 @@ static
 
 cpp 17
 
-require vendor/Soup include_dir=.
+require vendor/Soup/soup include_dir=.
 
 +*.cpp
 -lua.cpp
