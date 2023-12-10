@@ -63,18 +63,19 @@ function for_each_obj($f)
 }
 
 $procs = [];
-$descriptorspec = array(
-	0 => array("pipe", "r"),
-	1 => array("pipe", "w"),
-	2 => array("pipe", "w"),
-);
 
 function run_command_async($cmd)
 {
-	global $procs, $descriptorspec;
+	global $procs;
 	echo ".";
+	$file = tmpfile();
+	$descriptorspec = array(
+		0 => array("pipe", "r"),
+		1 => array("file", stream_get_meta_data($file)["uri"], "a"),
+		2 => array("file", stream_get_meta_data($file)["uri"], "a"),
+	);
 	$proc = proc_open($cmd, $descriptorspec, $pipes);
-	array_push($procs, [ $proc, $pipes[1], $pipes[2] ]);
+	array_push($procs, [ $proc, $file ]);
 }
 
 function await_commands()
@@ -90,7 +91,7 @@ function await_commands()
 			{
 				echo "█";
 				$output .= stream_get_contents($proc[1]);
-				$output .= stream_get_contents($proc[2]);
+				fclose($proc[1]);
 				proc_close($proc[0]);
 				unset($procs[$i]);
 			}
