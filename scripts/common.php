@@ -13,6 +13,10 @@ if(!is_dir("int/vendor/Soup"))
 {
 	mkdir("int/vendor/Soup");
 }
+if(!is_dir("int/vendor/Soup/soup"))
+{
+	mkdir("int/vendor/Soup/soup");
+}
 
 function check_compiler()
 {
@@ -50,7 +54,7 @@ function resolve_installed_program($exe)
 
 function for_each_obj($f)
 {
-	foreach(["","vendor/Soup/"] as $prefix)
+	foreach(["","vendor/Soup/soup/"] as $prefix)
 	{
 		foreach(scandir("src/".$prefix) as $file)
 		{
