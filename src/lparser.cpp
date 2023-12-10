@@ -4541,6 +4541,14 @@ static void usestat (LexState *ls) {
         tokens = { TK_SWITCH, TK_CONTINUE };
       }
       else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", ls->t.seminfo.ts->contents), "did you mean \"0.8.0\", \"0.6.0\", \"0.5.0\" or \"0.2.0\"?");
+      if (ls->t.seminfo.ts->contents[ls->t.seminfo.ts->size() - 1] == '+') {
+        if (soup::version_compare(ls->t.seminfo.ts->contents, "0.7.0") >= 0) {
+          tokens.emplace_back(TK_LET);
+          if (soup::version_compare(ls->t.seminfo.ts->contents, "0.8.0") >= 0) {
+            tokens.emplace_back(TK_CONST);
+          }
+        }
+      }
       luaX_next(ls);
     }
     else {
