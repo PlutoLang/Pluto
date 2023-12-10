@@ -7,7 +7,7 @@
 PLAT= mingw
 
 CXX= g++ -std=c++17 -O3 -flto
-CXXFLAGS= $(SYSCFLAGS) $(MYCFLAGS)
+CXXFLAGS= -Wno-multichar $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm $(SYSLIBS) $(MYLIBS)
 
