@@ -2,6 +2,8 @@
 require __DIR__."/common.php";
 check_compiler();
 
+build_soup();
+
 for_each_obj(function($file)
 {
 	global $compiler;
