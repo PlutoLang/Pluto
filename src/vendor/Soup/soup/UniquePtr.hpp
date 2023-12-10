@@ -9,6 +9,7 @@ namespace soup
 	// Why not std::unique_ptr?
 	// - Stores a deleter despite being templated
 	// - Produces RTTI even with RTTI off
+	// - Release method is not [[nodiscard]] so memory leaks can go unnoticed
 	template <typename T>
 	class UniquePtr
 	{
@@ -30,7 +31,7 @@ namespace soup
 
 		template <typename T2, SOUP_RESTRICT(std::is_base_of_v<T, T2> || std::is_base_of_v<T2, T>)>
 		UniquePtr(UniquePtr<T2>&& b) noexcept
-			: data(reinterpret_cast<T*>(b.data))
+			: data(static_cast<T*>(b.data))
 		{
 			b.data = nullptr;
 		}
@@ -43,7 +44,8 @@ namespace soup
 	private:
 		void free()
 		{
-			if (data != nullptr)
+			// "if ptr is a null pointer, the standard library deallocation functions do nothing"
+			//if (data != nullptr)
 			{
 				delete data;
 			}
@@ -52,7 +54,8 @@ namespace soup
 	public:
 		void reset() noexcept
 		{
-			if (data != nullptr)
+			// "if ptr is a null pointer, the standard library deallocation functions do nothing"
+			//if (data != nullptr)
 			{
 				delete data;
 				data = nullptr;
@@ -61,9 +64,14 @@ namespace soup
 
 		UniquePtr<T>& operator =(UniquePtr<T>&& b) noexcept
 		{
-			free();
+			const auto old_data = data;
 			data = b.data;
 			b.data = nullptr;
+			// "if ptr is a null pointer, the standard library deallocation functions do nothing"
+			//if (old_data != nullptr)
+			{
+				delete old_data;
+			}
 			return *this;
 		}
 

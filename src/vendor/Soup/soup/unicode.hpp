@@ -5,11 +5,11 @@
 #include "base.hpp"
 
 #define UTF8_CONTINUATION_FLAG 0b10000000
-#define UTF8_HAS_CONTINUATION(ch) (ch & 0b10000000)
-#define UTF8_IS_CONTINUATION(ch) ((ch & 0b11000000) == UTF8_CONTINUATION_FLAG)
+#define UTF8_HAS_CONTINUATION(ch) ((ch) & 0b10000000)
+#define UTF8_IS_CONTINUATION(ch) (((ch) & 0b11000000) == UTF8_CONTINUATION_FLAG)
 
-#define UTF16_IS_HIGH_SURROGATE(ch) ((ch >> 10) == 0x36)
-#define UTF16_IS_LOW_SURROGATE(ch) ((ch >> 10) == 0x37)
+#define UTF16_IS_HIGH_SURROGATE(ch) (((ch) >> 10) == 0x36)
+#define UTF16_IS_LOW_SURROGATE(ch) (((ch) >> 10) == 0x37)
 
 #if SOUP_WINDOWS
 #include <Windows.h>
@@ -41,6 +41,7 @@ namespace soup
 		[[nodiscard]] static UTF16_STRING_TYPE acp_to_utf16(const std::string& acp) noexcept;
 #endif
 		[[nodiscard]] static UTF16_STRING_TYPE utf32_to_utf16(const std::u32string& utf32) noexcept;
+		static void utf32_to_utf16_char(UTF16_STRING_TYPE& utf16, char32_t c) noexcept;
 		[[nodiscard]] static std::string utf32_to_utf8(char32_t utf32) noexcept;
 		[[nodiscard]] static std::string utf32_to_utf8(const std::u32string& utf32) noexcept;
 
@@ -107,5 +108,8 @@ namespace soup
 
 		[[nodiscard]] static size_t utf8_char_len(const std::string& str) noexcept;
 		[[nodiscard]] static size_t utf16_char_len(const UTF16_STRING_TYPE& str) noexcept;
+
+		static void utf8_add(std::string::const_iterator& it, std::string::const_iterator end);
+		static void utf8_sub(std::string::const_iterator& it, std::string::const_iterator begin);
 	};
 }

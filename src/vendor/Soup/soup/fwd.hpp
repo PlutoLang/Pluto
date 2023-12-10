@@ -11,16 +11,14 @@ namespace soup
 	class audPlayback;
 	struct audSound;
 
-	// chess
-	struct ChessCoordinate;
-
 	// crypto
 	struct RsaKeypair;
 	struct TrustStore;
+	class YubikeyValidator;
 
 	// crypto.x509
 	struct X509Certchain;
-	class X509Certificate;
+	struct X509Certificate;
 
 	// data
 	struct Oid;
@@ -30,6 +28,7 @@ namespace soup
 
 	// data.container
 	class Buffer;
+	struct StructMap;
 
 	// data.json
 	struct JsonArray;
@@ -38,6 +37,9 @@ namespace soup
 	struct JsonInt;
 	struct JsonObject;
 	struct JsonString;
+
+	// data.reflection
+	class drData;
 
 	// data.regex
 	struct RegexConstraintTransitionable;
@@ -50,6 +52,15 @@ namespace soup
 	struct PlistString;
 	struct XmlTag;
 	struct XmlText;
+
+	// hardware
+	class hwHid;
+
+	// hardware.keyboard
+	enum Key : uint8_t;
+
+	// hardware.keyboard.rgb
+	class kbRgbWooting;
 
 	// io.bits
 	class BitReader;
@@ -80,7 +91,7 @@ namespace soup
 
 	// ling.chatbot
 	struct cbCmd;
-	struct cbResult;
+	class cbParser;
 
 	// math
 	class Bigint;
@@ -106,6 +117,7 @@ namespace soup
 	template <typename T> class SharedPtr;
 	template <typename T> class UniquePtr;
 	struct VirtualRegion;
+	template <class T> class WeakRef;
 
 	// mem.alloc
 	struct AllocRaiiLocalBase;
@@ -119,12 +131,17 @@ namespace soup
 		struct object;
 	}
 
+	// misc.chess
+	struct ChessCoordinate;
+
 	// net
 	class IpAddr;
 	struct netConfig;
+	class netIntel;
 	class Server;
 	struct ServerService;
 	struct ServerServiceUdp;
+	class ServerWebService;
 	class Socket;
 	struct SocketAddr;
 
@@ -151,18 +168,21 @@ namespace soup
 	enum ControlInput : uint8_t;
 	class Module;
 	enum MouseButton : uint8_t;
+	class Thread;
 	struct Window;
 
 	// os.windows
 	struct HandleRaii;
 
 	// task
+	class Capture;
+	class DetachedScheduler;
 	class PromiseBase;
+	template <typename T> class Promise;
 	class Scheduler;
 
 	// util
 	class Mixed;
-	struct Status;
 
 	// vis
 	class Canvas;

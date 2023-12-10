@@ -6,8 +6,6 @@
 
 namespace soup
 {
-	// Adapted from https://gist.github.com/tomykaira/f0fd86b6c73063283afe550bc5d77594
-
 	struct base64
 	{
 		[[nodiscard]] static std::string encode(const char* data, const bool pad = true) noexcept;

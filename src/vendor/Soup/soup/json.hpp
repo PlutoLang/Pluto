@@ -28,5 +28,9 @@ namespace soup
 		// specific to soup
 		static void binaryDecode(UniquePtr<JsonNode>& out, Reader& r);
 		[[nodiscard]] static UniquePtr<JsonNode> binaryDecodeForDedicatedVariable(Reader& r);
+
+		// internal
+		static void handleLeadingSpace(const char*& c);
+		static void handleComment(const char*& c);
 	};
 }

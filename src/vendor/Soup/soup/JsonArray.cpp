@@ -21,10 +21,7 @@ namespace soup
 	{
 		while (true)
 		{
-			while (string::isSpace(*c))
-			{
-				++c;
-			}
+			json::handleLeadingSpace(c);
 			auto val = json::decode(c);
 			if (!val)
 			{
@@ -113,6 +110,11 @@ namespace soup
 	JsonNode& JsonArray::at(size_t i) const
 	{
 		return *children.at(i);
+	}
+
+	void JsonArray::clear() noexcept
+	{
+		children.clear();
 	}
 
 	JsonArrayIterator JsonArray::begin() const noexcept
