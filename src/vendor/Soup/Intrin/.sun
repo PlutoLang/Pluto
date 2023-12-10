@@ -1,0 +1,7 @@
++*.cpp
+static
+
+arg -maes
+arg -mpclmul
+arg -msha
+arg -msse4.1
