@@ -852,7 +852,7 @@ const char *luaG_addinfo (lua_State *L, const char *msg, TString *src,
 
 #ifndef PLUTO_LUA_LINKABLE
 /* Pushes a string that is 'src:line ' prefixed to 'msg', or returns false on failure. */
-bool luaG_addinfo_pluto (lua_State *L, const char *msg) {
+bool luaG_addsrcinfo (lua_State *L, const char *msg) {
   CallInfo *ci = L->ci;
   while (ci && !isLua(ci)) {
     ci = ci->previous;
