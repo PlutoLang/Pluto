@@ -26,7 +26,7 @@
 #include "lualib.h"
 
 
-#include "vendor/Soup/urlenc.hpp"
+#include "vendor/Soup/soup/urlenc.hpp"
 
 
 /*
