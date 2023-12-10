@@ -9,7 +9,7 @@ namespace soup
 	static void encode_percent(std::string& res, uint8_t b)
 	{
 		res.push_back('%');
-		res.push_back(string::charset_hex[(b >> 4) & 0xF]);
+		res.push_back(string::charset_hex[b >> 4]);
 		res.push_back(string::charset_hex[b & 0xF]);
 	}
 

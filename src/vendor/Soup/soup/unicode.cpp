@@ -4,40 +4,37 @@ namespace soup
 {
 	char32_t unicode::utf8_to_utf32_char(std::string::const_iterator& it, const std::string::const_iterator end) noexcept
 	{
+		uint8_t ch = *it++;
+		if (!UTF8_HAS_CONTINUATION(ch))
+		{
+			return ch;
+		}
 		uint32_t uni;
 		uint8_t todo = 0;
-		uint8_t ch = *it++;
-		if (UTF8_HAS_CONTINUATION(ch))
+		if (UTF8_IS_CONTINUATION(ch))
 		{
-			if (UTF8_IS_CONTINUATION(ch))
-			{
-				return 0;
-			}
-			if ((ch & 0b01111000) == 0b01110000) // 11110xxx
-			{
-				uni = (ch & 0b111);
-				todo = 3;
-			}
-			else if ((ch & 0b01110000) == 0b01100000) // 1110xxxx
-			{
-				uni = (ch & 0b1111);
-				todo = 2;
-			}
-			else //if ((ch & 0b01100000) == 0b01000000) // 110xxxxx
-			{
-				uni = (ch & 0b11111);
-				todo = 1;
-			}
+			return REPLACEMENT_CHAR;
 		}
-		else // 0xxxxxxx
+		if ((ch & 0b01111000) == 0b01110000) // 11110xxx
 		{
-			uni = ch;
+			uni = (ch & 0b111);
+			todo = 3;
 		}
-		for (uint8_t j = 0; j < todo; ++j)
+		else if ((ch & 0b01110000) == 0b01100000) // 1110xxxx
+		{
+			uni = (ch & 0b1111);
+			todo = 2;
+		}
+		else //if ((ch & 0b01100000) == 0b01000000) // 110xxxxx
+		{
+			uni = (ch & 0b11111);
+			todo = 1;
+		}
+		for (uint8_t j = 0; j != todo; ++j)
 		{
 			if (it == end)
 			{
-				return 0;
+				return REPLACEMENT_CHAR;
 			}
 			uint8_t ch = *it++;
 			if (!UTF8_IS_CONTINUATION(ch))
@@ -45,13 +42,13 @@ namespace soup
 				break;
 			}
 			uni <<= 6;
-			uni += (ch & 0b111111);
+			uni |= (ch & 0b111111);
 		}
 		if ((uni >= 0xD800 && uni <= 0xDFFF)
 			|| uni > 0x10FFFF
 			)
 		{
-			return 0;
+			return REPLACEMENT_CHAR;
 		}
 		return uni;
 	}
@@ -66,19 +63,12 @@ namespace soup
 	std::u32string unicode::utf8_to_utf32(const std::string& utf8) noexcept
 	{
 		std::u32string utf32{};
+		utf32.reserve(utf8_char_len(utf8));
 		auto it = utf8.cbegin();
 		const auto end = utf8.cend();
 		while (it != end)
 		{
-			auto uni = utf8_to_utf32_char(it, end);
-			if (uni == 0)
-			{
-				utf32.push_back(REPLACEMENT_CHAR);
-			}
-			else
-			{
-				utf32.push_back(uni);
-			}
+			utf32.push_back(utf8_to_utf32_char(it, end));
 		}
 		return utf32;
 	}
@@ -102,7 +92,15 @@ namespace soup
 		}
 		return utf16;
 #else
-		return utf32_to_utf16(utf8_to_utf32(utf8));
+		UTF16_STRING_TYPE utf16{};
+		utf16.reserve(utf8.size()); // Note: we could end up with a slightly oversized buffer here if UTF8 input has many 3 or 4 byte symbols
+		auto it = utf8.cbegin();
+		const auto end = utf8.cend();
+		while (it != end)
+		{
+			utf32_to_utf16_char(utf16, utf8_to_utf32_char(it, end));
+		}
+		return utf16;
 #endif
 	}
 
@@ -123,20 +121,26 @@ namespace soup
 	UTF16_STRING_TYPE unicode::utf32_to_utf16(const std::u32string& utf32) noexcept
 	{
 		UTF16_STRING_TYPE utf16{};
+		utf16.reserve(utf32.size());
 		for (char32_t c : utf32)
 		{
-			if (c <= 0xFFFF)
-			{
-				utf16.push_back((UTF16_CHAR_TYPE)c);
-			}
-			else
-			{
-				c -= 0x10000;
-				utf16.push_back((UTF16_CHAR_TYPE)((c >> 10) + 0xD800));
-				utf16.push_back((UTF16_CHAR_TYPE)((c & 0x3FF) + 0xDC00));
-			}
+			utf32_to_utf16_char(utf16, c);
 		}
 		return utf16;
+	}
+
+	void unicode::utf32_to_utf16_char(UTF16_STRING_TYPE& utf16, char32_t c) noexcept
+	{
+		if (c <= 0xFFFF)
+		{
+			utf16.push_back((UTF16_CHAR_TYPE)c);
+		}
+		else
+		{
+			c -= 0x10000;
+			utf16.push_back((UTF16_CHAR_TYPE)((c >> 10) + 0xD800));
+			utf16.push_back((UTF16_CHAR_TYPE)((c & 0x3FF) + 0xDC00));
+		}
 	}
 
 	std::string unicode::utf32_to_utf8(char32_t utf32) noexcept
@@ -151,7 +155,7 @@ namespace soup
 		utf32 >>= 6;
 		if (utf32 <= 0b11111)
 		{
-			utf8.insert(0, 1, (char)((utf32 & 0b11111) | 0b11000000)); // 110xxxxx
+			utf8.insert(0, 1, (char)(utf32 | 0b11000000)); // 110xxxxx
 			return utf8;
 		}
 		// 3
@@ -159,7 +163,7 @@ namespace soup
 		utf32 >>= 6;
 		if (utf32 <= 0b1111)
 		{
-			utf8.insert(0, 1, (char)((utf32 & 0b1111) | 0b11100000)); // 1110xxxx
+			utf8.insert(0, 1, (char)(utf32 | 0b11100000)); // 1110xxxx
 			return utf8;
 		}
 		// 4
@@ -172,6 +176,7 @@ namespace soup
 	std::string unicode::utf32_to_utf8(const std::u32string& utf32) noexcept
 	{
 		std::string utf8{};
+		utf8.reserve(utf32.size());
 		for (const char32_t& c : utf32)
 		{
 			utf8.append(utf32_to_utf8(c));
@@ -203,5 +208,29 @@ namespace soup
 			}
 		}
 		return char_len;
+	}
+
+	void unicode::utf8_add(std::string::const_iterator& it, std::string::const_iterator end)
+	{
+		if (UTF8_HAS_CONTINUATION(*it))
+		{
+			do
+			{
+				++it;
+			} while (it != end && UTF8_IS_CONTINUATION(*it));
+		}
+		else
+		{
+			++it;
+		}
+	}
+
+	void unicode::utf8_sub(std::string::const_iterator& it, std::string::const_iterator begin)
+	{
+		--it;
+		while (UTF8_IS_CONTINUATION(*it) && it != begin)
+		{
+			--it;
+		}
 	}
 }
