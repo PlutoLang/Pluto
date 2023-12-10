@@ -91,6 +91,7 @@ function await_commands()
 				echo "█";
 				$output .= stream_get_contents($proc[1]);
 				$output .= stream_get_contents($proc[2]);
+				proc_close($proc[0]);
 				unset($procs[$i]);
 			}
 		}
