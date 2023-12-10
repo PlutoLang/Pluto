@@ -2253,6 +2253,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAddB();
         vmDumpAddC();
+        vmDumpOut("; call " << stringify_tvalue(s2v(ra)) << " (nresults=" << nresults << " nparams=" << (b - 1) << ")");
 #ifdef PLUTO_ILP_HOOK_FUNCTION
         if (fvalue(s2v(ra)) == PLUTO_ILP_HOOK_FUNCTION) {
           sequentialJumps = 0;
@@ -2262,11 +2263,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         if ((newci = luaD_precall(L, ra, nresults)) == NULL)  /* C call; nothing else to be done */
         {
           updatetrap(ci);
-          vmDumpOut("; call C " << stringify_tvalue(s2v(ra)) << " (nresults=" << nresults << " nparams=" << (b - 1) << ")");
         }
         else  /* Lua call: run function in this same C frame */
         {
-          vmDumpOut("; call Lua "<< stringify_tvalue(s2v(ra)) <<  " (nresults=" << nresults << " nparams=" << (b - 1) << ")");
           ci = newci;
           goto startfunc;
         }
@@ -2295,6 +2294,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAddB();
         vmDumpAddC();
+        vmDumpOut("; tail-call " << stringify_tvalue(s2v(ra)) << " (nparams=" << (b - 1) << ")");
         if (TESTARG_k(i)) {
           luaF_closeupval(L, base);  /* close upvalues from current call */
           lua_assert(L->tbclist.p < base);  /* no pending tbc variables */
@@ -2302,12 +2302,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
         if ((n = luaD_pretailcall(L, ci, ra, b, delta)) < 0)
         {
-          vmDumpOut("; tailcall lfunc (nresults=" << n << " nparams=" << b - 1 << ")");
           goto startfunc;  /* execute the callee */
         }
         else
         {
-          vmDumpOut("; tailcall cfunc (nresults=" << n << " nparams=" << b - 1 << ")");
           ci->func.p -= delta;  /* restore 'func' (if vararg) */
           luaD_poscall(L, ci, n);  /* finish caller */
           updatetrap(ci);  /* 'luaD_poscall' can change hooks */
