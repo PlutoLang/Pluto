@@ -72,25 +72,25 @@ $descriptorspec = array(
 function run_command_async($cmd)
 {
 	global $procs, $descriptorspec;
+	echo ".";
 	array_push($procs, proc_open($cmd, $descriptorspec, $pipes));
 }
 
 function await_commands()
 {
 	global $procs;
-	$any_running = false;
-	do
+	echo "\n";
+	while (count($procs) != 0)
 	{
-		usleep(50000);
-		$any_running = false;
-		foreach ($procs as $proc)
+		foreach ($procs as $i => $proc)
 		{
-			if (proc_get_status($proc)["running"])
+			if (!proc_get_status($proc)["running"])
 			{
-				$any_running = true;
-				break;
+				echo "█";
+				unset($procs[$i]);
 			}
 		}
-	} while ($any_running);
-	$procs = [];
+		usleep(50000);
+	}
+	echo "\n";
 }
