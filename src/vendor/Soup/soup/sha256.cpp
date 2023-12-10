@@ -227,7 +227,7 @@ namespace soup
 
 	std::string sha256::hash(const void* data, size_t len)
 	{
-		std::string digest(32, '0');
+		std::string digest(32, '\0');
 		sha256_bytes(data, len, (uint8_t*)digest.data());
 		return digest;
 	}
@@ -239,7 +239,7 @@ namespace soup
 
 	std::string sha256::hash(ioSeekableReader& r)
 	{
-		std::string digest(32, '0');
+		std::string digest(32, '\0');
 		sha256_state sha;
 		sha256_init(&sha);
 		while (r.hasMore())
