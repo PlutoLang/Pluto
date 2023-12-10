@@ -2036,7 +2036,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
-        vmDumpOut ("; concat the last " << n << " elements on the stack");
+        if (n != 1) {
+          vmDumpOut("; concat the last " << n << " elements on the stack");
+        }
+        else {
+          vmDumpOut("; Pluto hackily updating the stack pointer");
+        }
         vmbreak;
       }
       vmcase(OP_CLOSE) {
