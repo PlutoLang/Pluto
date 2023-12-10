@@ -89,10 +89,13 @@
     <ClCompile Include="src\vendor\Soup\soup\version_compare.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
-    <ClCompile Include="..\Soup\Intrin\sha256_transform_intrin.cpp">
+    <ClCompile Include="src\vendor\Soup\soup\CpuInfo.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\Intrin\sha256_transform_intrin.cpp">
       <Filter>vendor\Soup\Intrin</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\Soup\soup\CpuInfo.cpp">
+    <ClCompile Include="src\vendor\Soup\soup\base.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
   </ItemGroup>
