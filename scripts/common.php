@@ -61,3 +61,36 @@ function for_each_obj($f)
 		}
 	}
 }
+
+$procs = [];
+$descriptorspec = array(
+	0 => array("pipe", "r"),
+	1 => array("pipe", "w"),
+	2 => array("pipe", "w"),
+);
+
+function run_command_async($cmd)
+{
+	global $procs, $descriptorspec;
+	array_push($procs, proc_open($cmd, $descriptorspec, $pipes));
+}
+
+function await_commands()
+{
+	global $procs;
+	$any_running = false;
+	do
+	{
+		usleep(50000);
+		$any_running = false;
+		foreach ($procs as $proc)
+		{
+			if (proc_get_status($proc)["running"])
+			{
+				$any_running = true;
+				break;
+			}
+		}
+	} while ($any_running);
+	$procs = [];
+}
