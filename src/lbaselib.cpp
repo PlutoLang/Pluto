@@ -717,14 +717,14 @@ static int luaB_exportvar (lua_State *L) {
 }
 
 
-static int luaB_version_compare (lua_State *L) {
+static int luaB_compareversions (lua_State *L) {
   lua_pushinteger(L, SOUP_STRONG_ORDERING_TO_INT(soup::version_compare(luaL_checkstring(L, 1), luaL_checkstring(L, 2))));
   return 1;
 }
 
 
 static const luaL_Reg base_funcs[] = {
-  {"version_compare", luaB_version_compare},
+  {"compareversions", luaB_compareversions},
   {"exportvar", luaB_exportvar},
   {"dumpvar", luaB_dumpvar},
   {"newuserdata", luaB_newuserdata},
