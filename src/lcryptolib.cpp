@@ -292,6 +292,8 @@ static int random(lua_State *L)
 
 static int hexdigest(lua_State *L)
 {
+  pluto_warning(L, "hexdigest(n) is deprecated; use string.format(\"0x%x\", n) instead.");
+
   std::stringstream stream;
   stream << "0x";
   stream << std::hex << luaL_checkinteger(L, 1);
@@ -301,7 +303,7 @@ static int hexdigest(lua_State *L)
 
 
 static const luaL_Reg funcs[] = {
-  {"hexdigest", hexdigest},
+  {"hexdigest", hexdigest},  /* deprecated since 0.8.0 */
   {"random", random},
   {"sha256", l_sha256},
   {"lua", lua},
