@@ -877,7 +877,7 @@ static int io_copy (lua_State *L) {
 }
 
 static int io_copyto (lua_State *L) {
-  lua_warning(L, "io.copyto is deprecated, replace the call with io.copy.", 0);
+  pluto_warning(L, "io.copyto is deprecated, replace the call with io.copy.");
   return io_copy(L);
 }
 
