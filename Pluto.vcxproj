@@ -471,6 +471,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='dll (c++ abi)|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\lundump.cpp" />
+    <ClCompile Include="src\lurllib.cpp" />
     <ClCompile Include="src\lutf8lib.cpp" />
     <ClCompile Include="src\lvector3lib.cpp" />
     <ClCompile Include="src\lvm.cpp" />
