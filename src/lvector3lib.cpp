@@ -133,52 +133,59 @@ local vector3
     return self / self:magnitude()
   end
 
-  function torot(up)
-    if up == "y" then
-      local yaw = math.deg(math.atan(self.x, self.z)) * -1
+  function torot(format)
+    format ??= ""
+    if format[1] ~= 'z' then
+      assert(format[1] == nil or format[1] == 'y', "Invalid up-axis in format")
+      local yaw = math.deg(math.atan(self.x, self.z))
+      if format[2] == 'l' then
+        yaw *= -1
+      end
       local pitch = math.deg(math.asin(self.y / self:magnitude()))
       return new vector3(
         math.isnan(pitch) ? 0 : pitch,
         yaw,
         0
       )
-    elseif up == "z" then
-      local yaw = math.deg(math.atan(self.x, self.y)) * -1
+    else
+      local yaw = math.deg(math.atan(self.x, self.y))
+      if format[2] == 'l' then
+        yaw *= -1
+      end
       local pitch = math.deg(math.asin(self.z / self:magnitude()))
       return new vector3(
         math.isnan(pitch) ? 0 : pitch,
         0,
         yaw
       )
-    else
-      error("Expected \"y\" or \"z\" for 'up' parameter")
     end
   end
 
-  function lookat(up)
+  function lookat(b, format)
     local dir = (b - self)
-    return dir:torot(up)
+    return dir:torot(format)
   end
 
-  function todir(up)
-    if up == "y" then
+  function todir(format)
+    format ??= ""
+    local handedness_factor = (format[2] == 'l' ? -1 : +1)
+    if format[1] ~= 'z' then
+      assert(format[1] == nil or format[1] == 'y', "Invalid up-axis in format")
       local yaw_radians = math.rad(self.z)
-      local pitch_radians = math.rad(self.x) * -1
+      local pitch_radians = math.rad(self.x) * handedness_factor
       return new vector3(
-        math.cos(pitch_radians) * math.sin(yaw_radians) * -1,
-        math.sin(pitch_radians) * -1,
-        math.cos(pitch_radians) * math.cos(yaw_radians)
-      )
-    elseif up == "z" then
-      local yaw_radians = math.rad(self.z)
-      local pitch_radians = math.rad(self.x) * -1
-      return new vector3(
-        math.cos(pitch_radians) * math.sin(yaw_radians) * -1,
         math.cos(pitch_radians) * math.cos(yaw_radians),
-        math.sin(pitch_radians) * -1
+        math.sin(pitch_radians) * handedness_factor,
+        math.cos(pitch_radians) * math.sin(yaw_radians) * handedness_factor
       )
     else
-      error("Expected \"y\" or \"z\" for 'up' parameter")
+      local yaw_radians = math.rad(self.z)
+      local pitch_radians = math.rad(self.x) * handedness_factor
+      return new vector3(
+        math.cos(pitch_radians) * math.sin(yaw_radians) * handedness_factor,
+        math.cos(pitch_radians) * math.cos(yaw_radians),
+        math.sin(pitch_radians) * handedness_factor
+      )
     end
   end
 end
