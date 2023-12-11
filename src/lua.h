@@ -332,6 +332,9 @@ LUA_API int (lua_isyieldable) (lua_State *L);
 */
 LUA_API void (lua_setwarnf) (lua_State *L, lua_WarnFunction f, void *ud);
 LUA_API void (lua_warning)  (lua_State *L, const char *msg, int tocont);
+#ifndef PLUTO_LUA_LINKABLE
+PLUTO_API void (pluto_warning) (lua_State *L, const char *msg);
+#endif
 
 
 /*
