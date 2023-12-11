@@ -98,6 +98,7 @@
     <ClCompile Include="src\vendor\Soup\soup\base.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
+    <ClCompile Include="src\lurllib.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />

@@ -2377,27 +2377,11 @@ static int str_repeat (lua_State *L) {
 }
 
 
-static int str_urlencode (lua_State* L) {
-  const auto input = pluto_checkstring(L, 1);
-  pluto_pushstring(L, soup::urlenc::encode(input));
-  return 1;
-}
-
-
-static int str_urldecode (lua_State *L) {
-  const auto input = pluto_checkstring(L, 1);
-  pluto_pushstring(L, soup::urlenc::decode(input));
-  return 1;
-}
-
-
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
   {"repeat", str_repeat},
-  {"urldecode", str_urldecode},
-  {"urlencode", str_urlencode},
   {"formatint", str_formatint},
   {"replace", str_replace},
   {"truncate", str_truncate},

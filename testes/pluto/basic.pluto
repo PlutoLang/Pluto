@@ -1207,9 +1207,10 @@ do
     assert(string.formatint("-3249230492345645324234234234234234234234234324242343243242342343423242344") == "-3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
 
     local str = "Hello, World! == %% 20 <> //\\"
-    assert(string.urlencode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
-    assert(string.urlencode(str):urldecode() == str)
-    
+    local url = require"pluto:url"
+    assert(url.encode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
+    assert(url.decode(url.encode(str)) == str)
+
     assert("*":repeat(3) == "***")
     assert(string.repeat("*", 3) == "***")
     _, err = pcall(|| -> "*":repeat(0))
