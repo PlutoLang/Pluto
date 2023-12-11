@@ -306,9 +306,6 @@ typedef struct global_State {
   void* user_data;       /* a pointer to data you, the user, would like to specify */
 #endif
 #ifdef PLUTO_ETL_ENABLE
-  #ifdef PLUTO_LUA_LINKABLE
-    #error PLUTO_ETL_ENABLE can not be used with PLUTO_LUA_LINKABLE
-  #endif
   std::time_t deadline;
 #endif
 #ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE

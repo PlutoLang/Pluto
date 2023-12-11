@@ -28,6 +28,11 @@
 #include "lauxlib.h"
 
 
+#ifdef PLUTO_LUA_LINKABLE
+#error PLUTO_LUA_LINKABLE may not be defined when building Pluto, only when including the headers in your own software.
+#endif
+
+
 #if !defined(MAX_SIZET)
 /* maximum value for size_t */
 #define MAX_SIZET	((size_t)(~(size_t)0))
