@@ -27,12 +27,12 @@ static int urlDecode(lua_State* L) {
 }
 
 static int urlEncodeDeprecated(lua_State* L) {
-	lua_warning(L, "base64: url_encode is deprecated, replace the call with urlencode.", 0);
+	pluto_warning(L, "url_encode is deprecated, replace the call with urlencode.");
 	return urlEncode(L);
 }
 
 static int urlDecodeDeprecated(lua_State* L) {
-	lua_warning(L, "base64: url_decode is deprecated, replace the call with urldecode.", 0);
+	pluto_warning(L, "url_decode is deprecated, replace the call with urldecode.");
 	return urlDecode(L);
 }
 

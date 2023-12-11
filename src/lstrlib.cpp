@@ -2143,8 +2143,8 @@ static int str_lfind (lua_State *L) {
   size_t pos;
   std::string_view s = luaL_checkstring(L, 1);
   std::string_view sub = luaL_checkstring(L, 2);
-  
-  lua_warning(L, "string.lfind(s, sub) is deprecated, replace the call with string.find(s, sub, 1, true).", 0);
+
+  pluto_warning(L, "string.lfind(s, sub) is deprecated, replace the call with string.find(s, sub, 1, true).");
 
   pos = s.find(sub);
   if (pos != std::string::npos) {
@@ -2164,10 +2164,10 @@ static int str_find_first_of (lua_State *L) {
   std::string_view d = luaL_checkstring(L, 2);
 
   {
-    std::string msg = "string.find_first_of could be replaced with string.find using pattern [";
+    std::string msg = "string.find_first_of is deprecated; replace it with string.find using pattern [";
     msg.append(d);
     msg.push_back(']');
-    lua_warning(L, msg.c_str(), 0);
+    pluto_warning(L, msg.c_str());
   }
 
   pos = s.find_first_of(d);
@@ -2188,10 +2188,10 @@ static int str_find_first_not_of (lua_State *L) {
   std::string_view d = luaL_checkstring(L, 2);
 
   {
-    std::string msg = "string.find_first_not_of could be replaced with string.find using pattern [^";
+    std::string msg = "string.find_first_not_of is deprecated; replace it with string.find using pattern [^";
     msg.append(d);
     msg.push_back(']');
-    lua_warning(L, msg.c_str(), 0);
+    pluto_warning(L, msg.c_str());
   }
 
   pos = s.find_first_not_of(d);
@@ -2212,10 +2212,10 @@ static int str_find_last_of (lua_State *L) {
   std::string_view d = luaL_checkstring(L, 2);
 
   {
-    std::string msg = "string.find_last_of could be replaced with string.rfind using pattern [";
+    std::string msg = "string.find_last_of is deprecated; replace it with string.rfind using pattern [";
     msg.append(d);
     msg.push_back(']');
-    lua_warning(L, msg.c_str(), 0);
+    pluto_warning(L, msg.c_str());
   }
 
   pos = s.find_last_of(d);
@@ -2236,10 +2236,10 @@ static int str_find_last_not_of (lua_State *L) {
   std::string_view d = luaL_checkstring(L, 2);
 
   {
-    std::string msg = "string.find_last_not_of could be replaced with string.rfind using pattern [^";
+    std::string msg = "string.find_last_not_of is deprecated; replace it with string.rfind using pattern [^";
     msg.append(d);
     msg.push_back(']');
-    lua_warning(L, msg.c_str(), 0);
+    pluto_warning(L, msg.c_str());
   }
 
   pos = s.find_last_not_of(d);
