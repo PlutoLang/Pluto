@@ -266,7 +266,7 @@ static int l_sha256(lua_State *L)
   const bool binary = (lua_gettop(L) >= 2 && lua_toboolean(L, 2));
   auto digest = soup::sha256::hash(text, l);
   if (!binary) {
-    digest = soup::string::bin2hex(digest);
+    digest = soup::string::bin2hexLower(digest);
   }
   pluto_pushstring(L, digest);
   return 1;
