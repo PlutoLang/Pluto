@@ -1457,6 +1457,15 @@ void lua_warning (lua_State *L, const char *msg, int tocont) {
 }
 
 
+void pluto_warning (lua_State *L, const char *msg) {
+  if (luaG_addsrcinfo(L, msg)) {
+    lua_warning(L, lua_tostring(L, -1), 0);
+    lua_pop(L, 1);
+  }
+  else lua_warning(L, msg, 0);
+}
+
+
 
 LUA_API void *lua_newuserdatauv (lua_State *L, size_t size, int nuvalue) {
   Udata *u;
