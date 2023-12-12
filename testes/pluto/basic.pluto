@@ -2136,6 +2136,14 @@ do
     (function (x) a=x end)("hello")
     assert(a == "hello")
 end
+do
+    local t = {}
+    ("test string"):len()
+end
+do
+    local t = {}
+    "test string":len()
+end
 
 print "Testing universal functions."
 do
