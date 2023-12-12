@@ -1105,15 +1105,6 @@ static l_noret undefgoto (LexState *ls, Labeldesc *gt) {
 }
 
 
-static void closelocals (FuncState *fs, int nactvar) {
-  //int stklevel = reglevel(fs, nactvar);  /* level outside the block */
-  removevars(fs, nactvar);  /* remove block locals */
-  lua_assert(nactvar == fs->nactvar);  /* back to level on entry */
-  //luaK_codeABC(fs, OP_CLOSE, stklevel, 0, 0);
-  //fs->freereg = stklevel;
-}
-
-
 static void leaveblock (FuncState *fs) {
   BlockCnt *bl = fs->bl;
   LexState *ls = fs->ls;
@@ -2982,18 +2973,12 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   TString* const begin_switch = luaS_newliteral(ls->L, "pluto_begin_switch");
   TString* default_case = nullptr;
   int first_pc, default_pc;
-  int cbl = -1;
 
   if (gett(ls) == TK_CASE) {
     luaX_next(ls); /* Skip 'case' */
     first = casecond(ls, ctrl, tk);
     first_pc = luaK_getlabel(fs);
-    cbl = fs->nactvar;
     caselist(ls, ud);
-    if (luaX_lookbehind(ls).token == TK_BREAK) {
-      closelocals(fs, cbl);
-      cbl = -1;
-    }
   }
   else {
     newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
@@ -3002,9 +2987,6 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   std::vector<SwitchCase> cases{};
 
   while (gett(ls) != TK_END) {
-    if (cbl == -1) {
-      cbl = fs->nactvar;
-    }
     auto case_line = ls->getLineNumber();
     if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
@@ -3023,15 +3005,9 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
       checknext(ls, tk);
       caselist(ls, ud);
     }
-    if (luaX_lookbehind(ls).token == TK_BREAK) {
-      closelocals(fs, cbl);
-      cbl = -1;
-    }
   }
 
-  if (cbl != -1) {  /* last block did not have 'break'? */
-    closelocals(fs, cbl);
-
+  if (luaX_lookbehind(ls).token != TK_BREAK) {  /* last block did not have 'break'? */
     if (tk == ':') {  /* switch statement? */
       /* jump to the end of switch as otherwise we would loop infinitely */
       lbreak(ls, 1, ls->getLineNumber());
