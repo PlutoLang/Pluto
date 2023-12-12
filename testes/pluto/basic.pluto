@@ -72,8 +72,10 @@ do
     ]]
 
     -- TypeHint::merge should copy over function info
-    local f = function(a) end
-    f(1)
+    do
+        local f = function(a) end
+        f(1)
+    end
 
     -- Possible exception here
     local function dummy(f: function)
