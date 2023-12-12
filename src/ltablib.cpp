@@ -481,6 +481,7 @@ static int tcontains (lua_State *L) {
 static int tfilter (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
+  const bool callwithkey = lua_istrue(L, 3);
 
   lua_pushvalue(L, 1);
   lua_pushnil(L);
@@ -488,9 +489,15 @@ static int tfilter (lua_State *L) {
   while (lua_next(L, -2)) {
     /* stack now: table, key, value */
     lua_pushvalue(L, 2);
-    lua_pushvalue(L, -2);
-    /* stack now: table, key, value, function, value */
-    lua_call(L, 1, 1);
+    if (callwithkey) {
+      lua_pushvalue(L, -3);
+      lua_pushvalue(L, -3);
+      lua_call(L, 2, 1);
+    }
+    else {
+      lua_pushvalue(L, -2);
+      lua_call(L, 1, 1);
+    }
     /* stack now: table, key, value, bKeep */
 
     const bool bKeep = lua_toboolean(L, -1);
@@ -517,6 +524,7 @@ static int tfilter (lua_State *L) {
 static int tmap (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
+  const bool callwithkey = lua_istrue(L, 3);
 
   lua_newtable(L);
   lua_pushvalue(L, 1);
@@ -525,9 +533,15 @@ static int tmap (lua_State *L) {
   while (lua_next(L, -2)) {
     /* stack now: table, key, value */
     lua_pushvalue(L, 2);
-    lua_pushvalue(L, -2);
-    /* stack now: table, key, value, function, value */
-    lua_call(L, 1, 1);
+    if (callwithkey) {
+      lua_pushvalue(L, -3);
+      lua_pushvalue(L, -3);
+      lua_call(L, 2, 1);
+    }
+    else {
+      lua_pushvalue(L, -2);
+      lua_call(L, 1, 1);
+    }
     /* stack now: table, key, value, mapped_value */
     lua_pushvalue(L, -3);
     lua_pushvalue(L, -2);
