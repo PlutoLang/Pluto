@@ -3161,7 +3161,9 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
     case '{': {  /* constructor */
       if (prop) prop->emplaceTypeDesc(VT_TABLE);
       constructor(ls, v);
-      break;
+      if (ls->t.token == '[' || ls->t.token == ':')
+        break;
+      return;
     }
     case TK_FUNCTION: {
       luaX_next(ls);
