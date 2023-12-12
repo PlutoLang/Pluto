@@ -2140,10 +2140,6 @@ do
     local t = {}
     ("test string"):len()
 end
-do
-    local t = {}
-    "test string":len()
-end
 
 print "Testing universal functions."
 do
