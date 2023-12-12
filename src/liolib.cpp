@@ -31,8 +31,8 @@
 
 
 /* Basic error handling. Exceptions have better error messages than error_codes. */
-#define Protect(c) \
-  try { c; } catch (const std::exception& err) { luaL_error(L, err.what()); } 
+#define Protect(...) \
+  try { __VA_ARGS__; } catch (const std::exception& err) { luaL_error(L, err.what()); } 
 
 
 /*
@@ -893,12 +893,17 @@ static int absolute (lua_State *L) {
   return 1;
 }
 
-static int parent (lua_State *L) {
+static int io_part (lua_State *L) {
   FS_FUNCTION
   Protect(
-    const std::filesystem::path f = getStringStreamPath(L);
-    const auto r = f.parent_path();
-    lua_pushstring(L, (const char*)r.u8string().c_str());
+    std::filesystem::path path = getStringStreamPath(L);
+    static const char *const parts[] = {"parent", "name"};
+    int part = luaL_checkoption(L, 2, nullptr, parts);
+    if (part == 0)
+      path = path.parent_path();
+    else
+      path = path.filename();
+    lua_pushstring(L, (const char*)path.u8string().c_str());
   );
 
   return 1;
@@ -1089,7 +1094,7 @@ static const luaL_Reg iolib[] = {
   {"makedir", makedir},
   {"makedirs", makedirs},
   {"absolute", absolute},
-  {"parent", parent},
+  {"part", io_part},
   {"copy", io_copy}, /* added in Pluto 0.8.0 */
   {"copyto", io_copyto}, /* deprecated as of Pluto 0.8.0 */
   {"exists", exists},
