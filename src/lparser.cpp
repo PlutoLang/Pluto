@@ -4618,7 +4618,7 @@ static void trystat (LexState *ls) {
   expdesc pcall;
   singlevar(ls, &pcall, luaX_newliteral(ls, "pcall"));
   luaK_exp2nextreg(ls->fs, &pcall);
-  lua_assert(cc.v.k == VNONRELOC);
+  lua_assert(pcall.k == VNONRELOC);
 
   /* local (try results) = table.pack(pcall(function() */
   FuncState new_fs;
