@@ -1,4 +1,4 @@
-io.currentdir(io.parent(io.absolute(arg[0])))
+io.currentdir(io.part(io.absolute(arg[0]), "parent"))
 
 dofile("pluto/basic.pluto")
 assert(dofile("pluto/many-consts.pluto") == "Hello255")
