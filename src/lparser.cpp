@@ -2765,7 +2765,9 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         if (v->k == VLOCAL) {
           vd = getlocalvardesc(ls->fs, v->u.var.vidx);
         _funcdesc_from_vd:
-          if (vd->vd.prop->descs[0].type == VT_FUNC) { /* just in case... */
+          if (vd->vd.prop->descs[0].type == VT_FUNC  /* just in case... */
+            && vd->vd.prop->descs[0].proto != nullptr  /* real function/not just a hint? */
+          ) {
             funcdesc = &vd->vd.prop->descs[0];
             if (prop) { /* propagate return type */
               *prop = *vd->vd.prop->descs[0].retn;

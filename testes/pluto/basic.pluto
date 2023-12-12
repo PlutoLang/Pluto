@@ -75,6 +75,11 @@ do
     local f = function(a) end
     f(1)
 
+    -- Possible exception here
+    local function dummy(f: function)
+        local a = f()
+    end
+
     assert_warn([[local a = 69; local b: string = a]]) -- type mismatch in local-to-local assignment
     assert_warn([[g = 69; local l: string = g]]) -- type mismatch in global-to-local assignment
 
