@@ -1253,13 +1253,35 @@ do
 end
 do
     local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
-    table.filter(t, |x| -> x % 2 ~= 0)
+    table.filter(t, |v| -> v % 2 ~= 0)
     assert(t[1] == 5)
     assert(t[2] == nil)
     assert(t[3] == 3)
     assert(t[4] == nil)
     assert(t[5] == 1)
     assert(t.even == nil)
+    assert(t.odd == 9)
+end
+do
+    local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
+    table.filter(t, |k, v| -> v % 2 ~= 0, true)
+    assert(t[1] == 5)
+    assert(t[2] == nil)
+    assert(t[3] == 3)
+    assert(t[4] == nil)
+    assert(t[5] == 1)
+    assert(t.even == nil)
+    assert(t.odd == 9)
+end
+do
+    local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
+    table.filter(t, |k, v| -> type(k) == "string", true)
+    assert(t[1] == nil)
+    assert(t[2] == nil)
+    assert(t[3] == nil)
+    assert(t[4] == nil)
+    assert(t[5] == nil)
+    assert(t.even == 8)
     assert(t.odd == 9)
 end
 do
@@ -1292,11 +1314,27 @@ do
 end
 do
     local t = { 1, 2, 3, key = 4 }
-    t = table.map(t, |x| -> x * 2)
+    t = table.map(t, |v| -> v * 2)
     assert(t[1] == 2)
     assert(t[2] == 4)
     assert(t[3] == 6)
     assert(t.key == 8)
+end
+do
+    local t = { 1, 2, 3, key = 4 }
+    t = table.map(t, |k, v| -> v * 2, true)
+    assert(t[1] == 2)
+    assert(t[2] == 4)
+    assert(t[3] == 6)
+    assert(t.key == 8)
+end
+do
+    local t = { 1, 2, 3, key = 4 }
+    t = table.map(t, |k, v| -> type(k) == "string" ? 0 : k * 2, true)
+    assert(t[1] == 2)
+    assert(t[2] == 4)
+    assert(t[3] == 6)
+    assert(t.key == 0)
 end
 do
     assert(compareversions("0.1.0", "0.1.0") == 0)
