@@ -138,7 +138,7 @@ local vector3
     if format[1] ~= 'z' then
       assert(format[1] == nil or format[1] == 'y', "Invalid up-axis in format")
       local yaw = math.deg(math.atan(self.x, self.z))
-      if format[2] ~= 'l' then
+      if format[2] == 'r' then
         yaw *= -1
       end
       local pitch = math.deg(math.asin(self.y / self:magnitude()))
@@ -170,7 +170,7 @@ local vector3
     format ??= ""
     if format[1] ~= 'z' then
       assert(format[1] == nil or format[1] == 'y', "Invalid up-axis in format")
-      local handedness_factor = (format[2] ~= 'l' ? -1 : +1)
+      local handedness_factor = (format[2] == 'r' ? -1 : +1)
       local yaw_radians = math.rad(self.y)
       local pitch_radians = math.rad(self.x) * handedness_factor
       return new vector3(
