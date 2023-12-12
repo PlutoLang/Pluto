@@ -145,7 +145,7 @@ struct TypeDesc {
   ValType type;
 
   /* function info */
-  Proto* proto;
+  Proto* proto = nullptr;
   TypeHint* retn;
   static constexpr int MAX_TYPED_PARAMS = 10;
   TypeHint* params[MAX_TYPED_PARAMS];
