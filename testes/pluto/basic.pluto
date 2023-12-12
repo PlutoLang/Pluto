@@ -888,6 +888,21 @@ do
     assert(c.closed)
 end
 do
+    switch 1 do
+        case 0:
+            local tbl = {}
+            break
+        case 1:
+            local tbl = {}
+            for k, v in "test string":split(" ") do
+                tbl[k] = v
+            end
+            assert(tbl[1] == "test")
+            assert(tbl[2] == "string")
+            break
+    end
+end
+do
     local function getResponse(word)
         switch word do
             case "hi", "hello":
