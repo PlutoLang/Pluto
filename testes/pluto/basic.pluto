@@ -1047,6 +1047,38 @@ end
 
 print "Testing standard library additions."
 do
+    local v3 = require"pluto:vector3"
+    -- Left-handed Z-up: Thumb points left, index finger points forward, middle finger points up.
+    assert(v3(1, 0, 0):torot("zl") == v3(0, 0, -90))
+    assert(v3(0, 1, 0):torot("zl") == v3(0, 0, 0))
+    assert(v3(0, 0, 1):torot("zl") == v3(90, 0, 0))
+    -- Right-handed Z-up: Thumb points right, index finger points forward, middle finger points up.
+    assert(v3(1, 0, 0):torot("zr") == v3(0, 0, 90))
+    assert(v3(0, 1, 0):torot("zr") == v3(0, 0, 0))
+    assert(v3(0, 0, 1):torot("zr") == v3(90, 0, 0))
+    -- Left-handed Y-up: Thumb points right, index finger points up, middle finger points forward.
+    assert(v3(1, 0, 0):torot("yl") == v3(0, 90, 0))
+    assert(v3(0, 1, 0):torot("yl") == v3(90, 0, 0))
+    assert(v3(0, 0, 1):torot("yl") == v3(0, 0, 0))
+    -- Right-handed Y-up: Thumb points left, index finger points up, middle finger points forward.
+    assert(v3(1, 0, 0):torot("yr") == v3(0, -90, 0))
+    assert(v3(0, 1, 0):torot("yr") == v3(90, 0, 0))
+    assert(v3(0, 0, 1):torot("yr") == v3(0, 0, 0))
+    -- And now the inverse.
+    assert(v3(0, 0, -90):todir("zl").x == 1)
+    assert(v3(0, 0, 0):todir("zl").y == 1)
+    assert(v3(90, 0, 0):todir("zl").z == 1)
+    assert(v3(0, 0, 90):todir("zr").x == 1)
+    assert(v3(0, 0, 0):todir("zr").y == 1)
+    assert(v3(90, 0, 0):todir("zr").z == 1)
+    assert(v3(0, 90, 0):todir("yl").x == 1)
+    assert(v3(90, 0, 0):todir("yl").y == 1)
+    assert(v3(0, 0, 0):todir("yl").z == 1)
+    assert(v3(0, -90, 0):todir("yr").x == 1)
+    assert(v3(90, 0, 0):todir("yr").y == 1)
+    assert(v3(0, 0, 0):todir("yr").z == 1)
+end
+do
     local crypto = require("crypto")
     assert(crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
     assert(crypto.fnv1a("hello world") == 8618312879776256743)
