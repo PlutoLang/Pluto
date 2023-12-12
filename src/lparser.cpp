@@ -1106,7 +1106,7 @@ static l_noret undefgoto (LexState *ls, Labeldesc *gt) {
 
 
 static void closelocals (FuncState *fs, int nactvar) {
-  int stklevel = reglevel(fs, nactvar);  /* level outside the block */
+  //int stklevel = reglevel(fs, nactvar);  /* level outside the block */
   removevars(fs, nactvar);  /* remove block locals */
   lua_assert(nactvar == fs->nactvar);  /* back to level on entry */
   //luaK_codeABC(fs, OP_CLOSE, stklevel, 0, 0);
