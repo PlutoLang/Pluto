@@ -306,10 +306,10 @@ typedef struct global_State {
   void* user_data;       /* a pointer to data you, the user, would like to specify */
 #endif
 #ifdef PLUTO_ETL_ENABLE
-  std::time_t deadline;
+  std::time_t deadline;  /* internal use only; do not use this in your own code. */
 #endif
 #ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
-  TValue table_mt;
+  TValue table_mt;  /* internal use only; do not use this in your own code. */
 #endif
 } global_State;
 
