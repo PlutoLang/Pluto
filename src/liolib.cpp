@@ -22,6 +22,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "vendor/Soup/soup/string.hpp"
+
 
 #ifdef PLUTO_NO_FILESYSTEM
 #define FS_FUNCTION return 0;
@@ -811,7 +813,11 @@ static int f_flush (lua_State *L) {
     f = luaL_checkstring(L, idx);
   }
 
+#if SOUP_CPP20
+  return soup::string::toUtf8Type(f);
+#else
   return std::filesystem::u8path(f);
+#endif
 }
 
 
