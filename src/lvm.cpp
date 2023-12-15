@@ -2453,7 +2453,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         StkId ra = RA(i);
         const Instruction* callpc = pc + GETARG_Bx(i);
         i = *callpc;
-        if ((!ttisfunction(s2v(ra)))) {
+        if ((!ttisfunction(s2v(ra)))
+            && ttisnil(luaT_gettmbyobj(L, s2v(ra), TM_CALL))
+        ) {
           setobjs2s(L, ra + 1, ra);
           setfvalue(s2v(ra), luaB_next);
         }
