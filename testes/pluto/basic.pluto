@@ -2140,6 +2140,21 @@ do
     local t = {}
     ("test string"):len()
 end
+do
+    -- Generalized Iteration should ignore tables that have '__call' metamethods
+    local called_mm, iterated = false, false
+    local t = { 1 }
+    setmetatable(t, {
+        __call = function()
+            called_mm = true
+        end
+    })
+    for v in t do
+        iterated = true
+    end
+    assert(called_mm)
+    assert(not iterated)
+end
 
 print "Testing universal functions."
 do
