@@ -1,4 +1,4 @@
-CC=g++
+CXX=g++ -std=c++17 -O3 -flto
 CFLAGS=-c -Wall -msha -msse4.1
 
 LIBNAME=libsoupintrin.a

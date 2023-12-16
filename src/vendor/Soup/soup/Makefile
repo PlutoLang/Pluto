@@ -1,4 +1,4 @@
-CC=g++
+CXX=g++ -std=c++17 -O3 -flto
 CFLAGS=-c -Wall -DSOUP_USE_INTRIN
 
 LIBNAME=libsoup.a
