@@ -99,6 +99,12 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
     <ClCompile Include="src\lurllib.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\sha1.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\Intrin\sha1_transform_intrin.cpp">
+      <Filter>vendor\Soup\Intrin</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -240,6 +246,9 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\ShortString.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\sha1.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>
