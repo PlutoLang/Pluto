@@ -1,5 +1,5 @@
 <?php
-$clang = "clang -std=c++17 -fno-rtti -DSOUP_USE_INTRIN";
+$clang = "clang -std=c++17 -O3 -fno-rtti -DSOUP_USE_INTRIN";
 if (defined("PHP_WINDOWS_VERSION_MAJOR"))
 {
 	$clang .= " -D_CRT_SECURE_NO_WARNINGS";
