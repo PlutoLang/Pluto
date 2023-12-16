@@ -485,6 +485,8 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
         luaX_next(ls);
       }
     } while (testnext(ls, '|'));
+    if (!th.contains(VT_NIL) && testnext(ls, '?'))
+      th.emplaceTypeDesc(VT_NIL);
   }
   return th;
 }
