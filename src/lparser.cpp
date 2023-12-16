@@ -437,7 +437,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
       luaX_newstring(ls, "" v, (sizeof(v)/sizeof(char)) - 1));
 
 
-static TypeHint* new_typehint (LexState *ls) {
+[[nodiscard]] static TypeHint* new_typehint (LexState *ls) {
   return ::new (ls->parse_time_allocations.emplace_back(malloc(sizeof(TypeHint)))) TypeHint();
 }
 
