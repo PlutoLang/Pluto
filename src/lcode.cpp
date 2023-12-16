@@ -1106,6 +1106,7 @@ void luaK_self (FuncState *fs, expdesc *e, expdesc *key) {
 void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   luaK_exp2anyreg(fs, func);
   int freg = func->u.reg;  /* register where 'func' was placed */
+  luaK_dischargevars(fs, e);
   if (e->k == VNIL || e->k == VFALSE || e->k == VTRUE || e->k == VKSTR || e->k == VK || e->k == VKFLT || e->k == VKINT || e->k == VRELOC) {  /* 'e' is yet to be loaded into a register? */
     freeexp(fs, func);
     const int basereg = fs->freereg;  /* base register for call */
