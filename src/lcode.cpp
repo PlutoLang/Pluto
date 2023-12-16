@@ -1105,7 +1105,7 @@ void luaK_self (FuncState *fs, expdesc *e, expdesc *key) {
 */
 void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   luaK_exp2anyreg(fs, func);
-  const int freg = func->u.reg;  /* register where 'func' was placed */
+  int freg = func->u.reg;  /* register where 'func' was placed */
   if (e->k == VNIL || e->k == VFALSE || e->k == VTRUE || e->k == VKSTR || e->k == VK || e->k == VKFLT || e->k == VKINT || e->k == VRELOC) {  /* 'e' is yet to be loaded into a register? */
     freeexp(fs, func);
     const int basereg = fs->freereg;  /* base register for call */
@@ -1125,6 +1125,13 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
     e->k = VNONRELOC;  /* expression has a fixed register */
     luaK_reserveregs(fs, 2);  /* function and first arg */
     if (ereg == e->u.reg) {  /* argument is in the register where the function should be? */
+      if (freg == e->u.reg + 1) {  /* function is in the register where the argument should be? */
+        /* oh dear. we have to swap them around. move function into a temporary register. */
+        luaK_checkstack(fs, 1);
+        int tmpreg = e->u.reg + 2;
+        luaK_codeABC(fs, OP_MOVE, tmpreg, freg, 0);
+        freg = tmpreg;
+      }
       luaK_codeABC(fs, OP_MOVE, e->u.reg + 1, ereg, 0);  /* move it where it should be */
       ereg = e->u.reg + 1;  /* and don't do it again */
     }
