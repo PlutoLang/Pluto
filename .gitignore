@@ -13,3 +13,7 @@
 int/
 out/
 Pluto.vcxproj.user
+
+# Linux Executables
+src/pluto
+src/plutoc
