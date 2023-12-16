@@ -476,6 +476,7 @@
     <ClCompile Include="src\lvector3lib.cpp" />
     <ClCompile Include="src\lvm.cpp" />
     <ClCompile Include="src\lzio.cpp" />
+    <ClCompile Include="src\vendor\Soup\Intrin\sha1_transform_intrin.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\sha256_transform_intrin.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base32.cpp" />
@@ -490,6 +491,7 @@
     <ClCompile Include="src\vendor\Soup\soup\JsonNull.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\JsonObject.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\JsonString.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\sha1.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\sha256.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\spaceship.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\unicode.cpp" />
@@ -554,6 +556,7 @@
     <ClInclude Include="src\vendor\Soup\soup\JsonString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Optional.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Reader.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\sha1.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\sha256.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ShortString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\spaceship.hpp" />
