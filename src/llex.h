@@ -56,6 +56,7 @@ enum RESERVED {
   TK_COAL,    /* null coal.        */
   TK_WALRUS,  /* walrus operator   */
   TK_ARROW,
+  TK_PIPE,
 };
 
 #define FIRST_COMPAT TK_PUSE
