@@ -6,7 +6,7 @@ ifeq ($(shell uname -m),x86_64)
 endif
 
 LIBNAME=libsoupintrin.a
-OBJS=sha256_transform_intrin.o
+OBJS=sha1_transform_intrin.o sha256_transform_intrin.o
 
 all: $(LIBNAME)
 
