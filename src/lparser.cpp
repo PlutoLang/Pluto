@@ -2795,7 +2795,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         funcargs(ls, v, funcdesc);
         break;
       }
-      case TK_ARROW: {  /* '->' NAME */
+      case TK_PIPE: {  /* '|>' NAME */
         luaX_next(ls);
         luaK_setoneret(ls->fs, v);
         expdesc func;

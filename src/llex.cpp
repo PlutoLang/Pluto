@@ -62,7 +62,7 @@ static const char *const luaX_tokens [] = {
     "//", "..", "...", "==", ">=", "<=", "~=", "<=>",
     "<<", ">>", "::", "<eof>",
     "<number>", "<integer>", "<name>", "<string>",
-    "**", "??", ":=", "->",
+    "**", "??", ":=", "->", "|>",
 };
 
 
@@ -952,10 +952,24 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           return '*';
         }
       }
+      case '|': {
+        int c = ls->current;
+        next(ls);
+        ls->appendLineBuff(c);
+        if (check_next1(ls, '=')) {
+          seminfo->i = c;
+          ls->appendLineBuff('=');
+          return '=';
+        }
+        if (check_next1(ls, '>')) {
+          ls->appendLineBuff('>');
+          return TK_PIPE;
+        }
+        return c;
+      }
       /* compound support */
-      case '+':
-      case '^': case '%':
-      case '|': case '&': { 
+      case '+': case '^':
+      case '%': case '&': {
         int c = ls->current;
         next(ls);
         if (check_next1(ls, '=')) {
