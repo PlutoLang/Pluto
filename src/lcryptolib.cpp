@@ -14,6 +14,7 @@
 #include <sstream>
 #include <iomanip>
 
+#include "vendor/Soup/soup/sha1.hpp"
 #include "vendor/Soup/soup/sha256.hpp"
 #include "vendor/Soup/soup/string.hpp"
 
@@ -259,6 +260,19 @@ static int lua(lua_State *L)
 }
 
 
+static int l_sha1(lua_State *L)
+{
+  const auto text = pluto_checkstring(L, 1);
+  const bool binary = lua_istrue(L, 2);
+  auto digest = soup::sha1::hash(text);
+  if (!binary) {
+    digest = soup::string::bin2hexLower(digest);
+  }
+  pluto_pushstring(L, digest);
+  return 1;
+}
+
+
 static int l_sha256(lua_State *L)
 {
   size_t l;
@@ -305,6 +319,7 @@ static int hexdigest(lua_State *L)
 static const luaL_Reg funcs[] = {
   {"hexdigest", hexdigest},  /* deprecated since 0.8.0 */
   {"random", random},
+  {"sha1", l_sha1},
   {"sha256", l_sha256},
   {"lua", lua},
   {"crc32", crc32},
