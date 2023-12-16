@@ -1109,6 +1109,9 @@ do
     assert($crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
     assert($crypto.fnv1a("hello world") == 8618312879776256743)
     assert($crypto.joaat("hello world") == 1045060183)
+
+    assert(crypto.sha256("Pluto") == "8dad5f6a7dd2dcd8c35ec2fd7babb499bcad60d27d73fe73eca2ce025dfd3b47")
+    assert(crypto.sha256("Pluto", true) == "\x8d\xad\x5f\x6a\x7d\xd2\xdc\xd8\xc3\x5e\xc2\xfd\x7b\xab\xb4\x99\xbc\xad\x60\xd2\x7d\x73\xfe\x73\xec\xa2\xce\x02\x5d\xfd\x3b\x47")
 end
 do
     local base64 = require("base64")
