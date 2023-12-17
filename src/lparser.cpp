@@ -2801,7 +2801,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         luaK_setoneret(ls->fs, v);
         expdesc func;
         singlevar(ls, &func);
-        luaK_prepcallfirstarg(fs, v, &func);  // TODO: the way luaK_prepcallfirstarg is currently designed does not account for 'func' being able to be discharged into a VRELOC, so the bytecode generated for this is rather bad.
+        luaK_prepcallfirstarg(fs, v, &func);
         lua_assert(v->k == VNONRELOC);
         int base = v->u.reg;  /* base register for call */
         constexpr int nparams = 1;
