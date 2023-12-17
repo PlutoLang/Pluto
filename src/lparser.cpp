@@ -2807,6 +2807,8 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         init_exp(v, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
         luaK_fixline(fs, line);
         fs->freereg = base + 1;
+        if (ls->t.token == '(' || ls->t.token == TK_STRING || ls->t.token == '{')
+          return;
         break;
       }
       default: return;
