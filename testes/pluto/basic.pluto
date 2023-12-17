@@ -317,6 +317,15 @@ do
     assert(str[-4] == nil)
     assert(str[-5] == nil)
 end
+do
+    local str = "AB"
+    str[#str + 1] = "C"
+    assert(str == "ABC")
+    str[1] = "X"
+    assert(str == "XBC")
+    str[-1] = "Z"
+    assert(str == "XBZ")
+end
 
 print "Testing continue statement."
 do
