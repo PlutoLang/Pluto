@@ -4221,7 +4221,6 @@ static void localstat (LexState *ls) {
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
   int vidx, kind;  /* index and kind of last variable */
-  TypeHint hint{};
   int nvars = 0;
   int nexps;
   expdesc e;
@@ -4234,13 +4233,11 @@ static void localstat (LexState *ls) {
     if (is_constexpr)
       luaK_semerror(ls, "<constexpr> must only be used on the last variable in local list");
     TString* name = str_checkname(ls, N_OVERRIDABLE);
-    vidx = new_localvar(ls, name, line, {}, false);
+    vidx = new_localvar(ls, name, line, gettypehint(ls), false);
     variable_names.emplace(name);
-    hint = gettypehint(ls);
     kind = getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
-    *var->vd.hint = hint;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
       if (toclose != -1) { /* one already present? */
         luaX_setpos(ls, starting_tidx);
