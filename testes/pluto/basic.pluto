@@ -2314,6 +2314,18 @@ do
     assert(get_val() <=> get_val() == 0)
 end
 
+print "Testing pipe operator."
+do
+    local function f(x)
+        assert(x == 69)
+    end
+
+    -- If pipe operator is used, subsequent function calls in the chain must also use pipe operator.
+    -- So, this should be interpreted as 'f(x) f(x)' and not 'f(f(69)(69))'.
+    (69) |> f
+    (69) |> f
+end
+
 print("Testing modified require semantics.")
 do
     local currentdir = io.absolute(io.currentdir())
