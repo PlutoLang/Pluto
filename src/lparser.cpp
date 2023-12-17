@@ -110,11 +110,10 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, int flags 
 ** This is only called for vital errors, like lexer and/or syntax problems.
 */
 static l_noret throwerr (LexState *ls, const char *err, const char *here, int line) {
-  const bool has_near = (strstr(err, " near ") != nullptr);
   err = luaG_addinfo(ls->L, err, ls->source, line);
   Pluto::ErrorMessage msg{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
   msg.addMsg(err);
-  if (!has_near) {
+  if (ls->t.token == TK_EOS && strstr(err, "<eof>") == nullptr) {  /* REPL expects to see "<eof>" so it knows the expression is unfinished */
     msg.addMsg(" (near ")
        .addMsg(luaX_token2str(ls, ls->t.token))
        .addMsg(")");
