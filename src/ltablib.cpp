@@ -611,10 +611,26 @@ static int treorder (lua_State* L) {
 }
 
 
+static int tsize (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  Table *t = hvalue(index2value(L, 1));
+
+  const bool hashonly = lua_istrue(L, 2);
+
+  unsigned int size = luaH_gethsize(t);
+  if (!hashonly)
+    size += luaH_realasize(t);
+
+  lua_pushinteger(L, size);
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"size", tsize},
   {"reorder", treorder},
   {"reverse", treverse},
   {"map", tmap},
