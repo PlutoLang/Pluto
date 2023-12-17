@@ -432,7 +432,8 @@ static int sort (lua_State *L) {
     lua_settop(L, 2);  /* make sure there are two arguments */
     auxsort(L, 1, (IdxT)n, 0);
   }
-  return 0;
+  lua_settop(L, 1);
+  return 1;
 }
 
 
