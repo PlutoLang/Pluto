@@ -2662,21 +2662,6 @@ static void primaryexp (LexState *ls, expdesc *v) {
       luaK_dischargevars(ls->fs, v);
       return;
     }
-    case '}':
-    case '{': { // Unfinished table constructors.
-       if (ls->t.token == '{') {
-         throwerr(ls, "unfinished table constructor", "did you mean to close with '}'?");
-       }
-       else {
-         throwerr(ls, "unfinished table constructor", "did you mean to enter with '{'?");
-       }
-       return;
-    }
-    case '|': { // Potentially mistyped lambda expression. People may confuse '->' with '=>'.
-      while (testnext(ls, '|') || testnext(ls, TK_NAME) || testnext(ls, ','));
-      throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
-      return;
-    }
     case '$': {
       luaX_next(ls); /* skip '$' */
       const_expr(ls, v);
@@ -2687,6 +2672,9 @@ static void primaryexp (LexState *ls, expdesc *v) {
       luaX_next(ls);
       parentexp(ls, v);
       return;
+    }
+    case '{': {
+      throwerr(ls, "unexpected symbol near '{'", "if you meant to begin this statement with a table, wrap it in parentheses.");
     }
     default: {
       if (ls->t.token == ')' && ls->getContext() == PARCTX_BODY) {
