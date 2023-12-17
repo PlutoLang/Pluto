@@ -1360,6 +1360,21 @@ do
     assert(t.key == 0)
 end
 do
+    assert(0 == {1,2,}:size(true))
+    assert(1 == {1,2, a = "a" }:size(true))
+    assert(2 == {1,2, a = "a", b = "b" }:size(true))
+    assert(3 == {1,2, a = "a", b = "b", c = "c" }:size(true))
+    assert(4 == {1,2, a = "a", b = "b", c = "c", d = "d" }:size(true))
+    assert(5 == {1,2, a = "a", b = "b", c = "c", d = "d", e = "e" }:size(true))
+
+    assert(2 == {1,2,}:size(false))
+    assert(3 == {1,2, a = "a" }:size(false))
+    assert(4 == {1,2, a = "a", b = "b" }:size(false))
+    assert(5 == {1,2, a = "a", b = "b", c = "c" }:size(false))
+    assert(6 == {1,2, a = "a", b = "b", c = "c", d = "d" }:size(false))
+    assert(7 == {1,2, a = "a", b = "b", c = "c", d = "d", e = "e" }:size(false))
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
