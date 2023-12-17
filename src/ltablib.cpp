@@ -523,8 +523,7 @@ static int tfilter (lua_State *L) {
     lua_pop(L, 1);
     /* stack now: table, key */
   }
-  
-  lua_settop(L, 1);
+  /* stack now: table */
   return 1;
 }
 
