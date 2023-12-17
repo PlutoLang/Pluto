@@ -304,6 +304,7 @@ enum ParserContext : lu_byte {
   PARCTX_CREATE_VARS,
   PARCTX_FUNCARGS,
   PARCTX_BODY,
+  PARCTX_LAMBDA_BODY,
 };
 
 struct ClassData {
