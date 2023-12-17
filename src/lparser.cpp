@@ -2058,11 +2058,13 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
   parlist(ls);
   checknext(ls, '|');
   checknext(ls, TK_ARROW);
+  ls->pushContext(PARCTX_LAMBDA_BODY);
   expr(ls, e);
   luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
   new_fs.f->lastlinedefined = ls->getLineNumber();
   codeclosure(ls, e);
   close_func(ls);
+  ls->popContext(PARCTX_LAMBDA_BODY);
 }
 
 
@@ -2754,6 +2756,9 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
       case '(': case TK_STRING: case '{': {  /* funcargs */
         if (flags & E_NO_CALL) {
           return;
+        }
+        if (luaX_lookbehind(ls).line != ls->t.line && ls->getContext() == PARCTX_LAMBDA_BODY) {
+          throw_warn(ls, "possibly unwanted function call", "place a semicolon at the end of this line", luaX_lookbehind(ls).line, WT_POSSIBLE_TYPO);
         }
         Vardesc *vd;
         TypeDesc *funcdesc = nullptr;
