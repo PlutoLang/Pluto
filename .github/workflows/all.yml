@@ -1,8 +1,8 @@
 name: Builds
 on:
-  push: {}
-  pull_request:
+  push:
     branches: [ "main" ]
+  pull_request: {}
 jobs:
   ubuntu-22-04:
     runs-on: ubuntu-22.04
