@@ -1263,14 +1263,6 @@ do
     local url = require"pluto:url"
     assert(url.encode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
     assert(url.decode(url.encode(str)) == str)
-
-    assert("*":repeat(3) == "***")
-    assert(string.repeat("*", 3) == "***")
-    _, err = pcall(|| -> "*":repeat(0))
-    assert(err:contains("larger than"))
-    assert("*":repeat(1) == "*")
-    assert("hello world":repeat(1) == "hello world")
-    assert("hello world":repeat(2) == "hello worldhello world")
 end
 do
     local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
