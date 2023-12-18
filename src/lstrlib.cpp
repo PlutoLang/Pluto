@@ -2358,30 +2358,10 @@ static int str_formatint (lua_State *L) {
   return 1;
 }
 
-
-static int str_repeat (lua_State *L) {
-  const auto input = pluto_checkstring(L, 1);
-  auto count = static_cast<size_t>(luaL_checkinteger(L, 2));
-
-  luaL_check(L, count < 1, "argument 'count' for string.repeat must be larger than zero");
-
-  std::string buffer;
-  buffer.reserve(input.size() * count);
-
-  while ((count--) != 0) {
-    buffer += input;
-  }
-
-  pluto_pushstring(L, buffer);
-  return 1;
-}
-
-
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
-  {"repeat", str_repeat},
   {"formatint", str_formatint},
   {"replace", str_replace},
   {"truncate", str_truncate},
