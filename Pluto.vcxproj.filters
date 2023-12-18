@@ -105,6 +105,7 @@
     <ClCompile Include="src\vendor\Soup\Intrin\sha1_transform_intrin.cpp">
       <Filter>vendor\Soup\Intrin</Filter>
     </ClCompile>
+    <ClCompile Include="src\lstarlib.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
