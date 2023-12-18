@@ -50,6 +50,7 @@ namespace Pluto {
   extern const PreloadedLibrary preloaded_assert;
   extern const PreloadedLibrary preloaded_vector3;
   extern const PreloadedLibrary preloaded_url;
+  extern const PreloadedLibrary preloaded_star;
 
   inline const PreloadedLibrary* const all_preloaded[] = {
     &preloaded_crypto,
@@ -59,6 +60,7 @@ namespace Pluto {
     &preloaded_assert,
     &preloaded_vector3,
     &preloaded_url,
+    &preloaded_star,
   };
 }
 
@@ -69,6 +71,7 @@ LUAMOD_API int (luaopen_base64)  (lua_State *L);
 LUAMOD_API int (luaopen_assert)  (lua_State *L);
 LUAMOD_API int (luaopen_vector3) (lua_State *L);
 LUAMOD_API int (luaopen_url)     (lua_State *L);
+LUAMOD_API int (luaopen_star)    (lua_State *L);
 
 /* open all previous libraries */
 LUALIB_API void (luaL_openlibs) (lua_State *L);
