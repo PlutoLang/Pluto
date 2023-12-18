@@ -559,11 +559,14 @@ static int tfilter (lua_State *L) {
 }
 
 
+template <bool make_copy>
 static int tmap (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
   const bool callwithkey = lua_istrue(L, 3);
 
+  if (make_copy)
+    lua_newtable(L);
   lua_pushvalue(L, 1);
   lua_pushnil(L);
   /* stack now: table, key */
@@ -583,12 +586,14 @@ static int tmap (lua_State *L) {
     lua_pushvalue(L, -3);
     lua_pushvalue(L, -2);
     /* stack now: table, key, value, mapped_value, key, mapped_value */
-    lua_settable(L, -6);
+    lua_settable(L, make_copy ? -7 : -6);
     /* stack now: table, key, value, mapped_value */
     lua_pop(L, 2);
     /* stack now: table, key */
   }
   /* stack now: table */
+  if (make_copy)
+    lua_pop(L, 1);
   return 1;
 }
 
@@ -690,7 +695,8 @@ static const luaL_Reg tab_funcs[] = {
   {"size", tsize},
   {"reorder", treorder},
   {"reverse", treverse},
-  {"map", tmap},
+  {"map", tmap<false>},
+  {"mapped", tmap<true>},
   {"filter", tfilter},
   {"foreach", foreach},
   {"contains", tcontains},
