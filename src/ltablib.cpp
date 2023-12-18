@@ -627,10 +627,37 @@ static int tsize (lua_State *L) {
 }
 
 
+static int treduce (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  luaL_checktype(L, 2, LUA_TFUNCTION);
+
+  lua_Integer accum = luaL_optinteger(L, 3, 0);
+  lua_pushvalue(L, 1);
+  lua_pushnil(L);
+  /* stack now: table, key */
+  while (lua_next(L, -2)) {
+    /* stack now: table, key, value */
+    lua_pushvalue(L, 2);
+    lua_pushinteger(L, accum);
+    /* stack now: table, key, value, func, accum */
+    lua_pushvalue(L, -3);
+    /* stack now: table, key, value, func, accum, value */
+    lua_call(L, 2, 1);
+    /* stack now: table, key, value, new_accum */
+    accum = lua_tointeger(L, -1);
+    lua_pop(L, 2);
+    /* stack now: table, key */
+  }
+  lua_pushinteger(L, accum);
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"reduce", treduce},
   {"size", tsize},
   {"reorder", treorder},
   {"reverse", treverse},
