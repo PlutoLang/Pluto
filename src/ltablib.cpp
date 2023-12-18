@@ -517,12 +517,19 @@ static int tcontains (lua_State *L) {
 }
 
 
+template <bool make_copy>
 static int tfilter (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
   const bool callwithkey = lua_istrue(L, 3);
 
+  if (make_copy)
+    lua_newtable(L);
   lua_pushvalue(L, 1);
+  if (make_copy) {
+    trivialcopy(L);
+    lua_pop(L, 1);
+  }
   lua_pushnil(L);
   /* stack now: table, key */
   while (lua_next(L, -2)) {
@@ -701,7 +708,8 @@ static const luaL_Reg tab_funcs[] = {
   {"reverse", treverse},
   {"map", tmap<false>},
   {"mapped", tmap<true>},
-  {"filter", tfilter},
+  {"filter", tfilter<false>},
+  {"filtered", tfilter<true>},
   {"foreach", foreach},
   {"contains", tcontains},
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
