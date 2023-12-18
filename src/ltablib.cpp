@@ -605,9 +605,14 @@ static int tmap (lua_State *L) {
 }
 
 
+template <bool make_copy>
 static int treverse (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
 
+  if (make_copy) {
+    lua_settop(L, 1);
+    lua_newtable(L);
+  }
   const lua_Unsigned l = lua_rawlen(L, 1);
   for (lua_Unsigned i = 1; i <= l/2; ++i) {
     lua_pushinteger(L, l - i + 1);
@@ -616,8 +621,15 @@ static int treverse (lua_State *L) {
     lua_pushinteger(L, i);
     lua_pushinteger(L, l - i + 1);
     lua_rawget(L, 1);
-    lua_rawset(L, 1);
-    lua_rawset(L, 1);
+    lua_rawset(L, make_copy ? 2 : 1);
+    lua_rawset(L, make_copy ? 2 : 1);
+  }
+  if (make_copy && (l % 2 != 0)) {
+    /* for oddly sized tables, we need to manually copy the element in the middle */
+    lua_pushinteger(L, l/2+1);
+    lua_pushinteger(L, l/2+1);
+    lua_rawget(L, 1);
+    lua_rawset(L, 2);
   }
   return 1;
 }
@@ -705,7 +717,8 @@ static const luaL_Reg tab_funcs[] = {
   {"reduce", treduce},
   {"size", tsize},
   {"reorder", treorder},
-  {"reverse", treverse},
+  {"reverse", treverse<false>},
+  {"reversed", treverse<true>},
   {"map", tmap<false>},
   {"mapped", tmap<true>},
   {"filter", tfilter<false>},
