@@ -1408,6 +1408,16 @@ do
     assert(ts[3] == 3)
 end
 do
+    local t = { 1, 2, 3 }
+    local tm = t:mapped(|n| -> n * 2)
+    assert(t[1] == 1)
+    assert(t[2] == 2)
+    assert(t[3] == 3)
+    assert(tm[1] == 2)
+    assert(tm[2] == 4)
+    assert(tm[3] == 6)
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
