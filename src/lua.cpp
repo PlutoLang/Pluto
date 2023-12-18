@@ -631,6 +631,7 @@ static void doREPL (lua_State *L) {
 */
 static int pmain (lua_State *L) {
   int argc = (int)lua_tointeger(L, 1);
+  luaL_checktype(L, 2, LUA_TLIGHTUSERDATA);  /* [Pluto] let's not deref any nullptrs if the user is being funny with the 'debug' library */
   char **argv = (char **)lua_touserdata(L, 2);
   int script;
   int args = collectargs(argv, &script);
