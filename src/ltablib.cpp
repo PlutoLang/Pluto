@@ -534,7 +534,6 @@ static int tmap (lua_State *L) {
   luaL_checktype(L, 2, LUA_TFUNCTION);
   const bool callwithkey = lua_istrue(L, 3);
 
-  lua_newtable(L);
   lua_pushvalue(L, 1);
   lua_pushnil(L);
   /* stack now: table, key */
