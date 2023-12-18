@@ -4,7 +4,7 @@
 # == CHANGE THE SETTINGS BELOW TO SUIT YOUR ENVIRONMENT =======================
 
 # Your platform. See PLATS for possible values.
-PLAT= mingw
+PLAT= guess
 
 CXX= g++ -std=c++17 -O3 -flto
 CXXFLAGS= -Wno-multichar $(SYSCFLAGS) $(MYCFLAGS)
