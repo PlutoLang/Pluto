@@ -1418,6 +1418,17 @@ do
     assert(tr[3] == 1)
 end
 do
+    local t = { 1, 2, 3 }
+    t[2] = nil
+    local tr = t:reordered()
+    assert(t[1] == 1)
+    assert(t[2] == nil)
+    assert(t[3] == 3)
+    assert(tr[1] == 1)
+    assert(tr[2] == 3)
+    assert(tr[3] == nil)
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
