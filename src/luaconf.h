@@ -295,7 +295,11 @@
   #ifndef PLUTO_C_LINKAGE
     #define PLUTO_C_LINKAGE false
   #endif
-  #define PLUTO_DLLSPEC
+  #ifndef _WIN32
+    #define PLUTO_DLLSPEC __attribute__((visibility("default")))
+  #else
+    #define PLUTO_DLLSPEC
+  #endif
 #endif
 
 // Additions by Pluto that are not compatible with `extern "C"` use PLUTO_API instead of LUA_API.

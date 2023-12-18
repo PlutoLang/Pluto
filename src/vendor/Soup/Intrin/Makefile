@@ -1,4 +1,4 @@
-CXX=g++ -std=c++17 -O3 -flto
+CXX=g++ -std=c++17 -O3 -fvisibility=hidden -flto
 CFLAGS=-c -Wall -msha -msse4.1
 
 LIBNAME=libsoupintrin.a

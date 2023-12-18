@@ -6,7 +6,7 @@
 # Your platform. See PLATS for possible values.
 PLAT= guess
 
-CXX= g++ -std=c++17 -O3 -flto
+CXX= g++ -std=c++17 -O3 -flto -fvisibility=hidden
 CXXFLAGS= -Wno-multichar $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm $(SYSLIBS) $(MYLIBS)
