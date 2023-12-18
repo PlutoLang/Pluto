@@ -636,8 +636,13 @@ static int treverse (lua_State *L) {
 
 
 TValue *index2value (lua_State *L, int idx);
+template <bool make_copy>
 static int treorder (lua_State* L) {
   luaL_checktype(L, 1, LUA_TTABLE);
+  lua_settop(L, 1);
+
+  if (make_copy)
+    lua_newtable(L);
 
   lua_pushvalue(L, 1); // stack: table
   lua_pushnil(L); // stack: table, key
@@ -645,22 +650,25 @@ static int treorder (lua_State* L) {
   lua_Integer idx = 1;
   while (lua_next(L, -2)) { // stack: table, key, value
     if (lua_isinteger(L, -2)) {
-      if (auto val = lua_tointeger(L, -2); val > idx) {
-        lua_pushinteger(L, val); // stack: table, key, value, key
-        lua_pushnil(L); // stack: table, key, value, key, value
-        lua_settable(L, 1); // stack: table, key, value
+      if (!make_copy) {
+        if (auto val = lua_tointeger(L, -2); val > idx) {
+          lua_pushinteger(L, val); // stack: table, key, value, key
+          lua_pushnil(L); // stack: table, key, value, key, value
+          lua_settable(L, 1); // stack: table, key, value
+        }
       }
 
       lua_pushinteger(L, idx++); // stack: table, key, value, key
       lua_pushvalue(L, -2); // stack; table, key, value, key, value
-      lua_settable(L, 1); // stack; table, key, value
+      lua_settable(L, make_copy ? 2 : 1); // stack; table, key, value
     }
 
     lua_pop(L, 1); // stack: table, key
   }
+  if (make_copy)
+    lua_pop(L, 1);
 
-  luaH_resizearray(L, hvalue(index2value(L, 1)), (unsigned int)idx);
-  lua_settop(L, 1);
+  luaH_resizearray(L, hvalue(index2value(L, -1)), (unsigned int)idx);
   return 1;
 }
 
@@ -716,7 +724,8 @@ static int treduce (lua_State *L) {
 static const luaL_Reg tab_funcs[] = {
   {"reduce", treduce},
   {"size", tsize},
-  {"reorder", treorder},
+  {"reorder", treorder<false>},
+  {"reordered", treorder<true>},
   {"reverse", treverse<false>},
   {"reversed", treverse<true>},
   {"map", tmap<false>},
