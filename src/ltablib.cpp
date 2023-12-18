@@ -423,7 +423,33 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up,
 }
 
 
+/*
+** For each key-value pair in the table at -1, assigns it to the table at -2.
+** Does not modify the stack.
+*/
+static void trivialcopy (lua_State* L) {
+  lua_pushnil(L);
+  /* stack now: newtable, table, key */
+  while (lua_next(L, -2)) {
+    /* stack now: newtable, table, key, value */
+    lua_pushvalue(L, -2);
+    lua_pushvalue(L, -2);
+    lua_settable(L, -6);
+    lua_pop(L, 1);
+  }
+}
+
+
+template <bool make_copy>
 static int sort (lua_State *L) {
+  if (make_copy) {
+    lua_pushvalue(L, 2);
+    lua_newtable(L);
+    lua_pushvalue(L, 1);
+    trivialcopy(L);
+    lua_pop(L, 1);
+    L->ci->func.p += 2;
+  }
   lua_Integer n = aux_getn(L, 1, TAB_RW);
   if (n > 1) {  /* non-trivial interval? */
     luaL_argcheck(L, n < INT_MAX, 1, "array too big");
@@ -432,7 +458,11 @@ static int sort (lua_State *L) {
     lua_settop(L, 2);  /* make sure there are two arguments */
     auxsort(L, 1, (IdxT)n, 0);
   }
-  lua_settop(L, 1);
+  if (make_copy) {
+    lua_pushvalue(L, 1);
+    L->ci->func.p -= 2;
+  }
+  else lua_settop(L, 1);
   return 1;
 }
 
@@ -678,7 +708,8 @@ static const luaL_Reg tab_funcs[] = {
   {"unpack", tunpack},
   {"remove", tremove},
   {"move", tmove},
-  {"sort", sort},
+  {"sort", sort<false>},
+  {"sorted", sort<true>},
   {"getn", getn},
   {NULL, NULL}
 };
