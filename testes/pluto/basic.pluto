@@ -1391,6 +1391,12 @@ do
     assert(7 == {1,2, a = "a", b = "b", c = "c", d = "d", e = "e" }:size(false))
 end
 do
+    local t = { 1, 2, 3 }
+    assert(t:reduce(|a, b| -> a + b) == 6)
+    assert(t:reduce(math.max, math.mininteger) == 3)
+    assert(t:reduce(math.min, math.maxinteger) == 1)
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
