@@ -444,6 +444,7 @@
     <ClCompile Include="src\lopcodes.cpp" />
     <ClCompile Include="src\loslib.cpp" />
     <ClCompile Include="src\lparser.cpp" />
+    <ClCompile Include="src\lstarlib.cpp" />
     <ClCompile Include="src\lstate.cpp" />
     <ClCompile Include="src\lstring.cpp" />
     <ClCompile Include="src\lstrlib.cpp" />
