@@ -425,7 +425,7 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up,
 
 /*
 ** For each key-value pair in the table at -1, assigns it to the table at -2.
-** Does not modify the stack.
+** Pops the latter table from the stack.
 */
 static void trivialcopy (lua_State* L) {
   lua_pushnil(L);
@@ -437,18 +437,17 @@ static void trivialcopy (lua_State* L) {
     lua_settable(L, -6);
     lua_pop(L, 1);
   }
+  lua_pop(L, 1);
 }
 
 
 template <bool make_copy>
 static int sort (lua_State *L) {
   if (make_copy) {
-    lua_pushvalue(L, 2);
     lua_newtable(L);
     lua_pushvalue(L, 1);
     trivialcopy(L);
-    lua_pop(L, 1);
-    L->ci->func.p += 2;
+    lua_replace(L, 1);
   }
   lua_Integer n = aux_getn(L, 1, TAB_RW);
   if (n > 1) {  /* non-trivial interval? */
@@ -458,11 +457,7 @@ static int sort (lua_State *L) {
     lua_settop(L, 2);  /* make sure there are two arguments */
     auxsort(L, 1, (IdxT)n, 0);
   }
-  if (make_copy) {
-    lua_pushvalue(L, 1);
-    L->ci->func.p -= 2;
-  }
-  else lua_settop(L, 1);
+  lua_settop(L, 1);
   return 1;
 }
 
@@ -528,7 +523,6 @@ static int tfilter (lua_State *L) {
   lua_pushvalue(L, 1);
   if (make_copy) {
     trivialcopy(L);
-    lua_pop(L, 1);
   }
   lua_pushnil(L);
   /* stack now: table, key */
