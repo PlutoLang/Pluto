@@ -2334,6 +2334,8 @@ do
     -- So, this should be interpreted as 'f(x) f(x)' and not 'f(f(69)(69))'.
     (69) |> f
     (69) |> f
+
+    assert(("69") |> tonumber|16| == 0x69)
 end
 
 print("Testing modified require semantics.")
