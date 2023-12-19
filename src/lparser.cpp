@@ -1779,6 +1779,7 @@ static void setvararg (FuncState *fs, int nparams) {
 enum expflags {
   E_NO_COLON = 1 << 0,
   E_NO_CALL  = 1 << 1,
+  E_NO_BOR   = 1 << 2,
 };
 
 static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr);
@@ -2803,11 +2804,20 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
       case TK_PIPE: {  /* '|>' NAME */
         luaX_next(ls);
         expdesc func;
-        singlevar(ls, &func);
+        expr(ls, &func, nullptr, E_NO_CALL | E_NO_BOR);
         luaK_prepcallfirstarg(fs, v, &func);
         lua_assert(v->k == VNONRELOC);
         int base = v->u.reg;  /* base register for call */
-        constexpr int nparams = 1;
+        int nparams = 1;
+        if (testnext(ls, '|')) {
+          do {
+            expdesc arg;
+            expr(ls, &arg, nullptr, E_NO_BOR);
+            luaK_exp2nextreg(fs, &arg);
+            ++nparams;
+          } while (testnext(ls, ','));
+          checknext(ls, '|');
+        }
         init_exp(v, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
         luaK_fixline(fs, line);
         fs->freereg = base + 1;
@@ -3398,6 +3408,8 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   }
   /* expand while operators have priorities higher than 'limit' */
   op = getbinopr(ls->t.token);
+  if ((flags & E_NO_BOR) && op == OPR_BOR)
+    op = OPR_NOBINOPR;
   while (op != OPR_NOBINOPR && priority[op].left > limit) {
     if (prop && op != OPR_COAL)
       prop->clear();
