@@ -630,24 +630,28 @@ static int treduce (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
 
-  lua_Integer accum = luaL_optinteger(L, 3, 0);
+  if (!lua_isnoneornil(L, 3)) {
+    lua_pushvalue(L, 3);
+  }
+  else lua_pushinteger(L, 0);
+
   lua_pushvalue(L, 1);
   lua_pushnil(L);
-  /* stack now: table, key */
+  /* stack now: accum, table, key */
   while (lua_next(L, -2)) {
-    /* stack now: table, key, value */
+    /* stack now: accum, table, key, value */
     lua_pushvalue(L, 2);
-    lua_pushinteger(L, accum);
-    /* stack now: table, key, value, func, accum */
+    lua_pushvalue(L, -5);
+    /* stack now: accum, table, key, value, func, accum */
     lua_pushvalue(L, -3);
-    /* stack now: table, key, value, func, accum, value */
+    /* stack now: accum, table, key, value, func, accum, value */
     lua_call(L, 2, 1);
-    /* stack now: table, key, value, new_accum */
-    accum = lua_tointeger(L, -1);
-    lua_pop(L, 2);
-    /* stack now: table, key */
+    /* stack now: accum, table, key, value, new_accum */
+    lua_replace(L, -5);
+    lua_pop(L, 1);
+    /* stack now: accum, table, key */
   }
-  lua_pushinteger(L, accum);
+  lua_pop(L, 1);
   return 1;
 }
 
