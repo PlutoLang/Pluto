@@ -2798,6 +2798,9 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         break;
       }
       case TK_PIPE: {  /* '|>' NAME */
+        if (flags & E_NO_CALL) {
+          return;
+        }
         luaX_next(ls);
         expdesc func;
         expr(ls, &func, nullptr, E_NO_CALL | E_NO_BOR);
