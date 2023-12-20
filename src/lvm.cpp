@@ -2690,13 +2690,18 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
     }
-#ifdef PLUTO_ETL_ENABLE
-    if (L->l_G->deadline < std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) {
-      PLUTO_ETL_TIMESUP
-      return;
-    }
-#endif
+    L->checkEtl();
   }
 }
+
+
+#ifdef PLUTO_ETL_ENABLE
+void lua_State::checkEtl() {
+  lua_State* const L = this;
+  if (l_unlikely(L->l_G->deadline < std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count())) {
+    PLUTO_ETL_TIMESUP
+  }
+}
+#endif
 
 /* }================================================================== */
