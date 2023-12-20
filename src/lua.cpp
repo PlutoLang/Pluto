@@ -676,6 +676,17 @@ static int pmain (lua_State *L) {
 
 #ifdef _WIN32
 int wmain (int argc, wchar_t **wargv) {
+#ifdef PLUTO_USE_COLORED_OUTPUT
+  if (auto hSTDOUT = GetStdHandle(STD_OUTPUT_HANDLE); hSTDOUT != INVALID_HANDLE_VALUE) {
+    DWORD mode;
+    if (GetConsoleMode(hSTDOUT, &mode))
+      SetConsoleMode(hSTDOUT, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_WINDOW_INPUT);
+  }
+#endif
+#ifndef PLUTO_NO_UTF8
+  SetConsoleCP(CP_UTF8);
+  SetConsoleOutputCP(CP_UTF8);
+#endif
   std::vector<char*> argv_arr; argv_arr.reserve(argc + 1);
   std::vector<std::string> argv_buf; argv_buf.reserve(argc);
   for (int i = 0; i != argc; ++i) {
