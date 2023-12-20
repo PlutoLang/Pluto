@@ -363,6 +363,12 @@ struct lua_State {
   [[nodiscard]] inline Registry GetReg() {
       return this;
   }
+
+#ifdef PLUTO_ETL_ENABLE
+  void checkEtl();
+#else
+  void checkEtl() {}
+#endif
 };
 
 
