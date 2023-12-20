@@ -744,6 +744,7 @@ static int luaB_range (lua_State *L) {
   for (lua_Integer i = start; i <= end; i += step, ++idx) {
     lua_pushinteger(L, i);
     lua_rawseti(L, -2, idx);
+    L->checkEtl();
   }
   return 1;
 }
