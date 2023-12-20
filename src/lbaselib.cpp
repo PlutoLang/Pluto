@@ -729,7 +729,31 @@ static int luaB_compareversions (lua_State *L) {
 }
 
 
+static int luaB_range (lua_State *L) {
+  lua_Integer start, end, step;
+  if (!lua_isnoneornil(L, 2)) {
+    start = luaL_checkinteger(L, 1);
+    end = luaL_checkinteger(L, 2);
+    step = luaL_optinteger(L, 3, 1);
+  }
+  else {
+    start = 1;
+    end = luaL_checkinteger(L, 1);
+    step = 1;
+  }
+
+  lua_newtable(L);
+  lua_Integer idx = 1;
+  for (lua_Integer i = start; i <= end; i += step, ++idx) {
+    lua_pushinteger(L, i);
+    lua_rawseti(L, -2, idx);
+  }
+  return 1;
+}
+
+
 static const luaL_Reg base_funcs[] = {
+  {"range", luaB_range},
   {"compareversions", luaB_compareversions},
   {"exportvar", luaB_exportvar},
   {"dumpvar", luaB_dumpvar},
