@@ -37,6 +37,12 @@ local function deepCompare(t1, t2)
     end
   end
 
+  for k, v in t2 do
+    if t1[k] == nil then
+      return false
+    end
+  end
+
   return true
 end
 
