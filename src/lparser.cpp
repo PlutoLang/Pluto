@@ -1781,6 +1781,7 @@ enum expflags {
   E_NO_COLON = 1 << 0,
   E_NO_CALL  = 1 << 1,
   E_NO_BOR   = 1 << 2,
+  E_PIPERHS  = 1 << 3,
 };
 
 static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr);
@@ -2754,6 +2755,9 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         if (flags & E_NO_CALL) {
           return;
         }
+        if ((flags & E_PIPERHS) && ls->t.token == '(') {
+          return;
+        }
         if (luaX_lookbehind(ls).line != ls->t.line && (ls->getContext() == PARCTX_LAMBDA_BODY || v->k == VCALL)) {
           throw_warn(ls, "possibly unwanted function call", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", luaX_lookbehind(ls).line), WT_POSSIBLE_TYPO);
           ls->L->top.p--;
@@ -2798,12 +2802,12 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         break;
       }
       case TK_PIPE: {  /* '|>' NAME */
-        if (flags & E_NO_CALL) {
+        if ((flags & E_NO_CALL) || (flags & E_PIPERHS)) {
           return;
         }
         luaX_next(ls);
         expdesc func;
-        expr(ls, &func, nullptr, E_NO_CALL | E_NO_BOR);
+        expr(ls, &func, nullptr, E_NO_BOR | E_PIPERHS);
         luaK_prepcallfirstarg(fs, v, &func);
         lua_assert(v->k == VNONRELOC);
         int base = v->u.reg;  /* base register for call */
