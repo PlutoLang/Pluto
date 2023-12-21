@@ -205,11 +205,11 @@ end
 function module.equal(value1, value2)
   if type(value1) == "table" and type(value2) == "table" then
     if not deepCompare(value1, value2) then
-      return new AssertionError("equal", value1, value2):raise()
+      return new AssertionError("equal", value1, value2):setNameOverride("Value 1", "Value 2"):raise()
     end
   else
     if value1 ~= value2 then
-      return new AssertionError("equal", value1, value2):raise()
+      return new AssertionError("equal", value1, value2):setNameOverride("Value 1", "Value 2"):raise()
     end
   end
 end
@@ -217,11 +217,11 @@ end
 function module.nequal(value1, value2)
   if type(value1) == "table" and type(value2) == "table" then
     if deepCompare(value1, value2) then
-      return new AssertionError("nequal", value1, value2):raise()
+      return new AssertionError("nequal", value1, value2):setNameOverride("Value 1", "Value 2"):raise()
     end
   else
     if value1 == value2 then
-      return new AssertionError("nequal", value1, value2):raise()
+      return new AssertionError("nequal", value1, value2):setNameOverride("Value 1", "Value 2"):raise()
     end
   end
 end
