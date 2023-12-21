@@ -11,6 +11,7 @@
 
 
 #include <stdlib.h>
+#include <time.h>
 
 #include "lua.h"
 
@@ -126,6 +127,21 @@ static int luaB_yield (lua_State *L) {
 }
 
 
+static int sleepcont (lua_State *L, int status, lua_KContext resume_after) {
+  if (clock() < resume_after) {
+    return lua_yieldk(L, lua_gettop(L), resume_after, sleepcont);
+  }
+  return 0;
+}
+
+
+static int luaB_sleep (lua_State *L) {
+  auto resume_after = static_cast<lua_KContext>(luaL_checkinteger(L, 1));
+  resume_after += static_cast<lua_KContext>(clock());
+  return lua_yieldk(L, lua_gettop(L), resume_after, sleepcont);
+}
+
+
 #define COS_RUN		0
 #define COS_DEAD	1
 #define COS_YIELD	2
@@ -209,6 +225,7 @@ static const luaL_Reg co_funcs[] = {
   {"status", luaB_costatus},
   {"wrap", luaB_cowrap},
   {"yield", luaB_yield},
+  {"sleep", luaB_sleep},
   {"isyieldable", luaB_yieldable},
   {"close", luaB_close},
   {NULL, NULL}
