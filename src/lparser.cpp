@@ -4814,7 +4814,10 @@ static void statement (LexState *ls, TypeHint *prop) {
       classstat(ls);
       break;
     }
-    case TK_LOCAL: case TK_LET: {  /* stat -> localstat */
+    case TK_LET:
+      throw_warn(ls, "'let' will be removed in future versions of Pluto. use 'local' instead.", WT_DEPRECATED);
+      [[fallthrough]];
+    case TK_LOCAL: {  /* stat -> localstat */
       luaX_next(ls);  /* skip LOCAL */
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
