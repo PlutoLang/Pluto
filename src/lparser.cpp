@@ -597,15 +597,17 @@ static int searchvar (FuncState *fs, TString *n, expdesc *var);
 static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int line, bool check_globals = true, bool check_locals = true) {
   if (fs->bl->isSwitch())
     return;  /* ignore switch block as same local could be redefined in a different case */
+  std::string n = name->toCpp();
+  if (n == "(for state)" || n == "(switch control value)" || n == "(try results)")
+    return;
   FuncState *current_fs = fs;
   while (current_fs != nullptr) {
-    std::string n = name->toCpp();
     if (check_locals) {
       expdesc var;
       if (searchvar(current_fs, name, &var) != -1) {
         Vardesc* desc = getlocalvardesc(current_fs, var.u.var.vidx);
         LocVar* local = localdebuginfo(current_fs, var.u.var.vidx);
-        if ((n != "(for state)" && n != "(switch control value)" && n != "(try results)") && (local && local->varname == name)) { // Got a match.
+        if (local && local->varname == name) { // Got a match.
           throw_warn(ls,
             "duplicate local declaration",
               luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
