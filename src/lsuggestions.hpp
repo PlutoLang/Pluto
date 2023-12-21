@@ -40,6 +40,9 @@ struct SuggestionsState {
       if (strcmp(vd->vd.name->contents, "Pluto_operator_new") != 0
           && strcmp(vd->vd.name->contents, "Pluto_operator_extends") != 0
           && strcmp(vd->vd.name->contents, "Pluto_operator_instanceof") != 0
+          && strcmp(vd->vd.name->contents, "(for state)") != 0
+          && strcmp(vd->vd.name->contents, "(switch control value)") != 0
+          && strcmp(vd->vd.name->contents, "(try results)") != 0
         ) {
         push("local", vd->vd.name->contents);
       }
