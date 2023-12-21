@@ -1464,6 +1464,20 @@ do
     assert(t[4] == 7)
     assert(t[5] == 9)
 end
+do
+    local cat = require"pluto:cat"
+
+    local data = "List: With Value\n\tChild: With Value\n"
+    local t = cat.decode(data)
+    assert(t.List.__value == "With Value")
+    assert(t.List.Child == "With Value")
+    assert(cat.encode(t) == data)
+
+    data = "Hello: World\n"
+    t = cat.decode(data)
+    assert(t.Hello == "World")
+    assert(cat.encode(t) == data)
+end
 
 print "Testing default table metatable."
 do

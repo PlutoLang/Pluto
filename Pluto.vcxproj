@@ -423,6 +423,7 @@
     <ClCompile Include="src\lbase32.cpp" />
     <ClCompile Include="src\lbase64.cpp" />
     <ClCompile Include="src\lbaselib.cpp" />
+    <ClCompile Include="src\lcatlib.cpp" />
     <ClCompile Include="src\lcode.cpp" />
     <ClCompile Include="src\lcorolib.cpp" />
     <ClCompile Include="src\lcryptolib.cpp" />
@@ -482,6 +483,7 @@
     <ClCompile Include="src\vendor\Soup\soup\base.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base32.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base64.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\cat.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\CpuInfo.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\json.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\JsonArray.cpp" />
@@ -537,6 +539,7 @@
     <ClInclude Include="src\vendor\Soup\soup\base32.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\base64.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\bitutil.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\cat.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CpuInfo.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CryptoHashAlgo.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Endian.hpp" />
