@@ -106,6 +106,10 @@
       <Filter>vendor\Soup\Intrin</Filter>
     </ClCompile>
     <ClCompile Include="src\lstarlib.cpp" />
+    <ClCompile Include="src\lcatlib.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\cat.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -250,6 +254,9 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\sha1.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\cat.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>
