@@ -2330,12 +2330,15 @@ do
         assert(x == 69)
     end
 
-    -- If pipe operator is used, subsequent function calls in the chain must also use pipe operator.
-    -- So, this should be interpreted as 'f(x) f(x)' and not 'f(f(69)(69))'.
-    (69) |> f
-    (69) |> f
-
+    -- Additional arguments shorthand (longhand would be writing a lambda)
     assert(("69") |> tonumber|16| == 0x69)
+
+    -- Try to avoid syntax ambiguity by not allowing function call with '(' in the chain after pipe operator was used.
+    ;(69) |> f (69) |> f
+
+    -- Other types of function calls are still okay, tho, since string and table are not valid statements.
+    ;("Hello") |> require"json".encode |> |x| -> assert(x == [["Hello"]])
+    ;("Hello") |> (require"json".encode) |> |x| -> assert(x == [["Hello"]])
 end
 
 print("Testing modified require semantics.")
