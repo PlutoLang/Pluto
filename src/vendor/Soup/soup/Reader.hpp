@@ -391,7 +391,7 @@ namespace soup
 				}
 				line.push_back(c);
 			}
-			return false;
+			return !line.empty();
 		}
 	};
 }
