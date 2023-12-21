@@ -2752,7 +2752,8 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
           return;
         }
         if (luaX_lookbehind(ls).line != ls->t.line && (ls->getContext() == PARCTX_LAMBDA_BODY || v->k == VCALL)) {
-          throw_warn(ls, "possibly unwanted function call", "place a semicolon at the end of this line", luaX_lookbehind(ls).line, WT_POSSIBLE_TYPO);
+          throw_warn(ls, "possibly unwanted function call", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", luaX_lookbehind(ls).line), WT_POSSIBLE_TYPO);
+          ls->L->top.p--;
         }
         Vardesc *vd;
         TypeDesc *funcdesc = nullptr;
