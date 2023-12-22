@@ -1,8 +1,8 @@
 CXX=g++ -std=c++17 -O3 -fvisibility=hidden -flto
-CFLAGS=-c -Wall -msha -msse4.1
+CFLAGS=-c -Wall -maes -mpclmul -msha -msse4.1
 
 LIBNAME=libsoupintrin.a
-OBJS=sha1_transform_intrin.o sha256_transform_intrin.o
+OBJS=aes_helper.o crc32_pclmul.o sha1_transform_intrin.o sha256_transform_intrin.o
 
 all: $(LIBNAME)
 
