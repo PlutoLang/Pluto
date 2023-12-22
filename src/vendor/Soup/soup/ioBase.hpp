@@ -33,24 +33,24 @@ namespace soup
 		const bool native_endianness;
 
 		ioVirtualBase(Endian endian) noexcept
-			: native_endianness(NATIVE_ENDIAN == endian)
+			: native_endianness(ENDIAN_NATIVE == endian)
 		{
 		}
 
 		ioVirtualBase(bool little_endian) noexcept
-			: ioVirtualBase(little_endian ? LITTLE_ENDIAN : BIG_ENDIAN)
+			: ioVirtualBase(little_endian ? ENDIAN_LITTLE : ENDIAN_BIG)
 		{
 		}
 
 	public:
 		[[nodiscard]] bool isBigEndian() const noexcept
 		{
-			return (BIG_ENDIAN == NATIVE_ENDIAN) == native_endianness;
+			return (ENDIAN_BIG == ENDIAN_NATIVE) == native_endianness;
 		}
 
 		[[nodiscard]] bool isLittleEndian() const noexcept
 		{
-			return (LITTLE_ENDIAN == NATIVE_ENDIAN) == native_endianness;
+			return (ENDIAN_LITTLE == ENDIAN_NATIVE) == native_endianness;
 		}
 
 		virtual ~ioVirtualBase() = default;
@@ -79,12 +79,12 @@ namespace soup
 
 		bool u16_be(uint16_t& v)
 		{
-			return u16(v, NATIVE_ENDIAN == BIG_ENDIAN);
+			return u16(v, ENDIAN_NATIVE == ENDIAN_BIG);
 		}
 
 		bool u16_le(uint16_t& v)
 		{
-			return u16(v, NATIVE_ENDIAN == LITTLE_ENDIAN);
+			return u16(v, ENDIAN_NATIVE == ENDIAN_LITTLE);
 		}
 
 	protected:
@@ -110,12 +110,12 @@ namespace soup
 
 		bool u32_be(uint32_t& v)
 		{
-			return u32(v, NATIVE_ENDIAN == BIG_ENDIAN);
+			return u32(v, ENDIAN_NATIVE == ENDIAN_BIG);
 		}
 
 		bool u32_le(uint32_t& v)
 		{
-			return u32(v, NATIVE_ENDIAN == LITTLE_ENDIAN);
+			return u32(v, ENDIAN_NATIVE == ENDIAN_LITTLE);
 		}
 
 	protected:
@@ -145,12 +145,12 @@ namespace soup
 
 		bool u64_be(uint64_t& v)
 		{
-			return u64(v, NATIVE_ENDIAN == BIG_ENDIAN);
+			return u64(v, ENDIAN_NATIVE == ENDIAN_BIG);
 		}
 
 		bool u64_le(uint64_t& v)
 		{
-			return u64(v, NATIVE_ENDIAN == LITTLE_ENDIAN);
+			return u64(v, ENDIAN_NATIVE == ENDIAN_LITTLE);
 		}
 
 	protected:
@@ -255,12 +255,12 @@ namespace soup
 
 		bool u24_be(uint32_t& v)
 		{
-			return u24(v, NATIVE_ENDIAN == BIG_ENDIAN);
+			return u24(v, ENDIAN_NATIVE == ENDIAN_BIG);
 		}
 
 		bool u24_le(uint32_t& v)
 		{
-			return u24(v, NATIVE_ENDIAN == LITTLE_ENDIAN);
+			return u24(v, ENDIAN_NATIVE == ENDIAN_LITTLE);
 		}
 
 	protected:
