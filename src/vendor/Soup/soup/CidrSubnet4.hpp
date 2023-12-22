@@ -27,7 +27,7 @@ namespace soup
 		{
 		}
 
-		[[nodiscard]] constexpr bool contains(const IpAddr& addr) const noexcept
+		[[nodiscard]] SOUP_CONSTEXPR20 bool contains(const IpAddr& addr) const noexcept
 		{
 			return contains(addr.getV4NativeEndian());
 		}
