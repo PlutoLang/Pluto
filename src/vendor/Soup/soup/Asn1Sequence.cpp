@@ -396,16 +396,16 @@ namespace soup
 		size_t length = b;
 		if (length & 0x80)
 		{
-			auto length_bytes = (length & 0x7F);
+			uint8_t length_bytes = (length & 0x7F);
 			length = 0;
-			for (auto i = 0; i != length_bytes; ++i)
+			for (uint8_t i = 0; i != length_bytes; ++i)
 			{
 				if (!r.u8(b))
 				{
 					break;
 				}
 				length <<= 8;
-				length |= (uint8_t)b;
+				length |= b;
 			}
 		}
 		return length;

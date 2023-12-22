@@ -38,7 +38,7 @@ namespace soup
 			std::string inner = key;
 			std::string outer = key;
 
-			for (auto i = 0; i != key.length(); ++i)
+			for (size_t i = 0; i != key.length(); ++i)
 			{
 				inner[i] ^= 0x36;
 				outer[i] ^= 0x5c;
