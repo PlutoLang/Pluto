@@ -1530,7 +1530,7 @@ namespace soup
 			{
 				pre.append(buf);
 			}
-			if (pre.size() == bytes)
+			if (static_cast<int>(pre.size()) == bytes)
 			{
 				callback(*this, std::move(pre), std::move(cap));
 				return;
