@@ -34,7 +34,28 @@ static int http_request_cont (lua_State *L, int status, lua_KContext ctx) {
 }
 
 static int http_request (lua_State *L) {
-  soup::HttpRequest hr(soup::Uri(luaL_checkstring(L, 1)));
+  std::string uri;
+  int optionsidx = 0;
+  if (lua_type(L, 1) == LUA_TTABLE) {
+    lua_pushliteral(L, "url");
+    if (lua_rawget(L, 1) != LUA_TSTRING)
+      luaL_error(L, "Table is missing 'url' option");
+    uri = pluto_checkstring(L, -1);
+    lua_pop(L, 1);
+    optionsidx = 1;
+  }
+  else {
+    uri = pluto_checkstring(L, 1);
+    if (lua_type(L, 2) == LUA_TTABLE)
+      optionsidx = 2;
+  }
+  soup::HttpRequest hr(soup::Uri(std::move(uri)));
+  if (optionsidx) {
+    lua_pushliteral(L, "method");
+    if (lua_rawget(L, optionsidx) > LUA_TNIL)
+      hr.method = pluto_checkstring(L, -1);
+    lua_pop(L, 1);
+  }  
   if (lua_isyieldable(L)) {
     auto state = new HttpRequestState{};
     state->task = state->sched.add<soup::HttpRequestTask>(std::move(hr));
