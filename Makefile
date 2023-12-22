@@ -4,7 +4,7 @@
 # == CHANGE THE SETTINGS BELOW TO SUIT YOUR ENVIRONMENT =======================
 
 # Your platform. See PLATS for possible values.
-PLAT= guess
+PLAT=
 
 # Where to install. The installation starts in the src and doc directories,
 # so take care if INSTALL_TOP is not an absolute path. See the local target.
@@ -36,7 +36,7 @@ RM= rm -f
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
 # Convenience platforms targets.
-PLATS= guess aix bsd freebsd generic linux linux-readline macosx mingw posix solaris
+PLATS= guess aix android android-readline bsd freebsd generic linux linux-readline macosx mingw posix solaris
 
 # What to install.
 TO_BIN= pluto plutoc
