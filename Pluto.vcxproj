@@ -699,6 +699,7 @@
     <ClInclude Include="src\vendor\Soup\soup\SharedPtr.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\shortint_impl.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ShortString.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\signal.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Socket.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\SocketAddr.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\SocketTlsEncrypter.hpp" />
