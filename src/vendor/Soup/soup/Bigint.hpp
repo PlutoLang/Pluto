@@ -87,7 +87,7 @@ namespace soup
 			return (chunk_t)(v >> getBitsPerChunk());
 		}
 
-		[[nodiscard]] constexpr size_t getNumChunks() const noexcept
+		[[nodiscard]] SOUP_CONSTEXPR20 size_t getNumChunks() const noexcept
 		{
 			return chunks.size();
 		}
@@ -100,7 +100,7 @@ namespace soup
 		void addChunk(chunk_t v);
 		void shrink() noexcept;
 
-		[[nodiscard]] constexpr size_t getNumBytes() const noexcept { return getNumChunks() * getBytesPerChunk(); }
+		[[nodiscard]] SOUP_CONSTEXPR20 size_t getNumBytes() const noexcept { return getNumChunks() * getBytesPerChunk(); }
 		[[nodiscard]] uint8_t getByte(const size_t i) const noexcept;
 
 		[[nodiscard]] size_t getNumNibbles() const noexcept;
@@ -133,7 +133,7 @@ namespace soup
 #endif
 
 		void reset() noexcept;
-		[[nodiscard]] constexpr bool isZero() const noexcept { return getNumChunks() == 0; }
+		[[nodiscard]] SOUP_CONSTEXPR20 bool isZero() const noexcept { return getNumChunks() == 0; }
 		[[nodiscard]] operator bool() const noexcept;
 		operator int() const noexcept = delete;
 
