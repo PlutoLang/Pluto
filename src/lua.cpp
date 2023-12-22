@@ -689,7 +689,7 @@ int wmain (int argc, wchar_t **wargv) {
 #else
 int main (int argc, char **argv) {
 #endif
-#ifdef PLUTO_USE_COLORED_OUTPUT
+#if defined(PLUTO_USE_COLORED_OUTPUT) && defined(_WIN32)
   if (auto hSTDOUT = GetStdHandle(STD_OUTPUT_HANDLE); hSTDOUT != INVALID_HANDLE_VALUE) {
     DWORD mode;
     if (GetConsoleMode(hSTDOUT, &mode))
