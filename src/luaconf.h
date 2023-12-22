@@ -816,7 +816,7 @@
 // If defined, Pluto won't assume that source files are UTF-8 encoded and restrict valid symbol names.
 //#define PLUTO_NO_UTF8
 
-// If defined, Pluto will use a jumptable in the VM even if not compiled via GCC.
+// If defined, Pluto will use a jumptable in the VM even if not compiled via GCC or Clang.
 // This will generally improve runtime performance but can add minutes to compile time, depending on the setup.
 //#define PLUTO_FORCE_JUMPTABLE
 
