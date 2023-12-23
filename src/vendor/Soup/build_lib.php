@@ -1,5 +1,5 @@
 <?php
-require "build_config.php";
+require "build_common.php";
 
 $cd = getcwd();
 chdir(__DIR__);
@@ -12,51 +12,6 @@ if(!is_dir(__DIR__."/bin"))
 if(!is_dir(__DIR__."/bin/int"))
 {
 	mkdir(__DIR__."/bin/int");
-}
-
-// Utilities
-$procs = [];
-
-function run_command_async($cmd)
-{
-	global $procs;
-	echo ".";
-	$file = tmpfile();
-	$descriptorspec = array(
-		0 => array("pipe", "r"),
-		1 => array("file", stream_get_meta_data($file)["uri"], "a"),
-		2 => array("file", stream_get_meta_data($file)["uri"], "a"),
-	);
-	$proc = proc_open($cmd, $descriptorspec, $pipes);
-	array_push($procs, [ $proc, $file ]);
-	if (count($procs) > 32)
-	{
-		await_commands();
-	}
-}
-
-function await_commands()
-{
-	global $procs;
-	echo "\r";
-	$output = "";
-	while (count($procs) != 0)
-	{
-		foreach ($procs as $i => $proc)
-		{
-			if (!proc_get_status($proc[0])["running"])
-			{
-				echo "█";
-				$output .= stream_get_contents($proc[1]);
-				fclose($proc[1]);
-				proc_close($proc[0]);
-				unset($procs[$i]);
-			}
-		}
-		usleep(50000);
-	}
-	echo "\n";
-	echo $output;
 }
 
 echo "Compiling...\n";
