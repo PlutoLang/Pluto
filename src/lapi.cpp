@@ -1355,7 +1355,7 @@ LUA_API int lua_gc (lua_State *L, int what, ...) {
 */
 
 
-LUA_API_NORETURN void lua_error (lua_State *L) {
+LUA_API_NORETURN int lua_error (lua_State *L) {
   TValue *errobj;
   lua_lock(L);
   errobj = s2v(L->top.p - 1);
