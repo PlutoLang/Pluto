@@ -19,4 +19,12 @@ for_each_obj(function($file)
 	}
 });
 
+foreach(scandir("src/vendor/Soup/bin/int") as $file)
+{
+	if(substr($file, -2) == ".o")
+	{
+		$cmd .= " src/vendor/Soup/bin/int/".$file;
+	}
+}
+
 passthru($cmd);
