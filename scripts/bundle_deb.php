@@ -26,10 +26,9 @@ Description: A superset of Lua 5.4 — with unique features, optimizations, and 
 EOC);
 chmod("pluto/DEBIAN/control", 0644);
 mkdir("pluto/usr");
-mkdir("pluto/usr/local");
-mkdir("pluto/usr/local/bin");
-copy("src/pluto", "pluto/usr/local/bin/pluto");
-copy("src/plutoc", "pluto/usr/local/bin/plutoc");
-chmod("pluto/usr/local/bin/pluto", 0755);
-chmod("pluto/usr/local/bin/plutoc", 0755);
+mkdir("pluto/usr/bin");
+copy("src/pluto", "pluto/usr/bin/pluto");
+copy("src/plutoc", "pluto/usr/bin/plutoc");
+chmod("pluto/usr/bin/pluto", 0755);
+chmod("pluto/usr/bin/plutoc", 0755);
 passthru("dpkg-deb --build pluto");
