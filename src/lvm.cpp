@@ -1314,7 +1314,13 @@ static const std::vector<OpCode> allowOps = { vmDumpAllow };
 
 
 #if !defined(__GNUC__) && !defined(__clang__) && defined(PLUTO_FORCE_JUMPTABLE)
+#ifdef PLUTO_VMDUMP
+#pragma message("PLUTO_FORCE_JUMPTABLE ignored due to PLUTO_VMDUMP")
+#elif defined(PLUTO_ETL_ENABLE)
+#pragma message("PLUTO_FORCE_JUMPTABLE ignored due to PLUTO_ETL_ENABLE")
+#else
 #include "ljumptab.h"
+#endif
 #endif
 
 void luaV_execute (lua_State *L, CallInfo *ci) {
@@ -1327,7 +1333,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   int sequentialJumps = 0;
   int sequentialTailCalls = 0;
 #endif
-#if (defined(__GNUC__) || defined(__clang__)) && !defined(PLUTO_VMDUMP)
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(PLUTO_VMDUMP) && !defined(PLUTO_ETL_ENABLE)
 #include "ljumptabgcc.h"
 #endif
  startfunc:
