@@ -13,8 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <thread>
 #include <chrono>
+#include <thread>
+#include <unordered_set>
 
 #include "lua.h"
 #include "lprefix.h"
@@ -601,7 +602,7 @@ struct FuncDumpWriter {
   }
 };
 
-static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marker, bool is_export, bool is_key = false) {
+static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Table*> parents, bool is_export, bool is_key = false) {
   switch (lua_type(L, -1)) {
     default:
       if (is_export) {
@@ -657,13 +658,15 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
 
     case LUA_TTABLE:;
   }
-  if (indents != 1 && hvalue(index2value(L, -1)) == recursion_marker) {
+  Table *h = hvalue(index2value(L, -1));
+  if (indents != 1 && parents.count(h)) {
     if (is_export) {
       luaL_error(L, "Can't export recursive table");
     }
     lua_pushstring(L, "*RECURSION*");
     return;
   }
+  parents.emplace(h);
   std::string dump(1, '{');
   lua_pushnil(L);
   bool empty = true;
@@ -676,13 +679,13 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
     dump.append(indents, '\t');
     dump.push_back('[');
     lua_pushvalue(L, -2);
-    luaB_dumpvar_impl(L, indents + 1, recursion_marker, is_export, true);
+    luaB_dumpvar_impl(L, indents + 1, parents, is_export, true);
     dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append("] = ");
 
     lua_pushvalue(L, -1);
-    luaB_dumpvar_impl(L, indents + 1, recursion_marker, is_export);
+    luaB_dumpvar_impl(L, indents + 1, parents, is_export);
     dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append(",\n");
@@ -699,20 +702,20 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, Table *recursion_marke
 static int luaB_dumpvar (lua_State *L) {
   luaL_checkany(L, 1);
   lua_pushvalue(L, 1);
-  Table* t = nullptr;
+  std::unordered_set<Table*> parents;
   if (ttistable(index2value(L, -1)))
-    t = hvalue(index2value(L, -1));
-  luaB_dumpvar_impl(L, 1, t, false);
+    parents.emplace(hvalue(index2value(L, -1)));
+  luaB_dumpvar_impl(L, 1, std::move(parents), false);
   return 1;
 }
 
 static int luaB_exportvar (lua_State *L) {
   luaL_checkany(L, 1);
   lua_pushvalue(L, 1);
-  Table* t = nullptr;
+  std::unordered_set<Table*> parents;
   if (ttistable(index2value(L, -1)))
-    t = hvalue(index2value(L, -1));
-  luaB_dumpvar_impl(L, 1, t, true);
+    parents.emplace(hvalue(index2value(L, -1)));
+  luaB_dumpvar_impl(L, 1, std::move(parents), true);
   return 1;
 }
 
