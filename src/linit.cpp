@@ -43,7 +43,9 @@
 static const luaL_Reg loadedlibs[] = {
   {LUA_GNAME, luaopen_base},
   {LUA_LOADLIBNAME, luaopen_package},
+#ifndef PLUTO_NO_COROLIB
   {LUA_COLIBNAME, luaopen_coroutine},
+#endif
   {LUA_TABLIBNAME, luaopen_table},
 #ifndef PLUTO_NO_FILESYSTEM
   {LUA_IOLIBNAME, luaopen_io},
@@ -52,7 +54,9 @@ static const luaL_Reg loadedlibs[] = {
   {LUA_STRLIBNAME, luaopen_string},
   {LUA_MATHLIBNAME, luaopen_math},
   {LUA_UTF8LIBNAME, luaopen_utf8},
+#ifndef PLUTO_NO_DEBUGLIB
   {LUA_DBLIBNAME, luaopen_debug},
+#endif
   {NULL, NULL}
 };
 
