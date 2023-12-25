@@ -812,7 +812,7 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
       e->code_primitive = VT_DUNNO;
       break;
     }
-    case VVARARG: case VCALL: {
+    case VVARARG: case VCALL: case VSAFECALL: {
       luaK_setoneret(fs, e);
       e->code_primitive = VT_DUNNO;
       break;
