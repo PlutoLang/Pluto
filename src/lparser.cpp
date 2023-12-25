@@ -1991,7 +1991,9 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   }
   if (varargname) {
     enterlevel(ls);
+    luaX_prev(ls);  /* in case we need to raise a var-shadow warning, ensure we're on the right line */
     new_localvar(ls, varargname);
+    luaX_next(ls);
 
     FuncState *fs = ls->fs;
     int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
