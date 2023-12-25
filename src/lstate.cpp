@@ -27,6 +27,8 @@
 #include "ltable.h"
 #include "ltm.h"
 
+#include "vendor/Soup/soup/DetachedScheduler.hpp"
+
 
 
 /*
@@ -277,6 +279,9 @@ static void close_state (lua_State *L) {
     L->ci = &L->base_ci;  /* unwind CallInfo list */
     luaD_closeprotected(L, 1, LUA_OK);  /* close all upvalues */
     luaC_freeallobjects(L);  /* collect all objects */
+    if (g->scheduler) {
+      delete reinterpret_cast<soup::DetachedScheduler*>(g->scheduler);
+    }
     luai_userstateclose(L);
   }
   luaM_freearray(L, G(L)->strt.hash, G(L)->strt.size);
@@ -407,6 +412,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   setgcparam(g->genmajormul, LUAI_GENMAJORMUL);
   g->genminormul = LUAI_GENMINORMUL;
   for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;
+  g->scheduler = nullptr;
 #ifdef PLUTO_ETL_ENABLE
   g->deadline = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() + PLUTO_ETL_NANOS;
 #endif
