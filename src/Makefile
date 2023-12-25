@@ -64,7 +64,7 @@ a:	$(ALL_A)
 $(LUA_A): $(BASE_O)
 	cd vendor/Soup/Intrin && $(MAKE) && cd ../..
 	cd vendor/Soup/soup && $(MAKE) && cd ../..
-	$(AR) $@ $(BASE_O)
+	$(AR) $@ $(BASE_O) vendor/Soup/Intrin/*.o vendor/Soup/soup/*.o
 	$(RANLIB) $@
 
 $(LUA_T): $(LUA_O) $(LUA_A)
