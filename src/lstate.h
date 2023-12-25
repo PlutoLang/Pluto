@@ -303,7 +303,8 @@ typedef struct global_State {
   lua_WarnFunction warnf;  /* warning function */
   void *ud_warn;         /* auxiliary data to 'warnf' */
 #ifndef PLUTO_LUA_LINKABLE
-  void* user_data;       /* a pointer to data you, the user, would like to specify */
+  void* user_data;  /* a pointer to data you, the user, would like to specify */
+  void* scheduler;  /* internal use only; do not use this in your own code. */
 #endif
 #ifdef PLUTO_ETL_ENABLE
   std::time_t deadline;  /* internal use only; do not use this in your own code. */

@@ -8,6 +8,11 @@ namespace soup
 	{
 	}
 
+	DetachedScheduler::~DetachedScheduler()
+	{
+		closeReusableSockets();
+	}
+
 	SharedPtr<Worker> DetachedScheduler::addWorker(SharedPtr<Worker>&& w) noexcept
 	{
 		if (!thrd.isRunning())
