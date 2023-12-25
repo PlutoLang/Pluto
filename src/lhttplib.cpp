@@ -1,15 +1,12 @@
 #define LUA_LIB
 #include "lualib.h"
 
+#include "lstate.h"
+
+#include "vendor/Soup/soup/DetachedScheduler.hpp"
 #include "vendor/Soup/soup/HttpRequest.hpp"
 #include "vendor/Soup/soup/HttpRequestTask.hpp"
-#include "vendor/Soup/soup/Scheduler.hpp"
 #include "vendor/Soup/soup/Uri.hpp"
-
-struct HttpRequestState {
-  soup::Scheduler sched; // TOOD: Move this into registry (with appropriate __gc metamethod) so we can reuse connections.
-  soup::HttpRequestTask* task;
-};
 
 static int push_http_response (lua_State *L, const std::optional<soup::HttpResponse>& resp) {
   if (resp.has_value()) {
@@ -23,14 +20,11 @@ static int push_http_response (lua_State *L, const std::optional<soup::HttpRespo
 }
 
 static int http_request_cont (lua_State *L, int status, lua_KContext ctx) {
-  auto state = reinterpret_cast<HttpRequestState*>(ctx);
-  if (!state->task->isWorkDone()) {
-    state->sched.tick(); // TODO: The Scheduler should NOT be our responsibility.
+  auto pTask = reinterpret_cast<soup::HttpRequestTask*>(ctx);
+  if (!pTask->isWorkDone()) {
     return lua_yieldk(L, 0, ctx, http_request_cont);
   }
-  int nresults = push_http_response(L, *state->task->result);
-  delete state; // Not very Lua-like. We should GC. :megamind:
-  return nresults;
+  return push_http_response(L, *pTask->result);
 }
 
 static int http_request (lua_State *L) {
@@ -55,11 +49,26 @@ static int http_request (lua_State *L) {
     if (lua_rawget(L, optionsidx) > LUA_TNIL)
       hr.method = pluto_checkstring(L, -1);
     lua_pop(L, 1);
-  }  
+  }
   if (lua_isyieldable(L)) {
-    auto state = new HttpRequestState{};
-    state->task = state->sched.add<soup::HttpRequestTask>(std::move(hr));
-    return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(state), http_request_cont);
+    if (G(L)->scheduler == nullptr) {
+      G(L)->scheduler = new soup::DetachedScheduler();
+    }
+
+    auto upTask = reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->add<soup::HttpRequestTask>(std::move(hr));
+    auto pTask = upTask.get();
+
+    auto pUpTask = new (lua_newuserdata(L, sizeof(upTask))) decltype(upTask) (std::move(upTask));
+    lua_newtable(L);
+    lua_pushliteral(L, "__gc");
+    lua_pushcfunction(L, [](lua_State *L) {
+      std::destroy_at<>(reinterpret_cast<decltype(upTask)*>(lua_touserdata(L, 1)));
+      return 0;
+    });
+    lua_settable(L, -3);
+    lua_setmetatable(L, -2);
+
+    return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), http_request_cont);
   }
   return push_http_response(L, hr.execute());
 }
