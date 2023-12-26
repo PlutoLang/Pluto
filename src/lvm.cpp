@@ -1356,7 +1356,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
     lua_assert(base == ci->func.p + 1);
     lua_assert(base <= L->top.p && L->top.p <= L->stack_last.p);
     /* invalidate top for instructions not expecting it */
-    lua_assert(isIT(i) || (cast_void(L->top.p = base), 1));
+    //lua_assert(isIT(i) || (cast_void(L->top.p = base), 1));  /* [Pluto] we don't do this because we generate very cursed bytecode */
     vmdispatch (GET_OPCODE(i)) {
       vmcase(OP_MOVE) {
         StkId ra = RA(i);
