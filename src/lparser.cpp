@@ -2866,7 +2866,7 @@ static BinOpr custombinaryoperator (LexState *ls, expdesc *v, TString *impl) {
 static void lbreak (LexState *ls, lua_Integer backwards, int line) {
   FuncState *fs = ls->fs;
   BlockCnt *bl = fs->bl;
-  int upval = 0;
+  int upval = bl->upval;
   while (bl) {
     if (!bl->isloop) { /* not a loop, continue search */
       upval |= bl->upval; /* amend upvalues for closing. */
@@ -2883,7 +2883,7 @@ static void lbreak (LexState *ls, lua_Integer backwards, int line) {
     };
   }
   if (bl) {
-    if (upval || bl->isSwitch())
+    if (upval)
       luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
     luaK_concat(fs, &bl->breaklist, luaK_jump(fs));
   }
