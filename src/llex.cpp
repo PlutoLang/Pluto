@@ -590,6 +590,22 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             }
           }
           /* else short comment */
+          while (ls->current == ' ') {
+            ls->appendLineBuff(' ');
+            next(ls);  /* skip leading spaces */
+          }
+          if (ls->current == '@') {  /* attribute? */
+            ls->appendLineBuff('@');
+            next(ls);
+            while (lislalnum(ls->current))
+              save_and_next(ls);
+            if (strncmp(luaZ_buffer(ls->buff), "pluto_use", luaZ_bufflen(ls->buff)) == 0) {
+              ls->appendLineBuff("pluto_use");
+              return TK_PUSE;
+            }
+            ls->appendLineBuff(luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
+            luaZ_resetbuffer(ls->buff);
+          }
           while (!currIsNewline(ls) && ls->current != EOZ) {
             ls->appendLineBuff(ls->current);
             next(ls);  /* skip until end of line (or end of file) */

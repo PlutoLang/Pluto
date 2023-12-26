@@ -445,6 +445,10 @@ struct LexState {
     getLineBuff().append(str);
   }
 
+  void appendLineBuff(const char* str, size_t len) {
+    getLineBuff().append(str, len);
+  }
+
   void appendLineBuff(char c) {
     getLineBuff().push_back(c);
   }
