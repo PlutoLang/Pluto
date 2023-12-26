@@ -579,9 +579,13 @@ typedef struct Proto {
   TString  *source;  /* used for debug information */
   GCObject *gclist;
   bool lua_vm_compatible;
+  lu_byte min_required_version;
 
-  void onPlutoOpUsed(int8_t min_required_version) noexcept {
-    lua_vm_compatible = false;
+  void onPlutoOpUsed(lu_byte min_required_version) noexcept {
+    if (lua_vm_compatible || min_required_version > this->min_required_version) {
+      lua_vm_compatible = false;
+      this->min_required_version = min_required_version;
+    }
   }
 } Proto;
 
