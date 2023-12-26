@@ -382,10 +382,10 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
         throw_warn(
           ls,
           luaO_fmt(ls->L, "'%s' is a non-portable name", ts->contents),
-          luaO_fmt(ls->L, "use a different name, or use 'pluto_use' to disable this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)),
+          "use a different name, or use 'pluto_use' to disable this keyword: https://pluto.do/compat",
           WT_NON_PORTABLE_NAME
         );
-        ls->L->top.p -= 2;
+        ls->L->top.p--;
       }
     }
   }
