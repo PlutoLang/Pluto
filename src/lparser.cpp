@@ -3796,16 +3796,12 @@ static void repeatstat (LexState *ls) {
   luaX_next(ls);  /* skip REPEAT */
   statlist(ls);
   luaK_patchtohere(fs, bl1.scopeend);
-  if (testnext(ls, TK_UNTIL)) {
-    int nactvar = fs->nactvar;
-    if (bl1.nactvarbeforecontinue != MAX_INT)
-      fs->nactvar = bl1.nactvarbeforecontinue;
-    condexit = cond(ls);  /* read condition (inside scope block) */
-    fs->nactvar = nactvar;
-  }
-  else {
-    error_expected(ls, TK_UNTIL);
-  }
+  checknext(ls, TK_UNTIL);
+  int nactvar = fs->nactvar;
+  if (bl1.nactvarbeforecontinue != MAX_INT)
+    fs->nactvar = bl1.nactvarbeforecontinue;
+  condexit = cond(ls);  /* read condition (inside scope block) */
+  fs->nactvar = nactvar;
   leaveblock(fs);  /* finish scope */
   if (bl2.upval) {  /* upvalues? */
     int exit = luaK_jump(fs);  /* normal exit must jump over fix */
