@@ -1738,6 +1738,9 @@ static void localclass (LexState *ls) {
   ls->classes.emplace();
 
   size_t name_pos = luaX_getpos(ls);
+  if (ls->t.token == '=') {
+    throwerr(ls, "expected a class name, found '='", "'class' has a different meaning in Pluto, but you can disable this: https://pluto.do/compat");
+  }
   TString *name = str_checkname(ls, 0);
   size_t parent_pos = checkextends(ls);
 
