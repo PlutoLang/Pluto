@@ -88,6 +88,7 @@ typedef struct BlockCnt {
   int firstlabel;  /* index of first label in this block */
   int firstgoto;  /* index of first pending goto in this block */
   int nactvar;  /* # active locals outside the block */
+  int nactvarbeforecontinue;  /* # active locals inside of the block until a continue is encountered */
   lu_byte upval;  /* true if some variable in the block is an upvalue */
   lu_byte isloop;  /* true if 'block' is a loop */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
@@ -1081,6 +1082,7 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
   bl->isloop = isloop;
   bl->scopeend = NO_JUMP;
   bl->nactvar = fs->nactvar;
+  bl->nactvarbeforecontinue = MAX_INT;
   bl->firstlabel = fs->ls->dyd->label.n;
   bl->firstgoto = fs->ls->dyd->gt.n;
   bl->upval = 0;
@@ -1324,6 +1326,7 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
       bl = bl->previous; /* jump back current blocks to find the loop */
     }
     else { /* found a loop */
+      bl->nactvarbeforecontinue = std::min(fs->nactvar, bl->nactvarbeforecontinue);
       if (--backwards == 0) { /* this is our loop */
         break;
       }
@@ -3793,7 +3796,11 @@ static void repeatstat (LexState *ls) {
   statlist(ls);
   luaK_patchtohere(fs, bl1.scopeend);
   if (testnext(ls, TK_UNTIL)) {
+    int nactvar = fs->nactvar;
+    if (bl1.nactvarbeforecontinue != MAX_INT)
+      fs->nactvar = bl1.nactvarbeforecontinue;
     condexit = cond(ls);  /* read condition (inside scope block) */
+    fs->nactvar = nactvar;
   }
   else {
     error_expected(ls, TK_UNTIL);
