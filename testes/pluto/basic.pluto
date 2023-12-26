@@ -355,6 +355,20 @@ do
         assert(line != "This" and line != "Lines")
     end
 end
+do
+    assert(select(2, pcall(load[[--@pluto_warnings disable-all
+    repeat
+        continue
+        local a = 1
+    until a > 0]])):contains("attempt to compare number with nil"))
+    assert(select(2, pcall(load[[--@pluto_warnings disable-all
+    repeat
+        if true then
+            continue
+        end
+        local a = 1
+    until a > 0]])):contains("attempt to compare number with nil"))
+end
 
 print "Testing table length cache."
 do
