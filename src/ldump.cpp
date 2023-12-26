@@ -28,6 +28,7 @@ typedef struct {
   int strip;
   int status;
   bool lua_vm_compatible;
+  lu_byte min_required_version;
 } DumpState;
 
 
@@ -207,7 +208,7 @@ static void dumpHeader (DumpState *D) {
     dumpByte(D, LUAC_FORMAT);
   }
   else {
-    dumpByte(D, 0);
+    dumpByte(D, D->min_required_version);
     dumpByte(D, 'P');
   }
   dumpLiteral(D, LUAC_DATA);
@@ -219,14 +220,15 @@ static void dumpHeader (DumpState *D) {
 }
 
 
-[[nodiscard]] static bool is_lua_vm_compatible (const Proto *f) {
-  if (!f->lua_vm_compatible)
-    return false;
-  for (int i = 0; i != f->sizep; ++i) {
-    if (!is_lua_vm_compatible(f->p[i]))
-      return false;
+static void check_vm_compatibility (const Proto *f, bool& lua_vm_compatible, lu_byte& min_required_version) {
+  if (!f->lua_vm_compatible) {
+    lua_vm_compatible = false;
+    if (f->min_required_version > min_required_version)
+      min_required_version = f->min_required_version;
   }
-  return true;
+  for (int i = 0; i != f->sizep; ++i) {
+    check_vm_compatibility(f->p[i], lua_vm_compatible, min_required_version);
+  }
 }
 
 
@@ -241,7 +243,8 @@ int luaU_dump(lua_State *L, const Proto *f, lua_Writer w, void *data,
   D.data = data;
   D.strip = strip;
   D.status = 0;
-  D.lua_vm_compatible = is_lua_vm_compatible(f);
+  D.lua_vm_compatible = true;
+  check_vm_compatibility(f, D.lua_vm_compatible, D.min_required_version);
   dumpHeader(&D);
   dumpByte(&D, f->sizeupvalues);
   dumpFunction(&D, f, NULL);
