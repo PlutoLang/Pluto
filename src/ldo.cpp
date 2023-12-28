@@ -968,6 +968,7 @@ int luaD_pcall (lua_State *L, Pfunc func, void *u,
 ** Execute a protected parser.
 */
 struct SParser {  /* data to 'f_parser' */
+  LexState lexstate;
   ZIO *z;
   Mbuffer buff;  /* dynamic structure used by the scanner */
   Dyndata dyd;  /* dynamic structures used by the parser */
@@ -998,7 +999,7 @@ static void f_parser (lua_State *L, void *ud) {
 #endif
   {
     checkmode(L, p->mode, "text");
-    cl = luaY_parser(L, p->z, &p->buff, &p->dyd, p->name, c);
+    cl = luaY_parser(L, p->lexstate, p->z, &p->buff, &p->dyd, p->name, c);
   }
   lua_assert(cl->nupvalues == cl->p->sizeupvalues);
   luaF_initupvals(L, cl);
