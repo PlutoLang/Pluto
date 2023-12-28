@@ -19,7 +19,6 @@
 #include <functional>
 #include <string>
 #include <vector>
-#include <unordered_set>
 
 #include "lua.h"
 #include "lualib.h" // Pluto::all_preloaded
@@ -638,7 +637,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
 }
 
 
-static void checkforshadowing (LexState *ls, FuncState *fs, std::unordered_set<TString*>&& names, int line) {
+static void checkforshadowing (LexState *ls, FuncState *fs, const std::unordered_set<TString*>& names, int line) {
   for (auto variable_name : names) {
     checkforshadowing(ls, fs, variable_name, line, true, false);
   }
@@ -2102,18 +2101,6 @@ static void expr_propagate_warn (LexState *ls, expdesc *v, TypeHint& t, std::uno
 }
 
 
-static int explist (LexState *ls, expdesc *v, std::vector<TypeHint>& prop) {
-  /* explist -> expr { ',' expr } */
-  int n = 1;  /* at least one expression */
-  expr_propagate(ls, v, prop.emplace_back(TypeHint{}));
-  while (testnext(ls, ',')) {
-    luaK_exp2nextreg(ls->fs, v);
-    expr_propagate(ls, v, prop.emplace_back(TypeHint{}));
-    n++;
-  }
-  return n;
-}
-
 static void explist_nonlinear_arg (LexState *ls, expdesc *v, size_t tidx, TypeHint& t) {
   if (tidx == 0) {
     init_exp(v, VNIL, 0);
@@ -2125,12 +2112,12 @@ static void explist_nonlinear_arg (LexState *ls, expdesc *v, size_t tidx, TypeHi
   }
 }
 
-static void explist_nonlinear (LexState *ls, expdesc *v, const std::vector<size_t>& argtis, std::vector<TypeHint>& prop) {
+static void explist_nonlinear (LexState *ls, expdesc *v, const std::vector<size_t>& argtis, std::vector<void*>& prop) {
   prop.reserve(argtis.size());
-  explist_nonlinear_arg(ls, v, argtis.at(0), prop.emplace_back(TypeHint{}));
+  explist_nonlinear_arg(ls, v, argtis.at(0), *(TypeHint*)prop.emplace_back(new_typehint(ls)));
   for (size_t i = 1; i != argtis.size(); ++i) {
     luaK_exp2nextreg(ls->fs, v);
-    explist_nonlinear_arg(ls, v, argtis.at(i), prop.emplace_back(TypeHint{}));
+    explist_nonlinear_arg(ls, v, argtis.at(i), *(TypeHint*)prop.emplace_back(new_typehint(ls)));
   }
 }
 
@@ -2156,7 +2143,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
   ls->pushContext(PARCTX_FUNCARGS);
   FuncState *fs = ls->fs;
   expdesc args;
-  std::vector<TypeHint> argdescs;
+  FuncArgsState& fas = ls->funcargsstates.emplace();
   int base, nparams;
   const auto line = ls->getLineNumber();
   switch (ls->t.token) {
@@ -2168,12 +2155,12 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
         int num_positional_args = 0;
         if (!isnamedarg(ls)) {
           num_positional_args++;
-          expr_propagate(ls, &args, argdescs.emplace_back(TypeHint{}));
+          expr_propagate(ls, &args, *(TypeHint*)fas.argdescs.emplace_back(new_typehint(ls)));
           while (testnext(ls, ',')) {
             luaK_exp2nextreg(ls->fs, &args);
             if (isnamedarg(ls))
               break;
-            expr_propagate(ls, &args, argdescs.emplace_back(TypeHint{}));
+            expr_propagate(ls, &args, *(TypeHint*)fas.argdescs.emplace_back(new_typehint(ls)));
             num_positional_args++;
           }
         }
@@ -2201,7 +2188,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
             skip_over_simpleexp_within_parenlist(ls);
           } while (testnext(ls, ','));
           const auto tidx = luaX_getpos(ls);
-          explist_nonlinear(ls, &args, argtis, argdescs);
+          explist_nonlinear(ls, &args, argtis, fas.argdescs);
           luaX_setpos(ls, tidx);
         }
         if (hasmultret(args.k))
@@ -2211,12 +2198,16 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
       break;
     }
     case '{': {  /* funcargs -> constructor */
-      argdescs = { TypeHint{ VT_TABLE } };
+      auto hint = new_typehint(ls);
+      hint->emplaceTypeDesc(VT_TABLE);
+      fas.argdescs = { hint };
       constructor(ls, &args);
       break;
     }
     case TK_STRING: {  /* funcargs -> STRING */
-      argdescs = { TypeHint{ VT_STR } };
+      auto hint = new_typehint(ls);
+      hint->emplaceTypeDesc(VT_STR);
+      fas.argdescs = { hint };
       codestring(&args, ls->t.seminfo.ts);
       luaX_next(ls);  /* must use 'seminfo' before 'next' */
       break;
@@ -2231,8 +2222,8 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
       if (param_hint->empty())
         continue; /* skip parameters without type hint */
       TypeHint arg{};
-      if (i < (int)argdescs.size()) {
-        arg = argdescs.at(i);
+      if (i < (int)fas.argdescs.size()) {
+        arg = *(TypeHint*)fas.argdescs.at(i);
         if (arg.empty())
           continue; /* skip arguments without propagated type */
       }
@@ -2247,7 +2238,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
       }
     }
     const auto expected = funcdesc->getNumParams();
-    const auto received = (int)argdescs.size();
+    const auto received = (int)fas.argdescs.size();
     if (!funcdesc->proto->is_vararg && expected < received) {  /* Too many arguments? */
       auto suffix = expected == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
       throw_warn(ls,
@@ -2270,6 +2261,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
   fs->freereg = base+1;  /* call remove function and arguments and leaves
                             (unless changed) one result */
   ls->popContext(PARCTX_FUNCARGS);
+  ls->funcargsstates.pop();
 }
 
 
@@ -4235,14 +4227,14 @@ static void localstat (LexState *ls) {
   auto line = ls->getLineNumber(); /* in case we need to emit a warning */
   size_t starting_tidx = ls->tidx; /* code snippets on tuple assignments can have inaccurate line readings because the parser skips lines until it can close the statement */
   bool is_constexpr = false;
-  std::unordered_set<TString*> variable_names;
-  std::unordered_set<TString*> expression_names;
+  ls->localstat_variable_names.clear();
+  ls->localstat_expression_names.clear();
   do {
     if (is_constexpr)
       luaK_semerror(ls, "<constexpr> must only be used on the last variable in local list");
     TString* name = str_checkname(ls, N_OVERRIDABLE);
     vidx = new_localvar(ls, name, line, gettypehint(ls), false);
-    variable_names.emplace(name);
+    ls->localstat_variable_names.emplace(name);
     kind = getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
@@ -4269,20 +4261,20 @@ static void localstat (LexState *ls) {
     }
     nvars++;
   } while (testnext(ls, ','));
-  std::vector<TypeHint> ts;
+  ls->localstat_ts.clear();
   if (testnext(ls, '=')) {
     ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
     ls->pushContext(ctx);
     nexps = 1;
-    expr_propagate_warn(ls, &e, ts.emplace_back(TypeHint{}), expression_names);
+    expr_propagate_warn(ls, &e, *(TypeHint*)ls->localstat_ts.emplace_back(new_typehint(ls)), ls->localstat_expression_names);
     while (testnext(ls, ',')) {
       luaK_exp2nextreg(ls->fs, &e);
-      expr_propagate_warn(ls, &e, ts.emplace_back(TypeHint{}), expression_names);
+      expr_propagate_warn(ls, &e, *(TypeHint*)ls->localstat_ts.emplace_back(new_typehint(ls)), ls->localstat_expression_names);
       nexps++;
     }
     ls->popContext(ctx);
-    for (auto variable_name : variable_names) {
-      if (expression_names.find(variable_name) == expression_names.end()) { // Not a localization optimization?
+    for (auto variable_name : ls->localstat_variable_names) {
+      if (ls->localstat_expression_names.find(variable_name) == ls->localstat_expression_names.end()) { // Not a localization optimization?
         checkforshadowing(ls, fs, variable_name, line, true, false); // new_localvar already checked for local duplication
       }
     }
@@ -4292,7 +4284,7 @@ static void localstat (LexState *ls) {
     e.k = VVOID;
     nexps = 0;
     process_assign(ls, var, TypeHint{ VT_NIL }, line);
-    checkforshadowing(ls, fs, std::move(variable_names), line);
+    checkforshadowing(ls, fs, ls->localstat_variable_names, line);
   }
   if (is_constexpr) {
     if (nvars != nexps) {
@@ -4312,8 +4304,8 @@ static void localstat (LexState *ls) {
     }
     else {
       vidx = vidx - nvars + 1;
-      for (TypeHint& t : ts) {
-        process_assign(ls, getlocalvardesc(fs, vidx), t, line);
+      for (void* t : ls->localstat_ts) {
+        process_assign(ls, getlocalvardesc(fs, vidx), *(TypeHint*)t, line);
         ++vidx;
       }
       adjust_assign(ls, nvars, nexps, &e);
