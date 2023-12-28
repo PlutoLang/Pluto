@@ -1198,7 +1198,6 @@ static void open_func (LexState *ls, FuncState *fs, BlockCnt *bl) {
   f->source = ls->source;
   luaC_objbarrier(ls->L, f, f->source);
   f->maxstacksize = 2;  /* registers 0/1 are always valid */
-  f->lua_vm_compatible = true;
   enterblock(fs, bl, 0);
 }
 
