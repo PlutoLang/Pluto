@@ -341,6 +341,11 @@ struct FuncArgsState {
   std::vector<size_t> argtis{};
 };
 
+struct BodyState {
+  std::vector<std::pair<TString*, TString*>> promotions{};
+  std::vector<size_t> fallbacks{};
+};
+
 struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
@@ -368,6 +373,7 @@ struct LexState {
   std::stack<ParserContext> parser_context_stck{};
   std::stack<ClassData> classes{};
   std::stack<FuncArgsState> funcargsstates{};
+  std::stack<BodyState> bodystates{};
   std::vector<EnumDesc> enums{};
   std::vector<void*> parse_time_allocations{};
   std::unordered_set<TString*> localstat_variable_names{};
