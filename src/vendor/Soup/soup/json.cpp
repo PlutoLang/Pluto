@@ -160,7 +160,9 @@ namespace soup
 				uint64_t val;
 				if (r.u64(val))
 				{
-					return soup::make_unique<JsonFloat>(*reinterpret_cast<double*>(&val));
+					double value;
+					memcpy(&value, &val, sizeof(double)); static_assert(sizeof(uint64_t) == sizeof(value));
+					return soup::make_unique<JsonFloat>(std::move(value));
 				}
 			}
 			else if (type == JSON_STRING)
