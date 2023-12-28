@@ -54,6 +54,7 @@ namespace soup
 
 	public:
 		[[nodiscard]] std::string toString() const final;
+		[[nodiscard]] netStatus getStatus() const noexcept;
 #else
 	public:
 		HttpRequestTask(const Uri& uri);

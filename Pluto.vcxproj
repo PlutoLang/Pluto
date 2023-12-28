@@ -532,6 +532,7 @@
     <ClCompile Include="src\vendor\Soup\soup\MimeMessage.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\netConfig.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\netConnectTask.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\netStatus.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Oid.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\pem.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Promise.cpp" />
@@ -676,6 +677,7 @@
     <ClInclude Include="src\vendor\Soup\soup\NamedCurves.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netConfig.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netConnectTask.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\netStatus.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ObfusString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Oid.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Optional.hpp" />
