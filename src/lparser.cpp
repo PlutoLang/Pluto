@@ -399,6 +399,7 @@ static void init_exp (expdesc *e, expkind k, int i) {
   e->f = e->t = NO_JUMP;
   e->k = k;
   e->u.info = e->u.pc = e->u.reg = i;
+  e->code_primitive = VT_NONE;
 }
 
 
@@ -406,6 +407,7 @@ static void codestring (expdesc *e, TString *s) {
   e->f = e->t = NO_JUMP;
   e->k = VKSTR;
   e->u.strval = s;
+  e->code_primitive = VT_STR;
 }
 
 
