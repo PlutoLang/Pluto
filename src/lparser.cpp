@@ -2781,7 +2781,8 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
             if (uv->instack) {
               for (int i = 0; i != efs->nactvar; ++i) {
                 vd = getlocalvardesc(efs, i);
-                if (vd->vd.ridx == idx) {
+                if (vd->vd.kind != RDKCTC && vd->vd.kind != RDKENUM  /* is in a register? */
+                  && vd->vd.ridx == idx) {
                   goto _funcdesc_from_vd;
                 }
               }
