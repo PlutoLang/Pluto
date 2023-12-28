@@ -126,6 +126,16 @@ local a: string = f() ?? true]]
     return true
 end
 local a: bool|int = f() ?? 0]]
+
+    -- 'else' propagates its return type too
+    assert_no_warn[[function foo(x: number): ?string
+    if x == 2 then
+        return nil
+    else
+        return "foo"
+    end
+end]]
+
 end
 
 print "Testing assertion library"

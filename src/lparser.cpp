@@ -3480,12 +3480,12 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
 */
 
 
-static void block (LexState *ls) {
+static void block (LexState *ls, TypeHint *prop = nullptr) {
   /* block -> statlist */
   FuncState *fs = ls->fs;
   BlockCnt bl;
   enterblock(fs, &bl, 0);
-  statlist(ls);
+  statlist(ls, prop);
   leaveblock(fs);
 }
 
@@ -4052,7 +4052,7 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   if (testnext(ls, TK_ELSE)) {
     if (ls->t.token == TK_IF)
       ls->else_if = ls->getLineNumber();
-    block(ls);  /* 'else' part */
+    block(ls, prop);  /* 'else' part */
   }
   check_match(ls, TK_END, TK_IF, line);
   luaK_patchtohere(fs, escapelist);  /* patch escape list to 'if' end */
