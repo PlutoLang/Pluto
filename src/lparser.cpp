@@ -130,14 +130,13 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here) {
 
 
 // No note.
-static void throw_warn (LexState *ls, const char *raw_err, const char *here, int line, WarningType warningType) {
-  std::string err(raw_err);
+static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
   if (ls->shouldEmitWarning(line, warningType)) {
     auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
-    err.append(" [");
-    err.append(ls->getWarningConfig().getWarningName(warningType));
-    err.push_back(']');
     msg->addMsg(err)
+      .addMsg(" [")
+      .addMsg(ls->getWarningConfig().getWarningName(warningType))
+      .addMsg("]")
       .addSrcLine(line)
       .addGenericHere(here)
       .finalize();
@@ -152,14 +151,13 @@ static void throw_warn (LexState *ls, const char *raw_err, const char *here, int
 }
 
 // Note.
-static void throw_warn(LexState* ls, const char* raw_err, const char* here, const char* note, int line, WarningType warningType) {
+static void throw_warn(LexState* ls, const char* err, const char* here, const char* note, int line, WarningType warningType) {
   if (ls->shouldEmitWarning(line, warningType)) {
-    std::string err(raw_err);
     auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
-    err.append(" [");
-    err.append(ls->getWarningConfig().getWarningName(warningType));
-    err.push_back(']');
     msg->addMsg(err)
+      .addMsg(" [")
+      .addMsg(ls->getWarningConfig().getWarningName(warningType))
+      .addMsg("]")
       .addSrcLine(line)
       .addGenericHere(here)
       .addNote(note)
@@ -338,7 +336,7 @@ static void check_match (LexState *ls, int what, int who, int where) {
           .addMsg(" expected (to close ")
           .addMsg(luaX_token2str(ls, who))
           .addMsg(" on line ")
-          .addMsg(std::to_string(where))
+          .addMsg(luaO_fmt(ls->L, "%d", where))
           .addMsg(")")
           .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
           .addGenericHere()
