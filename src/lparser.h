@@ -407,7 +407,7 @@ typedef struct FuncState {
 
 
 LUAI_FUNC int luaY_nvarstack (FuncState *fs);
-LUAI_FUNC LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
+LUAI_FUNC LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
                                  Dyndata *dyd, const char *name, int firstchar);
 
 
