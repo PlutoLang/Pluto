@@ -12,6 +12,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "lobject.h"
@@ -335,6 +336,11 @@ enum KeywordState : lu_byte {
   KS_DISABLED_BY_USER,
 };
 
+struct FuncArgsState {
+  std::vector<void*> argdescs{};
+  std::vector<size_t> argtis{};
+};
+
 struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
@@ -361,8 +367,12 @@ struct LexState {
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
   std::stack<ClassData> classes{};
+  std::stack<FuncArgsState> funcargsstates{};
   std::vector<EnumDesc> enums{};
   std::vector<void*> parse_time_allocations{};
+  std::unordered_set<TString*> localstat_variable_names{};
+  std::unordered_set<TString*> localstat_expression_names{};
+  std::vector<void*> localstat_ts{};
   std::unordered_map<const TString*, void*> global_props{};
   KeywordState keyword_states[NUM_NON_COMPAT];
 
