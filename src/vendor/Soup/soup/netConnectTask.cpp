@@ -2,6 +2,7 @@
 #if !SOUP_WASM
 
 #include "netConfig.hpp"
+#include "netStatus.hpp"
 #include "ObfusString.hpp"
 #include "rand.hpp"
 #include "Scheduler.hpp"
@@ -83,6 +84,7 @@ namespace soup
 				if (time::millisSince(started_connect_at) > netConfig::get().connect_timeout_ms)
 				{
 					// Timeout
+					started_connect_at = -2; // signal for `getStatus` that it was a L4 timeout
 					sock.transport_close();
 					setWorkDone();
 				}
@@ -92,6 +94,7 @@ namespace soup
 				if (res == -1)
 				{
 					// Error
+					started_connect_at = -1; // signal for `getStatus` that it was a L4 error
 					sock.transport_close();
 				}
 				setWorkDone();
@@ -141,6 +144,27 @@ namespace soup
 			str.append(ObfusString("Handshaking").str());
 		}
 		return str;
+	}
+
+	netStatus netConnectTask::getStatus() const noexcept
+	{
+		if (!isWorkDone())
+		{
+			return NET_PENDING;
+		}
+		if (started_connect_at == 0)
+		{
+			return NET_FAIL_NO_DNS_RESULTS;
+		}
+		if (started_connect_at == -2)
+		{
+			return NET_FAIL_L4_TIMEOUT;
+		}
+		if (started_connect_at == -1)
+		{
+			return NET_FAIL_L4_ERROR;
+		}
+		return NET_OK;
 	}
 }
 

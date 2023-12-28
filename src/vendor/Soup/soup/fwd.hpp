@@ -138,6 +138,7 @@ namespace soup
 	class IpAddr;
 	struct netConfig;
 	class netIntel;
+	enum netStatus : uint8_t;
 	class Server;
 	struct ServerService;
 	struct ServerServiceUdp;
