@@ -1949,14 +1949,13 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     new_localvarliteral(ls, "self");  /* create 'self' parameter */
     adjustlocalvars(ls, 1);
   }
-  std::vector<std::pair<TString*, TString*>> promotions{};
-  std::vector<size_t> fallbacks{};
+  BodyState& bs = ls->bodystates.emplace();
   TString* varargname = nullptr;
-  parlist(ls, (ismethod == 2 ? &promotions : nullptr), &fallbacks, &varargname);
+  parlist(ls, (ismethod == 2 ? &bs.promotions : nullptr), &bs.fallbacks, &varargname);
   checknext(ls, ')');
   const auto saved_pos = luaX_getpos(ls);
   int fallback_idx = (ismethod ? 1 : 0);
-  for (const auto& tidx : fallbacks) {
+  for (const auto& tidx : bs.fallbacks) {
     if (tidx != 0) {
       enterlevel(ls);
       FuncState *fs = ls->fs;
@@ -1984,7 +1983,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     ++fallback_idx;
   }
   luaX_setpos(ls, saved_pos);
-  for (const auto& e : promotions) {
+  for (const auto& e : bs.promotions) {
     FuncState *fs = ls->fs;
     expdesc tab, key, val;
 
@@ -2051,6 +2050,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   codeclosure(ls, e);
   close_func(ls);
   ls->popContext(PARCTX_BODY);
+  ls->bodystates.pop();
 }
 
 
