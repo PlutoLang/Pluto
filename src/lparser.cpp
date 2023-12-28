@@ -4283,6 +4283,7 @@ static void localstat (LexState *ls) {
         checkforshadowing(ls, fs, variable_name, line, true, false); // new_localvar already checked for local duplication
       }
     }
+    var = getlocalvardesc(fs, vidx);  /* actvar array may have been relocated */
   }
   else {
     e.k = VVOID;
