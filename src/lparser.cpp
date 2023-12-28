@@ -321,14 +321,13 @@ static void check_match (LexState *ls, int what, int who, int where) {
       if (what == TK_END) {
         if (ls->else_if)
           throw_warn(ls, "'else if' is not the same as 'elseif' in Lua/Pluto", "did you mean 'elseif'?", ls->else_if, WT_POSSIBLE_TYPO);
-        std::string msg = "missing 'end' to terminate ";
-        msg.append(luaX_token2str(ls, who));
+        const char *msg;
         if (who != TK_BEGIN) {
-          msg.append(" block");
+          msg = luaO_fmt(ls->L, "missing 'end' to terminate %s on line %d", luaX_token2str(ls, who), where);
         }
-        msg.append(" on line ");
-        msg.append(std::to_string(where));
-        throwerr(ls, msg.c_str(), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
+        else
+          msg = luaO_fmt(ls->L, "missing 'end' to terminate %s block on line %d", luaX_token2str(ls, who), where);
+        throwerr(ls, msg, "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
       }
       else {
         auto err = new Pluto::ErrorMessage{ ls, RED "syntax error: " BWHT };
