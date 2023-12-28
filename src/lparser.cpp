@@ -112,14 +112,14 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, int flags 
 */
 static l_noret throwerr (LexState *ls, const char *err, const char *here, int line) {
   err = luaG_addinfo(ls->L, err, ls->source, line);
-  Pluto::ErrorMessage msg{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
-  msg.addMsg(err);
+  auto msg = new Pluto::ErrorMessage{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
+  msg->addMsg(err);
   if (ls->t.token == TK_EOS && strstr(err, "<eof>") == nullptr) {  /* REPL expects to see "<eof>" so it knows the expression is unfinished */
-    msg.addMsg(" (near ")
+    msg->addMsg(" (near ")
        .addMsg(luaX_token2str(ls, ls->t.token))
        .addMsg(")");
   }
-  msg.addSrcLine(line)
+  msg->addSrcLine(line)
      .addGenericHere(here)
      .finalizeAndThrow();
 }
@@ -133,17 +133,20 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here) {
 static void throw_warn (LexState *ls, const char *raw_err, const char *here, int line, WarningType warningType) {
   std::string err(raw_err);
   if (ls->shouldEmitWarning(line, warningType)) {
-    Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
+    auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
     err.append(" [");
     err.append(ls->getWarningConfig().getWarningName(warningType));
     err.push_back(']');
-    msg.addMsg(err)
+    msg->addMsg(err)
       .addSrcLine(line)
       .addGenericHere(here)
       .finalize();
-    if (ls->getWarningConfig().isFatal(warningType))
+    if (ls->getWarningConfig().isFatal(warningType)) {
+      delete msg;
       luaD_throw(ls->L, LUA_ERRSYNTAX);
-    lua_warning(ls->L, msg.content.c_str(), 0);
+    }
+    lua_warning(ls->L, msg->content.c_str(), 0);
+    delete msg;
     ls->L->top.p -= 2; // Pluto::ErrorMessage::finalize & luaG_addinfo
   }
 }
@@ -152,18 +155,21 @@ static void throw_warn (LexState *ls, const char *raw_err, const char *here, int
 static void throw_warn(LexState* ls, const char* raw_err, const char* here, const char* note, int line, WarningType warningType) {
   if (ls->shouldEmitWarning(line, warningType)) {
     std::string err(raw_err);
-    Pluto::ErrorMessage msg{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
+    auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
     err.append(" [");
     err.append(ls->getWarningConfig().getWarningName(warningType));
     err.push_back(']');
-    msg.addMsg(err)
+    msg->addMsg(err)
       .addSrcLine(line)
       .addGenericHere(here)
       .addNote(note)
       .finalize();
-    if (ls->getWarningConfig().isFatal(warningType))
+    if (ls->getWarningConfig().isFatal(warningType)) {
+      delete msg;
       luaD_throw(ls->L, LUA_ERRSYNTAX);
-    lua_warning(ls->L, msg.content.c_str(), 0);
+    }
+    lua_warning(ls->L, msg->content.c_str(), 0);
+    delete msg;
     ls->L->top.p -= 2; // Pluto::ErrorMessage::finalize & luaG_addinfo
   }
 }
@@ -327,8 +333,8 @@ static void check_match (LexState *ls, int what, int who, int where) {
         throwerr(ls, msg.c_str(), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
       }
       else {
-        Pluto::ErrorMessage err{ ls, RED "syntax error: " BWHT };
-        err.addMsg(luaX_token2str(ls, what))
+        auto err = new Pluto::ErrorMessage{ ls, RED "syntax error: " BWHT };
+        err->addMsg(luaX_token2str(ls, what))
           .addMsg(" expected (to close ")
           .addMsg(luaX_token2str(ls, who))
           .addMsg(" on line ")

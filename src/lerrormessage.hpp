@@ -84,7 +84,9 @@ namespace Pluto {
 
 		[[noreturn]] void finalizeAndThrow() {
 			this->finalize();
-			luaD_throw(ls->L, LUA_ERRSYNTAX);
+			lua_State* L = ls->L;
+			delete this;
+			luaD_throw(L, LUA_ERRSYNTAX);
 		}
 	};
 }

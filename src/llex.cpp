@@ -155,20 +155,21 @@ const char* luaX_reserved2str (int token) {
 
 static l_noret lexerror (LexState *ls, const char *msg, int token) {
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->getLineNumber());
-  Pluto::ErrorMessage err{ ls, HRED "syntax error: " BWHT };
-  err.addMsg(msg);
+  auto err = new Pluto::ErrorMessage{ ls, HRED "syntax error: " BWHT };
+  err->addMsg(msg);
   if (token) {
-    err.addMsg(" near ")
+    err->addMsg(" near ")
        .addMsg(luaX_token2str(ls, token))
        .addSrcLine(ls->getLineNumber())
        .addGenericHere()
        .finalize();
   }
   else {
-    err.addSrcLine(ls->getLineNumber())
+    err->addSrcLine(ls->getLineNumber())
        .addGenericHere()
        .finalize();
   }
+  delete err;
   luaD_throw(ls->L, LUA_ERRSYNTAX);
 }
 
