@@ -7,6 +7,7 @@ static_assert(sizeof(void*) * 8 == SOUP_BITS);
 #endif
 
 #include "Exception.hpp"
+#include "ObfusString.hpp"
 
 namespace soup
 {
@@ -20,7 +21,7 @@ namespace soup
 
 	void throwAssertionFailed()
 	{
-		SOUP_THROW(Exception("Assertion failed"));
+		SOUP_THROW(Exception(ObfusString("Assertion failed").str()));
 	}
 
 	void throwAssertionFailed(const char* what)

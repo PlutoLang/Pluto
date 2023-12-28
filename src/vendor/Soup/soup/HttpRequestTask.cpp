@@ -3,6 +3,7 @@
 #if !SOUP_WASM
 #include "format.hpp"
 #include "log.hpp"
+#include "netStatus.hpp"
 #include "ObfusString.hpp"
 #include "ReuseTag.hpp"
 #include "Scheduler.hpp"
@@ -191,6 +192,18 @@ namespace soup
 		case AWAIT_RESPONSE: str.append(ObfusString("AWAIT_RESPONSE").str()); break;
 		}
 		return str;
+	}
+
+	netStatus HttpRequestTask::getStatus() const noexcept
+	{
+		switch (state)
+		{
+		case CONNECTING: return connector->getStatus();
+		case AWAIT_RESPONSE: return isWorkDone() ? (result.has_value() ? NET_OK : NET_FAIL_L7_TIMEOUT) : NET_PENDING;
+		default: break; // keep the compiler happy
+		}
+		// Assuming `!isWorkDone()` because the task can only finish during CONNECTING and AWAIT_RESPONSE.
+		return NET_PENDING;
 	}
 #else
 	HttpRequestTask::HttpRequestTask(const Uri& uri)
