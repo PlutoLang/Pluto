@@ -3,20 +3,25 @@
 
 #include "lstate.h"
 
+#include <thread>
+
 #include "vendor/Soup/soup/DetachedScheduler.hpp"
 #include "vendor/Soup/soup/HttpRequest.hpp"
 #include "vendor/Soup/soup/HttpRequestTask.hpp"
+#include "vendor/Soup/soup/netStatus.hpp"
 #include "vendor/Soup/soup/Uri.hpp"
 
-static int push_http_response (lua_State *L, const std::optional<soup::HttpResponse>& resp) {
-  if (resp.has_value()) {
+static int push_http_response (lua_State *L, soup::HttpRequestTask& task) {
+  if (task.result.has_value()) {
     // Return value order should be 'body, status_code, response_headers, status_text' for compatibility with luasocket.
-    pluto_pushstring(L, resp->body);
-    lua_pushinteger(L, resp->status_code);
+    pluto_pushstring(L, task.result->body);
+    lua_pushinteger(L, task.result->status_code);
     return 2;
   }
-  // In case of failure, luasocket would return 'nil, message' but I'm not sure what kind of message to give other than "connection failed."
-  return 0;
+  // Return value order should be 'nil, message' for compatibility with luasocket.
+  luaL_pushfail(L);
+  lua_pushstring(L, soup::netStatusToString(task.getStatus()));
+  return 2;
 }
 
 static int http_request_cont (lua_State *L, int status, lua_KContext ctx) {
@@ -24,7 +29,7 @@ static int http_request_cont (lua_State *L, int status, lua_KContext ctx) {
   if (!pTask->isWorkDone()) {
     return lua_yieldk(L, 0, ctx, http_request_cont);
   }
-  return push_http_response(L, *pTask->result);
+  return push_http_response(L, *pTask);
 }
 
 static int http_request (lua_State *L) {
@@ -50,19 +55,18 @@ static int http_request (lua_State *L) {
       hr.method = pluto_checkstring(L, -1);
     lua_pop(L, 1);
   }
+  if (G(L)->scheduler == nullptr) {
+    G(L)->scheduler = new soup::DetachedScheduler();
+  }
+  auto spTask = reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->add<soup::HttpRequestTask>(std::move(hr));
   if (lua_isyieldable(L)) {
-    if (G(L)->scheduler == nullptr) {
-      G(L)->scheduler = new soup::DetachedScheduler();
-    }
+    auto pTask = spTask.get();
 
-    auto upTask = reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->add<soup::HttpRequestTask>(std::move(hr));
-    auto pTask = upTask.get();
-
-    auto pUpTask = new (lua_newuserdata(L, sizeof(upTask))) decltype(upTask) (std::move(upTask));
+    auto pUpTask = new (lua_newuserdata(L, sizeof(spTask))) decltype(spTask) (std::move(spTask));
     lua_newtable(L);
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State *L) {
-      std::destroy_at<>(reinterpret_cast<decltype(upTask)*>(lua_touserdata(L, 1)));
+      std::destroy_at<>(reinterpret_cast<decltype(spTask)*>(lua_touserdata(L, 1)));
       return 0;
     });
     lua_settable(L, -3);
@@ -70,7 +74,9 @@ static int http_request (lua_State *L) {
 
     return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), http_request_cont);
   }
-  return push_http_response(L, hr.execute());
+  while (!spTask->isWorkDone())
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  return push_http_response(L, *spTask);
 }
 
 static const luaL_Reg funcs[] = {
