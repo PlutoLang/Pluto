@@ -10,7 +10,7 @@ $(LIBNAME): $(OBJS)
 	ar rcs $(LIBNAME) $^
 
 %.o: %.cpp
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm ${OBJS} $(LIBNAME)
