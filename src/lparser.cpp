@@ -4421,9 +4421,14 @@ static void exprstat (LexState *ls) {
   /* stat -> func | assignment */
   FuncState *fs = ls->fs;
   struct LHS_assign v;
+  const bool global = testnext(ls, TK_GLOBAL);
+  if (global && !isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE) && ls->t.token != TK_FUNCTION && ls->t.token != TK_CLASS)
+    luaX_syntaxerror(ls, "syntax error");
   suffixedexp(ls, &v.v);
   if (ls->t.token == '=' || ls->t.token == ',') { /* stat -> assignment ? */
     v.prev = NULL;
+    if (v.v.k == VINDEXUP && !global && ls->isKeywordEnabled(TK_GLOBAL))
+      throw_warn(ls, "implicit global creation", "prefix this with 'global' if creating a global was intended", WT_IMPLICIT_GLOBAL);
     restassign(ls, &v, 1);
   }
   else {  /* stat -> func */
@@ -4564,6 +4569,9 @@ static void usestat (LexState *ls) {
           tokens.emplace_back(TK_LET);
           if (soup::version_compare(ls->t.seminfo.ts->contents, "0.8.0") >= 0) {
             tokens.emplace_back(TK_CONST);
+            if (soup::version_compare(ls->t.seminfo.ts->contents, "0.9.0") >= 0) {
+              tokens.emplace_back(TK_GLOBAL);
+            }
           }
         }
       }
