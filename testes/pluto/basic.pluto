@@ -1,19 +1,19 @@
 print "Welcome to the test suite."
 
--- Testing warnings
+local function assert_warn(code)
+    assert(wcall(function(msg)
+        load(code)()
+    end) ~= "")
+end
+
+local function assert_no_warn(code)
+    assert(wcall(function(msg)
+        load(code)()
+    end) == "")
+end
+
+print "Testing warnings."
 do
-    local function assert_warn(code)
-        assert(wcall(function(msg)
-            load(code)()
-        end) ~= "")
-    end
-
-    local function assert_no_warn(code)
-        assert(wcall(function(msg)
-            load(code)()
-        end) == "")
-    end
-
     assert_warn([[local a; local a]]) -- var-shadow
 
     assert_no_warn[[
@@ -138,7 +138,7 @@ end]]
 
 end
 
-print "Testing assertion library"
+print "Testing assertion library."
 do
     local assert = require("assert")
 
@@ -2343,7 +2343,14 @@ do
     ;("Hello") |> (require"json".encode) |> |x| -> assert(x == [["Hello"]])
 end
 
-print("Testing modified require semantics.")
+print "Testing implicit/explicit global creation."
+do
+    assert_warn [[pluto_use global; a = 1]]
+    assert_no_warn [[pluto_use global; local a; a = 1]]
+    assert_no_warn [[pluto_use global; local a; do a = 1 end]]
+end
+
+print "Testing modified require semantics."
 do
     local currentdir = io.absolute(io.currentdir())
     if not io.currentdir():endswith("testes") then
