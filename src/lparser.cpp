@@ -4487,7 +4487,7 @@ static void enablekeyword (LexState *ls, int token) {
 }
 
 static void togglekeyword (LexState *ls, int token, bool enable) {
-  if (!ls->hasKeywordState(token) || ls->isKeywordEnabled(token) != enable) {
+  if (ls->isKeywordEnabled(token) != enable) {
     ls->setKeywordState(token, enable ? KS_ENABLED_BY_USER : KS_DISABLED_BY_USER);
     if (enable)
       enablekeyword(ls, token);
@@ -4559,7 +4559,7 @@ static void usestat (LexState *ls) {
       if (is_version) {
         /* disable all non-compatible keywords as of this Pluto version, then enable those from the elected Pluto version. */
         for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i) {
-          if (!ls->hasKeywordState(i) || ls->isKeywordEnabled(i)) {
+          if (ls->isKeywordEnabled(i)) {
             ls->setKeywordState(i, KS_DISABLED_BY_USER);
             disablekeyword(ls, i, false);
           }
