@@ -44,7 +44,7 @@ enum RESERVED {
   TK_PUSE, // New compatibility keywords.
   TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, TK_PTRY, TK_PCATCH,
   TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, TK_TRY, TK_CATCH, // New non-compatible keywords.
-  TK_LET, TK_CONST, // New optional keywords.
+  TK_LET, TK_CONST, TK_GLOBAL, // New optional keywords.
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
@@ -169,6 +169,7 @@ enum WarningType : int {
   WT_NON_PORTABLE_CODE,
   WT_NON_PORTABLE_BYTECODE,
   WT_NON_PORTABLE_NAME,
+  WT_IMPLICIT_GLOBAL,
 
   NUM_WARNING_TYPES
 };
@@ -187,6 +188,7 @@ inline const char* const luaX_warnNames[] = {
   "non-portable-code",
   "non-portable-bytecode",
   "non-portable-name",
+  "implicit-global",
 };
 static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
