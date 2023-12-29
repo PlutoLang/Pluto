@@ -113,10 +113,9 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here, int li
   err = luaG_addinfo(ls->L, err, ls->source, line);
   auto msg = new Pluto::ErrorMessage{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
   msg->addMsg(err);
-  if (ls->t.token == TK_EOS && strstr(err, "<eof>") == nullptr) {  /* REPL expects to see "<eof>" so it knows the expression is unfinished */
-    msg->addMsg(" (near ")
-       .addMsg(luaX_token2str(ls, ls->t.token))
-       .addMsg(")");
+  if (ls->t.token == TK_EOS && strstr(err, "near '<eof>'") == nullptr) {  /* for 'incomplete' in REPL */
+    msg->addMsg(" near ")
+       .addMsg(luaX_token2str(ls, ls->t.token));
   }
   msg->addSrcLine(line)
      .addGenericHere(here)
