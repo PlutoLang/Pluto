@@ -2346,6 +2346,8 @@ end
 print "Testing implicit/explicit global creation."
 do
     assert_warn [[pluto_use global; a = 1]]
+    assert_warn [[pluto_use global; function a() end]]
+    assert_warn [[pluto_use global; class a end]]
     assert_no_warn [[pluto_use global; local a; a = 1]]
     assert_no_warn [[pluto_use global; local a; do a = 1 end]]
 end
