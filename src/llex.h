@@ -67,8 +67,7 @@ enum RESERVED {
 
 #define END_COMPAT FIRST_NON_COMPAT
 #define END_NON_COMPAT FIRST_OPTIONAL
-
-#define NUM_NON_COMPAT (END_NON_COMPAT - FIRST_NON_COMPAT)
+#define END_OPTIONAL FIRST_SPECIAL
 
 /* number of reserved words */
 #define NUM_RESERVED	(cast_int(LAST_RESERVED-FIRST_RESERVED + 1))
@@ -380,14 +379,17 @@ struct LexState {
   std::unordered_set<TString*> localstat_expression_names{};
   std::vector<void*> localstat_ts{};
   std::unordered_map<const TString*, void*> global_props{};
-  KeywordState keyword_states[NUM_NON_COMPAT];
+  KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
     laststat.token = TK_EOS;
     parser_context_stck.push(PARCTX_NONE); /* ensure there is at least 1 item on the parser context stack */
-    for (auto& ks : keyword_states) {
-      ks = KS_ENABLED_BY_ENV;
+    for (int i = FIRST_NON_COMPAT; i != END_NON_COMPAT; ++i) {
+      setKeywordState(i, KS_ENABLED_BY_ENV);
+    }
+    for (int i = FIRST_OPTIONAL; i != END_OPTIONAL; ++i) {
+      setKeywordState(i, KS_DISABLED_BY_ENV);
     }
   }
 
@@ -499,10 +501,6 @@ struct LexState {
     return t.token == TK_SUGGEST_0 || t.token == TK_SUGGEST_1;
   }
 
-  [[nodiscard]] static bool hasKeywordState(int t) noexcept {
-    return t >= FIRST_NON_COMPAT && t < END_NON_COMPAT;
-  }
-
   [[nodiscard]] bool isKeywordEnabled(int t) const noexcept {
     static_assert((KS_ENABLED_BY_USER & 1) == 0);
     static_assert((KS_ENABLED_BY_ENV & 1) == 0);
@@ -512,13 +510,13 @@ struct LexState {
   }
 
   [[nodiscard]] KeywordState getKeywordState(int t) const noexcept {
-    lua_assert(hasKeywordState(t));
+    lua_assert(t >= FIRST_NON_COMPAT && t < END_OPTIONAL);
     return keyword_states[t - FIRST_NON_COMPAT];
   }
 
   void setKeywordState(int t, KeywordState ks) noexcept {
-    if (hasKeywordState(t))
-      keyword_states[t - FIRST_NON_COMPAT] = ks;
+    lua_assert(t >= FIRST_NON_COMPAT && t < END_OPTIONAL);
+    keyword_states[t - FIRST_NON_COMPAT] = ks;
   }
 };
 
