@@ -1699,7 +1699,13 @@ static void classexpr (LexState *ls, expdesc *t) {
 }
 
 
-static void classstat (LexState *ls) {
+static void check_assignment (LexState *ls, const expdesc *v, const bool global) {
+  if (v->k == VINDEXUP && !global && ls->isKeywordEnabled(TK_GLOBAL))
+    throw_warn(ls, "implicit global creation", "prefix this with 'global' if creating a global was intended", WT_IMPLICIT_GLOBAL);
+}
+
+
+static void classstat (LexState *ls, const bool global) {
   auto line = ls->getLineNumber();
   luaX_next(ls); /* skip 'class' */
 
@@ -1708,6 +1714,7 @@ static void classstat (LexState *ls) {
   size_t name_pos = luaX_getpos(ls);
   expdesc v;
   classname(ls, &v);
+  check_assignment(ls, &v, global);
 
   size_t parent_pos = checkextends(ls);
 
@@ -4381,12 +4388,13 @@ static int funcname (LexState *ls, expdesc *v) {
 }
 
 
-static void funcstat (LexState *ls, int line) {
+static void funcstat (LexState *ls, int line, const bool global) {
   /* funcstat -> FUNCTION funcname body */
   int ismethod;
   expdesc v, b;
   luaX_next(ls);  /* skip FUNCTION */
   ismethod = funcname(ls, &v);
+  check_assignment(ls, &v, global);
   body(ls, &b, ismethod, line);
   check_readonly(ls, &v);
   luaK_storevar(ls->fs, &v, &b);
@@ -4394,18 +4402,14 @@ static void funcstat (LexState *ls, int line) {
 }
 
 
-static void exprstat (LexState *ls) {
+static void exprstat (LexState *ls, const bool global) {
   /* stat -> func | assignment */
   FuncState *fs = ls->fs;
   struct LHS_assign v;
-  const bool global = testnext(ls, TK_GLOBAL);
-  if (global && !isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE) && ls->t.token != TK_FUNCTION && ls->t.token != TK_CLASS)
-    luaX_syntaxerror(ls, "syntax error");
   suffixedexp(ls, &v.v);
   if (ls->t.token == '=' || ls->t.token == ',') { /* stat -> assignment ? */
     v.prev = NULL;
-    if (v.v.k == VINDEXUP && !global && ls->isKeywordEnabled(TK_GLOBAL))
-      throw_warn(ls, "implicit global creation", "prefix this with 'global' if creating a global was intended", WT_IMPLICIT_GLOBAL);
+    check_assignment(ls, &v.v, global);
     restassign(ls, &v, 1);
   }
   else {  /* stat -> func */
@@ -4799,6 +4803,9 @@ static void statement (LexState *ls, TypeHint *prop) {
   }
   enterlevel(ls);
   check_for_non_portable_code(ls);
+  const bool global = testnext(ls, TK_GLOBAL);
+  if (global && !isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE) && ls->t.token != TK_FUNCTION && ls->t.token != TK_CLASS)
+    luaX_syntaxerror(ls, "syntax error");
   switch (ls->t.token) {
     case ';': {  /* stat -> ';' (empty statement) */
       luaX_next(ls);  /* skip ';' */
@@ -4833,12 +4840,12 @@ static void statement (LexState *ls, TypeHint *prop) {
       break;
     }
     case TK_FUNCTION: {  /* stat -> funcstat */
-      funcstat(ls, line);
+      funcstat(ls, line, global);
       break;
     }
     case TK_CLASS:
     case TK_PCLASS: {
-      classstat(ls);
+      classstat(ls, global);
       break;
     }
     case TK_LET:
@@ -4951,7 +4958,7 @@ static void statement (LexState *ls, TypeHint *prop) {
       break;
     }
     default: {  /* stat -> func | assignment */
-      exprstat(ls);
+      exprstat(ls, global);
       break;
     }
   }
