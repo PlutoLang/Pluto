@@ -375,6 +375,9 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
     ss.pushLocals();
   }
   if (!isnametkn(ls, flags)) {
+    if (ls->t.IsNonCompatible()) {
+      throwerr(ls, luaO_fmt(ls->L, "expected a name, found %s", luaX_token2str(ls, ls->t.token)), luaO_fmt(ls->L, "%s has a different meaning in Pluto, but you can disable this: https://pluto.do/compat", luaX_token2str(ls, ls->t.token)));
+    }
     error_expected(ls, TK_NAME);
   }
   ts = ls->t.seminfo.ts;
