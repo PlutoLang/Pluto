@@ -24,6 +24,13 @@ namespace soup
 		t->running = false;
 		if (is_self_deleting)
 		{
+#if SOUP_WINDOWS
+			CloseHandle(t->handle);
+			t->handle = INVALID_HANDLE_VALUE;
+#else
+			pthread_detach(t->handle);
+			t->have_handle = false;
+#endif
 			delete static_cast<SelfDeletingThread*>(t);
 		}
 	}
