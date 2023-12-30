@@ -32,6 +32,10 @@ static int http_request_cont (lua_State *L, int status, lua_KContext ctx) {
   return push_http_response(L, *pTask);
 }
 
+#ifdef PLUTO_HTTP_REQUEST_HOOK
+extern bool PLUTO_HTTP_REQUEST_HOOK(lua_State* L, const char* url);
+#endif
+
 static int http_request (lua_State *L) {
   std::string uri;
   int optionsidx = 0;
@@ -48,6 +52,13 @@ static int http_request (lua_State *L) {
     if (lua_type(L, 2) == LUA_TTABLE)
       optionsidx = 2;
   }
+#ifdef PLUTO_DISABLE_HTTP_COMPLETELY
+  luaL_error(L, "disallowed by content moderation policy");
+#endif
+#ifdef PLUTO_HTTP_REQUEST_HOOK
+  if (!PLUTO_HTTP_REQUEST_HOOK(L, uri.c_str()))
+    luaL_error(L, "disallowed by content moderation policy");
+#endif
   soup::HttpRequest hr(soup::Uri(std::move(uri)));
   if (optionsidx) {
     lua_pushliteral(L, "method");
