@@ -1046,6 +1046,13 @@
 
 // If defined, luaL_openlibs will not include the 'coroutine' library.
 //#define PLUTO_NO_COROLIB
+
+// If defined, all HTTP requests will fail.
+//#define PLUTO_DISABLE_HTTP_COMPLETELY
+
+// If defined, the provided function will be called as bool(lua_State* L, const char* url).
+// If it returns false, a Lua eror is raised.
+//#define PLUTO_HTTP_REQUEST_HOOK ContmodOnHttpRequest
 #ifdef PLUTO_NO_BINARIES
 #define PLUTO_NO_BINARIES_FAIL luaL_error(L, "binary modules cannot be loaded in this environment");
 #endif
