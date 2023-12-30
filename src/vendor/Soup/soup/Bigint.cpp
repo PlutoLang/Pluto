@@ -1136,7 +1136,7 @@ namespace soup
 			for (; i + 2 < nc; i += 2)
 			{
 				size_t di = (i / 2);
-				setDChunk(di, getDChunkInbounds(di) | b.getDChunkInbounds(i));
+				setDChunk(di, getDChunkInbounds(di) | b.getDChunkInbounds(di));
 			}
 			for (; i != nc; ++i)
 			{
@@ -1171,7 +1171,7 @@ namespace soup
 			for (; i + 2 < nc; i += 2)
 			{
 				size_t di = (i / 2);
-				setDChunk(di, getDChunkInbounds(di) & b.getDChunkInbounds(i));
+				setDChunk(di, getDChunkInbounds(di) & b.getDChunkInbounds(di));
 			}
 			for (; i != nc; ++i)
 			{
