@@ -455,7 +455,7 @@ static int luaB_load (lua_State *L) {
 #endif
 #ifdef PLUTO_LOAD_HOOK
   if (!PLUTO_LOAD_HOOK(L, s))
-    luaL_error(L, "chunk failed content moderation policy");
+    luaL_error(L, "disallowed by content moderation policy");
 #endif
     const char *chunkname = luaL_optstring(L, 2, s);
     status = luaL_loadbufferx(L, s, l, chunkname, mode);
