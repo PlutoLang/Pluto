@@ -952,6 +952,16 @@
 
 /*
 ** {====================================================================
+** Pluto configuration: Memory Limit
+**
+** For sandbox environments. This changes the memory allocator in luaL_newstate.
+** =====================================================================}
+*/
+
+//#define PLUTO_MEMORY_LIMIT 64'000'000 /* 64 MB (megabytes, not mebibytes!) */
+
+/*
+** {====================================================================
 ** Pluto configuration: VM Dump
 ** =====================================================================}
 */
