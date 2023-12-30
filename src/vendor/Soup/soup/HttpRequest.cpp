@@ -275,6 +275,8 @@ namespace soup
 						}
 						self.buf.erase(0, i + 2);
 						self.resp.status_code = string::toInt<uint16_t>(arr.at(1), 0);
+						arr.erase(arr.begin(), arr.begin() + 2);
+						self.resp.status_text = string::join(arr, ' ');
 						self.status = HEADER;
 					}
 					else if (self.status == HEADER)
