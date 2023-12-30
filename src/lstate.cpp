@@ -279,9 +279,11 @@ static void close_state (lua_State *L) {
     L->ci = &L->base_ci;  /* unwind CallInfo list */
     luaD_closeprotected(L, 1, LUA_OK);  /* close all upvalues */
     luaC_freeallobjects(L);  /* collect all objects */
+#if !SOUP_WASM
     if (g->scheduler) {
       delete reinterpret_cast<soup::DetachedScheduler*>(g->scheduler);
     }
+#endif
     luai_userstateclose(L);
   }
   luaM_freearray(L, G(L)->strt.hash, G(L)->strt.size);
