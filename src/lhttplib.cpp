@@ -13,7 +13,7 @@
 
 static int push_http_response (lua_State *L, soup::HttpRequestTask& task) {
   if (task.result.has_value()) {
-    // Return value order should be 'body, status_code, response_headers, status_text' for compatibility with luasocket.
+    // Return value order is 'body, status_code, response_headers, status_text' for compatibility with luasocket.
     pluto_pushstring(L, task.result->body);
     lua_pushinteger(L, task.result->status_code);
     lua_newtable(L);
@@ -22,9 +22,10 @@ static int push_http_response (lua_State *L, soup::HttpRequestTask& task) {
       pluto_pushstring(L, e.second);
       lua_settable(L, -3);
     }
-    return 3;
+    pluto_pushstring(L, task.result->status_text);
+    return 4;
   }
-  // Return value order should be 'nil, message' for compatibility with luasocket.
+  // Return value order is 'nil, message' for compatibility with luasocket.
   luaL_pushfail(L);
   lua_pushstring(L, soup::netStatusToString(task.getStatus()));
   return 2;
