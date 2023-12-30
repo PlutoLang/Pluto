@@ -26,6 +26,9 @@
 #include "lua.h"
 #include "lprefix.h"
 #include "lauxlib.h"
+#ifdef PLUTO_MEMORY_LIMIT
+#include "lstate.h"
+#endif
 
 
 #ifdef PLUTO_LUA_LINKABLE
@@ -1087,13 +1090,24 @@ LUALIB_API const char *luaL_gsub (lua_State *L, const char *s,
 
 
 static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
+#ifndef PLUTO_MEMORY_LIMIT
   (void)ud; (void)osize;  /* not used */
+#endif
   if (nsize == 0) {
     free(ptr);
     return NULL;
   }
-  else
+  else {
+#ifdef PLUTO_MEMORY_LIMIT
+    if (ud  /* state has finished opening? */
+      && (!ptr || osize > nsize)  /* new allocation or increasing existing allocation? */
+      && gettotalbytes(reinterpret_cast<global_State*>(ud)) >= PLUTO_MEMORY_LIMIT  /* limit reached? */
+      ) {
+      return NULL;
+    }
+#endif
     return realloc(ptr, nsize);
+  }
 }
 
 
@@ -1165,6 +1179,9 @@ static void warnfon (void *ud, const char *message, int tocont) {
 LUALIB_API lua_State *luaL_newstate (void) {
   lua_State *L = lua_newstate(l_alloc, NULL);
   if (l_likely(L)) {
+#ifdef PLUTO_MEMORY_LIMIT
+    G(L)->ud = G(L);
+#endif
     lua_atpanic(L, &panic);
     lua_setwarnf(L, warnfon, L);  /* unlike lua, warnings are enabled by default in pluto */
   }
