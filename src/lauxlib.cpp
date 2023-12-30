@@ -841,7 +841,7 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
                                              const char *mode) {
 #ifdef PLUTO_LOADFILE_HOOK
   if (!PLUTO_LOADFILE_HOOK(L, filename)) {
-    lua_pushfstring(L, "%s failed content moderation policy", filename);
+    lua_pushliteral(L, "disallowed by content moderation policy");
     return LUA_ERRFILE;
   }
 #endif
