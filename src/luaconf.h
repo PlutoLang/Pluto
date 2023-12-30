@@ -295,7 +295,10 @@
   #ifndef PLUTO_C_LINKAGE
     #define PLUTO_C_LINKAGE false
   #endif
-  #ifndef _WIN32
+  #ifdef __EMSCRIPTEN__
+    #include "emscripten.h"
+    #define PLUTO_DLLSPEC EMSCRIPTEN_KEEPALIVE
+  #elif !defined(_WIN32)
     #define PLUTO_DLLSPEC __attribute__((visibility("default")))
   #else
     #define PLUTO_DLLSPEC
