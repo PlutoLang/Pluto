@@ -27,8 +27,12 @@ static int push_http_response (lua_State *L, soup::HttpRequestTask& task) {
   }
   // Return value order is 'nil, message' for compatibility with luasocket.
   luaL_pushfail(L);
+#if SOUP_WASM
+  return 1;  /* specialized HttpRequestTask for WASM doesn't have `getStatus` */
+#else
   lua_pushstring(L, soup::netStatusToString(task.getStatus()));
   return 2;
+#endif
 }
 
 static int http_request_cont (lua_State *L, int status, lua_KContext ctx) {
@@ -66,6 +70,22 @@ static int http_request (lua_State *L) {
   if (!PLUTO_HTTP_REQUEST_HOOK(L, uri.c_str()))
     luaL_error(L, "disallowed by content moderation policy");
 #endif
+#if SOUP_WASM
+  if (!lua_isyieldable(L)) {
+    luaL_error(L, "Under WASM, http.request needs a coroutine as otherwise the request can never be dispatched.");
+  }
+  auto pTask = new (lua_newuserdata(L, sizeof(soup::HttpRequestTask))) soup::HttpRequestTask(std::move(uri));
+  /* Soup doesn't have a lot of options for the WASM specialization. Maybe something to look at in the future. */
+  lua_newtable(L);
+  lua_pushliteral(L, "__gc");
+  lua_pushcfunction(L, [](lua_State *L) {
+    std::destroy_at<>(reinterpret_cast<soup::HttpRequestTask*>(lua_touserdata(L, 1)));
+    return 0;
+  });
+  lua_settable(L, -3);
+  lua_setmetatable(L, -2);
+  return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), http_request_cont);
+#else
   soup::HttpRequest hr(soup::Uri(std::move(uri)));
   if (optionsidx) {
     lua_pushliteral(L, "method");
@@ -95,6 +115,7 @@ static int http_request (lua_State *L) {
   while (!spTask->isWorkDone())
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   return push_http_response(L, *spTask);
+#endif
 }
 
 static const luaL_Reg funcs[] = {
