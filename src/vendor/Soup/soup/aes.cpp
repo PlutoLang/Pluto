@@ -235,7 +235,7 @@ namespace soup
 		{11,13,9,14}
 	};
 
-	void aes::pkcs7Pad(std::string& encrypted)
+	void aes::pkcs7Pad(std::string& encrypted) noexcept
 	{
 		auto next_aligned_size = ((encrypted.size() / 16) + 1) * 16;
 		auto pad_size = (next_aligned_size - encrypted.size());
@@ -243,15 +243,22 @@ namespace soup
 		encrypted.append(pad_size, (char)pad_size);
 	}
 
-	void aes::pkcs7Unpad(std::string& decrypted)
+	bool aes::pkcs7Unpad(std::string& decrypted) noexcept
 	{
 		const auto pad_size = (char)decrypted.back();
-		SOUP_ASSERT(pad_size >= 1 && pad_size <= 16);
+		SOUP_IF_UNLIKELY (pad_size < 1 || pad_size > 16)
+		{
+			return false;
+		}
 		for (auto i = pad_size; i; --i)
 		{
-			SOUP_ASSERT(decrypted.back() == pad_size);
+			SOUP_IF_UNLIKELY (decrypted.back() != pad_size)
+			{
+				return false;
+			}
 			decrypted.pop_back();
 		}
+		return true;
 	}
 
 	void aes::cbcEncrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len, const uint8_t iv[16])
