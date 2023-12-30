@@ -100,7 +100,7 @@ static int http_request (lua_State *L) {
   if (lua_isyieldable(L)) {
     auto pTask = spTask.get();
 
-    auto pUpTask = new (lua_newuserdata(L, sizeof(spTask))) decltype(spTask) (std::move(spTask));
+    new (lua_newuserdata(L, sizeof(spTask))) decltype(spTask) (std::move(spTask));
     lua_newtable(L);
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State *L) {
