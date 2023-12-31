@@ -86,17 +86,20 @@ static int http_request (lua_State *L) {
   lua_setmetatable(L, -2);
   return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), http_request_cont);
 #else
-  soup::HttpRequest hr(soup::Uri(std::move(uri)));
-  if (optionsidx) {
-    lua_pushliteral(L, "method");
-    if (lua_rawget(L, optionsidx) > LUA_TNIL)
-      hr.method = pluto_checkstring(L, -1);
-    lua_pop(L, 1);
-  }
   if (G(L)->scheduler == nullptr) {
     G(L)->scheduler = new soup::DetachedScheduler();
   }
-  auto spTask = reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->add<soup::HttpRequestTask>(std::move(hr));
+  auto spTask = reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->add<soup::HttpRequestTask>(std::move(uri));
+  if (optionsidx) {
+    lua_pushliteral(L, "method");
+    if (lua_rawget(L, optionsidx) > LUA_TNIL)
+      spTask->hr.method = pluto_checkstring(L, -1);
+    lua_pop(L, 1);
+    lua_pushliteral(L, "prefer_ipv6");
+    if (lua_rawget(L, optionsidx) > LUA_TNIL)
+      spTask->prefer_ipv6 = lua_istrue(L, -1);
+    lua_pop(L, 1);
+  }
   if (lua_isyieldable(L)) {
     auto pTask = spTask.get();
 
