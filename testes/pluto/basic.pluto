@@ -2350,6 +2350,15 @@ do
     assert_warn [[pluto_use global; class a end]]
     assert_no_warn [[pluto_use global; local a; a = 1]]
     assert_no_warn [[pluto_use global; local a; do a = 1 end]]
+
+    -- explicit globals
+    assert_no_warn [[pluto_use global; global a = 1]]
+    assert_no_warn [[pluto_use global; global function a() end]]
+    assert_no_warn [[pluto_use global; global class a end]]
+
+    -- predefine globals
+    assert_no_warn [[pluto_use global; global a; a = 1]]
+    assert_no_warn [[pluto_use global; global a, b; a = 1; b = 2]]
 end
 
 print "Testing modified require semantics."
