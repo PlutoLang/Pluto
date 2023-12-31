@@ -3202,7 +3202,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
     case '{': {  /* constructor */
       if (prop) prop->emplaceTypeDesc(VT_TABLE);
       constructor(ls, v);
-      if (ls->t.token == '[' || ls->t.token == ':' || ls->t.token == '.')
+      if (ls->t.token == '[' || ls->t.token == ':' || ls->t.token == '.' || ls->t.token == TK_PIPE)
         break;
       return;
     }
