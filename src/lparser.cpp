@@ -1712,8 +1712,13 @@ static void classexpr (LexState *ls, expdesc *t) {
 
 
 static void check_assignment (LexState *ls, const expdesc *v) {
-  if (v->k == VINDEXUP && ls->isKeywordEnabled(TK_GLOBAL))
-    throw_warn(ls, "implicit global creation", "prefix this with 'global' if creating a global was intended", WT_IMPLICIT_GLOBAL);
+  if (v->k == VINDEXUP && ls->isKeywordEnabled(TK_GLOBAL)) {
+    luaX_prev(ls);
+    TString *name = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
+    if (ls->explicit_globals.count(name) == 0) {
+      throw_warn(ls, "implicit global creation", "prefix this with 'global' if creating a global was intended", WT_IMPLICIT_GLOBAL);
+    }
+  }
 }
 
 
@@ -1722,9 +1727,13 @@ static void classstat (LexState *ls, int line, const bool global) {
 
   size_t name_pos = luaX_getpos(ls);
   expdesc v;
-  classname(ls, &v);
-  if (!global)
+  if (global) {
+    singlevarinner(ls, str_checkname(ls, 0), &v);
+  }
+  else {
+    classname(ls, &v);
     check_assignment(ls, &v);
+  }
 
   size_t parent_pos = checkextends(ls);
 
@@ -4790,19 +4799,31 @@ static void globalstat (LexState *ls) {
   luaX_next(ls);  /* skip GLOBAL */
   if (ls->t.token == TK_FUNCTION) {
     luaX_next(ls);  /* skip FUNCTION */
+    ls->explicit_globals.emplace(str_checkname(ls));
+    check(ls, '(');
+    luaX_prev(ls);
     funcstat(ls, line, true);
   }
   else if (ls->t.token == TK_CLASS) {
     luaX_next(ls);  /* skip CLASS */
+    ls->explicit_globals.emplace(str_checkname(ls));
+    luaX_prev(ls);
     classstat(ls, line, true);
   }
   else {
-    struct LHS_assign v;
-    suffixedexp(ls, &v.v);
-    if (!testnext(ls, ','))
-      checknext(ls, '=');
-    v.prev = NULL;
-    restassign(ls, &v, 1);
+    size_t tidx = luaX_getpos(ls);
+    do {
+      ls->explicit_globals.emplace(str_checkname(ls));
+    } while (testnext(ls, ','));
+    if (ls->t.token == '=') {
+      luaX_setpos(ls, tidx);
+      struct LHS_assign v;
+      primaryexp(ls, &v.v);
+      if (!testnext(ls, ','))
+        checknext(ls, '=');
+      v.prev = NULL;
+      restassign(ls, &v, 1);
+    }
   }
 }
 

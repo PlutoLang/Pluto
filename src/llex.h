@@ -381,6 +381,7 @@ struct LexState {
   std::unordered_set<TString*> localstat_variable_names{};
   std::unordered_set<TString*> localstat_expression_names{};
   std::vector<void*> localstat_ts{};
+  std::unordered_set<TString*> explicit_globals{};
   std::unordered_map<const TString*, void*> global_props{};
   KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
 
