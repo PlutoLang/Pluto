@@ -16,7 +16,7 @@ namespace soup
 	{
 	}
 
-	JsonString::JsonString(const char*& c)
+	JsonString::JsonString(const char*& c) SOUP_EXCAL
 		: JsonString()
 	{
 		for (bool escaped = false; *c != 0; ++c)
@@ -105,7 +105,7 @@ namespace soup
 		}
 	}
 
-	std::string JsonString::encode() const
+	std::string JsonString::encode() const SOUP_EXCAL
 	{
 		std::string str = *this;
 		string::replaceAll(str, "\\", "\\\\");

@@ -66,7 +66,7 @@ namespace soup
 			return ptr;
 		}
 
-		Node* emplace_front(Data&& data)
+		Node* emplace_front(Data&& data) SOUP_EXCAL
 		{
 			Node* node = new Node(std::move(data));
 			Node* next = head.load();
@@ -77,7 +77,7 @@ namespace soup
 			return node;
 		}
 
-		Node* emplace_back(Data&& data)
+		Node* emplace_back(Data&& data) SOUP_EXCAL
 		{
 			Node* node = new Node(std::move(data));
 			while (true)

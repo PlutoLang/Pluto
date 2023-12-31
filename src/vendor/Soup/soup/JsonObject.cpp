@@ -43,7 +43,7 @@ namespace soup
 		++c;
 	}
 
-	std::string JsonObject::encode() const
+	std::string JsonObject::encode() const SOUP_EXCAL
 	{
 		std::string res(1, '{');
 		for (auto i = children.begin(); i != children.end(); ++i)
@@ -60,7 +60,7 @@ namespace soup
 		return res;
 	}
 
-	std::string JsonObject::encodePretty(const std::string& prefix) const
+	std::string JsonObject::encodePretty(const std::string& prefix) const SOUP_EXCAL
 	{
 		if (children.empty())
 		{

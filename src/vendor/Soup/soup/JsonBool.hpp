@@ -11,7 +11,7 @@ namespace soup
 		explicit JsonBool() noexcept;
 		explicit JsonBool(bool value) noexcept;
 
-		[[nodiscard]] std::string encode() const final;
+		[[nodiscard]] std::string encode() const SOUP_EXCAL final;
 
 		bool binaryEncode(Writer& w) const final;
 

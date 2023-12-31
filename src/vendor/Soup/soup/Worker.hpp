@@ -49,7 +49,7 @@ namespace soup
 
 		Worker& operator=(Worker&& b) noexcept = default;
 
-		void fireHoldupCallback()
+		void fireHoldupCallback() SOUP_EXCAL
 		{
 			recursions = 0;
 			holdup_callback(*this);
@@ -64,6 +64,6 @@ namespace soup
 		void disallowRecursion() noexcept { recursions = 19; }
 		[[nodiscard]] bool canRecurse() noexcept { return ++recursions != 20; }
 
-		[[nodiscard]] std::string toString() const;
+		[[nodiscard]] std::string toString() const SOUP_EXCAL;
 	};
 }

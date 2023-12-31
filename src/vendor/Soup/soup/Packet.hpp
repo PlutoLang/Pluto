@@ -26,13 +26,13 @@ namespace soup
 		using u56 = u64;
 
 	public:
-		bool fromBinary(std::string bin, Endian endian = ENDIAN_BIG)
+		bool fromBinary(std::string bin, Endian endian = ENDIAN_BIG) noexcept
 		{
 			StringReader r(std::move(bin), endian);
 			return read(r);
 		}
 
-		bool fromBinaryLE(std::string bin)
+		bool fromBinaryLE(std::string bin) noexcept
 		{
 			StringReader r(std::move(bin), ENDIAN_LITTLE);
 			return read(r);
@@ -55,14 +55,14 @@ namespace soup
 			return static_cast<T*>(this)->template io<Reader>(r);
 		}
 
-		[[nodiscard]] Buffer toBinary(Endian endian = ENDIAN_BIG)
+		[[nodiscard]] Buffer toBinary(Endian endian = ENDIAN_BIG) SOUP_EXCAL
 		{
 			BufferWriter w(endian);
 			write(w);
 			return w.buf;
 		}
 
-		[[nodiscard]] std::string toBinaryString(Endian endian = ENDIAN_BIG)
+		[[nodiscard]] std::string toBinaryString(Endian endian = ENDIAN_BIG) SOUP_EXCAL
 		{
 			StringWriter w(endian);
 			write(w);

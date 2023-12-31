@@ -14,7 +14,7 @@ namespace soup
 	{
 	}
 
-	std::string JsonBool::encode() const
+	std::string JsonBool::encode() const SOUP_EXCAL
 	{
 		return value ? "true" : "false";
 	}

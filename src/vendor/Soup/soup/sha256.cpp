@@ -32,22 +32,22 @@ namespace soup
 		uint8_t buffer_counter;
 	};
 
-	static inline uint32_t rotr(uint32_t x, int n)
+	static inline uint32_t rotr(uint32_t x, int n) noexcept
 	{
 		return (x >> n) | (x << (32 - n));
 	}
 
-	static inline uint32_t step1(uint32_t e, uint32_t f, uint32_t g)
+	static inline uint32_t step1(uint32_t e, uint32_t f, uint32_t g) noexcept
 	{
 		return (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ ((~e) & g));
 	}
 
-	static inline uint32_t step2(uint32_t a, uint32_t b, uint32_t c)
+	static inline uint32_t step2(uint32_t a, uint32_t b, uint32_t c) noexcept
 	{
 		return (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c));
 	}
 
-	static inline void update_w(uint32_t* w, int i, const uint8_t* buffer)
+	static inline void update_w(uint32_t* w, int i, const uint8_t* buffer) noexcept
 	{
 		int j;
 		for (j = 0; j < 16; j++) {
@@ -70,7 +70,7 @@ namespace soup
 	}
 
 #if SHA256_USE_INTRIN
-	[[nodiscard]] static bool sha256_can_use_intrin()
+	[[nodiscard]] static bool sha256_can_use_intrin() noexcept
 	{
 		const CpuInfo& cpu_info = CpuInfo::get();
 		return cpu_info.supportsSSSE3()
@@ -78,10 +78,10 @@ namespace soup
 			;
 	}
 
-	extern void sha256_transform_intrin(uint32_t state[8], const uint8_t data[]);
+	extern void sha256_transform_intrin(uint32_t state[8], const uint8_t data[]) noexcept;
 #endif
 
-	static void sha256_block(sha256_state* sha)
+	static void sha256_block(sha256_state* sha) noexcept
 	{
 #if SHA256_USE_INTRIN
 		static bool good_cpu = sha256_can_use_intrin();
@@ -154,7 +154,7 @@ namespace soup
 		state[7] += h;
 	}
 
-	void sha256_init(sha256_state* sha)
+	void sha256_init(sha256_state* sha) noexcept
 	{
 		sha->state[0] = 0x6a09e667;
 		sha->state[1] = 0xbb67ae85;
@@ -168,7 +168,7 @@ namespace soup
 		sha->buffer_counter = 0;
 	}
 
-	void sha256_append_byte(sha256_state* sha, uint8_t byte)
+	void sha256_append_byte(sha256_state* sha, uint8_t byte) noexcept
 	{
 		sha->buffer[sha->buffer_counter++] = byte;
 		sha->n_bits += 8;
@@ -179,7 +179,7 @@ namespace soup
 		}
 	}
 
-	void sha256_append(sha256_state* sha, const void* src, size_t n_bytes)
+	void sha256_append(sha256_state* sha, const void* src, size_t n_bytes) noexcept
 	{
 		const uint8_t* bytes = (const uint8_t*)src;
 		size_t i;
@@ -189,7 +189,7 @@ namespace soup
 		}
 	}
 
-	void sha256_finalize(sha256_state* sha)
+	void sha256_finalize(sha256_state* sha) noexcept
 	{
 		int i;
 		uint64_t n_bits = sha->n_bits;
@@ -206,7 +206,7 @@ namespace soup
 		}
 	}
 
-	void sha256_finalize_bytes(sha256_state* sha, uint8_t dst_bytes[32])
+	void sha256_finalize_bytes(sha256_state* sha, uint8_t dst_bytes[32]) noexcept
 	{
 		int i, j;
 		sha256_finalize(sha);
@@ -218,26 +218,27 @@ namespace soup
 		}
 	}
 
-	void sha256_bytes(const void* src, size_t n_bytes, uint8_t dst_bytes[32]) {
+	void sha256_bytes(const void* src, size_t n_bytes, uint8_t dst_bytes[32]) noexcept
+	{
 		sha256_state sha;
 		sha256_init(&sha);
 		sha256_append(&sha, src, n_bytes);
 		sha256_finalize_bytes(&sha, dst_bytes);
 	}
 
-	std::string sha256::hash(const void* data, size_t len)
+	std::string sha256::hash(const void* data, size_t len) SOUP_EXCAL
 	{
 		std::string digest(32, '\0');
 		sha256_bytes(data, len, (uint8_t*)digest.data());
 		return digest;
 	}
 
-	std::string sha256::hash(const std::string& str)
+	std::string sha256::hash(const std::string& str) SOUP_EXCAL
 	{
 		return hash(str.data(), str.size());
 	}
 
-	std::string sha256::hash(ioSeekableReader& r)
+	std::string sha256::hash(ioSeekableReader& r) SOUP_EXCAL
 	{
 		std::string digest(32, '\0');
 		sha256_state sha;

@@ -36,7 +36,7 @@ namespace soup
 			;
 	}
 
-	std::string JsonNode::encodePretty(const std::string& prefix) const
+	std::string JsonNode::encodePretty(const std::string& prefix) const SOUP_EXCAL
 	{
 		if (isArr())
 		{
