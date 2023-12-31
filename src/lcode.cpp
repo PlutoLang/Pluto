@@ -1104,7 +1104,8 @@ void luaK_self (FuncState *fs, expdesc *e, expdesc *key) {
 ** Convert expression 'e' into 'func(e,'.
 */
 void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
-  luaK_setoneret(fs, e);
+  luaK_dischargevars(fs, e);
+  luaK_dischargevars(fs, func);
 
   freeexps(fs, e, func);
   const int basereg = fs->freereg;  /* base register for call */
@@ -1113,6 +1114,7 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   int freg = (func->k == VNONRELOC || func->k == VSAFECALL) ? func->u.reg : -1;
   int ereg = (e->k == VNONRELOC || e->k == VSAFECALL) ? e->u.reg : -1;
 
+  bool fcanreloc = true;
   if (ereg == basereg) {  /* argument is in the register where the function should be? */
     if (freg == basereg + 1) {  /* function is in the register where the argument should be? */
       /* oh dear. we have to swap them around. move function into a temporary register. */
@@ -1123,6 +1125,7 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
     }
     luaK_codeABC(fs, OP_MOVE, basereg + 1, ereg, 0);  /* move it where it should be */
     ereg = basereg + 1;  /* and don't do it again */
+    fcanreloc = false;  /* if function is VRELOC, that would be before this MOVE instruction, so we have to use a different register for it. */
   }
   if (freg == basereg + 1) {  /* function is in the register where the argument should be? */
     luaK_codeABC(fs, OP_MOVE, basereg, freg, 0);  /* move it where it should be */
@@ -1131,10 +1134,17 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
 
   /* if function is yet to be loaded into a register, load it into the correct one. */
   if (freg == -1) {
-    luaK_dischargevars(fs, func);
     if (func->k == VRELOC) {
-      freg = basereg;
-      exp2reg(fs, func, freg);
+      if (!fcanreloc) {
+        luaK_checkstack(fs, 1);
+        exp2reg(fs, func, basereg + 2);
+        freg = basereg;
+        luaK_codeABC(fs, OP_MOVE, freg, basereg + 2, 0);
+      }
+      else {
+        freg = basereg;
+        exp2reg(fs, func, freg);
+      }
     }
     else {
       lua_assert(func->k == VNONRELOC);
@@ -1144,7 +1154,6 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
 
   /* if argument is yet to be loaded into a register, load it into the correct one. */
   if (ereg == -1) {
-    luaK_dischargevars(fs, e);
     if (e->k == VNIL || e->k == VFALSE || e->k == VTRUE || e->k == VKSTR || e->k == VK || e->k == VKFLT || e->k == VKINT || e->k == VRELOC) {
       ereg = basereg + 1;
       exp2reg(fs, e, ereg);
