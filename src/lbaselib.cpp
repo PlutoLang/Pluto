@@ -646,6 +646,9 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Tab
         if (!is_export) {
           luaL_addstring(&b, "function ");
         }
+        else {
+          luaL_addstring(&b, "load");
+        }
         addquoted(&b, s, l);
         luaL_pushresult(&b);
         return;
