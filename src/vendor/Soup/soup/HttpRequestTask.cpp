@@ -151,7 +151,7 @@ namespace soup
 	void HttpRequestTask::cannotRecycle()
 	{
 		state = CONNECTING;
-		connector.construct(hr.getHost(), hr.port);
+		connector.construct(hr.getHost(), hr.port, prefer_ipv6);
 	}
 
 	void HttpRequestTask::sendRequest() SOUP_EXCAL
