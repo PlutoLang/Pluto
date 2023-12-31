@@ -2742,7 +2742,12 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
           return;
         }
         expdesc key;
-        luaX_next(ls);
+        const auto colon_line = ls->t.line;
+        luaX_next(ls);  /* skip ':' */
+        if (l_unlikely(colon_line != ls->t.line)) {
+          throw_warn(ls, "possibly unwanted function call", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", colon_line), WT_POSSIBLE_TYPO);
+          ls->L->top.p--;
+        }
         codename(ls, &key);
         luaK_self(fs, v, &key);
         method_call_funcargs(ls, v);
