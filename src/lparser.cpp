@@ -4815,8 +4815,8 @@ static void globalstat (LexState *ls) {
       luaX_setpos(ls, tidx);
       struct LHS_assign v;
       primaryexp(ls, &v.v);
-      if (!testnext(ls, ','))
-        checknext(ls, '=');
+      if (ls->t.token != ',')
+        check(ls, '=');
       v.prev = NULL;
       restassign(ls, &v, 1);
     }
