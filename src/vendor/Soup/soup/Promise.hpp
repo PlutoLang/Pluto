@@ -69,7 +69,7 @@ namespace soup
 			fulfilOffThread(f, std::move(cap));
 		}
 
-		void fulfil(T&& res)
+		void fulfil(T&& res) SOUP_EXCAL
 		{
 			PromiseBase::fulfil(std::move(res));
 		}
@@ -133,7 +133,7 @@ namespace soup
 			fulfiled = false;
 		}
 
-		void fulfilOffThread(void(*f)(Capture&&), Capture&& cap = {})
+		void fulfilOffThread(void(*f)(Capture&&), Capture&& cap = {}) SOUP_EXCAL
 		{
 			new SelfDeletingThread([](Capture&& _cap)
 			{

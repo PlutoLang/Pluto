@@ -36,7 +36,7 @@ namespace soup
 			std::atomic_uint refcount;
 			bool was_created_with_make_shared = false;
 
-			Data(T* inst)
+			Data(T* inst) noexcept
 				: inst(inst), refcount(1)
 			{
 #if SOUP_DEBUG_SHAREDPTR
@@ -52,7 +52,7 @@ namespace soup
 #endif
 			}
 
-			void incref()
+			void incref() noexcept
 			{
 #if SOUP_DEBUG_SHAREDPTR
 				const auto refcount_now = ++refcount;
@@ -66,7 +66,7 @@ namespace soup
 #endif
 			}
 
-			void decref()
+			void decref() noexcept
 			{
 #if SOUP_DEBUG_SHAREDPTR
 				const auto predec = refcount.load();
@@ -101,22 +101,22 @@ namespace soup
 
 		std::atomic<Data*> data;
 
-		SharedPtr()
+		SharedPtr() noexcept
 			: data(nullptr)
 		{
 		}
 
-		SharedPtr(Data* data)
+		SharedPtr(Data* data) noexcept
 			: data(data)
 		{
 		}
 
-		SharedPtr(T* inst)
+		SharedPtr(T* inst) SOUP_EXCAL
 			: data(new Data(inst))
 		{
 		}
 
-		SharedPtr(const SharedPtr<T>& b)
+		SharedPtr(const SharedPtr<T>& b) noexcept
 			: data(b.data.load())
 		{
 			if (data != nullptr)
@@ -125,7 +125,7 @@ namespace soup
 			}
 		}
 
-		SharedPtr(SharedPtr<T>&& b)
+		SharedPtr(SharedPtr<T>&& b) noexcept
 			: data(b.data.load())
 		{
 			b.data = nullptr;
@@ -150,7 +150,7 @@ namespace soup
 			b.data = nullptr;
 		}
 
-		void operator=(const SharedPtr<T>& b)
+		void operator=(const SharedPtr<T>& b) noexcept
 		{
 			Data* const prev_data = this->data;
 			Data* const new_data = b.data;
@@ -168,7 +168,7 @@ namespace soup
 			}
 		}
 
-		void operator=(SharedPtr<T>&& b)
+		void operator=(SharedPtr<T>&& b) noexcept
 		{
 			Data* const prev_data = this->data;
 			this->data = b.data.load();
@@ -182,7 +182,7 @@ namespace soup
 			}
 		}
 
-		~SharedPtr()
+		~SharedPtr() noexcept
 		{
 			if (data.load() != nullptr)
 			{
@@ -190,7 +190,7 @@ namespace soup
 			}
 		}
 
-		void reset()
+		void reset() noexcept
 		{
 			Data* const data = this->data;
 			if (data != nullptr)
@@ -242,7 +242,7 @@ namespace soup
 			if (data->refcount.load() != 1)
 			{
 				this->data = data;
-				throw Exception("Attempt to release SharedPtr with more than 1 reference");
+				SOUP_THROW(Exception("Attempt to release SharedPtr with more than 1 reference"));
 			}
 			T* const inst = data->inst;
 			const auto was_created_with_make_shared = data->was_created_with_make_shared;

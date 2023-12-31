@@ -75,7 +75,7 @@ namespace soup
 		}
 	}
 
-	bool MimeMessage::hasHeader(const std::string& key)
+	bool MimeMessage::hasHeader(const std::string& key) const noexcept
 	{
 #if SOUP_CPP20
 		return header_fields.contains(key);
@@ -84,7 +84,7 @@ namespace soup
 #endif
 	}
 
-	std::string* MimeMessage::findHeader(std::string key)
+	std::string* MimeMessage::findHeader(std::string key) noexcept
 	{
 		string::lower(key);
 		for (auto& e : header_fields)
@@ -97,7 +97,7 @@ namespace soup
 		return nullptr;
 	}
 
-	void MimeMessage::addHeader(const std::string& line)
+	void MimeMessage::addHeader(const std::string& line) SOUP_EXCAL
 	{
 		if (auto key_offset = line.find(": "); key_offset != std::string::npos)
 		{
@@ -105,7 +105,7 @@ namespace soup
 		}
 	}
 
-	void MimeMessage::setHeader(const std::string& key, const std::string& value)
+	void MimeMessage::setHeader(const std::string& key, const std::string& value) SOUP_EXCAL
 	{
 		if (auto e = header_fields.find(key); e != header_fields.end())
 		{
@@ -117,7 +117,7 @@ namespace soup
 		}
 	}
 
-	std::string MimeMessage::normaliseHeaderCasing(const std::string& key)
+	std::string MimeMessage::normaliseHeaderCasing(const std::string& key) SOUP_EXCAL
 	{
 		std::string out;
 		auto parts = string::explode(key, '-');

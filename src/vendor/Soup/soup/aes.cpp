@@ -261,7 +261,7 @@ namespace soup
 		return true;
 	}
 
-	void aes::cbcEncrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len, const uint8_t iv[16])
+	void aes::cbcEncrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len, const uint8_t iv[16]) noexcept
 	{
 		data_len -= (data_len % blockBytesLen);
 
@@ -280,7 +280,7 @@ namespace soup
 		}
 	}
 
-	void aes::cbcDecrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len, const uint8_t iv[16])
+	void aes::cbcDecrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len, const uint8_t iv[16]) noexcept
 	{
 		data_len -= (data_len % blockBytesLen);
 
@@ -304,7 +304,7 @@ namespace soup
 		}
 	}
 
-	void aes::cfbEncrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len, const uint8_t iv[16])
+	void aes::cfbEncrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len, const uint8_t iv[16]) noexcept
 	{
 		data_len -= (data_len % blockBytesLen);
 
@@ -322,13 +322,13 @@ namespace soup
 		}
 	}
 
-	void aes::cfbDecrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len, const uint8_t iv[16])
+	void aes::cfbDecrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len, const uint8_t iv[16]) noexcept
 	{
 		// Symmetricality go brr
 		return cfbEncrypt(data, data_len, key, key_len, iv);
 	}
 
-	void aes::ecbEncrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len)
+	void aes::ecbEncrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len) noexcept
 	{
 		data_len -= (data_len % blockBytesLen);
 
@@ -341,7 +341,7 @@ namespace soup
 		}
 	}
 
-	void aes::ecbDecrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len)
+	void aes::ecbDecrypt(uint8_t* data, size_t data_len, const uint8_t* key, size_t key_len) noexcept
 	{
 		data_len -= (data_len % blockBytesLen);
 
@@ -354,7 +354,7 @@ namespace soup
 		}
 	}
 
-	void aes::gcmEncrypt(uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t* key, size_t key_len, const uint8_t* iv, size_t iv_len, uint8_t tag[16])
+	void aes::gcmEncrypt(uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t* key, size_t key_len, const uint8_t* iv, size_t iv_len, uint8_t tag[16]) SOUP_EXCAL
 	{
 		const auto Nr = getNr(key_len);
 		uint8_t roundKeys[240];
@@ -378,7 +378,7 @@ namespace soup
 		calcGcmTag(tag, data, data_len, aadata, aadata_len, roundKeys, Nr, h, j0);
 	}
 
-	bool aes::gcmDecrypt(uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t* key, size_t key_len, const uint8_t* iv, size_t iv_len, const uint8_t tag[16])
+	bool aes::gcmDecrypt(uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t* key, size_t key_len, const uint8_t* iv, size_t iv_len, const uint8_t tag[16]) SOUP_EXCAL
 	{
 		const auto Nr = getNr(key_len);
 		uint8_t roundKeys[240];
@@ -410,12 +410,12 @@ namespace soup
 	}
 
 #if AES_USE_INTRIN
-	extern void aes_helper_encrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]);
-	extern void aes_helper_encrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]);
-	extern void aes_helper_encrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]);
+	extern void aes_helper_encrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
+	extern void aes_helper_encrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
+	extern void aes_helper_encrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
 #endif
 
-	void aes::encryptBlock(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240], const int Nr)
+	void aes::encryptBlock(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240], const int Nr) noexcept
 	{
 #if AES_USE_INTRIN
 		if (CpuInfo::get().supportsAESNI())
@@ -477,12 +477,12 @@ namespace soup
 	}
 
 #if AES_USE_INTRIN
-	extern void aes_helper_decrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]);
-	extern void aes_helper_decrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]);
-	extern void aes_helper_decrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]);
+	extern void aes_helper_decrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
+	extern void aes_helper_decrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
+	extern void aes_helper_decrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
 #endif
 
-	void aes::decryptBlock(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240], const int Nr)
+	void aes::decryptBlock(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240], const int Nr) noexcept
 	{
 #if AES_USE_INTRIN
 		if (CpuInfo::get().supportsAESNI())
@@ -542,11 +542,11 @@ namespace soup
 	}
 
 #if AES_USE_INTRIN
-	extern void aes_helper_expand_key_128(uint8_t w[176], const uint8_t key[16]);
-	extern void aes_helper_expand_key_256(uint8_t w[240], const uint8_t key[32]);
+	extern void aes_helper_expand_key_128(uint8_t w[176], const uint8_t key[16]) noexcept;
+	extern void aes_helper_expand_key_256(uint8_t w[240], const uint8_t key[32]) noexcept;
 #endif
 
-	void aes::expandKey(uint8_t w[240], const uint8_t* key, size_t key_len)
+	void aes::expandKey(uint8_t w[240], const uint8_t* key, size_t key_len) noexcept
 	{
 #if AES_USE_INTRIN
 		if (CpuInfo::get().supportsAESNI())
@@ -605,22 +605,22 @@ namespace soup
 		}
 	}
 
-	int aes::getNk(size_t key_len)
+	int aes::getNk(size_t key_len) noexcept
 	{
 		return static_cast<int>(key_len / 4);
 	}
 
-	int aes::getNr(size_t key_len)
+	int aes::getNr(size_t key_len) noexcept
 	{
 		return getNr(getNk(key_len));
 	}
 
-	int aes::getNr(const int Nk)
+	int aes::getNr(const int Nk) noexcept
 	{
 		return Nk + 6;
 	}
 
-	void aes::subBytes(uint8_t** state)
+	void aes::subBytes(uint8_t** state) noexcept
 	{
 		int i, j;
 		uint8_t t;
@@ -634,7 +634,7 @@ namespace soup
 		}
 	}
 
-	void aes::shiftRow(uint8_t** state, int i, int n)    // shift row i on n positions
+	void aes::shiftRow(uint8_t** state, int i, int n) noexcept    // shift row i on n positions
 	{
 		uint8_t tmp[Nb];
 		for (int j = 0; j < Nb; j++)
@@ -644,19 +644,19 @@ namespace soup
 		memcpy(state[i], tmp, Nb * sizeof(uint8_t));
 	}
 
-	void aes::shiftRows(uint8_t** state)
+	void aes::shiftRows(uint8_t** state) noexcept
 	{
 		shiftRow(state, 1, 1);
 		shiftRow(state, 2, 2);
 		shiftRow(state, 3, 3);
 	}
 
-	uint8_t aes::xtime(uint8_t b)    // multiply on x
+	uint8_t aes::xtime(uint8_t b) noexcept    // multiply on x
 	{
 		return (b << 1) ^ (((b >> 7) & 1) * 0x1b);
 	}
 
-	void aes::mixColumns(uint8_t** state)
+	void aes::mixColumns(uint8_t** state) noexcept
 	{
 		uint8_t temp_state[4][4];
 
@@ -685,7 +685,7 @@ namespace soup
 		}
 	}
 
-	void aes::addRoundKey(uint8_t** state, const uint8_t* key)
+	void aes::addRoundKey(uint8_t** state, const uint8_t* key) noexcept
 	{
 		int i, j;
 		for (i = 0; i < 4; i++)
@@ -697,7 +697,7 @@ namespace soup
 		}
 	}
 
-	void aes::subWord(uint8_t* a)
+	void aes::subWord(uint8_t* a) noexcept
 	{
 		int i;
 		for (i = 0; i < 4; i++)
@@ -706,7 +706,7 @@ namespace soup
 		}
 	}
 
-	void aes::rotWord(uint8_t* a)
+	void aes::rotWord(uint8_t* a) noexcept
 	{
 		uint8_t c = a[0];
 		a[0] = a[1];
@@ -715,7 +715,7 @@ namespace soup
 		a[3] = c;
 	}
 
-	void aes::xorWords(uint8_t* a, uint8_t* b, uint8_t* c)
+	void aes::xorWords(uint8_t* a, uint8_t* b, uint8_t* c) noexcept
 	{
 		int i;
 		for (i = 0; i < 4; i++)
@@ -724,7 +724,7 @@ namespace soup
 		}
 	}
 
-	uint8_t aes::getRoundConstant(int n)
+	uint8_t aes::getRoundConstant(int n) noexcept
 	{
 		uint8_t c = 1;
 		for (int i = 0; i < n - 1; i++)
@@ -734,7 +734,7 @@ namespace soup
 		return c;
 	}
 
-	void aes::invSubBytes(uint8_t** state)
+	void aes::invSubBytes(uint8_t** state) noexcept
 	{
 		int i, j;
 		uint8_t t;
@@ -748,7 +748,7 @@ namespace soup
 		}
 	}
 
-	void aes::invMixColumns(uint8_t** state)
+	void aes::invMixColumns(uint8_t** state) noexcept
 	{
 		uint8_t temp_state[4][4];
 
@@ -774,14 +774,14 @@ namespace soup
 		}
 	}
 
-	void aes::invShiftRows(uint8_t** state)
+	void aes::invShiftRows(uint8_t** state) noexcept
 	{
 		shiftRow(state, 1, Nb - 1);
 		shiftRow(state, 2, Nb - 2);
 		shiftRow(state, 3, Nb - 3);
 	}
 
-	void aes::xorBlocks(uint8_t a[16], const uint8_t b[16])
+	void aes::xorBlocks(uint8_t a[16], const uint8_t b[16]) noexcept
 	{
 		for (unsigned int i = 0; i != 16; ++i)
 		{
@@ -789,7 +789,7 @@ namespace soup
 		}
 	}
 
-	void aes::xorBlocks(uint8_t a[16], const uint8_t b[16], unsigned int len)
+	void aes::xorBlocks(uint8_t a[16], const uint8_t b[16], unsigned int len) noexcept
 	{
 		for (unsigned int i = 0; i != len; ++i)
 		{
@@ -797,20 +797,20 @@ namespace soup
 		}
 	}
 
-	void aes::ghash(uint8_t res[16], const uint8_t h[16], const std::vector<uint8_t>& x)
+	void aes::ghash(uint8_t res[16], const uint8_t h[16], const std::vector<uint8_t>& x) noexcept
 	{
 		plusaes::detail::gcm::Block bH(h, 16);
 		auto bRes = plusaes::detail::gcm::ghash(bH, x);
 		memcpy(res, bRes.data(), 16);
 	}
 
-	void aes::calcH(uint8_t h[16], uint8_t roundKeys[240], const int Nr)
+	void aes::calcH(uint8_t h[16], uint8_t roundKeys[240], const int Nr) noexcept
 	{
 		memset(h, 0, 16);
 		aes::encryptBlock(h, h, roundKeys, Nr);
 	}
 
-	void aes::calcJ0(uint8_t j0[16], const uint8_t h[16], const uint8_t* iv, size_t iv_len)
+	void aes::calcJ0(uint8_t j0[16], const uint8_t h[16], const uint8_t* iv, size_t iv_len) SOUP_EXCAL
 	{
 		if (iv_len == 12)
 		{
@@ -825,6 +825,7 @@ namespace soup
 			const auto len_iv = iv_len * 8;
 			const auto s = 128 * plusaes::detail::gcm::ceil(len_iv / 128.0) - len_iv;
 			std::vector<uint8_t> ghash_in;
+			ghash_in.reserve(32);
 			plusaes::detail::gcm::push_back(ghash_in, iv, iv_len);
 			plusaes::detail::gcm::push_back_zero_bits(ghash_in, s + 64);
 			plusaes::detail::gcm::push_back(ghash_in, std::bitset<64>(len_iv));
@@ -833,7 +834,7 @@ namespace soup
 		}
 	}
 
-	void aes::inc32(uint8_t block[16])
+	void aes::inc32(uint8_t block[16]) noexcept
 	{
 		uint32_t counter = reinterpret_cast<uint32_t*>(block)[3];
 		if constexpr (ENDIAN_NATIVE != ENDIAN_BIG)
@@ -848,7 +849,7 @@ namespace soup
 		reinterpret_cast<uint32_t*>(block)[3] = counter;
 	}
 
-	void aes::gctr(uint8_t* data, size_t data_len, const uint8_t roundKeys[240], const int Nr, const uint8_t icb[8])
+	void aes::gctr(uint8_t* data, size_t data_len, const uint8_t roundKeys[240], const int Nr, const uint8_t icb[8]) noexcept
 	{
 		uint8_t cb[16];
 		memcpy(cb, icb, 16);
@@ -870,7 +871,7 @@ namespace soup
 		}
 	}
 
-	void aes::calcGcmTag(uint8_t tag[16], uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t roundKeys[16], const int Nr, const uint8_t h[16], const uint8_t j0[16])
+	void aes::calcGcmTag(uint8_t tag[16], uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t roundKeys[16], const int Nr, const uint8_t h[16], const uint8_t j0[16]) SOUP_EXCAL
 	{
 		const auto lenC = data_len * 8;
 		const auto lenA = aadata_len * 8;

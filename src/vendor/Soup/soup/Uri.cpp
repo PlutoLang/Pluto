@@ -10,12 +10,12 @@ namespace soup
 	// URI = scheme ":" ["//" authority] path ["?" query] ["#" fragment]
 	// authority = [userinfo "@"] host [":" port]
 
-	Uri::Uri(const char* url)
+	Uri::Uri(const char* url) SOUP_EXCAL
 		: Uri(std::string(url))
 	{
 	}
 
-	Uri::Uri(std::string uri)
+	Uri::Uri(std::string uri) SOUP_EXCAL
 	{
 		auto scheme_sep = uri.find(':');
 		if (scheme_sep != std::string::npos
@@ -121,7 +121,7 @@ namespace soup
 		fragment = urlenc::decode(fragment);
 	}
 
-	std::string Uri::toString() const
+	std::string Uri::toString() const SOUP_EXCAL
 	{
 		std::string str{};
 		if (!scheme.empty())
@@ -158,7 +158,7 @@ namespace soup
 		return str;
 	}
 
-	std::string Uri::getRequestPath() const
+	std::string Uri::getRequestPath() const SOUP_EXCAL
 	{
 		auto str = urlenc::encodePath(path);
 		if (!query.empty())
@@ -169,7 +169,7 @@ namespace soup
 		return str;
 	}
 
-	Uri Uri::forFile(std::filesystem::path path) noexcept
+	Uri Uri::forFile(std::filesystem::path path) SOUP_EXCAL
 	{
 		return Uri("file:///" + urlenc::encodePath(string::fixType(std::filesystem::absolute(path).u8string())));
 	}
@@ -179,7 +179,7 @@ namespace soup
 		return scheme == "file";
 	}
 
-	std::string Uri::getFilePath() const
+	std::string Uri::getFilePath() const SOUP_EXCAL
 	{
 #if SOUP_WINDOWS
 		return path.substr(1);
@@ -193,7 +193,7 @@ namespace soup
 		return scheme == "http" || scheme == "https";
 	}
 
-	std::string Uri::data(const char* mime_type, const std::string& contents)
+	std::string Uri::data(const char* mime_type, const std::string& contents) SOUP_EXCAL
 	{
 		std::string url = "data:";
 		url.append(mime_type);

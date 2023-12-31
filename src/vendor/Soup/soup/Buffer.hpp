@@ -27,15 +27,15 @@ namespace soup
 
 		Buffer() noexcept = default;
 
-		Buffer(size_t capacity) noexcept
-			: m_data(reinterpret_cast<uint8_t*>(malloc(capacity))), m_capacity(capacity)
+		Buffer(size_t capacity) SOUP_EXCAL
+			: m_data(reinterpret_cast<uint8_t*>(soup::malloc(capacity))), m_capacity(capacity)
 		{
 #if SOUP_BUFFER_NO_RESIZE
 			no_resize = true;
 #endif
 		}
 
-		Buffer(const Buffer& b) noexcept
+		Buffer(const Buffer& b) SOUP_EXCAL
 			: Buffer(b.m_size)
 		{
 			append(b);
@@ -99,7 +99,7 @@ namespace soup
 			return m_data[i];
 		}
 
-		void resize(size_t desired_size) noexcept
+		void resize(size_t desired_size) SOUP_EXCAL
 		{
 			m_size = desired_size;
 			if (m_capacity < desired_size)
@@ -109,7 +109,7 @@ namespace soup
 		}
 
 	private:
-		void ensureSpace(size_t desired_size) noexcept
+		void ensureSpace(size_t desired_size) SOUP_EXCAL
 		{
 			SOUP_IF_UNLIKELY (m_capacity < desired_size)
 			{
@@ -121,20 +121,20 @@ namespace soup
 			}
 		}
 
-		void grow(size_t amount) noexcept
+		void grow(size_t amount) SOUP_EXCAL
 		{
 			m_size += amount;
 			ensureSpace(m_size);
 		}
 
-		void resizeInner(size_t new_capacity) noexcept
+		void resizeInner(size_t new_capacity) SOUP_EXCAL
 		{
-			m_data = reinterpret_cast<uint8_t*>(m_data ? realloc(m_data, new_capacity) : malloc(new_capacity));
+			m_data = reinterpret_cast<uint8_t*>(soup::realloc(m_data, new_capacity));
 			m_capacity = new_capacity;
 		}
 
 	public:
-		void reserve(size_t desired_capacity) noexcept
+		void reserve(size_t desired_capacity) SOUP_EXCAL
 		{
 			if (m_capacity < desired_capacity)
 			{
@@ -142,18 +142,18 @@ namespace soup
 			}
 		}
 
-		void push_back(uint8_t elm) noexcept
+		void push_back(uint8_t elm) SOUP_EXCAL
 		{
 			ensureSpace(m_size + 1);
 			m_data[m_size++] = elm;
 		}
 
-		void emplace_back(uint8_t elm) noexcept
+		void emplace_back(uint8_t elm) SOUP_EXCAL
 		{
 			push_back(elm);
 		}
 
-		void insert_front(size_t count, uint8_t value) noexcept
+		void insert_front(size_t count, uint8_t value) SOUP_EXCAL
 		{
 			const auto s = m_size;
 			grow(count);
@@ -161,26 +161,26 @@ namespace soup
 			memset(&m_data[0], value, count);
 		}
 
-		void insert_back(size_t count, uint8_t value) noexcept
+		void insert_back(size_t count, uint8_t value) SOUP_EXCAL
 		{
 			const auto s = m_size;
 			grow(count);
 			memset(&m_data[s], value, count);
 		}
 
-		void append(const void* src_data, size_t src_size) noexcept
+		void append(const void* src_data, size_t src_size) SOUP_EXCAL
 		{
 			ensureSpace(m_size + src_size);
 			memcpy(&m_data[m_size], src_data, src_size);
 			m_size += src_size;
 		}
 
-		void append(const Buffer& src) noexcept
+		void append(const Buffer& src) SOUP_EXCAL
 		{
 			append(src.m_data, src.m_size);
 		}
 
-		void erase(size_t pos, size_t len) noexcept
+		void erase(size_t pos, size_t len) SOUP_EXCAL
 		{
 			memmove(&m_data[pos], &m_data[pos + len], m_size - len);
 			m_size -= len;
@@ -191,7 +191,7 @@ namespace soup
 			m_size = 0;
 		}
 
-		[[nodiscard]] std::string toString() const
+		[[nodiscard]] std::string toString() const SOUP_EXCAL
 		{
 			return std::string((const char*)data(), size());
 		}

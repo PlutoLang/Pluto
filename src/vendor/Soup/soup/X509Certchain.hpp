@@ -14,7 +14,7 @@ namespace soup
 		bool fromDer(const std::vector<std::string>& vec);
 		bool fromPem(const std::string& str);
 
-		void cleanup();
+		void cleanup() SOUP_EXCAL;
 
 		[[nodiscard]] bool canBeVerified() const noexcept;
 		[[nodiscard]] bool verify(const std::string& domain, const TrustStore& ts) const;

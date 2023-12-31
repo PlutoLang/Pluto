@@ -2,12 +2,12 @@
 
 namespace soup
 {
-	TransientTokenBase::TransientTokenBase()
+	TransientTokenBase::TransientTokenBase() SOUP_EXCAL
 		: sp(soup::make_shared<bool>(true))
 	{
 	}
 
-	TransientTokenBase::TransientTokenBase(bool valid)
+	TransientTokenBase::TransientTokenBase(bool valid) SOUP_EXCAL
 		: sp(soup::make_shared<bool>(valid))
 	{
 	}
