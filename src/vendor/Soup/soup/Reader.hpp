@@ -24,7 +24,7 @@ namespace soup
 		}
 
 		// An unsigned 64-bit integer encoded in 1..9 bytes. The most significant bit of bytes 1 to 8 is used to indicate if another byte follows.
-		bool u64_dyn(uint64_t& v)
+		bool u64_dyn(uint64_t& v) noexcept
 		{
 			v = 0;
 			uint8_t bits = 0;

@@ -46,7 +46,7 @@ namespace soup
 		void proceedToConnect(const IpAddr& addr, uint16_t port);
 
 	public:
-		[[nodiscard]] std::string toString() const final;
+		[[nodiscard]] std::string toString() const SOUP_EXCAL final;
 		[[nodiscard]] netStatus getStatus() const noexcept;
 	};
 }

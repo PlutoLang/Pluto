@@ -1,8 +1,8 @@
 #pragma once
 
+#include "base.hpp"
 #include "fwd.hpp"
 
-#include <cstdint>
 #include <string>
 
 namespace soup
@@ -15,6 +15,6 @@ namespace soup
 	using TlsCipherSuite_t = uint16_t;
 	using TlsContentType_t = uint8_t;
 	using TlsHandshakeType_t = uint8_t;
-	using tls_server_cert_selector_t = void(*)(TlsServerRsaData& out, const std::string& server_name);
-	using tls_server_on_client_hello_t = void(*)(Socket&, TlsClientHello&&);
+	using tls_server_cert_selector_t = void(*)(TlsServerRsaData& out, const std::string& server_name) SOUP_EXCAL;
+	using tls_server_on_client_hello_t = void(*)(Socket&, TlsClientHello&&) SOUP_EXCAL;
 }

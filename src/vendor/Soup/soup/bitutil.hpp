@@ -74,7 +74,7 @@ namespace soup
 
 		[[nodiscard]] static unsigned int getLeastSignificantSetBit(unsigned int mask) noexcept
 		{
-			SOUP_ASSERT_PRECOND(mask != 0); // UB!
+			SOUP_DEBUG_ASSERT(mask != 0); // UB!
 
 			// These intrinsic functions just use the bsf instruction.
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -94,7 +94,7 @@ namespace soup
 
 		[[nodiscard]] static unsigned int getMostSignificantSetBit(unsigned int mask) noexcept
 		{
-			SOUP_ASSERT_PRECOND(mask != 0); // UB!
+			SOUP_DEBUG_ASSERT(mask != 0); // UB!
 
 #if defined(_MSC_VER) && !defined(__clang__)
 			unsigned long ret;

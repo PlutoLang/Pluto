@@ -93,7 +93,7 @@ namespace soup
 				awaiting_response_since = time::unixSeconds();
 				if (hr.use_tls)
 				{
-					sock->enableCryptoClient(hr.getHost(), [](Socket&, Capture&& cap)
+					sock->enableCryptoClient(hr.getHost(), [](Socket&, Capture&& cap) SOUP_EXCAL
 					{
 						cap.get<HttpRequestTask*>()->sendRequest();
 					}, this);
@@ -154,10 +154,10 @@ namespace soup
 		connector.construct(hr.getHost(), hr.port);
 	}
 
-	void HttpRequestTask::sendRequest()
+	void HttpRequestTask::sendRequest() SOUP_EXCAL
 	{
 		hr.send(*sock);
-		HttpRequest::recvResponse(*sock, [](Socket& s, std::optional<HttpResponse>&& res, Capture&& cap)
+		HttpRequest::recvResponse(*sock, [](Socket& s, std::optional<HttpResponse>&& res, Capture&& cap) SOUP_EXCAL
 		{
 			cap.get<HttpRequestTask*>()->fulfil(std::move(res));
 			if (s.custom_data.isStructInMap(ReuseTag))
@@ -168,7 +168,7 @@ namespace soup
 		}, this);
 	}
 
-	std::string HttpRequestTask::toString() const
+	std::string HttpRequestTask::toString() const SOUP_EXCAL
 	{
 		std::string str = ObfusString("HttpRequestTask");
 		str.push_back('(');
