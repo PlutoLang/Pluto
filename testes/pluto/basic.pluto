@@ -2332,7 +2332,9 @@ do
         assert(x == 69)
     end
 
-    assert({} |> dumpvar)
+    local a, b = {} |> dumpvar
+    assert(type(a) == "string")
+    assert(b == nil)
 
     -- Additional arguments shorthand (longhand would be writing a lambda)
     assert(("69") |> tonumber|16| == 0x69)
