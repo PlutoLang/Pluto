@@ -50,10 +50,10 @@ namespace soup
 		void doRecycle();
 		void cannotRecycle();
 
-		void sendRequest();
+		void sendRequest() SOUP_EXCAL;
 
 	public:
-		[[nodiscard]] std::string toString() const final;
+		[[nodiscard]] std::string toString() const SOUP_EXCAL final;
 		[[nodiscard]] netStatus getStatus() const noexcept;
 #else
 	public:

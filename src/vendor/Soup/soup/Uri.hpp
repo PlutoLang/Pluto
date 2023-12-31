@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <string>
 
+#include "base.hpp" // SOUP_EXCAL
+
 namespace soup
 {
 	struct Uri
@@ -16,24 +18,24 @@ namespace soup
 		std::string query{};
 		std::string fragment{};
 
-		Uri() = default;
-		Uri(const char* url);
-		Uri(std::string url);
+		Uri() noexcept = default;
+		Uri(const char* url) SOUP_EXCAL;
+		Uri(std::string url) SOUP_EXCAL;
 
 		[[nodiscard]] bool empty() const noexcept
 		{
 			return scheme.empty() && host.empty() && port == 0 && user.empty() && pass.empty() && path.empty() && query.empty() && fragment.empty();
 		}
 
-		[[nodiscard]] std::string toString() const;
+		[[nodiscard]] std::string toString() const SOUP_EXCAL;
 
 		[[nodiscard]] bool isHttp() const noexcept;
-		[[nodiscard]] std::string getRequestPath() const;
+		[[nodiscard]] std::string getRequestPath() const SOUP_EXCAL;
 
-		[[nodiscard]] static Uri forFile(std::filesystem::path path) noexcept;
+		[[nodiscard]] static Uri forFile(std::filesystem::path path) SOUP_EXCAL;
 		[[nodiscard]] bool isFile() const noexcept;
-		[[nodiscard]] std::string getFilePath() const;
+		[[nodiscard]] std::string getFilePath() const SOUP_EXCAL;
 
-		[[nodiscard]] static std::string data(const char* mime_type, const std::string& contents);
+		[[nodiscard]] static std::string data(const char* mime_type, const std::string& contents) SOUP_EXCAL;
 	};
 }

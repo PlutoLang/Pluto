@@ -97,7 +97,7 @@ namespace soup
 			auto s = sched.addSocket(std::move(sock));
 			if (use_tls)
 			{
-				s->enableCryptoClient(host, [](Socket& s, Capture&& cap)
+				s->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
 				{
 					auto& data = *cap.get<HttpRequestExecuteData*>();
 					data.req->send(s);
@@ -118,11 +118,11 @@ namespace soup
 	struct HttpRequestExecuteEventStreamData
 	{
 		const HttpRequest* req;
-		void(*on_event)(std::unordered_map<std::string, std::string>&&, const Capture&);
+		void(*on_event)(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL;
 		Capture cap;
 	};
 
-	void HttpRequest::executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&), Capture&& cap) const
+	void HttpRequest::executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) const
 	{
 		HttpRequestExecuteEventStreamData data{ this, on_event, std::move(cap) };
 		auto sock = make_shared<Socket>();
@@ -133,7 +133,7 @@ namespace soup
 			auto s = sched.addSocket(std::move(sock));
 			if (use_tls)
 			{
-				s->enableCryptoClient(host, [](Socket& s, Capture&& cap)
+				s->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
 				{
 					auto* data = cap.get<HttpRequestExecuteEventStreamData*>();
 					data->req->send(s);
@@ -149,7 +149,7 @@ namespace soup
 		}
 	}
 
-	void HttpRequest::send(Socket& s) const
+	void HttpRequest::send(Socket& s) const SOUP_EXCAL
 	{
 		std::string data{};
 		data.append(method);
@@ -161,24 +161,24 @@ namespace soup
 		s.send(data);
 	}
 
-	void HttpRequest::execute_recvResponse(Socket& s, std::optional<HttpResponse>* resp)
+	void HttpRequest::execute_recvResponse(Socket& s, std::optional<HttpResponse>* resp) SOUP_EXCAL
 	{
-		recvResponse(s, [](Socket& s, std::optional<HttpResponse>&& resp, Capture&& cap)
+		recvResponse(s, [](Socket& s, std::optional<HttpResponse>&& resp, Capture&& cap) noexcept
 		{
 			*cap.get<std::optional<HttpResponse>*>() = std::move(resp);
 		}, resp);
 	}
 
-	void HttpRequest::executeEventStream_recv(Socket& s, void* cap)
+	void HttpRequest::executeEventStream_recv(Socket& s, void* cap) SOUP_EXCAL
 	{
-		recvEventStream(s, [](Socket& s, std::unordered_map<std::string, std::string>&& event, const Capture& cap)
+		recvEventStream(s, [](Socket& s, std::unordered_map<std::string, std::string>&& event, const Capture& cap) SOUP_EXCAL
 		{
 			auto* data = cap.get<HttpRequestExecuteEventStreamData*>();
 			data->on_event(std::move(event), data->cap);
 		}, cap);
 	}
 
-	bool HttpRequest::isChallengeResponse(const HttpResponse& res)
+	bool HttpRequest::isChallengeResponse(const HttpResponse& res) SOUP_EXCAL
 	{
 		return res.body.find(ObfusString(R"(href="https://www.cloudflare.com?utm_source=challenge)").str()) != std::string::npos
 			|| res.body.find(ObfusString(R"(<span id="challenge-error-text">Enable JavaScript and cookies to continue</)").str()) != std::string::npos // "Invisible" challenge
@@ -211,23 +211,23 @@ namespace soup
 		Status status = CODE;
 		uint64_t bytes_remain = 0;
 
-		void(*on_body_part)(Socket&, const std::string&, const Capture&) = nullptr;
-		void(*callback)(Socket&, std::optional<HttpResponse>&&, Capture&&) = nullptr;
+		bool(*on_body_part)(Socket&, const std::string&, const Capture&) SOUP_EXCAL = nullptr;
+		void(*callback)(Socket&, std::optional<HttpResponse>&&, Capture&&) SOUP_EXCAL = nullptr;
 		Capture cap;
 
-		HttpResponseReceiver(void on_body_part(Socket&, const std::string&, const Capture&), Capture&& cap)
+		HttpResponseReceiver(bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, Capture&& cap) noexcept
 			: on_body_part(on_body_part), cap(std::move(cap))
 		{
 		}
 
-		HttpResponseReceiver(void callback(Socket&, std::optional<HttpResponse>&&, Capture&&), Capture&& cap)
+		HttpResponseReceiver(void callback(Socket&, std::optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap) noexcept
 			: callback(callback), cap(std::move(cap))
 		{
 		}
 
-		void tick(Socket& s, Capture&& cap)
+		void tick(Socket& s, Capture&& cap) SOUP_EXCAL
 		{
-			s.recv([](Socket& s, std::string&& app, Capture&& cap)
+			s.recv([](Socket& s, std::string&& app, Capture&& cap) SOUP_EXCAL
 			{
 				auto& self = cap.get<HttpResponseReceiver>();
 				if (app.empty())
@@ -382,7 +382,10 @@ namespace soup
 							auto chunk = self.buf.substr(0, self.bytes_remain);
 							if (self.on_body_part)
 							{
-								self.on_body_part(s, chunk, self.cap);
+								SOUP_IF_UNLIKELY (!self.on_body_part(s, chunk, self.cap))
+								{
+									return;
+								}
 							}
 							self.resp.body.append(chunk);
 							self.buf.erase(0, self.bytes_remain + 2);
@@ -404,7 +407,10 @@ namespace soup
 					{
 						if (self.on_body_part)
 						{
-							self.on_body_part(s, app, self.cap);
+							SOUP_IF_UNLIKELY (!self.on_body_part(s, app, self.cap))
+							{
+								return;
+							}
 						}
 						break;
 					}
@@ -434,7 +440,7 @@ namespace soup
 		}
 	};
 
-	void HttpRequest::recvResponse(Socket& s, void callback(Socket&, std::optional<HttpResponse>&&, Capture&&), Capture&& _cap)
+	void HttpRequest::recvResponse(Socket& s, void callback(Socket&, std::optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& _cap) SOUP_EXCAL
 	{
 		Capture cap = HttpResponseReceiver(callback, std::move(_cap));
 		cap.get<HttpResponseReceiver>().tick(s, std::move(cap));
@@ -442,13 +448,13 @@ namespace soup
 
 	struct CaptureRecvEventStream
 	{
-		void(*callback)(Socket&, std::unordered_map<std::string, std::string>&&, const Capture&);
+		void(*callback)(Socket&, std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL;
 		Capture cap;
 	};
 
-	void HttpRequest::recvEventStream(Socket& s, void callback(Socket&, std::unordered_map<std::string, std::string>&&, const Capture&), Capture&& cap)
+	void HttpRequest::recvEventStream(Socket& s, void callback(Socket&, std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
 	{
-		Capture receiver_cap = HttpResponseReceiver([](Socket& s, const std::string& part, const Capture& _cap)
+		Capture receiver_cap = HttpResponseReceiver([](Socket& s, const std::string& part, const Capture& _cap) SOUP_EXCAL
 		{
 			std::unordered_map<std::string, std::string> data{};
 			auto lines = string::explode(part, '\n');
@@ -470,10 +476,14 @@ namespace soup
 				else
 				{
 					auto sep = line.find(": ");
-					SOUP_ASSERT(sep != std::string::npos);
+					SOUP_IF_UNLIKELY (sep == std::string::npos)
+					{
+						return false;
+					}
 					data.emplace(line.substr(0, sep), line.substr(sep + 2));
 				}
 			}
+			return true;
 		}, CaptureRecvEventStream{ callback, std::move(cap) });
 		receiver_cap.get<HttpResponseReceiver>().tick(s, std::move(receiver_cap));
 	}

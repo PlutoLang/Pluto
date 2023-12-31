@@ -43,7 +43,7 @@ namespace soup
 		{
 		}
 
-		void onTick()
+		void onTick() SOUP_EXCAL
 		{
 			if (task.tickUntilDone())
 			{
@@ -51,7 +51,7 @@ namespace soup
 			}
 		}
 
-		[[nodiscard]] int getSchedulingDisposition() const final
+		[[nodiscard]] int getSchedulingDisposition() const noexcept final
 		{
 			return task.getSchedulingDisposition();
 		}

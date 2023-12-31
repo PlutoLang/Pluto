@@ -9,7 +9,7 @@ namespace soup
 	{
 	}
 
-	std::string JsonNull::encode() const
+	std::string JsonNull::encode() const SOUP_EXCAL
 	{
 		return "null";
 	}
