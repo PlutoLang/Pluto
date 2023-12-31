@@ -4640,7 +4640,6 @@ static void trystat (LexState *ls) {
   ls->fs->freereg = base + 1;
   lua_assert(hasmultret(pcall.k));
   luaK_setmultret(ls->fs, &pcall);
-  luaK_exp2nextreg(ls->fs, &pcall);
 
   /* local (try results) = table.pack(pcall(function(...) STATLIST end, ...)) */
   base = tpack.u.reg;
