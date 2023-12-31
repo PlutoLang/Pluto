@@ -31,7 +31,7 @@ namespace soup
 			}
 		}
 
-		[[nodiscard]] std::string toString() const final
+		[[nodiscard]] std::string toString() const SOUP_EXCAL final
 		{
 			return subtask->toString();
 		}
@@ -92,7 +92,7 @@ namespace soup
 			}
 		}
 
-		[[nodiscard]] std::string toString() const final
+		[[nodiscard]] std::string toString() const SOUP_EXCAL final
 		{
 			std::string str = ObfusString("dnsHttpLookupTask");
 			str.append(": ");

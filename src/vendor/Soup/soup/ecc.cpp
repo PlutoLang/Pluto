@@ -71,7 +71,7 @@ namespace soup
 		return s_secp384r1;
 	}
 
-	Bigint EccCurve::generatePrivate() const
+	Bigint EccCurve::generatePrivate() const SOUP_EXCAL
 	{
 		Bigint d;
 		while (d < this->n)
@@ -186,7 +186,7 @@ namespace soup
 		return R;
 	}
 
-	std::string EccCurve::encodePointUncompressed(const EccPoint& P) const
+	std::string EccCurve::encodePointUncompressed(const EccPoint& P) const SOUP_EXCAL
 	{
 		const auto bytes_per_axis = getBytesPerAxis();
 		std::string str;
@@ -197,7 +197,7 @@ namespace soup
 		return str;
 	}
 
-	std::string EccCurve::encodePointCompressed(const EccPoint& P) const
+	std::string EccCurve::encodePointCompressed(const EccPoint& P) const SOUP_EXCAL
 	{
 		const auto bytes_per_axis = getBytesPerAxis();
 		std::string str;
@@ -244,17 +244,17 @@ namespace soup
 		return EccPoint{ std::move(x), std::move(y) };
 	}
 
-	bool EccCurve::validate(const EccPoint& P) const
+	bool EccCurve::validate(const EccPoint& P) const SOUP_EXCAL
 	{
 		return (P.y.pow2() % this->p) == (((P.x * P.x * P.x) + (this->a * P.x) + this->b) % this->p);
 	}
 
-	size_t EccCurve::getBytesPerAxis() const
+	size_t EccCurve::getBytesPerAxis() const noexcept
 	{
 		return p.getNumBytes();
 	}
 
-	std::pair<Bigint, Bigint> EccCurve::sign(const Bigint& d, const std::string& e) const
+	std::pair<Bigint, Bigint> EccCurve::sign(const Bigint& d, const std::string& e) const SOUP_EXCAL
 	{
 		const auto z = e2z(e);
 
@@ -316,7 +316,7 @@ namespace soup
 		return ((s1 * derived_k) - z1).modDiv(r, n);
 	}
 
-	Bigint EccCurve::e2z(const std::string& e) const
+	Bigint EccCurve::e2z(const std::string& e) const SOUP_EXCAL
 	{
 		return Bigint::fromBinary(e.substr(0, getBytesPerAxis()));
 	}

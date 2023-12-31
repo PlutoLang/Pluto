@@ -17,17 +17,17 @@ namespace soup
 
 	// Mod
 
-	size_t RsaMod::getMaxUnpaddedMessageBytes() const
+	size_t RsaMod::getMaxUnpaddedMessageBytes() const noexcept
 	{
 		return n.getNumBytes();
 	}
 
-	size_t RsaMod::getMaxPkcs1MessageBytes() const
+	size_t RsaMod::getMaxPkcs1MessageBytes() const noexcept
 	{
 		return getMaxUnpaddedMessageBytes() - 11;
 	}
 
-	bool RsaMod::padPublic(std::string& str) const
+	bool RsaMod::padPublic(std::string& str) const SOUP_EXCAL
 	{
 		const auto len = str.length();
 		const auto max_unpadded_len = getMaxUnpaddedMessageBytes();
@@ -46,7 +46,7 @@ namespace soup
 		return true;
 	}
 
-	bool RsaMod::padPrivate(std::string& str) const
+	bool RsaMod::padPrivate(std::string& str) const SOUP_EXCAL
 	{
 		const auto len = str.length();
 		const auto max_unpadded_len = getMaxUnpaddedMessageBytes();
@@ -62,7 +62,7 @@ namespace soup
 		return true;
 	}
 
-	bool RsaMod::unpad(std::string& str)
+	bool RsaMod::unpad(std::string& str) noexcept
 	{
 		size_t len = str.length();
 		if (len > 11)
@@ -81,7 +81,7 @@ namespace soup
 		return false;
 	}
 
-	UniquePtr<JsonObject> RsaMod::publicToJwk(const Bigint& e) const
+	UniquePtr<JsonObject> RsaMod::publicToJwk(const Bigint& e) const SOUP_EXCAL
 	{
 		auto obj = soup::make_unique<JsonObject>();
 		obj->add("kty", "RSA");
@@ -90,7 +90,7 @@ namespace soup
 		return obj;
 	}
 
-	std::string RsaMod::publicGetJwkThumbprint(const Bigint& e) const
+	std::string RsaMod::publicGetJwkThumbprint(const Bigint& e) const SOUP_EXCAL
 	{
 		auto jwk = publicToJwk(e);
 		std::sort(jwk->children.begin(), jwk->children.end(), [](const std::pair<UniquePtr<JsonNode>, UniquePtr<JsonNode>>& a, const std::pair<UniquePtr<JsonNode>, UniquePtr<JsonNode>>& b)
@@ -110,7 +110,7 @@ namespace soup
 		Bigint::modMulInv2Coprimes(n, r, n_mod_mul_inv, r_mod_mul_inv);
 	}
 
-	Bigint RsaKeyMontgomeryData::modPow(const Bigint& n, const Bigint& e, const Bigint& x) const
+	Bigint RsaKeyMontgomeryData::modPow(const Bigint& n, const Bigint& e, const Bigint& x) const SOUP_EXCAL
 	{
 		return x.modPowMontgomery(e, re, r, n, r_mod_mul_inv, n_mod_mul_inv, one_mont);
 	}
@@ -121,17 +121,17 @@ namespace soup
 
 	Bigint RsaPublicKey::E_PREF = E_PREF_VAL;
 
-	RsaPublicKey::RsaPublicKey(Bigint n)
+	RsaPublicKey::RsaPublicKey(Bigint n) noexcept
 		: RsaPublicKey(std::move(n), E_PREF_VAL)
 	{
 	}
 
-	RsaPublicKey::RsaPublicKey(Bigint n, Bigint e)
+	RsaPublicKey::RsaPublicKey(Bigint n, Bigint e) noexcept
 		: RsaPublicKeyBase(std::move(n), std::move(e))
 	{
 	}
 
-	Bigint RsaPublicKey::modPow(const Bigint& x) const
+	Bigint RsaPublicKey::modPow(const Bigint& x) const SOUP_EXCAL
 	{
 		return x.modPowBasic(e, n);
 	}
@@ -148,7 +148,7 @@ namespace soup
 	{
 	}
 
-	Bigint RsaPublicKeyLonglived::modPow(const Bigint& x) const
+	Bigint RsaPublicKeyLonglived::modPow(const Bigint& x) const SOUP_EXCAL
 	{
 		return mont_data.modPow(n, e, x);
 	}
@@ -207,7 +207,7 @@ namespace soup
 		};
 	}
 
-	Bigint RsaPrivateKey::encryptPkcs1(std::string msg) const
+	Bigint RsaPrivateKey::encryptPkcs1(std::string msg) const SOUP_EXCAL
 	{
 		padPrivate(msg);
 		return encryptUnpadded(msg);
@@ -238,7 +238,7 @@ namespace soup
 		return pem::encode(ObfusString("RSA PRIVATE KEY"), toAsn1().toDer());
 	}
 
-	Bigint RsaPrivateKey::modPow(const Bigint& x) const
+	Bigint RsaPrivateKey::modPow(const Bigint& x) const SOUP_EXCAL
 	{
 		auto mp = p_mont_data.modPow(p, dp, x);
 		auto mq = q_mont_data.modPow(q, dq, x);
@@ -437,12 +437,12 @@ namespace soup
 		}
 	}
 
-	RsaPublicKey RsaKeypair::getPublic() const
+	RsaPublicKey RsaKeypair::getPublic() const SOUP_EXCAL
 	{
 		return RsaPublicKey(n, e);
 	}
 
-	RsaPrivateKey RsaKeypair::getPrivate() const
+	RsaPrivateKey RsaKeypair::getPrivate() const SOUP_EXCAL
 	{
 		return RsaPrivateKey(n, p, q, dp, dq, qinv);
 	}

@@ -18,12 +18,12 @@ namespace soup
 
 		explicit constexpr IntVector() noexcept = default;
 
-		explicit IntVector(const IntVector<T>& b) noexcept
+		explicit IntVector(const IntVector<T>& b) SOUP_EXCAL
 			: m_capacity(b.m_capacity), m_size(b.m_size)
 		{
 			if (m_capacity != 0)
 			{
-				m_data = (T*)malloc(m_capacity * sizeof(T));
+				m_data = (T*)soup::malloc(m_capacity * sizeof(T));
 				memcpy(m_data, b.m_data, m_size * sizeof(T));
 			}
 		}
@@ -93,22 +93,28 @@ namespace soup
 		}
 
 		[[nodiscard]] T& at(size_t idx)
+#ifndef _DEBUG
+			noexcept
+#endif
 		{
 #ifdef _DEBUG
-			SOUP_IF_UNLIKELY(idx >= size())
+			SOUP_IF_UNLIKELY (idx >= size())
 			{
-				throw Exception("Out of range");
+				SOUP_THROW(Exception("Out of range"));
 			}
 #endif
 			return m_data[idx];
 		}
 
 		[[nodiscard]] const T& at(size_t idx) const
+#ifndef _DEBUG
+			noexcept
+#endif
 		{
 #ifdef _DEBUG
 			SOUP_IF_UNLIKELY (idx >= size())
 			{
-				throw Exception("Out of range");
+				SOUP_THROW(Exception("Out of range"));
 			}
 #endif
 			return m_data[idx];
@@ -127,7 +133,6 @@ namespace soup
 				m_size = m_capacity;
 				return;
 			}
-			
 #else
 			while (m_size + elms > m_capacity)
 			{
@@ -139,7 +144,7 @@ namespace soup
 			m_size += elms;
 		}
 
-		void emplace_back(T val) noexcept
+		void emplace_back(T val) SOUP_EXCAL
 		{
 			if (m_size == m_capacity)
 			{
@@ -165,20 +170,20 @@ namespace soup
 			memcpy(&m_data[0], &m_data[num], m_size * sizeof(T));
 		}
 
-		void preallocate() noexcept
+		void preallocate() SOUP_EXCAL
 		{
 			if (m_capacity == 0)
 			{
 				m_capacity = (0x1000 / sizeof(T));
-				m_data = reinterpret_cast<T*>(malloc(m_capacity * sizeof(T)));
+				m_data = reinterpret_cast<T*>(soup::malloc(m_capacity * sizeof(T)));
 			}
 		}
 
 	protected:
-		void makeSpaceForMoreElements() noexcept
+		void makeSpaceForMoreElements() SOUP_EXCAL
 		{
 			m_capacity += (0x1000 / sizeof(T));
-			m_data = reinterpret_cast<T*>(m_data ? realloc(m_data, m_capacity * sizeof(T)) : malloc(m_capacity * sizeof(T)));
+			m_data = reinterpret_cast<T*>(soup::realloc(m_data, m_capacity * sizeof(T)));
 		}
 
 	public:

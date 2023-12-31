@@ -16,7 +16,7 @@ namespace soup
 		}
 
 		template <typename T, uint32_t id>
-		[[nodiscard]] T& getImpl()
+		[[nodiscard]] T& getImpl() SOUP_EXCAL
 		{
 			auto e = find(id);
 			if (e != end())
@@ -26,7 +26,7 @@ namespace soup
 			return emplace(id, T{}).first->second.template get<T>();
 		}
 
-		void removeImpl(uint32_t id)
+		void removeImpl(uint32_t id) noexcept
 		{
 			if (auto e = find(id); e != end())
 			{

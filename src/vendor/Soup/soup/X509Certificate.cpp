@@ -151,19 +151,19 @@ namespace soup
 		return false;
 	}
 
-	void X509Certificate::setRsaPublicKey(Bigint n, Bigint e)
+	RsaPublicKey X509Certificate::getRsaPublicKey() const SOUP_EXCAL
+	{
+		return RsaPublicKey(key.x, key.y);
+	}
+
+	void X509Certificate::setRsaPublicKey(Bigint n, Bigint e) noexcept
 	{
 		key = EccPoint{ std::move(n), std::move(e) };
 	}
 
-	void X509Certificate::setRsaPublicKey(RsaPublicKey pub)
+	void X509Certificate::setRsaPublicKey(RsaPublicKey pub) noexcept
 	{
 		key = EccPoint{ std::move(pub.n), std::move(pub.e) };
-	}
-
-	RsaPublicKey X509Certificate::getRsaPublicKey() const
-	{
-		return RsaPublicKey(key.x, key.y);
 	}
 
 	bool X509Certificate::canBeVerified() const noexcept
@@ -222,7 +222,7 @@ namespace soup
 		return false;
 	}
 
-	bool X509Certificate::isValidForDomain(const std::string& domain) const
+	bool X509Certificate::isValidForDomain(const std::string& domain) const SOUP_EXCAL
 	{
 		if (matchDomain(domain, subject.getCommonName()))
 		{
@@ -238,7 +238,7 @@ namespace soup
 		return false;
 	}
 
-	bool X509Certificate::matchDomain(const std::string& domain, const std::string& name)
+	bool X509Certificate::matchDomain(const std::string& domain, const std::string& name) SOUP_EXCAL
 	{
 		auto domain_parts = string::explode(domain, '.');
 		auto name_parts = string::explode(name, '.');
@@ -258,7 +258,7 @@ namespace soup
 		return true;
 	}
 
-	Asn1Sequence X509Certificate::toAsn1() const
+	Asn1Sequence X509Certificate::toAsn1() const SOUP_EXCAL
 	{
 		Asn1Sequence algo_seq;
 		algo_seq.addOid(Oid::SHA256_WITH_RSA_ENCRYPTION); // RSA_WITH_SHA256
@@ -308,7 +308,7 @@ namespace soup
 		return cert;
 	}
 
-	std::string X509Certificate::toDer() const
+	std::string X509Certificate::toDer() const SOUP_EXCAL
 	{
 		return toAsn1().toDer();
 	}
