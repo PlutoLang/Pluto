@@ -1365,6 +1365,58 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
 }
 
 
+static void lbreak (LexState *ls, lua_Integer backwards, int line) {
+  FuncState *fs = ls->fs;
+  BlockCnt *bl = fs->bl;
+  int upval = bl->upval;
+  while (bl) {
+    if (!bl->isloop) { /* not a loop, continue search */
+      upval |= bl->upval; /* amend upvalues for closing. */
+      bl = bl->previous; /* jump back current blocks to find the loop */
+    }
+    else { /* found a loop */
+      if (--backwards == 0) { /* this is our loop */
+        break;
+      }
+      else { /* continue search */
+        upval |= bl->upval;
+        bl = bl->previous;
+      }
+    };
+  }
+  if (bl) {
+    if (upval)
+      luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
+    luaK_concat(fs, &bl->breaklist, luaK_jump(fs));
+  }
+  else {
+    throwerr(ls, "break can't skip that many blocks", "try a smaller number", line);
+  }
+}
+
+
+/*
+** Break statement. Very similiar to `continue` usage, but it jumps slightly more forward.
+**
+** Implementation Detail:
+**   Unlike normal Lua, it has been reverted from a label implementation back into a mix between a label & patchlist implementation.
+**   This allows reusage of the existing "continue" implementation, which has been time-tested extensively by now.
+*/
+static void breakstat (LexState *ls) {
+  const auto line = ls->getLineNumber();
+  luaX_next(ls); /* skip TK_BREAK */
+  lua_Integer backwards = 1;
+  if (ls->t.token == TK_INT) {
+    backwards = ls->t.seminfo.i;
+    if (backwards == 0) {
+      throwerr(ls, "expected number of blocks to skip, found '0'", "unexpected '0'", line);
+    }
+    luaX_next(ls);
+  }
+  lbreak(ls, backwards, line);
+}
+
+
 static void fieldsel (LexState *ls, expdesc *v) {
   /* fieldsel -> ['.' | ':'] NAME */
   FuncState *fs = ls->fs;
@@ -2912,36 +2964,6 @@ static BinOpr custombinaryoperator (LexState *ls, expdesc *v, TString *impl) {
 }
 
 
-static void lbreak (LexState *ls, lua_Integer backwards, int line) {
-  FuncState *fs = ls->fs;
-  BlockCnt *bl = fs->bl;
-  int upval = bl->upval;
-  while (bl) {
-    if (!bl->isloop) { /* not a loop, continue search */
-      upval |= bl->upval; /* amend upvalues for closing. */
-      bl = bl->previous; /* jump back current blocks to find the loop */
-    }
-    else { /* found a loop */
-      if (--backwards == 0) { /* this is our loop */
-        break;
-      }
-      else { /* continue search */
-        upval |= bl->upval;
-        bl = bl->previous;
-      }
-    };
-  }
-  if (bl) {
-    if (upval)
-      luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
-    luaK_concat(fs, &bl->breaklist, luaK_jump(fs));
-  }
-  else {
-    throwerr(ls, "break can't skip that many blocks", "try a smaller number", line);
-  }
-}
-
-
 static void lgoto (LexState *ls, TString *name, int line) {
   FuncState *fs = ls->fs;
   Labeldesc *lb = findlabel(ls, name);
@@ -3705,28 +3727,6 @@ int cond (LexState *ls) {
 static void gotostat (LexState *ls) {
   const auto line = ls->getLineNumber();
   lgoto(ls, str_checkname(ls, N_RESERVED), line);
-}
-
-
-/*
-** Break statement. Very similiar to `continue` usage, but it jumps slightly more forward.
-**
-** Implementation Detail:
-**   Unlike normal Lua, it has been reverted from a label implementation back into a mix between a label & patchlist implementation.
-**   This allows reusage of the existing "continue" implementation, which has been time-tested extensively by now.
-*/
-static void breakstat (LexState *ls) {
-  const auto line = ls->getLineNumber();
-  luaX_next(ls); /* skip TK_BREAK */
-  lua_Integer backwards = 1;
-  if (ls->t.token == TK_INT) {
-    backwards = ls->t.seminfo.i;
-    if (backwards == 0) {
-      throwerr(ls, "expected number of blocks to skip, found '0'", "unexpected '0'", line);
-    }
-    luaX_next(ls);
-  }
-  lbreak(ls, backwards, line);
 }
 
 
