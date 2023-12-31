@@ -893,6 +893,7 @@ do
     switch true do
         default:
             error()
+            break
         case (87 == 87):
     end
 end
@@ -902,6 +903,7 @@ do
     switch x do
         default:
             error()
+            break
         case y + 1: -- x == y + 1
     end
 end
