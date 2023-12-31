@@ -62,12 +62,12 @@ namespace soup
 		return checksum;
 	}
 
-	uint32_t crc32::hash(const std::string& data)
+	uint32_t crc32::hash(const std::string& data) noexcept
 	{
 		return hash((const uint8_t*)data.data(), data.size(), INITIAL);
 	}
 
-	static uint32_t crc32_slice_by_4(const uint8_t* data, size_t size, uint32_t init)
+	static uint32_t crc32_slice_by_4(const uint8_t* data, size_t size, uint32_t init) noexcept
 	{
 		uint32_t checksum = ~init;
 		const uint32_t* data32 = reinterpret_cast<const uint32_t*>(data);
@@ -93,9 +93,9 @@ namespace soup
 	}
 
 #if CRC32_USE_INTRIN
-	extern uint32_t crc32_pclmul(const uint8_t* p, size_t size, uint32_t crc);
+	extern uint32_t crc32_pclmul(const uint8_t* p, size_t size, uint32_t crc) noexcept;
 
-	static uint32_t crc32_sse41_simd(const uint8_t* data, size_t size, uint32_t init)
+	static uint32_t crc32_sse41_simd(const uint8_t* data, size_t size, uint32_t init) noexcept
 	{
 		if (size < 16)
 		{
@@ -108,7 +108,7 @@ namespace soup
 	}
 #endif
 
-	uint32_t crc32::hash(const uint8_t* data, size_t size, uint32_t init)
+	uint32_t crc32::hash(const uint8_t* data, size_t size, uint32_t init) noexcept
 	{
 #if CRC32_USE_INTRIN
 		const CpuInfo& cpu_info = CpuInfo::get();

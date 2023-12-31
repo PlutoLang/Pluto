@@ -34,10 +34,10 @@ namespace soup
 		uint16_t bus_frequency;
 
 	private:
-		CpuInfo();
+		CpuInfo() noexcept;
 
 	public:
-		[[nodiscard]] static const CpuInfo& get();
+		[[nodiscard]] static const CpuInfo& get() noexcept;
 
 		[[nodiscard]] bool supportsSSE() const noexcept
 		{
@@ -99,10 +99,10 @@ namespace soup
 			return (extended_features_1_ecx >> 11) & 1;
 		}
 
-		[[nodiscard]] std::string toString() const;
+		[[nodiscard]] std::string toString() const SOUP_EXCAL;
 
-		static void invokeCpuid(void* out, uint32_t eax);
-		static void invokeCpuid(void* out, uint32_t eax, uint32_t ecx);
+		static void invokeCpuid(void* out, uint32_t eax) noexcept;
+		static void invokeCpuid(void* out, uint32_t eax, uint32_t ecx) noexcept;
 	};
 }
 

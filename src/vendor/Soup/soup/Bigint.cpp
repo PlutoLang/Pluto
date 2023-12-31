@@ -15,36 +15,36 @@ namespace soup
 	using chunk_t = Bigint::chunk_t;
 	using chunk_signed_t = Bigint::chunk_signed_t;
 
-	Bigint::Bigint(chunk_signed_t v)
+	Bigint::Bigint(chunk_signed_t v) SOUP_EXCAL
 		: Bigint()
 	{
 		operator =(v);
 	}
 
-	Bigint::Bigint(chunk_t v, bool negative)
+	Bigint::Bigint(chunk_t v, bool negative) SOUP_EXCAL
 		: negative(negative)
 	{
 		setChunks(v);
 	}
 
-	Bigint::Bigint(intmax_t v)
+	Bigint::Bigint(intmax_t v) SOUP_EXCAL
 		: Bigint()
 	{
 		operator =(v);
 	}
 
-	Bigint::Bigint(size_t v, bool negative)
+	Bigint::Bigint(size_t v, bool negative) SOUP_EXCAL
 		: negative(negative)
 	{
 		setChunks(v);
 	}
 
-	Bigint::Bigint(Bigint&& b)
+	Bigint::Bigint(Bigint&& b) noexcept
 		: chunks(std::move(b.chunks)), negative(b.negative)
 	{
 	}
 
-	Bigint::Bigint(const Bigint& b)
+	Bigint::Bigint(const Bigint& b) SOUP_EXCAL
 		: chunks(b.chunks), negative(b.negative)
 	{
 	}
@@ -146,7 +146,7 @@ namespace soup
 		}
 	}
 
-	Bigint Bigint::random(size_t bits)
+	Bigint Bigint::random(size_t bits) SOUP_EXCAL
 	{
 		Bigint res{};
 		if ((bits % getBitsPerChunk()) == 0)
@@ -170,7 +170,7 @@ namespace soup
 		return res;
 	}
 
-	Bigint Bigint::random(RngInterface& rng, size_t bits)
+	Bigint Bigint::random(RngInterface& rng, size_t bits) SOUP_EXCAL
 	{
 		Bigint res{};
 		if ((bits % getBitsPerChunk()) == 0)
@@ -194,14 +194,14 @@ namespace soup
 		return res;
 	}
 
-	Bigint Bigint::randomProbablePrime(const size_t bits, const int miller_rabin_iterations)
+	Bigint Bigint::randomProbablePrime(const size_t bits, const int miller_rabin_iterations) SOUP_EXCAL
 	{
 		Bigint i = random(bits);
 		for (; i.enableBitInbounds(0), !i.isProbablePrime(miller_rabin_iterations); i = random(bits));
 		return i;
 	}
 
-	Bigint Bigint::randomProbablePrime(RngInterface& rng, const size_t bits, const int miller_rabin_iterations)
+	Bigint Bigint::randomProbablePrime(RngInterface& rng, const size_t bits, const int miller_rabin_iterations) SOUP_EXCAL
 	{
 		Bigint i = random(rng, bits);
 		for (; i.enableBitInbounds(0), !i.isProbablePrime(miller_rabin_iterations); i = random(rng, bits));
@@ -217,7 +217,7 @@ namespace soup
 		return 0;
 	}
 
-	void Bigint::setChunk(size_t i, chunk_t v)
+	void Bigint::setChunk(size_t i, chunk_t v) SOUP_EXCAL
 	{
 		if (i < chunks.size())
 		{
@@ -229,7 +229,7 @@ namespace soup
 		}
 	}
 
-	void Bigint::addChunk(size_t i, chunk_t v)
+	void Bigint::addChunk(size_t i, chunk_t v) SOUP_EXCAL
 	{
 		while (i != chunks.size())
 		{
@@ -238,7 +238,7 @@ namespace soup
 		addChunk(v);
 	}
 
-	void Bigint::addChunk(chunk_t v)
+	void Bigint::addChunk(chunk_t v) SOUP_EXCAL
 	{
 		chunks.emplace_back(v);
 	}
@@ -298,7 +298,7 @@ namespace soup
 		return (getChunk(chunk_i) >> j) & 1;
 	}
 
-	void Bigint::setBit(const size_t i, const bool v)
+	void Bigint::setBit(const size_t i, const bool v) SOUP_EXCAL
 	{
 #if true
 		auto chunk_i = i / getBitsPerChunk();
@@ -324,7 +324,7 @@ namespace soup
 #endif
 	}
 
-	void Bigint::enableBit(const size_t i)
+	void Bigint::enableBit(const size_t i) SOUP_EXCAL
 	{
 		auto chunk_i = i / getBitsPerChunk();
 		auto j = i % getBitsPerChunk();
@@ -341,7 +341,7 @@ namespace soup
 		}
 	}
 
-	void Bigint::disableBit(const size_t i)
+	void Bigint::disableBit(const size_t i) noexcept
 	{
 		auto chunk_i = i / getBitsPerChunk();
 		auto j = i % getBitsPerChunk();
@@ -380,7 +380,7 @@ namespace soup
 		return (getChunkInbounds(chunk_i) >> j) & 1;
 	}
 
-	void Bigint::setBitInbounds(const size_t i, const bool v)
+	void Bigint::setBitInbounds(const size_t i, const bool v) noexcept
 	{
 		auto chunk_i = i / getBitsPerChunk();
 		auto j = i % getBitsPerChunk();
@@ -388,7 +388,7 @@ namespace soup
 		Bitset<chunk_t>::at(chunks[chunk_i]).set(static_cast<uint8_t>(j), v);
 	}
 
-	void Bigint::enableBitInbounds(const size_t i)
+	void Bigint::enableBitInbounds(const size_t i) noexcept
 	{
 		auto chunk_i = i / getBitsPerChunk();
 		auto j = i % getBitsPerChunk();
@@ -396,7 +396,7 @@ namespace soup
 		chunks[chunk_i] |= (1 << j);
 	}
 
-	void Bigint::disableBitInbounds(const size_t i)
+	void Bigint::disableBitInbounds(const size_t i) noexcept
 	{
 		auto chunk_i = i / getBitsPerChunk();
 		auto j = i % getBitsPerChunk();
@@ -543,7 +543,7 @@ namespace soup
 		return negative || getNumChunks() == 0 || (getNumChunks() == 1 && getChunk(0) <= v);
 	}
 
-	void Bigint::operator=(chunk_signed_t v)
+	void Bigint::operator=(chunk_signed_t v) SOUP_EXCAL
 	{
 		negative = (v < 0);
 		if (negative)
@@ -556,13 +556,13 @@ namespace soup
 		}
 	}
 
-	void Bigint::operator=(chunk_t v)
+	void Bigint::operator=(chunk_t v) SOUP_EXCAL
 	{
 		setChunks(v);
 		negative = false;
 	}
 
-	void Bigint::operator=(intmax_t v)
+	void Bigint::operator=(intmax_t v) SOUP_EXCAL
 	{
 		negative = (v < 0);
 		if (negative)
@@ -575,13 +575,13 @@ namespace soup
 		}
 	}
 
-	void Bigint::operator=(size_t v)
+	void Bigint::operator=(size_t v) SOUP_EXCAL
 	{
 		setChunks(v);
 		negative = false;
 	}
 
-	void Bigint::setChunks(chunk_t v)
+	void Bigint::setChunks(chunk_t v) SOUP_EXCAL
 	{
 		chunks.clear();
 		if (v != 0)
@@ -590,7 +590,7 @@ namespace soup
 		}
 	}
 
-	void Bigint::setChunks(size_t v)
+	void Bigint::setChunks(size_t v) SOUP_EXCAL
 	{
 		const chunk_t carry = getCarry(v);
 		if (carry == 0)
@@ -609,19 +609,19 @@ namespace soup
 		}
 	}
 
-	void Bigint::operator=(Bigint&& b)
+	void Bigint::operator=(Bigint&& b) noexcept
 	{
 		chunks = std::move(b.chunks);
 		negative = b.negative;
 	}
 
-	void Bigint::operator=(const Bigint& b)
+	void Bigint::operator=(const Bigint& b) SOUP_EXCAL
 	{
 		chunks = b.chunks;
 		negative = b.negative;
 	}
 
-	void Bigint::operator+=(const Bigint& b)
+	void Bigint::operator+=(const Bigint& b) SOUP_EXCAL
 	{
 		if (negative ^ b.negative)
 		{
@@ -633,7 +633,7 @@ namespace soup
 		}
 	}
 
-	void Bigint::addUnsigned(const Bigint& b)
+	void Bigint::addUnsigned(const Bigint& b) SOUP_EXCAL
 	{
 		chunk_t carry = 0;
 		if (cmp(b) >= 0)
@@ -683,7 +683,7 @@ namespace soup
 		}
 	}
 
-	void Bigint::operator-=(const Bigint& subtrahend)
+	void Bigint::operator-=(const Bigint& subtrahend) SOUP_EXCAL
 	{
 		if (negative ^ subtrahend.negative)
 		{
@@ -695,7 +695,7 @@ namespace soup
 		}
 	}
 
-	void Bigint::subUnsigned(const Bigint& subtrahend)
+	void Bigint::subUnsigned(const Bigint& subtrahend) noexcept
 	{
 		const auto cmp_res = cmp(subtrahend);
 		if (cmp_res == 0)
@@ -734,17 +734,17 @@ namespace soup
 		shrink();
 	}
 
-	void Bigint::operator*=(const Bigint& b)
+	void Bigint::operator*=(const Bigint& b) SOUP_EXCAL
 	{
 		*this = (*this * b);
 	}
 
-	void Bigint::operator/=(const Bigint& divisor)
+	void Bigint::operator/=(const Bigint& divisor) SOUP_EXCAL
 	{
 		*this = divide(divisor).first;
 	}
 
-	void Bigint::operator%=(const Bigint& divisor)
+	void Bigint::operator%=(const Bigint& divisor) SOUP_EXCAL
 	{
 		if (*this >= divisor)
 		{
@@ -752,7 +752,7 @@ namespace soup
 		}
 	}
 
-	std::pair<Bigint, Bigint> Bigint::divide(const Bigint& divisor) const
+	std::pair<Bigint, Bigint> Bigint::divide(const Bigint& divisor) const SOUP_EXCAL
 	{
 		if (divisor.negative)
 		{
@@ -778,7 +778,7 @@ namespace soup
 		return divideUnsigned(divisor);
 	}
 
-	std::pair<Bigint, Bigint> Bigint::divideUnsigned(const Bigint& divisor) const
+	std::pair<Bigint, Bigint> Bigint::divideUnsigned(const Bigint& divisor) const SOUP_EXCAL
 	{
 		std::pair<Bigint, Bigint> res{};
 		res.first = *this;
@@ -786,12 +786,12 @@ namespace soup
 		return res;
 	}
 
-	void Bigint::divideUnsigned(const Bigint& divisor, Bigint& remainder)
+	void Bigint::divideUnsigned(const Bigint& divisor, Bigint& remainder) SOUP_EXCAL
 	{
 		remainder.reset();
 		SOUP_IF_LIKELY (!divisor.isZero())
 		{
-			if (divisor == Bigint((chunk_t)2u))
+			if (divisor == (chunk_t)2u)
 			{
 				remainder = (chunk_t)getBit(0);
 				*this >>= 1u;
@@ -822,7 +822,7 @@ namespace soup
 		}
 	}
 
-	chunk_t Bigint::divideUnsignedSmall(chunk_t divisor)
+	chunk_t Bigint::divideUnsignedSmall(chunk_t divisor) noexcept
 	{
 		size_t remainder = 0;
 		for (size_t i = getNumBits(); i-- != 0; )
@@ -844,7 +844,7 @@ namespace soup
 		return (chunk_t)remainder;
 	}
 
-	Bigint Bigint::mod(const Bigint& m) const
+	Bigint Bigint::mod(const Bigint& m) const SOUP_EXCAL
 	{
 		if (!negative && !m.negative)
 		{
@@ -853,7 +853,7 @@ namespace soup
 		return divide(m).second;
 	}
 
-	Bigint Bigint::modUnsigned(const Bigint& m) const
+	Bigint Bigint::modUnsigned(const Bigint& m) const SOUP_EXCAL
 	{
 		auto m_minus_1 = (m - Bigint((chunk_t)1u));
 		if ((m & m_minus_1).isZero())
@@ -863,12 +863,12 @@ namespace soup
 		return modUnsignedNotpowerof2(m);
 	}
 
-	Bigint Bigint::modUnsignedPowerof2(const Bigint& m) const
+	Bigint Bigint::modUnsignedPowerof2(const Bigint& m) const SOUP_EXCAL
 	{
 		return (*this & (m - Bigint((chunk_t)1u)));
 	}
 
-	Bigint Bigint::modUnsignedNotpowerof2(const Bigint& divisor) const
+	Bigint Bigint::modUnsignedNotpowerof2(const Bigint& divisor) const SOUP_EXCAL
 	{
 		Bigint remainder{};
 		for (size_t i = getNumBits(); i-- != 0; )
@@ -884,12 +884,12 @@ namespace soup
 		return remainder;
 	}
 
-	bool Bigint::isDivisorOf(const Bigint& dividend) const
+	bool Bigint::isDivisorOf(const Bigint& dividend) const SOUP_EXCAL
 	{
 		return (dividend % *this).isZero();
 	}
 
-	void Bigint::operator<<=(const size_t b)
+	void Bigint::operator<<=(const size_t b) SOUP_EXCAL
 	{
 		if ((b % getBitsPerChunk()) == 0)
 		{
@@ -943,7 +943,7 @@ namespace soup
 		}
 	}
 
-	void Bigint::leftShiftSmall(const size_t b)
+	void Bigint::leftShiftSmall(const size_t b) SOUP_EXCAL
 	{
 		chunk_t carry = 0;
 		const auto nc = getNumChunks();
@@ -1012,12 +1012,12 @@ namespace soup
 		}
 	}
 
-	void Bigint::leftShiftOne()
+	void Bigint::leftShiftOne() SOUP_EXCAL
 	{
 		leftShiftSmall(1);
 	}
 
-	void Bigint::operator>>=(const size_t b)
+	void Bigint::operator>>=(const size_t b) noexcept
 	{
 		if constexpr (ENDIAN_NATIVE == ENDIAN_LITTLE)
 		{
@@ -1066,7 +1066,7 @@ namespace soup
 		}
 	}
 
-	void Bigint::rightShiftSmall(const size_t b)
+	void Bigint::rightShiftSmall(const size_t b) noexcept
 	{
 		auto i = getNumChunks();
 		chunk_t carry = 0;
@@ -1117,7 +1117,7 @@ namespace soup
 		shrink();
 	}
 
-	void Bigint::operator|=(const Bigint& b)
+	void Bigint::operator|=(const Bigint& b) SOUP_EXCAL
 	{
 		const auto nc = b.getNumChunks();
 		size_t i = 0;
@@ -1152,7 +1152,7 @@ namespace soup
 		}
 	}
 
-	void Bigint::operator&=(const Bigint& b)
+	void Bigint::operator&=(const Bigint& b) noexcept
 	{
 		const auto nc = getNumChunks();
 		size_t i = 0;
@@ -1188,7 +1188,7 @@ namespace soup
 		shrink();
 	}
 
-	Bigint Bigint::operator+(const Bigint& b) const
+	Bigint Bigint::operator+(const Bigint& b) const SOUP_EXCAL
 	{
 		Bigint res(*this);
 		res += b;
@@ -1196,41 +1196,41 @@ namespace soup
 	}
 
 	// ++a
-	Bigint& Bigint::operator++()
+	Bigint& Bigint::operator++() SOUP_EXCAL
 	{
 		*this += Bigint((chunk_t)1u);
 		return *this;
 	}
 
 	// a++
-	Bigint Bigint::operator++(int)
+	Bigint Bigint::operator++(int) SOUP_EXCAL
 	{
 		Bigint pre(*this);
 		++*this;
 		return pre;
 	}
 
-	Bigint Bigint::operator-(const Bigint& subtrahend) const
+	Bigint Bigint::operator-(const Bigint& subtrahend) const SOUP_EXCAL
 	{
 		Bigint res(*this);
 		res -= subtrahend;
 		return res;
 	}
 
-	Bigint& Bigint::operator--()
+	Bigint& Bigint::operator--() SOUP_EXCAL
 	{
 		*this -= Bigint((chunk_t)1u);
 		return *this;
 	}
 
-	Bigint Bigint::operator--(int)
+	Bigint Bigint::operator--(int) SOUP_EXCAL
 	{
 		Bigint pre(*this);
 		--*this;
 		return pre;
 	}
 
-	Bigint Bigint::operator*(const Bigint& b) const
+	Bigint Bigint::operator*(const Bigint& b) const SOUP_EXCAL
 	{
 		// Karatsuba's method is supposed to be faster for 1024-bit integers, but here it seems to only be effective starting at 0x4000 bits.
 		SOUP_IF_UNLIKELY (getNumBits() >= 0x4000 && b.getNumBits() >= 0x4000)
@@ -1241,7 +1241,7 @@ namespace soup
 		return multiplySimple(b);
 	}
 
-	Bigint Bigint::multiplySimple(const Bigint& b) const
+	Bigint Bigint::multiplySimple(const Bigint& b) const SOUP_EXCAL
 	{
 		Bigint product{};
 		if (!isZero() && !b.isZero())
@@ -1274,14 +1274,14 @@ namespace soup
 		return product;
 	}
 
-	Bigint Bigint::multiplyKaratsuba(const Bigint& b) const
+	Bigint Bigint::multiplyKaratsuba(const Bigint& b) const SOUP_EXCAL
 	{
 		auto product = multiplyKaratsubaUnsigned(b);
 		product.negative = (negative ^ b.negative);
 		return product;
 	}
 
-	Bigint Bigint::multiplyKaratsubaUnsigned(const Bigint& b/*, size_t recursions*/) const
+	Bigint Bigint::multiplyKaratsubaUnsigned(const Bigint& b/*, size_t recursions*/) const SOUP_EXCAL
 	{
 		//std::cout << std::string(recursions * 2, ' ') << toString() << " * " << b.toString() << "\n";
 
@@ -1310,38 +1310,38 @@ namespace soup
 		return p1;
 	}
 
-	Bigint Bigint::operator/(const Bigint& b) const
+	Bigint Bigint::operator/(const Bigint& b) const SOUP_EXCAL
 	{
 		return divide(b).first;
 	}
 
-	Bigint Bigint::operator%(const Bigint& b) const
+	Bigint Bigint::operator%(const Bigint& b) const SOUP_EXCAL
 	{
 		return divide(b).second;
 	}
 
-	Bigint Bigint::operator<<(size_t b) const
+	Bigint Bigint::operator<<(size_t b) const SOUP_EXCAL
 	{
 		Bigint res(*this);
 		res <<= b;
 		return res;
 	}
 
-	Bigint Bigint::operator>>(size_t b) const
+	Bigint Bigint::operator>>(size_t b) const SOUP_EXCAL
 	{
 		Bigint res(*this);
 		res >>= b;
 		return res;
 	}
 
-	Bigint Bigint::operator|(const Bigint& b) const
+	Bigint Bigint::operator|(const Bigint& b) const SOUP_EXCAL
 	{
 		Bigint res(*this);
 		res |= b;
 		return res;
 	}
 
-	Bigint Bigint::operator&(const Bigint& b) const
+	Bigint Bigint::operator&(const Bigint& b) const SOUP_EXCAL
 	{
 		Bigint res(*this);
 		res &= b;
@@ -1363,16 +1363,16 @@ namespace soup
 		return getBit(0);
 	}
 
-	Bigint Bigint::abs() const
+	Bigint Bigint::abs() const SOUP_EXCAL
 	{
 		Bigint res(*this);
 		res.negative = false;
 		return res;
 	}
 
-	Bigint Bigint::pow(Bigint e) const
+	Bigint Bigint::pow(Bigint e) const SOUP_EXCAL
 	{
-		if (*this == Bigint((chunk_t)2u))
+		if (*this == (chunk_t)2u)
 		{
 			size_t e_primitive;
 			if (e.toPrimitive(e_primitive))
@@ -1383,7 +1383,7 @@ namespace soup
 		return powNot2(e);
 	}
 
-	Bigint Bigint::powNot2(Bigint e) const
+	Bigint Bigint::powNot2(Bigint e) const SOUP_EXCAL
 	{
 		Bigint res = Bigint((chunk_t)1u);
 		Bigint base(*this);
@@ -1403,19 +1403,19 @@ namespace soup
 		return res;
 	}
 
-	Bigint Bigint::pow2() const
+	Bigint Bigint::pow2() const SOUP_EXCAL
 	{
 		return *this * *this;
 	}
 
-	Bigint Bigint::_2pow(size_t e)
+	Bigint Bigint::_2pow(size_t e) SOUP_EXCAL
 	{
 		return Bigint((chunk_t)1u) << e;
 	}
 
-	size_t Bigint::getTrailingZeroes(const Bigint& base) const
+	size_t Bigint::getTrailingZeroes(const Bigint& base) const SOUP_EXCAL
 	{
-		if (base == Bigint((chunk_t)2u))
+		if (base == (chunk_t)2u)
 		{
 			return getTrailingZeroesBinary();
 		}
@@ -1434,7 +1434,7 @@ namespace soup
 		return res;
 	}
 
-	size_t Bigint::getTrailingZeroesBinary() const
+	size_t Bigint::getTrailingZeroesBinary() const noexcept
 	{
 		size_t res = 0;
 		const auto nb = getNumBits();
@@ -1445,7 +1445,7 @@ namespace soup
 		return res;
 	}
 
-	Bigint Bigint::gcd(Bigint v) const
+	Bigint Bigint::gcd(Bigint v) const SOUP_EXCAL
 	{
 		Bigint u(*this);
 
@@ -1472,7 +1472,7 @@ namespace soup
 		}
 	}
 
-	Bigint Bigint::gcd(Bigint b, Bigint& x, Bigint& y) const
+	Bigint Bigint::gcd(Bigint b, Bigint& x, Bigint& y) const SOUP_EXCAL
 	{
 		x.reset();
 		y = Bigint((chunk_t)1u);
@@ -1497,9 +1497,9 @@ namespace soup
 		return b;
 	}
 
-	bool Bigint::isPrimePrecheck(bool& ret) const
+	bool Bigint::isPrimePrecheck(bool& ret) const SOUP_EXCAL
 	{
-		if (isZero() || *this == Bigint((chunk_t)1u))
+		if (isZero() || *this == (chunk_t)1u)
 		{
 			ret = false;
 			return true;
@@ -1523,7 +1523,7 @@ namespace soup
 		return false;
 	}
 
-	bool Bigint::isPrime() const
+	bool Bigint::isPrime() const SOUP_EXCAL
 	{
 		bool preret;
 		if (isPrimePrecheck(preret))
@@ -1539,7 +1539,7 @@ namespace soup
 		return isProbablePrimeNoprecheck(10);
 	}
 
-	bool Bigint::isPrimeAccurate() const
+	bool Bigint::isPrimeAccurate() const SOUP_EXCAL
 	{
 		bool preret;
 		if (isPrimePrecheck(preret))
@@ -1550,7 +1550,7 @@ namespace soup
 		return isPrimeAccurateNoprecheck();
 	}
 
-	bool Bigint::isPrimeAccurateNoprecheck() const
+	bool Bigint::isPrimeAccurateNoprecheck() const SOUP_EXCAL
 	{
 		for (Bigint i = Bigint((chunk_t)5u); i * i <= *this; i += Bigint((chunk_t)6u))
 		{
@@ -1562,7 +1562,7 @@ namespace soup
 		return true;
 	}
 
-	bool Bigint::isProbablePrime(const int miller_rabin_iterations) const
+	bool Bigint::isProbablePrime(const int miller_rabin_iterations) const SOUP_EXCAL
 	{
 		bool preret;
 		if (isPrimePrecheck(preret))
@@ -1573,7 +1573,7 @@ namespace soup
 		return isProbablePrimeNoprecheck(miller_rabin_iterations);
 	}
 
-	bool Bigint::isProbablePrimeNoprecheck(const int miller_rabin_iterations) const
+	bool Bigint::isProbablePrimeNoprecheck(const int miller_rabin_iterations) const SOUP_EXCAL
 	{
 		auto thisMinusOne = (*this - Bigint((chunk_t)1u));
 		auto a = thisMinusOne.getLowestSetBit();
@@ -1590,9 +1590,9 @@ namespace soup
 
 			int j = 0;
 			Bigint z = b.modPow(m, *this);
-			while (!((j == 0 && z == Bigint((chunk_t)1u)) || z == thisMinusOne))
+			while (!((j == 0 && z == (chunk_t)1u) || z == thisMinusOne))
 			{
-				if ((j > 0 && z == Bigint((chunk_t)1u)) || ++j == a)
+				if ((j > 0 && z == (chunk_t)1u) || ++j == a)
 				{
 					return false;
 				}
@@ -1603,12 +1603,12 @@ namespace soup
 		return true;
 	}
 
-	bool Bigint::isCoprime(const Bigint& b) const
+	bool Bigint::isCoprime(const Bigint& b) const SOUP_EXCAL
 	{
-		return gcd(b) == Bigint((chunk_t)1u);
+		return gcd(b) == (chunk_t)1u;
 	}
 
-	Bigint Bigint::eulersTotient() const
+	Bigint Bigint::eulersTotient() const SOUP_EXCAL
 	{
 		Bigint res = Bigint((chunk_t)1u);
 		for (Bigint i = Bigint((chunk_t)2u); i != *this; ++i)
@@ -1621,7 +1621,7 @@ namespace soup
 		return res;
 	}
 
-	Bigint Bigint::reducedTotient() const
+	Bigint Bigint::reducedTotient() const SOUP_EXCAL
 	{
 		if (*this <= Bigint((chunk_t)2u))
 		{
@@ -1640,7 +1640,7 @@ namespace soup
 		{
 			for (auto i = coprimes.begin(); i != coprimes.end(); ++i)
 			{
-				if (i->modPow(k, *this) == Bigint((chunk_t)1u))
+				if (i->modPow(k, *this) == (chunk_t)1u)
 				{
 					if (timer == 0)
 					{
@@ -1658,7 +1658,7 @@ namespace soup
 		return k;
 	}
 
-	Bigint Bigint::lcm(const Bigint& b) const
+	Bigint Bigint::lcm(const Bigint& b) const SOUP_EXCAL
 	{
 		if (isZero() || b.isZero())
 		{
@@ -1669,13 +1669,13 @@ namespace soup
 		return ((a_mag * b_mag) / a_mag.gcd(b_mag));
 	}
 
-	bool Bigint::isPowerOf2() const
+	bool Bigint::isPowerOf2() const SOUP_EXCAL
 	{
 		return (*this & (*this - Bigint((chunk_t)1u))).isZero();
 	}
 
 	// Fermat's method
-	std::pair<Bigint, Bigint> Bigint::factorise() const
+	std::pair<Bigint, Bigint> Bigint::factorise() const SOUP_EXCAL
 	{
 		{
 			auto [q, r] = divide((chunk_t)2u);
@@ -1707,7 +1707,7 @@ namespace soup
 		return { a - b, a + b };
 	}
 
-	Bigint Bigint::sqrtCeil() const
+	Bigint Bigint::sqrtCeil() const SOUP_EXCAL
 	{
 		Bigint y = sqrtFloor();
 
@@ -1719,7 +1719,7 @@ namespace soup
 		return (y + Bigint((chunk_t)1u));
 	}
 
-	Bigint Bigint::sqrtFloor() const
+	Bigint Bigint::sqrtFloor() const SOUP_EXCAL
 	{
 		if (isZero() || *this == (chunk_t)1u)
 		{
@@ -1738,7 +1738,7 @@ namespace soup
 		return y;
 	}
 
-	std::pair<Bigint, Bigint> Bigint::splitAt(size_t chunk) const
+	std::pair<Bigint, Bigint> Bigint::splitAt(size_t chunk) const SOUP_EXCAL
 	{
 		Bigint hi, lo;
 
@@ -1759,26 +1759,26 @@ namespace soup
 	Bigint Bigint::modMulInv(const Bigint& m) const
 	{
 		Bigint x, y;
-		SOUP_IF_UNLIKELY (gcd(m, x, y) != Bigint((chunk_t)1u))
+		SOUP_IF_UNLIKELY (gcd(m, x, y) != (chunk_t)1u)
 		{
 			SOUP_THROW(Exception(ObfusString("Modular multiplicative inverse does not exist as the numbers are not coprime").str()));
 		}
 		return (x % m + m) % m;
 	}
 
-	void Bigint::modMulInv2Coprimes(const Bigint& a, const Bigint& m, Bigint& x, Bigint& y)
+	void Bigint::modMulInv2Coprimes(const Bigint& a, const Bigint& m, Bigint& x, Bigint& y) SOUP_EXCAL
 	{
 		a.gcd(m, x, y);
 		x = ((x % m + m) % m);
 		y = ((y % a + a) % a);
 	}
 
-	Bigint Bigint::modMulUnsigned(const Bigint& b, const Bigint& m) const
+	Bigint Bigint::modMulUnsigned(const Bigint& b, const Bigint& m) const SOUP_EXCAL
 	{
 		return (*this * b).modUnsigned(m);
 	}
 
-	Bigint Bigint::modMulUnsignedNotpowerof2(const Bigint& b, const Bigint& m) const
+	Bigint Bigint::modMulUnsignedNotpowerof2(const Bigint& b, const Bigint& m) const SOUP_EXCAL
 	{
 		return (*this * b).modUnsignedNotpowerof2(m);
 	}
@@ -1803,7 +1803,7 @@ namespace soup
 		return modPowMontgomery(e, re, r, m, r_mod_mul_inv, m_mod_mul_inv, r.modUnsignedNotpowerof2(m));
 	}
 
-	Bigint Bigint::modPowMontgomery(const Bigint& e, size_t re, const Bigint& r, const Bigint& m, const Bigint& r_mod_mul_inv, const Bigint& m_mod_mul_inv, const Bigint& one_mont) const
+	Bigint Bigint::modPowMontgomery(const Bigint& e, size_t re, const Bigint& r, const Bigint& m, const Bigint& r_mod_mul_inv, const Bigint& m_mod_mul_inv, const Bigint& one_mont) const SOUP_EXCAL
 	{
 		Bigint res = one_mont;
 		Bigint base(*this);
@@ -1824,7 +1824,7 @@ namespace soup
 		return res.leaveMontgomerySpaceEfficient(r_mod_mul_inv, m);
 	}
 
-	Bigint Bigint::modPowBasic(const Bigint& e, const Bigint& m) const
+	Bigint Bigint::modPowBasic(const Bigint& e, const Bigint& m) const SOUP_EXCAL
 	{
 		Bigint base(*this);
 		if (base >= m)
@@ -1853,22 +1853,22 @@ namespace soup
 	// We need a positive integer r such that r >= m && r.isCoprime(m)
 	// We assume an odd modulus, so any power of 2 will be coprime to it.
 
-	size_t Bigint::montgomeryREFromM() const
+	size_t Bigint::montgomeryREFromM() const noexcept
 	{
 		return getBitLength();
 	}
 
-	Bigint Bigint::montgomeryRFromRE(size_t re)
+	Bigint Bigint::montgomeryRFromRE(size_t re) SOUP_EXCAL
 	{
 		return _2pow(re);
 	}
 
-	Bigint Bigint::montgomeryRFromM() const
+	Bigint Bigint::montgomeryRFromM() const SOUP_EXCAL
 	{
 		return montgomeryRFromRE(montgomeryREFromM());
 	}
 
-	Bigint Bigint::enterMontgomerySpace(const Bigint& r, const Bigint& m) const
+	Bigint Bigint::enterMontgomerySpace(const Bigint& r, const Bigint& m) const SOUP_EXCAL
 	{
 		return modMulUnsignedNotpowerof2(r, m);
 	}
@@ -1878,7 +1878,7 @@ namespace soup
 		return leaveMontgomerySpaceEfficient(r.modMulInv(m), m);
 	}
 
-	Bigint Bigint::leaveMontgomerySpaceEfficient(const Bigint& r_mod_mul_inv, const Bigint& m) const
+	Bigint Bigint::leaveMontgomerySpaceEfficient(const Bigint& r_mod_mul_inv, const Bigint& m) const SOUP_EXCAL
 	{
 		return modMulUnsignedNotpowerof2(r_mod_mul_inv, m);
 	}
@@ -1888,7 +1888,7 @@ namespace soup
 		return (*this * b).montgomeryReduce(r, m);
 	}
 
-	Bigint Bigint::montgomeryMultiplyEfficient(const Bigint& b, const Bigint& r, size_t re, const Bigint& m, const Bigint& m_mod_mul_inv) const
+	Bigint Bigint::montgomeryMultiplyEfficient(const Bigint& b, const Bigint& r, size_t re, const Bigint& m, const Bigint& m_mod_mul_inv) const SOUP_EXCAL
 	{
 		return (*this * b).montgomeryReduce(r, re, m, m_mod_mul_inv);
 	}
@@ -1909,7 +1909,7 @@ namespace soup
 		return a;
 	}
 
-	Bigint Bigint::montgomeryReduce(const Bigint& r, size_t re, const Bigint& m, const Bigint& m_mod_mul_inv) const
+	Bigint Bigint::montgomeryReduce(const Bigint& r, size_t re, const Bigint& m, const Bigint& m_mod_mul_inv) const SOUP_EXCAL
 	{
 		auto q = (modUnsignedPowerof2(r) * m_mod_mul_inv).modUnsignedPowerof2(r);
 		auto a = (*this - q * m);
@@ -1981,7 +1981,7 @@ namespace soup
 		return str;
 	}
 
-	Bigint Bigint::fromBinary(const std::string& msg)
+	Bigint Bigint::fromBinary(const std::string& msg) SOUP_EXCAL
 	{
 		Bigint res{};
 		for (auto i = msg.begin(); i != msg.end(); ++i)
@@ -1992,7 +1992,7 @@ namespace soup
 		return res;
 	}
 
-	std::string Bigint::toBinary() const
+	std::string Bigint::toBinary() const SOUP_EXCAL
 	{
 		std::string str{};
 		size_t i = getNumBytes();

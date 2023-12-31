@@ -15,17 +15,17 @@ namespace soup
 		{
 		}
 
-		StringReader(std::string&& data, Endian endian = ENDIAN_LITTLE)
+		StringReader(std::string&& data, Endian endian = ENDIAN_LITTLE) noexcept
 			: ioSeekableReader(endian), data(std::move(data))
 		{
 		}
 		
-		StringReader(std::string&& data, bool little_endian)
+		StringReader(std::string&& data, bool little_endian) noexcept
 			: ioSeekableReader(little_endian), data(std::move(data))
 		{
 		}
 
-		~StringReader() final = default;
+		~StringReader() noexcept final = default;
 
 		void operator =(std::string&& new_data) noexcept
 		{
@@ -33,12 +33,12 @@ namespace soup
 			offset = 0;
 		}
 
-		bool hasMore() final
+		bool hasMore() noexcept final
 		{
 			return offset != data.size();
 		}
 
-		bool u8(uint8_t& v) final
+		bool u8(uint8_t& v) noexcept final
 		{
 			if (offset == data.size())
 			{
@@ -49,7 +49,7 @@ namespace soup
 		}
 
 	protected:
-		bool str_impl(std::string& v, size_t len) final
+		bool str_impl(std::string& v, size_t len) SOUP_EXCAL final
 		{
 			if ((offset + len) > data.size())
 			{
@@ -61,17 +61,17 @@ namespace soup
 		}
 
 	public:
-		[[nodiscard]] size_t getPosition() final
+		[[nodiscard]] size_t getPosition() noexcept final
 		{
 			return offset;
 		}
 
-		void seek(size_t pos) final
+		void seek(size_t pos) noexcept final
 		{
 			offset = pos;
 		}
 
-		void seekEnd() final
+		void seekEnd() noexcept final
 		{
 			offset = data.size();
 		}
