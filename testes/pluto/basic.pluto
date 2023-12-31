@@ -2,13 +2,15 @@ print "Welcome to the test suite."
 
 local function assert_warn(code)
     assert(wcall(function(msg)
-        load(code)()
+        local chunk, err = load(code)
+        if chunk then chunk() else error(err) end
     end) ~= "")
 end
 
 local function assert_no_warn(code)
     assert(wcall(function(msg)
-        load(code)()
+        local chunk, err = load(code)
+        if chunk then chunk() else error(err) end
     end) == "")
 end
 
