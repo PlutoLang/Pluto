@@ -20,7 +20,6 @@
 #include "Exception.hpp"
 #include "NamedCurves.hpp"
 #include "netConfig.hpp"
-#include "ObfusString.hpp"
 #include "rand.hpp"
 #include "SocketTlsHandshaker.hpp"
 #include "time.hpp"
@@ -390,7 +389,7 @@ namespace soup
 		certchain_validator_t certchain_validator;
 	};
 
-	void Socket::enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&), Capture&& cap)
+	void Socket::enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
 	{
 		auto handshaker = make_unique<SocketTlsHandshaker>(
 			callback,
@@ -476,7 +475,7 @@ namespace soup
 
 		if (tls_sendHandshake(handshaker, TlsHandshake::client_hello, hello.toBinaryString()))
 		{
-			tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
+			tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 			{
 				if (handshake_type != TlsHandshake::server_hello)
 				{
@@ -492,7 +491,7 @@ namespace soup
 				handshaker->cipher_suite = shello.cipher_suite;
 				handshaker->server_random = shello.random.toBinaryString();
 
-				s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
+				s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 				{
 					if (handshake_type != TlsHandshake::certificate)
 					{
@@ -527,7 +526,7 @@ namespace soup
 					});
 
 					auto* p = &handshaker->promise;
-					s.awaitPromiseCompletion(p, [](Worker& w, Capture&& cap)
+					s.awaitPromiseCompletion(p, [](Worker& w, Capture&& cap) SOUP_EXCAL
 					{
 						w.holdup_type = Worker::NONE;
 
@@ -548,7 +547,7 @@ namespace soup
 						case TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:
 						case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
 						case TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
-							s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
+							s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 							{
 								if (handshake_type != TlsHandshake::server_key_exchange)
 								{
@@ -610,9 +609,9 @@ namespace soup
 		}
 	}
 
-	void Socket::enableCryptoClientRecvServerHelloDone(UniquePtr<SocketTlsHandshaker>&& handshaker)
+	void Socket::enableCryptoClientRecvServerHelloDone(UniquePtr<SocketTlsHandshaker>&& handshaker) SOUP_EXCAL
 	{
-		tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
+		tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 		{
 			if (handshake_type == TlsHandshake::server_hello_done)
 			{
@@ -620,7 +619,7 @@ namespace soup
 			}
 			else if (handshake_type == TlsHandshake::certificate_request)
 			{
-				s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
+				s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 				{
 					if (handshake_type != TlsHandshake::server_hello_done)
 					{
@@ -642,7 +641,7 @@ namespace soup
 		});
 	}
 
-	void Socket::enableCryptoClientProcessServerHelloDone(UniquePtr<SocketTlsHandshaker>&& handshaker)
+	void Socket::enableCryptoClientProcessServerHelloDone(UniquePtr<SocketTlsHandshaker>&& handshaker) SOUP_EXCAL
 	{
 		std::string cke{};
 		if (handshaker->ecdhe_curve == 0)
@@ -659,7 +658,7 @@ namespace soup
 			TlsEncryptedPreMasterSecret epms{};
 			SOUP_IF_UNLIKELY (!handshaker->certchain.certs.at(0).isRsa())
 			{
-				SOUP_THROW(Exception(ObfusString("Server picked an RSA ciphersuite but did not provide an appropriate certificate").str()));
+				return; // Server picked an RSA ciphersuite but did not provide an appropriate certificate
 			}
 			epms.data = handshaker->certchain.certs.at(0).getRsaPublicKey().encryptPkcs1(pms).toBinary();
 			cke = epms.toBinaryString();
@@ -707,7 +706,7 @@ namespace soup
 			};
 			SOUP_IF_UNLIKELY (!curve->validate(their_pub))
 			{
-				SOUP_THROW(Exception(ObfusString("Server provided an invalid point for ECDHE").str()));
+				return; // Server provided an invalid point for ECDHE
 			}
 
 			auto shared_point = curve->multiply(their_pub, my_priv);
@@ -721,7 +720,7 @@ namespace soup
 		}
 		else
 		{
-			SOUP_ASSERT_UNREACHABLE; // This would be a logic error on our end since we (should) reject other curves earlier
+			SOUP_DEBUG_ASSERT_UNREACHABLE; // This would be a logic error on our end since we (should) reject other curves earlier
 		}
 		if (tls_sendHandshake(handshaker, TlsHandshake::client_key_exchange, std::move(cke))
 			&& tls_sendRecord(TlsContentType::change_cipher_spec, "\1")
@@ -737,7 +736,7 @@ namespace soup
 			);
 			if (tls_sendHandshake(handshaker, TlsHandshake::finished, handshaker->getClientFinishVerifyData()))
 			{
-				tls_recvRecord(TlsContentType::change_cipher_spec, [](Socket& s, std::string&& data, Capture&& cap)
+				tls_recvRecord(TlsContentType::change_cipher_spec, [](Socket& s, std::string&& data, Capture&& cap) SOUP_EXCAL
 				{
 					UniquePtr<SocketTlsHandshaker> handshaker = std::move(cap.get<UniquePtr<SocketTlsHandshaker>>());
 
@@ -745,7 +744,7 @@ namespace soup
 
 					handshaker->expected_finished_verify_data = handshaker->getServerFinishVerifyData();
 
-					s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
+					s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 					{
 						if (handshake_type != TlsHandshake::finished)
 						{
@@ -783,7 +782,7 @@ namespace soup
 		Bigint data;
 	};
 
-	void Socket::enableCryptoServer(tls_server_cert_selector_t cert_selector, void(*callback)(Socket&, Capture&&), Capture&& cap, tls_server_on_client_hello_t on_client_hello)
+	void Socket::enableCryptoServer(tls_server_cert_selector_t cert_selector, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap, tls_server_on_client_hello_t on_client_hello) SOUP_EXCAL
 	{
 		auto handshaker = make_unique<SocketTlsHandshaker>(
 			callback,
@@ -791,7 +790,7 @@ namespace soup
 		);
 		handshaker->cert_selector = cert_selector;
 		handshaker->on_client_hello = on_client_hello;
-		tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
+		tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 		{
 			if (handshake_type != TlsHandshake::client_hello)
 			{
@@ -870,7 +869,7 @@ namespace soup
 				return;
 			}
 
-			s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
+			s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 			{
 				if (handshake_type != TlsHandshake::client_key_exchange)
 				{
@@ -894,7 +893,7 @@ namespace soup
 					Bigint::fromBinary(data)
 				});
 
-				s.tls_recvRecord(TlsContentType::change_cipher_spec, [](Socket& s, std::string&& data, Capture&& cap)
+				s.tls_recvRecord(TlsContentType::change_cipher_spec, [](Socket& s, std::string&& data, Capture&& cap) SOUP_EXCAL
 				{
 					if (!s.tls_sendRecord(TlsContentType::change_cipher_spec, "\1"))
 					{
@@ -904,7 +903,7 @@ namespace soup
 					UniquePtr<SocketTlsHandshaker> handshaker = std::move(cap.get<UniquePtr<SocketTlsHandshaker>>());
 
 					auto* p = &handshaker->promise;
-					s.awaitPromiseCompletion(p, [](Worker& w, Capture&& cap)
+					s.awaitPromiseCompletion(p, [](Worker& w, Capture&& cap) SOUP_EXCAL
 					{
 						w.holdup_type = Worker::NONE;
 
@@ -922,7 +921,7 @@ namespace soup
 
 						handshaker->expected_finished_verify_data = handshaker->getClientFinishVerifyData();
 
-						s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
+						s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 						{
 							if (handshake_type != TlsHandshake::finished)
 							{
@@ -952,7 +951,7 @@ namespace soup
 		return tls_encrypter_send.isActive();
 	}
 
-	bool Socket::send(const std::string& data)
+	bool Socket::send(const std::string& data) SOUP_EXCAL
 	{
 		if (tls_encrypter_send.isActive())
 		{
@@ -1024,17 +1023,17 @@ namespace soup
 
 	struct CaptureSocketRecv
 	{
-		void(*callback)(Socket&, std::string&&, Capture&&);
+		void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL;
 		Capture cap;
 	};
 
-	void Socket::recv(void(*callback)(Socket&, std::string&&, Capture&&), Capture&& cap)
+	void Socket::recv(void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
 	{
 		CaptureSocketRecv inner_cap{
 			callback,
 			std::move(cap)
 		};
-		auto inner_callback = [](Socket& s, std::string&& data, Capture&& _cap)
+		auto inner_callback = [](Socket& s, std::string&& data, Capture&& _cap) SOUP_EXCAL
 		{
 			auto& cap = _cap.get<CaptureSocketRecv>();
 			cap.callback(s, std::move(data), std::move(cap.cap));
@@ -1055,10 +1054,10 @@ namespace soup
 		Capture cap;
 	};
 
-	void Socket::udpRecv(void(*callback)(Socket&, SocketAddr&&, std::string&&, Capture&&), Capture&& cap)
+	void Socket::udpRecv(void(*callback)(Socket&, SocketAddr&&, std::string&&, Capture&&), Capture&& cap) noexcept
 	{
 		holdup_type = SOCKET;
-		holdup_callback.set([](Worker& w, Capture&& _cap)
+		holdup_callback.set([](Worker& w, Capture&& _cap) SOUP_EXCAL
 		{
 			w.holdup_type = Worker::NONE;
 
@@ -1086,7 +1085,7 @@ namespace soup
 		}, CaptureSocketUdpRecv{ callback, std::move(cap) });
 	}
 
-	void Socket::close()
+	void Socket::close() SOUP_EXCAL
 	{
 		//custom_data.removeStructFromMap(ReuseTag);
 
@@ -1100,12 +1099,12 @@ namespace soup
 		}
 	}
 
-	bool Socket::tls_sendHandshake(const UniquePtr<SocketTlsHandshaker>& handshaker, TlsHandshakeType_t handshake_type, const std::string& content)
+	bool Socket::tls_sendHandshake(const UniquePtr<SocketTlsHandshaker>& handshaker, TlsHandshakeType_t handshake_type, const std::string& content) SOUP_EXCAL
 	{
 		return tls_sendRecord(TlsContentType::handshake, handshaker->pack(handshake_type, content));
 	}
 
-	bool Socket::tls_sendRecord(TlsContentType_t content_type, const std::string& content)
+	bool Socket::tls_sendRecord(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL
 	{
 		if (!tls_encrypter_send.isActive())
 		{
@@ -1120,7 +1119,7 @@ namespace soup
 		return tls_sendRecordEncrypted(content_type, content);
 	}
 
-	bool Socket::tls_sendRecordEncrypted(TlsContentType_t content_type, const std::string& content)
+	bool Socket::tls_sendRecordEncrypted(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL
 	{
 		auto body = tls_encrypter_send.encrypt(content_type, content);
 
@@ -1140,12 +1139,12 @@ namespace soup
 	struct CaptureSocketTlsRecvHandshake
 	{
 		UniquePtr<SocketTlsHandshaker> handshaker;
-		void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&);
+		void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&) SOUP_EXCAL;
 		std::string pre;
 		bool is_new_bytes = false;
 	};
 
-	void Socket::tls_recvHandshake(UniquePtr<SocketTlsHandshaker>&& handshaker, void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&), std::string&& pre)
+	void Socket::tls_recvHandshake(UniquePtr<SocketTlsHandshaker>&& handshaker, void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&) SOUP_EXCAL, std::string&& pre) SOUP_EXCAL
 	{
 		CaptureSocketTlsRecvHandshake cap{
 			std::move(handshaker),
@@ -1153,7 +1152,7 @@ namespace soup
 			std::move(pre)
 		};
 
-		auto record_callback = [](Socket& s, TlsContentType_t content_type, std::string&& data, Capture&& _cap)
+		auto record_callback = [](Socket& s, TlsContentType_t content_type, std::string&& data, Capture&& _cap) SOUP_EXCAL
 		{
 			if (content_type != TlsContentType::handshake)
 			{
@@ -1233,13 +1232,13 @@ namespace soup
 	struct CaptureSocketTlsRecvRecordExpect
 	{
 		TlsContentType_t expected_content_type;
-		void(*callback)(Socket&, std::string&&, Capture&&);
+		void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL;
 		Capture cap;
 	};
 
-	void Socket::tls_recvRecord(TlsContentType_t expected_content_type, void(*callback)(Socket&, std::string&&, Capture&&), Capture&& cap)
+	void Socket::tls_recvRecord(TlsContentType_t expected_content_type, void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
 	{
-		tls_recvRecord([](Socket& s, TlsContentType_t content_type, std::string&& data, Capture&& _cap)
+		tls_recvRecord([](Socket& s, TlsContentType_t content_type, std::string&& data, Capture&& _cap) SOUP_EXCAL
 		{
 			auto& cap = _cap.get<CaptureSocketTlsRecvRecordExpect>();
 			if (content_type == cap.expected_content_type)
@@ -1282,7 +1281,7 @@ namespace soup
 
 	struct CaptureSocketTlsRecvRecord1
 	{
-		void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&);
+		void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&) SOUP_EXCAL;
 		Capture cap;
 	};
 
@@ -1292,7 +1291,7 @@ namespace soup
 		TlsContentType_t content_type;
 	};
 
-	void Socket::tls_recvRecord(void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&), Capture&& cap)
+	void Socket::tls_recvRecord(void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
 	{
 		if (!tls_record_buf.empty())
 		{
@@ -1301,7 +1300,7 @@ namespace soup
 			callback(*this, TlsContentType::handshake, std::move(data), std::move(cap));
 			return;
 		}
-		transport_recvExact(5, [](Socket& s, std::string&& data, Capture&& cap)
+		transport_recvExact(5, [](Socket& s, std::string&& data, Capture&& cap) SOUP_EXCAL
 		{
 			TlsRecord record{};
 			if (!record.fromBinary(data)
@@ -1311,7 +1310,7 @@ namespace soup
 				s.tls_close(TlsAlertDescription::decode_error);
 				return;
 			}
-			s.transport_recvExact(record.length, [](Socket& s, std::string&& data, Capture&& _cap)
+			s.transport_recvExact(record.length, [](Socket& s, std::string&& data, Capture&& _cap) SOUP_EXCAL
 			{
 				auto& cap = _cap.get<CaptureSocketTlsRecvRecord2>();
 				if (s.tls_encrypter_recv.isActive())
@@ -1420,7 +1419,7 @@ namespace soup
 		});
 	}
 
-	void Socket::tls_close(TlsAlertDescription_t desc)
+	void Socket::tls_close(TlsAlertDescription_t desc) SOUP_EXCAL
 	{
 		if (hasConnection())
 		{
@@ -1458,7 +1457,7 @@ namespace soup
 		return ::send(fd, (const char*)data, size, 0) == size;
 	}
 
-	std::string Socket::transport_recvCommon(int max_bytes)
+	std::string Socket::transport_recvCommon(int max_bytes) SOUP_EXCAL
 	{
 		std::string buf(max_bytes, '\0');
 		auto res = ::recv(fd, buf.data(), max_bytes, 0);
@@ -1491,7 +1490,7 @@ namespace soup
 		Capture cap;
 	};
 
-	void Socket::transport_recv(int max_bytes, transport_recv_callback_t callback, Capture&& cap)
+	void Socket::transport_recv(int max_bytes, transport_recv_callback_t callback, Capture&& cap) SOUP_EXCAL
 	{
 		if (canRecurse())
 		{
@@ -1503,7 +1502,7 @@ namespace soup
 			}
 		}
 		holdup_type = SOCKET;
-		holdup_callback.set([](Worker& w, Capture&& _cap)
+		holdup_callback.set([](Worker& w, Capture&& _cap) SOUP_EXCAL
 		{
 			w.holdup_type = Worker::NONE;
 			auto& cap = _cap.get<CaptureSocketTransportRecv>();
@@ -1521,7 +1520,7 @@ namespace soup
 		}
 	};
 
-	void Socket::transport_recvExact(int bytes, transport_recv_callback_t callback, Capture&& cap, std::string&& pre)
+	void Socket::transport_recvExact(int bytes, transport_recv_callback_t callback, Capture&& cap, std::string&& pre) SOUP_EXCAL
 	{
 		if (canRecurse())
 		{
@@ -1541,7 +1540,7 @@ namespace soup
 			}
 		}
 		holdup_type = SOCKET;
-		holdup_callback.set([](Worker& w, Capture&& _cap)
+		holdup_callback.set([](Worker& w, Capture&& _cap) SOUP_EXCAL
 		{
 			w.holdup_type = Worker::NONE;
 			auto& cap = _cap.get<CaptureSocketTransportRecvExact>();
@@ -1570,15 +1569,15 @@ namespace soup
 			;
 	}
 
-	void Socket::keepAlive()
+	void Socket::keepAlive() SOUP_EXCAL
 	{
-		recv([](Socket&, std::string&&, Capture&&)
+		recv([](Socket&, std::string&&, Capture&&) SOUP_EXCAL
 		{
 			// If we actually receive something in this state, we just let the scheduler delete the socket since it won't have a holdup anymore.
 		});
 	}
 
-	std::string Socket::toString() const
+	std::string Socket::toString() const SOUP_EXCAL
 	{
 		return peer.toString();
 	}

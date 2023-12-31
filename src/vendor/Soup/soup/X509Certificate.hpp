@@ -43,18 +43,18 @@ namespace soup
 
 		[[nodiscard]] bool isRsa() const noexcept { return !is_ec; }
 		[[nodiscard]] bool isEc() const noexcept { return is_ec; }
-		[[nodiscard]] RsaPublicKey getRsaPublicKey() const;
-		void setRsaPublicKey(Bigint n, Bigint e);
-		void setRsaPublicKey(RsaPublicKey pub);
+		[[nodiscard]] RsaPublicKey getRsaPublicKey() const SOUP_EXCAL;
+		void setRsaPublicKey(Bigint n, Bigint e) noexcept;
+		void setRsaPublicKey(RsaPublicKey pub) noexcept;
 
 		[[nodiscard]] bool canBeVerified() const noexcept;
 		[[nodiscard]] bool verify(const X509Certificate& issuer) const;
 
-		[[nodiscard]] bool isValidForDomain(const std::string& domain) const;
-		[[nodiscard]] static bool matchDomain(const std::string& domain, const std::string& name);
+		[[nodiscard]] bool isValidForDomain(const std::string& domain) const SOUP_EXCAL;
+		[[nodiscard]] static bool matchDomain(const std::string& domain, const std::string& name) SOUP_EXCAL;
 
 		// Does not generate valid certificates by most opinions.
-		[[nodiscard]] Asn1Sequence toAsn1() const;
-		[[nodiscard]] std::string toDer() const;
+		[[nodiscard]] Asn1Sequence toAsn1() const SOUP_EXCAL;
+		[[nodiscard]] std::string toDer() const SOUP_EXCAL;
 	};
 }

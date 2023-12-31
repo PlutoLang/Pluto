@@ -10,7 +10,7 @@ namespace soup
 	{
 	}
 
-	std::string JsonFloat::encode() const
+	std::string JsonFloat::encode() const SOUP_EXCAL
 	{
 		return string::fdecimal(value);
 	}

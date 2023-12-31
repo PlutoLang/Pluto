@@ -13,7 +13,7 @@ namespace soup
 		return mac_key.size();
 	}
 
-	std::string SocketTlsEncrypter::calculateMacBytes(TlsContentType_t content_type, const std::string& content)
+	std::string SocketTlsEncrypter::calculateMacBytes(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL
 	{
 		TlsMac mac{};
 		mac.seq_num = seq_num++;
@@ -22,7 +22,7 @@ namespace soup
 		return mac.toBinaryString();
 	}
 
-	std::string SocketTlsEncrypter::calculateMac(TlsContentType_t content_type, const std::string& content)
+	std::string SocketTlsEncrypter::calculateMac(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL
 	{
 		auto msg = calculateMacBytes(content_type, content);
 		msg.append(content);
@@ -37,7 +37,7 @@ namespace soup
 		}
 	}
 
-	std::vector<uint8_t> SocketTlsEncrypter::encrypt(TlsContentType_t content_type, const std::string& content)
+	std::vector<uint8_t> SocketTlsEncrypter::encrypt(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL
 	{
 		constexpr auto cipher_bytes = 16;
 
