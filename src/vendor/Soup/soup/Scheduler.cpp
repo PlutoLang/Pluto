@@ -22,18 +22,18 @@ namespace soup
 {
 	static thread_local Scheduler* this_thread_running_scheduler = nullptr;
 
-	SharedPtr<Worker> Scheduler::addWorker(SharedPtr<Worker>&& w) noexcept
+	SharedPtr<Worker> Scheduler::addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL
 	{
 		return pending_workers.emplace_front(std::move(w))->data;
 	}
 
 #if !SOUP_WASM
-	SharedPtr<Socket> Scheduler::addSocket() noexcept
+	SharedPtr<Socket> Scheduler::addSocket() SOUP_EXCAL
 	{
 		return addSocket(soup::make_shared<Socket>());
 	}
 
-	SharedPtr<Socket> Scheduler::addSocket(SharedPtr<Socket>&& sock) noexcept
+	SharedPtr<Socket> Scheduler::addSocket(SharedPtr<Socket>&& sock) SOUP_EXCAL
 	{
 #if !SOUP_WINDOWS
 		sock->setNonBlocking();
@@ -390,7 +390,7 @@ namespace soup
 		return {};
 	}
 
-	void Scheduler::closeReusableSockets()
+	void Scheduler::closeReusableSockets() SOUP_EXCAL
 	{
 		for (const auto& w : workers)
 		{

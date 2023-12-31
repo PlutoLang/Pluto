@@ -9,7 +9,7 @@ namespace soup
 	{
 	}
 
-	std::string JsonInt::encode() const
+	std::string JsonInt::encode() const SOUP_EXCAL
 	{
 		return std::to_string(value);
 	}

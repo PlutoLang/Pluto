@@ -7,7 +7,7 @@
 
 namespace soup
 {
-	uint32_t crc32_pclmul(const uint8_t* p, size_t size, uint32_t crc)
+	uint32_t crc32_pclmul(const uint8_t* p, size_t size, uint32_t crc) noexcept
 	{
 		static const uint64_t
 #ifdef _MSC_VER

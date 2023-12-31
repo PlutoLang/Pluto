@@ -124,7 +124,7 @@ namespace soup
 		started_connect_at = time::millis();
 	}
 
-	std::string netConnectTask::toString() const
+	std::string netConnectTask::toString() const SOUP_EXCAL
 	{
 		std::string str = ObfusString("netConnectTask");
 		str.append(": ");

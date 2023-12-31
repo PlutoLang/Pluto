@@ -3,17 +3,17 @@
 
 namespace soup
 {
-	DetachedScheduler::DetachedScheduler(netConfig&& conf)
+	DetachedScheduler::DetachedScheduler(netConfig&& conf) noexcept
 		: conf(std::move(conf))
 	{
 	}
 
-	DetachedScheduler::~DetachedScheduler()
+	DetachedScheduler::~DetachedScheduler() SOUP_EXCAL
 	{
 		closeReusableSockets();
 	}
 
-	SharedPtr<Worker> DetachedScheduler::addWorker(SharedPtr<Worker>&& w) noexcept
+	SharedPtr<Worker> DetachedScheduler::addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL
 	{
 		if (!thrd.isRunning())
 		{
@@ -27,21 +27,21 @@ namespace soup
 
 	struct UpdateConfigTask : public Task
 	{
-		Callback<void(netConfig&)> cb;
+		Callback<void(netConfig&) SOUP_EXCAL> cb;
 
-		UpdateConfigTask(void fp(netConfig&, Capture&&), Capture&& cap)
+		UpdateConfigTask(void fp(netConfig&, Capture&&) SOUP_EXCAL, Capture&& cap) noexcept
 			: cb(fp, std::move(cap))
 		{
 		}
 
-		void onTick() final
+		void onTick() SOUP_EXCAL final
 		{
 			cb(netConfig::get());
 			setWorkDone();
 		}
 	};
 
-	void DetachedScheduler::updateConfig(void fp(netConfig&, Capture&&), Capture&& cap)
+	void DetachedScheduler::updateConfig(void fp(netConfig&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
 	{
 		if (isActive())
 		{
@@ -55,14 +55,14 @@ namespace soup
 
 	struct CloseReusableSocketsTask : public Task
 	{
-		void onTick() final
+		void onTick() SOUP_EXCAL final
 		{
 			Scheduler::get()->closeReusableSockets();
 			setWorkDone();
 		}
 	};
 
-	void DetachedScheduler::closeReusableSockets()
+	void DetachedScheduler::closeReusableSockets() SOUP_EXCAL
 	{
 		if (isActive())
 		{
