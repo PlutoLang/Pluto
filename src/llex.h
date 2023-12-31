@@ -45,7 +45,7 @@ enum RESERVED {
   TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, TK_PTRY, TK_PCATCH,
   TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, TK_TRY, TK_CATCH, // New non-compatible keywords.
   TK_LET, TK_CONST, TK_GLOBAL, // New optional keywords.
-  TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
+  TK_SUGGEST_0, TK_SUGGEST_1, TK_FALLTHROUGH, // New special keywords.
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
   TK_IDIV, TK_CONCAT, TK_DOTS,

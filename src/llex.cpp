@@ -57,7 +57,7 @@ static const char *const luaX_tokens [] = {
     "pluto_switch", "pluto_continue", "pluto_enum", "pluto_new", "pluto_class", "pluto_parent", "pluto_export", "pluto_try", "pluto_catch",
           "switch",       "continue",       "enum",       "new",       "class",       "parent",       "export",       "try",       "catch",
     "let", "const", "global",
-    "pluto_suggest_0", "pluto_suggest_1",
+    "pluto_suggest_0", "pluto_suggest_1", "<fallthrough annotation>",
     "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=", "<=>",
     "<<", ">>", "::", "<eof>",
@@ -597,11 +597,13 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             next(ls);
             while (lislalnum(ls->current))
               save_and_next(ls);
+            ls->appendLineBuff(luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
             if (strncmp(luaZ_buffer(ls->buff), "pluto_use", luaZ_bufflen(ls->buff)) == 0) {
-              ls->appendLineBuff("pluto_use");
               return TK_PUSE;
             }
-            ls->appendLineBuff(luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
+            if (strncmp(luaZ_buffer(ls->buff), "fallthrough", luaZ_bufflen(ls->buff)) == 0) {
+              return TK_FALLTHROUGH;
+            }
             luaZ_resetbuffer(ls->buff);
           }
           while (!currIsNewline(ls) && ls->current != EOZ) {

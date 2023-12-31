@@ -3126,9 +3126,11 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
 static void switchstat (LexState *ls) {
   switchimpl(ls, ':', [](LexState* ls, void*) {
+    const int case_line = luaX_lookbehind(ls).line;
     while (gett(ls) != TK_CASE
         && gett(ls) != TK_DEFAULT
         && gett(ls) != TK_END
+        && gett(ls) != TK_FALLTHROUGH
       ) {
       if (gett(ls) == TK_PCONTINUE
           || gett(ls) == TK_CONTINUE
@@ -3139,6 +3141,11 @@ static void switchstat (LexState *ls) {
         statement(ls);
       }
     }
+    if (ls->t.token == TK_CASE) {
+      throw_warn(ls, "possibly unwanted fallthrough", luaO_fmt(ls->L, "the case on line %d flows into this case", case_line), "place `--@fallthrough` before this case if this is intended", ls->getLineNumber(), WT_POSSIBLE_TYPO);
+      ls->L->top.p--;
+    }
+    else testnext(ls, TK_FALLTHROUGH);
     ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
   });
 }
