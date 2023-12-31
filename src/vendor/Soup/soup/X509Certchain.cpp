@@ -37,7 +37,7 @@ namespace soup
 		return !certs.empty();
 	}
 
-	void X509Certchain::cleanup()
+	void X509Certchain::cleanup() SOUP_EXCAL
 	{
 		// We assume that each entry in the certchain is signed by the next,
 		// but a server may be misconfigured and provide the subject certificate multiple times,

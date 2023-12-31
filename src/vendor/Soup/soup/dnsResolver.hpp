@@ -18,7 +18,7 @@ namespace soup
 		TransientToken transient_token;
 #endif
 
-		virtual ~dnsResolver() = default;
+		virtual ~dnsResolver() noexcept = default;
 
 		[[nodiscard]] std::vector<IpAddr> lookupIPv4(const std::string& name) const;
 		[[nodiscard]] std::vector<IpAddr> lookupIPv6(const std::string& name) const;

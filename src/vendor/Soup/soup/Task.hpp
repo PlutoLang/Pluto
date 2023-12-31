@@ -27,12 +27,12 @@ namespace soup
 		[[nodiscard]] const Capture& taskCapture() const noexcept { return holdup_callback.cap; }
 
 	public:
-		[[nodiscard]] virtual int getSchedulingDisposition() const
+		[[nodiscard]] virtual int getSchedulingDisposition() const noexcept
 		{
 			return NEUTRAL;
 		}
 
-		[[nodiscard]] virtual std::string toString() const
+		[[nodiscard]] virtual std::string toString() const SOUP_EXCAL
 		{
 			return "Task";
 		}
@@ -51,7 +51,7 @@ namespace soup
 			return std::move(result);
 		}
 
-		void fulfil(T&& res)
+		void fulfil(T&& res) noexcept
 		{
 			result = std::move(res);
 			setWorkDone();

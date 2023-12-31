@@ -1,8 +1,9 @@
 #pragma once
 
-#include "type_traits.hpp"
-
 #include <utility> // forward
+
+#include "base.hpp" // SOUP_EXCAL
+#include "type_traits.hpp"
 
 namespace soup
 {

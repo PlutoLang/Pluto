@@ -40,7 +40,7 @@ namespace soup
 		++c;
 	}
 
-	std::string JsonArray::encode() const
+	std::string JsonArray::encode() const SOUP_EXCAL
 	{
 		std::string res(1, '[');
 		for (auto i = children.begin(); i != children.end(); ++i)
@@ -55,7 +55,7 @@ namespace soup
 		return res;
 	}
 
-	std::string JsonArray::encodePretty(const std::string& prefix) const
+	std::string JsonArray::encodePretty(const std::string& prefix) const SOUP_EXCAL
 	{
 		if (children.empty())
 		{

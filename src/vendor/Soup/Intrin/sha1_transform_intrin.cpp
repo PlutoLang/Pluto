@@ -8,7 +8,7 @@ namespace soup
 {
 	// https://github.com/noloader/SHA-Intrinsics
 
-	void sha1_transform_intrin(uint32_t state[5], const uint8_t data[])
+	void sha1_transform_intrin(uint32_t state[5], const uint8_t data[]) noexcept
 	{
 		__m128i ABCD, ABCD_SAVE, E0, E0_SAVE, E1;
 		__m128i MSG0, MSG1, MSG2, MSG3;
