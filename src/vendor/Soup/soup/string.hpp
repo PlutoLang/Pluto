@@ -67,7 +67,7 @@ namespace soup
 		}
 
 		template <typename Float>
-		[[nodiscard]] static std::string fdecimal(Float f)
+		[[nodiscard]] static std::string fdecimal(Float f) SOUP_EXCAL
 		{
 			if (std::fmod(f, 1) == 0)
 			{
@@ -683,7 +683,7 @@ namespace soup
 		}
 
 		template <typename S, typename D>
-		[[nodiscard]] static std::vector<S> explode(const S& str, D delim)
+		[[nodiscard]] static std::vector<S> explode(const S& str, D delim) SOUP_EXCAL
 		{
 			std::vector<S> res{};
 			if (!str.empty())
@@ -819,19 +819,19 @@ namespace soup
 		[[nodiscard]] static std::string xorSameLength(const std::string& l, const std::string& r);
 
 #if SOUP_CPP20
-		[[nodiscard]] static std::string fixType(std::u8string str)
+		[[nodiscard]] static std::string fixType(std::u8string str) noexcept
 		{
 			std::string fixed = std::move(*reinterpret_cast<std::string*>(&str));
 			return fixed;
 		}
 
-		[[nodiscard]] static std::u8string toUtf8Type(std::string str)
+		[[nodiscard]] static std::u8string toUtf8Type(std::string str) noexcept
 		{
 			std::u8string u8 = std::move(*reinterpret_cast<std::u8string*>(&str));
 			return u8;
 		}
 #else
-		[[nodiscard]] static std::string fixType(std::string str)
+		[[nodiscard]] static std::string fixType(std::string str) noexcept
 		{
 			return str;
 		}
@@ -840,7 +840,7 @@ namespace soup
 		template <typename T>
 		static void truncateWithEllipsis(T& str, size_t max_len)
 		{
-			SOUP_ASSERT_PRECOND(max_len >= 3);
+			SOUP_DEBUG_ASSERT(max_len >= 3);
 			if (str.size() > max_len)
 			{
 				str.resize(max_len);
@@ -861,7 +861,7 @@ namespace soup
 		// char mutation
 
 		template <typename Char>
-		[[nodiscard]] static Char lower_char(Char c)
+		[[nodiscard]] static Char lower_char(Char c) noexcept
 		{
 			if (c >= 'A' && c <= 'Z')
 			{
@@ -871,20 +871,20 @@ namespace soup
 		}
 
 		template <typename Str>
-		static void lower(Str& str)
+		static void lower(Str& str) noexcept
 		{
 			std::transform(str.begin(), str.end(), str.begin(), &lower_char<typename Str::value_type>);
 		}
 
 		template <typename Str>
-		[[nodiscard]] static Str lower(Str&& str)
+		[[nodiscard]] static Str lower(Str&& str) noexcept
 		{
 			lower(str);
 			return str;
 		}
 
 		template <typename Char>
-		[[nodiscard]] static Char upper_char(Char c)
+		[[nodiscard]] static Char upper_char(Char c) noexcept
 		{
 			if (c >= 'a' && c <= 'z')
 			{
@@ -894,13 +894,13 @@ namespace soup
 		}
 
 		template <typename Str>
-		static void upper(Str& str)
+		static void upper(Str& str) noexcept
 		{
 			std::transform(str.begin(), str.end(), str.begin(), &upper_char<typename Str::value_type>);
 		}
 
 		template <typename Str>
-		[[nodiscard]] static Str upper(Str&& str)
+		[[nodiscard]] static Str upper(Str&& str) noexcept
 		{
 			upper(str);
 			return str;

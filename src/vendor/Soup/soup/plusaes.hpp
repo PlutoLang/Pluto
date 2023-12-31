@@ -387,29 +387,29 @@ typedef std::bitset<kBlockBitSize> bitset128;
  */
 class Block {
 public:
-    Block() {
+    Block() noexcept {
         init_v(0, 0);
     }
 
-    Block(const unsigned char * bytes, const unsigned long bytes_size) {
+    Block(const unsigned char * bytes, const unsigned long bytes_size) noexcept {
         init_v(bytes, bytes_size);
     }
 
-    Block(const std::vector<unsigned char> & bytes) {
+    Block(const std::vector<unsigned char> & bytes) noexcept {
         init_v(&bytes[0], bytes.size());
     }
 
-    Block(const std::bitset<128> & bits); // implementation below
+    Block(const std::bitset<128> & bits) noexcept; // implementation below
 
-    inline unsigned char * data() {
+    inline unsigned char * data() noexcept {
         return v_;
     }
 
-    inline const unsigned char* data() const {
+    inline const unsigned char* data() const noexcept {
         return v_;
     }
 
-    inline std::bitset<128> to_bits() const {
+    inline std::bitset<128> to_bits() const noexcept {
         std::bitset<128> bits;
         for (int i = 0; i < 16; ++i) {
             bits <<= 8;
@@ -419,7 +419,7 @@ public:
         return bits;
     }
 
-    inline Block operator^(const Block & b) const {
+    inline Block operator^(const Block & b) const noexcept {
         Block r;
         for (int i = 0; i < 16; ++i) {
             r.data()[i] = data()[i] ^ b.data()[i];
@@ -430,7 +430,7 @@ public:
 private:
     unsigned char v_[16];
 
-    inline void init_v(const unsigned char * bytes, const std::size_t bytes_size) {
+    inline void init_v(const unsigned char * bytes, const std::size_t bytes_size) noexcept {
         memset(v_, 0, sizeof(v_));
 
         const std::size_t cs = (std::min)(bytes_size, static_cast<std::size_t>(16));
@@ -444,7 +444,7 @@ private:
 #if defined(__clang__) && defined(_WIN32) && !defined(_WIN64)
 #pragma optimize("", off)
 #endif
-inline Block::Block(const std::bitset<128> & bits)
+inline Block::Block(const std::bitset<128> & bits) noexcept
 {
     init_v(0, 0);
     const std::bitset<128> mask(0xFF); // 1 byte mask
@@ -504,7 +504,7 @@ std::bitset<N> inc32(const std::bitset<N> X) {
 #endif // __clang__
 
 /** Algorithm 1 @private */
-inline Block mul_blocks(const Block X, const Block Y) {
+inline Block mul_blocks(const Block X, const Block Y) noexcept {
     const bitset128 R = (std::bitset<8>("11100001") || std::bitset<120>());
 
     bitset128 X_bits = X.to_bits();
@@ -536,7 +536,7 @@ inline Block mul_blocks(const Block X, const Block Y) {
 #endif // __clang__
 
 /** Algorithm 2 @private */
-inline Block ghash(const Block & H, const std::vector<unsigned char> & X) {
+inline Block ghash(const Block & H, const std::vector<unsigned char> & X) noexcept {
     const std::size_t m = X.size() / kBlockByteSize;
     Block Ym;
     for (std::size_t i = 0; i < m; ++i) {

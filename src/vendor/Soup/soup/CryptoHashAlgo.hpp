@@ -7,14 +7,14 @@ namespace soup
 	template <typename T>
 	struct CryptoHashAlgo
 	{
-		[[nodiscard]] static std::string hashWithId(const std::string& msg)
+		[[nodiscard]] static std::string hashWithId(const std::string& msg) SOUP_EXCAL
 		{
 			auto hash_bin = T::hash(msg);
 			prependId(hash_bin);
 			return hash_bin;
 		}
 
-		static bool prependId(std::string& hash_bin)
+		static bool prependId(std::string& hash_bin) SOUP_EXCAL
 		{
 			if (hash_bin.length() != T::DIGEST_BYTES)
 			{
@@ -28,7 +28,7 @@ namespace soup
 			return true;
 		}
 
-		[[nodiscard]] static std::string hmac(const std::string& msg, std::string key)
+		[[nodiscard]] static std::string hmac(const std::string& msg, std::string key) SOUP_EXCAL
 		{
 			if (key.length() > T::BLOCK_BYTES)
 			{
@@ -56,7 +56,7 @@ namespace soup
 		}
 
 		// used as (secret, label, seed) in the RFC
-		[[nodiscard]] static std::string tls_prf(std::string label, const size_t bytes, const std::string& secret, const std::string& seed)
+		[[nodiscard]] static std::string tls_prf(std::string label, const size_t bytes, const std::string& secret, const std::string& seed) SOUP_EXCAL
 		{
 			std::string res{};
 

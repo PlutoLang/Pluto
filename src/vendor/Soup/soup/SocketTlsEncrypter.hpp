@@ -26,10 +26,10 @@ namespace soup
 		}
 
 		[[nodiscard]] size_t getMacLength() const noexcept;
-		[[nodiscard]] std::string calculateMacBytes(TlsContentType_t content_type, const std::string& content);
-		[[nodiscard]] std::string calculateMac(TlsContentType_t content_type, const std::string& content);
+		[[nodiscard]] std::string calculateMacBytes(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
+		[[nodiscard]] std::string calculateMac(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
 
-		[[nodiscard]] std::vector<uint8_t> encrypt(TlsContentType_t content_type, const std::string& content);
+		[[nodiscard]] std::vector<uint8_t> encrypt(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
 
 		void reset() noexcept;
 	};

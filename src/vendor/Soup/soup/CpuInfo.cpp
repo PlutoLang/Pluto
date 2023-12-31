@@ -16,7 +16,7 @@ namespace soup
 #define EDX arr[2]
 #define ECX arr[3]
 
-	CpuInfo::CpuInfo()
+	CpuInfo::CpuInfo() noexcept
 	{
 		char buf[17];
 		buf[16] = 0;
@@ -60,13 +60,13 @@ namespace soup
 		}
 	}
 
-	const CpuInfo& CpuInfo::get()
+	const CpuInfo& CpuInfo::get() noexcept
 	{
 		static CpuInfo inst;
 		return inst;
 	}
 
-	std::string CpuInfo::toString() const
+	std::string CpuInfo::toString() const SOUP_EXCAL
 	{
 		std::string str = "CPUID Support Level: ";
 		str.append(string::hex(cpuid_max_eax));
@@ -108,7 +108,7 @@ namespace soup
 		return str;
 	}
 
-	void CpuInfo::invokeCpuid(void* out, uint32_t eax)
+	void CpuInfo::invokeCpuid(void* out, uint32_t eax) noexcept
 	{
 #if defined(_MSC_VER) && !defined(__clang__)
 		__cpuid(((int*)out), eax);
@@ -118,7 +118,7 @@ namespace soup
 #endif
 	}
 
-	void CpuInfo::invokeCpuid(void* out, uint32_t eax, uint32_t ecx)
+	void CpuInfo::invokeCpuid(void* out, uint32_t eax, uint32_t ecx) noexcept
 	{
 #if defined(__GNUC__)
 		((uint32_t*)out)[3] = ecx;

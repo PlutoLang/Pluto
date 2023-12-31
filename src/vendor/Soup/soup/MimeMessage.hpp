@@ -3,6 +3,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "base.hpp"
+
 namespace soup
 {
 	// This is \r\n line endings land.
@@ -21,11 +23,11 @@ namespace soup
 		void setContentType();
 
 		void loadMessage(const std::string& data);
-		[[nodiscard]] bool hasHeader(const std::string& key);
-		[[nodiscard]] std::string* findHeader(std::string key);
-		void addHeader(const std::string& line);
-		void setHeader(const std::string& key, const std::string& value);
-		[[nodiscard]] static std::string normaliseHeaderCasing(const std::string& key);
+		[[nodiscard]] bool hasHeader(const std::string& key) const noexcept;
+		[[nodiscard]] std::string* findHeader(std::string key) noexcept;
+		void addHeader(const std::string& line) SOUP_EXCAL;
+		void setHeader(const std::string& key, const std::string& value) SOUP_EXCAL;
+		[[nodiscard]] static std::string normaliseHeaderCasing(const std::string& key) SOUP_EXCAL;
 		void decode();
 
 		[[nodiscard]] std::string toString() const;

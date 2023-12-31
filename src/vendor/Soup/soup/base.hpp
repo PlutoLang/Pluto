@@ -131,8 +131,10 @@
 
 #if SOUP_CPP23
 	#define SOUP_ASSUME(x) [[assume(x)]];
+	#define SOUP_UNREACHABLE std::unreachable();
 #else
 	#define SOUP_ASSUME(x) ;
+	#define SOUP_UNREACHABLE ;
 #endif
 
 // === C++ feature abstraction macros
@@ -152,6 +154,16 @@
 	#define SOUP_THROW(x) throw x;
 #endif
 
+#ifndef SOUP_EXCAL
+	// An 'excal' function is 'noexcept' except it may throw std::bad_alloc.
+	//
+	// We generally don't attempt to handle allocation failures, not least because it's basically impossible on modern systems.
+	// Because of this, we declare that 'excal' functions are 'noexcept' to avoid superfluous unwind information.
+	//
+	// For visual distinction with IDE hover features, we use `throw()`, but it's functionally identical to `noexcept`.
+	#define SOUP_EXCAL throw()
+#endif
+
 // === Platform-specific types
 
 namespace soup
@@ -169,6 +181,9 @@ namespace soup
 
 namespace soup
 {
+	[[nodiscard]] void* malloc(size_t size) /* SOUP_EXCAL */;
+	[[nodiscard]] void* realloc(void* ptr, size_t new_size) /* SOUP_EXCAL */;
+
 	[[noreturn]] void throwAssertionFailed();
 	[[noreturn]] void throwAssertionFailed(const char* what);
 }
@@ -176,9 +191,11 @@ namespace soup
 #define SOUP_ASSERT_UNREACHABLE ::soup::throwAssertionFailed();
 
 #ifndef NDEBUG
-	#define SOUP_ASSERT_PRECOND(x) SOUP_ASSERT(x)
+	#define SOUP_DEBUG_ASSERT(x) SOUP_ASSERT(x)
+	#define SOUP_DEBUG_ASSERT_UNREACHABLE SOUP_UNREACHABLE
 #else
-	#define SOUP_ASSERT_PRECOND(x) SOUP_ASSUME(X)
+	#define SOUP_DEBUG_ASSERT(x) SOUP_ASSUME(X)
+	#define SOUP_DEBUG_ASSERT_UNREACHABLE SOUP_ASSERT_UNREACHABLE
 #endif
 
 template <typename T> SOUP_FORCEINLINE void SOUP_UNUSED(T&&) {}
