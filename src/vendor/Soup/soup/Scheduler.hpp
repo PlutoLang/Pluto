@@ -49,21 +49,21 @@ namespace soup
 
 		virtual ~Scheduler() = default;
 
-		virtual SharedPtr<Worker> addWorker(SharedPtr<Worker>&& w) noexcept;
+		virtual SharedPtr<Worker> addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL;
 
 #if !SOUP_WASM
-		SharedPtr<Socket> addSocket() noexcept;
-		SharedPtr<Socket> addSocket(SharedPtr<Socket>&& sock) noexcept;
+		SharedPtr<Socket> addSocket() SOUP_EXCAL;
+		SharedPtr<Socket> addSocket(SharedPtr<Socket>&& sock) SOUP_EXCAL;
 
 		template <typename T, SOUP_RESTRICT(std::is_same_v<T, Socket>)>
-		SharedPtr<T> addSocket(T&& sock) noexcept
+		SharedPtr<T> addSocket(T&& sock) SOUP_EXCAL
 		{
 			return addSocket(soup::make_shared<Socket>(std::move(sock)));
 		}
 #endif
 
 		template <typename T, typename...Args>
-		SharedPtr<T> add(Args&&...args)
+		SharedPtr<T> add(Args&&...args) SOUP_EXCAL
 		{
 			return addWorker(soup::make_shared<T>(std::forward<Args>(args)...));
 		}
@@ -116,7 +116,7 @@ namespace soup
 		[[nodiscard]] SharedPtr<Worker> getShared(const Worker& w) const;
 #if !SOUP_WASM
 		[[nodiscard]] SharedPtr<Socket> findReusableSocket(const std::string& host, uint16_t port, bool tls);
-		void closeReusableSockets();
+		void closeReusableSockets() SOUP_EXCAL;
 #endif
 
 		static void on_exception_log(Worker& w, const std::exception& e, Scheduler&);

@@ -8,7 +8,7 @@
 
 namespace soup
 {
-	bool dnsRawResolver::checkBuiltinResult(std::vector<UniquePtr<dnsRecord>>& res, dnsType qtype, const std::string& name)
+	bool dnsRawResolver::checkBuiltinResult(std::vector<UniquePtr<dnsRecord>>& res, dnsType qtype, const std::string& name) SOUP_EXCAL
 	{
 		if (name == "localhost")
 		{
@@ -25,7 +25,7 @@ namespace soup
 		return false;
 	}
 
-	UniquePtr<dnsLookupTask> dnsRawResolver::checkBuiltinResultTask(dnsType qtype, const std::string& name)
+	UniquePtr<dnsLookupTask> dnsRawResolver::checkBuiltinResultTask(dnsType qtype, const std::string& name) SOUP_EXCAL
 	{
 		std::vector<UniquePtr<dnsRecord>> res;
 		if (checkBuiltinResult(res, qtype, name))
@@ -35,7 +35,7 @@ namespace soup
 		return {};
 	}
 
-	std::string dnsRawResolver::getQuery(dnsType qtype, const std::string& name)
+	std::string dnsRawResolver::getQuery(dnsType qtype, const std::string& name) SOUP_EXCAL
 	{
 		StringWriter sw(false);
 
@@ -52,7 +52,7 @@ namespace soup
 		return sw.data;
 	}
 
-	std::vector<UniquePtr<dnsRecord>> dnsRawResolver::parseResponse(std::string&& data)
+	std::vector<UniquePtr<dnsRecord>> dnsRawResolver::parseResponse(std::string&& data) SOUP_EXCAL
 	{
 		StringReader sr(std::move(data), false);
 

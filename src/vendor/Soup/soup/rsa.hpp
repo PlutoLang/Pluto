@@ -11,31 +11,31 @@ namespace soup
 	{
 		Bigint n{};
 
-		RsaMod() = default;
+		RsaMod() noexcept = default;
 
-		RsaMod(Bigint n)
+		RsaMod(Bigint n) noexcept
 			: n(std::move(n))
 		{
 		}
 
-		[[nodiscard]] size_t getMaxUnpaddedMessageBytes() const;
-		[[nodiscard]] size_t getMaxPkcs1MessageBytes() const;
+		[[nodiscard]] size_t getMaxUnpaddedMessageBytes() const noexcept;
+		[[nodiscard]] size_t getMaxPkcs1MessageBytes() const noexcept;
 
-		bool padPublic(std::string& str) const; // non-deterministic
-		bool padPrivate(std::string& str) const; // deterministic
+		bool padPublic(std::string& str) const SOUP_EXCAL; // non-deterministic
+		bool padPrivate(std::string& str) const SOUP_EXCAL; // deterministic
 
 		template <typename CryptoHashAlgo>
-		bool padHash(std::string& bin) const // deterministic
+		bool padHash(std::string& bin) const SOUP_EXCAL // deterministic
 		{
 			return CryptoHashAlgo::prependId(bin)
 				&& padPrivate(bin)
 				;
 		}
 
-		static bool unpad(std::string& str);
+		static bool unpad(std::string& str) noexcept;
 
-		[[nodiscard]] UniquePtr<JsonObject> publicToJwk(const Bigint& e) const;
-		[[nodiscard]] std::string publicGetJwkThumbprint(const Bigint& e) const;
+		[[nodiscard]] UniquePtr<JsonObject> publicToJwk(const Bigint& e) const SOUP_EXCAL;
+		[[nodiscard]] std::string publicGetJwkThumbprint(const Bigint& e) const SOUP_EXCAL;
 	};
 
 	template <typename T>
@@ -43,18 +43,18 @@ namespace soup
 	{
 		using RsaMod::RsaMod;
 
-		[[nodiscard]] Bigint encryptUnpadded(const std::string& msg) const // deterministic
+		[[nodiscard]] Bigint encryptUnpadded(const std::string& msg) const SOUP_EXCAL // deterministic
 		{
 			return static_cast<const T*>(this)->modPow(Bigint::fromBinary(msg));
 		}
 
-		[[nodiscard]] std::string decryptUnpadded(const Bigint& enc) const
+		[[nodiscard]] std::string decryptUnpadded(const Bigint& enc) const SOUP_EXCAL
 		{
 			return static_cast<const T*>(this)->modPow(enc).toBinary();
 		}
 
 		// With 2048-bit private key, OpenSSL takes ~0.001 ms. Soup takes ~12.4 ms. What the fuck?
-		[[nodiscard]] std::string decryptPkcs1(const Bigint& enc) const
+		[[nodiscard]] std::string decryptPkcs1(const Bigint& enc) const SOUP_EXCAL
 		{
 			auto msg = decryptUnpadded(enc);
 			unpad(msg);
@@ -67,9 +67,9 @@ namespace soup
 	{
 		Bigint e{};
 
-		RsaPublicKeyBase() = default;
+		RsaPublicKeyBase() noexcept = default;
 
-		RsaPublicKeyBase(Bigint n, Bigint e)
+		RsaPublicKeyBase(Bigint n, Bigint e) noexcept
 			: RsaKey<T>(std::move(n)), e(std::move(e))
 		{
 		}
@@ -81,7 +81,7 @@ namespace soup
 		}
 
 		template <typename CryptoHashAlgo>
-		[[nodiscard]] bool verify(const std::string& msg, const Bigint& sig) const
+		[[nodiscard]] bool verify(const std::string& msg, const Bigint& sig) const SOUP_EXCAL
 		{
 			auto hash_bin = CryptoHashAlgo::hash(msg);
 			return RsaKey<T>::template padHash<CryptoHashAlgo>(hash_bin)
@@ -103,11 +103,11 @@ namespace soup
 	{
 		static Bigint E_PREF;
 
-		RsaPublicKey() = default;
-		RsaPublicKey(Bigint n);
-		RsaPublicKey(Bigint n, Bigint e);
+		RsaPublicKey() noexcept = default;
+		RsaPublicKey(Bigint n) noexcept;
+		RsaPublicKey(Bigint n, Bigint e) noexcept;
 
-		[[nodiscard]] Bigint modPow(const Bigint& x) const;
+		[[nodiscard]] Bigint modPow(const Bigint& x) const SOUP_EXCAL;
 	};
 
 	struct RsaKeyMontgomeryData
@@ -118,10 +118,10 @@ namespace soup
 		Bigint r_mod_mul_inv{};
 		Bigint one_mont{};
 
-		RsaKeyMontgomeryData() = default;
+		RsaKeyMontgomeryData() noexcept = default;
 		RsaKeyMontgomeryData(const Bigint& n);
 
-		[[nodiscard]] Bigint modPow(const Bigint& n, const Bigint& e, const Bigint& x) const;
+		[[nodiscard]] Bigint modPow(const Bigint& n, const Bigint& e, const Bigint& x) const SOUP_EXCAL;
 	};
 
 	/*
@@ -137,7 +137,7 @@ namespace soup
 		RsaPublicKeyLonglived(Bigint n);
 		RsaPublicKeyLonglived(Bigint n, Bigint e);
 
-		[[nodiscard]] Bigint modPow(const Bigint& x) const;
+		[[nodiscard]] Bigint modPow(const Bigint& x) const SOUP_EXCAL;
 	};
 
 	struct RsaPrivateKey : public RsaKey<RsaPrivateKey>
@@ -162,19 +162,19 @@ namespace soup
 		[[nodiscard]] static RsaPrivateKey fromJwk(const JsonObject& jwk);
 
 		template <typename CryptoHashAlgo>
-		[[nodiscard]] Bigint sign(const std::string& msg) const // deterministic
+		[[nodiscard]] Bigint sign(const std::string& msg) const SOUP_EXCAL // deterministic
 		{
 			return encryptPkcs1(CryptoHashAlgo::hashWithId(msg));
 		}
 
-		[[nodiscard]] Bigint encryptPkcs1(std::string msg) const; // deterministic
+		[[nodiscard]] Bigint encryptPkcs1(std::string msg) const SOUP_EXCAL; // deterministic
 
 		[[nodiscard]] RsaPublicKey derivePublic() const; // assumes that e = e_pref, which is true unless your keypair is 21-bit or less.
 
 		[[nodiscard]] Asn1Sequence toAsn1() const; // as per PKCS #1. assumes that e = e_pref, which is true unless your keypair is 21-bit or less.
 		[[nodiscard]] std::string toPem() const; // assumes that e = e_pref, which is true unless your keypair is 21-bit or less.
 
-		[[nodiscard]] Bigint modPow(const Bigint& x) const;
+		[[nodiscard]] Bigint modPow(const Bigint& x) const SOUP_EXCAL;
 		[[nodiscard]] Bigint getE() const; // returns public exponent. assumes that e = e_pref, which is true unless your keypair is 21-bit or less.
 		[[nodiscard]] Bigint getD() const; // returns private exponent. assumes that e = e_pref, which is true unless your keypair is 21-bit or less.
 
@@ -212,7 +212,7 @@ namespace soup
 		[[nodiscard]] static RsaKeypair generate(unsigned int bits, bool lax_length_requirement = false);
 		[[nodiscard]] static RsaKeypair generate(RngInterface& rng, RngInterface& aux_rng, unsigned int bits, bool lax_length_requirement = false);
 
-		[[nodiscard]] RsaPublicKey getPublic() const;
-		[[nodiscard]] RsaPrivateKey getPrivate() const;
+		[[nodiscard]] RsaPublicKey getPublic() const SOUP_EXCAL;
+		[[nodiscard]] RsaPrivateKey getPrivate() const SOUP_EXCAL;
 	};
 }

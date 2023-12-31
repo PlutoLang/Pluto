@@ -10,8 +10,8 @@ namespace soup
 		SharedPtr<bool> sp;
 
 	public:
-		TransientTokenBase();
-		TransientTokenBase(bool valid);
+		TransientTokenBase() SOUP_EXCAL;
+		TransientTokenBase(bool valid) SOUP_EXCAL;
 
 		[[nodiscard]] bool isValid() const noexcept
 		{

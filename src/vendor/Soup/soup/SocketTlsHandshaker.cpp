@@ -8,12 +8,12 @@
 
 namespace soup
 {
-	SocketTlsHandshaker::SocketTlsHandshaker(void(*callback)(Socket&, Capture&&), Capture&& callback_capture)
+	SocketTlsHandshaker::SocketTlsHandshaker(void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& callback_capture) noexcept
 		: callback(callback), callback_capture(std::move(callback_capture))
 	{
 	}
 
-	std::string SocketTlsHandshaker::pack(TlsHandshakeType_t handshake_type, const std::string& content)
+	std::string SocketTlsHandshaker::pack(TlsHandshakeType_t handshake_type, const std::string& content) SOUP_EXCAL
 	{
 		TlsHandshake hs{};
 		hs.handshake_type = handshake_type;
@@ -25,7 +25,7 @@ namespace soup
 		return data;
 	}
 
-	std::string SocketTlsHandshaker::getMasterSecret()
+	std::string SocketTlsHandshaker::getMasterSecret() SOUP_EXCAL
 	{
 		if (!pre_master_secret.empty())
 		{
@@ -40,7 +40,7 @@ namespace soup
 		return master_secret;
 	}
 
-	void SocketTlsHandshaker::getKeys(std::string& client_write_mac, std::string& server_write_mac, std::vector<uint8_t>& client_write_key, std::vector<uint8_t>& server_write_key, std::vector<uint8_t>& client_write_iv, std::vector<uint8_t>& server_write_iv)
+	void SocketTlsHandshaker::getKeys(std::string& client_write_mac, std::string& server_write_mac, std::vector<uint8_t>& client_write_key, std::vector<uint8_t>& server_write_key, std::vector<uint8_t>& client_write_iv, std::vector<uint8_t>& server_write_iv) SOUP_EXCAL
 	{
 		size_t mac_key_length = 20; // SHA1 = 20, SHA256 = 32
 		switch (cipher_suite)
@@ -104,17 +104,17 @@ namespace soup
 		server_write_iv = std::vector<uint8_t>(server_write_iv_str.begin(), server_write_iv_str.end());
 	}
 
-	std::string SocketTlsHandshaker::getClientFinishVerifyData()
+	std::string SocketTlsHandshaker::getClientFinishVerifyData() SOUP_EXCAL
 	{
 		return getFinishVerifyData(ObfusString("client finished"));
 	}
 
-	std::string SocketTlsHandshaker::getServerFinishVerifyData()
+	std::string SocketTlsHandshaker::getServerFinishVerifyData() SOUP_EXCAL
 	{
 		return getFinishVerifyData(ObfusString("server finished"));
 	}
 
-	std::string SocketTlsHandshaker::getFinishVerifyData(const std::string& label)
+	std::string SocketTlsHandshaker::getFinishVerifyData(const std::string& label) SOUP_EXCAL
 	{
 		return sha256::tls_prf(label, 12, getMasterSecret(), sha256::hash(layer_bytes));
 	}

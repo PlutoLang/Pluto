@@ -21,7 +21,7 @@ namespace soup
 	// Original licence: Dedicated to the public domain.
 
 	template <size_t BLOCK_INTS, bool intrin>
-	void buffer_to_block(const std::string& buffer, uint32_t block[BLOCK_INTS])
+	void buffer_to_block(const std::string& buffer, uint32_t block[BLOCK_INTS]) noexcept
 	{
 		/* Convert the std::string (byte buffer) to a uint32_t array (MSB) */
 		for (size_t i = 0; i < BLOCK_INTS; i++)
@@ -45,12 +45,12 @@ namespace soup
 
 	static constexpr auto BLOCK_INTS = sha1::BLOCK_BYTES / sizeof(uint32_t);
 
-	inline static uint32_t rol(const uint32_t value, const size_t bits)
+	inline static uint32_t rol(const uint32_t value, const size_t bits) noexcept
 	{
 		return (value << bits) | (value >> (32 - bits));
 	}
 
-	inline static uint32_t blk(const uint32_t block[BLOCK_INTS], const size_t i)
+	inline static uint32_t blk(const uint32_t block[BLOCK_INTS], const size_t i) noexcept
 	{
 		return rol(block[(i + 13) & 15] ^ block[(i + 8) & 15] ^ block[(i + 2) & 15] ^ block[i], 1);
 	}
@@ -59,34 +59,34 @@ namespace soup
 	 * (R0+R1), R2, R3, R4 are the different operations used in SHA1
 	 */
 
-	inline static void R0(const uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t& w, const uint32_t x, const uint32_t y, uint32_t& z, const size_t i)
+	inline static void R0(const uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t& w, const uint32_t x, const uint32_t y, uint32_t& z, const size_t i) noexcept
 	{
 		z += ((w & (x ^ y)) ^ y) + block[i] + 0x5a827999 + rol(v, 5);
 		w = rol(w, 30);
 	}
 
-	inline static void R1(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t& w, const uint32_t x, const uint32_t y, uint32_t& z, const size_t i)
+	inline static void R1(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t& w, const uint32_t x, const uint32_t y, uint32_t& z, const size_t i) noexcept
 	{
 		block[i] = blk(block, i);
 		z += ((w & (x ^ y)) ^ y) + block[i] + 0x5a827999 + rol(v, 5);
 		w = rol(w, 30);
 	}
 
-	inline static void R2(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t& w, const uint32_t x, const uint32_t y, uint32_t& z, const size_t i)
+	inline static void R2(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t& w, const uint32_t x, const uint32_t y, uint32_t& z, const size_t i) noexcept
 	{
 		block[i] = blk(block, i);
 		z += (w ^ x ^ y) + block[i] + 0x6ed9eba1 + rol(v, 5);
 		w = rol(w, 30);
 	}
 
-	inline static void R3(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t& w, const uint32_t x, const uint32_t y, uint32_t& z, const size_t i)
+	inline static void R3(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t& w, const uint32_t x, const uint32_t y, uint32_t& z, const size_t i) noexcept
 	{
 		block[i] = blk(block, i);
 		z += (((w | x) & y) | (w & x)) + block[i] + 0x8f1bbcdc + rol(v, 5);
 		w = rol(w, 30);
 	}
 
-	inline static void R4(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t& w, const uint32_t x, const uint32_t y, uint32_t& z, const size_t i)
+	inline static void R4(uint32_t block[BLOCK_INTS], const uint32_t v, uint32_t& w, const uint32_t x, const uint32_t y, uint32_t& z, const size_t i) noexcept
 	{
 		block[i] = blk(block, i);
 		z += (w ^ x ^ y) + block[i] + 0xca62c1d6 + rol(v, 5);
@@ -97,7 +97,7 @@ namespace soup
 	 * Hash a single 512-bit block. This is the core of the algorithm.
 	 */
 
-	inline static void transform(uint32_t digest[], uint32_t block[BLOCK_INTS])
+	inline static void transform(uint32_t digest[], uint32_t block[BLOCK_INTS]) noexcept
 	{
 		/* Copy digest[] to working vars */
 		uint32_t a = digest[0];
@@ -196,18 +196,18 @@ namespace soup
 		digest[4] += e;
 	}
 
-	std::string sha1::hash(const std::string& str)
+	std::string sha1::hash(const std::string& str) SOUP_EXCAL
 	{
 		StringRefReader r(str);
 		return hash(r);
 	}
 
 #if SHA1_USE_INTRIN
-	extern void sha1_transform_intrin(uint32_t state[5], const uint8_t data[]);
+	extern void sha1_transform_intrin(uint32_t state[5], const uint8_t data[]) noexcept;
 #endif
 
 	template <bool intrin>
-	static std::string sha1_hash_impl(ioSeekableReader& r)
+	static std::string sha1_hash_impl(ioSeekableReader& r) SOUP_EXCAL
 	{
 		// init
 		uint32_t digest[] = {
@@ -307,7 +307,7 @@ namespace soup
 		return bin;
 	}
 
-	std::string sha1::hash(ioSeekableReader& r)
+	std::string sha1::hash(ioSeekableReader& r) SOUP_EXCAL
 	{
 #if SHA1_USE_INTRIN
 		const CpuInfo& cpu_info = CpuInfo::get();

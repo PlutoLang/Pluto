@@ -34,7 +34,7 @@ namespace soup
 		}
 	}
 
-	std::string Worker::toString() const
+	std::string Worker::toString() const SOUP_EXCAL
 	{
 #if !SOUP_WASM
 		if (type == WORKER_TYPE_SOCKET)

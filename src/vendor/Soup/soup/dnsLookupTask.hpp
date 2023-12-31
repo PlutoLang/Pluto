@@ -13,7 +13,7 @@ namespace soup
 
 	struct dnsCachedResultTask : public dnsLookupTask
 	{
-		static UniquePtr<dnsCachedResultTask> make(std::vector<UniquePtr<dnsRecord>>&& res)
+		static UniquePtr<dnsCachedResultTask> make(std::vector<UniquePtr<dnsRecord>>&& res) SOUP_EXCAL
 		{
 			auto task = soup::make_unique<dnsCachedResultTask>();
 			task->result = std::move(res);
