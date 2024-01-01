@@ -68,12 +68,12 @@ static int http_request (lua_State *L) {
     lua_pushnil(L);
     while (lua_next(L, optionsidx)) {
       if (lua_type(L, -2) != LUA_TSTRING) {
-        lua_warning(L, luaO_pushfstring(L, "unrecognized http request option: %s", lua_tostring(L, -2)), 0);
+        pluto_warning(L, luaO_pushfstring(L, "unrecognized http request option: %s", lua_tostring(L, -2)));
         lua_pop(L, 1);
       }
       const char *str = lua_tostring(L, -2);
       if (strcmp(str, "url") != 0 && strcmp(str, "method") != 0 && strcmp(str, "headers") != 0 && strcmp(str, "body") != 0 && strcmp(str, "prefer_ipv6") != 0) {
-        lua_warning(L, luaO_pushfstring(L, "unrecognized http request option: %s", lua_tostring(L, -2)), 0);
+        pluto_warning(L, luaO_pushfstring(L, "unrecognized http request option: %s", lua_tostring(L, -2)));
         lua_pop(L, 1);
       }
       lua_pop(L, 1);
