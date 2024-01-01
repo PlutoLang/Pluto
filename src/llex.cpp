@@ -580,9 +580,11 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             size_t sep = skip_sep(ls);
             luaZ_resetbuffer(ls->buff);  /* 'skip_sep' may dirty the buffer */
             if (sep >= 2) {
+              ls->appendLineBuff(sep, '[');
               SemInfo si;
               read_long_string(ls, &si, sep);  /* skip long comment */
               ls->appendLineBuff(getstr(si.ts));
+              ls->appendLineBuff(sep, ']');
               luaZ_resetbuffer(ls->buff);  /* previous call may dirty the buff. */
               if (ls->getLineBuff().find("@fallthrough") != std::string::npos)
                 return TK_FALLTHROUGH;
