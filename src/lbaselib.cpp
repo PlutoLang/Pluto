@@ -703,12 +703,16 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Tab
 }
 
 static int luaB_dumpvar (lua_State *L) {
-  luaL_checkany(L, 1);
-  lua_pushvalue(L, 1);
-  std::unordered_set<Table*> parents;
-  if (ttistable(index2value(L, -1)))
-    parents.emplace(hvalue(index2value(L, -1)));
-  luaB_dumpvar_impl(L, 1, std::move(parents), false);
+  if (lua_type(L, 1) == LUA_TNONE) {
+    lua_pushliteral(L, "(no value)");
+  }
+  else {
+    lua_pushvalue(L, 1);
+    std::unordered_set<Table*> parents;
+    if (ttistable(index2value(L, -1)))
+      parents.emplace(hvalue(index2value(L, -1)));
+    luaB_dumpvar_impl(L, 1, std::move(parents), false);
+  }
   return 1;
 }
 
