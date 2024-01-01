@@ -2877,7 +2877,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         }
         luaX_next(ls);
         expdesc func;
-        expr(ls, &func, nullptr, E_NO_BOR | E_PIPERHS);
+        simpleexp(ls, &func, E_PIPERHS);
         luaK_prepcallfirstarg(fs, v, &func);
         lua_assert(v->k == VNONRELOC);
         int base = v->u.reg;  /* base register for call */
