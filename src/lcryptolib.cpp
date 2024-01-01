@@ -14,6 +14,7 @@
 #include <sstream>
 #include <iomanip>
 
+#include "vendor/Soup/soup/aes.hpp"
 #include "vendor/Soup/soup/sha1.hpp"
 #include "vendor/Soup/soup/sha256.hpp"
 #include "vendor/Soup/soup/string.hpp"
@@ -316,6 +317,91 @@ static int hexdigest(lua_State *L)
 }
 
 
+static int l_encrypt (lua_State *L) {
+  size_t mode_len;
+  const char *mode = luaL_checklstring(L, 1, &mode_len);
+  if (mode_len < 7 || memcmp(mode, "aes-", 4) != 0) {
+    luaL_error(L, "Unknown mode");
+  }
+  std::string data = pluto_checkstring(L, 2);
+  const char *aadata = NULL;  /* for AEAD ciphers */
+  size_t aadata_len;
+  const char *key;
+  size_t key_len;
+  const char *iv = NULL;
+  size_t iv_len;
+  if (memcmp(&mode[4], "cbc", 3) == 0 || memcmp(&mode[4], "cfb", 3) == 0) {
+    key = luaL_checklstring(L, 3, &key_len);
+    iv = luaL_checklstring(L, 4, &iv_len);
+  }
+  else if (memcmp(&mode[4], "ecb", 3) == 0) {
+    key = luaL_checklstring(L, 3, &key_len);
+  }
+  else if (memcmp(&mode[4], "gcm", 3) == 0) {
+    aadata = luaL_checklstring(L, 3, &aadata_len);
+    key = luaL_checklstring(L, 4, &key_len);
+    iv = luaL_checklstring(L, 5, &iv_len);
+  }
+  else {
+    luaL_error(L, "Unknown mode");
+  }
+
+  if (key_len != 16 && key_len != 24 && key_len != 32) {
+    luaL_error(L, "Key length must be 16, 24, or 32 bytes for 128, 192, or 256-bit AES, respectively.");
+  }
+  if (!aadata && iv && iv_len != 16) {
+    luaL_error(L, "IV must be 16 bytes");
+  }
+
+  if (mode_len != 7) {
+    if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
+      soup::aes::pkcs7Pad(data);
+    }
+    else {
+      luaL_error(L, "Unknown mode");
+    }
+  }
+
+  uint8_t tag[16];
+  if (memcmp(&mode[4], "cbc", 3) == 0) {
+    soup::aes::cbcEncrypt(
+      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<const uint8_t*>(key), key_len,
+      reinterpret_cast<const uint8_t*>(iv)
+    );
+  }
+  else if (memcmp(&mode[4], "cfb", 3) == 0) {
+    soup::aes::cfbEncrypt(
+      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<const uint8_t*>(key), key_len,
+      reinterpret_cast<const uint8_t*>(iv)
+    );
+  }
+  else if (memcmp(&mode[4], "ecb", 3) == 0) {
+    soup::aes::ecbEncrypt(
+      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<const uint8_t*>(key), key_len
+    );
+  }
+  else if (memcmp(&mode[4], "gcm", 3) == 0) {
+    soup::aes::gcmEncrypt(
+      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<const uint8_t*>(aadata), aadata_len,
+      reinterpret_cast<const uint8_t*>(key), key_len,
+      reinterpret_cast<const uint8_t*>(iv), iv_len,
+      tag
+    );
+  }
+
+  pluto_pushstring(L, std::move(data));
+  if (aadata) {
+    lua_pushlstring(L, reinterpret_cast<const char*>(tag), 16);
+    return 2;
+  }
+  return 1;
+}
+
+
 static const luaL_Reg funcs[] = {
   {"hexdigest", hexdigest},  /* deprecated since 0.8.0 */
   {"random", random},
@@ -338,6 +424,7 @@ static const luaL_Reg funcs[] = {
   {"joaat", joaat},
   {"fnv1a", fnv1a},
   {"fnv1", fnv1},
+  {"encrypt", l_encrypt},
   {NULL, NULL}  
 };
 
