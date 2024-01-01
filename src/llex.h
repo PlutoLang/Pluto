@@ -459,6 +459,10 @@ struct LexState {
     getLineBuff().push_back(c);
   }
 
+  void appendLineBuff(size_t cnt, char chr) {
+    getLineBuff().append(cnt, chr);
+  }
+
   [[nodiscard]] ParserContext getContext() const noexcept {
     return parser_context_stck.top();
   }
