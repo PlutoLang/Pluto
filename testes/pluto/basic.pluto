@@ -2372,6 +2372,8 @@ do
     assert(type(a) == "string")
     assert(b == nil)
 
+    assert(("69") |> tonumber == 69)
+
     -- Additional arguments shorthand (longhand would be writing a lambda)
     assert(("69") |> tonumber|16| == 0x69)
 
