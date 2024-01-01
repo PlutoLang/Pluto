@@ -584,6 +584,8 @@ static int llex (LexState *ls, SemInfo *seminfo) {
               read_long_string(ls, &si, sep);  /* skip long comment */
               ls->appendLineBuff(getstr(si.ts));
               luaZ_resetbuffer(ls->buff);  /* previous call may dirty the buff. */
+              if (ls->getLineBuff().find("@fallthrough") != std::string::npos)
+                return TK_FALLTHROUGH;
               break;
             }
           }
@@ -601,15 +603,14 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             if (strncmp(luaZ_buffer(ls->buff), "pluto_use", luaZ_bufflen(ls->buff)) == 0) {
               return TK_PUSE;
             }
-            if (strncmp(luaZ_buffer(ls->buff), "fallthrough", luaZ_bufflen(ls->buff)) == 0) {
-              return TK_FALLTHROUGH;
-            }
             luaZ_resetbuffer(ls->buff);
           }
           while (!currIsNewline(ls) && ls->current != EOZ) {
             ls->appendLineBuff(ls->current);
             next(ls);  /* skip until end of line (or end of file) */
           }
+          if (ls->getLineBuff().find("@fallthrough") != std::string::npos)
+            return TK_FALLTHROUGH;
           break;
         }
       }
