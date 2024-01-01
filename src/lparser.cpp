@@ -3162,7 +3162,7 @@ static void switchstat (LexState *ls) {
       }
       while (gett(ls) != TK_CASE && gett(ls) != TK_DEFAULT && gett(ls) != TK_END && gett(ls) != TK_FALLTHROUGH);
       if (ls->t.token == TK_CASE && ls->laststat.token != TK_BREAK && ls->laststat.token != TK_RETURN && ls->laststat.token != TK_GOTO) {
-        throw_warn(ls, "possibly unwanted fallthrough", luaO_fmt(ls->L, "the case on line %d flows into this case", case_line), "place `--@fallthrough` before this case if this is intended", ls->getLineNumber(), WT_POSSIBLE_TYPO);
+        throw_warn(ls, "possibly unwanted fallthrough", luaO_fmt(ls->L, "the case on line %d flows into this case", case_line), "place `--@fallthrough` before this case if this is intended", ls->getLineNumber(), WT_UNANNOTATED_FALLTHROUGH);
         ls->L->top.p--;
       }
       else testnext(ls, TK_FALLTHROUGH);
