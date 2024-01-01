@@ -63,6 +63,23 @@ static int http_request (lua_State *L) {
     if (lua_type(L, 2) == LUA_TTABLE)
       optionsidx = 2;
   }
+
+  if (optionsidx) {
+    lua_pushnil(L);
+    while (lua_next(L, optionsidx)) {
+      if (lua_type(L, -2) != LUA_TSTRING) {
+        lua_warning(L, luaO_pushfstring(L, "unrecognized http request option: %s", lua_tostring(L, -2)), 0);
+        lua_pop(L, 1);
+      }
+      const char *str = lua_tostring(L, -2);
+      if (strcmp(str, "method") != 0 && strcmp(str, "headers") != 0 && strcmp(str, "body") != 0 && strcmp(str, "prefer_ipv6") != 0) {
+        lua_warning(L, luaO_pushfstring(L, "unrecognized http request option: %s", lua_tostring(L, -2)), 0);
+        lua_pop(L, 1);
+      }
+      lua_pop(L, 1);
+    }
+  }
+
 #ifdef PLUTO_DISABLE_HTTP_COMPLETELY
   luaL_error(L, "disallowed by content moderation policy");
 #endif
@@ -70,6 +87,7 @@ static int http_request (lua_State *L) {
   if (!PLUTO_HTTP_REQUEST_HOOK(L, uri.c_str()))
     luaL_error(L, "disallowed by content moderation policy");
 #endif
+
 #if SOUP_WASM
   if (!lua_isyieldable(L)) {
     luaL_error(L, "Under WASM, http.request needs a coroutine as otherwise the request can never be dispatched.");
