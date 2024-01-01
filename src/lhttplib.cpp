@@ -95,6 +95,15 @@ static int http_request (lua_State *L) {
     if (lua_rawget(L, optionsidx) > LUA_TNIL)
       spTask->hr.method = pluto_checkstring(L, -1);
     lua_pop(L, 1);
+    lua_pushliteral(L, "headers");
+    if (lua_rawget(L, optionsidx) > LUA_TNIL) {
+      lua_pushnil(L);
+      while (lua_next(L, -2)) {
+        spTask->hr.setHeader(pluto_checkstring(L, -2), pluto_checkstring(L, -1));
+        lua_pop(L, 1);
+      }
+    }
+    lua_pop(L, 1);
     lua_pushliteral(L, "prefer_ipv6");
     if (lua_rawget(L, optionsidx) > LUA_TNIL)
       spTask->prefer_ipv6 = lua_istrue(L, -1);
