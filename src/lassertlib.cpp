@@ -17,9 +17,13 @@ local function deepCompare(t1, t2)
     return true
   end
 
+  --[[
+    This is technically fine, but would require any array modification (especially in C) to resize the array.
+    We can (and should) make our standard library do this, but third-party integrators could easily miss that mark with their own extensions. Because this check doesn't catch anything new (only a shortcut), may as well purge it.
   if #t1 ~= #t2 then
     return false
   end
+  --]]  
 
   if next(t1) == nil and next(t2) ~= nil then
     return false

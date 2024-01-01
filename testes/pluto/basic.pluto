@@ -1,5 +1,7 @@
 print "Welcome to the test suite."
 
+local assert = require("assert")
+
 local function assert_warn(code)
     assert(wcall(function(msg)
         local chunk, err = load(code)
@@ -142,8 +144,6 @@ end
 
 print "Testing assertion library."
 do
-    local assert = require("assert")
-
     local function noerror(callback, ...)
         local status, msg = pcall(callback, ...)
         assert(status == true)
@@ -232,74 +232,74 @@ do
     local a, b = 1, 2
     a += 1
     b += 1
-    assert(a == 2)
-    assert(b == 3)
+    assert.equal(a, 2)
+    assert.equal(b, 3)
 
     a, b = 1, 2
     a -= 1
     b -= 1
-    assert(a == 0)
-    assert(b == 1)
+    assert.equal(a, 0)
+    assert.equal(b, 1)
 
     a, b = 1, 2
     a *= 2
     b *= 2
-    assert(a == 2)
-    assert(b == 4)
+    assert.equal(a, 2)
+    assert.equal(b, 4)
 
     a, b = 1, 2
     a %= 2
     b %= 2
-    assert(a == 1)
-    assert(b == 0)
+    assert.equal(a, 1)
+    assert.equal(b, 0)
 
     a, b = 1, 2
     a ^= 2
     b ^= 2
-    assert(a == 1.0)
-    assert(b == 4.0)
+    assert.equal(a, 1.0)
+    assert.equal(b, 4.0)
 
     a, b = 1, 2
     a **= 2
     b **= 2
-    assert(a == 1.0)
-    assert(b == 4.0)
+    assert.equal(a, 1.0)
+    assert.equal(b, 4.0)
 
     a, b = 1, 2
     a |= 1
     b |= 1
-    assert(a == 1)
-    assert(b == 3)
+    assert.equal(a, 1)
+    assert.equal(b, 3)
 
     a, b = 1, 2
     a &= 1
     b &= 1
-    assert(a == 1)
-    assert(b == 0)
+    assert.equal(a, 1)
+    assert.equal(b, 0)
 
     a, b = 1, 2
     a /= 1
     b /= 2
-    assert(a == 1.0)
-    assert(b == 1.0)
+    assert.equal(a, 1.0)
+    assert.equal(b, 1.0)
 
     a, b = 1, 2
     a //= 1
     b //= 2
-    assert(a == 1)
-    assert(b == 1)
+    assert.equal(a, 1)
+    assert.equal(b, 1)
 
     a, b = 1, 2
     a <<= 1
     b <<= 1
-    assert(a == 2)
-    assert(b == 4)
+    assert.equal(a, 2)
+    assert.equal(b, 4)
 
     a, b = 1, 2
     a >>= 1
     b >>= 1
-    assert(a == 0)
-    assert(b == 1)
+    assert.equal(a, 0)
+    assert.equal(b, 1)
 
     local t = {
         tt = {
@@ -311,23 +311,23 @@ do
         }
     }
     t.tt.ttt.tttt.v += 499
-    assert(t.tt.ttt.tttt.v == 500)
+    assert.equal(t.tt.ttt.tttt.v, 500)
 end
 
 print "Testing string indexing."
 do
     local str = "abc"
-    assert(str[0] == nil)
-    assert(str[1] == "a")
-    assert(str[2] == "b")
-    assert(str[3] == "c")
-    assert(str[4] == nil)
-    assert(str[5] == nil)
-    assert(str[-1] == "c")
-    assert(str[-2] == "b")
-    assert(str[-3] == "a")
-    assert(str[-4] == nil)
-    assert(str[-5] == nil)
+    assert.isnil(str[0])
+    assert.equal(str[1], "a")
+    assert.equal(str[2], "b")
+    assert.equal(str[3], "c")
+    assert.isnil(str[4])
+    assert.isnil(str[5])
+    assert.equal(str[-1], "c")
+    assert.equal(str[-2], "b")
+    assert.equal(str[-3], "a")
+    assert.isnil(str[-4])
+    assert.isnil(str[-5])
 end
 
 print "Testing continue statement."
@@ -340,7 +340,7 @@ do
         end
         sum += value
     end
-    assert(sum == 40)
+    assert.equal(sum, 40)
 
     sum = 0
     for i = 1, 10 do
@@ -349,7 +349,7 @@ do
         end
         sum += i
     end
-    assert(sum == 50)
+    assert.equal(sum, 50)
 
     local lines = {
         "This",
@@ -364,22 +364,25 @@ do
         elseif index == #lines and line == "Lines" then
             continue
         end
-        assert(line != "This" and line != "Lines")
+        assert.nequal(line, "this")
+        assert.nequal(line, "Lines")
     end
 end
 do
-    assert(select(2, pcall(load[[--@pluto_warnings disable-all
+    -- load returns the callback we want
+    assert.searcherror("attempt to compare number with nil", load[[--@pluto_warnings disable-all
     repeat
         continue
         local a = 1
-    until a > 0]])):contains("attempt to compare number with nil"))
-    assert(select(2, pcall(load[[--@pluto_warnings disable-all
+    until a > 0]])
+
+    assert.searcherror("attempt to compare number with nil", load[[--@pluto_warnings disable-all
     repeat
         if true then
             continue
         end
         local a = 1
-    until a > 0]])):contains("attempt to compare number with nil"))
+    until a > 0]])
 end
 
 print "Testing table length cache."
@@ -388,28 +391,28 @@ do
     for i = 1, 1000 do
         t[i] = "abc"
     end
-    assert(#t == 1000, #t)
+    assert.equal(#t, 1000)
 
     for i = 1, 100 do
         table.remove(t, i + math.random(1, 5))
     end
-    assert(#t == 900, #t)
+    assert.equal(#t, 900)
 
     local metatest = setmetatable({}, { __len = function () return 5 end })
-    assert(#metatest == 5, #metatest)
+    assert.equal(#metatest, 5)
 
     t = {}
     for i = 1, 1000 do
         table.insert(t, "Hello")
         table.insert(t, "World")
     end
-    assert(#t == 2000)
+    assert.equal(#t, 2000)
 
     t = {}
     for i = 1, 1000 do
         rawset(t, i, "Hello")
     end
-    assert(#t == 1000)
+    assert.equal(#t, 1000)
 end
 
 print "Testing null coalescing operator."
@@ -419,48 +422,48 @@ do
     a = z
     b = "hello"
     c = a ?? b
-    assert(c == false)
+    assert.isfalse(c)
     _G.zz = nil
     z = _G.zz
     a = z
     b = "hello"
     c = a ?? b
-    assert(c == "hello")
+    assert.equal(c, "hello")
     local zz = false
     local z = zz
     local a = z
     local b = "hello"
     local c = a ?? b
-    assert(c == false)
+    assert.isfalse(c, false)
     zz = nil
     z = zz
     a = z
     b = "hello"
     c = a ?? b
-    assert(c == "hello")
+    assert.equal(c, "hello")
     a = false
     b = "hello"
     a ??= b
-    assert(a == false)
+    assert.isfalse(a)
     a = nil
     a ??= b
-    assert(a == "hello")
+    assert.equal(a, "hello")
 end
 
 print "Testing safe navigation."
 do
     local a = A?.B?.C?.D
-    assert(a == nil)
+    assert.isnil(a)
     a = A?["B"]?["C"]?["D"]
-    assert(a == nil)
+    assert.isnil(a)
     a = A?["B"]?["C"]?["D"]?[-5]?[0]
     local T = {}
     T.K = {}
     T.K.Z = {}
-    assert(T?.K?.Z == T.K.Z)
+    assert.equal(T?.K?.Z, T.K.Z)
 
     local t = { [-1] = 1 }
-    assert(t?[-1] == 1)
+    assert.equal(t?[-1], 1)
 
     local class Class
         val: bool = true
@@ -472,27 +475,27 @@ do
     local inst = new Class()
 
     local function assert_1_ret(...)
-        assert(table.pack(...).n == 1)
+        assert.equal(table.pack(...).n, 1)
     end
 
-    assert(inst?:method() == true)
-    assert(optinst?:method() == nil)
-    assert(inst:method?() == true)
-    assert(inst:optmethod?() == nil)
-    assert(inst?:method?() == true)
-    assert(inst?:optmethod?() == nil)
-    assert(optinst?:method?() == nil)
+    assert.istrue(inst?:method())
+    assert.isnil(optinst?:method())
+    assert.istrue(inst:method?())
+    assert.isnil(inst:optmethod?())
+    assert.istrue(inst?:method?())
+    assert.isnil(inst?:optmethod?())
+    assert.isnil(optinst?:method?())
     inst:method?()
     inst:optmethod?()
     local r1, r2 = inst:optmethod?()
-    assert(r1 == nil)
-    assert(r2 == nil)
+    assert.isnil(r1)
+    assert.isnil(r2)
     r1, r2 = optinst?:optmethod?()
-    assert(r1 == nil)
-    assert(r2 == nil)
+    assert.isnil(r1)
+    assert.isnil(r2)
     r1, r2 = inst?:optmethod?()
-    assert(r1 == nil)
-    assert(r2 == nil)
+    assert.isnil(r1)
+    assert.isnil(r2)
     assert_1_ret(inst:optmethod?())
     assert_1_ret(inst?:optmethod?())
     assert_1_ret(optinst?:optmethod?())
@@ -501,25 +504,25 @@ do
     optinst?:method()
     optinst?:optmethod?()
     r1, r2 = inst:method?()
-    assert(r1 == true)
-    assert(r2 == 69)
+    assert.istrue(r1)
+    assert.equal(r2, 69)
     r1, r2 = inst?:method?()
-    assert(r1 == true)
-    assert(r2 == 69)
+    assert.istrue(r1)
+    assert.equal(r2, 69)
 end
 
 print "Testing shorthand ternary."
 do
     local a = 3
     -- @pluto_warnings: disable-unreachable-code
-    assert((true ? "yes" : "no") == "yes")
-    assert((false ? "yes" : "no") == "no")
-    assert((a ? "yes" : "no") == "yes")
-    assert((a == 3 ? "yes" : "no") == "yes")
-    assert((a == 4 ? "yes" : "no") == "no")
-    assert((3 == a ? "yes" : "no") == "yes")
-    assert((4 == a ? "yes" : "no") == "no")
-    assert((nil and nil) ? false : true) -- possible pitfall if we try optimizing for 'always false' conditions
+    assert.equal((true ? "yes" : "no"), "yes")
+    assert.equal((false ? "yes" : "no"), "no")
+    assert.equal((a ? "yes" : "no"), "yes")
+    assert.equal((a == 3 ? "yes" : "no"), "yes")
+    assert.equal((a == 4 ? "yes" : "no"), "no")
+    assert.equal((3 == a ? "yes" : "no"), "yes")
+    assert.equal((4 == a ? "yes" : "no"), "no")
+    assert.truthy((nil and nil) ? false : true) -- possible pitfall if we try optimizing for 'always false' conditions
     -- @pluto_warnings: enable-unreachable-code
 end
 
@@ -533,10 +536,10 @@ do
         nil,
         "ARRAY"
     }
-    assert(nil in t)
-    assert("KEY" in t)
-    assert("ARRAY" in t)
-    assert(("NOTHING" in t) == false)
+    assert.istrue(nil in t)
+    assert.istrue("KEY" in t)
+    assert.istrue("ARRAY" in t)
+    assert.isfalse("NOTHING" in t)
 end
 do
     -- table must be global for this failure case
@@ -548,20 +551,21 @@ do
             "ARRAY"
         }
     }
-    assert(nil in t.subt)
-    assert("KEY" in t.subt)
-    assert("ARRAY" in t.subt)
+    assert.istrue(nil in t.subt)
+    assert.istrue("KEY" in t.subt)
+    assert.istrue("ARRAY" in t.subt)
     local function proxy(b)
-        assert(b == false)
+        assert.isfalse(b)
     end
     proxy(42 in t.subt)
     t = nil
 end
 do
     -- temporary table
-    assert("apple" in { 1, nil, "aaaa", "apple" })
-    assert(not "banana" in { apple = true })
-    assert(type("apple" in { apple = true }) == "boolean")
+    assert.istrue("apple" in { 1, nil, "aaaa", "apple" })
+    assert.istrue(not "banana" in { apple = true })
+    assert.isfalse("banana" in { apple = true })
+    assert.istrue(type("apple" in { apple = true }) == "boolean")
 end
 do -- check stack corruption
     local t = {
@@ -572,26 +576,26 @@ do -- check stack corruption
     }
 
     local a = "KEY"
-    assert(a in t)
-    assert(a == "KEY")
+    assert.istrue(a in t)
+    assert.equal(a, "KEY")
     local b = || -> "Hello World"
     local c = "ARRAY"
     local d = nil
-    assert(c in t)
-    assert(d in t)
+    assert.istrue(c in t)
+    assert.istrue(d in t)
     local e = "NOTHING"
-    assert(not e in t)
-    assert(a == "KEY")
-    assert(b() == "Hello World")
-    assert(c == "ARRAY")
-    assert(d == nil)
-    assert(e == "NOTHING")
+    assert.istrue(not e in t)
+    assert.equal(a, "KEY")
+    assert.equal(b(), "Hello World")
+    assert.equal(c, "ARRAY")
+    assert.isnil(d)
+    assert.equal(e, "NOTHING")
 end
 do 
     local t = {key="value"}
-    assert(("key" in t) == false)
+    assert.isfalse("key" in t)
     t[1] = "world"
-    assert((1 in t) == false)
+    assert.isfalse(1 in t)
 end
 
 print "Testing break N syntax."
@@ -604,7 +608,7 @@ do
         end
         sum = sum + i
     end
-    assert(sum == 120)
+    assert.equal(sum, 120)
 end
 
 do
@@ -616,7 +620,7 @@ do
         end
         sum = sum + i
     end
-    assert(sum == 2)
+    assert.equal(sum, 2)
 end
 
 do
@@ -631,7 +635,7 @@ do
         end
         sum = sum + i
     end
-    assert(sum == 5)
+    assert.equal(sum, 5)
 end
 
 do
@@ -826,7 +830,7 @@ do
         case "barfoo":
         t = true
     end
-    assert(t == true)
+    assert.istrue(t)
     t = 0
     value = -3.15
     pluto_switch (value) do
@@ -848,7 +852,7 @@ do
         default:
         t = false
     end
-    assert(t == true)
+    assert.istrue(t)
     t = 0
     value = 3
     pluto_switch value do
@@ -858,7 +862,7 @@ do
         case 3:
         t = true
     end
-    assert(t == true)
+    assert.istrue(t)
     local function switchfunc(a)
         switch a do
             case 1: -- return before case
@@ -872,9 +876,9 @@ do
         end
         return 3
     end
-    assert(switchfunc(1) == nil)
-    assert(switchfunc(2) == 2)
-    assert(switchfunc(3) == nil)
+    assert.isnil(switchfunc(1))
+    assert.equal(switchfunc(2), 2)
+    assert.isnil(switchfunc(3))
 end
 do
     switch true do
@@ -913,7 +917,7 @@ do
                 error()
         end
     end
-    assert(c.closed)
+    assert.truthy(c.closed)
 end
 do
     switch 1 do
@@ -925,8 +929,8 @@ do
             for k, v in "test string":split(" ") do
                 tbl[k] = v
             end
-            assert(tbl[1] == "test")
-            assert(tbl[2] == "string")
+            assert.equal(tbl[1], "test")
+            assert.equal(tbl[2], "string")
             break
     end
 end
@@ -941,11 +945,11 @@ do
                 return "Farewell!"
         end
     end
-    assert(getResponse("hi") == "Greetings!")
-    assert(getResponse("hello") == "Greetings!")
-    assert(getResponse("bye") == "Farewell!")
-    assert(getResponse("goodbye") == "Farewell!")
-    assert(getResponse("deez") == "Unrecognised word")
+    assert.equal(getResponse("hi"), "Greetings!")
+    assert.equal(getResponse("hello"), "Greetings!")
+    assert.equal(getResponse("bye"), "Farewell!")
+    assert.equal(getResponse("goodbye"), "Farewell!")
+    assert.equal(getResponse("deez"), "Unrecognised word")
 end
 
 print "Testing switch expression."
@@ -957,9 +961,9 @@ do
             default -> "Other"
         end
     end
-    assert(int2eng(1) == "One")
-    assert(int2eng(2) == "Two")
-    assert(int2eng(69) == "Other")
+    assert.equal(int2eng(1), "One")
+    assert.equal(int2eng(2), "Two")
+    assert.equal(int2eng(69), "Other")
 end
 do
     local function int2eng(i)
@@ -970,9 +974,9 @@ do
         end
         return ret
     end
-    assert(int2eng(1) == "One")
-    assert(int2eng(2) == "Two")
-    assert(int2eng(69) == "Other")
+    assert.equal(int2eng(1), "One")
+    assert.equal(int2eng(2), "Two")
+    assert.equal(int2eng(69), "Other")
 end
 do
     local function getResponse(word)
@@ -982,11 +986,11 @@ do
             case "bye", "goodbye" -> "Farewell!"
         end
     end
-    assert(getResponse("hi") == "Greetings!")
-    assert(getResponse("hello") == "Greetings!")
-    assert(getResponse("bye") == "Farewell!")
-    assert(getResponse("goodbye") == "Farewell!")
-    assert(getResponse("deez") == "Unrecognised word")
+    assert.equal(getResponse("hi"), "Greetings!")
+    assert.equal(getResponse("hello"), "Greetings!")
+    assert.equal(getResponse("bye"), "Farewell!")
+    assert.equal(getResponse("goodbye"), "Farewell!")
+    assert.equal(getResponse("deez"), "Unrecognised word")
 end
 -- Test method call within casecond
 do
@@ -1003,7 +1007,7 @@ do
         case h:getName() -> "Same name"
         default -> "Different name"
     end
-    assert(str == "Same name")
+    assert.equal(str, "Same name")
 end
 -- Test that switchexpr doesn't displace registers so we get "attempt to call a string value" or something
 do
@@ -1027,7 +1031,7 @@ do
         assert("dummy")
         return switch 42 do end
     end
-    assert(f() == nil)
+    assert.isnil(f())
 end
 -- This simply shouldn't raise any warnings
 do
@@ -1045,305 +1049,234 @@ end
 print "Testing table freezing."
 do
     local t = table.freeze({ 1, 2, 3, "hello", "world" })
-    local status, _ = pcall(function () t.key = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () t["key"] = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () t[1] = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () t[66] = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () t[function () end] = "abc" end)
-    assert(status == false, "expected error")
+    assert.haserror(function() t.key = "abc" end)
+    assert.haserror(function() t["key"] = "abc" end)
+    assert.haserror(function() t[1] = "abc" end)
+    assert.haserror(function() t[function () end] = "abc" end)
 
     t = { 1, 2, 3, "hello", "world" }
-    status, _ = pcall(function () t.key = "abc" end)
-    assert(status == true, "unexpected error")
-    status, _ = pcall(function () t["key"] = "abc" end)
-    assert(status == true, "unexpected error")
-    status, _ = pcall(function () t[1] = "abc" end)
-    assert(status == true, "unexpected error")
-    status, _ = pcall(function () t[66] = "abc" end)
-    assert(status == true, "unexpected error")
-    status, _ = pcall(function () t[function () end] = "abc" end)
-    assert(status == true, "unexpected error")
-
-    --[[
-    table.freeze(_G)
-    status, _ = pcall(function () _G.string = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () _G["string"] = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () _G[1] = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () _G[66] = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () _G[function () end] = "abc" end)
-    assert(status == false, "expected error")
-
-    table.freeze(_ENV)
-    status, _ = pcall(function () _ENV.string = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () _ENV["string"] = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () _ENV[1] = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () _ENV[66] = "abc" end)
-    assert(status == false, "expected error")
-    status, _ = pcall(function () _ENV[function () end] = "abc" end)
-    assert(status == false, "expected error")
-    --]] --> Doing this will break tests done with dofile(), since the environment is reused.
+    assert.noerror(function() t.key = "abc" end)
+    assert.noerror(function() t["key"] = "abc" end)
+    assert.noerror(function() t[1] = "abc" end)
+    assert.noerror(function() t[function () end] = "abc" end)
 end
 
 print "Testing standard library additions."
 do
     local v3 = require"pluto:vector3"
     -- Left-handed Z-up: Thumb points left, index finger points forward, middle finger points up.
-    assert(v3(1, 0, 0):torot("zl") == v3(0, 0, -90))
-    assert(v3(0, 1, 0):torot("zl") == v3(0, 0, 0))
-    assert(v3(0, 0, 1):torot("zl") == v3(90, 0, 0))
+    assert.equal(v3(1, 0, 0):torot("zl"), v3(0, 0, -90))
+    assert.equal(v3(0, 1, 0):torot("zl"), v3(0, 0, 0))
+    assert.equal(v3(0, 0, 1):torot("zl"), v3(90, 0, 0))
     -- Right-handed Z-up: Thumb points right, index finger points forward, middle finger points up.
-    assert(v3(1, 0, 0):torot("zr") == v3(0, 0, 90))
-    assert(v3(0, 1, 0):torot("zr") == v3(0, 0, 0))
-    assert(v3(0, 0, 1):torot("zr") == v3(90, 0, 0))
+    assert.equal(v3(1, 0, 0):torot("zr"), v3(0, 0, 90))
+    assert.equal(v3(0, 1, 0):torot("zr"), v3(0, 0, 0))
+    assert.equal(v3(0, 0, 1):torot("zr"), v3(90, 0, 0))
     -- Left-handed Y-up: Thumb points right, index finger points up, middle finger points forward.
-    assert(v3(1, 0, 0):torot("yl") == v3(0, 90, 0))
-    assert(v3(0, 1, 0):torot("yl") == v3(90, 0, 0))
-    assert(v3(0, 0, 1):torot("yl") == v3(0, 0, 0))
+    assert.equal(v3(1, 0, 0):torot("yl"), v3(0, 90, 0))
+    assert.equal(v3(0, 1, 0):torot("yl"), v3(90, 0, 0))
+    assert.equal(v3(0, 0, 1):torot("yl"), v3(0, 0, 0))
     -- Right-handed Y-up: Thumb points left, index finger points up, middle finger points forward.
-    assert(v3(1, 0, 0):torot("yr") == v3(0, -90, 0))
-    assert(v3(0, 1, 0):torot("yr") == v3(90, 0, 0))
-    assert(v3(0, 0, 1):torot("yr") == v3(0, 0, 0))
+    assert.equal(v3(1, 0, 0):torot("yr"), v3(0, -90, 0))
+    assert.equal(v3(0, 1, 0):torot("yr"), v3(90, 0, 0))
+    assert.equal(v3(0, 0, 1):torot("yr"), v3(0, 0, 0))
     -- And now the inverse.
-    assert(v3(0, 0, -90):todir("zl").x == 1)
-    assert(v3(0, 0, 0):todir("zl").y == 1)
-    assert(v3(90, 0, 0):todir("zl").z == 1)
-    assert(v3(0, 0, 90):todir("zr").x == 1)
-    assert(v3(0, 0, 0):todir("zr").y == 1)
-    assert(v3(90, 0, 0):todir("zr").z == 1)
-    assert(v3(0, 90, 0):todir("yl").x == 1)
-    assert(v3(90, 0, 0):todir("yl").y == 1)
-    assert(v3(0, 0, 0):todir("yl").z == 1)
-    assert(v3(0, -90, 0):todir("yr").x == 1)
-    assert(v3(90, 0, 0):todir("yr").y == 1)
-    assert(v3(0, 0, 0):todir("yr").z == 1)
+    assert.equal(v3(0, 0, -90):todir("zl").x, 1)
+    assert.equal(v3(0, 0, 0):todir("zl").y, 1)
+    assert.equal(v3(90, 0, 0):todir("zl").z, 1)
+    assert.equal(v3(0, 0, 90):todir("zr").x, 1)
+    assert.equal(v3(0, 0, 0):todir("zr").y, 1)
+    assert.equal(v3(90, 0, 0):todir("zr").z, 1)
+    assert.equal(v3(0, 90, 0):todir("yl").x, 1)
+    assert.equal(v3(90, 0, 0):todir("yl").y, 1)
+    assert.equal(v3(0, 0, 0):todir("yl").z, 1)
+    assert.equal(v3(0, -90, 0):todir("yr").x, 1)
+    assert.equal(v3(90, 0, 0):todir("yr").y, 1)
+    assert.equal(v3(0, 0, 0):todir("yr").z, 1)
 end
 do
     local crypto = require("crypto")
-    assert(crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
-    assert(crypto.fnv1a("hello world") == 8618312879776256743)
-    assert(crypto.joaat("hello world") == 1045060183)
+    assert.equal(crypto.fnv1("hello world"), 0x7DCF62CDB1910E6F)
+    assert.equal(crypto.fnv1a("hello world"), 8618312879776256743)
+    assert.equal(crypto.joaat("hello world"), 1045060183)
     -- Constexpr
-    assert($crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
-    assert($crypto.fnv1a("hello world") == 8618312879776256743)
-    assert($crypto.joaat("hello world") == 1045060183)
+    assert.equal($crypto.fnv1("hello world"), 0x7DCF62CDB1910E6F)
+    assert.equal($crypto.fnv1a("hello world"), 8618312879776256743)
+    assert.equal($crypto.joaat("hello world"), 1045060183)
 
-    assert(crypto.sha1("Pluto") == "bce8c9aca4120776fad6b517874aa09c46405454")
-    assert(crypto.sha1("Pluto", true) == "\xbc\xe8\xc9\xac\xa4\x12\x07\x76\xfa\xd6\xb5\x17\x87\x4a\xa0\x9c\x46\x40\x54\x54")
-    assert(crypto.sha256("Pluto") == "8dad5f6a7dd2dcd8c35ec2fd7babb499bcad60d27d73fe73eca2ce025dfd3b47")
-    assert(crypto.sha256("Pluto", true) == "\x8d\xad\x5f\x6a\x7d\xd2\xdc\xd8\xc3\x5e\xc2\xfd\x7b\xab\xb4\x99\xbc\xad\x60\xd2\x7d\x73\xfe\x73\xec\xa2\xce\x02\x5d\xfd\x3b\x47")
+    assert.equal(crypto.sha1("Pluto"), "bce8c9aca4120776fad6b517874aa09c46405454")
+    assert.equal(crypto.sha1("Pluto", true), "\xbc\xe8\xc9\xac\xa4\x12\x07\x76\xfa\xd6\xb5\x17\x87\x4a\xa0\x9c\x46\x40\x54\x54")
+    assert.equal(crypto.sha256("Pluto"), "8dad5f6a7dd2dcd8c35ec2fd7babb499bcad60d27d73fe73eca2ce025dfd3b47")
+    assert.equal(crypto.sha256("Pluto", true), "\x8d\xad\x5f\x6a\x7d\xd2\xdc\xd8\xc3\x5e\xc2\xfd\x7b\xab\xb4\x99\xbc\xad\x60\xd2\x7d\x73\xfe\x73\xec\xa2\xce\x02\x5d\xfd\x3b\x47")
 end
 do
     local base64 = require("base64")
-    assert(base64.encode("Hello") == "SGVsbG8")
-    assert(base64.decode("SGVsbG8") == "Hello")
-    assert(base64.urlencode("Hello") == "SGVsbG8")
-    assert(base64.urldecode("SGVsbG8") == "Hello")
-    assert(base64.decode(base64.encode("Hello", true)) == "Hello")
+    assert.equal(base64.encode("Hello"), "SGVsbG8")
+    assert.equal(base64.decode("SGVsbG8"), "Hello")
+    assert.equal(base64.urlencode("Hello"),  "SGVsbG8")
+    assert.equal(base64.urldecode("SGVsbG8"), "Hello")
+    assert.equal(base64.decode(base64.encode("Hello", true)), "Hello")
 end
 do
     local t = { key = "value" }
     table.insert(t, 0)
     table.insert(t, "Hello")
     table.insert(t, true)
-    assert(table.contains(t, "Hello") == 2)
-    assert(table.contains(t, "World") == nil)
-    assert(table.contains(t, true) == 3)
-    assert(table.contains(t, false) == nil)
-    assert(table.contains(t, 0) == 1)
-    assert(table.contains(t, 1) == nil)
-    assert(table.contains(t, "value") == "key")
-    assert(string.isascii("hello world") == true)
-    assert(string.isascii("hello.world") == true)
-    assert(string.isascii("hello1world") == true)
-    assert(string.isascii("hello📙world") == false)
-    assert(string.islower("hello world") == false)
-    assert(string.islower("helloworld") == true)
-    assert(string.islower("hello1world") == false)
-    assert(string.isalpha("hello world") == false)
-    assert(string.isalpha("helloworld") == true)
-    assert(string.isalpha("hello1world") == false)
-    assert(string.isalpha("hello?world") == false)
-    assert(string.isupper("HELLOWORLD") == true)
-    assert(string.isupper("HELLO WORLD") == false)
-    assert(string.isupper("HELLO?WORLD") == false)
-    assert(string.isalnum("abc123") == true)
-    assert(string.isalnum("abc 123") == false)
-    assert(string.isalnum("abc?123") == false)
-    assert(string.iswhitespace("   \t   \f \n \r\n") == true)
-    assert(string.iswhitespace("\t\f   \r\n \r \n \t z") == false)
-    assert(string.contains("hello world", "world") == true)
-    assert(string.contains("hello world", "z") == false)
-    assert(string.endswith("hello world", "rld") == true)
-    assert(string.endswith("hello world", "trc") == false)
-    assert(string.startswith("hello world", "hello") == true)
-    assert(string.startswith("hello world", "truck") == false)
-    assert(string.strip("???hello world???", "?") == "hello world")
-    assert(string.strip("123hello world123", "123") == "hello world")
-    assert(string.lstrip("???hello world???", "?") == "hello world???")
-    assert(string.lstrip("12hello world12", "12") == "hello world12")
-    assert(string.rstrip("???hello world???", "?") == "???hello world")
-    t = string.split("hello world abc", " ")
-    assert(t[1] == "hello")
-    assert(t[2] == "world")
-    assert(t[3] == "abc")
-    local before, after = string.partition("hello.wor.ld", ".")
-    assert(before == "hello")
-    assert(after == "wor.ld")
-    before, after = string.partition("hello.wor.ld", ".", true)
-    assert(before == "hello.wor")
-    assert(after == "ld")
-    assert(string.casefold("HELLO WORLD", "hello world") == true)
-    assert(string.casefold("HELLO WORLD", "hello worlz") == false)
-    assert(string.rfind("world hello world", "world") == 13)
-    assert(string.rfind("hello x", "world") == nil)
-    assert("99 dreams of 99 red balloons":rfind("%d") == 15)
-    assert("aaa":rfind("%d") == nil)
-    assert("1aa":rfind("%d") == 1)
-    assert("a1a":rfind("%d") == 2)
-    assert("aa1":rfind("%d") == 3)
-    assert("111":rfind("%d") == 3)
-    local _begin, _end = "aaa":rfind("")
-    assert(_begin == 3 and _end == 2)
-    assert("":rfind("%d") == nil)
-    assert("111":rfind("%d", 1) == nil)
-    assert("111":rfind("%d", 2) == 1)
-    assert("111":rfind("%d", 3) == 2)
-    assert("111":rfind("%d", 4) == 3)
-    assert(string.upper("hello", 1) == "Hello")
-    assert(string.upper("hello", 2) == "hEllo")
-    assert(string.upper("hello", -1) == "hellO")
-    assert(string.upper("hello", -2) == "helLo")
-    assert(string.upper("hello", -6) == "hello")
-    assert(string.upper("hello", 6) == "hello")
-    assert(string.upper("hello") == "HELLO")
-    assert(string.lower("HELLO") == "hello")
-    assert(string.lower("HELLO", 1) == "hELLO")
-    assert(string.lower("HELLO", 2) == "HeLLO")
-    assert(string.lower("HELLO", -1) == "HELLo")
-    assert(string.lower("HELLO", -2) == "HELlO")
-    assert(string.lower("HELLO", -14) == "HELLO")
-    assert(string.truncate("Hello, World!", 5) == "Hello")
-    assert(string.truncate("Hello, World!", 5, true) == "He...")
-    assert(string.truncate("Hello", 1) == "H")
-    assert(string.truncate("Hello", 1, true) == "H")
-    assert(string.truncate("Hello", 4, true) == "H...")
-    assert(string.truncate("Hello", 6) == "Hello")
-    assert(string.truncate("Hello", 6, true) == "Hello")
-    assert(string.replace("hello world", "joe", "abc") == "hello world")
-    assert(string.replace("hello world", " ", "") == "helloworld")
-    assert(string.replace("LLLL", "L", "X") == "XXXX")
-    assert(string.replace("LLLL", "L", "X", 2) == "XXLL")
+    assert.equal(table.contains(t, "Hello"), 2)
+    assert.isnil(table.contains(t, "World"))
+    assert.equal(table.contains(t, true), 3)
+    assert.isnil(table.contains(t, false))
+    assert.equal(table.contains(t, 0), 1)
+    assert.isnil(table.contains(t, 1))
+    assert.equal(table.contains(t, "value"), "key")
+    assert.istrue(string.isascii("hello world"))
+    assert.istrue(string.isascii("hello.world"))
+    assert.istrue(string.isascii("hello1world"))
+    assert.isfalse(string.isascii("hello📙world"))
+    assert.isfalse(string.islower("hello world"))
+    assert.istrue(string.islower("helloworld"))
+    assert.isfalse(string.islower("hello1world"))
+    assert.isfalse(string.isalpha("hello world"))
+    assert.istrue(string.isalpha("helloworld"))
+    assert.isfalse(string.isalpha("hello1world"))
+    assert.isfalse(string.isalpha("hello?world"))
+    assert.istrue(string.isupper("HELLOWORLD"))
+    assert.isfalse(string.isupper("HELLO WORLD"))
+    assert.isfalse(string.isupper("HELLO?WORLD"))
+    assert.istrue(string.isalnum("abc123"))
+    assert.isfalse(string.isalnum("abc 123"))
+    assert.isfalse(string.isalnum("abc?123"))
+    assert.istrue(string.iswhitespace("   \t   \f \n \r\n"))
+    assert.isfalse(string.iswhitespace("\t\f   \r\n \r \n \t z"))
+    assert.istrue(string.contains("hello world", "world"))
+    assert.isfalse(string.contains("hello world", "z"))
+    assert.istrue(string.endswith("hello world", "rld"))
+    assert.isfalse(string.endswith("hello world", "trc"))
+    assert.istrue(string.startswith("hello world", "hello"))
+    assert.isfalse(string.startswith("hello world", "truck"))
+    assert.equal(string.strip("???hello world???", "?"), "hello world")
+    assert.equal(string.strip("123hello world123", "123"), "hello world")
+    assert.equal(string.lstrip("???hello world???", "?"), "hello world???")
+    assert.equal(string.lstrip("12hello world12", "12"), "hello world12")
+    assert.equal(string.rstrip("???hello world???", "?"), "???hello world")
+    assert.equal(string.split("hello world abc", " "), { "hello", "world", "abc" })
+    assert.equal({string.partition("hello.wor.ld", ".")}, { "hello", "wor.ld" })
+    assert.equal({string.partition("hello.wor.ld", ".", true)}, { "hello.wor", "ld" })
+    assert.istrue(string.casefold("HELLO WORLD", "hello world"))
+    assert.isfalse(string.casefold("HELLO WORLD", "hello worlz"))
+    assert.equal(string.rfind("world hello world", "world"), 13)
+    assert.isnil(string.rfind("hello x", "world"), nil)
+    assert.equal("99 dreams of 99 red balloons":rfind("%d"), 15)
+    assert.isnil("aaa":rfind("%d"))
+    assert.equal("1aa":rfind("%d"), 1)
+    assert.equal("a1a":rfind("%d"), 2)
+    assert.equal("aa1":rfind("%d"), 3)
+    assert.equal("111":rfind("%d"), 3)
+    assert.equal({"aaa":rfind("")}, { 3, 2 })
+    assert.isnil("":rfind("%d"))
+    assert.isnil("111":rfind("%d", 1))
+    assert.equal("111":rfind("%d", 2), 1)
+    assert.equal("111":rfind("%d", 3), 2)
+    assert.equal("111":rfind("%d", 4), 3)
+    assert.equal(string.upper("hello", 1), "Hello")
+    assert.equal(string.upper("hello", 2), "hEllo")
+    assert.equal(string.upper("hello", -1), "hellO")
+    assert.equal(string.upper("hello", -2), "helLo")
+    assert.equal(string.upper("hello", -6), "hello")
+    assert.equal(string.upper("hello", 6), "hello")
+    assert.equal(string.upper("hello"), "HELLO")
+    assert.equal(string.lower("HELLO"), "hello")
+    assert.equal(string.lower("HELLO", 1), "hELLO")
+    assert.equal(string.lower("HELLO", 2), "HeLLO")
+    assert.equal(string.lower("HELLO", -1), "HELLo")
+    assert.equal(string.lower("HELLO", -2), "HELlO")
+    assert.equal(string.lower("HELLO", -14), "HELLO")
+    assert.equal(string.truncate("Hello, World!", 5), "Hello")
+    assert.equal(string.truncate("Hello, World!", 5, true), "He...")
+    assert.equal(string.truncate("Hello", 1), "H")
+    assert.equal(string.truncate("Hello", 1, true), "H")
+    assert.equal(string.truncate("Hello", 4, true), "H...")
+    assert.equal(string.truncate("Hello", 6), "Hello")
+    assert.equal(string.truncate("Hello", 6, true), "Hello")
+    assert.equal(string.replace("hello world", "joe", "abc"), "hello world")
+    assert.equal(string.replace("hello world", " ", ""), "helloworld")
+    assert.equal(string.replace("LLLL", "L", "X"), "XXXX")
+    assert.equal(string.replace("LLLL", "L", "X", 2), "XXLL")
     local function septest(sep)
         local fn = |...| -> string.formatint(...)
 
-        assert(fn(100, sep) == "100")
-        assert(fn(1000, sep) == $"1{sep}000")
-        assert(fn(10000, sep) == $"10{sep}000")
-        assert(fn(100000, sep) == $"100{sep}000")
-        assert(fn(1000000, sep) == $"1{sep}000{sep}000")
-        assert(fn(10000000, sep) == $"10{sep}000{sep}000")
+        assert.equal(fn(100, sep), "100")
+        assert.equal(fn(1000, sep), $"1{sep}000")
+        assert.equal(fn(10000, sep), $"10{sep}000")
+        assert.equal(fn(100000, sep), $"100{sep}000")
+        assert.equal(fn(1000000, sep), $"1{sep}000{sep}000")
+        assert.equal(fn(10000000, sep),  $"10{sep}000{sep}000")
 
-        assert(fn(-100, sep) == "-100")
-        assert(fn(-1000, sep) == $"-1{sep}000")
-        assert(fn(-10000, sep) == $"-10{sep}000")
-        assert(fn(-100000, sep) == $"-100{sep}000")
-        assert(fn(-1000000, sep) == $"-1{sep}000{sep}000")
-        assert(fn(-10000000, sep) == $"-10{sep}000{sep}000")
+        assert.equal(fn(-100, sep), "-100")
+        assert.equal(fn(-1000, sep), $"-1{sep}000")
+        assert.equal(fn(-10000, sep), $"-10{sep}000")
+        assert.equal(fn(-100000, sep), $"-100{sep}000")
+        assert.equal(fn(-1000000, sep), $"-1{sep}000{sep}000")
+        assert.equal(fn(-10000000, sep), $"-10{sep}000{sep}000")
     end
 
     septest(",")
     septest(".")
     septest(" ")
     local _, err = pcall(|| -> septest("..."))
-    assert(err:contains("length of 1"))
+    assert.istrue(err:contains("length of 1"))
 
     local function septest2(sep)
         local fn = |...| -> string.formatint(...)
 
-        assert(fn(100, sep, 2) == $"1{sep}00")
-        assert(fn(1000, sep, 2) == $"10{sep}00")
-        assert(fn(10000, sep, 2) == $"1{sep}00{sep}00")
-        assert(fn(100000, sep, 2) == $"10{sep}00{sep}00")
+        assert.equal(fn(100, sep, 2), $"1{sep}00")
+        assert.equal(fn(1000, sep, 2), $"10{sep}00")
+        assert.equal(fn(10000, sep, 2), $"1{sep}00{sep}00")
+        assert.equal(fn(100000, sep, 2), $"10{sep}00{sep}00")
 
-        assert(fn(-100, sep, 2) == $"-1{sep}00")
-        assert(fn(-1000, sep, 2) == $"-10{sep}00")
-        assert(fn(-10000, sep, 2) == $"-1{sep}00{sep}00")
-        assert(fn(-100000, sep, 2) == $"-10{sep}00{sep}00")
+        assert.equal(fn(-100, sep, 2), $"-1{sep}00")
+        assert.equal(fn(-1000, sep, 2), $"-10{sep}00")
+        assert.equal(fn(-10000, sep, 2), $"-1{sep}00{sep}00")
+        assert.equal(fn(-100000, sep, 2), $"-10{sep}00{sep}00")
     end
 
     septest2(",")
     septest2(".")
     septest2(" ")
 
-    assert(string.formatint("+3249230492345645324234234234234234234234234324242343243242342343423242344") == "+3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
-    assert(string.formatint("-3249230492345645324234234234234234234234234324242343243242342343423242344") == "-3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
+    assert.equal(string.formatint("+3249230492345645324234234234234234234234234324242343243242342343423242344"), "+3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
+    assert.equal(string.formatint("-3249230492345645324234234234234234234234234324242343243242342343423242344"), "-3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
 
     local str = "Hello, World! == %% 20 <> //\\"
     local url = require"pluto:url"
-    assert(url.encode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
-    assert(url.decode(url.encode(str)) == str)
+    assert.equal(url.encode(str), "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
+    assert.equal(url.decode(url.encode(str)), str)
 end
 do
     local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
     table.filter(t, |v| -> v % 2 ~= 0)
-    assert(t[1] == 5)
-    assert(t[2] == nil)
-    assert(t[3] == 3)
-    assert(t[4] == nil)
-    assert(t[5] == 1)
-    assert(t.even == nil)
-    assert(t.odd == 9)
+    assert.equal(t, { 5, nil, 3, nil, 1, even = nil, odd = 9})
 end
 do
     local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
     table.filter(t, |k, v| -> v % 2 ~= 0, true)
-    assert(t[1] == 5)
-    assert(t[2] == nil)
-    assert(t[3] == 3)
-    assert(t[4] == nil)
-    assert(t[5] == 1)
-    assert(t.even == nil)
-    assert(t.odd == 9)
+    assert.equal(t, { 5, nil, 3, nil, 1, even = nil, odd = 9})
 end
 do
     local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
     table.filter(t, |k, v| -> type(k) == "string", true)
-    assert(t[1] == nil)
-    assert(t[2] == nil)
-    assert(t[3] == nil)
-    assert(t[4] == nil)
-    assert(t[5] == nil)
-    assert(t.even == 8)
-    assert(t.odd == 9)
+    assert.equal(t, { even = 8, odd = 9 })
 end
 do
     do
         local t = { 1, nil, 2, nil, nil, 3, nil, nil, nil, 4, nil }
         t:reorder()
-        assert(t[1] == 1)
-        assert(t[2] == 2)
-        assert(t[3] == 3)
-        assert(t[4] == 4)
-        assert(t[5] == nil)
+        assert.equal(t, { 1, 2, 3, 4 })
     end
 
     do
         local t = { 1, 2, 3, "hello" }:reorder()
-        assert(t[1] == 1)
-        assert(t[2] == 2)
-        assert(t[3] == 3)
-        assert(t[4] == "hello")
+        assert.equal(t, { 1, 2, 3, "hello" })
     end
 end
 do
@@ -1353,158 +1286,119 @@ do
     }
     local betterDoener = { id = 2, name = "Better Doener" }
     menu = table.map(menu, |item| -> item.id == betterDoener.id ? betterDoener : item)
-    assert(menu[2].name == "Better Doener")
+    assert.equal(menu[2].name, "Better Doener")
 end
 do
     local t = { 1, 2, 3, key = 4 }
     t = table.map(t, |v| -> v * 2)
-    assert(t[1] == 2)
-    assert(t[2] == 4)
-    assert(t[3] == 6)
-    assert(t.key == 8)
+    assert.equal(t, { 2, 4, 6, key = 8 })
 end
 do
     local t = { 1, 2, 3, key = 4 }
     t = table.map(t, |k, v| -> v * 2, true)
-    assert(t[1] == 2)
-    assert(t[2] == 4)
-    assert(t[3] == 6)
-    assert(t.key == 8)
+    assert.equal(t, { 2, 4, 6, key = 8})
 end
 do
     local t = { 1, 2, 3, key = 4 }
     t = table.map(t, |k, v| -> type(k) == "string" ? 0 : k * 2, true)
-    assert(t[1] == 2)
-    assert(t[2] == 4)
-    assert(t[3] == 6)
-    assert(t.key == 0)
+    assert.equal(t, { 2, 4, 6, key = 0 })
 end
 do
-    assert(0 == {1,2,}:size(true))
-    assert(1 == {1,2, a = "a" }:size(true))
-    assert(2 == {1,2, a = "a", b = "b" }:size(true))
-    assert(3 == {1,2, a = "a", b = "b", c = "c" }:size(true))
-    assert(4 == {1,2, a = "a", b = "b", c = "c", d = "d" }:size(true))
-    assert(5 == {1,2, a = "a", b = "b", c = "c", d = "d", e = "e" }:size(true))
+    assert.equal(0, {1,2,}:size(true))
+    assert.equal(1, {1,2, a = "a" }:size(true))
+    assert.equal(2, {1,2, a = "a", b = "b" }:size(true))
+    assert.equal(3, {1,2, a = "a", b = "b", c = "c" }:size(true))
+    assert.equal(4, {1,2, a = "a", b = "b", c = "c", d = "d" }:size(true))
+    assert.equal(5, {1,2, a = "a", b = "b", c = "c", d = "d", e = "e" }:size(true))
 
-    assert(2 == {1,2,}:size(false))
-    assert(3 == {1,2, a = "a" }:size(false))
-    assert(4 == {1,2, a = "a", b = "b" }:size(false))
-    assert(5 == {1,2, a = "a", b = "b", c = "c" }:size(false))
-    assert(6 == {1,2, a = "a", b = "b", c = "c", d = "d" }:size(false))
-    assert(7 == {1,2, a = "a", b = "b", c = "c", d = "d", e = "e" }:size(false))
+    assert.equal(2, {1,2,}:size(false))
+    assert.equal(3, {1,2, a = "a" }:size(false))
+    assert.equal(4, {1,2, a = "a", b = "b" }:size(false))
+    assert.equal(5, {1,2, a = "a", b = "b", c = "c" }:size(false))
+    assert.equal(6, {1,2, a = "a", b = "b", c = "c", d = "d" }:size(false))
+    assert.equal(7, {1,2, a = "a", b = "b", c = "c", d = "d", e = "e" }:size(false))
 end
 do
     local t = { 1, 2, 3 }
-    assert(t:reduce(|a, b| -> a + b) == 6)
-    assert(t:reduce(math.max, math.mininteger) == 3)
-    assert(t:reduce(math.min, math.maxinteger) == 1)
-    assert({"a", "b", "c"}:reduce(|a, b| -> a .. b, "") == "abc")
+    assert.equal(t:reduce(|a, b| -> a + b), 6)
+    assert.equal(t:reduce(math.max, math.mininteger), 3)
+    assert.equal(t:reduce(math.min, math.maxinteger), 1)
+    assert.equal({"a", "b", "c"}:reduce(|a, b| -> a .. b, ""), "abc")
 end
 do
     local t = { 3, 2, 1 }
     local ts = t:sorted()
-    assert(t[1] == 3)
-    assert(t[2] == 2)
-    assert(t[3] == 1)
-    assert(ts[1] == 1)
-    assert(ts[2] == 2)
-    assert(ts[3] == 3)
+    assert.equal(t, { 3, 2, 1 })
+    assert.equal(ts, { 1, 2, 3 })
 end
 do
     local t = { 1, 2, 3 }
     local tm = t:mapped(|n| -> n * 2)
-    assert(t[1] == 1)
-    assert(t[2] == 2)
-    assert(t[3] == 3)
-    assert(tm[1] == 2)
-    assert(tm[2] == 4)
-    assert(tm[3] == 6)
+    assert.equal(t, { 1, 2, 3 })
+    assert.equal(tm, { 2, 4, 6 })
 end
 do
     local t = { 1, 2, 3, 4, 5 }
     local tf = t:filtered(|n| -> n % 2 ~= 0)
-    assert(t[1] == 1)
-    assert(t[2] == 2)
-    assert(t[3] == 3)
-    assert(t[4] == 4)
-    assert(t[5] == 5)
-    assert(tf[1] == 1)
-    assert(tf[2] == nil)
-    assert(tf[3] == 3)
-    assert(tf[4] == nil)
-    assert(tf[5] == 5)
+        for key, value in tf do
+        print(key, value)
+    end
+    assert.equal(t, { 1, 2, 3, 4, 5 })
+    assert.equal(tf, { 1, nil, 3, nil, 5 })
 end
 do
     local t = { 1, 2, 3 }
     local tr = t:reversed()
-    assert(t[1] == 1)
-    assert(t[2] == 2)
-    assert(t[3] == 3)
-    assert(tr[1] == 3)
-    assert(tr[2] == 2)
-    assert(tr[3] == 1)
+    assert.equal(t, { 1, 2, 3 })
+    assert.equal(tr, { 3, 2, 1 })
 end
 do
     local t = { 1, 2, 3 }
     t[2] = nil
     local tr = t:reordered()
-    assert(t[1] == 1)
-    assert(t[2] == nil)
-    assert(t[3] == 3)
-    assert(tr[1] == 1)
-    assert(tr[2] == 3)
-    assert(tr[3] == nil)
+    assert.equal(t, { 1, nil, 3 })
+    assert.equal(tr, { 1, 3, nil })
 end
 do
-    assert(compareversions("0.1.0", "0.1.0") == 0)
-    assert(compareversions("0.1.0", "0.2.0") ~= 0)
-    assert(compareversions("0.2.0", "0.1.0") > 0)
-    assert(compareversions("0.2.0", "0.1.0") >= 0)
-    assert(compareversions("0.1.0", "0.2.0") < 0)
-    assert(compareversions("0.1.0", "0.1.0") <= 0)
+    assert.equal(compareversions("0.1.0", "0.1.0"), 0)
+    assert.nequal(compareversions("0.1.0", "0.2.0"), 0)
+    assert.greater(compareversions("0.2.0", "0.1.0"), 0)
+    assert.greatereq(compareversions("0.2.0", "0.1.0"), 0)
+    assert.less(compareversions("0.1.0", "0.2.0"), 0)
+    assert.lesseq(compareversions("0.1.0", "0.1.0"), 0)
 end
 do
-    assert(math.isnan(0 / 0) == true)
-    assert(math.isnan(69) == false)
+    assert.istrue(math.isnan(0 / 0))
+    assert.isfalse(math.isnan(69))
 end
 do
     local t = range(3)
-    assert(#t == 3)
-    assert(t[1] == 1)
-    assert(t[2] == 2)
-    assert(t[3] == 3)
+    assert.equal(#t, 3)
+    assert.equal(t, { 1, 2, 3 })
 end
 do
     local t = range(3, 6)
-    assert(#t == 4)
-    assert(t[1] == 3)
-    assert(t[2] == 4)
-    assert(t[3] == 5)
-    assert(t[4] == 6)
+    assert.equal(#t, 4)
+    assert.equal(t, { 3, 4, 5, 6 })
 end
 do
     local t = range(1, 10, 2)
-    assert(#t == 5)
-    assert(t[1] == 1)
-    assert(t[2] == 3)
-    assert(t[3] == 5)
-    assert(t[4] == 7)
-    assert(t[5] == 9)
+    assert.equal(#t, 5)
+    assert.equal(t, { 1, 3, 5, 7, 9 })
 end
 do
     local cat = require"pluto:cat"
 
     local data = "List: With Value\n\tChild: With Value\n"
     local t = cat.decode(data)
-    assert(t.List.__value == "With Value")
-    assert(t.List.Child == "With Value")
-    assert(cat.encode(t) == data)
+    assert.equal(t.List.__value, "With Value")
+    assert.equal(t.List.Child, "With Value")
+    assert.equal(cat.encode(t), data)
 
     data = "Hello: World\n"
     t = cat.decode(data)
-    assert(t.Hello == "World")
-    assert(cat.encode(t) == data)
+    assert.equal(t.Hello, "World")
+    assert.equal(cat.encode(t), data)
 end
 
 print "Testing default table metatable."
@@ -1512,9 +1406,9 @@ do
     -- Note: This behavior may be disabled by defining the PLUTO_NO_DEFAULT_TABLE_METATABLE macro.
 
     local t = { "apple", "banana" }
-    assert(t:contains("apple") == 1)
-    assert(t:contains("banana") == 2)
-    assert(t:contains("orange") == nil)
+    assert.equal(t:contains("apple"), 1)
+    assert.equal(t:contains("banana"), 2)
+    assert.isnil(t:contains("orange"))
 end
 
 print "Testing default arguments."
@@ -1524,27 +1418,27 @@ do
         return a, b, c, d, e
     end
     local a, b, c, d, e = f()
-    assert(a == 1)
-    assert(b == 69)
-    assert(c == -2)
-    assert(d == +3)
-    assert(e == "Hello")
+    assert.equal(a, 1)
+    assert.equal(b, 69)
+    assert.equal(c, -2)
+    assert.equal(d, +3)
+    assert.equal(e, "Hello")
 
     local function tf(t = { 1, 2, 3 })
         return t
     end
     local t = tf()
-    assert(#t == 3)
-    assert(t[1] == 1)
-    assert(t[2] == 2)
-    assert(t[3] == 3)
+    assert.equal(#t, 3)
+    assert.equal(t[1], 1)
+    assert.equal(t[2], 2)
+    assert.equal(t[3], 3)
 end
 do
     local function f(a = true)
         return a
     end
-    assert(f() == true)
-    assert(f(false) == false)
+    assert.istrue(f())
+    assert.isfalse(f(false))
 end
 do
     local t = {
@@ -1555,8 +1449,8 @@ do
     function t:bar(a = "world")
         return a
     end
-    assert(t:foo() == "hello")
-    assert(t:bar() == "world")
+    assert.equal(t:foo(), "hello")
+    assert.equal(t:bar(), "world")
 end
 
 print "Testing walrus operator."
@@ -1565,7 +1459,7 @@ do
     else
         error()
     end
-    assert(a == 3)
+    assert.equal(a, 3)
 
     if b := nil then
         error()
@@ -1577,7 +1471,7 @@ do
     end
     executeFunc(function()
         if c := 3 then
-            assert(c == 3)
+            assert.equal(c, 3)
         else
             error()
         end
@@ -1595,7 +1489,7 @@ do
     local t = { "a", "b", "c" }
     local k = 1
     for t as v do
-        assert(t[k] == v)
+        assert.equal(t[k], v)
         k = k + 1
     end
 end
@@ -1606,43 +1500,43 @@ do
         UTE_ONE,
         UTE_TWO,
     end
-    assert(UTE_ONE == 1)
-    assert(UTE_TWO == 2)
+    assert.equal(UTE_ONE, 1)
+    assert.equal(UTE_TWO, 2)
 
     enum NamedTestEnum begin
         NTE_ONE,
         NTE_TWO
     end
-    assert(NTE_ONE == 1)
-    assert(NTE_TWO == 2)
+    assert.equal(NTE_ONE, 1)
+    assert.equal(NTE_TWO, 2)
 
     enum CStyleEnum begin
         CSE_INIT = 0,
         CSE_CONTINUED
     end
-    assert(CSE_INIT == 0)
-    assert(CSE_CONTINUED == 1)
+    assert.equal(CSE_INIT, 0)
+    assert.equal(CSE_CONTINUED, 1)
 
     enum UnaryTestEnum begin
         UNAR_INVALID = -1,
         UNAR_ONE = +1
     end
-    assert(UNAR_INVALID == -1)
-    assert(UNAR_ONE == +1)
+    assert.equal(UNAR_INVALID, -1)
+    assert.equal(UNAR_ONE, +1)
 
     enum ConstyEnum begin
         CST_VAL = 1,
         CPY_VAL = CST_VAL,
     end
-    assert(CST_VAL == 1)
-    assert(CPY_VAL == 1)
+    assert.equal(CST_VAL, 1)
+    assert.equal(CPY_VAL, 1)
 
     enum RelativeEnum begin
         RE_MAGIC = 42,
         RE_MAGIC_PLUS_2 = RE_MAGIC + 2
     end
-    assert(RE_MAGIC == 42)
-    assert(RE_MAGIC_PLUS_2 == 44)
+    assert.equal(RE_MAGIC, 42)
+    assert.equal(RE_MAGIC_PLUS_2, 44)
 end
 do
     enum class colours begin
@@ -1650,25 +1544,25 @@ do
         green,
         blue
     end
-    assert(colours.red == 1)
-    assert(colours.green == 2)
-    assert(colours.blue == 3)
-    assert(red == nil)
-    assert(green == nil)
-    assert(blue == nil)
+    assert.equal(colours.red, 1)
+    assert.equal(colours.green, 2)
+    assert.equal(colours.blue, 3)
+    assert.isnil(red)
+    assert.isnil(green)
+    assert.isnil(blue)
 end
 
 print "Testing interpolated strings."
 do
     f_string_global = "foo"
     local f_string_local = "bar"
-    assert($"a{f_string_global}b{f_string_local}c" == "afoobbarc")
-    assert($"{f_string_global}{f_string_local}" == "foobar")
+    assert.equal($"a{f_string_global}b{f_string_local}c",  "afoobbarc")
+    assert.equal($"{f_string_global}{f_string_local}", "foobar")
 end
 do
     local t = { a = "hello" }
-    assert($"{t.a} world" == "hello world")
-    assert($'{t.a} world' == "hello world")
+    assert.equal($"{t.a} world", "hello world")
+    assert.equal($'{t.a} world', "hello world")
 
     local class Person
         name;
@@ -1685,62 +1579,62 @@ do
     end
 
     local person = new Person("John", 25)
-    assert($"{person:printInformation()}" == "My name is John & my age is 25.")
+    assert.equal($"{person:printInformation()}", "My name is John & my age is 25.")
 end
 -- @pluto_warnings: disable-next
-assert($"{true ? 'true' : 'false'} is the value" == "true is the value")
+assert.equal($"{true ? 'true' : 'false'} is the value", "true is the value")
 do -- escaping
     local a = "world"
-    assert($"hello {a}, \{}" == "hello world, {}")
-    assert($"hello {a}, {1 == 1}, \{1 == 1}" == "hello world, true, {1 == 1}")
-    assert($"hello {a}, {1 == 1}, \\{1 == 1}" == "hello world, true, \\true")
+    assert.equal($"hello {a}, \{}", "hello world, {}")
+    assert.equal($"hello {a}, {1 == 1}, \{1 == 1}", "hello world, true, {1 == 1}")
+    assert.equal($"hello {a}, {1 == 1}, \\{1 == 1}", "hello world, true, \\true")
 end
 
 print "Testing ++ operator."
 do
     -- expression
     local a = 1
-    assert(++a == 2)
-    assert(a == 2)
+    assert.equal(++a, 2)
+    assert.equal(a, 2)
 end
 do
     -- statement
     local a = 1
     ++a
-    assert(a == 2)
+    assert.equal(a, 2)
 
     local t = { a = 1 }
     ++t.a
-    assert(t.a == 2)
+    assert.equal(t.a, 2)
 end
 
 print "Testing non-ascii variable names."
 do
     local 😉 = "Hello"
-    assert(😉 == "Hello")
+    assert.equal(😉, "Hello")
 end
 
 print "Testing binary numerals."
 do
-    assert(0b11 == 3)
+    assert.equal(0b11, 3)
 end
 
 print "Testing boolean concatenation."
 do
-    assert(("aussie version is " .. true) == "aussie version is true")
-    assert((true .. false) == "truefalse")
+    assert.equal(("aussie version is " .. true), "aussie version is true")
+    assert.equal((true .. false), "truefalse")
 end
 
 print "Testing constant expressions."
 do
-    assert($crypto.joaat("Pluto") == 32037948)
+    assert.equal($crypto.joaat("Pluto"), 32037948)
 
     -- They can be chained
-    assert($crypto.joaat($crypto.sha256("hello")) == 329026960)
+    assert.equal($crypto.joaat($crypto.sha256("hello")), 329026960)
 
     -- They accept compile-time constants as argument
     local str <const> = "Pluto"
-    assert($crypto.joaat(str) == 32037948)
+    assert.equal($crypto.joaat(str), 32037948)
 end
 
 print "Testing named arguments."
@@ -1748,22 +1642,22 @@ do
     local function getGreeting(greeting, name = "Universe")
         return greeting .. ", " .. name .. "!"
     end
-    assert(getGreeting(greeting="Hello", name="World") == "Hello, World!")
-    assert(getGreeting(greeting="Hello") == "Hello, Universe!")
-    assert(getGreeting(name="World", greeting="Hello") == "Hello, World!")
+    assert.equal(getGreeting(greeting="Hello", name="World"), "Hello, World!")
+    assert.equal(getGreeting(greeting="Hello"), "Hello, Universe!")
+    assert.equal(getGreeting(name="World", greeting="Hello"), "Hello, World!")
 
     local function getName()
         return "Planet"
     end
-    assert(getGreeting(name=getName(), greeting="Hello") == "Hello, Planet!")
+    assert.equal(getGreeting(name=getName(), greeting="Hello"), "Hello, Planet!")
 
     local function mixedArgs(file, mode = "r", version = 1)
         return file, mode, version
     end
     local file, mode, version = mixedArgs("Hello", version = 2)
-    assert(file == "Hello")
-    assert(mode == "r")
-    assert(version == 2)
+    assert.equal(file, "Hello")
+    assert.equal(mode, "r")
+    assert.equal(version, 2)
 end
 
 print "Testing classes."
@@ -1783,7 +1677,8 @@ do
     end
 
     local inst = new ClassWithAnExceptionallySpecificAndLongName()
-    assert(a == true and b == true)
+    assert.istrue(a)
+    assert.istrue(b)
 end
 do
     do
@@ -1792,14 +1687,14 @@ do
         local class localclass
         end
     end
-    assert(globalclass ~= nil)
-    assert(localclass == nil)
+    assert.notnil(globalclass)
+    assert.isnil(localclass)
 end
 do
     local classexpr = class
         b = true
     end
-    assert(classexpr.b == true)
+    assert.istrue(classexpr.b)
 end
 do
     local Entity = {
@@ -1811,17 +1706,17 @@ do
 
     local e = new Entity()
     local h = new Human()
-    assert(e.age == 1)
-    assert(h.age == 1)
-    assert(e instanceof Entity == true)
-    assert(e instanceof Human == false)
-    assert(h instanceof Entity == true)
-    assert(h instanceof Human == true)
+    assert.equal(e.age, 1)
+    assert.equal(h.age, 1)
+    assert.istrue(e instanceof Entity)
+    assert.isfalse(e instanceof Human)
+    assert.istrue(h instanceof Entity)
+    assert.istrue(h instanceof Human)
 
     local a, b = (new Entity() instanceof Entity)
-    assert(a == true)
-    assert(b == nil)
-    assert(new Human() instanceof Entity)
+    assert.istrue(a)
+    assert.isnil(b)
+    assert.istrue(new Human() instanceof Entity)
 end
 do
     local class Entity
@@ -1836,15 +1731,15 @@ do
         __name = "Human"
 
         function __construct(name)
-            assert(parent.__name == "Entity")
+            assert.equal(parent.__name, "Entity")
             parent:__construct(name)
         end
     end
 
     local john = new Human("John")
-    assert(john.name == "John")
-    assert(john instanceof Entity)
-    assert(john instanceof Human)
+    assert.equal(john.name, "John")
+    assert.istrue(john instanceof Entity)
+    assert.istrue(john instanceof Human)
 end
 -- Multi-level parent calls
 do
@@ -1867,7 +1762,7 @@ do
     end
 
     local p = new Player("John")
-    assert(p.name == "John")
+    assert.equal(p.name, "John")
 end
 -- Class overriding '__index'
 do
@@ -1892,9 +1787,9 @@ do
     end
 
     local c = new Counter()
-    assert(c.num == 1 + extraOffset)
+    assert.equal(c.num, 1 + extraOffset)
     c.num = 42
-    assert(c.num == 42)
+    assert.equal(c.num, 42)
 end
 -- Metamethod inheritance
 do
@@ -1917,11 +1812,11 @@ do
     local b = new Base()
     local c = new Child()
 
-    assert(tostring(b) == "A based object")
-    assert(tostring(c) == "A based object: The sequel")
+    assert.equal(tostring(b), "A based object")
+    assert.equal(tostring(c), "A based object: The sequel")
 
-    assert(b() == "You called?")
-    assert(c() == "You called?")
+    assert.equal(b(), "You called?")
+    assert.equal(c(), "You called?")
 end
 do
     local class ClassParsingTest
@@ -1941,8 +1836,8 @@ do
     end
 
     local p = new Point(3)
-    assert(p.x == 3)
-    assert(p.y == 0)
+    assert.equal(p.x, 3)
+    assert.equal(p.y, 0)
 end
 -- 'new' as a statement
 do
@@ -1960,8 +1855,8 @@ do
     end
 
     new TestClass()
-    assert(ctored == true)
-    assert(method_called == false)
+    assert.istrue(ctored)
+    assert.isfalse(method_called)
 end
 do
     local ctored = false
@@ -1978,8 +1873,8 @@ do
     end
 
     new TestClass():method()
-    assert(ctored == true)
-    assert(method_called == true)
+    assert.istrue(ctored)
+    assert.istrue(method_called)
 end
 do
     local namespace = {}
@@ -1987,8 +1882,8 @@ do
     class namespace.Base end
     class namespace.Derived extends namespace.Base end
 
-    assert(new namespace.Base() instanceof namespace.Base)
-    assert(new namespace.Derived() instanceof namespace.Base)
+    assert.istrue(new namespace.Base() instanceof namespace.Base)
+    assert.istrue(new namespace.Derived() instanceof namespace.Base)
 end
 do
     local class Class
@@ -2007,12 +1902,12 @@ do
     end
 
     local inst = new Class(1337)
-    assert(inst.whatever == nil)
-    assert(inst.promoted == nil)
+    assert.isnil(inst.whatever)
+    assert.isnil(inst.promoted)
     inst.whatever = 42
     inst.promoted = 42
-    assert(inst:getWhatever() == 69)
-    assert(inst:getPromoted() == 1337)
+    assert.equal(inst:getWhatever(), 69)
+    assert.equal(inst:getPromoted(), 1337)
 end
 
 print "Testing named varargs."
@@ -2021,9 +1916,8 @@ do
         return a
     end
     local t = f("Hello", 1337)
-    assert(#t == 2)
-    assert(t[1] == "Hello")
-    assert(t[2] == 1337)
+    assert.equal(#t, 2)
+    assert.equal(t, { "Hello", 1337 })
 end
 
 print "Testing export."
@@ -2037,9 +1931,9 @@ do
     export class Clazz
     end
     ]] ()
-    assert(t.var == 1337)
-    assert(t.func() == true)
-    assert(type(t.Clazz) == "table")
+    assert.equal(t.var, 1337)
+    assert.istrue(t.func())
+    assert.equal(type(t.Clazz), "table")
 end
 do
     local function export_in_non_main_function()
@@ -2053,20 +1947,20 @@ do
         end
     end
     local t = export_in_non_main_function()
-    assert(t.var == 1337)
-    assert(t.func() == true)
-    assert(type(t.Clazz) == "table")
+    assert.equal(t.var, 1337)
+    assert.istrue(t.func())
+    assert.equal(type(t.Clazz), "table")
 end
 
 print "Testing optional parentheses."
 do
-    assert("a.b.c":split(".")[1] == "a")
+    assert.equal("a.b.c":split(".")[1], "a")
 
-    assert({
+    assert.equal({
         static function test()
             return "hello"
         end
-    }.test() == "hello")
+    }.test(), "hello")
 end
 
 print "Testing table destructuring."
@@ -2078,16 +1972,16 @@ do
     }
     do
         local { str } = t
-        assert(str == "hello")
+        assert.equal(str, "hello")
     end
     do
         local { i } = t
-        assert(i == 1337)
+        assert.equal(i, 1337)
     end
     do
         local { str, i } = t
-        assert(str == "hello")
-        assert(i == 1337)
+        assert.equal(str, "hello")
+        assert.equal(i, 1337)
     end
 end
 do
@@ -2096,9 +1990,9 @@ do
         i = 69,
         s = "Hello"
     }
-    assert(i == 69)
-    assert(s == nil)
-    assert(str == "Hello")
+    assert.equal(i, 69)
+    assert.isnil(s)
+    assert.equal(str, "Hello")
 end
 do
     -- Temporary table, single field
@@ -2106,21 +2000,21 @@ do
         i = 69,
         s = "Hello"
     }
-    assert(i == 69)
+    assert.equal(i, 69)
 end
 -- Array destructuring
 do
     local [a, b, c] = { 1, 2, 3 }
-    assert(a == 1)
-    assert(b == 2)
-    assert(c == 3)
+    assert.equal(a, 1)
+    assert.equal(b, 2)
+    assert.equal(c, 3)
 end
 do
     local t = { 1, 2, 3 }
     local [a, b, c] = t
-    assert(a == 1)
-    assert(b == 2)
-    assert(c == 3)
+    assert.equal(a, 1)
+    assert.equal(b, 2)
+    assert.equal(c, 3)
 end
 
 print "Testing pluto_use."
@@ -2128,7 +2022,7 @@ do
     pluto_use class = false
 
     local class = { class = "class" }
-    assert(class.class == "class")
+    assert.equal(class.class, "class")
 
     pluto_use class
 
@@ -2154,10 +2048,10 @@ do
         $end
     ]], ""))
 
-    assert(debug_bytecode:find("Script running in debug mode") ~= nil)
-    assert(debug_bytecode:find("Script running in release mode") == nil)
-    assert(release_bytecode:find("Script running in debug mode") == nil)
-    assert(release_bytecode:find("Script running in release mode") ~= nil)
+    assert.notnil(debug_bytecode:find("Script running in debug mode"))
+    assert.isnil(debug_bytecode:find("Script running in release mode"))
+    assert.isnil(release_bytecode:find("Script running in debug mode"))
+    assert.notnil(release_bytecode:find("Script running in release mode"))
 end
 
 print "Testing try/catch."
@@ -2175,8 +2069,8 @@ do
         end
         return ret
     end
-    assert(test(false) == true)
-    assert(test(true) == false)
+    assert.istrue(test(false))
+    assert.isfalse(test(true))
 end
 do
     -- Test case: Try does return
@@ -2191,11 +2085,11 @@ do
         end
     end
     local b, s = test(false)
-    assert(b == true)
-    assert(s == "ok")
+    assert.istrue(b)
+    assert.equal(s, "ok")
     b, s = test(true)
-    assert(b == false)
-    assert(s == "error")
+    assert.isfalse(b)
+    assert.equal(s, "error")
 end
 do
     -- Should work seamlessly with vararg functions
@@ -2206,7 +2100,7 @@ do
             return e
         end
     end
-    assert(ensure_error(error, { what = "err" }).what == "err")
+    assert.equal(ensure_error(error, { what = "err" }).what, "err")
 end
 do
     -- Nil values should be returned as nil, not void.
@@ -2217,7 +2111,7 @@ do
         catch e then
         end
     end
-    assert(table.pack(f()).n == 1)
+    assert.equal(table.pack(f()).n, 1)
 end
 do
     -- If try block returns, catch block needs to jump over the try-return code (in case it doesn't return.)
@@ -2228,21 +2122,21 @@ do
         end
         return true
     end
-    assert(f() == true)
+    assert.istrue(f())
 end
 
 print "Testing compatibility."
 do
     local a = "Hi"
     local t = {a}
-    assert(t[1] == "Hi")
+    assert.equal(t[1], "Hi")
     t = {a, nil}
-    assert(t[1] == "Hi")
+    assert.equal(t[1], "Hi")
     t = {["func"]=function(p1,p2)end}
-    assert(t["func"] ~= nil)
+    assert.notnil(t["func"])
 
     local myconst <const> = "consty"
-    assert(myconst == "consty")
+    assert.equal(myconst, "consty")
 
     if true then
         goto if_then_goto_test
@@ -2251,8 +2145,8 @@ do
 end
 do
     local function compat_names(default, parent)
-        assert(default == 1)
-        assert(parent == 2)
+        assert.equal(default, 1)
+        assert.equal(parent, 2)
     end
     local default = 1
     local parent = 2
