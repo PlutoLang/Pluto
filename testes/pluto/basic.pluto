@@ -706,6 +706,7 @@ do
         pluto_switch value do
             default:
             error()
+            break
             case casecond:
         end
     end
@@ -714,6 +715,7 @@ do
         pluto_switch value do
             default:
             error()
+            break
             case casecond:
         end
     end
@@ -876,6 +878,7 @@ do
         case 1:
         default:
         error()
+        break
         case 3:
         t = true
     end
