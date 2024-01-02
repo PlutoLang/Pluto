@@ -59,9 +59,9 @@ namespace soup
 	public:
 		HttpRequestTask(const Uri& uri);
 
-		void onTick() final;
+		void onTick() noexcept final;
 
-		int getSchedulingDisposition() const final;
+		int getSchedulingDisposition() const noexcept final;
 #endif
 	};
 }
