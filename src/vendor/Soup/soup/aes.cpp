@@ -266,7 +266,7 @@ namespace soup
 		data_len -= (data_len % blockBytesLen);
 
 		const auto Nr = getNr(key_len);
-		uint8_t roundKeys[240];
+		alignas(16) uint8_t roundKeys[240];
 		expandKey(roundKeys, key, key_len);
 
 		uint8_t last_block[blockBytesLen];
@@ -285,7 +285,7 @@ namespace soup
 		data_len -= (data_len % blockBytesLen);
 
 		const auto Nr = getNr(key_len);
-		uint8_t roundKeys[240];
+		alignas(16) uint8_t roundKeys[240];
 		expandKey(roundKeys, key, key_len);
 
 		uint8_t block_heap_a[blockBytesLen];
@@ -311,7 +311,7 @@ namespace soup
 		uint8_t block[blockBytesLen]{};
 		uint8_t encryptedBlock[blockBytesLen]{};
 		const auto Nr = getNr(key_len);
-		uint8_t roundKeys[240];
+		alignas(16) uint8_t roundKeys[240];
 		expandKey(roundKeys, key, key_len);
 		memcpy(block, iv, blockBytesLen);
 		for (size_t i = 0; i != data_len; i += blockBytesLen)
@@ -333,7 +333,7 @@ namespace soup
 		data_len -= (data_len % blockBytesLen);
 
 		const auto Nr = getNr(key_len);
-		uint8_t roundKeys[240];
+		alignas(16) uint8_t roundKeys[240];
 		expandKey(roundKeys, key, key_len);
 		for (size_t i = 0; i != data_len; i += blockBytesLen)
 		{
@@ -346,7 +346,7 @@ namespace soup
 		data_len -= (data_len % blockBytesLen);
 
 		const auto Nr = getNr(key_len);
-		uint8_t roundKeys[240];
+		alignas(16) uint8_t roundKeys[240];
 		expandKey(roundKeys, key, key_len);
 		for (size_t i = 0; i != data_len; i += blockBytesLen)
 		{
@@ -357,7 +357,7 @@ namespace soup
 	void aes::gcmEncrypt(uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t* key, size_t key_len, const uint8_t* iv, size_t iv_len, uint8_t tag[16]) SOUP_EXCAL
 	{
 		const auto Nr = getNr(key_len);
-		uint8_t roundKeys[240];
+		alignas(16) uint8_t roundKeys[240];
 		aes::expandKey(roundKeys, key, key_len);
 
 		uint8_t h[16];
@@ -381,7 +381,7 @@ namespace soup
 	bool aes::gcmDecrypt(uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t* key, size_t key_len, const uint8_t* iv, size_t iv_len, const uint8_t tag[16]) SOUP_EXCAL
 	{
 		const auto Nr = getNr(key_len);
-		uint8_t roundKeys[240];
+		alignas(16) uint8_t roundKeys[240];
 		aes::expandKey(roundKeys, key, key_len);
 
 		uint8_t h[16];
