@@ -1549,6 +1549,20 @@ do
     assert(t.Hello == "World")
     assert(cat.encode(t) == data)
 end
+do
+    local { base64, crypto } = require"*"
+
+    local key <const> = "A Top Secret Key"
+    local iv <const> = "My Top Secret IV"
+
+    assert(crypto.encrypt("aes-ecb", "Hello from Pluto", key) |> base64.encode == "v3WiSKT9g5TJfuq72QXVyg==")
+    assert(crypto.encrypt("aes-ecb-pkcs7", "Hello, world!", key) |> base64.encode == "YHB7hez0jYXtaxUqLj5qRw==")
+    assert(crypto.encrypt("aes-cbc", "Hello from Pluto", key, iv) |> base64.encode == "dyJWNeZQx6fjKr15cGd6Ng==")
+    assert(crypto.encrypt("aes-cbc-pkcs7", "Hello, world!", key, iv) |> base64.encode == "a3bHHwmClgOnNAVFUWgwAw==")
+    local enc, tag = crypto.encrypt("aes-gcm", "Hello from Pluto!", "Additional authenticated data UwU", key, iv)
+    assert(base64.encode(enc) == "wR/89K4T9cGKI9baKR0s7xI=")
+    assert(base64.encode(tag) == "d62kzEuotTdpAgYTrzdPpQ==")
+end
 
 print "Testing default table metatable."
 do
