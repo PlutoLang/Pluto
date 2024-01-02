@@ -113,18 +113,12 @@ namespace soup
 		{
 		}
 
-#if SOUP_CPP20
-		constexpr
-#endif
-		IpAddr(const network_u32_t ipv4) noexcept
+		SOUP_CONSTEXPR20 IpAddr(const network_u32_t ipv4) noexcept
 		{
 			operator =(ipv4);
 		}
 
-#if SOUP_CPP20
-		constexpr
-#endif
-		IpAddr(const native_u32_t ipv4) noexcept
+		SOUP_CONSTEXPR20 IpAddr(const native_u32_t ipv4) noexcept
 		{
 			operator =(ipv4);
 		}
