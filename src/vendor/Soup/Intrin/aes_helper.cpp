@@ -25,7 +25,7 @@ namespace soup
 
 	void aes_helper_expand_key_128(uint8_t w[176], const uint8_t key[16]) noexcept
 	{
-		reinterpret_cast<__m128i*>(w)[0] = *reinterpret_cast<const __m128i*>(key);
+		reinterpret_cast<__m128i*>(w)[0] = _mm_loadu_si128(reinterpret_cast<const __m128i*>(key));
 		reinterpret_cast<__m128i*>(w)[1] = aes_expand_key_step(reinterpret_cast<const __m128i*>(w)[0], _mm_aeskeygenassist_si128(reinterpret_cast<const __m128i*>(w)[0], 0x01));
 		reinterpret_cast<__m128i*>(w)[2] = aes_expand_key_step(reinterpret_cast<const __m128i*>(w)[1], _mm_aeskeygenassist_si128(reinterpret_cast<const __m128i*>(w)[1], 0x02));
 		reinterpret_cast<__m128i*>(w)[3] = aes_expand_key_step(reinterpret_cast<const __m128i*>(w)[2], _mm_aeskeygenassist_si128(reinterpret_cast<const __m128i*>(w)[2], 0x04));
@@ -40,8 +40,8 @@ namespace soup
 
 	void aes_helper_expand_key_256(uint8_t w[240], const uint8_t key[32]) noexcept
 	{
-		reinterpret_cast<__m128i*>(w)[0] = reinterpret_cast<const __m128i*>(key)[0];
-		reinterpret_cast<__m128i*>(w)[1] = reinterpret_cast<const __m128i*>(key)[1];
+		reinterpret_cast<__m128i*>(w)[0] = _mm_loadu_si128(&reinterpret_cast<const __m128i*>(key)[0]);
+		reinterpret_cast<__m128i*>(w)[1] = _mm_loadu_si128(&reinterpret_cast<const __m128i*>(key)[1]);
 		reinterpret_cast<__m128i*>(w)[2] = aes_expand_key_step(reinterpret_cast<const __m128i*>(w)[0], _mm_aeskeygenassist_si128(reinterpret_cast<const __m128i*>(w)[1], 0x01));
 		reinterpret_cast<__m128i*>(w)[3] = aes_expand_key_odd_step(reinterpret_cast<const __m128i*>(w)[2], reinterpret_cast<__m128i*>(w)[1]);
 		reinterpret_cast<__m128i*>(w)[4] = aes_expand_key_step(reinterpret_cast<const __m128i*>(w)[2], _mm_aeskeygenassist_si128(reinterpret_cast<const __m128i*>(w)[3], 0x02));
