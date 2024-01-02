@@ -6,7 +6,7 @@
 #include "vendor/Soup/soup/base32.hpp"
 
 static int encode(lua_State* L) {
-	lua_pushstring(L, soup::base32::encode(luaL_checkstring(L, 1), (bool)lua_toboolean(L, 2)).c_str());
+	lua_pushstring(L, soup::base32::encode(luaL_checkstring(L, 1), (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true)).c_str());
 	return 1;
 }
 
