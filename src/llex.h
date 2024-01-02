@@ -88,7 +88,7 @@ union SemInfo {
 struct Token {
   int token;
   SemInfo seminfo;
-  int line;
+  int line, column;
 
   Token() = default;
 
@@ -305,6 +305,7 @@ enum ParserContext : lu_byte {
   PARCTX_FUNCARGS,
   PARCTX_BODY,
   PARCTX_LAMBDA_BODY,
+  PARCTX_TERNARY_C,  /* 'c' in 'a ? b : c' */
 };
 
 struct ClassData {

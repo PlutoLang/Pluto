@@ -2738,10 +2738,14 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         }
         expdesc key;
         const auto colon_line = ls->t.line;
+        const auto colon_column = ls->t.column;
         luaX_next(ls);  /* skip ':' */
         if (l_unlikely(colon_line != ls->t.line)) {
           throw_warn(ls, "possibly unwanted function call", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", colon_line), WT_POSSIBLE_TYPO);
           ls->L->top.p--;
+        }
+        else if (l_unlikely(ls->t.column != (colon_column + 1) && ls->getContext() == PARCTX_TERNARY_C)) {
+          throw_warn(ls, "possible confusion with colons", "the second colon is interpreted as a method call instead of the first colon", "wrap the method call in parentheses", ls->t.line, WT_POSSIBLE_TYPO);
         }
         codename(ls, &key);
         luaK_self(fs, v, &key);
@@ -3462,7 +3466,9 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
     luaK_concat(fs, &escape, luaK_jump(fs));
     luaK_patchtohere(fs, condition);
     checknext(ls, ':');
+    ls->pushContext(PARCTX_TERNARY_C);
     expr(ls, v, prop);
+    ls->popContext(PARCTX_TERNARY_C);
     luaK_exp2reg(fs, v, reg);
     luaK_patchtohere(fs, escape);
   }
