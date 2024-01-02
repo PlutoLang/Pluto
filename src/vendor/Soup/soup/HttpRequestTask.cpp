@@ -230,11 +230,11 @@ namespace soup
 		emscripten_fetch(&attr, url.c_str());
 	}
 
-	void HttpRequestTask::onTick()
+	void HttpRequestTask::onTick() noexcept
 	{
 	}
 
-	int HttpRequestTask::getSchedulingDisposition() const
+	int HttpRequestTask::getSchedulingDisposition() const noexcept
 	{
 		return LOW_FREQUENCY;
 	}
