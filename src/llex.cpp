@@ -231,7 +231,7 @@ static void inclinenumber (LexState *ls) {
 }
 
 
-static int llex (LexState *ls, SemInfo *seminfo);
+static int llex (LexState *ls, SemInfo *seminfo, int *column);
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
                     int firstchar) {
   ls->t.token = 0;
@@ -245,7 +245,8 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
 
   while (true) {  /* perform lexer pass */
     Token t;
-    t.token = llex(ls, &t.seminfo);
+    t.column = (int)ls->getLineBuff().size();
+    t.token = llex(ls, &t.seminfo, &t.column);
     t.line = (int)ls->lines.size();
     ls->tokens.emplace_back(std::move(t));
     if (t.token == TK_EOS) break;
@@ -542,7 +543,7 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
 }
 
 
-static int llex (LexState *ls, SemInfo *seminfo) {
+static int llex (LexState *ls, SemInfo *seminfo, int *column) {
   luaZ_resetbuffer(ls->buff);
   for (;;) {
     switch (ls->current) {
@@ -554,6 +555,8 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         if (ls->getLineBuff().find_first_not_of(ls->current) != std::string::npos) {
           ls->appendLineBuff(ls->current);
         }
+        if (column)
+          ++*column;
         next(ls);
         break;
       }
@@ -726,6 +729,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           Token& t = ls->tokens.emplace_back(Token{});
           t.token = '(';
           t.line = (int)ls->lines.size();
+          t.column = (int)ls->getLineBuff().size();
         }
         bool need_concat = false;
         while (ls->current != del) {
@@ -737,17 +741,20 @@ static int llex (LexState *ls, SemInfo *seminfo) {
                 Token& t = ls->tokens.emplace_back(Token{});
                 t.token = TK_CONCAT;
                 t.line = (int)ls->lines.size();
+                t.column = (int)ls->getLineBuff().size();
               }
               if (luaZ_bufflen(ls->buff) != 0) {
                 { Token& t = ls->tokens.emplace_back(Token{});
                 t.token = TK_STRING;
                 t.line = (int)ls->lines.size();
+                t.column = (int)ls->getLineBuff().size();
                 t.seminfo.ts = luaX_newstring(ls, luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
                 luaZ_resetbuffer(ls->buff); }
 
                 { Token& t = ls->tokens.emplace_back(Token{});
                 t.token = TK_CONCAT;
-                t.line = (int)ls->lines.size(); }
+                t.line = (int)ls->lines.size();
+                t.column = (int)ls->getLineBuff().size(); }
               }
               next(ls);  /* skip '{' */
               ls->appendLineBuff('{');
@@ -755,11 +762,13 @@ static int llex (LexState *ls, SemInfo *seminfo) {
                 Token& t = ls->tokens.emplace_back(Token{});
                 t.token = '(';
                 t.line = (int)ls->lines.size();
+                t.column = (int)ls->getLineBuff().size();
               }
               while (true) {
                 Token t;
-                t.token = llex(ls, &t.seminfo);
+                t.token = llex(ls, &t.seminfo, nullptr);
                 t.line = (int)ls->lines.size();
+                t.column = (int)ls->getLineBuff().size();
                 if (t.token == '}' || t.token == TK_EOS) break;
                 ls->tokens.emplace_back(std::move(t));
               }
@@ -767,6 +776,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
                 Token& t = ls->tokens.emplace_back(Token{});
                 t.token = ')';
                 t.line = (int)ls->lines.size();
+                t.column = (int)ls->getLineBuff().size();
               }
               need_concat = true;
               break;
@@ -794,11 +804,13 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             Token& t = ls->tokens.emplace_back(Token{});
             t.token = TK_CONCAT;
             t.line = (int)ls->lines.size();
+            t.column = (int)ls->getLineBuff().size();
           }
           
           Token& t = ls->tokens.emplace_back(Token{});
           t.token = TK_STRING;
           t.line = (int)ls->lines.size();
+          t.column = (int)ls->getLineBuff().size();
           t.seminfo.ts = luaX_newstring(ls, luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
           luaZ_resetbuffer(ls->buff);
         }
@@ -808,6 +820,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           Token& t = ls->tokens.emplace_back(Token{});
           t.token = ')';
           t.line = (int)ls->lines.size();
+          t.column = (int)ls->getLineBuff().size();
         }
         break;
       }
