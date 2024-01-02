@@ -1152,11 +1152,13 @@ do
 end
 do
     local base64 = require("base64")
-    assert(base64.encode("Hello") == "SGVsbG8")
+    assert(base64.encode("Hello") == "SGVsbG8=")
+    assert(base64.encode("Hello", false) == "SGVsbG8")
     assert(base64.decode("SGVsbG8") == "Hello")
+    assert(base64.decode("SGVsbG8=") == "Hello")
+
     assert(base64.urlencode("Hello") == "SGVsbG8")
     assert(base64.urldecode("SGVsbG8") == "Hello")
-    assert(base64.decode(base64.encode("Hello", true)) == "Hello")
 end
 do
     local t = { key = "value" }
