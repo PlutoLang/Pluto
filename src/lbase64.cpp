@@ -9,7 +9,7 @@
 static int encode(lua_State* L) {
 	size_t len;
 	auto str = luaL_checklstring(L, 1, &len);
-	pluto_pushstring(L, soup::base64::encode(str, len, (bool)lua_toboolean(L, 2)));
+	pluto_pushstring(L, soup::base64::encode(str, len, (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true)));
 	return 1;
 }
 
