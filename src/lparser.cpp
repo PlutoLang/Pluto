@@ -319,12 +319,7 @@ static void check_match (LexState *ls, int what, int who, int where) {
       if (what == TK_END) {
         if (ls->else_if)
           throw_warn(ls, "'else if' is not the same as 'elseif' in Lua/Pluto", "did you mean 'elseif'?", ls->else_if, WT_POSSIBLE_TYPO);
-        const char *msg;
-        if (who != TK_BEGIN) {
-          msg = luaO_fmt(ls->L, "missing 'end' to terminate %s on line %d", luaX_token2str(ls, who), where);
-        }
-        else
-          msg = luaO_fmt(ls->L, "missing 'end' to terminate %s block on line %d", luaX_token2str(ls, who), where);
+        const char *msg = luaO_fmt(ls->L, "missing 'end' to terminate %s block on line %d", luaX_token2str(ls, who), where);
         throwerr(ls, msg, "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
       }
       else {
@@ -3742,7 +3737,7 @@ static void enumstat (LexState *ls) {
     luaX_next(ls);
   }
 
-  check_match(ls, TK_END, TK_BEGIN, line_begin);
+  check_match(ls, TK_END, TK_ENUM, line_begin);
 }
 
 
