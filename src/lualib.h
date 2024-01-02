@@ -53,6 +53,7 @@ namespace Pluto {
   extern const PreloadedLibrary preloaded_star;
   extern const PreloadedLibrary preloaded_cat;
   extern const PreloadedLibrary preloaded_http;
+  extern const PreloadedLibrary preloaded_scheduler;
 
   inline const PreloadedLibrary* const all_preloaded[] = {
     &preloaded_crypto,
@@ -65,6 +66,7 @@ namespace Pluto {
     &preloaded_star,
     &preloaded_cat,
     &preloaded_http,
+    &preloaded_scheduler,
   };
 }
 
