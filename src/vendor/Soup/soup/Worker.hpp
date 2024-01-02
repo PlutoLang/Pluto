@@ -49,7 +49,7 @@ namespace soup
 
 		Worker& operator=(Worker&& b) noexcept = default;
 
-		void fireHoldupCallback() SOUP_EXCAL
+		void fireHoldupCallback()
 		{
 			recursions = 0;
 			holdup_callback(*this);
