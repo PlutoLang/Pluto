@@ -1160,17 +1160,19 @@ do
 end
 do
     local base64 = require("base64")
-    assert(base64.encode("Hello") == "SGVsbG8")
+    assert(base64.encode("Hello") == "SGVsbG8=")
+    assert(base64.encode("Hello", false) == "SGVsbG8")
     assert(base64.decode("SGVsbG8") == "Hello")
+    assert(base64.decode("SGVsbG8=") == "Hello")
+
     assert(base64.urlencode("Hello") == "SGVsbG8")
     assert(base64.urldecode("SGVsbG8") == "Hello")
-    assert(base64.decode(base64.encode("Hello", true)) == "Hello")
 
     -- Binary safe
     assert(base64.encode("") == "")
     assert(base64.decode("") == "")
-    assert(base64.encode("\x00") == "AA")
-    assert(base64.decode("AA") == "\x00")
+    assert(base64.encode("\x00") == "AA==")
+    assert(base64.decode("AA==") == "\x00")
 end
 do
     local base32 = require("base32")
@@ -1178,8 +1180,8 @@ do
     -- Binary safe
     assert(base32.encode("") == "")
     assert(base32.decode("") == "")
-    assert(base32.encode("\x00") == "AA")
-    assert(base32.decode("AA") == "\x00")
+    assert(base32.encode("\x00") == "AA======")
+    assert(base32.decode("AA======") == "\x00")
 end
 do
     local t = { key = "value" }
