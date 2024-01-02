@@ -319,7 +319,13 @@ static void check_match (LexState *ls, int what, int who, int where) {
       if (what == TK_END) {
         if (ls->else_if)
           throw_warn(ls, "'else if' is not the same as 'elseif' in Lua/Pluto", "did you mean 'elseif'?", ls->else_if, WT_POSSIBLE_TYPO);
-        const char *msg = luaO_fmt(ls->L, "missing 'end' to terminate %s on line %d", luaX_token2str(ls, who), where);
+        const char *msg;
+        if (who == TK_ARROW) {
+          msg = luaO_fmt(ls->L, "missing 'end' to terminate lambda starting on line %d", where);
+        }
+        else {
+          msg = luaO_fmt(ls->L, "missing 'end' to terminate %s on line %d", luaX_token2str(ls, who), where);
+        }
         throwerr(ls, msg, "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
       }
       else {
@@ -2135,13 +2141,19 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
   parlist(ls);
   checknext(ls, '|');
   checknext(ls, TK_ARROW);
-  ls->pushContext(PARCTX_LAMBDA_BODY);
-  expr(ls, e);
-  luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
+  if (testnext(ls, TK_DO)) {
+    statlist(ls);
+    check_match(ls, TK_END, TK_ARROW, line);
+  }
+  else {
+    ls->pushContext(PARCTX_LAMBDA_BODY);
+    expr(ls, e);
+    luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
+    ls->popContext(PARCTX_LAMBDA_BODY);
+  }
   new_fs.f->lastlinedefined = ls->getLineNumber();
   codeclosure(ls, e);
   close_func(ls);
-  ls->popContext(PARCTX_LAMBDA_BODY);
 }
 
 
