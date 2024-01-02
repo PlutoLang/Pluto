@@ -323,7 +323,13 @@ static int l_encrypt (lua_State *L) {
   if (mode_len < 7 || memcmp(mode, "aes-", 4) != 0) {
     luaL_error(L, "Unknown mode");
   }
-  std::string data = pluto_checkstring(L, 2);
+  size_t data_len;
+  const char *in_data = luaL_checklstring(L, 2, &data_len);
+  char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15 + 16));  /* need up to 15 for alignment and up to 16 for padding */
+  if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
+    data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
+  }
+  memcpy(data, in_data, data_len);
   const char *aadata = NULL;  /* for AEAD ciphers */
   size_t aadata_len;
   const char *key;
@@ -355,7 +361,12 @@ static int l_encrypt (lua_State *L) {
 
   if (mode_len != 7) {
     if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
-      soup::aes::pkcs7Pad(data);
+      size_t next_aligned_size = ((data_len / 16) + 1) * 16;
+      auto pad_size = static_cast<char>(next_aligned_size - data_len);
+      for (size_t i = data_len; i != next_aligned_size; ++i) {
+        data[i] = pad_size;
+      }
+      data_len = next_aligned_size;
     }
     else {
       luaL_error(L, "Unknown mode");
@@ -365,27 +376,27 @@ static int l_encrypt (lua_State *L) {
   uint8_t tag[16];
   if (memcmp(&mode[4], "cbc", 3) == 0) {
     soup::aes::cbcEncrypt(
-      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<uint8_t*>(data), data_len,
       reinterpret_cast<const uint8_t*>(key), key_len,
       reinterpret_cast<const uint8_t*>(iv)
     );
   }
   else if (memcmp(&mode[4], "cfb", 3) == 0) {
     soup::aes::cfbEncrypt(
-      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<uint8_t*>(data), data_len,
       reinterpret_cast<const uint8_t*>(key), key_len,
       reinterpret_cast<const uint8_t*>(iv)
     );
   }
   else if (memcmp(&mode[4], "ecb", 3) == 0) {
     soup::aes::ecbEncrypt(
-      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<uint8_t*>(data), data_len,
       reinterpret_cast<const uint8_t*>(key), key_len
     );
   }
   else if (memcmp(&mode[4], "gcm", 3) == 0) {
     soup::aes::gcmEncrypt(
-      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<uint8_t*>(data), data_len,
       reinterpret_cast<const uint8_t*>(aadata), aadata_len,
       reinterpret_cast<const uint8_t*>(key), key_len,
       reinterpret_cast<const uint8_t*>(iv), iv_len,
@@ -393,8 +404,9 @@ static int l_encrypt (lua_State *L) {
     );
   }
 
-  pluto_pushstring(L, std::move(data));
+  lua_pushlstring(L, data, data_len);
   if (aadata) {
+    lua_remove(L, -2);
     lua_pushlstring(L, reinterpret_cast<const char*>(tag), 16);
     return 2;
   }
@@ -408,7 +420,13 @@ static int l_decrypt (lua_State *L) {
   if (mode_len < 7 || memcmp(mode, "aes-", 4) != 0) {
     luaL_error(L, "Unknown mode");
   }
-  std::string data = pluto_checkstring(L, 2);
+  size_t data_len;
+  const char *in_data = luaL_checklstring(L, 2, &data_len);
+  char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15));  /* need up to 15 for alignment */
+  if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
+    data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
+  }
+  memcpy(data, in_data, data_len);
   const char *aadata = NULL;  /* for AEAD ciphers */
   size_t aadata_len;
   const char *key;
@@ -456,27 +474,27 @@ static int l_decrypt (lua_State *L) {
 
   if (memcmp(&mode[4], "cbc", 3) == 0) {
     soup::aes::cbcDecrypt(
-      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<uint8_t*>(data), data_len,
       reinterpret_cast<const uint8_t*>(key), key_len,
       reinterpret_cast<const uint8_t*>(iv)
     );
   }
   else if (memcmp(&mode[4], "cfb", 3) == 0) {
     soup::aes::cfbDecrypt(
-      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<uint8_t*>(data), data_len,
       reinterpret_cast<const uint8_t*>(key), key_len,
       reinterpret_cast<const uint8_t*>(iv)
     );
   }
   else if (memcmp(&mode[4], "ecb", 3) == 0) {
     soup::aes::ecbDecrypt(
-      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<uint8_t*>(data), data_len,
       reinterpret_cast<const uint8_t*>(key), key_len
     );
   }
   else if (memcmp(&mode[4], "gcm", 3) == 0) {
     if (!soup::aes::gcmDecrypt(
-      reinterpret_cast<uint8_t*>(data.data()), data.size(),
+      reinterpret_cast<uint8_t*>(data), data_len,
       reinterpret_cast<const uint8_t*>(aadata), aadata_len,
       reinterpret_cast<const uint8_t*>(key), key_len,
       reinterpret_cast<const uint8_t*>(iv), iv_len,
@@ -485,14 +503,20 @@ static int l_decrypt (lua_State *L) {
       luaL_error(L, "AES-GCM authentication failed");
     }
   }
-  
+
   if (pkcs7) {
-    if (!soup::aes::pkcs7Unpad(data)) {
+    char pad_size = data[data_len - 1];
+    if (l_unlikely(pad_size < 1 || pad_size > 16)) {
       luaL_error(L, "PKCS#7 unpadding failed");
+    }
+    for (auto i = pad_size; i; --i) {
+      if (l_unlikely(data[--data_len] != pad_size)) {
+        luaL_error(L, "PKCS#7 unpadding failed");
+      }
     }
   }
 
-  pluto_pushstring(L, std::move(data));
+  lua_pushlstring(L, data, data_len);
   return 1;
 }
 
