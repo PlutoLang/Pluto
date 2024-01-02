@@ -1569,14 +1569,21 @@ do
 
     local key <const> = "A Top Secret Key"
     local iv <const> = "My Top Secret IV"
+    local aadata <const> = "Additional authenticated data UwU"
 
     assert(crypto.encrypt("aes-ecb", "Hello from Pluto", key) |> base64.encode == "v3WiSKT9g5TJfuq72QXVyg==")
     assert(crypto.encrypt("aes-ecb-pkcs7", "Hello, world!", key) |> base64.encode == "YHB7hez0jYXtaxUqLj5qRw==")
     assert(crypto.encrypt("aes-cbc", "Hello from Pluto", key, iv) |> base64.encode == "dyJWNeZQx6fjKr15cGd6Ng==")
     assert(crypto.encrypt("aes-cbc-pkcs7", "Hello, world!", key, iv) |> base64.encode == "a3bHHwmClgOnNAVFUWgwAw==")
-    local enc, tag = crypto.encrypt("aes-gcm", "Hello from Pluto!", "Additional authenticated data UwU", key, iv)
+    local enc, tag = crypto.encrypt("aes-gcm", "Hello from Pluto!", aadata, key, iv)
     assert(base64.encode(enc) == "wR/89K4T9cGKI9baKR0s7xI=")
     assert(base64.encode(tag) == "d62kzEuotTdpAgYTrzdPpQ==")
+
+    assert(crypto.decrypt("aes-ecb", base64.decode("v3WiSKT9g5TJfuq72QXVyg=="), key) == "Hello from Pluto")
+    assert(crypto.decrypt("aes-ecb-pkcs7", base64.decode("YHB7hez0jYXtaxUqLj5qRw=="), key) == "Hello, world!")
+    assert(crypto.decrypt("aes-cbc", base64.decode("dyJWNeZQx6fjKr15cGd6Ng=="), key, iv) == "Hello from Pluto")
+    assert(crypto.decrypt("aes-cbc-pkcs7", base64.decode("a3bHHwmClgOnNAVFUWgwAw=="), key, iv) == "Hello, world!")
+    assert(crypto.decrypt("aes-gcm", base64.decode("wR/89K4T9cGKI9baKR0s7xI="), aadata, key, iv, base64.decode("d62kzEuotTdpAgYTrzdPpQ==")) == "Hello from Pluto!")
 end
 
 print "Testing default table metatable."
