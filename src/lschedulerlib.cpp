@@ -15,6 +15,7 @@ export function add(f)
     local coro = coroutine.create(f)
     table.insert(coros, coro)
     coroutine.xresume(coro)
+    return coro
 end
 export function addloop(f)
     return add(function()
