@@ -2,7 +2,7 @@
 #include "lualib.h"
 #include "lstate.h"
 
-#include <queue>
+#include <deque>
 #include <thread>
 
 #include "vendor/Soup/soup/netConnectTask.hpp"
@@ -12,13 +12,13 @@
 struct StandaloneSocket {
   soup::Scheduler sched;
   soup::SharedPtr<soup::Socket> sock;
-  std::queue<std::string> recvd;
+  std::deque<std::string> recvd;
   bool did_tls_handshake = false;
 
   void recvLoop() SOUP_EXCAL {
     sock->recv([](soup::Socket&, std::string&& data, soup::Capture&& cap) SOUP_EXCAL {
       StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
-      ss.recvd.emplace(std::move(data));
+      ss.recvd.push_back(std::move(data));
       if (!ss.sock->remote_closed)
         ss.recvLoop();
     }, this);
@@ -85,7 +85,7 @@ static int l_send (lua_State *L) {
 static int restrecv (lua_State *L, StandaloneSocket& ss) {
   if (!ss.recvd.empty()) {
     pluto_pushstring(L, std::move(ss.recvd.front()));
-    ss.recvd.pop();
+    ss.recvd.pop_front();
     return 1;
   }
   return 0;
@@ -117,6 +117,12 @@ static int l_recv (lua_State *L) {
     }
   }
   return restrecv(L, ss);
+}
+
+static int unrecv (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TUSERDATA);
+  reinterpret_cast<StandaloneSocket*>(lua_touserdata(L, 1))->recvd.push_front(pluto_checkstring(L, 2));
+  return 0;
 }
 
 static int starttlscont (lua_State *L, int status, lua_KContext ctx) {
@@ -154,6 +160,7 @@ static const luaL_Reg funcs[] = {
   {"connect", l_connect},
   {"send", l_send},
   {"recv", l_recv},
+  {"unrecv", unrecv},
   {"starttls", starttls},
   {NULL, NULL}
 };
