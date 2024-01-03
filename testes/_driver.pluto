@@ -19,6 +19,7 @@ dofile('strings.lua')
 dofile('literals.lua')
 dofile('tpack.lua')
 dofile('gengc.lua')
+assert(dofile('locals.lua') == 5)
 dofile('constructs.lua')
 dofile('code.lua', true)
 do
