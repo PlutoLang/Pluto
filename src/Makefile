@@ -39,7 +39,7 @@ PLATS= guess aix android android-readline bsd freebsd generic linux linux-readli
 
 LUA_A=	libpluto.a
 CORE_O=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o
-LIB_O=	lauxlib.o lbaselib.o lcorolib.o ldblib.o liolib.o lmathlib.o loadlib.o loslib.o lstrlib.o lcryptolib.o ltablib.o lutf8lib.o lassertlib.o lvector3lib.o lbase32.o lbase64.o ljson.o lurllib.o linit.o lstarlib.o lcatlib.o lhttplib.o lschedulerlib.o
+LIB_O=	lauxlib.o lbaselib.o lcorolib.o ldblib.o liolib.o lmathlib.o loadlib.o loslib.o lstrlib.o lcryptolib.o ltablib.o lutf8lib.o lassertlib.o lvector3lib.o lbase32.o lbase64.o ljson.o lurllib.o linit.o lstarlib.o lcatlib.o lhttplib.o lschedulerlib.o lsocketlib.o
 BASE_O= $(CORE_O) $(LIB_O) $(MYOBJS)
 
 LUA_T=	pluto
