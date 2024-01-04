@@ -232,9 +232,19 @@ static const luaL_Reg co_funcs[] = {
 };
 
 
+static void createmetatable (lua_State *L) {
+  lua_newthread(L);  /* dummy thread */
+  lua_newtable(L);
+  lua_pushvalue(L, -3);  /* get coroutine library */
+  lua_setfield(L, -2, "__index");  /* metatable.__index = coroutine */
+  lua_setmetatable(L, -2);  /* set table as metatable for threads */
+  lua_pop(L, 1);  /* pop dummy thread */
+}
+
 
 LUAMOD_API int luaopen_coroutine (lua_State *L) {
   luaL_newlib(L, co_funcs);
+  createmetatable(L);
   return 1;
 }
 
