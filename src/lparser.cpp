@@ -1743,7 +1743,7 @@ static void applyextends (LexState *ls, size_t name_pos, size_t parent_pos, int 
 static void classexpr (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
-  testnext(ls, TK_BEGIN);
+  testnext2(ls, TK_DO, TK_BEGIN);  /* May optionally have universal block opener or 'begin' */
   int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
   ConsControl cc;
   luaK_code(fs, 0);  /* space for extra arg. */
@@ -2926,7 +2926,8 @@ static void ifexpr (LexState *ls, expdesc *v) {
   int reg;
   luaX_next(ls);			
   condition = cond(ls);
-  checknext(ls, TK_THEN);
+  if (!testnext(ls, TK_DO))
+    checknext(ls, TK_THEN);
   expr(ls, v);					
   reg = luaK_exp2anyreg(fs, v);			
   luaK_concat(fs, &escape, luaK_jump(fs));
@@ -3771,7 +3772,8 @@ static void enumstat (LexState *ls) {
   }
 
   const auto line_begin = ls->getLineNumber();
-  checknext(ls, TK_BEGIN); /* ensure we have 'begin' */
+  if (!testnext(ls, TK_DO))  /* Universal block opener */
+    checknext(ls, TK_BEGIN);
 
   lua_Integer i = 1;
   while (gett(ls) != TK_END) {
@@ -4080,7 +4082,8 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);
   if (luaK_isalwaysfalse(ls, &v))
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
-  checknext(ls, TK_THEN);
+  if (!testnext(ls, TK_DO))  /* [Pluto] Universal block opener */
+    checknext(ls, TK_THEN);
   if (ls->t.token == TK_BREAK && luaX_lookahead(ls) != TK_INT) {  /* 'if x then break' and not 'if x then break int' ? */
     ls->laststat.token = TK_BREAK;
     int line = ls->getLineNumber();
