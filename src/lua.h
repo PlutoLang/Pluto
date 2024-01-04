@@ -14,8 +14,8 @@
 
 #define PLUTO_VERSION "Pluto 0.8.0"
 
-#define LUA_COPYRIGHT	PLUTO_VERSION " Copyright (C) 2022-2023 PlutoLang.org, Ryan Starrett, Sainan.\r\nBased on " LUA_RELEASE " Copyright (C) 1994-2023 Lua.org, PUC-Rio."
-#define LUA_AUTHORS	"R. Starrett, R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
+#define LUA_COPYRIGHT	PLUTO_VERSION " Copyright (C) 2022-2024 PlutoLang.org, Ryan Starrett, Sainan.\r\nBased on " LUA_RELEASE " Copyright (C) 1994-2023 Lua.org, PUC-Rio."
+#define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
 
 
 #define LUA_VERSION_MAJOR_N	5
@@ -531,7 +531,7 @@ struct lua_Debug {
 
 
 /******************************************************************************
-* Copyright (C) 2022-2023 PlutoLang.org, Ryan Starrett, Sainan.
+* Copyright (C) 2022-2024 PlutoLang.org, Ryan Starrett, Sainan.
 * Copyright (C) 1994-2023 Lua.org, PUC-Rio.
 *
 * Permission is hereby granted, free of charge, to any person obtaining
