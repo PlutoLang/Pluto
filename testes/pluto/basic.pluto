@@ -1351,6 +1351,16 @@ do
     local url = require"pluto:url"
     assert(url.encode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
     assert(url.decode(url.encode(str)) == str)
+
+    local parts = require"url".parse("http://username:password@hostname:9090/path?arg=value#anchor")
+    assert(parts.scheme == "http")
+    assert(parts.user == "username")
+    assert(parts.pass == "password")
+    assert(parts.host == "hostname")
+    assert(parts.port == 9090)
+    assert(parts.path == "/path")
+    assert(parts.query == "arg=value")
+    assert(parts.fragment == "anchor")
 end
 do
     local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
