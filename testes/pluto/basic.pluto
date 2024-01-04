@@ -1579,6 +1579,12 @@ do
     assert(t:contains("orange") == nil)
 end
 
+-- 'thread' type is given a metatable by Pluto
+do
+    local coro = coroutine.create(function() end)
+    assert(coro:status() == "suspended")
+end
+
 print "Testing default arguments."
 do
     local CONST_VAL <const> = 69
