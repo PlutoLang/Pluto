@@ -1179,6 +1179,10 @@ static int jumponcond (FuncState *fs, expdesc *e, int cond) {
 
 
 LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e) {
+  if (e->k == VLOCAL) {
+    Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
+    return getlocalvardesc(ls->fs, e->u.var.vidx)->vd.prop->toPrimitive() == VT_NIL;
+  }
   if (e->k == VCONST) {
     Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
     lua_assert(vd->vd.kind == RDKCTC);
@@ -1192,6 +1196,11 @@ LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e) {
 
 
 LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e) {
+  if (e->k == VLOCAL) {
+    Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
+    auto p = getlocalvardesc(ls->fs, e->u.var.vidx)->vd.prop->toPrimitive();
+    return p == VT_INT || p == VT_FLT || p == VT_STR;
+  }
   if (e->k == VCONST) {
     Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
     lua_assert(vd->vd.kind == RDKCTC);
@@ -1208,6 +1217,10 @@ LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e) {
 
 
 LUAI_FUNC bool luaK_isalwaysfalse (LexState *ls, expdesc *e) {
+  if (e->k == VLOCAL) {
+    Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
+    return getlocalvardesc(ls->fs, e->u.var.vidx)->vd.prop->toPrimitive() == VT_NIL;
+  }
   if (e->k == VCONST) {
     Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
     lua_assert(vd->vd.kind == RDKCTC);
