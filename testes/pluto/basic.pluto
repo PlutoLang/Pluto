@@ -136,6 +136,11 @@ local a: bool|int = f() ?? 0]]
     end
 end]]
 
+    -- unreachable-code can use type propagation information
+    assert_warn[[local foo
+if foo then
+    print(":(")
+end]]
 end
 
 print "Testing assertion library"
