@@ -3852,7 +3852,7 @@ static void fixforjump (FuncState *fs, int pc, int dest, int back) {
 /*
 ** Generate code for a 'for' loop.
 */
-static void forbody (LexState *ls, int base, int line, int nvars, int isgen) {
+static void forbody (LexState *ls, int base, int line, int nvars, int isgen, TypeHint *prop) {
   /* forbody -> DO block */
   static const OpCode forprep[2] = {OP_FORPREP, OP_TFORPREP};
   static const OpCode forloop[2] = {OP_FORLOOP, OP_TFORLOOP};
@@ -3864,7 +3864,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen) {
   enterblock(fs, &bl, 0);  /* scope for declared variables */
   adjustlocalvars(ls, nvars);
   luaK_reserveregs(fs, nvars);
-  block(ls);
+  block(ls, prop);
   leaveblock(fs);  /* end of scope for declared variables */
   fixforjump(fs, prep, luaK_getlabel(fs), 0);
   luaK_patchtohere(fs, bl.previous->scopeend);
@@ -3878,7 +3878,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen) {
 }
 
 
-static void fornum (LexState *ls, TString *varname, int line) {
+static void fornum (LexState *ls, TString *varname, TypeHint *prop, int line) {
   /* fornum -> NAME = exp,exp[,exp] forbody */
   FuncState *fs = ls->fs;
   int base = fs->freereg;
@@ -3897,11 +3897,11 @@ static void fornum (LexState *ls, TString *varname, int line) {
     luaK_reserveregs(fs, 1);
   }
   adjustlocalvars(ls, 3);  /* control variables */
-  forbody(ls, base, line, 1, 0);
+  forbody(ls, base, line, 1, 0, prop);
 }
 
 
-static void forlist (LexState *ls, TString *indexname) {
+static void forlist (LexState *ls, TString *indexname, TypeHint *prop) {
   /* forlist -> NAME {,NAME} IN explist forbody */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -3925,11 +3925,11 @@ static void forlist (LexState *ls, TString *indexname) {
   adjustlocalvars(ls, 4);  /* control variables */
   marktobeclosed(fs);  /* last control var. must be closed */
   luaK_checkstack(fs, 3);  /* extra space to call generator */
-  forbody(ls, base, line, nvars - 4, 1);
+  forbody(ls, base, line, nvars - 4, 1, prop);
 }
 
 
-static void forvlist (LexState *ls, TString *valname) {
+static void forvlist (LexState *ls, TString *valname, TypeHint *prop) {
   /* forvlist -> explist AS NAME forbody */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -3956,11 +3956,11 @@ static void forvlist (LexState *ls, TString *valname) {
   checknext(ls, TK_AS);
   luaX_next(ls); /* skip valname */
 
-  forbody(ls, base, line, nvars - 4, 1);
+  forbody(ls, base, line, nvars - 4, 1, prop);
 }
 
 
-static void forstat (LexState *ls, int line) {
+static void forstat (LexState *ls, int line, TypeHint *prop) {
   /* forstat -> FOR (fornum | forlist) END */
   FuncState *fs = ls->fs;
   TString *varname = nullptr;
@@ -3983,11 +3983,11 @@ static void forstat (LexState *ls, int line) {
     varname = str_checkname(ls);  /* first variable name */
     switch (ls->t.token) {
       case '=': {
-        fornum(ls, varname, line);
+        fornum(ls, varname, prop, line);
         break;
       }
       case ',': case TK_IN: {
-        forlist(ls, varname);
+        forlist(ls, varname, prop);
         break;
       }
       default: {
@@ -3996,7 +3996,7 @@ static void forstat (LexState *ls, int line) {
     }
   }
   else {
-    forvlist(ls, varname);
+    forvlist(ls, varname, prop);
   }
   check_match(ls, TK_END, TK_FOR, line);
   leaveblock(fs);  /* loop scope ('break' jumps to this point) */
@@ -4812,7 +4812,7 @@ static void statement (LexState *ls, TypeHint *prop) {
       break;
     }
     case TK_FOR: {  /* stat -> forstat */
-      forstat(ls, line);
+      forstat(ls, line, prop);
       break;
     }
     case TK_REPEAT: {  /* stat -> repeatstat */

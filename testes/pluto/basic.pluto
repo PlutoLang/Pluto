@@ -141,6 +141,14 @@ end]]
 if foo then
     print(":(")
 end]]
+
+    -- forstat propragates its return type too
+    assert_no_warn[[local function whatever(): ?bool
+    for { 1 } as v do
+        return true
+    end
+    return nil
+end]]
 end
 
 print "Testing assertion library"
