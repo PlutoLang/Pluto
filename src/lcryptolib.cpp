@@ -15,6 +15,7 @@
 #include <iomanip>
 
 #include "vendor/Soup/soup/aes.hpp"
+#include "vendor/Soup/soup/crc32.hpp"
 #include "vendor/Soup/soup/sha1.hpp"
 #include "vendor/Soup/soup/sha256.hpp"
 #include "vendor/Soup/soup/string.hpp"
@@ -243,7 +244,7 @@ static int crc32(lua_State *L)
 {
   size_t len;
   const auto text = luaL_checklstring(L, 1, &len);
-  const auto hash = crc32_impl(text, (int)len, (uint32_t)luaL_optinteger(L, 2, 0));
+  const auto hash = soup::crc32::hash((const uint8_t*)text, len, (uint32_t)luaL_optinteger(L, 2, 0));
   lua_pushinteger(L, hash);
   return 1;
 }
