@@ -2213,6 +2213,10 @@ do
     pluto_use class
 
     class Human end
+
+    -- Superfluous tokens after pluto_use annotation are ignored
+    assert(load[[--@pluto_use * = false   Some comment here
+return true]]() == true)
 end
 
 print "Testing compile-time conditionals."
