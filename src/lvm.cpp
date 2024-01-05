@@ -1313,12 +1313,12 @@ static const std::vector<OpCode> allowOps = { vmDumpAllow };
 #endif  /* PLUTO_VMDUMP */
 
 
-#if !defined(__GNUC__) && !defined(__clang__) && defined(PLUTO_FORCE_JUMPTABLE)
+#ifdef PLUTO_FORCE_JUMPTABLE
 #ifdef PLUTO_VMDUMP
 #pragma message("PLUTO_FORCE_JUMPTABLE ignored due to PLUTO_VMDUMP")
 #elif defined(PLUTO_ETL_ENABLE)
 #pragma message("PLUTO_FORCE_JUMPTABLE ignored due to PLUTO_ETL_ENABLE")
-#else
+#elif !defined(__GNUC__) && !defined(__clang__)
 #include "ljumptab.h"
 #endif
 #endif
