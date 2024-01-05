@@ -10,8 +10,9 @@ Pluto is a unique dialect of Lua, which aims to specialize for general-purpose p
   - Several new syntaxes, such as switch statements or ternary expressions.
 
 - **Drag & Drop Compatibility.**
-  - Compatible with Lua 5.4 source & bytecode.
-  - The only Lua dialect that's proven it can be dropped into massive [communities](https://stand.gg/) (100K> users), and not break any existing scripts.
+  - Pluto is mostly compatible with Lua 5.4 source & bytecode.
+    - It implements new keywords, which can cause conflicts with otherwise normal identifiers such as 'switch', or 'class'. We offer several features — such as Compatibility Mode — to relieve this issue, see our [documentation](https://pluto-lang.org/docs/Compatibility).
+  - With Compatibility Mode, Pluto has proven it can be dropped into massive [communities](https://stand.gg/) (100K> users), and not break any existing scripts.
 
 ## Documentation
 
