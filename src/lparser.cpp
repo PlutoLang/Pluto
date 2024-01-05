@@ -4550,7 +4550,8 @@ static void togglekeyword (LexState *ls, int token, bool enable) {
 }
 
 static void usestat (LexState *ls) {
-  auto line = ls->getLineNumber();
+  const bool is_ann = ls->t.token == TK_USEANN;
+  const auto line = ls->t.line;
   luaX_next(ls); /* skip 'pluto_use' */
   do {
     /* check affected tokens */
@@ -4632,6 +4633,12 @@ static void usestat (LexState *ls) {
 
   /* update ls->t */
   luaX_setpos(ls, luaX_getpos(ls));
+
+  if (is_ann) {
+    /* skip remaining tokens in line */
+    while (ls->t.line == line && ls->t.token != TK_EOS)
+      luaX_next(ls);
+  }
 }
 
 
@@ -5001,7 +5008,8 @@ static void statement (LexState *ls, TypeHint *prop) {
       enumstat(ls);
       break;
     }
-    case TK_PUSE: {
+    case TK_PUSE:
+    case TK_USEANN: {
       usestat(ls);
       break;
     }
