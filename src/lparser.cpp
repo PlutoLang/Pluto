@@ -4934,6 +4934,7 @@ static void statement (LexState *ls, TypeHint *prop) {
       break;
     }
     case TK_CONST: {
+      throw_warn(ls, "'const' will be removed in future versions of Pluto. use 'local' instead.", WT_DEPRECATED);
       luaX_next(ls);  /* skip CONST */
       conststat(ls);
       break;
