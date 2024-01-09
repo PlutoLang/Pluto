@@ -1972,6 +1972,9 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
         *getlocalvardesc(fs, vidx)->vd.prop = parhint;  /* set hinted type as propagated type */
         if (fallbacks) {
           if (testnext(ls, '=')) {
+            if (ls->t.token == TK_NIL) {
+              throwerr(ls, "default argument expected", "nil is not a valid default argument");
+            }
             fallbacks->emplace_back(luaX_getpos(ls));
             skip_over_simpleexp_within_parenlist(ls);
           }
