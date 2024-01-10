@@ -3463,6 +3463,8 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
     return OPR_NOBINOPR;
   }
   /* expand while operators have priorities higher than 'limit' */
+  if (l_unlikely(ls->t.token == TK_POW))
+    throw_warn(ls, "'**' is deprecated", "use '^' instead", WT_DEPRECATED);
   op = getbinopr(ls->t.token);
   if ((flags & E_NO_BOR) && op == OPR_BOR)
     op = OPR_NOBINOPR;
@@ -3671,6 +3673,8 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
   else {  /* restassign -> '=' explist */
     check(ls, '=');
     if ((int)ls->t.seminfo.i != 0) {  /* is there a saved binop? */
+      if (l_unlikely(ls->t.seminfo.i == TK_POW))
+        throw_warn(ls, "'**' is deprecated", "use '^' instead", WT_DEPRECATED);
       BinOpr op = getbinopr((int)ls->t.seminfo.i);  /* binary operation from lexer state */
       if (op == OPR_COAL)
         throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
