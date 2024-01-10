@@ -1551,7 +1551,7 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
     }
     default: {
       if (for_class)
-        luaX_syntaxerror(ls, "syntax error");
+        throwerr(ls, luaO_fmt(ls->L, "unexpected token: %s", luaX_token2str(ls, ls->t.token)), "expected a class member");
       listfield(ls, cc);
       break;
     }
