@@ -203,11 +203,6 @@ static void check_for_non_portable_code (LexState *ls) {
 */
 static l_noret error_expected (LexState *ls, int token) {
   switch (token) {
-    case '|': {
-      throwerr(ls,
-        "expected '|' to control parameters.",
-        "expected '|' to begin & terminate the lambda's paramater list.");
-    }
     case TK_ARROW: {
       if (luaX_lookahead(ls) == '>') {
         throwerr(ls,
