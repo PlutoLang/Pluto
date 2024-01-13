@@ -2005,6 +2005,19 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
 }
 
 
+static void propfuncdesc (LexState *ls, FuncState& new_fs, TypeHint& retprop, TypeDesc *funcdesc) {
+  funcdesc->type = VT_FUNC;
+  funcdesc->proto = new_fs.f;
+  funcdesc->retn = new_typehint(ls);
+  *funcdesc->retn = retprop;
+  int vidx = new_fs.firstlocal;
+  for (lu_byte i = 0; i != funcdesc->getNumTypedParams(); ++i) {
+    funcdesc->params[i] = ls->dyd->actvar.arr[vidx].vd.hint;
+    ++vidx;
+  }
+}
+
+
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *funcdesc) {
   /* body ->  '(' parlist ')' block END */
   ls->pushContext(PARCTX_BODY);
@@ -2103,17 +2116,8 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     err.append(retprop.toString());
     throw_warn(ls, err.c_str(), line, WT_TYPE_MISMATCH);
   }
-  if (funcdesc) { /* propagate type of function */
-    funcdesc->type = VT_FUNC;
-    funcdesc->proto = new_fs.f;
-    funcdesc->retn = new_typehint(ls);
-    *funcdesc->retn = retprop;
-    int vidx = new_fs.firstlocal;
-    for (lu_byte i = 0; i != funcdesc->getNumTypedParams(); ++i) {
-      funcdesc->params[i] = ls->dyd->actvar.arr[vidx].vd.hint;
-      ++vidx;
-    }
-  }
+  if (funcdesc)
+    propfuncdesc(ls, new_fs, retprop, funcdesc);
   new_fs.f->lastlinedefined = ls->getLineNumber();
   check_match(ls, TK_END, TK_FUNCTION, line);
   codeclosure(ls, e);
@@ -2129,26 +2133,28 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
 ** The '|' token was chosen because it's not commonly used as a unary operator in programming.
 ** The '->' arrow syntax looked more visually appealing than a colon. It also plays along with common lambda tokens.
 */
-static void lambdabody (LexState *ls, expdesc *e, int line) {
+static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc = nullptr) {
   FuncState new_fs;
   BlockCnt bl;
   new_fs.f = addprototype(ls);
   new_fs.f->linedefined = line;
   open_func(ls, &new_fs, &bl);
-  checknext(ls, '|');
   parlist(ls);
   checknext(ls, '|');
   checknext(ls, TK_ARROW);
+  TypeHint retprop{};
   if (testnext(ls, TK_DO)) {
-    statlist(ls);
+    statlist(ls, &retprop, true);
     check_match(ls, TK_END, TK_ARROW, line);
   }
   else {
     ls->pushContext(PARCTX_LAMBDA_BODY);
-    expr(ls, e);
+    expr(ls, e, &retprop);
     luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
     ls->popContext(PARCTX_LAMBDA_BODY);
   }
+  if (funcdesc)
+    propfuncdesc(ls, new_fs, retprop, funcdesc);
   new_fs.f->lastlinedefined = ls->getLineNumber();
   codeclosure(ls, e);
   close_func(ls);
@@ -3270,7 +3276,15 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       return;
     }
     case '|': {
-      lambdabody(ls, v, ls->getLineNumber());
+      luaX_next(ls);
+      if (prop) {
+        TypeDesc funcdesc;
+        lambdabody(ls, v, ls->getLineNumber(), &funcdesc);
+        prop->emplaceTypeDesc(std::move(funcdesc));
+      }
+      else {
+        lambdabody(ls, v, ls->getLineNumber());
+      }
       return;
     }
     case TK_NEW:
