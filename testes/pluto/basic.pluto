@@ -2091,6 +2091,12 @@ do
     assert(t[1] == "Hello")
     assert(t[2] == 1337)
 end
+do
+    local f = |...args| -> table.size(args)
+    assert(f() == 0)
+    assert(f(1) == 1)
+    assert(f(1, 2) == 2)
+end
 
 print "Testing export."
 do
