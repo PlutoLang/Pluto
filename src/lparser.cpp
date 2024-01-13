@@ -1948,7 +1948,7 @@ static void skip_block (LexState *ls) {
 }
 
 
-static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* promotions = {}, std::vector<size_t>* fallbacks = nullptr, TString** varargname = nullptr) {
+static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* promotions, std::vector<size_t>* fallbacks, TString** varargname) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -2010,6 +2010,33 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
 }
 
 
+static void namedvararg (LexState *ls, TString *varargname) {
+  enterlevel(ls);
+  luaX_prev(ls);  /* in case we need to raise a var-shadow warning, ensure we're on the right line */
+  new_localvar(ls, varargname);
+  luaX_next(ls);
+
+  FuncState *fs = ls->fs;
+  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  luaK_code(fs, 0);
+  expdesc t;
+  init_exp(&t, VNONRELOC, fs->freereg);
+  ConsControl cc;
+  cc.na = cc.nh = cc.tostore = 0;
+  cc.t = &t;
+  luaK_reserveregs(fs, 1);
+  lua_assert(fs->f->is_vararg);
+  init_exp(&cc.v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
+  cc.tostore++;
+  lastlistfield(fs, &cc);
+  luaK_settablesize(fs, pc, t.u.reg, cc.na, cc.nh);
+
+  adjust_assign(ls, 1, 1, &t);
+  adjustlocalvars(ls, 1);
+  leavelevel(ls);
+}
+
+
 static void propfuncdesc (LexState *ls, FuncState& new_fs, TypeHint& retprop, TypeDesc *funcdesc) {
   funcdesc->type = VT_FUNC;
   funcdesc->proto = new_fs.f;
@@ -2037,7 +2064,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     adjustlocalvars(ls, 1);
   }
   BodyState& bs = ls->bodystates.emplace();
-  TString* varargname = nullptr;
+  TString *varargname = nullptr;
   parlist(ls, (ismethod == 2 ? &bs.promotions : nullptr), &bs.fallbacks, &varargname);
   checknext(ls, ')');
   const auto saved_pos = luaX_getpos(ls);
@@ -2084,31 +2111,8 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     singlevaraux(fs, e.first, &val, 0);
     luaK_storevar(fs, &tab, &val);
   }
-  if (varargname) {
-    enterlevel(ls);
-    luaX_prev(ls);  /* in case we need to raise a var-shadow warning, ensure we're on the right line */
-    new_localvar(ls, varargname);
-    luaX_next(ls);
-
-    FuncState *fs = ls->fs;
-    int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
-    luaK_code(fs, 0);
-    expdesc t;
-    init_exp(&t, VNONRELOC, fs->freereg);
-    ConsControl cc;
-    cc.na = cc.nh = cc.tostore = 0;
-    cc.t = &t;
-    luaK_reserveregs(fs, 1);
-    lua_assert(fs->f->is_vararg);
-    init_exp(&cc.v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
-    cc.tostore++;
-    lastlistfield(fs, &cc);
-    luaK_settablesize(fs, pc, t.u.reg, cc.na, cc.nh);
-
-    adjust_assign(ls, 1, 1, &t);
-    adjustlocalvars(ls, 1);
-    leavelevel(ls);
-  }
+  if (varargname)
+    namedvararg(ls, varargname);
   TypeHint rethint = gettypehint(ls, true);
   TypeHint retprop{};
   statlist(ls, &retprop, true);
@@ -2144,9 +2148,12 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
   new_fs.f = addprototype(ls);
   new_fs.f->linedefined = line;
   open_func(ls, &new_fs, &bl);
-  parlist(ls);
+  TString *varargname = nullptr;
+  parlist(ls, nullptr, nullptr, &varargname);
   checknext(ls, '|');
   checknext(ls, TK_ARROW);
+  if (varargname)
+    namedvararg(ls, varargname);
   TypeHint retprop{};
   if (testnext(ls, TK_DO)) {
     statlist(ls, &retprop, true);
