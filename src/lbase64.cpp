@@ -7,22 +7,26 @@
 #include "vendor/Soup/soup/base64.hpp"
 
 static int encode(lua_State* L) {
-	lua_pushstring(L, soup::base64::encode(luaL_checkstring(L, 1), (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true)).c_str());
+	size_t len;
+	auto str = luaL_checklstring(L, 1, &len);
+	lua_pushstring(L, soup::base64::encode(str, len, (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true)).c_str());
 	return 1;
 }
 
 static int decode(lua_State* L) {
-	lua_pushstring(L, soup::base64::decode(luaL_checkstring(L, 1)).c_str());
+	lua_pushstring(L, soup::base64::decode(pluto_checkstring(L, 1)).c_str());
 	return 1;
 }
 
 static int urlEncode(lua_State* L) {
-	lua_pushstring(L, soup::base64::urlEncode(luaL_checkstring(L, 1), (bool)lua_toboolean(L, 2)).c_str());
+	size_t len;
+	auto str = luaL_checklstring(L, 1, &len);
+	lua_pushstring(L, soup::base64::urlEncode(str, len, (bool)lua_toboolean(L, 2)).c_str());
 	return 1;
 }
 
 static int urlDecode(lua_State* L) {
-	lua_pushstring(L, soup::base64::urlDecode(luaL_checkstring(L, 1)).c_str());
+	lua_pushstring(L, soup::base64::urlDecode(pluto_checkstring(L, 1)).c_str());
 	return 1;
 }
 
