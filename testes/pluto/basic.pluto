@@ -1179,6 +1179,21 @@ do
 
     assert(base64.urlencode("Hello") == "SGVsbG8")
     assert(base64.urldecode("SGVsbG8") == "Hello")
+
+    -- Binary safe
+    assert(base64.encode("") == "")
+    assert(base64.decode("") == "")
+    assert(base64.encode("\x00") == "AA==")
+    assert(base64.decode("AA==") == "\x00")
+end
+do
+    local base32 = require("base32")
+
+    -- Binary safe
+    assert(base32.encode("") == "")
+    assert(base32.decode("") == "")
+    assert(base32.encode("\x00") == "AA======")
+    assert(base32.decode("AA======") == "\x00")
 end
 do
     local t = { key = "value" }
