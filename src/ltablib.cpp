@@ -529,6 +529,28 @@ static int tfilter (lua_State *L) {
 }
 
 
+TValue *index2value (lua_State *L, int idx);
+
+static int tfind(lua_State* L)
+{
+    luaL_checktype(L, 1, LUA_TTABLE);
+    luaL_checkany(L, 2);
+
+    Table* t = hvalue(index2value(L, 1));
+    lua_Integer n = luaL_len(L, 1);
+    
+    for (lua_Integer i = 1; i <= n; ++i) {
+        lua_geti(L, 1, i);
+        if (lua_compare(L, 2, -1, LUA_OPEQ)) {
+            lua_pushinteger(L, i);
+            return 1;
+        }
+        lua_pop(L, 1);
+    }
+    return 0;
+}
+
+
 static int tmap (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
@@ -581,7 +603,6 @@ static int treverse (lua_State *L) {
 }
 
 
-TValue *index2value (lua_State *L, int idx);
 static int treorder (lua_State* L) {
   luaL_checktype(L, 1, LUA_TTABLE);
 
@@ -619,6 +640,7 @@ static const luaL_Reg tab_funcs[] = {
   {"reverse", treverse},
   {"map", tmap},
   {"filter", tfilter},
+  {"find", tfind},
   {"foreach", foreach},
   {"contains", tcontains},
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
