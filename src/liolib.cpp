@@ -827,7 +827,7 @@ static int f_flush (lua_State *L) {
 extern bool PLUTO_READ_FILE_HOOK(lua_State* L, const char* path);
 #endif
 
-[[nodiscard]] static std::filesystem::path getStringStreamPathForRead(lua_State *L, int idx) {
+[[nodiscard]] std::filesystem::path getStringStreamPathForRead(lua_State *L, int idx) {
   const auto path = getStringStreamPathRaw(L, idx);
 #ifdef PLUTO_NO_FILESYSTEM
   luaL_error(L, "disallowed by content moderation policy");

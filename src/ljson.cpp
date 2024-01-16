@@ -3,7 +3,13 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include <filesystem>
+
 #include "ljson.hpp"
+
+#include "vendor/Soup/soup/os.hpp"
+
+[[nodiscard]] std::filesystem::path getStringStreamPathForRead(lua_State* L, int idx);
 
 static int encode(lua_State* L) {
 	auto root = checkJson(L, 1);
@@ -28,9 +34,31 @@ static int decode(lua_State* L)
 	return 0;
 }
 
+static int decodefile (lua_State* L)
+{
+	auto path = getStringStreamPathForRead(L, 1);
+	size_t len;
+	if (auto data = soup::os::createFileMapping(path, len))
+	{
+		auto c = (const char*)data;
+		if (auto root = soup::json::decode(c))
+		{
+			pushFromJson(L, *root);
+			soup::os::destroyFileMapping(data, len);
+			return 1;
+		}
+		else
+		{
+			soup::os::destroyFileMapping(data, len);
+		}
+	}
+	return 0;
+}
+
 static const luaL_Reg funcs[] = {
 	{"encode", encode},
 	{"decode", decode},
+	{"decodefile", decodefile},
 	{nullptr, nullptr}
 };
 
