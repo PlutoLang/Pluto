@@ -20,7 +20,7 @@ static int encode(lua_State* L) {
 
 static int decode(lua_State* L)
 {
-	if (auto root = soup::json::decode(luaL_checkstring(L, 1)))
+	if (auto root = soup::json::decode(pluto_checkstring(L, 1)))
 	{
 		pushFromJson(L, *root);
 		return 1;
