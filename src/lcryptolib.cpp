@@ -14,6 +14,7 @@
 #include <sstream>
 #include <iomanip>
 
+#include "vendor/Soup/soup/adler32.hpp"
 #include "vendor/Soup/soup/aes.hpp"
 #include "vendor/Soup/soup/crc32.hpp"
 #include "vendor/Soup/soup/sha1.hpp"
@@ -522,6 +523,14 @@ static int l_decrypt (lua_State *L) {
 }
 
 
+static int l_adler32 (lua_State *L) {
+  size_t size;
+  const char* data = luaL_checklstring(L, 1, &size);
+  lua_pushinteger(L, soup::adler32::hash(data, size));
+  return 1;
+}
+
+
 static const luaL_Reg funcs[] = {
   {"hexdigest", hexdigest},  /* deprecated since 0.8.0 */
   {"random", random},
@@ -546,6 +555,7 @@ static const luaL_Reg funcs[] = {
   {"fnv1", fnv1},
   {"encrypt", l_encrypt},
   {"decrypt", l_decrypt},
+  {"adler32", l_adler32},
   {NULL, NULL}
 };
 
