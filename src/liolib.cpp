@@ -9,7 +9,6 @@
 
 #include "lprefix.h"
 
-#include <filesystem>
 #include <ctype.h>
 #include <errno.h>
 #include <locale.h>
@@ -17,11 +16,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <filesystem>
+#include <fstream>
+
 #include "lua.h"
 
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "vendor/Soup/soup/os.hpp"
 #include "vendor/Soup/soup/string.hpp"
 
 
@@ -1088,10 +1091,34 @@ static int writetime (lua_State *L) {
 }
 
 
+static int contents (lua_State *L) {
+  FS_FUNCTION
+  std::filesystem::path file = getStringStreamPath(L);
+  if (lua_gettop(L) == 1) {
+    /* getter */
+    size_t len;
+    if (auto data = soup::os::createFileMapping(file, len)) {
+      lua_pushlstring(L, (const char*)data, len);
+      soup::os::destroyFileMapping(data, len);
+      return 1;
+    }
+  }
+  else {
+    /* setter */
+    std::ofstream of(file, std::ios_base::binary);
+    size_t len;
+    const char* str = luaL_checklstring(L, 2, &len);
+    of.write(str, len);
+  }
+  return 0;
+}
+
+
 /*
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
+  {"contents", contents},
   {"writetime", writetime},
   {"currentdir", currentdir},
   {"rename", l_rename},
