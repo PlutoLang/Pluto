@@ -5458,33 +5458,24 @@ LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
   lexstate.dyd = dyd;
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
   luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
-#ifdef PLUTO_COMPATIBLE_SWITCH
-  disablekeyword(&lexstate, TK_SWITCH, true);
-#endif
-#ifdef PLUTO_COMPATIBLE_CONTINUE
-  disablekeyword(&lexstate, TK_CONTINUE, true);
-#endif
-#ifdef PLUTO_COMPATIBLE_ENUM
-  disablekeyword(&lexstate, TK_ENUM, true);
-#endif
-#ifdef PLUTO_COMPATIBLE_NEW
-  disablekeyword(&lexstate, TK_NEW, true);
-#endif
-#ifdef PLUTO_COMPATIBLE_CLASS
-  disablekeyword(&lexstate, TK_CLASS, true);
-#endif
-#ifdef PLUTO_COMPATIBLE_PARENT
-  disablekeyword(&lexstate, TK_PARENT, true);
-#endif
-#ifdef PLUTO_COMPATIBLE_EXPORT
-  disablekeyword(&lexstate, TK_EXPORT, true);
-#endif
-#ifdef PLUTO_COMPATIBLE_TRY
-  disablekeyword(&lexstate, TK_TRY, true);
-#endif
-#ifdef PLUTO_COMPATIBLE_CATCH
-  disablekeyword(&lexstate, TK_CATCH, true);
-#endif
+  if (L->l_G->compatible_switch)
+    disablekeyword(&lexstate, TK_SWITCH, true);
+  if (L->l_G->compatible_continue)
+    disablekeyword(&lexstate, TK_CONTINUE, true);
+  if (L->l_G->compatible_enum)
+    disablekeyword(&lexstate, TK_ENUM, true);
+  if (L->l_G->compatible_new)
+    disablekeyword(&lexstate, TK_NEW, true);
+  if (L->l_G->compatible_class)
+    disablekeyword(&lexstate, TK_CLASS, true);
+  if (L->l_G->compatible_parent)
+    disablekeyword(&lexstate, TK_PARENT, true);
+  if (L->l_G->compatible_export)
+    disablekeyword(&lexstate, TK_EXPORT, true);
+  if (L->l_G->compatible_try)
+    disablekeyword(&lexstate, TK_TRY, true);
+  if (L->l_G->compatible_catch)
+    disablekeyword(&lexstate, TK_CATCH, true);
 #ifndef PLUTO_USE_LET
   disablekeyword(&lexstate, TK_LET);
 #endif
