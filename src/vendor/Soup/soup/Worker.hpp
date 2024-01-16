@@ -11,10 +11,13 @@
 
 namespace soup
 {
-	constexpr uint8_t WORKER_TYPE_UNSPECIFIED = 0;
-	constexpr uint8_t WORKER_TYPE_SOCKET = 1;
-	constexpr uint8_t WORKER_TYPE_TASK = 2;
-	constexpr uint8_t WORKER_TYPE_USER = 3;
+	enum : uint8_t
+	{
+		WORKER_TYPE_UNSPECIFIED = 0,
+		WORKER_TYPE_SOCKET,
+		WORKER_TYPE_TASK,
+		WORKER_TYPE_USER,
+	};
 
 	struct Worker
 	{
@@ -29,7 +32,7 @@ namespace soup
 
 		enum SchedulingDisposition : int
 		{
-			HIGH_FRQUENCY = 1 << 1,
+			HIGH_FRQUENCY = (1 << 1) | (1 << 0),
 			NEUTRAL = 1 << 0,
 			LOW_FREQUENCY = 0,
 		};
