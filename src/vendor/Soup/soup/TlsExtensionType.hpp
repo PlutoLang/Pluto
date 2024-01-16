@@ -9,6 +9,7 @@ namespace soup
 		elliptic_curves = 10,
 		ec_point_formats = 11,
 		signature_algorithms = 13,
+		extended_master_secret = 23,
 		supported_versions = 43,
 	);
 

@@ -38,7 +38,7 @@ namespace soup
 		std::time_t valid_from;
 		std::time_t valid_to;
 
-		bool fromDer(const std::string& str);
+		bool fromDer(const std::string& str) noexcept;
 		bool load(const Asn1Sequence& cert) noexcept;
 
 		[[nodiscard]] bool isRsa() const noexcept { return !is_ec; }

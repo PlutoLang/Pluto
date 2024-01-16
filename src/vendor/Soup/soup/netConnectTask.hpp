@@ -43,6 +43,7 @@ namespace soup
 		[[nodiscard]] SharedPtr<Socket> getSocket(Scheduler& sched); // Output
 
 	protected:
+		void doSecondLookup();
 		void proceedToConnect(const IpAddr& addr, uint16_t port);
 
 	public:

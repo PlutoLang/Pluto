@@ -200,5 +200,8 @@ namespace soup
 
 		[[nodiscard]] std::string toString() const SOUP_EXCAL;
 	};
+
+	// MAY be found in Socket::custom_data. See also: Socket::remote_closed.
+	using SocketCloseReason = std::string;
 }
 #endif
