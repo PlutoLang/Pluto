@@ -121,7 +121,7 @@ namespace soup
 					setWorkDone();
 				}
 			}
-			else if (time::unixSecondsSince(awaiting_response_since) > 10)
+			else if (time::unixSecondsSince(awaiting_response_since) > 30)
 			{
 				//logWriteLine(soup::format("AWAIT_RESPONSE from {} - timeout", hr.getHost()));
 				sock->close();

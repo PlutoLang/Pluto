@@ -11,6 +11,7 @@
 #include "IstreamReader.hpp"
 #include "OstreamWriter.hpp"
 #include "StringReader.hpp"
+#include "StringRefReader.hpp"
 #include "StringWriter.hpp"
 
 namespace soup
@@ -26,15 +27,27 @@ namespace soup
 		using u56 = u64;
 
 	public:
-		bool fromBinary(std::string bin, Endian endian = ENDIAN_BIG) noexcept
+		bool fromBinary(std::string&& bin, Endian endian = ENDIAN_BIG) noexcept
 		{
 			StringReader r(std::move(bin), endian);
 			return read(r);
 		}
 
-		bool fromBinaryLE(std::string bin) noexcept
+		bool fromBinary(const std::string& bin, Endian endian = ENDIAN_BIG) noexcept
+		{
+			StringRefReader r(bin, endian);
+			return read(r);
+		}
+
+		bool fromBinaryLE(std::string&& bin) noexcept
 		{
 			StringReader r(std::move(bin), ENDIAN_LITTLE);
+			return read(r);
+		}
+
+		bool fromBinaryLE(const std::string& bin) noexcept
+		{
+			StringRefReader r(bin, ENDIAN_LITTLE);
 			return read(r);
 		}
 

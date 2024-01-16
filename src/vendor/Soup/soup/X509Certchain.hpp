@@ -11,7 +11,7 @@ namespace soup
 	{
 		std::vector<X509Certificate> certs{};
 
-		bool fromDer(const std::vector<std::string>& vec);
+		bool fromDer(const std::vector<std::string>& vec) SOUP_EXCAL;
 		bool fromPem(const std::string& str);
 
 		void cleanup() SOUP_EXCAL;

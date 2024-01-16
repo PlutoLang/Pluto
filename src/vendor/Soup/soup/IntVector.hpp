@@ -146,7 +146,7 @@ namespace soup
 
 		void emplace_back(T val) SOUP_EXCAL
 		{
-			if (m_size == m_capacity)
+			SOUP_IF_UNLIKELY (m_size == m_capacity)
 			{
 				makeSpaceForMoreElements();
 			}
