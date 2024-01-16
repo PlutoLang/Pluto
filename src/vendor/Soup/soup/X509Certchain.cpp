@@ -9,7 +9,7 @@
 
 namespace soup
 {
-	bool X509Certchain::fromDer(const std::vector<std::string>& vec)
+	bool X509Certchain::fromDer(const std::vector<std::string>& vec) SOUP_EXCAL
 	{
 		for (auto& cert : vec)
 		{

@@ -29,11 +29,12 @@ namespace soup
 		std::string master_secret{};
 		std::string expected_finished_verify_data{};
 		Promise<> promise{};
+		bool extended_master_secret = false;
 
 		// client
+		uint16_t ecdhe_curve = 0;
 		X509Certchain certchain{};
 		std::string server_name{};
-		uint16_t ecdhe_curve = 0;
 		std::string ecdhe_public_key{};
 		SocketTlsEncrypter pending_recv_encrypter;
 

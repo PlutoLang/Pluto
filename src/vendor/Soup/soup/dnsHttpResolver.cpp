@@ -33,7 +33,12 @@ namespace soup
 
 		[[nodiscard]] std::string toString() const SOUP_EXCAL final
 		{
-			return subtask->toString();
+			std::string str = ObfusString("dnsLookupWrapperTask");
+			str.append(": ");
+			str.push_back('[');
+			str.append(subtask->toString());
+			str.push_back(']');
+			return str;
 		}
 	};
 

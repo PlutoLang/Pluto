@@ -7,7 +7,7 @@ namespace soup
 	class SelfDeletingThread : public Thread
 	{
 	public:
-		explicit SelfDeletingThread(void(*f)(Capture&&), Capture&& cap = {}) noexcept;
+		explicit SelfDeletingThread(void(*f)(Capture&&), Capture&& cap = {});
 
 	protected:
 		static void run(Capture&& cap);

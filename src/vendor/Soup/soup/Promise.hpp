@@ -98,7 +98,7 @@ namespace soup
 	};
 
 	template <>
-	class Promise<void> : public PromiseBase
+	class Promise<void>
 	{
 	private:
 		std::atomic_bool fulfiled = false;
