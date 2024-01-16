@@ -2,9 +2,7 @@
 
 #include <thread>
 
-#include "Exception.hpp"
 #include "log.hpp"
-#include "ObfusString.hpp"
 #include "Promise.hpp"
 #include "ReuseTag.hpp"
 #include "Socket.hpp"
@@ -44,14 +42,11 @@ namespace soup
 
 	void Scheduler::run()
 	{
-		SOUP_IF_UNLIKELY (this_thread_running_scheduler != nullptr)
-		{
-			SOUP_THROW(Exception(ObfusString("Attempt to nest schedulers").str()));
-		}
+		const auto prev_scheduler = this_thread_running_scheduler;
 		this_thread_running_scheduler = this;
+		std::vector<pollfd> pollfds{};
 		while (shouldKeepRunning())
 		{
-			std::vector<pollfd> pollfds{};
 			uint8_t workload_flags = 0;
 #if LOG_TICK_DUR
 			Stopwatch t;
@@ -69,21 +64,19 @@ namespace soup
 			{
 				yieldKernel(pollfds);
 			}
+			pollfds.clear();
 		}
-		this_thread_running_scheduler = nullptr;
+		this_thread_running_scheduler = prev_scheduler;
 	}
 
 	void Scheduler::runFor(unsigned int ms)
 	{
-		SOUP_IF_UNLIKELY (this_thread_running_scheduler != nullptr)
-		{
-			SOUP_THROW(Exception(ObfusString("Attempt to nest schedulers").str()));
-		}
+		const auto prev_scheduler = this_thread_running_scheduler;
 		this_thread_running_scheduler = this;
 		time_t deadline = time::millis() + ms;
+		std::vector<pollfd> pollfds{};
 		while (shouldKeepRunning())
 		{
-			std::vector<pollfd> pollfds{};
 			uint8_t workload_flags = 0;
 			tick(pollfds, workload_flags);
 			yieldBusyspin(pollfds, workload_flags);
@@ -91,21 +84,19 @@ namespace soup
 			{
 				break;
 			}
+			pollfds.clear();
 		}
-		this_thread_running_scheduler = nullptr;
+		this_thread_running_scheduler = prev_scheduler;
 	}
 
-	bool Scheduler::shouldKeepRunning() const
+	bool Scheduler::shouldKeepRunning() const noexcept
 	{
 		return workers.size() != passive_workers || !pending_workers.empty();
 	}
 
 	void Scheduler::tick()
 	{
-		SOUP_IF_UNLIKELY (this_thread_running_scheduler != nullptr)
-		{
-			SOUP_THROW(Exception(ObfusString("Attempt to nest schedulers").str()));
-		}
+		const auto prev_scheduler = this_thread_running_scheduler;
 		this_thread_running_scheduler = this;
 
 		std::vector<pollfd> pollfds{};
@@ -118,7 +109,7 @@ namespace soup
 		}
 #endif
 
-		this_thread_running_scheduler = nullptr;
+		this_thread_running_scheduler = prev_scheduler;
 	}
 
 	void Scheduler::tick(std::vector<pollfd>& pollfds, uint8_t& workload_flags)
@@ -138,6 +129,9 @@ namespace soup
 		}
 
 		// Process workers
+#if !SOUP_WASM
+		pollfds.reserve(workers.size());
+#endif
 		for (auto i = workers.begin(); i != workers.end(); )
 		{
 			if ((*i)->type == WORKER_TYPE_SOCKET)
@@ -209,7 +203,7 @@ namespace soup
 			}
 
 			workload_flags |= dispo;
-			static_assert((int)Worker::HIGH_FRQUENCY == (int)HAS_HIGH_FREQUENCY_TASKS);
+			static_assert((int)Worker::HIGH_FRQUENCY == ((int)HAS_HIGH_FREQUENCY_TASKS | (int)NOT_JUST_SOCKETS));
 			static_assert((int)Worker::NEUTRAL == (int)NOT_JUST_SOCKETS);
 			static_assert((int)Worker::LOW_FREQUENCY == (int)0);
 		}

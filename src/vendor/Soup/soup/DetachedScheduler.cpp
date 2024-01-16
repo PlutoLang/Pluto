@@ -1,11 +1,29 @@
 #include "DetachedScheduler.hpp"
 #if !SOUP_WASM
 
+#include "log.hpp"
+
 namespace soup
 {
+#if SOUP_EXCEPTIONS
+	static void onException(Worker& w, const std::exception& e, Scheduler&)
+	{
+		std::string msg = "Exception in DetachedScheduler: ";
+		msg.append(e.what());
+		logWriteLine(std::move(msg));
+
+		msg = "> Raised by ";
+		msg.append(w.toString());
+		logWriteLine(std::move(msg));
+	}
+#endif
+
 	DetachedScheduler::DetachedScheduler(netConfig&& conf) noexcept
 		: conf(std::move(conf))
 	{
+#if SOUP_EXCEPTIONS
+		on_exception = &onException;
+#endif
 	}
 
 	DetachedScheduler::~DetachedScheduler() SOUP_EXCAL

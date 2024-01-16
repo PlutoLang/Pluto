@@ -11,9 +11,20 @@
 
 namespace soup
 {
-	bool X509Certificate::fromDer(const std::string& str)
+	bool X509Certificate::fromDer(const std::string& str) noexcept
 	{
-		return load(Asn1Sequence::fromDer(str));
+#if SOUP_EXCEPTIONS
+		try
+		{
+#endif
+			return load(Asn1Sequence::fromDer(str));
+#if SOUP_EXCEPTIONS
+		}
+		catch (...)
+		{
+		}
+		return false;
+#endif
 	}
 
 	bool X509Certificate::load(const Asn1Sequence& cert) noexcept
@@ -144,7 +155,7 @@ namespace soup
 			return true;
 		}
 #if SOUP_EXCEPTIONS
-		catch (const std::out_of_range&)
+		catch (...)
 		{
 		}
 #endif

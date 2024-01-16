@@ -29,12 +29,24 @@ namespace soup
 	{
 		if (!pre_master_secret.empty())
 		{
-			master_secret = sha256::tls_prf(
-				ObfusString("master secret"),
-				48,
-				std::move(pre_master_secret),
-				std::string(client_random).append(server_random)
-			);
+			if (extended_master_secret)
+			{
+				master_secret = sha256::tls_prf(
+					ObfusString("extended master secret"),
+					48,
+					std::move(pre_master_secret),
+					sha256::hash(layer_bytes)
+				);
+			}
+			else
+			{
+				master_secret = sha256::tls_prf(
+					ObfusString("master secret"),
+					48,
+					std::move(pre_master_secret),
+					std::string(client_random).append(server_random)
+				);
+			}
 			pre_master_secret.clear();
 		}
 		return master_secret;
