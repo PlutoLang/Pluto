@@ -35,11 +35,12 @@ namespace soup
 		return {};
 	}
 
-	std::string dnsRawResolver::getQuery(dnsType qtype, const std::string& name) SOUP_EXCAL
+	std::string dnsRawResolver::getQuery(dnsType qtype, const std::string& name, uint16_t id) SOUP_EXCAL
 	{
 		StringWriter sw(false);
 
 		dnsHeader dh{};
+		dh.id = id;
 		dh.setRecursionDesired(true);
 		dh.qdcount = 1;
 		dh.write(sw);

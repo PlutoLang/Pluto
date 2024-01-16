@@ -84,7 +84,7 @@ namespace soup
 
 		void run();
 		void runFor(unsigned int ms);
-		[[nodiscard]] bool shouldKeepRunning() const;
+		[[nodiscard]] bool shouldKeepRunning() const noexcept;
 		void tick();
 	protected:
 		enum WorkloadFlags : uint8_t

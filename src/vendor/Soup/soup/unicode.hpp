@@ -109,7 +109,30 @@ namespace soup
 		[[nodiscard]] static size_t utf8_char_len(const std::string& str) noexcept;
 		[[nodiscard]] static size_t utf16_char_len(const UTF16_STRING_TYPE& str) noexcept;
 
-		static void utf8_add(std::string::const_iterator& it, std::string::const_iterator end);
-		static void utf8_sub(std::string::const_iterator& it, std::string::const_iterator begin);
+		template <typename Iterator>
+		static void utf8_add(Iterator& it, Iterator end)
+		{
+			if (UTF8_HAS_CONTINUATION(*it))
+			{
+				do
+				{
+					++it;
+				} while (it != end && UTF8_IS_CONTINUATION(*it));
+			}
+			else
+			{
+				++it;
+			}
+		}
+
+		template <typename Iterator>
+		static void utf8_sub(Iterator& it, Iterator begin)
+		{
+			--it;
+			while (UTF8_IS_CONTINUATION(*it) && it != begin)
+			{
+				--it;
+			}
+		}
 	};
 }
