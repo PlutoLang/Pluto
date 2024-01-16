@@ -7,7 +7,7 @@
 
 static int encode(lua_State* L) {
 	auto root = checkJson(L, 1);
-	if (lua_gettop(L) >= 2 && lua_toboolean(L, 2))
+	if (lua_istrue(L, 2))
 	{
 		pluto_pushstring(L, root->encodePretty());
 	}
