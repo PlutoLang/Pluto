@@ -99,7 +99,10 @@ namespace soup
 	void Thread::awaitCompletion() noexcept
 	{
 #if SOUP_WINDOWS
-		WaitForSingleObject(handle, INFINITE);
+		if (handle != INVALID_HANDLE_VALUE)
+		{
+			WaitForSingleObject(handle, INFINITE);
+		}
 #else
 		if (have_handle)
 		{

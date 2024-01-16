@@ -73,5 +73,17 @@ namespace soup
 			ext.data = std::move(ext_data);
 			extensions.emplace_back(std::move(ext));
 		}
+
+		[[nodiscard]] bool contains(uint16_t ext_id) const noexcept
+		{
+			for (const auto& ext : extensions)
+			{
+				if (ext.id == ext_id)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
 	};
 }

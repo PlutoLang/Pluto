@@ -110,7 +110,7 @@ namespace soup
 
 	void string::toFilePath(const std::filesystem::path& file, const std::string& contents)
 	{
-		std::ofstream of(file);
+		std::ofstream of(file, std::ios_base::binary);
 		of << contents;
 	}
 }

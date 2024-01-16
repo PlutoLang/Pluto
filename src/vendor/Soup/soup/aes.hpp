@@ -14,7 +14,6 @@ namespace soup
 		//   GCM can deal with unaligned data, other methods will simply ignore the trailing bytes -> they will not be encrypted.
 		//   You may use a padding scheme such as PKCS#7 for padding.
 		// Key size must be 16 bytes, 24 bytes, or 32 bytes.
-		// IV size must be 16 bytes.
 
 		static void pkcs7Pad(std::string& encrypted) noexcept;
 		[[nodiscard]] static bool pkcs7Unpad(std::string& decrypted) noexcept;
