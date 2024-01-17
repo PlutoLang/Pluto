@@ -1630,6 +1630,11 @@ do
     assert(t:foo() == "hello")
     assert(t:bar() == "world")
 end
+do
+    local f = |a = "No comment"| -> a
+    assert(f() == "No comment")
+    assert(f("Hello") == "Hello")
+end
 
 print "Testing walrus operator."
 do
