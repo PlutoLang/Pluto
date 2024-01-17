@@ -2095,6 +2095,19 @@ static void namedvararg (LexState *ls, TString *varargname) {
 }
 
 
+static void checkrettype (LexState *ls, TypeHint& rethint, TypeHint& retprop, int line) {
+  if (!rethint.empty() /* has type hint for return type? */
+      && !retprop.empty() && retprop.descs[0].type != VT_DUNNO /* return type is known? */
+      && !rethint.isCompatibleWith(retprop)) { /* incompatible? */
+    std::string err = "function was hinted to return ";
+    err.append(rethint.toString());
+    err.append(" but actually returns ");
+    err.append(retprop.toString());
+    throw_warn(ls, err.c_str(), line, WT_TYPE_MISMATCH);
+  }
+}
+
+
 static void propfuncdesc (LexState *ls, FuncState& new_fs, TypeHint& retprop, TypeDesc *funcdesc) {
   funcdesc->type = VT_FUNC;
   funcdesc->proto = new_fs.f;
@@ -2145,15 +2158,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   TypeHint rethint = gettypehint(ls, true);
   TypeHint retprop{};
   statlist(ls, &retprop, true);
-  if (!rethint.empty() /* has type hint for return type? */
-      && !retprop.empty() && retprop.descs[0].type != VT_DUNNO /* return type is known? */
-      && !rethint.isCompatibleWith(retprop)) { /* incompatible? */
-    std::string err = "function was hinted to return ";
-    err.append(rethint.toString());
-    err.append(" but actually returns ");
-    err.append(retprop.toString());
-    throw_warn(ls, err.c_str(), line, WT_TYPE_MISMATCH);
-  }
+  checkrettype(ls, rethint, retprop, line);
   if (funcdesc)
     propfuncdesc(ls, new_fs, retprop, funcdesc);
   new_fs.f->lastlinedefined = ls->getLineNumber();
@@ -2181,6 +2186,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
   TString *varargname = nullptr;
   parlist(ls, nullptr, &bs.fallbacks, &varargname, true);
   checknext(ls, '|');
+  TypeHint rethint = gettypehint(ls, true);
   checknext(ls, TK_ARROW);
   defaultarguments(ls, 0, bs.fallbacks, E_NO_BOR);
   if (varargname)
@@ -2196,6 +2202,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
     luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
     ls->popContext(PARCTX_LAMBDA_BODY);
   }
+  checkrettype(ls, rethint, retprop, line);
   if (funcdesc)
     propfuncdesc(ls, new_fs, retprop, funcdesc);
   new_fs.f->lastlinedefined = ls->getLineNumber();
