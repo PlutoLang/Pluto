@@ -1025,12 +1025,12 @@
 // This will affect require and package.loadlib.
 //#define PLUTO_LOADCLIB_HOOK ContmodOnLoadCLib
 
-// If defined, Pluto will prevent loading the entire io library & os.remove, and os.rename to prevent filesystem access.
-// Pluto will compile any filesystem-related functions to do nothing more than "return 0;"
+// If defined, Pluto will not load the io library, and exclude os.remove and os.rename.
+// Furthermore, these functions will be bricked such that they do not work.
 //   This is done largely to ensure package.loadlib gets nothing from loading their symbols
 //   There has been exploits in the past that have managed to load these lua_CFunction objects provided they're in memory. This shouldn't even be considered a worry with Pluto, since they are literally compiled to do nothing instead of only getting excluded from luaL_openlibs.
 // 
-// It's highly suggested in most cases to define PLUTO_NO_OS_EXECUTE below too, since os.execute can be used for file-system access. 
+// It's highly suggested in most cases to define PLUTO_NO_OS_EXECUTE below too, since os.execute can be used for filesystem access. 
 // 
 // It's suggested you implement PLUTO_LOADCLIB_HOOK, etc, for even more powerful coverage. Package.loadlib can still load other Pluto/Lua libraries and use their lua_CFunction objects.
 //#define PLUTO_NO_FILESYSTEM
@@ -1040,6 +1040,10 @@
 
 // Eliminate any loading of any binaries. This removes package.loadlib and prevents 'require' from loading any C modules or shared libraries.
 //#define PLUTO_NO_BINARIES
+
+#ifdef PLUTO_NO_BINARIES
+#define PLUTO_NO_BINARIES_FAIL luaL_error(L, "binary modules cannot be loaded in this environment");
+#endif
 
 // If defined, luaL_openlibs will not include the 'debug' library.
 //#define PLUTO_NO_DEBUGLIB
@@ -1051,11 +1055,18 @@
 //#define PLUTO_DISABLE_HTTP_COMPLETELY
 
 // If defined, the provided function will be called as bool(lua_State* L, const char* url).
-// If it returns false, a Lua eror is raised.
+// If it returns false, a Lua error is raised.
 //#define PLUTO_HTTP_REQUEST_HOOK ContmodOnHttpRequest
-#ifdef PLUTO_NO_BINARIES
-#define PLUTO_NO_BINARIES_FAIL luaL_error(L, "binary modules cannot be loaded in this environment");
-#endif
+
+// If defined, the provided function will be called as bool(lua_State* L, const char* path)
+// for any attempt to read a file's contents or metadata. The path will be UTF-8 encoded.
+// If the function hook returns false, a Lua error is raised.
+//#define PLUTO_READ_FILE_HOOK ContmodOnReadFile
+
+// If defined, the provided function will be called as bool(lua_State* L, const char* path)
+// for any attempt to write a file's contents or metadata. The path will be UTF-8 encoded.
+// If the function hook returns false, a Lua error is raised.
+//#define PLUTO_WRITE_FILE_HOOK ContmodOnWriteFile
 
 /*
 ** {====================================================================
