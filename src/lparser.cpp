@@ -1903,6 +1903,32 @@ static void skip_over_simpleexp_within_parenlist (LexState *ls) {
   }
 }
 
+/* keep advancing until we hit ',' or '|' */
+static void skip_over_simpleexp_within_lambdaparlist (LexState *ls) {
+  int parens = 0;
+  int curlys = 0;
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.token == '(') {
+      parens++;
+    }
+    else if (ls->t.token == ')') {
+      parens--;
+    }
+    else if (ls->t.token == '{') {
+      curlys++;
+    }
+    else if (ls->t.token == '}') {
+      curlys--;
+    }
+    else if (ls->t.token == ',' || ls->t.token == '|') {
+      if (parens == 0 && curlys == 0) {
+        break;
+      }
+    }
+    luaX_next(ls);
+  }
+}
+
 /* keep advancing until we hit non-nested 'else' or 'end' */
 static void skip_block (LexState *ls) {
   int ends = 0;
@@ -1943,7 +1969,7 @@ static void skip_block (LexState *ls) {
 }
 
 
-static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* promotions, std::vector<size_t>* fallbacks, TString** varargname) {
+static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* promotions, std::vector<size_t>* fallbacks, TString** varargname, bool lambda) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
@@ -1978,7 +2004,10 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
               throwerr(ls, "default argument expected", "nil is not a valid default argument");
             }
             fallbacks->emplace_back(luaX_getpos(ls));
-            skip_over_simpleexp_within_parenlist(ls);
+            if (lambda)
+              skip_over_simpleexp_within_lambdaparlist(ls);
+            else
+              skip_over_simpleexp_within_parenlist(ls);
           }
           else {
             fallbacks->emplace_back(0);
@@ -2002,6 +2031,40 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
   if (isvararg)
     setvararg(fs, f->numparams);  /* declared vararg */
   luaK_reserveregs(fs, fs->nactvar);  /* reserve registers for parameters */
+}
+
+
+static void defaultarguments (LexState *ls, int ismethod, const std::vector<size_t>& fallbacks, int flags = 0) {
+  const auto saved_pos = luaX_getpos(ls);
+  int fallback_idx = (ismethod ? 1 : 0);
+  for (const auto& tidx : fallbacks) {
+    if (tidx != 0) {
+      enterlevel(ls);
+      FuncState *fs = ls->fs;
+
+      expdesc nilable;
+      Vardesc *vd = getlocalvardesc(fs, fallback_idx);
+      singlevaraux(fs, vd->vd.name, &nilable, 0);
+
+      luaX_setpos(ls, tidx);
+      expdesc nilexp;
+      luaK_infix(fs, OPR_NE, &nilable);
+      init_exp(&nilexp, VNIL, 0);
+      luaK_posfix(fs, OPR_NE, &nilable, &nilexp, ls->getLineNumber());
+      auto pc = nilable.u.pc;
+
+      expdesc fallback;
+      expr(ls, &fallback, nullptr, flags);
+      luaK_setoneret(fs, &fallback);
+      singlevaraux(fs, vd->vd.name, &nilable, 0);
+      luaK_storevar(fs, &nilable, &fallback);
+
+      luaK_patchtohere(fs, pc);
+      leavelevel(ls);
+    }
+    ++fallback_idx;
+  }
+  luaX_setpos(ls, saved_pos);
 }
 
 
@@ -2060,38 +2123,9 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   }
   BodyState& bs = ls->bodystates.emplace();
   TString *varargname = nullptr;
-  parlist(ls, (ismethod == 2 ? &bs.promotions : nullptr), &bs.fallbacks, &varargname);
+  parlist(ls, (ismethod == 2 ? &bs.promotions : nullptr), &bs.fallbacks, &varargname, false);
   checknext(ls, ')');
-  const auto saved_pos = luaX_getpos(ls);
-  int fallback_idx = (ismethod ? 1 : 0);
-  for (const auto& tidx : bs.fallbacks) {
-    if (tidx != 0) {
-      enterlevel(ls);
-      FuncState *fs = ls->fs;
-
-      expdesc nilable;
-      Vardesc *vd = getlocalvardesc(fs, fallback_idx);
-      singlevaraux(fs, vd->vd.name, &nilable, 0);
-
-      luaX_setpos(ls, tidx);
-      expdesc nilexp;
-      luaK_infix(fs, OPR_NE, &nilable);
-      init_exp(&nilexp, VNIL, 0);
-      luaK_posfix(fs, OPR_NE, &nilable, &nilexp, ls->getLineNumber());
-      auto pc = nilable.u.pc;
-
-      expdesc fallback;
-      expr(ls, &fallback);
-      luaK_setoneret(fs, &fallback);
-      singlevaraux(fs, vd->vd.name, &nilable, 0);
-      luaK_storevar(fs, &nilable, &fallback);
-
-      luaK_patchtohere(fs, pc);
-      leavelevel(ls);
-    }
-    ++fallback_idx;
-  }
-  luaX_setpos(ls, saved_pos);
+  defaultarguments(ls, ismethod, bs.fallbacks);
   for (const auto& e : bs.promotions) {
     FuncState *fs = ls->fs;
     expdesc tab, key, val;
@@ -2143,10 +2177,12 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
   new_fs.f = addprototype(ls);
   new_fs.f->linedefined = line;
   open_func(ls, &new_fs, &bl);
+  BodyState& bs = ls->bodystates.emplace();
   TString *varargname = nullptr;
-  parlist(ls, nullptr, nullptr, &varargname);
+  parlist(ls, nullptr, &bs.fallbacks, &varargname, true);
   checknext(ls, '|');
   checknext(ls, TK_ARROW);
+  defaultarguments(ls, 0, bs.fallbacks, E_NO_BOR);
   if (varargname)
     namedvararg(ls, varargname);
   TypeHint retprop{};
@@ -2165,6 +2201,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
   new_fs.f->lastlinedefined = ls->getLineNumber();
   codeclosure(ls, e);
   close_func(ls);
+  ls->bodystates.pop();
 }
 
 
