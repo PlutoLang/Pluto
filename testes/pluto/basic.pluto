@@ -917,7 +917,9 @@ do
     do
         switch 1 do
             case 1:
-                local _ <close> = c
+                do
+                    local _ <close> = c
+                end
                 break
             default:
                 error()
@@ -928,15 +930,19 @@ end
 do
     switch 1 do
         case 0:
-            local tbl = {}
+            do
+                local tbl = {}
+            end
             break
         case 1:
-            local tbl = {}
-            for k, v in "test string":split(" ") do
-                tbl[k] = v
+            do
+                local tbl = {}
+                for k, v in "test string":split(" ") do
+                    tbl[k] = v
+                end
+                assert(tbl[1] == "test")
+                assert(tbl[2] == "string")
             end
-            assert(tbl[1] == "test")
-            assert(tbl[2] == "string")
             break
     end
 end
@@ -1038,18 +1044,6 @@ do
         return switch 42 do end
     end
     assert(f() == nil)
-end
--- This simply shouldn't raise any warnings
-do
-    local a = 3
-    switch a do
-        case 1:
-            local scoped_local = 1
-            break
-        case 2:
-            local scoped_local = 2
-            break
-    end
 end
 
 print "Testing table freezing."
