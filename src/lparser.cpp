@@ -3135,10 +3135,9 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     auto case_line = ls->getLineNumber();
     if (fs->nactvar != nactvar) {
       const char *varname = getstr(getlocalvardesc(ls->fs, nactvar)->vd.name);
-      const char *msg = "switch case on line %d jumps into the scope of local '%s'. this will be a fatal error in 0.9.0.";
+      const char *msg = "switch case on line %d jumps into the scope of local '%s'";
       msg = luaO_pushfstring(ls->L, msg, case_line, varname);
-      throw_warn(ls, msg, WT_DEPRECATED);
-      lua_pop(ls->L, 1);  /* pop result of luaO_pushfstring */
+      luaK_semerror(ls, msg);  /* raise the error */
     }
     if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
