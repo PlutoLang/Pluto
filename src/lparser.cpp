@@ -592,8 +592,6 @@ inline const char* const common_global_names[] = { PLUTO_COMMON_GLOBAL_NAMES };
 
 static int searchvar (FuncState *fs, TString *n, expdesc *var);
 static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int line, bool check_globals = true, bool check_locals = true) {
-  if (fs->bl->isSwitch())
-    return;  /* ignore switch block as same local could be redefined in a different case */
   std::string n = name->toCpp();
   if (n == "(for state)" || n == "(switch control value)" || n == "(try results)")
     return;
