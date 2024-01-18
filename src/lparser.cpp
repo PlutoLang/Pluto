@@ -3097,18 +3097,18 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
       default_case = luaS_newliteral(ls->L, "pluto_default_case");
       default_pc = luaK_getlabel(fs);
       createlabel(ls, default_case, ls->getLineNumber(), false);
-      caselist(ls, ud);
     }
     else {
       checknext(ls, TK_CASE);
       cases.emplace_back(SwitchCase{ luaX_getpos(ls), luaK_getlabel(fs) });
       skip_until(ls, tk); /* skip over casecond */
       checknext(ls, tk);
-      caselist(ls, ud);
     }
+    ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
+    caselist(ls, ud);
   }
 
-  if (luaX_lookbehind(ls).token != TK_BREAK) {  /* last block did not have 'break'? */
+  if (ls->laststat.token != TK_BREAK) {  /* last block did not have 'break'? */
     if (tk == ':') {  /* switch statement? */
       /* jump to the end of switch as otherwise we would loop infinitely */
       lbreak(ls, 1, ls->getLineNumber());
@@ -3194,7 +3194,6 @@ static void switchstat (LexState *ls) {
       }
       else testnext(ls, TK_FALLTHROUGH);
     }
-    ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
   });
 }
 
