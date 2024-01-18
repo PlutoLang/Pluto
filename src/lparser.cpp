@@ -3112,6 +3112,8 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     }
   }
 
+  const auto nactvar = fs->nactvar;
+
   std::vector<int> first{};
   TString* const begin_switch = luaS_newliteral(ls->L, "pluto_begin_switch");
   TString* default_case = nullptr;
@@ -3131,6 +3133,12 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   while (gett(ls) != TK_END) {
     auto case_line = ls->getLineNumber();
+    if (fs->nactvar != nactvar) {
+      const char *varname = getstr(getlocalvardesc(ls->fs, nactvar)->vd.name);
+      const char *msg = "switch case on line %d jumps into the scope of local '%s'";
+      msg = luaO_pushfstring(ls->L, msg, case_line, varname);
+      luaK_semerror(ls, msg);  /* raise the error */
+    }
     if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
       checknext(ls, tk);
