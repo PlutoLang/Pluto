@@ -1519,6 +1519,15 @@ do
     assert(tr[3] == nil)
 end
 do
+    local menu = {
+        { id = 1, name = "Apple" },
+        { id = 2, name = "Banana" },
+    }
+    assert(menu:find(|item| -> item.id == 1).name == "Apple")
+    assert(menu:find(|item| -> item.id == 2).name == "Banana")
+    assert(menu:find(|item| -> item.id == 3) == nil)
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
