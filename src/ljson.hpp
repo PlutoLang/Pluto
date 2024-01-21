@@ -108,25 +108,25 @@ static void pushFromJson(lua_State* L, const soup::JsonNode& node)
 {
 	if (node.isBool())
 	{
-		lua_pushboolean(L, node.asBool().value);
+		lua_pushboolean(L, node.reinterpretAsBool().value);
 	}
 	else if (node.isInt())
 	{
-		lua_pushinteger(L, node.asInt().value);
+		lua_pushinteger(L, node.reinterpretAsInt().value);
 	}
 	else if (node.isFloat())
 	{
-		lua_pushnumber(L, node.asFloat().value);
+		lua_pushnumber(L, node.reinterpretAsFloat().value);
 	}
 	else if (node.isStr())
 	{
-		pluto_pushstring(L, node.asStr().value);
+		pluto_pushstring(L, node.reinterpretAsStr().value);
 	}
 	else if (node.isArr())
 	{
 		lua_newtable(L);
 		lua_Integer i = 1;
-		for (const auto& child : node.asArr().children)
+		for (const auto& child : node.reinterpretAsArr().children)
 		{
 			lua_pushinteger(L, i++);
 			pushFromJson(L, *child);
@@ -136,7 +136,7 @@ static void pushFromJson(lua_State* L, const soup::JsonNode& node)
 	else if (node.isObj())
 	{
 		lua_newtable(L);
-		for (const auto& e : node.asObj().children)
+		for (const auto& e : node.reinterpretAsObj().children)
 		{
 			pushFromJson(L, *e.first);
 			pushFromJson(L, *e.second);
