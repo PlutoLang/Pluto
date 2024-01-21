@@ -48,6 +48,8 @@ LUAMOD_API int luaopen_json(lua_State* L)
 	// decode flags
 	lua_pushinteger(L, 1 << 0);
 	lua_setfield(L, -2, "withnull");
+	lua_pushinteger(L, 1 << 1);
+	lua_setfield(L, -2, "withorder");
 
 	return 1;
 }
