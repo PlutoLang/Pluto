@@ -103,14 +103,17 @@ namespace soup
 
 	std::string base32::decode(const std::string& in)
 	{
-		auto arr = (const uint8_t*)&in.at(0);
-		std::string out;
-		out.reserve(getDecodedLength(in.size()));
-		for (size_t i = 0, j = 0; ; i += 8, j += 5)
+		std::string out{};
+		if (!in.empty())
 		{
-			if (!decode_sequence(&arr[i], j, out))
+			auto arr = (const uint8_t*)&in.at(0);
+			out.reserve(getDecodedLength(in.size()));
+			for (size_t i = 0, j = 0; ; i += 8, j += 5)
 			{
-				break;
+				if (!decode_sequence(&arr[i], j, out))
+				{
+					break;
+				}
 			}
 		}
 		return out;
