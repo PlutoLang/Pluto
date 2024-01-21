@@ -1210,6 +1210,13 @@ do
         }
         assert(json.encode(t) == [[{"a":1,"b":2,"c":3}]])
     end
+
+    do
+        local t = json.decode([[{"a":1,"b":2,"c":3}]], json.withorder)
+        assert(t.__order[1] == "a")
+        assert(t.__order[2] == "b")
+        assert(t.__order[3] == "c")
+    end
 end
 do
     local t = { key = "value" }
