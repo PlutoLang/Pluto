@@ -170,6 +170,19 @@ static void pushFromJson(lua_State* L, const soup::JsonNode& node, int flags)
 				pushFromJson(L, *e.second, flags);
 				lua_settable(L, -3);
 			}
+			if (flags & (1 << 1))
+			{
+				lua_pushliteral(L, "__order");
+				lua_newtable(L);
+				lua_Integer i = 1;
+				for (const auto& e : node.reinterpretAsObj().children)
+				{
+					lua_pushinteger(L, i++);
+					pushFromJson(L, *e.first, flags);
+					lua_settable(L, -3);
+				}
+				lua_settable(L, -3);
+			}
 		}
 		break;
 
