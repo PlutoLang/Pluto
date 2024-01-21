@@ -400,13 +400,15 @@ static void read_long_string (LexState *ls, SemInfo *seminfo, size_t sep) {
         break;
       }
       default: {
+        ls->appendLineBuff(ls->current);
         if (seminfo) save_and_next(ls);
         else next(ls);
       }
     }
   } endloop:
-  seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 1,
-                                   luaZ_bufflen(ls->buff) - sep - 1);
+  if (seminfo)
+    seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 1,
+                                     luaZ_bufflen(ls->buff) - sep - 1);
 }
 
 
@@ -581,15 +583,17 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           ls->appendLineBuff('-');
           next(ls);
           if (ls->current == '[') {  /* long comment? */
+            ls->appendLineBuff('[');
             size_t sep = skip_sep(ls);
             luaZ_resetbuffer(ls->buff);  /* 'skip_sep' may dirty the buffer */
             if (sep >= 2) {
-              ls->appendLineBuff(sep, '[');
-              SemInfo si;
-              read_long_string(ls, &si, sep);  /* skip long comment */
-              ls->appendLineBuff(getstr(si.ts));
-              ls->appendLineBuff(sep, ']');
-              luaZ_resetbuffer(ls->buff);  /* previous call may dirty the buff. */
+              ls->appendLineBuff(sep - 2, '=');
+              ls->appendLineBuff('[');
+              read_long_string(ls, nullptr, sep);  /* skip long comment */
+              luaZ_resetbuffer(ls->buff);  /* 'read_long_string' may dirty the buffer */
+              ls->appendLineBuff(']');
+              ls->appendLineBuff(sep - 2, '=');
+              ls->appendLineBuff(']');
               if (ls->getLineBuff().find("@fallthrough") != std::string::npos)
                 return TK_FALLTHROUGH;
               break;
@@ -625,7 +629,12 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
         size_t sep = skip_sep(ls);
         luaZ_resetbuffer(ls->buff);
         if (sep >= 2) {
+          ls->appendLineBuff(sep - 2, '=');
+          ls->appendLineBuff('[');
           read_long_string(ls, seminfo, sep);
+          ls->appendLineBuff(']');
+          ls->appendLineBuff(sep - 2, '=');
+          ls->appendLineBuff(']');
           return TK_STRING;
         }
         else if (sep == 0)  /* '[=...' missing second bracket? */
