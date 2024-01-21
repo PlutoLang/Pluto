@@ -61,7 +61,7 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 	}
 	else if (type == LUA_TSTRING)
 	{
-		return soup::make_unique<soup::JsonString>(lua_tostring(L, i));
+		return soup::make_unique<soup::JsonString>(pluto_checkstring(L, i));
 	}
 	else if (type == LUA_TTABLE)
 	{
