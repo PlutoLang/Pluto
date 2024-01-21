@@ -1208,6 +1208,16 @@ do
 
     assert(json.decode([[{"a":null]]).a == nil)
     assert(json.decode([[{"a":null}]], json.withnull).a == json.null)
+
+    do
+        local t = {
+            __order = { "a", "b", "c" },
+            a = 1,
+            b = 2,
+            c = 3
+        }
+        assert(json.encode(t) == [[{"a":1,"b":2,"c":3}]])
+    end
 end
 do
     local t = { key = "value" }
