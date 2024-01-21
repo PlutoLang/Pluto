@@ -106,45 +106,51 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 
 static void pushFromJson(lua_State* L, const soup::JsonNode& node)
 {
-	if (node.isBool())
+	switch (node.type)
 	{
+	case soup::JSON_BOOL:
 		lua_pushboolean(L, node.reinterpretAsBool().value);
-	}
-	else if (node.isInt())
-	{
+		break;
+
+	case soup::JSON_INT:
 		lua_pushinteger(L, node.reinterpretAsInt().value);
-	}
-	else if (node.isFloat())
-	{
+		break;
+
+	case soup::JSON_FLOAT:
 		lua_pushnumber(L, node.reinterpretAsFloat().value);
-	}
-	else if (node.isStr())
-	{
+		break;
+
+	case soup::JSON_STRING:
 		pluto_pushstring(L, node.reinterpretAsStr().value);
-	}
-	else if (node.isArr())
-	{
-		lua_newtable(L);
-		lua_Integer i = 1;
-		for (const auto& child : node.reinterpretAsArr().children)
+		break;
+
+	case soup::JSON_ARRAY:
 		{
-			lua_pushinteger(L, i++);
-			pushFromJson(L, *child);
-			lua_settable(L, -3);
+			lua_newtable(L);
+			lua_Integer i = 1;
+			for (const auto& child : node.reinterpretAsArr().children)
+			{
+				lua_pushinteger(L, i++);
+				pushFromJson(L, *child);
+				lua_settable(L, -3);
+			}
 		}
-	}
-	else if (node.isObj())
-	{
-		lua_newtable(L);
-		for (const auto& e : node.reinterpretAsObj().children)
+		break;
+
+	case soup::JSON_OBJECT:
 		{
-			pushFromJson(L, *e.first);
-			pushFromJson(L, *e.second);
-			lua_settable(L, -3);
+			lua_newtable(L);
+			for (const auto& e : node.reinterpretAsObj().children)
+			{
+				pushFromJson(L, *e.first);
+				pushFromJson(L, *e.second);
+				lua_settable(L, -3);
+			}
 		}
-	}
-	else
-	{
+		break;
+
+	case soup::JSON_NULL:
 		lua_pushnil(L);
+		break;
 	}
 }
