@@ -104,7 +104,7 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 	luaL_typeerror(L, i, "JSON-castable type");
 }
 
-static void pushFromJson(lua_State* L, const soup::JsonNode& node)
+static void pushFromJson(lua_State* L, const soup::JsonNode& node, int flags)
 {
 	switch (node.type)
 	{
@@ -131,7 +131,7 @@ static void pushFromJson(lua_State* L, const soup::JsonNode& node)
 			for (const auto& child : node.reinterpretAsArr().children)
 			{
 				lua_pushinteger(L, i++);
-				pushFromJson(L, *child);
+				pushFromJson(L, *child, flags);
 				lua_settable(L, -3);
 			}
 		}
@@ -142,15 +142,22 @@ static void pushFromJson(lua_State* L, const soup::JsonNode& node)
 			lua_newtable(L);
 			for (const auto& e : node.reinterpretAsObj().children)
 			{
-				pushFromJson(L, *e.first);
-				pushFromJson(L, *e.second);
+				pushFromJson(L, *e.first, flags);
+				pushFromJson(L, *e.second, flags);
 				lua_settable(L, -3);
 			}
 		}
 		break;
 
 	case soup::JSON_NULL:
-		lua_pushnil(L);
+		if (flags & (1 << 0))
+		{
+			lua_pushlightuserdata(L, reinterpret_cast<void*>(static_cast<uintptr_t>('PJNL')));
+		}
+		else
+		{
+			lua_pushnil(L);
+		}
 		break;
 	}
 }
