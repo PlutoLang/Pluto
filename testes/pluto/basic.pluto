@@ -1196,6 +1196,12 @@ do
     assert(base32.decode("AA======") == "\x00")
 end
 do
+    local json = require("json")
+
+    assert(json.decode([[{"a":null]]).a == nil)
+    assert(json.decode([[{"a":null}]], json.withnull).a == json.null)
+end
+do
     local t = { key = "value" }
     table.insert(t, 0)
     table.insert(t, "Hello")

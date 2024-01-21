@@ -20,9 +20,14 @@ static int encode(lua_State* L) {
 
 static int decode(lua_State* L)
 {
+	int flags = 0;
+	if (lua_gettop(L) >= 2)
+	{
+		flags = (int)luaL_checkinteger(L, 2);
+	}
 	if (auto root = soup::json::decode(pluto_checkstring(L, 1)))
 	{
-		pushFromJson(L, *root);
+		pushFromJson(L, *root, flags);
 		return 1;
 	}
 	return 0;
@@ -39,6 +44,11 @@ LUAMOD_API int luaopen_json(lua_State* L)
 	luaL_newlib(L, funcs);
 	lua_pushlightuserdata(L, reinterpret_cast<void*>(static_cast<uintptr_t>('PJNL')));
 	lua_setfield(L, -2, "null");
+
+	// decode flags
+	lua_pushinteger(L, 1 << 0);
+	lua_setfield(L, -2, "withnull");
+
 	return 1;
 }
 const Pluto::PreloadedLibrary Pluto::preloaded_json{ "json", funcs, &luaopen_json };
