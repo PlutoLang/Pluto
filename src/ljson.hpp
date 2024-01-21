@@ -1,6 +1,6 @@
 #pragma once
 
-// https://github.com/calamity-inc/Soup-Lua-Bindings/blob/main/soup_lua_bindings.hpp
+#include <algorithm>
 
 #include "vendor/Soup/soup/json.hpp"
 #include "vendor/Soup/soup/JsonInt.hpp"
@@ -91,6 +91,30 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 				lua_pop(L, 2);
 			}
 			lua_pop(L, 1);
+			if (auto itOrder = obj->findIt("__order"); itOrder != obj->end())
+			{
+				if (itOrder->second->isArr())
+				{
+					auto upOrder = std::move(itOrder->second);
+					obj->erase(itOrder);
+					std::sort(obj->begin(), obj->end(), [pOrder{ static_cast<soup::JsonArray*>(upOrder.get()) }]
+						(const soup::JsonObject::Container::value_type& a, const soup::JsonObject::Container::value_type& b)
+					{
+						for (const auto& val : *pOrder)
+						{
+							if (*a.first == val)
+							{
+								return true;
+							}
+							if (*b.first == val)
+							{
+								return false;
+							}
+						}
+						return false;
+					});
+				}
+			}
 			return obj;
 		}
 	}
