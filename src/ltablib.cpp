@@ -740,10 +740,38 @@ static int tfind (lua_State *L) {
 }
 
 
+static int checkall (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  luaL_checktype(L, 2, LUA_TFUNCTION);
+
+  lua_pushvalue(L, 1);
+  lua_pushnil(L);
+  /* stack now: table, key */
+  while (lua_next(L, -2)) {
+    /* stack now: table, key, value */
+    lua_pushvalue(L, 2);
+    /* stack now: table, key, value, func */
+    lua_pushvalue(L, -2);
+    /* stack now: table, key, value, func, value */
+    lua_call(L, 1, 1);
+    /* stack now: table, key, value, bool */
+    if (!lua_istrue(L, -1)) {
+      return 1;
+    }
+    lua_pop(L, 2);
+    /* stack now: table, key */
+  }
+  lua_pop(L, 1);
+  lua_pushboolean(L, true);
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"checkall", checkall},
   {"find", tfind},
   {"reduce", treduce},
   {"size", tsize},
