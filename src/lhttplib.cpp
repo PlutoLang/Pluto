@@ -125,6 +125,8 @@ static int http_request (lua_State *L) {
     lua_pushliteral(L, "body");
     if (lua_rawget(L, optionsidx) > LUA_TNIL)
       spTask->hr.setPayload(pluto_checkstring(L, -1));
+    else if (spTask->hr.method != "GET")
+      spTask->hr.setPayload("");
     lua_pop(L, 1);
     lua_pushliteral(L, "prefer_ipv6");
     if (lua_rawget(L, optionsidx) > LUA_TNIL)
