@@ -117,7 +117,7 @@ namespace soup
 
 	// PublicKey
 
-#define E_PREF_VAL 65537_b
+#define E_PREF_VAL 65537_b // 0x10001
 
 	Bigint RsaPublicKey::E_PREF = E_PREF_VAL;
 
