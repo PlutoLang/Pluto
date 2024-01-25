@@ -1,8 +1,9 @@
 #include "string.hpp"
 
-#include <filesystem>
 #include <fstream>
 #include <streambuf>
+
+#include "filesystem.hpp"
 
 namespace soup
 {
@@ -73,16 +74,17 @@ namespace soup
 		return res;
 	}
 
-	std::string string::fromFile(const std::string& file)
+	std::string string::fromFile(const char* file)
 	{
-#if SOUP_CPP20
-		return fromFilePath(toUtf8Type(file));
-#else
-		return fromFilePath(std::filesystem::u8path(file));
-#endif
+		return fromFile(soup::filesystem::u8path(file));
 	}
 
-	std::string string::fromFilePath(const std::filesystem::path& file)
+	std::string string::fromFile(const std::string& file)
+	{
+		return fromFile(soup::filesystem::u8path(file));
+	}
+
+	std::string string::fromFile(const std::filesystem::path& file)
 	{
 		std::string ret{};
 		if (std::filesystem::exists(file))
@@ -99,16 +101,17 @@ namespace soup
 		return ret;
 	}
 
-	void string::toFile(const std::string& file, const std::string& contents)
+	void string::toFile(const char* file, const std::string& contents)
 	{
-#if SOUP_CPP20
-		return toFilePath(toUtf8Type(file), contents);
-#else
-		return toFilePath(std::filesystem::u8path(file), contents);
-#endif
+		return toFile(soup::filesystem::u8path(file), contents);
 	}
 
-	void string::toFilePath(const std::filesystem::path& file, const std::string& contents)
+	void string::toFile(const std::string& file, const std::string& contents)
+	{
+		return toFile(soup::filesystem::u8path(file), contents);
+	}
+
+	void string::toFile(const std::filesystem::path& file, const std::string& contents)
 	{
 		std::ofstream of(file, std::ios_base::binary);
 		of << contents;

@@ -156,9 +156,6 @@
     <ClCompile Include="src\vendor\Soup\soup\dnsName.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\Soup\soup\dnsOsResolver.cpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\dnsRawResolver.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
@@ -261,6 +258,15 @@
     <ClCompile Include="src\lschedulerlib.cpp" />
     <ClCompile Include="src\lsocketlib.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\os.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\filesystem.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\dnsSmartResolver.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\dnsUdpResolver.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
   </ItemGroup>
@@ -503,9 +509,6 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\dnsName.hpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClInclude>
-    <ClInclude Include="src\vendor\Soup\soup\dnsOsResolver.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\dnsQuestion.hpp">
@@ -770,6 +773,15 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\os.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\filesystem.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\dnsSmartResolver.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\dnsUdpResolver.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>
