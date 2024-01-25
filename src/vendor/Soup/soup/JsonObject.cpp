@@ -3,6 +3,7 @@
 #include "Exception.hpp"
 #include "json.hpp"
 #include "JsonBool.hpp"
+#include "JsonFloat.hpp"
 #include "JsonInt.hpp"
 #include "JsonString.hpp"
 #include "string.hpp"
@@ -264,5 +265,10 @@ namespace soup
 	void JsonObject::add(std::string k, bool v)
 	{
 		add(soup::make_unique<JsonString>(std::move(k)), soup::make_unique<JsonBool>(v));
+	}
+
+	void JsonObject::add(std::string k, double v)
+	{
+		add(soup::make_unique<JsonString>(std::move(k)), soup::make_unique<JsonFloat>(v));
 	}
 }

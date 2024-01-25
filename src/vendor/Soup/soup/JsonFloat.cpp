@@ -19,7 +19,7 @@ namespace soup
 	{
 		uint8_t b = JSON_FLOAT;
 		uint64_t val;
-		memcpy(&val, &value, sizeof(double)); static_assert(sizeof(uint64_t) == sizeof(value));
+		*reinterpret_cast<double*>(&val) = value;
 		return w.u8(b)
 			&& w.u64(val)
 			;
