@@ -423,6 +423,7 @@
     <ClCompile Include="src\lbase32.cpp" />
     <ClCompile Include="src\lbase64.cpp" />
     <ClCompile Include="src\lbaselib.cpp" />
+    <ClCompile Include="src\lbigint.cpp" />
     <ClCompile Include="src\lcatlib.cpp" />
     <ClCompile Include="src\lcode.cpp" />
     <ClCompile Include="src\lcorolib.cpp" />
