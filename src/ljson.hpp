@@ -189,7 +189,7 @@ static void pushFromJson(lua_State* L, const soup::JsonNode& node, int flags)
 	case soup::JSON_NULL:
 		if (flags & (1 << 0))
 		{
-			lua_pushlightuserdata(L, reinterpret_cast<void*>(static_cast<uintptr_t>('PJNL')));
+			lua_pushlightuserdata(L, reinterpret_cast<void*>(static_cast<uintptr_t>(0xF01D)));
 		}
 		else
 		{
