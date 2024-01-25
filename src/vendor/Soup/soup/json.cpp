@@ -18,7 +18,7 @@ namespace soup
 		{
 			return {};
 		}
-		const char* c = &data.at(0);
+		const char* c = data.c_str();
 		return decode(c);
 	}
 
@@ -160,9 +160,7 @@ namespace soup
 				uint64_t val;
 				if (r.u64(val))
 				{
-					double value;
-					memcpy(&value, &val, sizeof(double)); static_assert(sizeof(uint64_t) == sizeof(value));
-					return soup::make_unique<JsonFloat>(std::move(value));
+					return soup::make_unique<JsonFloat>(*reinterpret_cast<double*>(&val));
 				}
 			}
 			else if (type == JSON_STRING)

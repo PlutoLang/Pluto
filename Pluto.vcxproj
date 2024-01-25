@@ -518,6 +518,7 @@
     <ClCompile Include="src\vendor\Soup\soup\dnsUdpResolver.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\dns_records.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ecc.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\filesystem.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\HttpRequest.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\HttpRequestTask.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\IpAddr.cpp" />
@@ -647,6 +648,7 @@
     <ClInclude Include="src\vendor\Soup\soup\ecc.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Endian.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Exception.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\filesystem.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\format.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\fwd.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\HttpRequest.hpp" />
