@@ -402,12 +402,6 @@ namespace soup
 		rand.fill(hello.random.random);
 		handshaker->client_random = hello.random.toBinaryString();
 		vector_emplace_back_randomised(hello.cipher_suites, {
-			TLS_RSA_WITH_AES_256_CBC_SHA256,
-			TLS_RSA_WITH_AES_128_CBC_SHA256,
-			TLS_RSA_WITH_AES_256_CBC_SHA,
-			TLS_RSA_WITH_AES_128_CBC_SHA,
-		});
-		vector_emplace_back_randomised(hello.cipher_suites, {
 			TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
 			TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, // Cloudfront
 			TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
@@ -420,6 +414,12 @@ namespace soup
 		vector_emplace_back_randomised(hello.cipher_suites, {
 			TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, // Apache + Let's Encrypt
 			TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, // Apache + Let's Encrypt
+		});
+		vector_emplace_back_randomised(hello.cipher_suites, {
+			TLS_RSA_WITH_AES_256_CBC_SHA256,
+			TLS_RSA_WITH_AES_128_CBC_SHA256,
+			TLS_RSA_WITH_AES_256_CBC_SHA,
+			TLS_RSA_WITH_AES_128_CBC_SHA,
 		});
 		hello.cipher_suites.emplace(
 			hello.cipher_suites.begin() + rand(0, hello.cipher_suites.size() - 1),
@@ -575,6 +575,7 @@ namespace soup
 									s.tls_close(TlsAlertDescription::decode_error);
 									return;
 								}
+								// TODO: Verify server signature. See RFC 8422 page 17-18.
 								if (ske.named_curve == NamedCurves::x25519)
 								{
 									if (ske.point.size() != Curve25519::KEY_SIZE)
