@@ -52,6 +52,7 @@ namespace soup
 		void add(std::string k, uint32_t v);
 		void add(std::string k, int64_t v);
 		void add(std::string k, bool v);
+		void add(std::string k, double v);
 
 		template <typename T, SOUP_RESTRICT(std::is_base_of_v<JsonNode, T>)>
 		void add(std::string k, UniquePtr<T>&& v)

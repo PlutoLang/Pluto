@@ -133,7 +133,7 @@ namespace soup
 			fulfiled = false;
 		}
 
-		void fulfilOffThread(void(*f)(Capture&&), Capture&& cap = {}) SOUP_EXCAL
+		void fulfilOffThread(void(*f)(Capture&&), Capture&& cap = {})
 		{
 			new SelfDeletingThread([](Capture&& _cap)
 			{

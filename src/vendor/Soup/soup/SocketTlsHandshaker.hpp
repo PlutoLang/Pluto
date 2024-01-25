@@ -22,17 +22,17 @@ namespace soup
 		Capture callback_capture;
 
 		TlsCipherSuite_t cipher_suite = TLS_RSA_WITH_AES_128_CBC_SHA;
+		uint16_t ecdhe_curve = 0; // client
+		Promise<> promise{};
+		bool extended_master_secret = false;
 		std::string layer_bytes{};
 		std::string client_random{};
 		std::string server_random{};
 		std::string pre_master_secret{};
 		std::string master_secret{};
 		std::string expected_finished_verify_data{};
-		Promise<> promise{};
-		bool extended_master_secret = false;
 
 		// client
-		uint16_t ecdhe_curve = 0;
 		X509Certchain certchain{};
 		std::string server_name{};
 		std::string ecdhe_public_key{};

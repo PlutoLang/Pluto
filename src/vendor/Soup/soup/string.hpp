@@ -963,9 +963,12 @@ namespace soup
 
 		// file
 
+		[[nodiscard]] static std::string fromFile(const char* file);
 		[[nodiscard]] static std::string fromFile(const std::string& file);
-		[[nodiscard]] static std::string fromFilePath(const std::filesystem::path& file);
+		[[nodiscard]] static std::string fromFile(const std::filesystem::path& file);
+		[[deprecated("Replace 'fromFilePath' with 'fromFile'")]] inline static std::string fromFilePath(const std::filesystem::path& file) { return fromFile(file); }
+		static void toFile(const char* file, const std::string& contents);
 		static void toFile(const std::string& file, const std::string& contents);
-		static void toFilePath(const std::filesystem::path& file, const std::string& contents);
+		static void toFile(const std::filesystem::path& file, const std::string& contents);
 	};
 }
