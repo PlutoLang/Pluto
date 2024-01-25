@@ -42,7 +42,7 @@ static const luaL_Reg funcs[] = {
 LUAMOD_API int luaopen_json(lua_State* L)
 {
 	luaL_newlib(L, funcs);
-	lua_pushlightuserdata(L, reinterpret_cast<void*>(static_cast<uintptr_t>('PJNL')));
+	lua_pushlightuserdata(L, reinterpret_cast<void*>(static_cast<uintptr_t>(0xF01D)));
 	lua_setfield(L, -2, "null");
 
 	// decode flags
