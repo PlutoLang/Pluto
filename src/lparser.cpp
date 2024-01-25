@@ -5222,9 +5222,9 @@ static void builtinoperators (LexState *ls) {
       //   end
       ls->tokens.emplace_back(Token(TK_END));
 
-      //   if t.__construct then
+      //   if mt.__construct then
       ls->tokens.emplace_back(Token(TK_IF));
-      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "t")));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
       ls->tokens.emplace_back(Token('.'));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "__construct")));
       ls->tokens.emplace_back(Token(TK_THEN));
