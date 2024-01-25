@@ -4,6 +4,9 @@ local Pluto_operator_new <const> = function(mt, ...)
   if type(mt) ~= "table" then
     error "'new' used on non-table value"
   end
+  if mt.new then
+    return mt.new(...)
+  end
   local t = {}
   setmetatable(t, mt)
   if not mt.__index or mt.__parent then
