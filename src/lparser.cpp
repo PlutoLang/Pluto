@@ -5163,6 +5163,25 @@ static void builtinoperators (LexState *ls) {
       //   end
       ls->tokens.emplace_back(Token(TK_END));
 
+      //   if mt.new then
+      ls->tokens.emplace_back(Token(TK_IF));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
+      ls->tokens.emplace_back(Token('.'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "new")));
+      ls->tokens.emplace_back(Token(TK_THEN));
+
+      //     return mt.new(...)
+      ls->tokens.emplace_back(Token(TK_RETURN));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
+      ls->tokens.emplace_back(Token('.'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "new")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_DOTS));
+      ls->tokens.emplace_back(Token(')'));
+
+      //   end
+      ls->tokens.emplace_back(Token(TK_END));
+
       //   local t = {}
       ls->tokens.emplace_back(Token(TK_LOCAL));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "t")));
