@@ -1603,6 +1603,11 @@ do
     t = cat.decode(data)
     assert(t.Hello == "World")
     assert(cat.encode(t) == data)
+
+    data = "First\nSecond"
+    t = cat.decode(data, true)
+    assert(t[1].name == "First")
+    assert(t[2].name == "Second")
 end
 do
     local { base64, crypto } = require"*"
