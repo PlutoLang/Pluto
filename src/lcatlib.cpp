@@ -63,12 +63,43 @@ static void cat_decode_aux (lua_State *L, const soup::catNode& node) {
   }
 }
 
+static void cat_decode_aux_expanded (lua_State* L, const soup::catNode& node) {
+  lua_Integer i = 1;
+  for (const auto& child : node.children) {
+    lua_pushinteger(L, i++);
+    lua_newtable(L);
+
+    lua_pushliteral(L, "name");
+    pluto_pushstring(L, child->name);
+    lua_settable(L, -3);
+
+    if (!child->value.empty()) {
+      lua_pushliteral(L, "value");
+      pluto_pushstring(L, child->value);
+      lua_settable(L, -3);
+    }
+
+    if (!child->children.empty()) {
+      lua_pushliteral(L, "children");
+      lua_newtable(L);
+      cat_decode_aux_expanded(L, *child);
+      lua_settable(L, -3);
+    }
+
+    lua_settable(L, -3);
+  }
+}
+
 static int cat_decode (lua_State *L) {
   std::string data = pluto_checkstring(L, 1);
+  const bool expanded = lua_istrue(L, 2);
   soup::StringRefReader sr(data);
   if (auto root = soup::catParse(sr)) {
     lua_newtable(L);
-    cat_decode_aux(L, *root);
+    if (expanded)
+      cat_decode_aux_expanded(L, *root);
+    else
+      cat_decode_aux(L, *root);
     return 1;
   }
   return 0;
