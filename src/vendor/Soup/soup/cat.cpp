@@ -21,6 +21,15 @@ namespace soup
 				continue;
 			}
 
+			if (line.back() == '\r')
+			{
+				line.pop_back();
+				SOUP_IF_UNLIKELY (line.empty())
+				{
+					continue;
+				}
+			}
+
 			if (spaces.empty())
 			{
 				if (depth == 0
