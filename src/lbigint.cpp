@@ -41,6 +41,11 @@ static int bigint_mod (lua_State *L) {
   return 1;
 }
 
+static int bigint_exp (lua_State *L) {
+  pushbigint(L, checkbigint(L, 1)->pow(*checkbigint(L, 2)));
+  return 1;
+}
+
 static int bigint_tostring (lua_State *L) {
   pluto_pushstring(L, checkbigint(L, 1)->toString());
   return 1;
@@ -68,6 +73,9 @@ static void pushbigint (lua_State *L, soup::Bigint&& x) {
     lua_settable(L, -3);
     lua_pushliteral(L, "__mod");
     lua_pushcfunction(L, bigint_mod);
+    lua_settable(L, -3);
+    lua_pushliteral(L, "__pow");
+    lua_pushcfunction(L, bigint_exp);
     lua_settable(L, -3);
     lua_pushliteral(L, "__tostring");
     lua_pushcfunction(L, bigint_tostring);
