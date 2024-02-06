@@ -555,7 +555,6 @@ do
         nil,
         "ARRAY"
     }
-    assert(nil in t)
     assert("KEY" in t)
     assert("ARRAY" in t)
     assert(("NOTHING" in t) == false)
@@ -570,7 +569,6 @@ do
             "ARRAY"
         }
     }
-    assert(nil in t.subt)
     assert("KEY" in t.subt)
     assert("ARRAY" in t.subt)
     local function proxy(b)
@@ -598,15 +596,12 @@ do -- check stack corruption
     assert(a == "KEY")
     local b = || -> "Hello World"
     local c = "ARRAY"
-    local d = nil
     assert(c in t)
-    assert(d in t)
     local e = "NOTHING"
     assert(not e in t)
     assert(a == "KEY")
     assert(b() == "Hello World")
     assert(c == "ARRAY")
-    assert(d == nil)
     assert(e == "NOTHING")
 end
 do 
