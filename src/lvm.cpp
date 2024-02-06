@@ -284,16 +284,14 @@ static int floatforloop (StkId ra) {
 
 /*
 ** Finish the table access 'val = t[key]'.
-** if 'slot' is NULL, 't' is not a table; otherwise, 'slot' points to
-** t[k] entry (which must be empty).
 */
 void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
-                      const TValue *slot) {
+                      int hres) {
   int loop;  /* counter to avoid infinite loops */
   const TValue *tm;  /* metamethod */
   int isValueString = ttisstring(t) && ttisinteger(key);
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
-    if (slot == NULL) {  /* 't' is not a table? */
+    if (hres == HNOTATABLE) {  /* 't' is not a table? */
       lua_assert(!ttistable(t));
       if (isValueString) { /* index for character of string */
         lua_Integer index = ivalue(key);
@@ -317,7 +315,6 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
       }
     }
     else {  /* 't' is a table */
-      lua_assert(isempty(slot));
       tm = fasttm(L, hvalue(t)->metatable, TM_INDEX);  /* table's metamethod */
       if (tm == NULL) {  /* no metamethod? */
         setnilvalue(s2v(val));  /* result is nil */
@@ -330,10 +327,9 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
       return;
     }
     t = tm;  /* else try to access 'tm[key]' */
-    if (luaV_fastget(L, t, key, slot, luaH_get)) {  /* fast track? */
-      setobj2s(L, val, slot);  /* done */
-      return;
-    }
+    luaV_fastget(t, key, s2v(val), luaH_get, hres);
+    if (hres == HOK)
+      return;  /* done */
     /* else repeat (tail call 'luaV_finishget') */
   }
   luaG_runerror(L, "'__index' chain too long; possible loop");
@@ -342,19 +338,14 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
 
 /*
 ** Finish a table assignment 't[key] = val'.
-** If 'slot' is NULL, 't' is not a table.  Otherwise, 'slot' points
-** to the entry 't[key]', or to a value with an absent key if there
-** is no such entry.  (The value at 'slot' must be empty, otherwise
-** 'luaV_fastget' would have done the job.)
 */
 void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
-                     TValue *val, const TValue *slot) {
+                      TValue *val, int hres) {
   int loop;  /* counter to avoid infinite loops */
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
     const TValue *tm;  /* '__newindex' metamethod */
-    if (slot != NULL) {  /* is 't' a table? */
+    if (hres != HNOTATABLE) {  /* is 't' a table? */
       Table *h = hvalue(t);  /* save 't' table */
-      lua_assert(isempty(slot));  /* slot must be empty */
       tm = fasttm(L, h->metatable, TM_NEWINDEX);  /* get metamethod */
       if (tm == NULL) {  /* no metamethod? */
 #ifndef PLUTO_DISABLE_LENGTH_CACHE
@@ -363,7 +354,7 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
         if (l_unlikely(h->isfrozen)) luaG_runerror(L, "attempt to modify frozen table.");
 #endif
-        luaH_finishset(L, h, key, slot, val);  /* set new value */
+        luaH_finishset(L, h, key, val, hres);  /* set new value */
         invalidateTMcache(h);
         luaC_barrierback(L, obj2gco(h), val);
         return;
@@ -381,14 +372,14 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
       return;
     }
     t = tm;  /* else repeat assignment over 'tm' */
-    if (luaV_fastget(L, t, key, slot, luaH_get)) {
+    luaV_fastset(t, key, val, hres, luaH_pset);
+    if (hres == HOK) {
 #ifndef PLUTO_DISABLE_LENGTH_CACHE
       hvalue(t)->length = 0; // Reset length cache.
 #endif
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
       if (l_unlikely(hvalue(t)->isfrozen)) luaG_runerror(L, "attempt to modify frozen table.");
 #endif
-      luaV_finishfastset(L, t, slot, val);
       return;  /* done */
     }
     /* else 'return luaV_finishset(L, t, key, val, slot)' (loop) */
@@ -1454,15 +1445,13 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_GETTABUP) {
         StkId ra = RA(i);
-        const TValue *slot;
         TValue *upval = cl->upvals[GETARG_B(i)]->v.p;
         TValue *rc = KC(i);
         TString *key = tsvalue(rc);  /* key must be a short string */
-        if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
-          setobj2s(L, ra, slot);
-        }
-        else
-          Protect(luaV_finishget(L, upval, rc, ra, slot));
+        int hres;
+        luaV_fastget(upval, key, s2v(ra), luaH_getshortstr, hres);
+        if (hres != HOK)
+          Protect(luaV_finishget(L, upval, rc, ra, hres));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
@@ -1472,17 +1461,16 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_GETTABLE) {
         StkId ra = RA(i);
-        const TValue *slot;
         TValue *rb = vRB(i);
         TValue *rc = vRC(i);
-        lua_Unsigned n;
-        if (ttisinteger(rc)  /* fast track for integers? */
-            ? (cast_void(n = ivalue(rc)), luaV_fastgeti(L, rb, n, slot))
-            : luaV_fastget(L, rb, rc, slot, luaH_get)) {
-          setobj2s(L, ra, slot);
+        int hres;
+        if (ttisinteger(rc)) {  /* fast track for integers? */
+          luaV_fastgeti(rb, ivalue(rc), s2v(ra), hres);
         }
         else
-          Protect(luaV_finishget(L, rb, rc, ra, slot));
+          luaV_fastget(rb, rc, s2v(ra), luaH_get, hres);
+        if (hres != HOK)  /* fast track for integers? */
+          Protect(luaV_finishget(L, rb, rc, ra, hres));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
@@ -1492,16 +1480,14 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_GETI) {
         StkId ra = RA(i);
-        const TValue *slot;
         TValue *rb = vRB(i);
         int c = GETARG_C(i);
-        if (luaV_fastgeti(L, rb, c, slot)) {
-          setobj2s(L, ra, slot);
-        }
-        else {
+        int hres;
+        luaV_fastgeti(rb, c, s2v(ra), hres);
+        if (hres != HOK) {
           TValue key;
           setivalue(&key, c);
-          Protect(luaV_finishget(L, rb, &key, ra, slot));
+          Protect(luaV_finishget(L, rb, &key, ra, hres));
         }
         vmDumpInit();
         vmDumpAddA();
@@ -1512,15 +1498,13 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_GETFIELD) {
         StkId ra = RA(i);
-        const TValue *slot;
         TValue *rb = vRB(i);
         TValue *rc = KC(i);
         TString *key = tsvalue(rc);  /* key must be a short string */
-        if (luaV_fastget(L, rb, key, slot, luaH_getshortstr)) {
-          setobj2s(L, ra, slot);
-        }
-        else
-          Protect(luaV_finishget(L, rb, rc, ra, slot));
+        int hres;
+        luaV_fastget(rb, key, s2v(ra), luaH_getshortstr, hres);
+        if (hres != HOK)
+          Protect(luaV_finishget(L, rb, rc, ra, hres));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
@@ -1529,12 +1513,13 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
       vmcase(OP_SETTABUP) {
-        const TValue *slot;
+        int hres;
         TValue *upval = cl->upvals[GETARG_A(i)]->v.p;
         TValue *rb = KB(i);
         TValue *rc = RKC(i);
         TString *key = tsvalue(rb);  /* key must be a short string */
-        if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
+        luaV_fastset(upval, key, rc, hres, luaH_psetshortstr);
+        if (hres == HOK) {
           Table *t = hvalue(upval);
 #ifndef PLUTO_DISABLE_LENGTH_CACHE
           t->length = 0;
@@ -1543,11 +1528,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           if (l_unlikely(t->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
-          luaV_finishfastset(L, upval, slot, rc);
+          luaV_finishfastset(L, upval, rc);
         }
-        else {
-          Protect(luaV_finishset(L, upval, rb, rc, slot));
-        }
+        else
+          Protect(luaV_finishset(L, upval, rb, rc, hres));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
@@ -1557,13 +1541,16 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_SETTABLE) {
         StkId ra = RA(i);
-        const TValue *slot;
+        int hres;
         TValue *rb = vRB(i);  /* key (table is in 'ra') */
         TValue *rc = RKC(i);  /* value */
-        lua_Unsigned n;
-        if (ttisinteger(rb)  /* fast track for integers? */
-            ? (cast_void(n = ivalue(rb)), luaV_fastgeti(L, s2v(ra), n, slot))
-            : luaV_fastget(L, s2v(ra), rb, slot, luaH_get)) {
+        if (ttisinteger(rb)) {  /* fast track for integers? */
+          luaV_fastseti(s2v(ra), ivalue(rb), rc, hres);
+        }
+        else {
+          luaV_fastset(s2v(ra), rb, rc, hres, luaH_pset);
+        }
+        if (hres == HOK) {
           Table *t = hvalue(s2v(ra));
 #ifndef PLUTO_DISABLE_LENGTH_CACHE
           t->length = 0; // Reset length cache.
@@ -1572,10 +1559,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           if (l_unlikely(t->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
-          luaV_finishfastset(L, s2v(ra), slot, rc);
+          luaV_finishfastset(L, s2v(ra), rc);
         }
         else
-          Protect(luaV_finishset(L, s2v(ra), rb, rc, slot));
+          Protect(luaV_finishset(L, s2v(ra), rb, rc, hres));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
@@ -1585,10 +1572,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_SETI) {
         StkId ra = RA(i);
-        const TValue *slot;
-        int c = GETARG_B(i);
+        int hres;
+        int b = GETARG_B(i);
         TValue *rc = RKC(i);
-        if (luaV_fastgeti(L, s2v(ra), c, slot)) {
+        luaV_fastseti(s2v(ra), b, rc, hres);
+        if (hres == HOK) {
           Table *t = hvalue(s2v(ra));
 #ifndef PLUTO_DISABLE_LENGTH_CACHE
           t->length = 0; // Reset length cache.
@@ -1597,35 +1585,36 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           if (l_unlikely(t->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
-          luaV_finishfastset(L, s2v(ra), slot, rc);
+          luaV_finishfastset(L, s2v(ra), rc);
         }
         else {
           TValue key;
-          setivalue(&key, c);
-          Protect(luaV_finishset(L, s2v(ra), &key, rc, slot));
+          setivalue(&key, b);
+          Protect(luaV_finishset(L, s2v(ra), &key, rc, hres));
         }
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
         vmDumpAddC();
-        vmDumpOut ("; T[" << c << "] = " << stringify_tvalue(rc) << " (T=" << stringify_tvalue(s2v(ra)) << ")");
+        vmDumpOut ("; T[" << b << "] = " << stringify_tvalue(rc) << " (T=" << stringify_tvalue(s2v(ra)) << ")");
         vmbreak;
       }
       vmcase(OP_SETFIELD) {
         StkId ra = RA(i);
-        const TValue *slot;
+        int hres;
         TValue *rb = KB(i);
         TValue *rc = RKC(i);
         TString *key = tsvalue(rb);  /* key must be a short string */
-        if (luaV_fastget(L, s2v(ra), key, slot, luaH_getshortstr)) {
+        luaV_fastset(s2v(ra), key, rc, hres, luaH_psetshortstr);
+        if (hres == HOK) {
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
           if (l_unlikely(hvalue(s2v(ra))->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
-          luaV_finishfastset(L, s2v(ra), slot, rc);
+          luaV_finishfastset(L, s2v(ra), rc);
         }
         else
-          Protect(luaV_finishset(L, s2v(ra), rb, rc, slot));
+          Protect(luaV_finishset(L, s2v(ra), rb, rc, hres));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
@@ -1662,16 +1651,14 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_SELF) {
         StkId ra = RA(i);
-        const TValue *slot;
+        int hres;
         TValue *rb = vRB(i);
         TValue *rc = RKC(i);
         TString *key = tsvalue(rc);  /* key must be a string */
         setobj2s(L, ra + 1, rb);
-        if (luaV_fastget(L, rb, key, slot, luaH_getstr)) {
-          setobj2s(L, ra, slot);
-        }
-        else
-          Protect(luaV_finishget(L, rb, rc, ra, slot));
+        luaV_fastget(rb, key, s2v(ra), luaH_getstr, hres);
+        if (hres != HOK)
+          Protect(luaV_finishget(L, rb, rc, ra, hres));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
@@ -2519,7 +2506,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
 #endif
         for (; n > 0; n--) {
           TValue *val = s2v(ra + n);
-          setobj2t(L, &h->array[last - 1], val);
+          obj2arr(h, last, val);
 #ifdef PLUTO_VMDUMP
           rep.insert(0, stringify_tvalue(val) + "; ");
 #endif
