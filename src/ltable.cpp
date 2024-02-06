@@ -51,9 +51,10 @@
 ** Union to store an int field ensuring that what follows it in
 ** memory is properly aligned to store a TValue.
 */
+struct dummystruct { int i; TValue v; };
 typedef union {
   int lastfree;
-  char padding[offsetof(struct { int i; TValue v; }, v)];
+  char padding[offsetof(dummystruct, v)];
 } Limbox;
 
 #define haslastfree(t)     ((t)->lsizenode > LLIMFORLAST)
