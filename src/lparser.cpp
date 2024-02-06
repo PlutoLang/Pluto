@@ -684,11 +684,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, const std::unordered
 }
 
 
-/*
-** Create a new local variable with the given 'name'. Return its index
-** in the function.
-*/
-static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = {}, bool check_globals = true) {
+static int new_localvarex (LexState *ls, TString *name, int kind, int line, TypeHint hint = {}, bool check_globals = true) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -697,7 +693,7 @@ static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = 
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
-  var->vd.kind = VDKREG;  /* default */
+  var->vd.kind = kind;  /* default */
   var->vd.hint = new_typehint(ls);
   var->vd.prop = new_typehint(ls);
   if (!hint.empty())
@@ -707,8 +703,25 @@ static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = 
   return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
-static int new_localvar (LexState *ls, TString *name, TypeHint hint = {}) {
-  return new_localvar(ls, name, ls->getLineNumber(), std::move(hint));
+
+/*
+** Create a new local variable with the given 'name' and given 'kind'.
+** Return its index in the function.
+*/
+static int new_localvarkind (LexState *ls, TString *name, int kind) {
+  return new_localvarex(ls, name, kind, ls->getLineNumber());
+}
+
+
+/*
+** Create a new local variable with the given 'name' and regular kind.
+*/
+static int new_localvar (LexState *ls, TString *name) {
+  return new_localvarex(ls, name, VDKREG, ls->getLineNumber());
+}
+
+static int new_localvar (LexState *ls, TString *name, int line) {
+  return new_localvarex(ls, name, VDKREG, line);
 }
 
 
@@ -2074,7 +2087,7 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
           }
         }
         auto parhint = gettypehint(ls);
-        auto vidx = new_localvar(ls, parname, parhint);
+        auto vidx = new_localvarex(ls, parname, VDKREG, ls->getLineNumber(), parhint);
         *getlocalvardesc(fs, vidx)->vd.prop = parhint;  /* set hinted type as propagated type */
         if (fallbacks) {
           if (testnext(ls, '=')) {
@@ -4217,7 +4230,7 @@ static void fornum (LexState *ls, TString *varname, TypeHint *prop, int line) {
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
-  new_localvar(ls, varname);
+  new_localvarkind(ls, varname, RDKCONST);  /* control variable */
   checknext(ls, '=');
   exp1(ls);  /* initial value */
   checknext(ls, ',');
@@ -4245,8 +4258,8 @@ static void forlist (LexState *ls, TString *indexname, TypeHint *prop) {
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
-  /* create declared variables */
-  new_localvar(ls, indexname);
+  new_localvarkind(ls, indexname, RDKCONST);  /* control variable */
+  /* other declared variables */
   while (testnext(ls, ',')) {
     new_localvar(ls, str_checkname(ls));
     nvars++;
@@ -4273,8 +4286,7 @@ static void forvlist (LexState *ls, TypeHint *prop) {
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
-  /* create variable for key */
-  new_localvar(ls, luaS_newliteral(ls->L, "(for state)"));
+  new_localvarkind(ls, luaS_newliteral(ls->L, "(for state)"), RDKCONST);  /* control variable */
   /* create variable for value */
   int vidx = new_localvar(ls, luaS_newliteral(ls->L, "(for state)"));
   nvars++;
@@ -4675,7 +4687,7 @@ static void localstat (LexState *ls) {
   FuncState *fs = ls->fs;
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
-  int vidx, kind;  /* index and kind of last variable */
+  int vidx;  /* index of last variable */
   int nvars = 0;
   int nexps;
   expdesc e;
@@ -4687,10 +4699,11 @@ static void localstat (LexState *ls) {
   do {
     if (is_constexpr)
       luaK_semerror(ls, "<constexpr> must only be used on the last variable in local list");
-    TString* name = str_checkname(ls, N_OVERRIDABLE);
-    vidx = new_localvar(ls, name, line, gettypehint(ls), false);
-    ls->localstat_variable_names.emplace(name);
-    kind = getlocalattribute(ls);
+    TString *vname = str_checkname(ls, N_OVERRIDABLE);
+    auto hint = gettypehint(ls);
+    int kind = getlocalattribute(ls);
+    vidx = new_localvarex(ls, vname, kind, line, std::move(hint), false);
+    ls->localstat_variable_names.emplace(vname);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
