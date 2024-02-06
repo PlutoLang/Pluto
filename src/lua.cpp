@@ -629,6 +629,9 @@ static void doREPL (lua_State *L) {
 
 /* }================================================================== */
 
+#if !defined(luai_openlibs)
+#define luai_openlibs(L)	luaL_openlibs(L)
+#endif
 
 /*
 ** Main body of stand-alone interpreter (to be called in protected mode).
@@ -655,7 +658,7 @@ static int pmain (lua_State *L) {
   if (args & has_c) {
     L->l_G->setCompatibilityMode(true);
   }
-  luaL_openlibs(L);  /* open standard libraries */
+  luai_openlibs(L);  /* open standard libraries */
   createargtable(L, argv, argc, script);  /* create table 'arg' */
   lua_gc(L, LUA_GCRESTART);  /* start GC... */
   lua_gc(L, LUA_GCGEN, 0, 0);  /* ...in generational mode */
