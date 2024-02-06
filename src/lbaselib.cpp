@@ -350,9 +350,7 @@ static int luaB_pairs (lua_State *L) {
 /*
 ** Traversal function for 'ipairs'
 */
-#define ipairsaux luaB_ipairsaux
-LUAI_FUNC int ipairsaux (lua_State *L);
-int ipairsaux (lua_State *L) {
+static int ipairsaux (lua_State *L) {
   lua_Integer i = luaL_checkinteger(L, 2);
   i = luaL_intop(+, i, 1);
   lua_pushinteger(L, i);
