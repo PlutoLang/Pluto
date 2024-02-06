@@ -4207,6 +4207,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen, Typ
   int prep, endfor;
   checknext(ls, TK_DO);
   prep = luaK_codeABx(fs, forprep[isgen], base, 0);
+  fs->freereg--;  /* both 'forprep' remove one register from the stack */
   enterblock(fs, &bl, BlockType::BT_CONTINUE);  /* scope for declared variables */
   adjustlocalvars(ls, nvars);
   luaK_reserveregs(fs, nvars);
@@ -4240,8 +4241,7 @@ static void fornum (LexState *ls, TString *varname, TypeHint *prop, int line) {
     luaK_int(fs, fs->freereg, 1);
     luaK_reserveregs(fs, 1);
   }
-  adjustlocalvars(ls, 2);  /* start scope for internal state variables */
-  fs->freereg--;  /* OP_FORPREP removes one register from the stack */
+  adjustlocalvars(ls, 2);  /* start scope for internal variables */
   forbody(ls, base, line, 1, 0, prop);
 }
 
@@ -4250,14 +4250,13 @@ static void forlist (LexState *ls, TString *indexname, TypeHint *prop) {
   /* forlist -> NAME {,NAME} IN explist forbody */
   FuncState *fs = ls->fs;
   expdesc e;
-  int nvars = 5;  /* gen, state, control, toclose, 'indexname' */
+  int nvars = 4;  /* function, state, closing, control */
   int line;
   int base = fs->freereg;
-  /* create control variables */
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
+  /* create internal variables */
+  new_localvarliteral(ls, "(for state)");  /* iterator function */
+  new_localvarliteral(ls, "(for state)");  /* state */
+  new_localvarliteral(ls, "(for state)");  /* closing var. (after swap) */
   new_localvarkind(ls, indexname, RDKCONST);  /* control variable */
   /* other declared variables */
   while (testnext(ls, ',')) {
@@ -4267,10 +4266,10 @@ static void forlist (LexState *ls, TString *indexname, TypeHint *prop) {
   checknext(ls, TK_IN);
   line = ls->getLineNumber();
   adjust_assign(ls, 4, explist(ls, &e), &e);
-  adjustlocalvars(ls, 4);  /* control variables */
-  marktobeclosed(fs);  /* last control var. must be closed */
-  luaK_checkstack(fs, 3);  /* extra space to call generator */
-  forbody(ls, base, line, nvars - 4, 1, prop);
+  adjustlocalvars(ls, 3);  /* start scope for internal variables */
+  marktobeclosed(fs);  /* last internal var. must be closed */
+  luaK_checkstack(fs, 2);  /* extra space to call iterator */
+  forbody(ls, base, line, nvars - 3, 1, prop);
 }
 
 
@@ -4278,14 +4277,13 @@ static void forvlist (LexState *ls, TypeHint *prop) {
   /* forvlist -> explist AS NAME forbody */
   FuncState *fs = ls->fs;
   expdesc e;
-  int nvars = 5;  /* gen, state, control, toclose, 'indexname' */
+  int nvars = 4;  /* function, state, closing, control */
   int line;
   int base = fs->freereg;
-  /* create control variables */
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
+  /* create internal variables */
+  new_localvarliteral(ls, "(for state)");  /* iterator function */
+  new_localvarliteral(ls, "(for state)");  /* state */
+  new_localvarliteral(ls, "(for state)");  /* closing var. (after swap) */
   new_localvarkind(ls, luaS_newliteral(ls->L, "(for state)"), RDKCONST);  /* control variable */
   /* create variable for value */
   int vidx = new_localvar(ls, luaS_newliteral(ls->L, "(for state)"));
@@ -4293,16 +4291,16 @@ static void forvlist (LexState *ls, TypeHint *prop) {
 
   line = ls->getLineNumber();
   adjust_assign(ls, 4, explist(ls, &e), &e);
-  adjustlocalvars(ls, 4);  /* control variables */
-  marktobeclosed(fs);  /* last control var. must be closed */
-  luaK_checkstack(fs, 3);  /* extra space to call generator */
+  adjustlocalvars(ls, 3);  /* start scope for internal variables */
+  marktobeclosed(fs);  /* last internal var. must be closed */
+  luaK_checkstack(fs, 2);  /* extra space to call iterator */
 
   checknext(ls, TK_AS);
   TString *name = str_checkname(ls);
   checkforshadowing(ls, fs, name, line);
   getlocalvardesc(fs, vidx)->vd.name = name;
 
-  forbody(ls, base, line, nvars - 4, 1, prop);
+  forbody(ls, base, line, nvars - 3, 1, prop);
 }
 
 
