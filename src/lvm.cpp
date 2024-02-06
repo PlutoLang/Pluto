@@ -1201,6 +1201,10 @@ void luaV_finishOp (lua_State *L) {
 #define vmbreak		break
 
 
+/* for implicit pairs */
+LUAI_FUNC int luaB_next (lua_State *L);
+
+
 #ifdef PLUTO_VMDUMP
 #include <vector>
 
@@ -2421,6 +2425,13 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAdd (GETARG_Bx(i));
         vmDumpOut (";");
         StkId ra = RA(i);
+        /* implicit pairs */
+        if ((!ttisfunction(s2v(ra)))
+            && ttisnil(luaT_gettmbyobj(L, s2v(ra), TM_CALL))
+        ) {
+          setobjs2s(L, ra + 1, ra);
+          setfvalue(s2v(ra), luaB_next);
+        }
         /* create to-be-closed upvalue (if needed) */
         halfProtect(luaF_newtbcupval(L, ra + 3));
         pc += GETARG_Bx(i);
