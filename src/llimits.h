@@ -30,6 +30,7 @@ typedef unsigned long lu_mem;
 typedef long l_obj;
 #endif				/* } */
 
+#define MAX_LOBJ	cast(l_obj, ~cast(lu_mem, 0) >> 1)
 
 /* chars used as small naturals (so that 'char' is reserved for characters) */
 typedef unsigned char lu_byte;
@@ -42,11 +43,6 @@ typedef signed char ls_byte;
 /* maximum size visible for Lua (must be representable in a lua_Integer) */
 #define MAX_SIZE	(sizeof(size_t) < sizeof(lua_Integer) ? MAX_SIZET \
                           : (size_t)(LUA_MAXINTEGER))
-
-
-#define MAX_LUMEM	((lu_mem)(~(lu_mem)0))
-
-#define MAX_LMEM	((l_obj)(MAX_LUMEM >> 1))
 
 
 #define MAX_INT		INT_MAX  /* maximum value of an int */
