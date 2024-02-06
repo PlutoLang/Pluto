@@ -1707,8 +1707,9 @@ static void fullinc (lua_State *L, global_State *g) {
   luaC_runtilstate(L, bitmask(GCSpropagate));  /* start new cycle */
   g->gcstate = GCSenteratomic;  /* go straight to atomic phase */
   luaC_runtilstate(L, bitmask(GCScallfin));  /* run up to finalizers */
-  luaC_runtilstate(L, bitmask(GCSpause));  /* finish collection */
   /* estimate must be correct after a full GC cycle */
+  lua_assert(g->marked == gettotalobjs(g));
+  luaC_runtilstate(L, bitmask(GCSpause));  /* finish collection */
   setpause(g);
 }
 
