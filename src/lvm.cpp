@@ -746,11 +746,12 @@ void luaV_objlen (lua_State *L, StkId ra, const TValue *rb) {
 /*
 ** Searches the elements (both array & key values) of a table for a TValue.
 */
-bool luaV_searchelement (lua_State* L, const Table* t, const TValue* element) {
+bool luaV_searchelement (lua_State* L, Table* t, const TValue* element) {
   unsigned int i = 0;
-  unsigned int array_size = luaH_realasize(t);
-  for (i = 0; i < array_size; i++) {
-    if (luaV_equalobj(L, element, &t->array[i])) {
+  unsigned int array_size = luaH_realasize(t) + 1;
+  for (; i < array_size; i++) {
+    TValue val;
+    if (luaH_getint(t, i, &val) == HOK && luaV_equalobj(L, element, &val)) {
       return true;
     }
   }
