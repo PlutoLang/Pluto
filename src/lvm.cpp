@@ -2430,11 +2430,18 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
       vmcase(OP_TFORPREP) {
+       /* before: 'ra' has the iterator function, 'ra + 1' has the state,
+          'ra + 2' has the initial value for the control variable, and
+          'ra + 3' has the closing variable. This opcode then swaps the
+          control and the closing variables and marks the closing variable
+          as to-be-closed.
+       */
         vmDumpInit();
         vmDumpAddA();
         vmDumpAdd (GETARG_Bx(i));
         vmDumpOut (";");
         StkId ra = RA(i);
+
         /* implicit pairs */
         if (ttistable(s2v(ra))
           && l_likely(!fasttm(L, hvalue(s2v(ra))->metatable, TM_CALL))
@@ -2442,10 +2449,15 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           setobjs2s(L, ra + 1, ra);
           setfvalue(s2v(ra), luaB_next);
         }
-        /* create to-be-closed upvalue (if needed) */
-        halfProtect(luaF_newtbcupval(L, ra + 3));
-        pc += GETARG_Bx(i);
-        i = *(pc++);  /* go to next instruction */
+
+        TValue temp;  /* to swap control and closing variables */
+        setobj(L, &temp, s2v(ra + 3));
+        setobjs2s(L, ra + 3, ra + 2);
+        setobj2s(L, ra + 2, &temp);
+        /* create to-be-closed upvalue (if closing var. is not nil) */
+        halfProtect(luaF_newtbcupval(L, ra + 2));
+        pc += GETARG_Bx(i);  /* go to end of the loop */
+        i = *(pc++);  /* fetch next instruction */
         lua_assert(GET_OPCODE(i) == OP_TFORCALL && ra == RA(i));
         goto l_tforcall;
       }
@@ -2460,16 +2472,18 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         }
 #endif
        l_tforcall: {
-        StkId ra = RA(i);
         /* 'ra' has the iterator function, 'ra + 1' has the state,
-           'ra + 2' has the control variable, and 'ra + 3' has the
-           to-be-closed variable. The call will use the stack after
-           these values (starting at 'ra + 4')
+           'ra + 2' has the closing variable, and 'ra + 3' has the control
+           variable. The call will use the stack starting at 'ra + 3',
+           so that it preserves the first three values, and the first
+           return will be the new value for the control variable.
         */
-        /* push function, state, and control variable */
-        memcpy(ra + 4, ra, 3 * sizeof(*ra));
-        L->top.p = ra + 4 + 3;
-        ProtectNT(luaD_call(L, ra + 4, GETARG_C(i)));  /* do the call */
+        StkId ra = RA(i);
+        setobjs2s(L, ra + 5, ra + 3);  /* copy the control variable */
+        setobjs2s(L, ra + 4, ra + 1);  /* copy state */
+        setobjs2s(L, ra + 3, ra);  /* copy function */
+        L->top.p = ra + 3 + 3;
+        ProtectNT(luaD_call(L, ra + 3, GETARG_C(i)));  /* do the call */
         updatestack(ci);  /* stack may have changed */
         i = *(pc++);  /* go to next instruction */
         lua_assert(GET_OPCODE(i) == OP_TFORLOOP && ra == RA(i));
@@ -2487,10 +2501,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
 #endif
        l_tforloop: {
         StkId ra = RA(i);
-        if (!ttisnil(s2v(ra + 4))) {  /* continue loop? */
-          setobjs2s(L, ra + 2, ra + 4);  /* save control variable */
+        if (!ttisnil(s2v(ra + 3)))  /* continue loop? */
           pc -= GETARG_Bx(i);  /* jump back */
-        }
         vmbreak;
       }}
       vmcase(OP_SETLIST) {
