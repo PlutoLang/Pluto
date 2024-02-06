@@ -254,32 +254,9 @@ typedef unsigned int IdxT;
 ** of a partition. (If you don't want/need this "randomness", ~0 is a
 ** good choice.)
 */
-#if !defined(l_randomizePivot)		/* { */
-
-#include <time.h>
-
-/* size of 'e' measured in number of 'unsigned int's */
-#define sof(e)		(sizeof(e) / sizeof(unsigned int))
-
-/*
-** Use 'time' and 'clock' as sources of "randomness". Because we don't
-** know the types 'clock_t' and 'time_t', we cannot cast them to
-** anything without risking overflows. A safe way to use their values
-** is to copy them to an array of a known type and use the array values.
-*/
-static unsigned int l_randomizePivot (void) {
-  clock_t c = clock();
-  time_t t = time(NULL);
-  unsigned int buff[sof(c) + sof(t)];
-  unsigned int i, rnd = 0;
-  memcpy(buff, &c, sof(c) * sizeof(unsigned int));
-  memcpy(buff + sof(c), &t, sof(t) * sizeof(unsigned int));
-  for (i = 0; i < sof(buff); i++)
-    rnd += buff[i];
-  return rnd;
-}
-
-#endif					/* } */
+#if !defined(l_randomizePivot)
+#define l_randomizePivot(L)	luaL_makeseed(L)
+#endif
 
 
 /* arrays larger than 'RANLIMIT' may use randomized pivots */
@@ -415,7 +392,7 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up,
       up = p - 1;  /* tail call for [lo .. p - 1]  (lower interval) */
     }
     if ((up - lo) / 128 > n) /* partition too imbalanced? */
-      rnd = l_randomizePivot();  /* try a new randomization */
+      rnd = l_randomizePivot(L);  /* try a new randomization */
   }  /* tail call auxsort(L, lo, up, rnd) */
 }
 
