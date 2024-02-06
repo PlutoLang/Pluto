@@ -133,7 +133,7 @@ static void dumpCode (DumpState *D, const Proto *f) {
 }
 
 
-static void dumpFunction(DumpState *D, const Proto *f, TString *psource);
+static void dumpFunction(DumpState *D, const Proto *f);
 
 static void dumpConstants (DumpState *D, const Proto *f) {
   int i;
@@ -166,7 +166,7 @@ static void dumpProtos (DumpState *D, const Proto *f) {
   int n = f->sizep;
   dumpInt(D, n);
   for (i = 0; i < n; i++)
-    dumpFunction(D, f->p[i], f->source);
+    dumpFunction(D, f->p[i]);
 }
 
 
@@ -206,9 +206,9 @@ static void dumpDebug (DumpState *D, const Proto *f) {
 }
 
 
-static void dumpFunction (DumpState *D, const Proto *f, TString *psource) {
-  if (D->strip || f->source == psource)
-    dumpString(D, NULL);  /* no debug info or same source as its parent */
+static void dumpFunction (DumpState *D, const Proto *f) {
+  if (D->strip)
+    dumpString(D, NULL);  /* no debug info */
   else
     dumpString(D, f->source);
   dumpInt(D, f->linedefined);
@@ -273,7 +273,7 @@ int luaU_dump(lua_State *L, const Proto *f, lua_Writer w, void *data,
   check_vm_compatibility(f, D.lua_vm_compatible, D.min_required_version);
   dumpHeader(&D);
   dumpByte(&D, f->sizeupvalues);
-  dumpFunction(&D, f, NULL);
+  dumpFunction(&D, f);
   return D.status;
 }
 
