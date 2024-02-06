@@ -191,7 +191,7 @@ static void dumpFunction (DumpState *D, const Proto *f, TString *psource) {
   dumpInt(D, f->linedefined);
   dumpInt(D, f->lastlinedefined);
   dumpByte(D, f->numparams);
-  dumpByte(D, f->is_vararg);
+  dumpByte(D, f->flag);
   dumpByte(D, f->maxstacksize);
   dumpCode(D, f);
   dumpConstants(D, f);
