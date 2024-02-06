@@ -413,11 +413,11 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->marked = 0;
   g->GCdebt = 0;
   setivalue(&g->nilvalue, 0);  /* to signal that state is not yet built */
-  setgcparam(g->gcpause, LUAI_GCPAUSE);
-  setgcparam(g->gcstepmul, LUAI_GCMUL);
+  setgcparam(g, gcpause, LUAI_GCPAUSE);
+  setgcparam(g, gcstepmul, LUAI_GCMUL);
   g->gcstepsize = LUAI_GCSTEPSIZE;
-  setgcparam(g->genmajormul, LUAI_GENMAJORMUL);
-  g->genminormul = LUAI_GENMINORMUL;
+  setgcparam(g, genmajormul, LUAI_GENMAJORMUL);
+  setgcparam(g, genminormul, LUAI_GENMINORMUL);
   for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;
 
 #ifdef PLUTO_COMPATIBLE_SWITCH
