@@ -990,7 +990,7 @@ struct SParser {  /* data to 'f_parser' */
 
 
 static void checkmode (lua_State *L, const char *mode, const char *x) {
-  if (mode && strchr(mode, x[0]) == NULL) {
+  if (strchr(mode, x[0]) == NULL) {
     luaO_pushfstring(L,
        "attempt to load a %s chunk (mode is '%s')", x, mode);
     luaD_throw(L, LUA_ERRSYNTAX);
@@ -1001,16 +1001,21 @@ static void checkmode (lua_State *L, const char *mode, const char *x) {
 static void f_parser (lua_State *L, void *ud) {
   LClosure *cl;
   struct SParser *p = cast(struct SParser *, ud);
+  const char *mode = p->mode ? p->mode : "bt";
   int c = zgetc(p->z);  /* read first character */
 #ifndef PLUTO_DISABLE_COMPILED
   if (c == LUA_SIGNATURE[0]) {
-    checkmode(L, p->mode, "binary");
-    cl = luaU_undump(L, p->z, p->name);
+    int fixed = 0;
+    if (strchr(mode, 'B') != NULL)
+      fixed = 1;
+    else
+      checkmode(L, mode, "binary");
+    cl = luaU_undump(L, p->z, p->name, fixed);
   }
   else
 #endif
   {
-    checkmode(L, p->mode, "text");
+    checkmode(L, mode, "text");
     cl = luaY_parser(L, p->lexstate, p->z, &p->buff, &p->dyd, p->name, c);
   }
   lua_assert(cl->nupvalues == cl->p->sizeupvalues);
