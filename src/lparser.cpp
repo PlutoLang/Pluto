@@ -5061,7 +5061,6 @@ static void fornum (LexState *ls, TString *varname, tdn_t *nprop, TypeHint *prop
   int base = fs->freereg;
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
   new_localvarkind(ls, varname, RDKCONST);  /* control variable */
   checknext(ls, '=');
   exp1(ls);  /* initial value */
@@ -5073,7 +5072,8 @@ static void fornum (LexState *ls, TString *varname, tdn_t *nprop, TypeHint *prop
     luaK_int(fs, fs->freereg, 1);
     luaK_reserveregs(fs, 1);
   }
-  adjustlocalvars(ls, 3);  /* control variables */
+  adjustlocalvars(ls, 2);  /* start scope for internal state variables */
+  fs->freereg--;  /* OP_FORPREP removes one register from the stack */
   forbody(ls, base, line, 1, 0, nprop, prop);
 }
 
