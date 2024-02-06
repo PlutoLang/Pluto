@@ -233,10 +233,7 @@ LUA_API const char *lua_getlocal (lua_State *L, const lua_Debug *ar, int n) {
     StkId pos = NULL;  /* to avoid warnings */
     name = luaG_findlocal(L, ar->i_ci, n, &pos);
     if (name) {
-      if (luai_unlikely(ttype(s2v(pos)) == LUA_TITER))
-        setnilvalue(s2v(L->top.p));
-      else
-        setobjs2s(L, L->top.p, pos);
+      setobjs2s(L, L->top.p, pos);
       api_incr_top(L);
     }
   }
@@ -251,7 +248,6 @@ LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
   lua_lock(L);
   name = luaG_findlocal(L, ar->i_ci, n, &pos);
   if (name) {
-    StkId to = pos + 4;
 #ifdef PLUTO_ENABLE_TABLE_FREEZING
     if (ttistable(s2v(pos))) {
       if (hvalue(s2v(pos))->isfrozen) {
@@ -261,13 +257,6 @@ LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
 #endif
     setobjs2s(L, pos, L->top.p - 1);
     L->top.p--;  /* pop value */
-    if (to > L->top.p) to = L->top.p;
-    while(++pos < to) {
-      if (luai_unlikely(ttype(s2v(pos)) == LUA_TITER)) {
-        setnilvalue(s2v(pos));
-        break;
-      }
-    }
   }
   lua_unlock(L);
   return name;
