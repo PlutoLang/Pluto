@@ -271,8 +271,7 @@ static void funcinfo (lua_Debug *ar, Closure *cl) {
   else {
     const Proto *p = cl->l.p;
     if (p->source) {
-      ar->source = getstr(p->source);
-      ar->srclen = tsslen(p->source);
+      ar->source = getlstr(p->source, ar->srclen);
     }
     else {
       ar->source = "=?";
@@ -834,8 +833,11 @@ const char *luaG_addinfo (lua_State *L, const char *msg, TString *src,
   if (line == 'plin')
     return luaO_pushfstring(L, "[Pluto-injected code]: %s", msg);
   char buff[LUA_IDSIZE];
-  if (src)
-    luaO_chunkid(buff, getstr(src), tsslen(src));
+  if (src) {
+    size_t idlen;
+    const char *id = getlstr(src, idlen);
+    luaO_chunkid(buff, id, idlen);
+  }
   else {  /* no source available; use "?" instead */
     buff[0] = '?'; buff[1] = '\0';
   }
