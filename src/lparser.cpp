@@ -1868,7 +1868,7 @@ static void localclass (LexState *ls) {
 
 
 static void setvararg (FuncState *fs, int nparams) {
-  fs->f->is_vararg = 1;
+  fs->f->flag |= PF_ISVARARG;
   luaK_codeABC(fs, OP_VARARGPREP, nparams, 0, 0);
 }
 
@@ -2433,7 +2433,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
     }
     const auto expected = funcdesc->getNumParams();
     const auto received = (int)fas.argdescs.size();
-    if (!funcdesc->proto->is_vararg && expected < received) {  /* Too many arguments? */
+    if (!(funcdesc->proto->flag & PF_ISVARARG) && expected < received) {  /* Too many arguments? */
       auto suffix = expected == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
       throw_warn(ls,
         "too many arguments",
@@ -3391,7 +3391,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
     }
     case TK_DOTS: {  /* vararg */
       FuncState *fs = ls->fs;
-      check_condition(ls, fs->f->is_vararg,
+      check_condition(ls, fs->f->flag & PF_ISVARARG,
                       "cannot use '...' outside a vararg function");
       init_exp(v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
       luaX_next(ls);
@@ -4860,7 +4860,7 @@ static void usestat (LexState *ls) {
 static void trystat (LexState *ls) {
   const auto line = ls->getLineNumber();
   luaX_next(ls);
-  const bool vararg = ls->fs->f->is_vararg;
+  const bool vararg = (ls->fs->f->flag & PF_ISVARARG);
 
   /* local (try results) = */
   const auto results_vidx = new_localvarliteral(ls, "(try results)");
