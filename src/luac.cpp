@@ -200,8 +200,7 @@ static int pmain(lua_State* L)
   FILE* D= (output==NULL) ? stdout : luaL_fopen(output,strlen(output),"wb",sizeof("wb")-sizeof(char));
   if (D==NULL) cannot("open");
   lua_lock(L);
-  Table *h = luaH_new(L);  /* auxiliary table used by 'luaU_dump' */
-  luaU_dump(L,f,writer,D,stripping, h);
+  luaU_dump(L,f,writer,D,stripping);
   lua_unlock(L);
   if (ferror(D)) cannot("write");
   if (fclose(D)) cannot("close");
