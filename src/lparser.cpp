@@ -2257,7 +2257,7 @@ static void namedvararg (LexState *ls, TString *varargname) {
   cc.na = cc.nh = cc.tostore = 0;
   cc.t = &t;
   luaK_reserveregs(fs, 1);
-  lua_assert(fs->f->is_vararg);
+  lua_assert(fs->f->flag & PF_ISVARARG);
   init_exp(&cc.v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
   cc.tostore++;
   lastlistfield(fs, &cc);
