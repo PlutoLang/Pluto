@@ -46,8 +46,13 @@ typedef struct {
 #define dumpLiteral(D, s)	dumpBlock(D,s,sizeof(s) - sizeof(char))
 
 
+/*
+** Dump the block of memory pointed by 'b' with given 'size'.
+** 'b' should not be NULL, except for the last call signaling the end
+** of the dump.
+*/
 static void dumpBlock (DumpState *D, const void *b, size_t size) {
-  if (D->status == 0 && size > 0) {
+  if (D->status == 0) {  /* do not write anything after an error */
     lua_unlock(D->L);
     D->status = (*D->writer)(D->L, b, size, D->data);
     lua_lock(D->L);
@@ -56,13 +61,18 @@ static void dumpBlock (DumpState *D, const void *b, size_t size) {
 }
 
 
+/*
+** Dump enough zeros to ensure that current position is a multiple of
+** 'align'.
+*/
 static void dumpAlign (DumpState *D, int align) {
   int padding = align - (D->offset % align);
-  if (padding < align) {  /* apd == align means no padding */
+  if (padding < align) {  /* padding == align means no padding */
     static lua_Integer paddingContent = 0;
+    lua_assert(cast_uint(align) <= sizeof(lua_Integer));
     dumpBlock(D, &paddingContent, padding);
-    lua_assert(D->offset % align == 0);
   }
+  lua_assert(D->offset % align == 0);
 }
 
 
@@ -94,6 +104,7 @@ static void dumpSize (DumpState *D, size_t x) {
 
 
 static void dumpInt (DumpState *D, int x) {
+  lua_assert(x >= 0);
   dumpSize(D, x);
 }
 
@@ -144,6 +155,7 @@ static void dumpString (DumpState *D, TString *ts) {
 static void dumpCode (DumpState *D, const Proto *f) {
   dumpInt(D, f->sizecode);
   dumpAlign(D, sizeof(f->code[0]));
+  lua_assert(f->code != NULL);
   dumpVector(D, f->code, f->sizecode);
 }
 
@@ -200,7 +212,8 @@ static void dumpDebug (DumpState *D, const Proto *f) {
   int i, n;
   n = (D->strip) ? 0 : f->sizelineinfo;
   dumpInt(D, n);
-  dumpVector(D, f->lineinfo, n);
+  if (f->lineinfo != NULL)
+    dumpVector(D, f->lineinfo, n);
   n = (D->strip) ? 0 : f->sizeabslineinfo;
   dumpInt(D, n);
   if (n > 0) {
@@ -271,16 +284,18 @@ static void check_vm_compatibility (const Proto *f, bool& lua_vm_compatible, lu_
 /*
 ** dump Lua function as precompiled chunk
 */
-int luaU_dump(lua_State *L, const Proto *f, lua_Writer w, void *data,
-              int strip, Table *h) {
+int luaU_dump (lua_State *L, const Proto *f, lua_Writer w, void *data,
+               int strip) {
   DumpState D;
+  D.h = luaH_new(L);  /* aux. table to keep strings already dumped */
+  sethvalue2s(L, L->top.p, D.h);  /* anchor it */
+  L->top.p++;
   D.L = L;
   D.writer = w;
   D.offset = 0;
   D.data = data;
   D.strip = strip;
   D.status = 0;
-  D.h = h;
   D.nstr = 0;
   D.lua_vm_compatible = true;
   D.min_required_version = 0;
@@ -288,6 +303,7 @@ int luaU_dump(lua_State *L, const Proto *f, lua_Writer w, void *data,
   dumpHeader(&D);
   dumpByte(&D, f->sizeupvalues);
   dumpFunction(&D, f);
+  dumpBlock(&D, NULL, 0);  /* signal end of dump */
   return D.status;
 }
 
