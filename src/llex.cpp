@@ -131,7 +131,7 @@ const char *luaX_token2str_noq (LexState *ls, int token) {
     case TK_NAME: case TK_STRING:
       if (!ls->hasDoneLexerPass() || ls->t.token != token)
         return luaX_tokens[token - FIRST_RESERVED];
-      ret = luaO_pushfstring(ls->L, "%s", ls->t.seminfo.ts->contents);
+      ret = luaO_pushfstring(ls->L, "%s", getstr(ls->t.seminfo.ts));
       ls->L->top.p--;
       break;
     case TK_FLT: case TK_INT:
@@ -904,7 +904,7 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
                                   luaZ_bufflen(ls->buff));
           seminfo->ts = ts;
-          ls->appendLineBuff(ts->contents);
+          ls->appendLineBuff(getstr(ts));
           if (isreserved(ts))
             return ts->extra - 1 + FIRST_RESERVED;
           else {

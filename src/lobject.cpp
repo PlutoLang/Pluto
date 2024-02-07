@@ -629,3 +629,12 @@ void luaO_chunkid (char *out, const char *source, size_t srclen) {
   }
 }
 
+
+size_t TString::size() const noexcept {
+  return tsslen(this);
+}
+
+
+std::string TString::toCpp() const {
+  return std::string(getstr(this), size());
+}

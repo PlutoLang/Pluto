@@ -390,17 +390,8 @@ struct TString {
   } u;
   char contents[1];
 
-  [[nodiscard]] bool isShort() const noexcept {
-    return tt == LUA_VSHRSTR;
-  }
-
-  [[nodiscard]] size_t size() const noexcept {
-    return isShort() ? shrlen : u.lnglen;
-  }
-
-  [[nodiscard]] std::string toCpp() const {
-    return std::string(contents, size());
-  }
+  [[nodiscard]] size_t size() const noexcept;
+  [[nodiscard]] std::string toCpp() const;
 };
 
 

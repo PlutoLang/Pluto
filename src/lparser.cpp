@@ -382,11 +382,11 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
   ts = ls->t.seminfo.ts;
   lua_assert(ts != nullptr);
   if (!(flags & N_RESERVED) && !(flags & N_RESERVED_NON_VALUE)) {
-    if (auto t = find_non_compat_tkn_by_name(ls, ts->contents); t != 0 && t != TK_PARENT) {
+    if (auto t = find_non_compat_tkn_by_name(ls, getstr(ts)); t != 0 && t != TK_PARENT) {
       if (ls->getKeywordState(t) != KS_DISABLED_BY_USER) {
         throw_warn(
           ls,
-          luaO_fmt(ls->L, "'%s' is a non-portable name", ts->contents),
+          luaO_fmt(ls->L, "'%s' is a non-portable name", getstr(ts)),
           "use a different name, or use 'pluto_use' to disable this keyword: https://pluto.do/compat",
           WT_NON_PORTABLE_NAME
         );
@@ -615,7 +615,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
         if (local && local->varname == name) { // Got a match.
           throw_warn(ls,
             "duplicate local declaration",
-              luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", name->contents, desc->vd.line), line, WT_VAR_SHADOW);
+              luaO_fmt(ls->L, "this shadows the initial declaration of '%s' on line %d.", getstr(name), desc->vd.line), line, WT_VAR_SHADOW);
           ls->L->top.p--; /* pop result of luaO_fmt */
           return;
         }
@@ -626,7 +626,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
         if (n == global_name) {
           throw_warn(ls,
             "duplicate global declaration",
-              luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", name->contents), line, WT_GLOBAL_SHADOW);
+              luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", getstr(name)), line, WT_GLOBAL_SHADOW);
           ls->L->top.p--;
           return;
         }
@@ -1460,14 +1460,14 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
     checklimit(fs, cc->nh, MAX_INT, "items in a constructor");
     TString *name = str_checkname(ls, N_RESERVED);  /* we already know this is a TK_NAME, but don't wanna raise non-portable-name, so passing N_RESERVED */
     if (for_class) {
-      if (strcmp(name->contents, "public") == 0) {
+      if (strcmp(getstr(name), "public") == 0) {
         name = str_checkname(ls);
       }
-      else if (strcmp(name->contents, "protected") == 0) {
+      else if (strcmp(getstr(name), "protected") == 0) {
         luaX_syntaxerror(ls, "'protected' is reserved in this context");
         name = str_checkname(ls);
       }
-      else if (strcmp(name->contents, "private") == 0) {
+      else if (strcmp(getstr(name), "private") == 0) {
         std::string name_tmp = str_checkname(ls)->toCpp();
         ls->classes.top().private_fields.emplace_back(name_tmp);
         name_tmp.insert(0, "__restricted__");
@@ -1557,7 +1557,7 @@ static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod) {
   luaX_next(ls); /* skip TK_FUNCTION */
   codename(ls, &key);
   if (ismethod)
-    ismethod += (strcmp(key.u.strval->contents, "__construct") == 0);
+    ismethod += (strcmp(getstr(key.u.strval), "__construct") == 0);
   tab = *cc->t;
   luaK_indexed(fs, &tab, &key);
   body(ls, &val, ismethod, ls->getLineNumber());
@@ -1580,7 +1580,7 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
   }
   else switch(ls->t.token) {
     case TK_NAME: {  /* may be 'listfield', 'recfield' or static 'funcfield' */
-      if (strcmp(ls->t.seminfo.ts->contents, "static") != 0) {
+      if (strcmp(getstr(ls->t.seminfo.ts), "static") != 0) {
         if (!for_class && luaX_lookahead(ls) != '=')  /* expression? */
           listfield(ls, cc);
         else
@@ -1986,14 +1986,14 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
       if (isnametkn(ls, N_OVERRIDABLE)) {
         auto parname = str_checkname(ls, N_OVERRIDABLE);
         if (promotions) {
-          if (strcmp(parname->contents, "public") == 0) {
+          if (strcmp(getstr(parname), "public") == 0) {
             parname = str_checkname(ls, N_OVERRIDABLE);
             promotions->emplace_back(parname, parname);
           }
-          else if (strcmp(parname->contents, "protected") == 0) {
+          else if (strcmp(getstr(parname), "protected") == 0) {
             luaX_syntaxerror(ls, "'protected' is reserved in this context");
           }
-          else if (strcmp(parname->contents, "private") == 0) {
+          else if (strcmp(getstr(parname), "private") == 0) {
             parname = str_checkname(ls, N_OVERRIDABLE);
             std::string field_name = parname->toCpp();
             ls->classes.top().private_fields.emplace_back(field_name);
@@ -2315,10 +2315,10 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
             TString *pname = str_checkname(ls, 0);
             int pi = funcdesc->findParamByName(pname);
             if (pi == -1) {
-              throwerr(ls, luaO_fmt(ls->L, "function does not have a %s parameter", pname->contents), "unknown parameter");
+              throwerr(ls, luaO_fmt(ls->L, "function does not have a %s parameter", getstr(pname)), "unknown parameter");
             }
             if (num_positional_args > pi) {
-              throwerr(ls, luaO_fmt(ls->L, "%s parameter was already assigned to positionally", pname->contents), "double-assignment of parameter");
+              throwerr(ls, luaO_fmt(ls->L, "%s parameter was already assigned to positionally", getstr(pname)), "double-assignment of parameter");
             }
             pi -= num_positional_args;
             checknext(ls, '=');
@@ -2367,7 +2367,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
       }
       if (!param_hint->isCompatibleWith(arg)) {
         std::string err = "Function's '";;
-        err.append(funcdesc->proto->locvars[i].varname->contents, funcdesc->proto->locvars[i].varname->size());
+        err.append(getstr(funcdesc->proto->locvars[i].varname), tsslen(funcdesc->proto->locvars[i].varname));
         err.append("' parameter was type-hinted as ");
         err.append(param_hint->toString());
         err.append(" but provided with ");
@@ -2508,7 +2508,7 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
       simpleexp(ls, &argexp, E_NO_COLON);
       switch (argexp.k) {
         case VKSTR:
-          lua_pushlstring(L, argexp.u.strval->contents, argexp.u.strval->size());
+          lua_pushlstring(L, getstr(argexp.u.strval), tsslen(argexp.u.strval));
           break;
         case VKINT:
           lua_pushinteger(L, argexp.u.ival);
@@ -2568,7 +2568,7 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
 
 
 static bool check_constexpr_call (LexState *ls, expdesc *v, const char *name, lua_CFunction f) {
-  if (strcmp(ls->t.seminfo.ts->contents, name) == 0) {
+  if (strcmp(getstr(ls->t.seminfo.ts), name) == 0) {
     luaX_next(ls); /* skip TK_NAME */
     constexpr_call(ls, v, f);
     return true;
@@ -2586,7 +2586,7 @@ static void const_expr (LexState *ls, expdesc *v) {
     case TK_NAME: {
       const Pluto::PreloadedLibrary* lib = nullptr;
       for (const auto& library : Pluto::all_preloaded) {
-        if (strcmp(library->name, ls->t.seminfo.ts->contents) == 0) {
+        if (strcmp(library->name, getstr(ls->t.seminfo.ts)) == 0) {
           lib = library;
           break;
         }
@@ -2597,13 +2597,13 @@ static void const_expr (LexState *ls, expdesc *v) {
         check(ls, TK_NAME);
         lua_CFunction f = NULL;
         for (auto reg = &lib->funcs[0]; reg->name; ++reg) {
-          if (strcmp(reg->name, ls->t.seminfo.ts->contents) == 0) {
+          if (strcmp(reg->name, getstr(ls->t.seminfo.ts)) == 0) {
             f = reg->func;
             break;
           }
         }
         if (f == NULL) {
-          throwerr(ls, luaO_fmt(ls->L, "%s is not a member of %s", ls->t.seminfo.ts->contents, lib->name), "unknown function.");
+          throwerr(ls, luaO_fmt(ls->L, "%s is not a member of %s", getstr(ls->t.seminfo.ts), lib->name), "unknown function.");
         }
         else {
           luaX_next(ls); /* skip TK_NAME */
@@ -2616,7 +2616,7 @@ static void const_expr (LexState *ls, expdesc *v) {
           && !check_constexpr_call(ls, v, "utostring", luaB_utostring)
         )
       {
-        throwerr(ls, luaO_fmt(ls->L, "%s is not available in constant expression", ls->t.seminfo.ts->contents), "unrecognized name.");
+        throwerr(ls, luaO_fmt(ls->L, "%s is not available in constant expression", getstr(ls->t.seminfo.ts)), "unrecognized name.");
       }
       return;
     }
@@ -2642,7 +2642,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
       }
 #endif
       check(ls, TK_NAME);
-      if (strcmp(ls->t.seminfo.ts->contents, "values") == 0) {
+      if (strcmp(getstr(ls->t.seminfo.ts), "values") == 0) {
         luaX_next(ls);
         checknext(ls, '('); checknext(ls, ')');
         const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
@@ -2655,7 +2655,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
           return true;
         });
       }
-      else if (strcmp(ls->t.seminfo.ts->contents, "names") == 0) {
+      else if (strcmp(getstr(ls->t.seminfo.ts), "names") == 0) {
         luaX_next(ls);
         checknext(ls, '('); checknext(ls, ')');
         const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
@@ -2668,7 +2668,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
           return true;
         });
       }
-      else if (strcmp(ls->t.seminfo.ts->contents, "kvmap") == 0) {
+      else if (strcmp(getstr(ls->t.seminfo.ts), "kvmap") == 0) {
         luaX_next(ls);
         checknext(ls, '('); checknext(ls, ')');
         const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
@@ -2684,7 +2684,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
           return true;
         });
       }
-      else if (strcmp(ls->t.seminfo.ts->contents, "vkmap") == 0) {
+      else if (strcmp(getstr(ls->t.seminfo.ts), "vkmap") == 0) {
         luaX_next(ls);
         checknext(ls, '('); checknext(ls, ')');
         const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
@@ -2701,7 +2701,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
         });
       }
       else {
-        throwerr(ls, luaO_fmt(ls->L, "%s is not a member of enums", ls->t.seminfo.ts->contents), "unknown member.");
+        throwerr(ls, luaO_fmt(ls->L, "%s is not a member of enums", getstr(ls->t.seminfo.ts)), "unknown member.");
       }
       return;
     }
@@ -2712,7 +2712,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
         for (const auto& e : ed->enumerators) {
-          ss.push("eprop", e.name->contents, std::to_string(e.value));
+          ss.push("eprop", getstr(e.name), std::to_string(e.value));
         }
       }
 #endif
@@ -2725,7 +2725,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
           return;
         }
       }
-      throwerr(ls, luaO_fmt(ls->L, "%s is not a member of %s", ls->t.seminfo.ts->contents, varname->contents), "unknown member.");
+      throwerr(ls, luaO_fmt(ls->L, "%s is not a member of %s", getstr(ls->t.seminfo.ts), getstr(varname)), "unknown member.");
       return;
     }
     default: {
@@ -2741,9 +2741,9 @@ static void selfexp (LexState *ls, expdesc *v) {
     luaK_exp2anyregup(ls->fs, v);
     expdesc key;
     TString *keystr = str_checkname(ls, N_RESERVED);
-    if (ls->classes.top().isPrivate(keystr->contents)) {
+    if (ls->classes.top().isPrivate(getstr(keystr))) {
       std::string realname = "__restricted__";
-      realname.append(keystr->contents);
+      realname.append(getstr(keystr), tsslen(keystr));
       codestring(&key, luaX_newstring(ls, realname.c_str()));
     }
     else
@@ -2790,7 +2790,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
     const bool is_overridable = ls->t.IsOverridable();
     TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
     singlevar(ls, v, varname, is_overridable);
-    if (!ls->classes.empty() && strcmp(varname->contents, "self") == 0) {
+    if (!ls->classes.empty() && strcmp(getstr(varname), "self") == 0) {
       selfexp(ls, v);
       return;
     }
@@ -3824,7 +3824,7 @@ static void enumstat (LexState *ls) {
   bool is_enum_class = false;
   if (gett(ls) != TK_BEGIN) { /* enum has name (and possibly modifier)? */
     if (ls->t.token == TK_CLASS
-      || (ls->t.token == TK_NAME && strcmp(ls->t.seminfo.ts->contents, "class") == 0)
+      || (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "class") == 0)
       ) {
       is_enum_class = true;
       luaX_next(ls);
@@ -4391,11 +4391,11 @@ static void localstat (LexState *ls) {
     }
     else if (kind == VDKREG) {
       if (line == ls->getLineNumber() && ls->t.token == TK_NAME) {
-        if (strcmp(ls->t.seminfo.ts->contents, "const") == 0
-          || strcmp(ls->t.seminfo.ts->contents, "constexpr") == 0
-          || strcmp(ls->t.seminfo.ts->contents, "close") == 0
+        if (strcmp(getstr(ls->t.seminfo.ts), "const") == 0
+          || strcmp(getstr(ls->t.seminfo.ts), "constexpr") == 0
+          || strcmp(getstr(ls->t.seminfo.ts), "close") == 0
           ) {
-          throw_warn(ls, "Possibly mistyped attribute", luaO_fmt(ls->L, "Did you mean '<%s>'?", ls->t.seminfo.ts->contents), WT_POSSIBLE_TYPO);
+          throw_warn(ls, "Possibly mistyped attribute", luaO_fmt(ls->L, "Did you mean '<%s>'?", getstr(ls->t.seminfo.ts)), WT_POSSIBLE_TYPO);
           ls->L->top.p--;
         }
       }
@@ -4583,7 +4583,7 @@ static void retstat (LexState *ls, TypeHint *prop) {
 static int checkkeyword (LexState *ls) {
   if (ls->t.token == TK_NAME) {
     for (int i = FIRST_NON_COMPAT; i != END_OPTIONAL; ++i) {
-      if (strcmp(luaX_reserved2str(i), ls->t.seminfo.ts->contents) == 0) {
+      if (strcmp(luaX_reserved2str(i), getstr(ls->t.seminfo.ts)) == 0) {
         luaX_next(ls);
         return i;
       }
@@ -4616,7 +4616,7 @@ static void enablekeyword (LexState *ls, int token) {
   TString* ts = nullptr;
   /* find first instance of token */
   for (; i != ls->tokens.end(); ++i)
-    if (i->token == TK_NAME && strcmp(str, i->seminfo.ts->contents) == 0) {
+    if (i->token == TK_NAME && strcmp(str, getstr(i->seminfo.ts)) == 0) {
       ts = i->seminfo.ts;
       i->token = token;
       break;
@@ -4656,27 +4656,27 @@ static void usestat (LexState *ls) {
     }
     else if (ls->t.token == TK_STRING) {
       is_version = true;
-      if (soup::version_compare(ls->t.seminfo.ts->contents, "0.8.0") >= 0) {
+      if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.8.0") >= 0) {
         tokens = { TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, TK_TRY, TK_CATCH };
       }
-      else if (soup::version_compare(ls->t.seminfo.ts->contents, "0.6.0") >= 0) {
+      else if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.6.0") >= 0) {
         tokens = { TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT };
       }
-      else if (soup::version_compare(ls->t.seminfo.ts->contents, "0.5.0") >= 0) {
+      else if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.5.0") >= 0) {
         tokens = { TK_SWITCH, TK_CONTINUE, TK_ENUM };
       }
-      else if (soup::version_compare(ls->t.seminfo.ts->contents, "0.2.0") >= 0) {
+      else if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.2.0") >= 0) {
         tokens = { TK_SWITCH, TK_CONTINUE };
       }
-      else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", ls->t.seminfo.ts->contents), "did you mean \"0.8.0\", \"0.6.0\", \"0.5.0\" or \"0.2.0\"?");
-      if (ls->t.seminfo.ts->contents[ls->t.seminfo.ts->size() - 1] == '+') {
-        if (soup::version_compare(ls->t.seminfo.ts->contents, "0.9.0") >= 0) {
+      else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", getstr(ls->t.seminfo.ts)), "did you mean \"0.8.0\", \"0.6.0\", \"0.5.0\" or \"0.2.0\"?");
+      if (getstr(ls->t.seminfo.ts)[ls->t.seminfo.ts->size() - 1] == '+') {
+        if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.9.0") >= 0) {
           tokens.emplace_back(TK_GLOBAL);
           /* 'let' and 'const' are deprecated as of 0.9.0, so we don't wanna enable them with `pluto_use "0.9.0+"` */
         }
-        else if (soup::version_compare(ls->t.seminfo.ts->contents, "0.7.0") >= 0) {
+        else if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.7.0") >= 0) {
           tokens.emplace_back(TK_LET);
-          if (soup::version_compare(ls->t.seminfo.ts->contents, "0.8.0") >= 0) {
+          if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.8.0") >= 0) {
             tokens.emplace_back(TK_CONST);
           }
         }
