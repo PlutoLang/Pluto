@@ -302,7 +302,7 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
           return;
         }
         else { /* index is valid */
-          setsvalue(L, s2v(val), luaS_newlstr(L, &tsvalue(t)->contents[index - 1], 1));
+          setsvalue(L, s2v(val), luaS_newlstr(L, &getstr(tsvalue(t))[index - 1], 1));
           return;
         }
       }
