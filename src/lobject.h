@@ -768,7 +768,7 @@ typedef union Node {
 #define setnorealasize(t)	((t)->flags |= BITRAS)
 
 
-typedef union ArrayCell ArrayCell;
+typedef struct ArrayCell ArrayCell;
 
 
 typedef struct Table {
