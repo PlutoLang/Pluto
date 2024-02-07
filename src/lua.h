@@ -356,7 +356,7 @@ PLUTO_API void (pluto_warning) (lua_State *L, const char *msg);
 #define LUA_GCISRUNNING		6
 #define LUA_GCGEN		7
 #define LUA_GCINC		8
-#define LUA_GCSETPARAM		9
+#define LUA_GCPARAM		9
 
 
 /*
