@@ -455,7 +455,8 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     if (testnext(ls, '?'))
       th.emplaceTypeDesc(VT_NIL);
     do {
-      const char* tname = getstr(str_checkname(ls));
+      TString *ts = str_checkname(ls);
+      const char *tname = getstr(ts);
       if (strcmp(tname, "number") == 0)
         th.emplaceTypeDesc(VT_NUMBER);
       else if (strcmp(tname, "int") == 0)
@@ -4240,7 +4241,8 @@ static void localfunc (LexState *ls) {
 static int getlocalattribute (LexState *ls) {
   /* ATTRIB -> ['<' Name '>'] */
   if (testnext(ls, '<')) {
-    const char *attr = getstr(str_checkname(ls));
+    TString *ts = str_checkname(ls);
+    const char *attr = getstr(ts);
     checknext(ls, '>');
     if (strcmp(attr, "const") == 0)
       return RDKCONST;  /* read-only variable */
