@@ -25,8 +25,12 @@ struct StandaloneSocket {
   }
 };
 
+static StandaloneSocket* checksocket (lua_State *L, int i) {
+  return (StandaloneSocket*)luaL_checkudata(L, i, "pluto:socket");
+}
+
 static int connectcont (lua_State *L, int status, lua_KContext ctx) {
-  StandaloneSocket& ss = *reinterpret_cast<StandaloneSocket*>(lua_touserdata(L, -1));
+  StandaloneSocket& ss = *checksocket(L, -1);
   auto pTask = reinterpret_cast<soup::netConnectTask*>(ctx);
   if (pTask->isWorkDone()) {
     if (!pTask->wasSuccessful()) {
@@ -45,22 +49,22 @@ static int l_connect (lua_State *L) {
   const char *host = luaL_checkstring(L, 1);
   auto port = static_cast<uint16_t>(luaL_checkinteger(L, 2));
 
+  if (luaL_newmetatable(L, "pluto:socket")) {
+    lua_pushliteral(L, "__index");
+    luaL_loadbuffer(L, "return require\"pluto:socket\"", 28, 0);
+    lua_call(L, 0, 1);
+    lua_settable(L, -3);
+    lua_pushliteral(L, "__gc");
+    lua_pushcfunction(L, [](lua_State *L) {
+      std::destroy_at<>(checksocket(L, 1));
+      return 0;
+    });
+    lua_settable(L, -3);
+    lua_setmetatable(L, -2);
+  }
+
   StandaloneSocket& ss = *new (lua_newuserdata(L, sizeof(StandaloneSocket))) StandaloneSocket{};
-  lua_newtable(L);
-  lua_pushliteral(L, "__name");
-  lua_pushliteral(L, "socket");
-  lua_settable(L, -3);
-  lua_pushliteral(L, "__index");
-  luaL_loadbuffer(L, "return require\"pluto:socket\"", 28, 0);
-  lua_call(L, 0, 1);
-  lua_settable(L, -3);
-  lua_pushliteral(L, "__gc");
-  lua_pushcfunction(L, [](lua_State *L) {
-    std::destroy_at<>(reinterpret_cast<StandaloneSocket*>(lua_touserdata(L, 1)));
-    return 0;
-  });
-  lua_settable(L, -3);
-  lua_setmetatable(L, -2);
+  luaL_setmetatable(L, "pluto:socket");
 
   if (!lua_isyieldable(L)) {
     ss.sock = ss.sched.addSocket();
@@ -77,8 +81,7 @@ static int l_connect (lua_State *L) {
 }
 
 static int l_send (lua_State *L) {
-  luaL_checktype(L, 1, LUA_TUSERDATA);
-  reinterpret_cast<StandaloneSocket*>(lua_touserdata(L, 1))->sock->send(pluto_checkstring(L, 2));
+  checksocket(L, 1)->sock->send(pluto_checkstring(L, 2));
   return 0;
 }
 
@@ -103,8 +106,7 @@ static int recvcont (lua_State *L, int status, lua_KContext ctx) {
 }
 
 static int l_recv (lua_State *L) {
-  luaL_checktype(L, 1, LUA_TUSERDATA);
-  StandaloneSocket& ss = *reinterpret_cast<StandaloneSocket*>(lua_touserdata(L, 1));
+  StandaloneSocket& ss = *checksocket(L, 1);
   
   if (lua_isyieldable(L))
     return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(&ss), recvcont);
@@ -120,8 +122,7 @@ static int l_recv (lua_State *L) {
 }
 
 static int unrecv (lua_State *L) {
-  luaL_checktype(L, 1, LUA_TUSERDATA);
-  reinterpret_cast<StandaloneSocket*>(lua_touserdata(L, 1))->recvd.push_front(pluto_checkstring(L, 2));
+  checksocket(L, 1)->recvd.push_front(pluto_checkstring(L, 2));
   return 0;
 }
 
@@ -135,8 +136,7 @@ static int starttlscont (lua_State *L, int status, lua_KContext ctx) {
 }
 
 static int starttls (lua_State *L) {
-  luaL_checktype(L, 1, LUA_TUSERDATA);
-  StandaloneSocket& ss = *reinterpret_cast<StandaloneSocket*>(lua_touserdata(L, 1));
+  StandaloneSocket& ss = *checksocket(L, 1);
   if (ss.did_tls_handshake)
     return 0;
   ss.sock->enableCryptoClient(luaL_checkstring(L, 2), [](soup::Socket&, soup::Capture&& cap) SOUP_EXCAL {
