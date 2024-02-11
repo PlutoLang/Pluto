@@ -62,7 +62,6 @@ static int l_connect (lua_State *L) {
       return 0;
     });
     lua_settable(L, -3);
-    lua_setmetatable(L, -2);
   }
   lua_pop(L, 1);
 
