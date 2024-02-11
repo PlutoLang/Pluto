@@ -17,6 +17,7 @@
 #include "vendor/Soup/soup/adler32.hpp"
 #include "vendor/Soup/soup/aes.hpp"
 #include "vendor/Soup/soup/crc32.hpp"
+#include "vendor/Soup/soup/rsa.hpp"
 #include "vendor/Soup/soup/sha1.hpp"
 #include "vendor/Soup/soup/sha256.hpp"
 #include "vendor/Soup/soup/string.hpp"
@@ -319,6 +320,35 @@ static int hexdigest(lua_State *L)
 }
 
 
+void pushbigint (lua_State *L, soup::Bigint&& x);
+soup::Bigint* checkbigint (lua_State *L, int i);
+
+
+static int generatekeypair (lua_State *L) {
+  auto type = luaL_checkstring(L, 1);
+  auto bits = (unsigned int)luaL_checkinteger(L, 2);
+  if (strcmp(type, "rsa") != 0) {
+    luaL_error(L, "Unknown type");
+  }
+  auto kp = soup::RsaKeypair::generate(bits);
+  lua_newtable(L);
+  lua_pushliteral(L, "n");
+  pushbigint(L, std::move(kp.n));
+  lua_settable(L, -3);
+  lua_pushliteral(L, "e");
+  pushbigint(L, std::move(kp.e));
+  lua_settable(L, -3);
+  lua_newtable(L);
+  lua_pushliteral(L, "p");
+  pushbigint(L, std::move(kp.p));
+  lua_settable(L, -3);
+  lua_pushliteral(L, "q");
+  pushbigint(L, std::move(kp.q));
+  lua_settable(L, -3);
+  return 2;
+}
+
+
 static int l_encrypt (lua_State *L) {
   size_t mode_len;
   const char *mode = luaL_checklstring(L, 1, &mode_len);
@@ -553,6 +583,7 @@ static const luaL_Reg funcs[] = {
   {"joaat", joaat},
   {"fnv1a", fnv1a},
   {"fnv1", fnv1},
+  {"generatekeypair", generatekeypair},
   {"encrypt", l_encrypt},
   {"decrypt", l_decrypt},
   {"adler32", l_adler32},
