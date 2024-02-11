@@ -64,6 +64,7 @@ static int l_connect (lua_State *L) {
     lua_settable(L, -3);
     lua_setmetatable(L, -2);
   }
+  lua_pop(L, 1);
 
   StandaloneSocket& ss = *new (lua_newuserdata(L, sizeof(StandaloneSocket))) StandaloneSocket{};
   luaL_setmetatable(L, "pluto:socket");
