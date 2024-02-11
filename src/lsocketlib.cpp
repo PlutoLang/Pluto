@@ -1,3 +1,5 @@
+#ifndef __EMSCRIPTEN__
+
 #define LUA_LIB
 #include "lualib.h"
 #include "lstate.h"
@@ -166,3 +168,5 @@ static const luaL_Reg funcs[] = {
 };
 
 PLUTO_NEWLIB(socket)
+
+#endif
