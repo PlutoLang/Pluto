@@ -80,8 +80,8 @@ static void pushbigint (lua_State *L, soup::Bigint&& x) {
     lua_pushliteral(L, "__tostring");
     lua_pushcfunction(L, bigint_tostring);
     lua_settable(L, -3);
-    lua_pop(L, 1);
   }
+  lua_pop(L, 1);
 
   new (lua_newuserdata(L, sizeof(soup::Bigint))) soup::Bigint (std::move(x));
   luaL_setmetatable(L, "pluto:bigint");
