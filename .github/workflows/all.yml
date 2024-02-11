@@ -7,27 +7,27 @@ jobs:
   ubuntu-22-04:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: src/pluto testes/_driver.pluto
   ubuntu-20-04:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: src/pluto testes/_driver.pluto
   debian-10:
     runs-on: [debian-10]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
       - run: php scripts/link_shared.php clang
       - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "Debian 10 and above"
           path: |
@@ -37,20 +37,20 @@ jobs:
             src/libpluto.a
       - run: src/pluto testes/_driver.pluto
       - run: php scripts/bundle_deb.php
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "Debian 10 and above - .deb Package"
           path: pluto.deb
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
       - run: php scripts/link_shared.php clang
       - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "MacOS (X86)"
           path: |
@@ -64,12 +64,12 @@ jobs:
     steps:
       #- name: Ensure LLVM is up-to-date
       #  run: choco upgrade llvm
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
       - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: Windows
           path: |
@@ -78,7 +78,7 @@ jobs:
             src/libpluto.a
       - run: src/pluto.exe testes/_driver.pluto
       - run: php scripts/bundle_nupkg.php
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: Windows Chocolatey Package
           path: plutolang/*.nupkg
@@ -87,14 +87,14 @@ jobs:
     steps:
       #- name: Ensure LLVM is up-to-date
       #  run: choco upgrade llvm
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: php scripts/make_dll_c.php clang
       - name: Ensure files exist
-        uses: andstor/file-existence-action@v2
+        uses: andstor/file-existence-action@v3
         with:
           files: "src/pluto.dll, src/pluto.lib, src/pluto.exp"
           fail: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: Windows DLL
           path: |
@@ -104,5 +104,5 @@ jobs:
   makefile:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: make -j PLAT=linux
