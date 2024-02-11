@@ -344,12 +344,17 @@ namespace soup
 
 		std::vector<Bigint> primes{};
 		{
+#if SOUP_WASM
+			primes.emplace_back(gen(bits / 2u));
+			primes.emplace_back(gen(bits / 2u));
+#else
 			Promise<Bigint> p(gen_promise, bits / 2u);
 			Promise<Bigint> q(gen_promise, bits / 2u);
 			p.awaitFulfilment();
 			q.awaitFulfilment();
 			primes.emplace_back(std::move(p.getResult()));
 			primes.emplace_back(std::move(q.getResult()));
+#endif
 		}
 
 		while (true)
