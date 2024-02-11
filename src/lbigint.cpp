@@ -3,9 +3,9 @@
 
 #include "vendor/Soup/soup/Bigint.hpp"
 
-static void pushbigint (lua_State *L, soup::Bigint&& x);
+void pushbigint (lua_State *L, soup::Bigint&& x);
 
-static soup::Bigint* checkbigint (lua_State *L, int i) {
+soup::Bigint* checkbigint (lua_State *L, int i) {
   return (soup::Bigint*)luaL_checkudata(L, i, "pluto:bigint");
 }
 
@@ -51,7 +51,7 @@ static int bigint_tostring (lua_State *L) {
   return 1;
 }
 
-static void pushbigint (lua_State *L, soup::Bigint&& x) {
+void pushbigint (lua_State *L, soup::Bigint&& x) {
   if (l_unlikely(luaL_newmetatable(L, "pluto:bigint"))) {
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State* L) {
