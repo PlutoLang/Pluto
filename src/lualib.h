@@ -54,7 +54,9 @@ namespace Pluto {
   extern const PreloadedLibrary preloaded_cat;
   extern const PreloadedLibrary preloaded_http;
   extern const PreloadedLibrary preloaded_scheduler;
+#ifndef __EMSCRIPTEN__
   extern const PreloadedLibrary preloaded_socket;
+#endif
   extern const PreloadedLibrary preloaded_bigint;
 
   inline const PreloadedLibrary* const all_preloaded[] = {
@@ -69,7 +71,9 @@ namespace Pluto {
     &preloaded_cat,
     &preloaded_http,
     &preloaded_scheduler,
+#ifndef __EMSCRIPTEN__
     &preloaded_socket,
+#endif
     &preloaded_bigint,
   };
 }
@@ -85,7 +89,9 @@ LUAMOD_API int (luaopen_star)      (lua_State *L);
 LUAMOD_API int (luaopen_cat)       (lua_State *L);
 LUAMOD_API int (luaopen_http)      (lua_State *L);
 LUAMOD_API int (luaopen_scheduler) (lua_State *L);
+#ifndef __EMSCRIPTEN__
 LUAMOD_API int (luaopen_socket)    (lua_State *L);
+#endif
 LUAMOD_API int (luaopen_bigint)    (lua_State *L);
 
 /* open all previous libraries */
