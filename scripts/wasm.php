@@ -1,7 +1,7 @@
 <?php
 require "common.php";
 
-$clang = "em++ -O3 -flto -std=c++17 -fvisibility=hidden -D LUA_USE_LONGJMP -D PLUTO_ILP_ENABLE -D PLUTO_USE_SOUP";
+$clang = "em++ -O3 -flto -std=c++17 -fvisibility=hidden -D LUA_USE_LONGJMP -D PLUTO_ILP_ENABLE -D PLUTO_USE_SOUP -D PLUTO_C_LINKAGE";
 
 // Setup folders
 if(!is_dir("bin"))
