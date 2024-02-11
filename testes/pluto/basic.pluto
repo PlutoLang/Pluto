@@ -1610,7 +1610,7 @@ do
     assert(t[2].name == "Second")
 end
 do
-    local { base64, crypto } = require"*"
+    local { base64, bigint, crypto } = require"*"
 
     local key <const> = "A Top Secret Key"
     local iv <const> = "My Top Secret IV"
@@ -1629,6 +1629,23 @@ do
     assert(crypto.decrypt("aes-cbc", base64.decode("dyJWNeZQx6fjKr15cGd6Ng=="), key, iv) == "Hello from Pluto")
     assert(crypto.decrypt("aes-cbc-pkcs7", base64.decode("a3bHHwmClgOnNAVFUWgwAw=="), key, iv) == "Hello, world!")
     assert(crypto.decrypt("aes-gcm", base64.decode("wR/89K4T9cGKI9baKR0s7xI="), aadata, key, iv, base64.decode("d62kzEuotTdpAgYTrzdPpQ==")) == "Hello from Pluto!")
+
+    local priv = {
+        p = bigint.new("3835446257"),
+        q = bigint.new("3714629299"),
+    }
+    local pub = {
+        n = priv.p * priv.q,
+        e = bigint.new(0x10001),
+    }
+
+    local enc = crypto.encrypt("rsa", pub, "Hi")
+    assert(base64.encode(enc) == "w1v3stxRHCs=")
+    assert(crypto.decrypt("rsa", priv, enc) == "Hi")
+
+    enc = crypto.encrypt("rsa", priv, "Hi")
+    assert(base64.encode(enc) == "GClnRNYar5c=")
+    assert(crypto.decrypt("rsa", pub, enc) == "Hi")
 end
 
 print "Testing default table metatable."
