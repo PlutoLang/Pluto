@@ -106,3 +106,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: make -j PLAT=linux
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mymindstorm/setup-emsdk@v13
+      - uses: actions/checkout@v4
+      - run: php scripts/wasm.php
+      - name: Ensure files exist
+        uses: andstor/file-existence-action@v3
+        with:
+          files: "pluto.js, pluto.wasm, libpluto.js, libpluto.wasm"
+          fail: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WASM
+          path: |
+            pluto.js
+            pluto.wasm
+            libpluto.js
+            libpluto.wasm
