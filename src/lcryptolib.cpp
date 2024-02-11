@@ -443,13 +443,13 @@ static int l_encrypt (lua_State *L) {
     return 1;
   }
   else if (mode_len >= 3 && memcmp(mode, "rsa", 3) == 0) {
-    luaL_checktype(L, 2, LUA_TTABLE);
-    soup::Bigint *n = lua_getfield(L, 2, "n") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (n) lua_pop(L, 1);
-    soup::Bigint *e = lua_getfield(L, 2, "e") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (e) lua_pop(L, 1);
-    soup::Bigint *p = lua_getfield(L, 2, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
-    soup::Bigint *q = lua_getfield(L, 2, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
+    luaL_checktype(L, 3, LUA_TTABLE);
+    soup::Bigint *n = lua_getfield(L, 3, "n") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (n) lua_pop(L, 1);
+    soup::Bigint *e = lua_getfield(L, 3, "e") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (e) lua_pop(L, 1);
+    soup::Bigint *p = lua_getfield(L, 3, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
+    soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {  /* private key? */
-      std::string data = pluto_checkstring(L, 3);
+      std::string data = pluto_checkstring(L, 2);
       if (strcmp(mode, "rsa-pkcs1") == 0) {
         data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptPkcs1(std::move(data)).toBinary();
       }
@@ -460,7 +460,7 @@ static int l_encrypt (lua_State *L) {
 	  return 1;
     }
     else if (n && e) {  /* public key? */
-      std::string data = pluto_checkstring(L, 3);
+      std::string data = pluto_checkstring(L, 2);
       if (strcmp(mode, "rsa-pkcs1") == 0) {
         data = soup::RsaPublicKey(*n, *e).encryptPkcs1(std::move(data)).toBinary();
       }
@@ -580,13 +580,13 @@ static int l_decrypt (lua_State *L) {
     return 1;
   }
   else if (mode_len >= 3 && memcmp(mode, "rsa", 3) == 0) {
-    luaL_checktype(L, 2, LUA_TTABLE);
-    soup::Bigint *n = lua_getfield(L, 2, "n") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (n) lua_pop(L, 1);
-    soup::Bigint *e = lua_getfield(L, 2, "e") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (e) lua_pop(L, 1);
-    soup::Bigint *p = lua_getfield(L, 2, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
-    soup::Bigint *q = lua_getfield(L, 2, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
+    luaL_checktype(L, 3, LUA_TTABLE);
+    soup::Bigint *n = lua_getfield(L, 3, "n") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (n) lua_pop(L, 1);
+    soup::Bigint *e = lua_getfield(L, 3, "e") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (e) lua_pop(L, 1);
+    soup::Bigint *p = lua_getfield(L, 3, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
+    soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {  /* private key? */
-      std::string data = pluto_checkstring(L, 3);
+      std::string data = pluto_checkstring(L, 2);
       if (strcmp(mode, "rsa-pkcs1") == 0) {
         data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptPkcs1(soup::Bigint::fromBinary(data));
       }
@@ -597,7 +597,7 @@ static int l_decrypt (lua_State *L) {
 	  return 1;
     }
     else if (n && e) {  /* public key? */
-      std::string data = pluto_checkstring(L, 3);
+      std::string data = pluto_checkstring(L, 2);
       if (strcmp(mode, "rsa-pkcs1") == 0) {
         data = soup::RsaPublicKey(*n, *e).decryptPkcs1(soup::Bigint::fromBinary(data));
       }
