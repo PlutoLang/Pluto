@@ -352,204 +352,204 @@ static int generatekeypair (lua_State *L) {
 static int l_encrypt (lua_State *L) {
   size_t mode_len;
   const char *mode = luaL_checklstring(L, 1, &mode_len);
-  if (mode_len < 7 || memcmp(mode, "aes-", 4) != 0) {
-    luaL_error(L, "Unknown mode");
-  }
-  size_t data_len;
-  const char *in_data = luaL_checklstring(L, 2, &data_len);
-  char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15 + 16));  /* need up to 15 for alignment and up to 16 for padding */
-  if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
-    data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
-  }
-  memcpy(data, in_data, data_len);
-  const char *aadata = NULL;  /* for AEAD ciphers */
-  size_t aadata_len;
-  const char *key;
-  size_t key_len;
-  const char *iv = NULL;
-  size_t iv_len;
-  if (memcmp(&mode[4], "cbc", 3) == 0 || memcmp(&mode[4], "cfb", 3) == 0) {
-    key = luaL_checklstring(L, 3, &key_len);
-    iv = luaL_checklstring(L, 4, &iv_len);
-  }
-  else if (memcmp(&mode[4], "ecb", 3) == 0) {
-    key = luaL_checklstring(L, 3, &key_len);
-  }
-  else if (memcmp(&mode[4], "gcm", 3) == 0) {
-    aadata = luaL_checklstring(L, 3, &aadata_len);
-    key = luaL_checklstring(L, 4, &key_len);
-    iv = luaL_checklstring(L, 5, &iv_len);
-  }
-  else {
-    luaL_error(L, "Unknown mode");
-  }
-
-  if (key_len != 16 && key_len != 24 && key_len != 32) {
-    luaL_error(L, "Key length must be 16, 24, or 32 bytes for 128, 192, or 256-bit AES, respectively.");
-  }
-  if (!aadata && iv && iv_len != 16) {
-    luaL_error(L, "IV must be 16 bytes");
-  }
-
-  if (mode_len != 7) {
-    if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
-      size_t next_aligned_size = ((data_len / 16) + 1) * 16;
-      auto pad_size = static_cast<char>(next_aligned_size - data_len);
-      for (size_t i = data_len; i != next_aligned_size; ++i) {
-        data[i] = pad_size;
-      }
-      data_len = next_aligned_size;
+  if (mode_len >= 7 && memcmp(mode, "aes-", 4) == 0) {
+    size_t data_len;
+    const char *in_data = luaL_checklstring(L, 2, &data_len);
+    char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15 + 16));  /* need up to 15 for alignment and up to 16 for padding */
+    if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
+      data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
+    }
+    memcpy(data, in_data, data_len);
+    const char *aadata = NULL;  /* for AEAD ciphers */
+    size_t aadata_len;
+    const char *key;
+    size_t key_len;
+    const char *iv = NULL;
+    size_t iv_len;
+    if (memcmp(&mode[4], "cbc", 3) == 0 || memcmp(&mode[4], "cfb", 3) == 0) {
+      key = luaL_checklstring(L, 3, &key_len);
+      iv = luaL_checklstring(L, 4, &iv_len);
+    }
+    else if (memcmp(&mode[4], "ecb", 3) == 0) {
+      key = luaL_checklstring(L, 3, &key_len);
+    }
+    else if (memcmp(&mode[4], "gcm", 3) == 0) {
+      aadata = luaL_checklstring(L, 3, &aadata_len);
+      key = luaL_checklstring(L, 4, &key_len);
+      iv = luaL_checklstring(L, 5, &iv_len);
     }
     else {
       luaL_error(L, "Unknown mode");
     }
-  }
 
-  uint8_t tag[16];
-  if (memcmp(&mode[4], "cbc", 3) == 0) {
-    soup::aes::cbcEncrypt(
-      reinterpret_cast<uint8_t*>(data), data_len,
-      reinterpret_cast<const uint8_t*>(key), key_len,
-      reinterpret_cast<const uint8_t*>(iv)
-    );
-  }
-  else if (memcmp(&mode[4], "cfb", 3) == 0) {
-    soup::aes::cfbEncrypt(
-      reinterpret_cast<uint8_t*>(data), data_len,
-      reinterpret_cast<const uint8_t*>(key), key_len,
-      reinterpret_cast<const uint8_t*>(iv)
-    );
-  }
-  else if (memcmp(&mode[4], "ecb", 3) == 0) {
-    soup::aes::ecbEncrypt(
-      reinterpret_cast<uint8_t*>(data), data_len,
-      reinterpret_cast<const uint8_t*>(key), key_len
-    );
-  }
-  else if (memcmp(&mode[4], "gcm", 3) == 0) {
-    soup::aes::gcmEncrypt(
-      reinterpret_cast<uint8_t*>(data), data_len,
-      reinterpret_cast<const uint8_t*>(aadata), aadata_len,
-      reinterpret_cast<const uint8_t*>(key), key_len,
-      reinterpret_cast<const uint8_t*>(iv), iv_len,
-      tag
-    );
-  }
+    if (key_len != 16 && key_len != 24 && key_len != 32) {
+      luaL_error(L, "Key length must be 16, 24, or 32 bytes for 128, 192, or 256-bit AES, respectively.");
+    }
+    if (!aadata && iv && iv_len != 16) {
+      luaL_error(L, "IV must be 16 bytes");
+    }
 
-  lua_pushlstring(L, data, data_len);
-  if (aadata) {
-    lua_remove(L, -2);
-    lua_pushlstring(L, reinterpret_cast<const char*>(tag), 16);
-    return 2;
+    if (mode_len != 7) {
+      if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
+        size_t next_aligned_size = ((data_len / 16) + 1) * 16;
+        auto pad_size = static_cast<char>(next_aligned_size - data_len);
+        for (size_t i = data_len; i != next_aligned_size; ++i) {
+          data[i] = pad_size;
+        }
+        data_len = next_aligned_size;
+      }
+      else {
+        luaL_error(L, "Unknown mode");
+      }
+    }
+
+    uint8_t tag[16];
+    if (memcmp(&mode[4], "cbc", 3) == 0) {
+      soup::aes::cbcEncrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv)
+      );
+    }
+    else if (memcmp(&mode[4], "cfb", 3) == 0) {
+      soup::aes::cfbEncrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv)
+      );
+    }
+    else if (memcmp(&mode[4], "ecb", 3) == 0) {
+      soup::aes::ecbEncrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len
+      );
+    }
+    else if (memcmp(&mode[4], "gcm", 3) == 0) {
+      soup::aes::gcmEncrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(aadata), aadata_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv), iv_len,
+        tag
+      );
+    }
+
+    lua_pushlstring(L, data, data_len);
+    if (aadata) {
+      lua_remove(L, -2);
+      lua_pushlstring(L, reinterpret_cast<const char*>(tag), 16);
+      return 2;
+    }
+    return 1;
   }
-  return 1;
+  else luaL_error(L, "Unknown mode");
 }
 
 
 static int l_decrypt (lua_State *L) {
   size_t mode_len;
   const char *mode = luaL_checklstring(L, 1, &mode_len);
-  if (mode_len < 7 || memcmp(mode, "aes-", 4) != 0) {
-    luaL_error(L, "Unknown mode");
-  }
-  size_t data_len;
-  const char *in_data = luaL_checklstring(L, 2, &data_len);
-  char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15));  /* need up to 15 for alignment */
-  if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
-    data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
-  }
-  memcpy(data, in_data, data_len);
-  const char *aadata = NULL;  /* for AEAD ciphers */
-  size_t aadata_len;
-  const char *key;
-  size_t key_len;
-  const char *iv = NULL;
-  size_t iv_len;
-  const char *tag;  /* for AEAD ciphers */
-  if (memcmp(&mode[4], "cbc", 3) == 0 || memcmp(&mode[4], "cfb", 3) == 0) {
-    key = luaL_checklstring(L, 3, &key_len);
-    iv = luaL_checklstring(L, 4, &iv_len);
-  }
-  else if (memcmp(&mode[4], "ecb", 3) == 0) {
-    key = luaL_checklstring(L, 3, &key_len);
-  }
-  else if (memcmp(&mode[4], "gcm", 3) == 0) {
-    aadata = luaL_checklstring(L, 3, &aadata_len);
-    key = luaL_checklstring(L, 4, &key_len);
-    iv = luaL_checklstring(L, 5, &iv_len);
-    size_t tag_len;
-    tag = luaL_checklstring(L, 6, &tag_len);
-    if (tag_len != 16) {
-      luaL_error(L, "Authentication Tag must be 16 bytes");
+  if (mode_len >= 7 && memcmp(mode, "aes-", 4) == 0) {
+    size_t data_len;
+    const char *in_data = luaL_checklstring(L, 2, &data_len);
+    char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15));  /* need up to 15 for alignment */
+    if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
+      data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
     }
-  }
-  else {
-    luaL_error(L, "Unknown mode");
-  }
-
-  if (key_len != 16 && key_len != 24 && key_len != 32) {
-    luaL_error(L, "Key length must be 16, 24, or 32 bytes for 128, 192, or 256-bit AES, respectively.");
-  }
-  if (!aadata && iv && iv_len != 16) {
-    luaL_error(L, "IV must be 16 bytes");
-  }
-
-  bool pkcs7 = false;
-  if (mode_len != 7) {
-    if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
-      pkcs7 = true;
+    memcpy(data, in_data, data_len);
+    const char *aadata = NULL;  /* for AEAD ciphers */
+    size_t aadata_len;
+    const char *key;
+    size_t key_len;
+    const char *iv = NULL;
+    size_t iv_len;
+    const char *tag;  /* for AEAD ciphers */
+    if (memcmp(&mode[4], "cbc", 3) == 0 || memcmp(&mode[4], "cfb", 3) == 0) {
+      key = luaL_checklstring(L, 3, &key_len);
+      iv = luaL_checklstring(L, 4, &iv_len);
+    }
+    else if (memcmp(&mode[4], "ecb", 3) == 0) {
+      key = luaL_checklstring(L, 3, &key_len);
+    }
+    else if (memcmp(&mode[4], "gcm", 3) == 0) {
+      aadata = luaL_checklstring(L, 3, &aadata_len);
+      key = luaL_checklstring(L, 4, &key_len);
+      iv = luaL_checklstring(L, 5, &iv_len);
+      size_t tag_len;
+      tag = luaL_checklstring(L, 6, &tag_len);
+      if (tag_len != 16) {
+        luaL_error(L, "Authentication Tag must be 16 bytes");
+      }
     }
     else {
       luaL_error(L, "Unknown mode");
     }
-  }
 
-  if (memcmp(&mode[4], "cbc", 3) == 0) {
-    soup::aes::cbcDecrypt(
-      reinterpret_cast<uint8_t*>(data), data_len,
-      reinterpret_cast<const uint8_t*>(key), key_len,
-      reinterpret_cast<const uint8_t*>(iv)
-    );
-  }
-  else if (memcmp(&mode[4], "cfb", 3) == 0) {
-    soup::aes::cfbDecrypt(
-      reinterpret_cast<uint8_t*>(data), data_len,
-      reinterpret_cast<const uint8_t*>(key), key_len,
-      reinterpret_cast<const uint8_t*>(iv)
-    );
-  }
-  else if (memcmp(&mode[4], "ecb", 3) == 0) {
-    soup::aes::ecbDecrypt(
-      reinterpret_cast<uint8_t*>(data), data_len,
-      reinterpret_cast<const uint8_t*>(key), key_len
-    );
-  }
-  else if (memcmp(&mode[4], "gcm", 3) == 0) {
-    if (!soup::aes::gcmDecrypt(
-      reinterpret_cast<uint8_t*>(data), data_len,
-      reinterpret_cast<const uint8_t*>(aadata), aadata_len,
-      reinterpret_cast<const uint8_t*>(key), key_len,
-      reinterpret_cast<const uint8_t*>(iv), iv_len,
-      reinterpret_cast<const uint8_t*>(tag)
-    )) {
-      luaL_error(L, "AES-GCM authentication failed");
+    if (key_len != 16 && key_len != 24 && key_len != 32) {
+      luaL_error(L, "Key length must be 16, 24, or 32 bytes for 128, 192, or 256-bit AES, respectively.");
     }
-  }
+    if (!aadata && iv && iv_len != 16) {
+      luaL_error(L, "IV must be 16 bytes");
+    }
 
-  if (pkcs7) {
-    char pad_size = data[data_len - 1];
-    if (l_unlikely(pad_size < 1 || pad_size > 16)) {
-      luaL_error(L, "PKCS#7 unpadding failed");
-    }
-    for (auto i = pad_size; i; --i) {
-      if (l_unlikely(data[--data_len] != pad_size)) {
-        luaL_error(L, "PKCS#7 unpadding failed");
+    bool pkcs7 = false;
+    if (mode_len != 7) {
+      if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
+        pkcs7 = true;
+      }
+      else {
+        luaL_error(L, "Unknown mode");
       }
     }
-  }
 
-  lua_pushlstring(L, data, data_len);
-  return 1;
+    if (memcmp(&mode[4], "cbc", 3) == 0) {
+      soup::aes::cbcDecrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv)
+      );
+    }
+    else if (memcmp(&mode[4], "cfb", 3) == 0) {
+      soup::aes::cfbDecrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv)
+      );
+    }
+    else if (memcmp(&mode[4], "ecb", 3) == 0) {
+      soup::aes::ecbDecrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len
+      );
+    }
+    else if (memcmp(&mode[4], "gcm", 3) == 0) {
+      if (!soup::aes::gcmDecrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(aadata), aadata_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv), iv_len,
+        reinterpret_cast<const uint8_t*>(tag)
+      )) {
+        luaL_error(L, "AES-GCM authentication failed");
+      }
+    }
+
+    if (pkcs7) {
+      char pad_size = data[data_len - 1];
+      if (l_unlikely(pad_size < 1 || pad_size > 16)) {
+        luaL_error(L, "PKCS#7 unpadding failed");
+      }
+      for (auto i = pad_size; i; --i) {
+        if (l_unlikely(data[--data_len] != pad_size)) {
+          luaL_error(L, "PKCS#7 unpadding failed");
+        }
+      }
+    }
+
+    lua_pushlstring(L, data, data_len);
+    return 1;
+  }
+  else luaL_error(L, "Unknown mode");
 }
 
 
