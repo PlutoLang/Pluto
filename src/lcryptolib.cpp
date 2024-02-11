@@ -326,11 +326,11 @@ soup::Bigint* checkbigint (lua_State *L, int i);
 
 static int generatekeypair (lua_State *L) {
   auto type = luaL_checkstring(L, 1);
-  auto bits = (unsigned int)luaL_checkinteger(L, 2);
+  auto bits = (int)luaL_checkinteger(L, 2);
   if (strcmp(type, "rsa") != 0) {
     luaL_error(L, "Unknown type");
   }
-  auto kp = soup::RsaKeypair::generate(bits);
+  auto kp = soup::RsaKeypair::generate(bits < 0 ? bits * -1 : bits, bits < 0);
   lua_newtable(L);
   lua_pushliteral(L, "n");
   pushbigint(L, std::move(kp.n));
