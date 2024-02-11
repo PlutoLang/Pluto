@@ -1639,13 +1639,13 @@ do
         e = bigint.new(0x10001),
     }
 
-    local enc = crypto.encrypt("rsa", pub, "Hi")
+    local enc = crypto.encrypt("rsa", "Hi", pub)
     assert(base64.encode(enc) == "w1v3stxRHCs=")
-    assert(crypto.decrypt("rsa", priv, enc) == "Hi")
+    assert(crypto.decrypt("rsa", enc, priv) == "Hi")
 
-    enc = crypto.encrypt("rsa", priv, "Hi")
+    enc = crypto.encrypt("rsa", "Hi", priv)
     assert(base64.encode(enc) == "GClnRNYar5c=")
-    assert(crypto.decrypt("rsa", pub, enc) == "Hi")
+    assert(crypto.decrypt("rsa", enc, pub) == "Hi")
 end
 
 print "Testing default table metatable."
