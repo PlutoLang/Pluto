@@ -1646,6 +1646,19 @@ do
     enc = crypto.encrypt("rsa", "Hi", priv)
     assert(base64.encode(enc) == "GClnRNYar5c=")
     assert(crypto.decrypt("rsa", enc, pub) == "Hi")
+
+    priv = {
+        p = bigint.new("115443384115231951475820445136871322101870729500298182134363293112660251666017"),
+        q = bigint.new("98365361248415863235179644468056200977592391948608651522703704315152579004021"),
+    }
+    pub = {
+        n = priv.p * priv.q,
+        e = bigint.new(0x10001),
+    }
+
+    local sig = crypto.sign("rsa-sha1", "Pluto is certified cool", priv)
+    assert(crypto.verify("rsa-sha1", "Pluto is certified cool", pub, sig))
+
 end
 
 print "Testing default table metatable."

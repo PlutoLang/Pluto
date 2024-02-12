@@ -613,6 +613,50 @@ static int l_decrypt (lua_State *L) {
 }
 
 
+static int l_sign (lua_State *L) {
+  const char *mode = luaL_checkstring(L, 1);
+  if (strcmp(mode, "rsa-sha1") == 0 || strcmp(mode, "rsa-sha256") == 0) {
+    soup::Bigint *p = lua_getfield(L, 3, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
+    soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
+    if (p && q) {
+      std::string data = pluto_checkstring(L, 2);
+      if (strcmp(mode, "rsa-sha1") == 0) {
+        data = soup::RsaPrivateKey::fromPrimes(*p, *q).sign<soup::sha1>(data).toBinary();
+      }
+      else {
+        data = soup::RsaPrivateKey::fromPrimes(*p, *q).sign<soup::sha256>(data).toBinary();
+      }
+      pluto_pushstring(L, data);
+      return 1;
+    }
+    else luaL_error(L, "Invalid private key");
+  }
+  else luaL_error(L, "Unknown mode");
+}
+
+
+static int l_verify (lua_State *L) {
+  const char *mode = luaL_checkstring(L, 1);
+  if (strcmp(mode, "rsa-sha1") == 0 || strcmp(mode, "rsa-sha256") == 0) {
+    soup::Bigint *n = lua_getfield(L, 3, "n") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (n) lua_pop(L, 1);
+    soup::Bigint *e = lua_getfield(L, 3, "e") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (e) lua_pop(L, 1);
+    if (n && e) {
+      std::string data = pluto_checkstring(L, 2);
+      std::string sig = pluto_checkstring(L, 4);
+      if (strcmp(mode, "rsa-sha1") == 0) {
+        lua_pushboolean(L, soup::RsaPublicKey(*n, *e).verify<soup::sha1>(data, soup::Bigint::fromBinary(sig)));
+      }
+      else {
+        lua_pushboolean(L, soup::RsaPublicKey(*n, *e).verify<soup::sha256>(data, soup::Bigint::fromBinary(sig)));
+      }
+      return 1;
+    }
+    else luaL_error(L, "Invalid public key");
+  }
+  else luaL_error(L, "Unknown mode");
+}
+
+
 static int l_adler32 (lua_State *L) {
   size_t size;
   const char* data = luaL_checklstring(L, 1, &size);
@@ -646,6 +690,8 @@ static const luaL_Reg funcs[] = {
   {"generatekeypair", generatekeypair},
   {"encrypt", l_encrypt},
   {"decrypt", l_decrypt},
+  {"sign", l_sign},
+  {"verify", l_verify},
   {"adler32", l_adler32},
   {NULL, NULL}
 };
