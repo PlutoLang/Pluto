@@ -33,7 +33,7 @@ static int fnv1(lua_State *L)
   for (auto& c : s)
   {
     hash *= FNV_prime;
-    hash ^= c;
+    hash ^= (uint8_t)c;
   }
 
   lua_pushinteger(L, hash);
@@ -50,7 +50,7 @@ static int fnv1a(lua_State *L)
   
   for (auto& c : s)
   {
-    hash ^= c;
+    hash ^= (uint8_t)c;
     hash *= FNV_prime;
   }
 
