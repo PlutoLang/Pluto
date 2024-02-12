@@ -457,7 +457,7 @@ static int l_encrypt (lua_State *L) {
         data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptUnpadded(std::move(data)).toBinary();
       }
       pluto_pushstring(L, data);
-	  return 1;
+      return 1;
     }
     else if (n && e) {  /* public key? */
       std::string data = pluto_checkstring(L, 2);
@@ -594,7 +594,7 @@ static int l_decrypt (lua_State *L) {
         data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptUnpadded(soup::Bigint::fromBinary(data));
       }
       pluto_pushstring(L, data);
-	  return 1;
+      return 1;
     }
     else if (n && e) {  /* public key? */
       std::string data = pluto_checkstring(L, 2);
