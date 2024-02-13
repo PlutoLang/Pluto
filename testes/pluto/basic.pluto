@@ -149,6 +149,14 @@ end]]
     end
     return nil
 end]]
+
+    -- possible false-positives after merging an unknown
+    assert_no_warn[[local mt, __newindex = getmetatable(t), nil
+if mt then
+    __newindex = mt.__newindex
+end
+if __newindex then end
+]]
 end
 
 print "Testing assertion library"

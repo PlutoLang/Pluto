@@ -226,6 +226,8 @@ struct TypeHint {
   }
 
   void merge(const TypeHint& b) {
+    if (b.empty())  /* absolutely nothing is known about the other type? */
+      clear();  /* then now we also know nothing about this type. */
     for (auto& desc : b.descs) {
       emplaceTypeDesc(desc);
     }
