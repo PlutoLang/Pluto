@@ -13,5 +13,4 @@ $(LIBNAME): $(OBJS)
 	$(CXX) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm ${OBJS} $(LIBNAME)
-
+	$(RM) ${OBJS} $(LIBNAME)
