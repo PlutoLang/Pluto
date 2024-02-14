@@ -1,5 +1,9 @@
 CXX=g++ -std=c++17 -O3 -fvisibility=hidden -flto
-CFLAGS=-c -Wall -msha -msse4.1
+CFLAGS=-c -Wall
+
+ifeq ($(shell uname -m),x86_64)
+	CFLAGS+= -msha -msse4.1
+endif
 
 LIBNAME=libsoupintrin.a
 OBJS=sha256_transform_intrin.o
