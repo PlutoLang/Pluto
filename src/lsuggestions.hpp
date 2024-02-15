@@ -6,6 +6,7 @@
 
 #include "llex.h"
 
+#ifdef PLUTO_PARSER_SUGGESTIONS
 struct SuggestionsState {
   struct Suggestion {
     const char* type;
@@ -76,3 +77,4 @@ struct SuggestionsState {
     }
   }
 };
+#endif
