@@ -279,10 +279,12 @@ static bool testnext2 (LexState *ls, int token1, int token2) {
 ** Check that next token is 'c'.
 */
 static void check (LexState *ls, int c) {
+#ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
     ss.push("stat", luaX_token2str_noq(ls, c));
   }
+#endif
   if (ls->t.token != c) {
     error_expected(ls, c);
   }
@@ -365,10 +367,12 @@ enum NameFlags {
 
 static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
   TString *ts;
+#ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
     ss.pushLocals();
   }
+#endif
   if (!isnametkn(ls, flags)) {
     if (ls->t.IsNonCompatible()) {
       throwerr(ls, luaO_fmt(ls->L, "expected a name, found %s", luaX_token2str(ls, ls->t.token)), luaO_fmt(ls->L, "%s has a different meaning in Pluto, but you can disable this: https://pluto.do/compat", luaX_token2str(ls, ls->t.token)));
@@ -1564,11 +1568,13 @@ static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod) {
 
 static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
   /* field -> listfield | recfield | funcfield */
+#ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
     ss.push("stat", "function");
     ss.push("stat", "static");
   }
+#endif
   if (ls->t.IsReserved() && luaX_lookahead(ls) == '=') {
     prenamedfield(ls, cc, luaX_reserved2str(ls->t.token));
   }
@@ -1689,6 +1695,7 @@ static void classname (LexState *ls, expdesc *v) {
 
 static size_t checkextends (LexState *ls) {
   size_t pos = 0;
+#ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
     ss.push("stat", "extends");
@@ -1696,6 +1703,7 @@ static size_t checkextends (LexState *ls) {
     ss.push("stat", "static");
     ss.push("stat", "end");
   }
+#endif
   if (ls->t.token == TK_EXTENDS) {
     luaX_next(ls);
     pos = luaX_getpos(ls);
@@ -2624,6 +2632,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
   switch (ls->t.token) {
     case ':': {
       luaX_next(ls);
+#ifdef PLUTO_PARSER_SUGGESTIONS
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
         ss.push("efunc", "values");
@@ -2631,6 +2640,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
         ss.push("efunc", "kvmap");
         ss.push("efunc", "vkmap");
       }
+#endif
       check(ls, TK_NAME);
       if (strcmp(ls->t.seminfo.ts->contents, "values") == 0) {
         luaX_next(ls);
@@ -2698,12 +2708,14 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
     case '.': {
       const EnumDesc* ed = &ls->enums.at((size_t)v->u.ival);
       luaX_next(ls);
+#ifdef PLUTO_PARSER_SUGGESTIONS
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
         for (const auto& e : ed->enumerators) {
           ss.push("eprop", e.name->contents, std::to_string(e.value));
         }
       }
+#endif
       check(ls, TK_NAME);
       for (const auto& e : ed->enumerators) {
         if (eqstr(e.name, ls->t.seminfo.ts)) {
@@ -3606,10 +3618,12 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
 
 
 static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
+#ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
     ss.pushLocals();
   }
+#endif
   subexpr(ls, v, 0, prop, flags);
   if (testnext(ls, '?')) { /* ternary expression? */
     if (prop) prop->clear(); /* we don't care what type the condition is/was */
@@ -4589,12 +4603,14 @@ static void retstat (LexState *ls, TypeHint *prop) {
 
 
 static int checkkeyword (LexState *ls) {
-  if (ls->t.token == TK_NAME)
-    for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i)
+  if (ls->t.token == TK_NAME) {
+    for (int i = FIRST_NON_COMPAT; i != END_OPTIONAL; ++i) {
       if (strcmp(luaX_reserved2str(i), ls->t.seminfo.ts->contents) == 0) {
         luaX_next(ls);
         return i;
       }
+    }
+  }
   if (!ls->t.IsNonCompatible() && !ls->t.IsOptional()) {
     if (ls->t.IsCompatible())
       luaX_syntaxerror(ls, "expected non-compatible keyword");
@@ -4655,7 +4671,7 @@ static void usestat (LexState *ls) {
     std::vector<int> tokens{};
     if (ls->t.token == '*') {
       is_all = true;
-      for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i) {
+      for (int i = FIRST_NON_COMPAT; i != END_OPTIONAL; ++i) {
         tokens.emplace_back(i);
       }
       luaX_next(ls);
@@ -4711,7 +4727,7 @@ static void usestat (LexState *ls) {
     if (is_all || is_version) {
       if (is_version) {
         /* disable all non-compatible keywords as of this Pluto version, then enable those from the elected Pluto version. */
-        for (int i = FIRST_NON_COMPAT; i != FIRST_SPECIAL; ++i) {
+        for (int i = FIRST_NON_COMPAT; i != END_OPTIONAL; ++i) {
           if (ls->isKeywordEnabled(i)) {
             ls->setKeywordState(i, KS_DISABLED_BY_USER);
             disablekeyword(ls, i, false);
@@ -4931,6 +4947,7 @@ static void globalstat (LexState *ls) {
 
 
 static void statement (LexState *ls, TypeHint *prop) {
+#ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
     ss.push("stat", "if");
@@ -4960,6 +4977,7 @@ static void statement (LexState *ls, TypeHint *prop) {
     ss.pushLocals();
     return;
   }
+#endif
   int line = ls->getLineNumber();
   if (ls->t.token != ';') {
     if (ls->laststat.IsEscapingToken()
@@ -5023,6 +5041,7 @@ static void statement (LexState *ls, TypeHint *prop) {
       [[fallthrough]];
     case TK_LOCAL: {  /* stat -> localstat */
       luaX_next(ls);  /* skip LOCAL */
+#ifdef PLUTO_PARSER_SUGGESTIONS
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
         ss.push("stat", "function");
@@ -5030,6 +5049,7 @@ static void statement (LexState *ls, TypeHint *prop) {
         ss.push("stat", "pluto_class");
         return;
       }
+#endif
       if (testnext(ls, TK_FUNCTION))  /* local function? */
         localfunc(ls);
       else if (testnext2(ls, TK_CLASS, TK_PCLASS))
@@ -5047,6 +5067,7 @@ static void statement (LexState *ls, TypeHint *prop) {
     case TK_EXPORT:
     case TK_PEXPORT: {
       luaX_next(ls);  /* skip EXPORT */
+#ifdef PLUTO_PARSER_SUGGESTIONS
       if (ls->shouldSuggest()) {
         SuggestionsState ss(ls);
         ss.push("stat", "function");
@@ -5054,6 +5075,7 @@ static void statement (LexState *ls, TypeHint *prop) {
         ss.push("stat", "pluto_class");
         break;
       }
+#endif
       if (testnext(ls, TK_FUNCTION)) {
         ls->fs->bl->export_symbols.emplace_back(str_checkname(ls, 0));
         luaX_prev(ls);
