@@ -3584,7 +3584,10 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
 
 
 static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
-  luaX_checkspecial(ls);
+  if (ls->shouldSuggest()) {
+    SuggestionsState ss(ls);
+    ss.pushLocals();
+  }
   subexpr(ls, v, 0, prop, flags);
   if (testnext(ls, '?')) { /* ternary expression? */
     if (prop) prop->clear(); /* we don't care what type the condition is/was */
