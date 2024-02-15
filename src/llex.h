@@ -45,7 +45,9 @@ enum RESERVED {
   TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, TK_PTRY, TK_PCATCH,
   TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, TK_TRY, TK_CATCH, // New non-compatible keywords.
   TK_LET, TK_CONST, TK_GLOBAL, // New optional keywords.
+#ifdef PLUTO_PARSER_SUGGESTIONS
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
+#endif
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
   TK_IDIV, TK_CONCAT, TK_DOTS,
@@ -69,7 +71,12 @@ enum RESERVED {
 
 #define END_COMPAT FIRST_NON_COMPAT
 #define END_NON_COMPAT FIRST_OPTIONAL
+#ifdef PLUTO_PARSER_SUGGESTIONS
 #define END_OPTIONAL FIRST_SPECIAL
+#define END_SPECIAL TK_RETURN
+#else
+#define END_OPTIONAL TK_RETURN
+#endif
 
 /* number of reserved words */
 #define NUM_RESERVED	(cast_int(LAST_RESERVED-FIRST_RESERVED + 1))
@@ -143,12 +150,14 @@ struct Token {
   }
 
   [[nodiscard]] bool IsOptional() const noexcept {
-      return (token >= FIRST_OPTIONAL && token < FIRST_SPECIAL);
+      return (token >= FIRST_OPTIONAL && token < END_OPTIONAL);
   }
 
+#ifdef PLUTO_PARSER_SUGGESTIONS
   [[nodiscard]] bool IsSpecial() const noexcept {
-      return (token >= FIRST_SPECIAL && token < TK_RETURN);
+      return (token >= FIRST_SPECIAL && token < END_SPECIAL);
   }
+#endif
 
   [[nodiscard]] bool IsOverridable() const noexcept {
       return token == TK_PARENT || token == TK_PPARENT;
@@ -513,9 +522,11 @@ struct LexState {
         ;
   }
 
+#ifdef PLUTO_PARSER_SUGGESTIONS
   [[nodiscard]] bool shouldSuggest() const noexcept {
     return t.token == TK_SUGGEST_0 || t.token == TK_SUGGEST_1;
   }
+#endif
 
   [[nodiscard]] bool isKeywordEnabled(int t) const noexcept {
     static_assert((KS_ENABLED_BY_USER & 1) == 0);
