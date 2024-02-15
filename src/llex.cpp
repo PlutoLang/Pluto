@@ -1102,11 +1102,3 @@ int luaX_lookahead (LexState *ls) {
 const Token& luaX_lookbehind (LexState *ls) {
   return ls->tokens.at(ls->tidx - 1);
 }
-
-
-void luaX_checkspecial (LexState *ls) {
-  if (ls->shouldSuggest()) {
-    SuggestionsState ss(ls);
-    ss.pushLocals();
-  }
-}
