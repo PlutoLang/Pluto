@@ -556,4 +556,3 @@ LUAI_FUNC l_noret luaX_syntaxerror (LexState *ls, const char *s);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);
 LUAI_FUNC const char *luaX_reserved2str (int token);
-LUAI_FUNC void luaX_checkspecial (LexState *ls);
