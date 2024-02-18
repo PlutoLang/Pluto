@@ -587,7 +587,7 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
 ** Arbitrary selection. Based on probability to cause a confusing error (i.e, something that can be more deep than 'attempt to call a string value')
 ** For example, shadowing 'arg' with a function makes an obvious error. But, shadowing with string or table can cause confusing bugs because they can both be indexed and won't raise an error.
 */
-inline const char* const common_global_names[] = { PLUTO_COMMON_GLOBAL_NAMES };
+static const char* const common_global_names[] = { PLUTO_COMMON_GLOBAL_NAMES };
 
 
 static int searchvar (FuncState *fs, TString *n, expdesc *var);
