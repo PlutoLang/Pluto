@@ -21,6 +21,8 @@
 #include "NamedCurves.hpp"
 #include "netConfig.hpp"
 #include "rand.hpp"
+#include "sha1.hpp"
+#include "sha256.hpp"
 #include "SocketTlsHandshaker.hpp"
 #include "time.hpp"
 #include "TlsAlertDescription.hpp"
@@ -35,6 +37,8 @@
 #include "TlsRecord.hpp"
 #include "TlsServerHello.hpp"
 #include "TlsServerKeyExchange.hpp"
+#include "TlsServerRsaData.hpp"
+#include "TlsSignatureScheme.hpp"
 #include "TrustStore.hpp"
 
 #define LOGGING false
@@ -328,22 +332,15 @@ namespace soup
 		return setBlocking(false);
 	}
 
-	bool Socket::certchain_validator_none(const X509Certchain&, const std::string&, StructMap&)
+	bool Socket::certchain_validator_none(const X509Certchain&, const std::string&, StructMap&) SOUP_EXCAL
 	{
 		return true;
 	}
 
-	bool Socket::certchain_validator_relaxed(const X509Certchain& chain, const std::string& domain, StructMap&)
+	bool Socket::certchain_validator_default(const X509Certchain& chain, const std::string& domain, StructMap&) SOUP_EXCAL
 	{
 		return chain.certs.at(0).valid_to >= time::unixSeconds()
 			&& chain.verify(domain, TrustStore::fromMozilla())
-			;
-	}
-
-	bool Socket::certchain_validator_strict(const X509Certchain& chain, const std::string& domain, StructMap& custom_data)
-	{
-		return chain.canBeVerified()
-			&& certchain_validator_relaxed(chain, domain, custom_data)
 			;
 	}
 
@@ -389,18 +386,33 @@ namespace soup
 		certchain_validator_t certchain_validator;
 	};
 
-	void Socket::enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
+	struct CaptureValidateSke
+	{
+		Socket& s;
+		SocketTlsHandshaker* handshaker;
+		std::string signature;
+		bool sha256;
+	};
+
+	void Socket::enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap, std::string&& initial_application_data) SOUP_EXCAL
 	{
 		auto handshaker = make_unique<SocketTlsHandshaker>(
 			callback,
 			std::move(cap)
 		);
 		handshaker->server_name = std::move(server_name);
+		handshaker->initial_application_data = std::move(initial_application_data);
 
 		TlsClientHello hello;
 		hello.random.time = static_cast<uint32_t>(time::unixSeconds());
 		rand.fill(hello.random.random);
 		handshaker->client_random = hello.random.toBinaryString();
+		vector_emplace_back_randomised(hello.cipher_suites, {
+			TLS_RSA_WITH_AES_256_CBC_SHA256,
+			TLS_RSA_WITH_AES_128_CBC_SHA256,
+			TLS_RSA_WITH_AES_256_CBC_SHA,
+			TLS_RSA_WITH_AES_128_CBC_SHA,
+		});
 		vector_emplace_back_randomised(hello.cipher_suites, {
 			TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
 			TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, // Cloudfront
@@ -414,12 +426,6 @@ namespace soup
 		vector_emplace_back_randomised(hello.cipher_suites, {
 			TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, // Apache + Let's Encrypt
 			TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, // Apache + Let's Encrypt
-		});
-		vector_emplace_back_randomised(hello.cipher_suites, {
-			TLS_RSA_WITH_AES_256_CBC_SHA256,
-			TLS_RSA_WITH_AES_128_CBC_SHA256,
-			TLS_RSA_WITH_AES_256_CBC_SHA,
-			TLS_RSA_WITH_AES_128_CBC_SHA,
 		});
 		hello.cipher_suites.emplace(
 			hello.cipher_suites.begin() + rand(0, hello.cipher_suites.size() - 1),
@@ -453,16 +459,20 @@ namespace soup
 		}
 
 		{
-			// NGINX/OpenSSL (e.g., api.deepl.com) closes with "internal_error" if signature_algorithms is not present. We provide the following:
-			// - ecdsa_secp256r1_sha256 (0x0403)
-			// - rsa_pss_rsae_sha256 (0x0804)
-			// - rsa_pkcs1_sha256 (0x0401)
-			// - ecdsa_secp384r1_sha384 (0x0503)
-			// - rsa_pss_rsae_sha384 (0x0805)
-			// - rsa_pkcs1_sha384 (0x0501)
-			// - rsa_pss_rsae_sha512 (0x0806)
-			// - rsa_pkcs1_sha512 (0x0601)
-			hello.extensions.add(TlsExtensionType::signature_algorithms, std::string("\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01", 18));
+			// Note: NGINX/OpenSSL (e.g., api.deepl.com) closes with "internal_error" if signature_algorithms is not present.
+
+			std::vector<uint16_t> supported_signature_schemes{
+				TlsSignatureScheme::rsa_pkcs1_sha1,
+				TlsSignatureScheme::rsa_pkcs1_sha256,
+				TlsSignatureScheme::ecdsa_sha1,
+				TlsSignatureScheme::ecdsa_secp256r1_sha256,
+				//TlsSignatureScheme::ecdsa_secp384r1_sha384,
+			};
+
+			StringWriter sw(ENDIAN_BIG);
+			sw.vec_u16_bl_u16(supported_signature_schemes);
+
+			hello.extensions.add(TlsExtensionType::signature_algorithms, std::move(sw.data));
 		}
 
 		hello.extensions.add(TlsExtensionType::extended_master_secret, {});
@@ -575,47 +585,130 @@ namespace soup
 									s.tls_close(TlsAlertDescription::decode_error);
 									return;
 								}
-								// TODO: Verify server signature. See RFC 8422 page 17-18.
-								if (ske.named_curve == NamedCurves::x25519)
+								if (ske.signature_scheme == TlsSignatureScheme::rsa_pkcs1_sha1
+									|| ske.signature_scheme == TlsSignatureScheme::rsa_pkcs1_sha256
+									)
 								{
-									if (ske.point.size() != Curve25519::KEY_SIZE)
+									SOUP_IF_UNLIKELY (!handshaker->certchain.certs.at(0).isRsa())
 									{
-										s.tls_close(TlsAlertDescription::handshake_failure);
+										s.tls_close(TlsAlertDescription::illegal_parameter);
 										return;
 									}
 								}
-								else if (ske.named_curve == NamedCurves::secp256r1)
+								else if (ske.signature_scheme == TlsSignatureScheme::ecdsa_sha1)
 								{
-									if (ske.point.size() != 65 // first byte for compression format (4 for uncompressed) + 32 for X + 32 for Y
-										|| ske.point.at(0) != 4
-										)
+									SOUP_IF_UNLIKELY (!handshaker->certchain.certs.at(0).isEc())
 									{
-										s.tls_close(TlsAlertDescription::handshake_failure);
+										s.tls_close(TlsAlertDescription::illegal_parameter);
 										return;
 									}
-									ske.point.erase(0, 1); // leave only X + Y
 								}
-								else if (ske.named_curve == NamedCurves::secp384r1)
+								else if (ske.signature_scheme == TlsSignatureScheme::ecdsa_secp256r1_sha256)
 								{
-									if (ske.point.size() != 97 // first byte for compression format (4 for uncompressed) + 48 for X + 48 for Y
-										|| ske.point.at(0) != 4
-										)
+									SOUP_IF_UNLIKELY (!handshaker->certchain.certs.at(0).isEc() || handshaker->certchain.certs.at(0).curve != &EccCurve::secp256r1())
 									{
-										s.tls_close(TlsAlertDescription::handshake_failure);
+										s.tls_close(TlsAlertDescription::illegal_parameter);
 										return;
 									}
-									ske.point.erase(0, 1); // leave only X + Y
 								}
 								else
 								{
-									s.tls_close(TlsAlertDescription::handshake_failure);
+									// Server picked something we didn't announce in the signature_algorithms extension.
+									s.tls_close(TlsAlertDescription::illegal_parameter);
 									return;
 								}
-								// TODO: Validate signature
-								handshaker->ecdhe_curve = ske.named_curve;
-								handshaker->ecdhe_public_key = std::move(ske.point);
+								if (ske.params.named_curve == NamedCurves::x25519)
+								{
+									if (ske.params.point.size() != Curve25519::KEY_SIZE)
+									{
+										s.tls_close(TlsAlertDescription::illegal_parameter);
+										return;
+									}
+								}
+								else if (ske.params.named_curve == NamedCurves::secp256r1)
+								{
+									if (ske.params.point.size() != 65 // first byte for compression format (4 for uncompressed) + 32 for X + 32 for Y
+										|| ske.params.point.at(0) != 4
+										)
+									{
+										s.tls_close(TlsAlertDescription::illegal_parameter);
+										return;
+									}
+								}
+								else if (ske.params.named_curve == NamedCurves::secp384r1)
+								{
+									if (ske.params.point.size() != 97 // first byte for compression format (4 for uncompressed) + 48 for X + 48 for Y
+										|| ske.params.point.at(0) != 4
+										)
+									{
+										s.tls_close(TlsAlertDescription::illegal_parameter);
+										return;
+									}
+								}
+								else
+								{
+									s.tls_close(TlsAlertDescription::illegal_parameter);
+									return;
+								}
+								handshaker->ecdhe_curve = ske.params.named_curve;
+								handshaker->ecdhe_public_key = std::move(ske.params.point);
 
-								s.enableCryptoClientRecvServerHelloDone(std::move(handshaker));
+#if SOUP_EXCEPTIONS
+								try
+#endif
+								{
+									// Takes around 57 ms on my i9-13900K. Don't wanna waste that time on main thread.
+									handshaker->promise.reset();
+									handshaker->promise.fulfilOffThread([](Capture&& _cap)
+									{
+										auto& cap = _cap.get<CaptureValidateSke>();
+
+										TlsServerECDHParams params;
+										params.curve_type = 3;
+										params.named_curve = cap.handshaker->ecdhe_curve;
+										params.point = cap.handshaker->ecdhe_public_key;
+
+										std::string msg = cap.handshaker->client_random + cap.handshaker->server_random + params.toBinaryString();
+
+										if (cap.sha256)
+										{
+											if (!cap.handshaker->certchain.certs.at(0).verifySignature<soup::sha256>(msg, cap.signature))
+											{
+												cap.s.tls_close(TlsAlertDescription::decrypt_error);
+											}
+										}
+										else
+										{
+											if (!cap.handshaker->certchain.certs.at(0).verifySignature<soup::sha1>(msg, cap.signature))
+											{
+												cap.s.tls_close(TlsAlertDescription::decrypt_error);
+											}
+										}
+									}, CaptureValidateSke{
+										s,
+										handshaker.get(),
+										std::move(ske.signature),
+										ske.signature_scheme == TlsSignatureScheme::rsa_pkcs1_sha256 || ske.signature_scheme == TlsSignatureScheme::ecdsa_secp256r1_sha256
+									});
+								}
+#if SOUP_EXCEPTIONS
+								catch (...)
+								{
+									s.tls_close(TlsAlertDescription::internal_error);
+									return;
+								}
+#endif
+
+								auto* p = &handshaker->promise;
+								s.awaitPromiseCompletion(p, [](Worker& w, Capture&& cap) SOUP_EXCAL
+								{
+									w.holdup_type = Worker::NONE;
+
+									auto& s = static_cast<Socket&>(w);
+									UniquePtr<SocketTlsHandshaker> handshaker = std::move(cap.get<UniquePtr<SocketTlsHandshaker>>());
+
+									s.enableCryptoClientRecvServerHelloDone(std::move(handshaker));
+								}, std::move(handshaker));
 							});
 							break;
 						}
@@ -676,9 +769,11 @@ namespace soup
 				}
 
 				TlsEncryptedPreMasterSecret epms{};
-				SOUP_IF_UNLIKELY(!handshaker->certchain.certs.at(0).isRsa())
+				SOUP_IF_UNLIKELY (!handshaker->certchain.certs.at(0).isRsa())
 				{
-					return; // Server picked an RSA ciphersuite but did not provide an appropriate certificate
+					// Server picked an RSA ciphersuite but did not provide an appropriate certificate
+					tls_close(TlsAlertDescription::illegal_parameter);
+					return;
 				}
 				epms.data = handshaker->certchain.certs.at(0).getRsaPublicKey().encryptPkcs1(pms).toBinary();
 				cke = epms.toBinaryString();
@@ -721,12 +816,14 @@ namespace soup
 				auto my_priv = curve->generatePrivate();
 
 				EccPoint their_pub{
-					Bigint::fromBinary(handshaker->ecdhe_public_key.substr(0, csize)),
-					Bigint::fromBinary(handshaker->ecdhe_public_key.substr(csize, csize))
+					Bigint::fromBinary(handshaker->ecdhe_public_key.substr(1, csize)),
+					Bigint::fromBinary(handshaker->ecdhe_public_key.substr(1 + csize, csize))
 				};
-				SOUP_IF_UNLIKELY(!curve->validate(their_pub))
+				SOUP_IF_UNLIKELY (!curve->validate(their_pub))
 				{
-					return; // Server provided an invalid point for ECDHE
+					// Server provided an invalid point for ECDHE
+					tls_close(TlsAlertDescription::illegal_parameter);
+					return;
 				}
 
 				auto shared_point = curve->multiply(their_pub, my_priv);
@@ -746,6 +843,7 @@ namespace soup
 #if SOUP_EXCEPTIONS
 		catch (...)
 		{
+			tls_close(TlsAlertDescription::internal_error);
 			return;
 		}
 #endif
@@ -763,6 +861,11 @@ namespace soup
 			);
 			if (tls_sendHandshake(handshaker, TlsHandshake::finished, handshaker->getClientFinishVerifyData()))
 			{
+				if (!handshaker->initial_application_data.empty())
+				{
+					tls_sendRecordEncrypted(TlsContentType::application_data, handshaker->initial_application_data);
+				}
+
 				tls_recvRecord(TlsContentType::change_cipher_spec, [](Socket& s, std::string&& data, Capture&& cap) SOUP_EXCAL
 				{
 					UniquePtr<SocketTlsHandshaker> handshaker = std::move(cap.get<UniquePtr<SocketTlsHandshaker>>());
@@ -825,6 +928,8 @@ namespace soup
 				return;
 			}
 
+			TlsServerRsaData rsa_data;
+
 			{
 				TlsClientHello hello;
 				if (!hello.fromBinary(data))
@@ -857,10 +962,10 @@ namespace soup
 						handshaker->extended_master_secret = true;
 					}
 				}
-				handshaker->cert_selector(handshaker->rsa_data, server_name);
-				if (handshaker->rsa_data.der_encoded_certchain.empty())
+				handshaker->cert_selector(rsa_data, server_name);
+				if (rsa_data.der_encoded_certchain.empty())
 				{
-					s.tls_close(TlsAlertDescription::handshake_failure);
+					s.tls_close(TlsAlertDescription::internal_error);
 					return;
 				}
 
@@ -893,7 +998,7 @@ namespace soup
 
 			{
 				TlsCertificate tcert;
-				tcert.asn1_certs = std::move(handshaker->rsa_data.der_encoded_certchain);
+				tcert.asn1_certs = std::move(rsa_data.der_encoded_certchain);
 				if (!s.tls_sendHandshake(handshaker, TlsHandshake::certificate, tcert.toBinaryString()))
 				{
 					return;
@@ -904,6 +1009,8 @@ namespace soup
 			{
 				return;
 			}
+
+			handshaker->private_key = std::move(rsa_data.private_key);
 
 			s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 			{
@@ -923,7 +1030,7 @@ namespace soup
 				handshaker->promise.fulfilOffThread([](Capture&& _cap)
 				{
 					auto& cap = _cap.get<CaptureDecryptPreMasterSecret>();
-					cap.handshaker->pre_master_secret = cap.handshaker->rsa_data.private_key.decryptPkcs1(cap.data);
+					cap.handshaker->pre_master_secret = cap.handshaker->private_key.decryptPkcs1(cap.data);
 				}, CaptureDecryptPreMasterSecret{
 					handshaker.get(),
 					Bigint::fromBinary(data)
@@ -1065,22 +1172,22 @@ namespace soup
 
 	void Socket::recv(void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
 	{
-		CaptureSocketRecv inner_cap{
-			callback,
-			std::move(cap)
-		};
-		auto inner_callback = [](Socket& s, std::string&& data, Capture&& _cap) SOUP_EXCAL
-		{
-			auto& cap = _cap.get<CaptureSocketRecv>();
-			cap.callback(s, std::move(data), std::move(cap.cap));
-		};
 		if (tls_encrypter_recv.isActive())
 		{
+			CaptureSocketRecv inner_cap{
+				callback,
+				std::move(cap)
+			};
+			auto inner_callback = [](Socket& s, std::string&& data, Capture&& _cap) SOUP_EXCAL
+			{
+				auto & cap = _cap.get<CaptureSocketRecv>();
+				cap.callback(s, std::move(data), std::move(cap.cap));
+			};
 			tls_recvRecord(TlsContentType::application_data, inner_callback, std::move(inner_cap));
 		}
 		else
 		{
-			transport_recv(0x1000, inner_callback, std::move(inner_cap));
+			transport_recv(0x1000, callback, std::move(cap));
 		}
 	}
 

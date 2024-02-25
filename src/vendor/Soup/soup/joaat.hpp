@@ -59,23 +59,14 @@ namespace soup
 
 		[[nodiscard]] static constexpr uint32_t partial(const char* data, size_t size, uint32_t initial = 0) noexcept
 		{
-			/*uint32_t val = initial;
+			uint32_t val = initial;
 			while (size-- != 0)
 			{
-				val += *(data++);
+				val += *(uint8_t*)(data++);
 				val += (val << 10);
 				val ^= (val >> 6);
 			}
-			return val;*/
-
-			size_t v3 = 0;
-			uint32_t result = initial;
-			int v5 = 0;
-			for (; v3 < size; result = ((uint32_t)(1025 * (v5 + result)) >> 6) ^ (1025 * (v5 + result)))
-			{
-				v5 = data[v3++];
-			}
-			return result;
+			return val;
 		}
 
 		static constexpr void finalise(uint32_t& val) noexcept

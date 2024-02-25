@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Thread.hpp"
+#if !SOUP_WASM
 
 namespace soup
 {
@@ -16,3 +17,5 @@ namespace soup
 		Capture cap;
 	};
 }
+
+#endif

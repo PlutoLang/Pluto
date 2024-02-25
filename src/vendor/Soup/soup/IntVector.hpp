@@ -41,22 +41,17 @@ namespace soup
 			free();
 		}
 
-		void operator=(const IntVector<T>& b) noexcept
+		void operator=(const IntVector<T>& b) SOUP_EXCAL
 		{
-			free();
+			if (m_capacity < b.m_size)
+			{
+				free();
+				m_capacity = b.m_size;
+				m_data = (T*)malloc(m_capacity * sizeof(T));
+			}
 
 			m_size = b.m_size;
-			m_capacity = b.m_capacity;
-
-			if (m_capacity != 0)
-			{
-				m_data = (T*)malloc(m_capacity * sizeof(T));
-				memcpy(m_data, b.m_data, m_size * sizeof(T));
-			}
-			else
-			{
-				m_data = nullptr;
-			}
+			memcpy(m_data, b.m_data, m_size * sizeof(T));
 		}
 
 		void operator=(IntVector<T>&& b) noexcept
@@ -127,7 +122,7 @@ namespace soup
 			{
 				m_capacity = m_size + elms;
 				auto data = reinterpret_cast<T*>(malloc(m_capacity * sizeof(T)));
-				memmove(&data[elms], &m_data[0], m_size * sizeof(T));
+				memcpy(&data[elms], &m_data[0], m_size * sizeof(T));
 				memset(&data[0], 0, elms * sizeof(T));
 				m_data = data;
 				m_size = m_capacity;
@@ -192,7 +187,7 @@ namespace soup
 			m_size = 0;
 		}
 
-		void reset() noexcept
+		/*void reset() noexcept
 		{
 			clear();
 			if (m_capacity != 0)
@@ -201,7 +196,7 @@ namespace soup
 				::free(m_data);
 				m_data = nullptr;
 			}
-		}
+		}*/
 
 	protected:
 		void free() noexcept

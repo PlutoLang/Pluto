@@ -13,7 +13,7 @@ namespace soup
 
 	// crypto
 	struct RsaKeypair;
-	struct TrustStore;
+	class TrustStore;
 	class YubikeyValidator;
 
 	// crypto.x509
@@ -42,7 +42,7 @@ namespace soup
 	class drData;
 
 	// data.regex
-	struct RegexConstraintTransitionable;
+	struct RegexConstraint;
 	struct RegexGroup;
 	struct RegexMatcher;
 

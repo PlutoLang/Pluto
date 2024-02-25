@@ -23,20 +23,11 @@ namespace soup
 			return is.peek() != EOF;
 		}
 
-		bool u8(uint8_t& p) final
+		bool raw(void* data, size_t len) final
 		{
-			return !is.read((char*)&p, sizeof(uint8_t)).bad();
+			return !is.read(reinterpret_cast<char*>(data), len).bad();
 		}
 
-	protected:
-		bool str_impl(std::string& v, size_t len) final
-		{
-			v = std::string(len, 0);
-			is.read(v.data(), len);
-			return !is.bad();
-		}
-
-	public:
 		bool getLine(std::string& line) noexcept final
 		{
 			std::getline(is, line);

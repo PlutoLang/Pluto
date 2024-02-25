@@ -36,6 +36,7 @@ namespace soup
 
 		[[nodiscard]] std::optional<HttpResponse> execute() const; // blocking
 		void executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}) const; // blocking
+		[[nodiscard]] std::string getDataToSend() const SOUP_EXCAL;
 		void send(Socket& s) const SOUP_EXCAL;
 	private:
 		static void execute_recvResponse(Socket& s, std::optional<HttpResponse>* resp) SOUP_EXCAL;

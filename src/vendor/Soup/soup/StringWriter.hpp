@@ -21,9 +21,10 @@ namespace soup
 
 		~StringWriter() final = default;
 
-		void write(const char* data, size_t size) final
+		bool raw(void* data, size_t size) SOUP_EXCAL final
 		{
-			this->data.append(data, size);
+			this->data.append(reinterpret_cast<char*>(data), size);
+			return true;
 		}
 	};
 }

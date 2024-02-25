@@ -4,7 +4,7 @@
 
 #include "Asn1Type.hpp"
 #include "Bigint.hpp"
-#include "Exception.hpp"
+//#include "Exception.hpp"
 #include "Oid.hpp"
 #include "string.hpp"
 #include "StringRefReader.hpp"
@@ -12,12 +12,12 @@
 
 namespace soup
 {
-	Asn1Sequence::Asn1Sequence()
+	Asn1Sequence::Asn1Sequence() SOUP_EXCAL
 		: std::vector<Asn1Element>()
 	{
 	}
 
-	Asn1Sequence::Asn1Sequence(const std::string& data)
+	Asn1Sequence::Asn1Sequence(const std::string& data) SOUP_EXCAL
 		: Asn1Sequence()
 	{
 		StringRefReader r{ data };
@@ -25,29 +25,32 @@ namespace soup
 		{
 			auto id = readIdentifier(r);
 			auto len = readLength(r);
-			SOUP_IF_UNLIKELY (len > 10000)
+			/*SOUP_IF_UNLIKELY (len > 10000)
 			{
 				SOUP_THROW(Exception("Asn1Element is unreasonably long"));
-			}
+			}*/
 			std::string buf;
 			r.str(len, buf);
 			emplace_back(Asn1Element{ std::move(id), std::move(buf) });
 		}
 	}
 
-	Asn1Sequence Asn1Sequence::fromDer(const std::string& str)
+	Asn1Sequence Asn1Sequence::fromDer(const std::string& str) SOUP_EXCAL
 	{
 		StringRefReader r{ str };
 		return fromDer(r);
 	}
 
-	Asn1Sequence Asn1Sequence::fromDer(Reader& r)
+	Asn1Sequence Asn1Sequence::fromDer(Reader& r) SOUP_EXCAL
 	{
-		SOUP_ASSERT(readIdentifier(r).type == ASN1_SEQUENCE);
+		SOUP_IF_UNLIKELY (readIdentifier(r).type != ASN1_SEQUENCE)
+		{
+			return {};
+		}
 		auto len = readLength(r);
 		SOUP_IF_UNLIKELY (len > 10000)
 		{
-			SOUP_THROW(Exception("Asn1Sequence is unreasonably long"));
+			return {};
 		}
 		std::string buf;
 		r.str(len, buf);

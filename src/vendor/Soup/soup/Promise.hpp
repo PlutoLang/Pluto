@@ -63,11 +63,13 @@ namespace soup
 		{
 		}
 
+#if !SOUP_WASM
 		Promise(T(*f)(Capture&&), Capture&& cap = {})
 			: Promise()
 		{
 			fulfilOffThread(f, std::move(cap));
 		}
+#endif
 
 		void fulfil(T&& res) SOUP_EXCAL
 		{
@@ -79,6 +81,7 @@ namespace soup
 			return res.get<T>();
 		}
 
+#if !SOUP_WASM
 		void fulfilOffThread(T(*f)(Capture&&), Capture&& cap = {})
 		{
 			new SelfDeletingThread([](Capture&& _cap)
@@ -87,6 +90,7 @@ namespace soup
 				cap.promise.fulfil(cap.f(std::move(cap.cap)));
 			}, CaptureFulfillOffThread{ *this, f, std::move(cap) });
 		}
+#endif
 
 	protected:
 		struct CaptureFulfillOffThread
@@ -133,8 +137,10 @@ namespace soup
 			fulfiled = false;
 		}
 
+#if !SOUP_WASM
 		void fulfilOffThread(void(*f)(Capture&&), Capture&& cap = {})
 		{
+			SOUP_DEBUG_ASSERT(!isFulfilled());
 			new SelfDeletingThread([](Capture&& _cap)
 			{
 				auto& cap = _cap.get<CaptureFulfillOffThread>();
@@ -142,6 +148,7 @@ namespace soup
 				cap.promise.fulfil();
 			}, CaptureFulfillOffThread{ *this, f, std::move(cap) });
 		}
+#endif
 
 	protected:
 		struct CaptureFulfillOffThread

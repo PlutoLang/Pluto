@@ -47,11 +47,30 @@ namespace soup
 		void setRsaPublicKey(Bigint n, Bigint e) noexcept;
 		void setRsaPublicKey(RsaPublicKey pub) noexcept;
 
-		[[nodiscard]] bool canBeVerified() const noexcept;
-		[[nodiscard]] bool verify(const X509Certificate& issuer) const;
+		[[nodiscard]] bool verify(const X509Certificate& issuer) const SOUP_EXCAL;
 
 		[[nodiscard]] bool isValidForDomain(const std::string& domain) const SOUP_EXCAL;
 		[[nodiscard]] static bool matchDomain(const std::string& domain, const std::string& name) SOUP_EXCAL;
+
+		template <typename CryptoHashAlgo>
+		[[nodiscard]] bool verifySignature(const std::string& msg, const std::string& sig) const SOUP_EXCAL
+		{
+			if (isRsa())
+			{
+				return getRsaPublicKey().verify<CryptoHashAlgo>(msg, Bigint::fromBinary(sig));
+			}
+			if (isEc() && curve)
+			{
+				auto seq = Asn1Sequence::fromDer(sig);
+				if (seq.size() == 2)
+				{
+					auto r = seq.getInt(0);
+					auto s = seq.getInt(1);
+					return curve->verify(key, CryptoHashAlgo::hash(msg), r, s);
+				}
+			}
+			return false;
+		}
 
 		// Does not generate valid certificates by most opinions.
 		[[nodiscard]] Asn1Sequence toAsn1() const SOUP_EXCAL;

@@ -82,6 +82,14 @@ namespace soup
 #endif
 		}
 
+		void reset()
+		{
+			if (isConstructed())
+			{
+				destroy();
+			}
+		}
+
 		[[nodiscard]] operator bool() const noexcept
 		{
 			return isConstructed();
