@@ -1,8 +1,8 @@
 #pragma once
 
-#include "base.hpp"
-#include "fwd.hpp"
 #include "CryptoHashAlgo.hpp"
+
+#include "fwd.hpp"
 
 namespace soup
 {

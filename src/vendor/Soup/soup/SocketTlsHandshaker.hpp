@@ -7,8 +7,8 @@
 
 #include "Capture.hpp"
 #include "Promise.hpp"
+#include "rsa.hpp"
 #include "SocketTlsEncrypter.hpp"
-#include "TlsServerRsaData.hpp"
 #include "TlsCipherSuite.hpp"
 #include "X509Certchain.hpp"
 #include "X509Certificate.hpp"
@@ -36,12 +36,13 @@ namespace soup
 		X509Certchain certchain{};
 		std::string server_name{};
 		std::string ecdhe_public_key{};
+		std::string initial_application_data{};
 		SocketTlsEncrypter pending_recv_encrypter;
 
 		// server
 		tls_server_cert_selector_t cert_selector;
 		void(*on_client_hello)(Socket&, TlsClientHello&&);
-		TlsServerRsaData rsa_data{};
+		RsaPrivateKey private_key{};
 
 		explicit SocketTlsHandshaker(void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& callback_capture) noexcept;
 

@@ -4,6 +4,9 @@
 
 #include <wmmintrin.h>
 
+// https://gist.github.com/acapola/d5b940da024080dfaf5f
+// https://www.intel.com/content/dam/doc/white-paper/advanced-encryption-standard-new-instructions-set-paper.pdf
+
 namespace soup
 {
 	[[nodiscard]] static __m128i aes_expand_key_step(__m128i key0, __m128i key1) noexcept
@@ -36,6 +39,53 @@ namespace soup
 		reinterpret_cast<__m128i*>(w)[8] = aes_expand_key_step(reinterpret_cast<const __m128i*>(w)[7], _mm_aeskeygenassist_si128(reinterpret_cast<const __m128i*>(w)[7], 0x80));
 		reinterpret_cast<__m128i*>(w)[9] = aes_expand_key_step(reinterpret_cast<const __m128i*>(w)[8], _mm_aeskeygenassist_si128(reinterpret_cast<const __m128i*>(w)[8], 0x1B));
 		reinterpret_cast<__m128i*>(w)[10] = aes_expand_key_step(reinterpret_cast<const __m128i*>(w)[9], _mm_aeskeygenassist_si128(reinterpret_cast<const __m128i*>(w)[9], 0x36));
+	}
+
+	static void KEY_192_ASSIST(__m128i* temp1, __m128i* temp2, __m128i* temp3) noexcept
+	{
+		__m128i temp4;
+		*temp2 = _mm_shuffle_epi32(*temp2, 0x55);
+		temp4 = _mm_slli_si128(*temp1, 0x4);
+		*temp1 = _mm_xor_si128(*temp1, temp4);
+		temp4 = _mm_slli_si128(temp4, 0x4);
+		*temp1 = _mm_xor_si128(*temp1, temp4);
+		temp4 = _mm_slli_si128(temp4, 0x4);
+		*temp1 = _mm_xor_si128(*temp1, temp4);
+		*temp1 = _mm_xor_si128(*temp1, *temp2);
+		*temp2 = _mm_shuffle_epi32(*temp1, 0xff);
+		temp4 = _mm_slli_si128(*temp3, 0x4);
+		*temp3 = _mm_xor_si128(*temp3, temp4);
+		*temp3 = _mm_xor_si128(*temp3, *temp2);
+	}
+
+	void aes_helper_expand_key_192(uint8_t w[208], const uint8_t key[24]) noexcept
+	{
+		__m128i temp1, temp2, temp3;
+		__m128i* Key_Schedule = (__m128i*)w;
+		temp1 = _mm_loadu_si128((__m128i*)key);
+		temp3 = _mm_loadu_si128((__m128i*)(key + 16));
+		Key_Schedule[0] = temp1;
+		Key_Schedule[1] = temp3;
+		temp2 = _mm_aeskeygenassist_si128(temp3, 0x1);
+		KEY_192_ASSIST(&temp1, &temp2, &temp3);
+		Key_Schedule[1] = _mm_castpd_si128(_mm_shuffle_pd(_mm_castsi128_pd(Key_Schedule[1]), _mm_castsi128_pd(temp1), 0));
+		Key_Schedule[2] = _mm_castpd_si128(_mm_shuffle_pd(_mm_castsi128_pd(temp1), _mm_castsi128_pd(temp3), 1));
+		temp2 = _mm_aeskeygenassist_si128(temp3, 0x2);
+		KEY_192_ASSIST(&temp1, &temp2, &temp3);
+		Key_Schedule[3] = temp1;
+		Key_Schedule[4] = temp3;
+		temp2 = _mm_aeskeygenassist_si128(temp3, 0x4);
+		KEY_192_ASSIST(&temp1, &temp2, &temp3);
+		Key_Schedule[4] = _mm_castpd_si128(_mm_shuffle_pd(_mm_castsi128_pd(Key_Schedule[4]), _mm_castsi128_pd(temp1), 0));
+		Key_Schedule[5] = _mm_castpd_si128(_mm_shuffle_pd(_mm_castsi128_pd(temp1), _mm_castsi128_pd(temp3), 1));
+		temp2 = _mm_aeskeygenassist_si128(temp3, 0x8);
+		KEY_192_ASSIST(&temp1, &temp2, &temp3);
+		Key_Schedule[6] = temp1;
+		Key_Schedule[7] = temp3;
+		temp2 = _mm_aeskeygenassist_si128(temp3, 0x10);
+		KEY_192_ASSIST(&temp1, &temp2, &temp3);
+		Key_Schedule[7] = _mm_castpd_si128(_mm_shuffle_pd(_mm_castsi128_pd(Key_Schedule[7]), _mm_castsi128_pd(temp1), 0));
+		Key_Schedule[8] = _mm_castpd_si128(_mm_shuffle_pd(_mm_castsi128_pd(temp1), _mm_castsi128_pd(temp3), 1));
 	}
 
 	void aes_helper_expand_key_256(uint8_t w[240], const uint8_t key[32]) noexcept

@@ -23,9 +23,10 @@ namespace soup
 
 		~BufferWriter() final = default;
 
-		void write(const char* data, size_t size) final
+		bool raw(void* data, size_t size) SOUP_EXCAL final
 		{
 			buf.append(data, size);
+			return true;
 		}
 	};
 }

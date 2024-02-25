@@ -23,7 +23,7 @@ namespace soup
 
 		SOUP_PACKET_IO(s)
 		{
-			if (s.isRead())
+			SOUP_IF_ISREAD
 			{
 				extensions.clear();
 				if (s.hasMore())
@@ -45,7 +45,7 @@ namespace soup
 					}
 				}
 			}
-			else if (s.isWrite())
+			SOUP_ELSEIF_ISWRITE
 			{
 				if (!extensions.empty())
 				{

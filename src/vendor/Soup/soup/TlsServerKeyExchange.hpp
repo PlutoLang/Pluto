@@ -4,7 +4,7 @@
 
 namespace soup
 {
-	SOUP_PACKET(TlsServerKeyExchange)
+	SOUP_PACKET(TlsServerECDHParams)
 	{
 		u8 curve_type;
 		u16 named_curve;
@@ -16,6 +16,22 @@ namespace soup
 				&& curve_type == 3
 				&& s.u16(named_curve)
 				&& s.template str_lp<u8_t>(point)
+				;
+		}
+	};
+	
+	SOUP_PACKET(TlsServerKeyExchange)
+	{
+		TlsServerECDHParams params;
+
+		u16 signature_scheme; // https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme
+		std::string signature;
+
+		SOUP_PACKET_IO(s)
+		{
+			return params.io(s)
+				&& s.u16(signature_scheme)
+				&& s.template str_lp<u16_t>(signature)
 				;
 		}
 	};

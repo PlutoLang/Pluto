@@ -72,14 +72,14 @@ namespace soup
 		{
 			BufferWriter w(endian);
 			write(w);
-			return w.buf;
+			SOUP_MOVE_RETURN(w.buf);
 		}
 
 		[[nodiscard]] std::string toBinaryString(Endian endian = ENDIAN_BIG) SOUP_EXCAL
 		{
 			StringWriter w(endian);
 			write(w);
-			return w.data;
+			SOUP_MOVE_RETURN(w.data);
 		}
 
 		[[nodiscard]] std::string toBinaryStringLE()

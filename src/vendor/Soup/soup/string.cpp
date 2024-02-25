@@ -7,6 +7,23 @@
 
 namespace soup
 {
+	std::string string::escape(const std::string& str)
+	{
+		std::string res;
+
+		res.reserve(str.size() + 2);
+		res.insert(0, 1, ' ');
+		res.append(str);
+
+		string::replaceAll(res, "\\", "\\\\");
+		string::replaceAll(res, "\"", "\\\"");
+
+		res.at(0) = '\"';
+		res.push_back('\"');
+
+		return res;
+	}
+
 	std::string string::join(const std::vector<std::string>& arr, const char glue)
 	{
 		std::string res{};
@@ -92,7 +109,7 @@ namespace soup
 			std::ifstream t(file, std::ios::binary);
 
 			t.seekg(0, std::ios::end);
-			const size_t s = t.tellg();
+			const auto s = static_cast<size_t>(t.tellg());
 			t.seekg(0, std::ios::beg);
 
 			ret.reserve(s);

@@ -1,4 +1,5 @@
 #include "SelfDeletingThread.hpp"
+#if !SOUP_WASM
 
 #include "log.hpp"
 
@@ -30,3 +31,5 @@ namespace soup
 		t->is_self_deleting = true;
 	}
 }
+
+#endif

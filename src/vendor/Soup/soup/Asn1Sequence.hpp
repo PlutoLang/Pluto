@@ -3,6 +3,7 @@
 #include <ctime>
 #include <vector>
 
+#include "base.hpp"
 #include "fwd.hpp"
 
 #include "Asn1Element.hpp"
@@ -11,11 +12,11 @@ namespace soup
 {
 	struct Asn1Sequence : public std::vector<Asn1Element>
 	{
-		Asn1Sequence();
-		explicit Asn1Sequence(const std::string& data); // expects DER-encoded data without prefix
+		Asn1Sequence() SOUP_EXCAL;
+		explicit Asn1Sequence(const std::string& data) SOUP_EXCAL; // expects DER-encoded data without prefix
 
-		[[nodiscard]] static Asn1Sequence fromDer(const std::string& str); // expects DER-encoded data with prefix
-		[[nodiscard]] static Asn1Sequence fromDer(Reader& r); // expects DER-encoded data with prefix
+		[[nodiscard]] static Asn1Sequence fromDer(const std::string& str) SOUP_EXCAL; // expects DER-encoded data with prefix
+		[[nodiscard]] static Asn1Sequence fromDer(Reader& r) SOUP_EXCAL; // expects DER-encoded data with prefix
 
 		[[nodiscard]] size_t countChildren() const;
 

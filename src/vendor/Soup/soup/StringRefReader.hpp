@@ -2,6 +2,8 @@
 
 #include "ioSeekableReader.hpp"
 
+#include <cstring> // memcpy
+
 namespace soup
 {
 	class StringRefReader final : public ioSeekableReader
@@ -22,29 +24,17 @@ namespace soup
 			return offset != data.size();
 		}
 
-		bool u8(uint8_t& v) final
+		bool raw(void* data, size_t len) noexcept final
 		{
-			if (offset == data.size())
+			SOUP_IF_UNLIKELY ((offset + len) > this->data.size())
 			{
 				return false;
 			}
-			v = (uint8_t)data.at(offset++);
-			return true;
-		}
-
-	protected:
-		bool str_impl(std::string& v, size_t len) final
-		{
-			if ((offset + len) > data.size())
-			{
-				return false;
-			}
-			v = data.substr(offset, len);
+			memcpy(reinterpret_cast<char*>(data), this->data.data() + offset, len);
 			offset += len;
 			return true;
 		}
 
-	public:
 		[[nodiscard]] size_t getPosition() final
 		{
 			return offset;

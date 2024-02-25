@@ -11,8 +11,6 @@ namespace soup
 	public:
 		using ioBase::ioBase;
 
-		virtual void write(const char* data, size_t size) = 0;
-
 		bool skip(size_t len)
 		{
 			uint8_t v = 0;
@@ -20,12 +18,6 @@ namespace soup
 			{
 				u8(v);
 			}
-			return true;
-		}
-
-		bool u8(uint8_t& v) final
-		{
-			write((const char*)&v, sizeof(uint8_t));
 			return true;
 		}
 
@@ -175,7 +167,7 @@ namespace soup
 		// Null-terminated string.
 		bool str_nt(const std::string& v)
 		{
-			write(v.data(), v.size());
+			raw(const_cast<char*>(v.data()), v.size());
 			uint8_t term = 0;
 			u8(term);
 			return true;
@@ -197,7 +189,7 @@ namespace soup
 #pragma warning(pop)
 #endif
 				ser<T>(tl);
-				write(v.data(), v.size());
+				raw(const_cast<char*>(v.data()), v.size());
 				return true;
 			}
 			return false;
@@ -207,7 +199,7 @@ namespace soup
 		bool str_lp_u64_dyn(const std::string& v)
 		{
 			u64_dyn(v.size());
-			write(v.data(), v.size());
+			raw(const_cast<char*>(v.data()), v.size());
 			return true;
 		}
 
@@ -217,7 +209,7 @@ namespace soup
 		bool str_lp_mysql(const std::string& v)
 		{
 			mysql_lenenc(v.size());
-			write(v.data(), v.size());
+			raw(const_cast<char*>(v.data()), v.size());
 			return true;
 		}
 
@@ -258,14 +250,14 @@ namespace soup
 			{
 				v.append(len - v.size(), '\0');
 			}
-			write(v.data(), v.size());
+			raw(v.data(), v.size());
 			return true;
 		}
 
 		// String with known length.
 		bool str(size_t len, const char* v)
 		{
-			write(v, len);
+			raw(const_cast<char*>(v), len);
 			return true;
 		}
 

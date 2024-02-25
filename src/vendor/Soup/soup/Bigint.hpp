@@ -170,23 +170,21 @@ namespace soup
 		void operator/=(const Bigint& divisor) SOUP_EXCAL;
 		void operator%=(const Bigint& divisor) SOUP_EXCAL;
 		[[nodiscard]] std::pair<Bigint, Bigint> divide(const Bigint& divisor) const SOUP_EXCAL; // (Quotient, Remainder)
+		void divide(const Bigint& divisor, Bigint& outQuotient, Bigint& outRemainder) const SOUP_EXCAL;
 		[[nodiscard]] std::pair<Bigint, Bigint> divideUnsigned(const Bigint& divisor) const SOUP_EXCAL; // (Quotient, Remainder)
 		void divideUnsigned(const Bigint& divisor, Bigint& remainder) SOUP_EXCAL;
 		[[nodiscard]] chunk_t divideUnsignedSmall(chunk_t divisor) noexcept;
 		[[nodiscard]] Bigint mod(const Bigint& m) const SOUP_EXCAL;
 		[[nodiscard]] Bigint modUnsigned(const Bigint& m) const SOUP_EXCAL;
 		[[nodiscard]] Bigint modUnsignedPowerof2(const Bigint& m) const SOUP_EXCAL;
-		[[nodiscard]] Bigint modUnsignedNotpowerof2(const Bigint& m) const SOUP_EXCAL;
+		[[nodiscard]] Bigint modUnsignedNotpowerof2(const Bigint& divisor) const SOUP_EXCAL;
 		[[nodiscard]] bool isDivisorOf(const Bigint& dividend) const SOUP_EXCAL;
 		void operator<<=(const size_t b) SOUP_EXCAL;
 	private:
-		void leftShiftSmall(const size_t b) SOUP_EXCAL;
-		void leftShiftOne() SOUP_EXCAL;
+		SOUP_FORCEINLINE void leftShiftSmall(const unsigned int b) SOUP_EXCAL;
+		SOUP_FORCEINLINE void leftShiftOne() SOUP_EXCAL;
 	public:
-		void operator>>=(const size_t b) noexcept;
-	private:
-		void rightShiftSmall(const size_t b) noexcept;
-	public:
+		void operator>>=(size_t b) noexcept;
 		void operator|=(const Bigint& b) SOUP_EXCAL;
 		void operator&=(const Bigint& b) noexcept;
 
@@ -273,12 +271,10 @@ namespace soup
 			}
 			else
 			{
-				const Bigint TEN = (chunk_t)10u;
-				Bigint remainder;
 				do
 				{
-					quotient.divideUnsigned(TEN, remainder);
-					str.insert(0, 1, (char)('0' + remainder.getChunk(0)));
+					auto remainder = quotient.divideUnsignedSmall(10);
+					str.insert(0, 1, (char)('0' + remainder));
 				} while (!quotient.isZero());
 			}
 			if (negative)
@@ -326,6 +322,7 @@ namespace soup
 
 	public:
 		[[nodiscard]] static Bigint fromBinary(const std::string& msg) SOUP_EXCAL;
+		[[nodiscard]] static Bigint fromBinary(const void* data, size_t size) SOUP_EXCAL;
 		[[nodiscard]] std::string toBinary() const SOUP_EXCAL;
 		[[nodiscard]] std::string toBinary(size_t bytes) const;
 
