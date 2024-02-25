@@ -181,6 +181,7 @@ enum WarningType : int {
   WT_NON_PORTABLE_NAME,
   WT_IMPLICIT_GLOBAL,
   WT_UNANNOTATED_FALLTHROUGH,
+  WT_DISCARDED_RETURN,
 
   NUM_WARNING_TYPES
 };
@@ -201,6 +202,7 @@ inline const char* const luaX_warnNames[] = {
   "non-portable-name",
   "implicit-global",
   "unannotated-fallthrough",
+  "discarded-return",
 };
 static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
@@ -397,6 +399,7 @@ struct LexState {
   std::unordered_set<TString*> explicit_globals{};
   std::unordered_map<const TString*, void*> global_props{};
   KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
+  bool nodiscard = false;
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
