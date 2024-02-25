@@ -755,28 +755,41 @@ namespace soup
 
 	std::pair<Bigint, Bigint> Bigint::divide(const Bigint& divisor) const SOUP_EXCAL
 	{
+		std::pair<Bigint, Bigint> res;
+		divide(divisor, res.first, res.second);
+		return res;
+	}
+
+	void Bigint::divide(const Bigint& divisor, Bigint& outQuotient, Bigint& outRemainder) const SOUP_EXCAL
+	{
+		outQuotient.reset();
+		outRemainder.reset();
+
 		if (divisor.negative)
 		{
 			Bigint divisor_cpy(divisor);
 			divisor_cpy.negative = false;
-			auto res = divide(divisor_cpy);
-			res.first.negative ^= 1;
-			return res;
+			divide(divisor_cpy, outQuotient, outRemainder);
+			outQuotient.negative ^= 1;
 		}
-		if (negative)
+		else if (negative)
 		{
 			Bigint dividend(*this);
 			dividend.negative = false;
-			auto res = dividend.divide(divisor);
-			res.first.negative ^= 1;
-			if (!res.second.isZero())
+			dividend.divide(divisor, outQuotient, outRemainder);
+			outQuotient.negative ^= 1;
+			if (!outRemainder.isZero())
 			{
-				res.first -= Bigint((chunk_t)1u);
-				res.second = divisor - res.second;
+				outQuotient -= Bigint((chunk_t)1u);
+				outRemainder = divisor - outRemainder;
 			}
-			return res;
 		}
-		return divideUnsigned(divisor);
+		else
+		{
+			Bigint dividend(*this);
+			dividend.divideUnsigned(divisor, outRemainder);
+			outQuotient = std::move(dividend);
+		}
 	}
 
 	std::pair<Bigint, Bigint> Bigint::divideUnsigned(const Bigint& divisor) const SOUP_EXCAL
@@ -904,7 +917,7 @@ namespace soup
 
 		if (b <= getBitsPerChunk())
 		{
-			return leftShiftSmall(b);
+			return leftShiftSmall(static_cast<unsigned int>(b));
 		}
 
 		const auto nb = getNumBits();
@@ -930,13 +943,14 @@ namespace soup
 		}
 	}
 
-	void Bigint::leftShiftSmall(const size_t b) SOUP_EXCAL
+	void Bigint::leftShiftSmall(const unsigned int b) SOUP_EXCAL
 	{
 		chunk_t carry = 0;
 		const auto nc = getNumChunks();
 		size_t i = 0;
 		if constexpr (ENDIAN_NATIVE == ENDIAN_LITTLE)
 		{
+#if true
 			if (nc >= 4)
 			{
 				for (; i <= nc - 4; i += 4)
@@ -973,6 +987,7 @@ namespace soup
 					carry = c3[1];
 				}
 			}
+#endif
 			for (; i < nc; ++i)
 			{
 				chunk_t c[2];
@@ -1001,45 +1016,90 @@ namespace soup
 
 	void Bigint::leftShiftOne() SOUP_EXCAL
 	{
+		// Could potentially leverage _mm_slli_si128 which takes an immediate operand for the shift count.
 		leftShiftSmall(1);
 	}
 
-	void Bigint::operator>>=(const size_t b) noexcept
+	void Bigint::operator>>=(size_t b) noexcept
 	{
-		if constexpr (ENDIAN_NATIVE == ENDIAN_LITTLE)
+		const auto chunks_to_erase = (b / getBitsPerChunk());
+		const auto bits_to_erase = (b % getBitsPerChunk());
+
+		if (chunks_to_erase != 0)
 		{
-			if (b <= getBitsPerChunk())
+			if (chunks_to_erase >= getNumChunks())
 			{
-				rightShiftSmall(b);
+				reset();
 				return;
 			}
+
+#if SOUP_BIGINT_USE_INTVECTOR
+			chunks.eraseFirst(chunks_to_erase);
+#else
+			chunks.erase(chunks.begin(), chunks.begin() + chunks_to_erase);
+#endif
 		}
 
-		if ((b % getBitsPerChunk()) == 0)
+		if (bits_to_erase != 0)
 		{
-			auto chunks_to_erase = b / getBitsPerChunk();
-			if (chunks_to_erase < getNumChunks())
+			b = bits_to_erase;
+			if constexpr (ENDIAN_NATIVE == ENDIAN_LITTLE)
 			{
-#if SOUP_BIGINT_USE_INTVECTOR
-				chunks.eraseFirst(chunks_to_erase);
-#else
-				chunks.erase(chunks.begin(), chunks.begin() + chunks_to_erase);
+				auto i = getNumChunks();
+				chunk_t carry = 0;
+#if true
+				for (; i >= 4; i -= 4)
+				{
+					chunk_t c0[2];
+					chunk_t c1[2];
+					chunk_t c2[2];
+					chunk_t c3[2];
+
+					c0[0] = 0;
+					c0[1] = getChunkInbounds(i - 1);
+					c1[0] = 0;
+					c1[1] = getChunkInbounds(i - 2);
+					c2[0] = 0;
+					c2[1] = getChunkInbounds(i - 3);
+					c3[0] = 0;
+					c3[1] = getChunkInbounds(i - 4);
+
+					*reinterpret_cast<size_t*>(&c0[0]) = (*reinterpret_cast<size_t*>(&c0[0]) >> b);
+					*reinterpret_cast<size_t*>(&c1[0]) = (*reinterpret_cast<size_t*>(&c1[0]) >> b);
+					*reinterpret_cast<size_t*>(&c2[0]) = (*reinterpret_cast<size_t*>(&c2[0]) >> b);
+					*reinterpret_cast<size_t*>(&c3[0]) = (*reinterpret_cast<size_t*>(&c3[0]) >> b);
+
+					c0[1] |= carry;
+					c1[1] |= c0[0];
+					c2[1] |= c1[0];
+					c3[1] |= c2[0];
+
+					setChunkInbounds(i - 1, c0[1]);
+					setChunkInbounds(i - 2, c1[1]);
+					setChunkInbounds(i - 3, c2[1]);
+					setChunkInbounds(i - 4, c3[1]);
+
+					carry = c3[0];
+				}
 #endif
+				while (i--)
+				{
+					chunk_t c[2];
+					c[0] = 0;
+					c[1] = getChunkInbounds(i);
+					*reinterpret_cast<size_t*>(&c[0]) = (*reinterpret_cast<size_t*>(&c[0]) >> b);
+					setChunkInbounds(i, c[1] | carry);
+					carry = c[0];
+				}
 			}
 			else
 			{
-				reset();
-			}
-		}
-		else
-		{
-			size_t nb = getNumBits();
-			if (b >= nb)
-			{
-				reset();
-			}
-			else
-			{
+				size_t nb = getNumBits();
+				if (b >= nb)
+				{
+					reset();
+					return;
+				}
 				for (size_t i = 0; i != nb; ++i)
 				{
 					setBitInbounds(i, getBit(i + b));
@@ -1048,60 +1108,9 @@ namespace soup
 				{
 					disableBitInbounds(i);
 				}
-				shrink();
 			}
+			shrink();
 		}
-	}
-
-	void Bigint::rightShiftSmall(const size_t b) noexcept
-	{
-		auto i = getNumChunks();
-		chunk_t carry = 0;
-#if false
-		for (; i >= 4; i -= 4)
-		{
-			chunk_t c0[2];
-			chunk_t c1[2];
-			chunk_t c2[2];
-			chunk_t c3[2];
-
-			c0[0] = 0;
-			c0[1] = getChunkInbounds(i - 1);
-			c1[0] = 0;
-			c1[1] = getChunkInbounds(i - 2);
-			c2[0] = 0;
-			c2[1] = getChunkInbounds(i - 3);
-			c3[0] = 0;
-			c3[1] = getChunkInbounds(i - 4);
-
-			*reinterpret_cast<size_t*>(&c0[0]) = (*reinterpret_cast<size_t*>(&c0[0]) >> b);
-			*reinterpret_cast<size_t*>(&c1[0]) = (*reinterpret_cast<size_t*>(&c1[0]) >> b);
-			*reinterpret_cast<size_t*>(&c2[0]) = (*reinterpret_cast<size_t*>(&c2[0]) >> b);
-			*reinterpret_cast<size_t*>(&c3[0]) = (*reinterpret_cast<size_t*>(&c3[0]) >> b);
-
-			c0[1] |= carry;
-			c1[1] |= c0[0];
-			c2[1] |= c1[0];
-			c3[1] |= c2[0];
-
-			setChunkInbounds(i - 1, c0[1]);
-			setChunkInbounds(i - 2, c1[1]);
-			setChunkInbounds(i - 3, c2[1]);
-			setChunkInbounds(i - 4, c3[1]);
-
-			carry = c3[0];
-		}
-#endif
-		while (i--)
-		{
-			chunk_t c[2];
-			c[0] = 0;
-			c[1] = getChunkInbounds(i);
-			*reinterpret_cast<size_t*>(&c[0]) = (*reinterpret_cast<size_t*>(&c[0]) >> b);
-			setChunkInbounds(i, c[1] | carry);
-			carry = c[0];
-		}
-		shrink();
 	}
 
 	void Bigint::operator|=(const Bigint& b) SOUP_EXCAL
@@ -1472,7 +1481,7 @@ namespace soup
 
 		while (!a.isZero())
 		{
-			auto [q, r] = b.divide(a);
+			b.divide(a, q, r);
 			m = x - u * q;
 			n = y - v * q;
 
@@ -1890,7 +1899,9 @@ namespace soup
 
 	Bigint Bigint::montgomeryReduce(const Bigint& r, const Bigint& m, const Bigint& m_mod_mul_inv) const
 	{
-		auto q = (modUnsignedPowerof2(r) * m_mod_mul_inv).modUnsignedPowerof2(r);
+		const auto r_mask = r - Bigint((chunk_t)1u);
+		auto q = ((*this & r_mask) * m_mod_mul_inv);
+		q &= r_mask;
 		auto a = (*this - q * m) / r;
 		if (a.negative)
 		{
@@ -1901,7 +1912,9 @@ namespace soup
 
 	Bigint Bigint::montgomeryReduce(const Bigint& r, size_t re, const Bigint& m, const Bigint& m_mod_mul_inv) const SOUP_EXCAL
 	{
-		auto q = (modUnsignedPowerof2(r) * m_mod_mul_inv).modUnsignedPowerof2(r);
+		const auto r_mask = r - Bigint((chunk_t)1u);
+		auto q = ((*this & r_mask) * m_mod_mul_inv);
+		q &= r_mask;
 		auto a = (*this - q * m);
 		a >>= re;
 		if (a.negative)
@@ -1973,11 +1986,16 @@ namespace soup
 
 	Bigint Bigint::fromBinary(const std::string& msg) SOUP_EXCAL
 	{
+		return Bigint::fromBinary(msg.data(), msg.size());
+	}
+
+	Bigint Bigint::fromBinary(const void* data, size_t size) SOUP_EXCAL
+	{
 		Bigint res{};
-		for (auto i = msg.begin(); i != msg.end(); ++i)
+		for (size_t i = 0; i != size; ++i)
 		{
 			res <<= 8u;
-			res |= (chunk_t)(unsigned char)*i;
+			res |= static_cast<chunk_t>(reinterpret_cast<const uint8_t*>(data)[i]);
 		}
 		return res;
 	}

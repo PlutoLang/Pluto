@@ -4,8 +4,6 @@
 #include <vector>
 
 #include "fwd.hpp"
-#include "TreeNode.hpp"
-
 #include "UniquePtr.hpp"
 
 namespace soup
@@ -18,7 +16,7 @@ namespace soup
 	 * Strings are the only value type because they can be easily converted to and from bool, int, float, and even custom types.
 	 */
 
-	struct catNode : public TreeNode
+	struct catNode
 	{
 		catNode* parent;
 		std::string name;
@@ -34,8 +32,10 @@ namespace soup
 			: parent(parent), name(std::move(name)), value(std::move(value))
 		{
 		}
+
+		virtual ~catNode() = default;
 	};
 
 	// Returns a default-constructed UniquePtr in case of malformed data.
-	[[nodiscard]] UniquePtr<catNode> catParse(Reader& r) noexcept;
+	[[nodiscard]] UniquePtr<catNode> catParse(Reader& r) SOUP_EXCAL;
 }

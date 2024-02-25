@@ -18,7 +18,7 @@ namespace soup
 		// - Android doesn't have libresolv
 		// - Many ISPs provide disingenuous DNS servers, even blocking sites like pastebin.com
 		dns_resolver(soup::make_unique<dnsSmartResolver>()),
-		certchain_validator(&Socket::certchain_validator_relaxed)
+		certchain_validator(&Socket::certchain_validator_default)
 	{
 	}
 }

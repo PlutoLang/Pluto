@@ -16,9 +16,10 @@ namespace soup
 
 		~OstreamWriter() final = default;
 
-		void write(const char* data, size_t size) final
+		bool raw(void* data, size_t size) final
 		{
-			os.write(data, size);
+			os.write(reinterpret_cast<char*>(data), size);
+			return true;
 		}
 	};
 }

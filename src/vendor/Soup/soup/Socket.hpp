@@ -111,11 +111,10 @@ namespace soup
 		bool setBlocking(bool blocking = true) noexcept;
 		bool setNonBlocking() noexcept;
 
-		static bool certchain_validator_none(const X509Certchain&, const std::string&, StructMap&); // Accepts everything.
-		static bool certchain_validator_relaxed(const X509Certchain&, const std::string&, StructMap&); // [Default] Verifies what can be verified, accepts the rest.
-		static bool certchain_validator_strict(const X509Certchain&, const std::string&, StructMap&); // Same as relaxed, but rejects SHA384 & SHA512 because Soup doesn't implement them yet.
+		static bool certchain_validator_none(const X509Certchain&, const std::string&, StructMap&) SOUP_EXCAL; // Accepts everything.
+		static bool certchain_validator_default(const X509Certchain&, const std::string&, StructMap&) SOUP_EXCAL;
 
-		void enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
+		void enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap = {}, std::string&& initial_application_data = {}) SOUP_EXCAL;
 	protected:
 		void enableCryptoClientRecvServerHelloDone(UniquePtr<SocketTlsHandshaker>&& handshaker) SOUP_EXCAL;
 		void enableCryptoClientProcessServerHelloDone(UniquePtr<SocketTlsHandshaker>&& handshaker) SOUP_EXCAL;

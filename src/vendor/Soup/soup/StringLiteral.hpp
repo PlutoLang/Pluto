@@ -5,24 +5,44 @@ namespace soup
 	template <size_t Size>
 	struct StringLiteral
 	{
-		char data[Size];
+		char m_data[Size];
 
 		SOUP_CONSTEVAL StringLiteral(const char(&in)[Size])
 		{
 			for (size_t i = 0; i != Size; ++i)
 			{
-				data[i] = in[i];
+				m_data[i] = in[i];
 			}
 		}
 
-		[[nodiscard]] SOUP_CONSTEVAL size_t size() const noexcept
+		[[nodiscard]] static constexpr size_t size() noexcept
 		{
-			return Size;
+			return Size - 1;
 		}
 
-		[[nodiscard]] SOUP_CONSTEVAL const char* c_str() const noexcept
+		[[nodiscard]] static constexpr size_t length() noexcept
 		{
-			return &data[0];
+			return Size - 1;
+		}
+
+		[[nodiscard]] constexpr const char* c_str() const noexcept
+		{
+			return &m_data[0];
+		}
+
+		[[nodiscard]] constexpr const char* data() const noexcept
+		{
+			return &m_data[0];
+		}
+
+		[[nodiscard]] constexpr const char* begin() const noexcept
+		{
+			return &m_data[0];
+		}
+
+		[[nodiscard]] constexpr const char* end() const noexcept
+		{
+			return &m_data[size()];
 		}
 	};
 }

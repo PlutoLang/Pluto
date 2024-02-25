@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base.hpp"
+#if !SOUP_WASM
 
 #if SOUP_WINDOWS
 #include <Windows.h>
@@ -47,3 +48,5 @@ namespace soup
 		static void awaitCompletion(const std::vector<UniquePtr<Thread>>& threads) noexcept;
 	};
 }
+
+#endif

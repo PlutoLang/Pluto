@@ -1,4 +1,5 @@
 #include "Thread.hpp"
+#if !SOUP_WASM
 
 #include "Exception.hpp"
 #include "format.hpp"
@@ -129,3 +130,5 @@ namespace soup
 #endif
 	}
 }
+
+#endif

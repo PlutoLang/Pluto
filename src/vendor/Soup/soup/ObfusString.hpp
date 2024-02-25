@@ -158,7 +158,7 @@ namespace soup
 		template <StringLiteral Str>
 		SOUP_CONSTEVAL auto operator ""_obfus()
 		{
-			return ObfusString<Str.size()>(Str.data);
+			return ObfusString<Str.size() + 1>(Str.m_data);
 		}
 	}
 #endif

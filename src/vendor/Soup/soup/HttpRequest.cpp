@@ -100,9 +100,8 @@ namespace soup
 				s->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
 				{
 					auto& data = *cap.get<HttpRequestExecuteData*>();
-					data.req->send(s);
 					execute_recvResponse(s, &data.resp);
-				}, &data);
+				}, &data, getDataToSend());
 			}
 			else
 			{
@@ -136,9 +135,8 @@ namespace soup
 				s->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
 				{
 					auto* data = cap.get<HttpRequestExecuteEventStreamData*>();
-					data->req->send(s);
 					executeEventStream_recv(s, data);
-				}, &data);
+				}, &data, getDataToSend());
 			}
 			else
 			{
@@ -149,7 +147,7 @@ namespace soup
 		}
 	}
 
-	void HttpRequest::send(Socket& s) const SOUP_EXCAL
+	std::string HttpRequest::getDataToSend() const SOUP_EXCAL
 	{
 		std::string data{};
 		data.append(method);
@@ -158,7 +156,12 @@ namespace soup
 		data.append(ObfusString(" HTTP/1.1").str());
 		data.append("\r\n");
 		data.append(toString());
-		s.send(data);
+		return data;
+	}
+
+	void HttpRequest::send(Socket& s) const SOUP_EXCAL
+	{
+		s.send(getDataToSend());
 	}
 
 	void HttpRequest::execute_recvResponse(Socket& s, std::optional<HttpResponse>* resp) SOUP_EXCAL
@@ -351,7 +354,7 @@ namespace soup
 							{
 								break;
 							}
-							if (auto opt = string::hexToInt<int64_t>(self.buf.substr(0, i)); opt.has_value())
+							if (auto opt = string::hexToInt<uint64_t>(self.buf.substr(0, i)); opt.has_value())
 							{
 								self.bytes_remain = opt.value();
 							}
@@ -379,7 +382,7 @@ namespace soup
 							{
 								break;
 							}
-							auto chunk = self.buf.substr(0, self.bytes_remain);
+							auto chunk = self.buf.substr(0, static_cast<size_t>(self.bytes_remain));
 							if (self.on_body_part)
 							{
 								SOUP_IF_UNLIKELY (!self.on_body_part(s, chunk, self.cap))
@@ -388,7 +391,7 @@ namespace soup
 								}
 							}
 							self.resp.body.append(chunk);
-							self.buf.erase(0, self.bytes_remain + 2);
+							self.buf.erase(0, static_cast<size_t>(self.bytes_remain + 2));
 							self.bytes_remain = 0;
 						}
 					}
@@ -398,7 +401,7 @@ namespace soup
 						{
 							break;
 						}
-						self.resp.body = self.buf.substr(0, self.bytes_remain);
+						self.resp.body = self.buf.substr(0, static_cast<size_t>(self.bytes_remain));
 						//self.buf.erase(0, self.bytes_remain);
 						self.callbackSuccess(s);
 						return;

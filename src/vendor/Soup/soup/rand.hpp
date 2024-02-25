@@ -1,6 +1,7 @@
 #pragma once
 
 #include <random>
+#include <string>
 
 #include "macros.hpp"
 
@@ -100,6 +101,8 @@ namespace soup
 			}
 			return str;
 		}
+
+		[[nodiscard]] static std::string binstr(size_t len);
 
 		template <size_t S>
 		static void fill(uint8_t(&arr)[S]) noexcept

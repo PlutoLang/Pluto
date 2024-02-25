@@ -11,10 +11,6 @@ namespace soup
 	public:
 		using ioBase::ioBase;
 
-	protected:
-		virtual bool str_impl(std::string& v, size_t len) = 0;
-
-	public:
 		[[nodiscard]] virtual bool hasMore() = 0;
 
 		bool skip(size_t len)
@@ -192,14 +188,14 @@ namespace soup
 		bool str_lp(std::string& v, const T max_len = -1)
 		{
 			T len;
-			return ser<T>(len) && len <= max_len && str_impl(v, len);
+			return ser<T>(len) && len <= max_len && str(static_cast<size_t>(len), v);
 		}
 
 		// Length-prefixed string, using u64_dyn for the length prefix.
 		bool str_lp_u64_dyn(std::string& v)
 		{
 			uint64_t len;
-			return u64_dyn(len) && str_impl(v, (size_t)len);
+			return u64_dyn(len) && str((size_t)len, v);
 		}
 
 		bool bigint_lp_u64_dyn(Bigint& v);
@@ -208,7 +204,7 @@ namespace soup
 		bool str_lp_mysql(std::string& v)
 		{
 			uint64_t len;
-			return mysql_lenenc(len) && str_impl(v, (size_t)len);
+			return mysql_lenenc(len) && str((size_t)len, v);
 		}
 
 		// Length-prefixed string, using u8 for the length prefix.
@@ -244,7 +240,8 @@ namespace soup
 		// String with known length.
 		bool str(size_t len, std::string& v)
 		{
-			return str_impl(v, len);
+			v = std::string(len, '\0');
+			return raw(v.data(), len);
 		}
 
 		// std::vector<uint8_t> with u8 size prefix.

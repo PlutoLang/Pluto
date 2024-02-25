@@ -543,6 +543,7 @@ namespace soup
 
 #if AES_USE_INTRIN
 	extern void aes_helper_expand_key_128(uint8_t w[176], const uint8_t key[16]) noexcept;
+	extern void aes_helper_expand_key_192(uint8_t w[208], const uint8_t key[24]) noexcept;
 	extern void aes_helper_expand_key_256(uint8_t w[240], const uint8_t key[32]) noexcept;
 #endif
 
@@ -554,6 +555,10 @@ namespace soup
 			if (key_len == 16)
 			{
 				return aes_helper_expand_key_128(w, key);
+			}
+			else if (key_len == 24)
+			{
+				return aes_helper_expand_key_192(w, key);
 			}
 			else if (key_len == 32)
 			{
