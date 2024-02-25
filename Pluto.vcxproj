@@ -491,6 +491,7 @@
     <ClCompile Include="src\lutf8lib.cpp" />
     <ClCompile Include="src\lvector3lib.cpp" />
     <ClCompile Include="src\lvm.cpp" />
+    <ClCompile Include="src\lxml.cpp" />
     <ClCompile Include="src\lzio.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\aes_helper.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\crc32_pclmul.cpp" />
@@ -568,6 +569,7 @@
     <ClCompile Include="src\vendor\Soup\soup\X509Certchain.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\X509Certificate.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\X509RelativeDistinguishedName.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\xml.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\lerrormessage.hpp" />
@@ -721,6 +723,7 @@
     <ClInclude Include="src\vendor\Soup\soup\SocketTlsHandshaker.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\spaceship.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\string.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\StringBuilder.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\stringifyable.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\StringLiteral.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\StringReader.hpp" />
@@ -766,6 +769,7 @@
     <ClInclude Include="src\vendor\Soup\soup\X509Certchain.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\X509Certificate.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\X509RelativeDistinguishedName.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\xml.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
