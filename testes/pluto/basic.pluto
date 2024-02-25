@@ -159,6 +159,13 @@ if mt then
 end
 if __newindex then end
 ]]
+
+    -- discarded-return basic test
+    assert_warn[[local function f() <nodiscard>
+    return 69
+end
+
+f()]]
 end
 
 print "Testing assertion library."
