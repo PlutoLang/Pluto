@@ -2041,6 +2041,25 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
 }
 
 
+/* Returns true if the function is declared '<nodiscard>'. */
+static bool getfunctionattribute (LexState *ls) {
+  if (testnext(ls, '<')) {
+    TString *ts = str_checkname(ls);
+    const char *attr = getstr(ts);
+    checknext(ls, '>');
+    if (strcmp(attr, "nodiscard") == 0)
+      return true;
+    else {
+      luaX_prev(ls); // back to '>'
+      luaX_prev(ls); // back to attribute
+      luaK_semerror(ls,
+        luaO_pushfstring(ls->L, "unknown attribute '%s'", attr));
+    }
+  }
+  return false;
+}
+
+
 static void defaultarguments (LexState *ls, int ismethod, const std::vector<size_t>& fallbacks, int flags = 0) {
   const auto saved_pos = luaX_getpos(ls);
   int fallback_idx = (ismethod ? 1 : 0);
@@ -2163,11 +2182,14 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   if (varargname)
     namedvararg(ls, varargname);
   TypeHint rethint = gettypehint(ls, true);
+  const bool nodiscard = getfunctionattribute(ls);
   TypeHint retprop{};
   statlist(ls, &retprop, true);
   checkrettype(ls, rethint, retprop, line);
-  if (funcdesc)
+  if (funcdesc) {
     propfuncdesc(ls, new_fs, retprop, funcdesc);
+    funcdesc->nodiscard = nodiscard;
+  }
   new_fs.f->lastlinedefined = ls->getLineNumber();
   check_match(ls, TK_END, TK_FUNCTION, line);
   codeclosure(ls, e);
@@ -2194,6 +2216,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
   parlist(ls, nullptr, &bs.fallbacks, &varargname, true);
   checknext(ls, '|');
   TypeHint rethint = gettypehint(ls, true);
+  const bool nodiscard = getfunctionattribute(ls);
   checknext(ls, TK_ARROW);
   defaultarguments(ls, 0, bs.fallbacks, E_NO_BOR);
   if (varargname)
@@ -2210,8 +2233,10 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
     ls->popContext(PARCTX_LAMBDA_BODY);
   }
   checkrettype(ls, rethint, retprop, line);
-  if (funcdesc)
+  if (funcdesc) {
     propfuncdesc(ls, new_fs, retprop, funcdesc);
+    funcdesc->nodiscard = nodiscard;
+  }
   new_fs.f->lastlinedefined = ls->getLineNumber();
   codeclosure(ls, e);
   close_func(ls);
@@ -2385,6 +2410,10 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
           luaO_fmt(ls->L, "expected %d argument%s, got %d.", expected, suffix, received), line, WT_EXCESSIVE_ARGUMENTS);
       --ls->L->top.p;
     }
+    ls->nodiscard = funcdesc->nodiscard;
+  }
+  else {
+    ls->nodiscard = false;
   }
   lua_assert(f->k == VNONRELOC);
   base = f->u.reg;  /* base register for call */
@@ -4540,6 +4569,11 @@ static void exprstat (LexState *ls) {
     check_condition(ls, v.v.k == VCALL || v.v.k == VSAFECALL, "syntax error");
     inst = &getinstruction(fs, &v.v);
     SETARG_C(*inst, 1);  /* call statement uses no results */
+    if (ls->nodiscard) {
+      luaX_prev(ls);
+      throw_warn(ls, "discarding return value of function declared '<nodiscard>'", WT_DISCARDED_RETURN);
+      luaX_next(ls);
+    }
   }
 }
 
