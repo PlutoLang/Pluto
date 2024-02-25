@@ -270,6 +270,10 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
     <ClCompile Include="src\lbigint.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\xml.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lxml.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -783,6 +787,12 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\dnsUdpResolver.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\xml.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\StringBuilder.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>
