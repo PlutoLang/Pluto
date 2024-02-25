@@ -20,6 +20,8 @@
 #include "vendor/Soup/soup/rsa.hpp"
 #include "vendor/Soup/soup/sha1.hpp"
 #include "vendor/Soup/soup/sha256.hpp"
+#include "vendor/Soup/soup/sha384.hpp"
+#include "vendor/Soup/soup/sha512.hpp"
 #include "vendor/Soup/soup/string.hpp"
 
 
@@ -283,6 +285,34 @@ static int l_sha256(lua_State *L)
   const char* text = luaL_checklstring(L, 1, &l);
   const bool binary = lua_istrue(L, 2);
   auto digest = soup::sha256::hash(text, l);
+  if (!binary) {
+    digest = soup::string::bin2hexLower(digest);
+  }
+  pluto_pushstring(L, digest);
+  return 1;
+}
+
+
+static int l_sha384(lua_State *L)
+{
+  size_t l;
+  const char* text = luaL_checklstring(L, 1, &l);
+  const bool binary = lua_istrue(L, 2);
+  auto digest = soup::sha384::hash(text, l);
+  if (!binary) {
+    digest = soup::string::bin2hexLower(digest);
+  }
+  pluto_pushstring(L, digest);
+  return 1;
+}
+
+
+static int l_sha512(lua_State *L)
+{
+  size_t l;
+  const char* text = luaL_checklstring(L, 1, &l);
+  const bool binary = lua_istrue(L, 2);
+  auto digest = soup::sha512::hash(text, l);
   if (!binary) {
     digest = soup::string::bin2hexLower(digest);
   }
@@ -670,6 +700,8 @@ static const luaL_Reg funcs[] = {
   {"random", random},
   {"sha1", l_sha1},
   {"sha256", l_sha256},
+  {"sha384", l_sha384},
+  {"sha512", l_sha512},
   {"lua", lua},
   {"crc32", crc32},
   {"lookup3", lookup3},
