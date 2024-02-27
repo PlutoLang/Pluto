@@ -1614,7 +1614,7 @@ do
     assert(cat.encode(t) == data)
 
     data = "First\nSecond"
-    t = cat.decode(data, true)
+    t = cat.decode(data, cat.expanded)
     assert(t[1].name == "First")
     assert(t[2].name == "Second")
 end
