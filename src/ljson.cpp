@@ -20,11 +20,7 @@ static int encode(lua_State* L) {
 
 static int decode(lua_State* L)
 {
-	int flags = 0;
-	if (lua_gettop(L) >= 2)
-	{
-		flags = (int)luaL_checkinteger(L, 2);
-	}
+	int flags = (int)luaL_optinteger(L, 2, 0);
 	if (auto root = soup::json::decode(pluto_checkstring(L, 1)))
 	{
 		pushFromJson(L, *root, flags);
