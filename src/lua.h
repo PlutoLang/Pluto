@@ -12,7 +12,7 @@
 #include <string_view>
 
 
-#define PLUTO_VERSION "Pluto 0.8.1"
+#define PLUTO_VERSION "Pluto 0.8.2"
 
 #define LUA_COPYRIGHT	PLUTO_VERSION " Copyright (C) 2022-2024 PlutoLang.org, Ryan Starrett, Sainan.\r\nBased on " LUA_RELEASE " Copyright (C) 1994-2023 Lua.org, PUC-Rio."
 #define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
