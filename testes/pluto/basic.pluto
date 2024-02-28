@@ -1600,6 +1600,10 @@ do
     assert(t[5] == 9)
 end
 do
+    assert(range(10):min() == 1)
+    assert(range(10):max() == 10)
+end
+do
     local cat = require"pluto:cat"
 
     local data = "List: With Value\n\tChild: With Value\n"
