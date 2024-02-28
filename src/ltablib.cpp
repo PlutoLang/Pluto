@@ -804,6 +804,17 @@ static const luaL_Reg tab_funcs[] = {
 
 LUAMOD_API int luaopen_table (lua_State *L) {
   luaL_newlib(L, tab_funcs);
+
+  lua_pushliteral(L, "min");
+  luaL_loadstring(L, "return |t| -> table.reduce(t, math.min, math.maxinteger)");
+  lua_call(L, 0, 1);
+  lua_settable(L, -3);
+
+  lua_pushliteral(L, "max");
+  luaL_loadstring(L, "return |t| -> table.reduce(t, math.max)");
+  lua_call(L, 0, 1);
+  lua_settable(L, -3);
+
   return 1;
 }
 
