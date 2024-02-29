@@ -1228,6 +1228,8 @@ do
         assert(json.encode(t) == [[{"a":1,"b":2,"c":3}]])
     end
 
+    assert(json.encode(json.null) == "null")
+
     do
         local t = json.decode([[{"a":1,"b":2,"c":3}]], json.withorder)
         assert(t.__order[1] == "a")

@@ -120,7 +120,7 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 	}
 	else if (type == LUA_TLIGHTUSERDATA)
 	{
-		if (reinterpret_cast<uintptr_t>(lua_touserdata(L, i)) == 'PJNL')
+		if (reinterpret_cast<uintptr_t>(lua_touserdata(L, i)) == 0xF01D)
 		{
 			return soup::make_unique<soup::JsonNull>();
 		}
