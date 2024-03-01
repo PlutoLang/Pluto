@@ -90,7 +90,7 @@ static int http_request (lua_State *L) {
 
 #if SOUP_WASM
   if (!lua_isyieldable(L)) {
-    luaL_error(L, "Under WASM, http.request needs a coroutine as otherwise the request can never be dispatched.");
+    luaL_error(L, "HTTP requests are not possible in this WASM environment due to running Pluto as a blocking program.");
   }
   auto pTask = new (lua_newuserdata(L, sizeof(soup::HttpRequestTask))) soup::HttpRequestTask(std::move(uri));
   /* Soup doesn't have a lot of options for the WASM specialization. Maybe something to look at in the future. */
