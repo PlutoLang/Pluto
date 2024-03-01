@@ -11,10 +11,15 @@ LUAMOD_API int luaopen_scheduler (lua_State *L) {
 	const auto code = R"EOC(pluto_use "0.6.0"
 
 local coros = {}
+local function resume(coro)
+    if select("#", coroutine.xresume(coro)) ~= 0 then
+        warn("Coroutine yielded values to scheduler lib. Discarding them.")
+    end
+end
 export function add(f)
     local coro = coroutine.create(f)
     table.insert(coros, coro)
-    coroutine.xresume(coro)
+    resume(coro)
     return coro
 end
 export function addloop(f)
@@ -30,7 +35,7 @@ export function run()
         all_dead = true
         for i, coro in coros do
             if coroutine.status(coro) == "suspended" then
-                coroutine.xresume(coro)
+                resume(coro)
                 all_dead = false
             elseif coroutine.status(coro) == "dead" then
                 coros[i] = nil
