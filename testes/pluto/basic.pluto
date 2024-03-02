@@ -323,6 +323,12 @@ do
     assert(a == 0)
     assert(b == 1)
 
+    a, b = 0xf0, 0x0f
+    a ~= 0xff
+    b ~= 0xff
+    assert(a == 0x0f)
+    assert(b == 0xf0)
+
     local t = {
         tt = {
             ttt = {
