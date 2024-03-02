@@ -61,7 +61,7 @@ static const char *const luaX_tokens [] = {
     "pluto_suggest_0", "pluto_suggest_1",
 #endif
     "return", "then", "true", "until", "while",
-    "//", "..", "...", "==", ">=", "<=", "~=", "<=>",
+    "//", "..", "...", "==", ">=", "<=", "~=", "!=", "<=>",
     "<<", ">>", "::", "<eof>",
     "<number>", "<integer>", "<name>", "<string>",
     "**", "??", ":=", "->", "|>",
@@ -938,7 +938,7 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
       case '!': {
         next(ls);
         if (check_next1(ls, '='))
-          return TK_NE;  /* '!=' */
+          return TK_NE2;  /* '!=' */
         seminfo->ts = luaX_newliteral(ls, "!");
         return TK_NOT;
       }
