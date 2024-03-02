@@ -1327,7 +1327,7 @@ void luaK_goifnil (FuncState *fs, expdesc *e) {
     discharge2anyreg(fs, e);
     freeexp(fs, e);
     luaK_codeABCk(fs, OP_TESTSET, NO_REG, e->u.reg, NULL_COALESCE, 1);
-    fs->f->onPlutoOpUsed(0);
+    fs->f->lua_vm_compatible = false;
     pc = luaK_jump(fs);  /* jump if nil */
   }
   luaK_concat(fs, &e->t, pc);  /* insert new jump in 't' list */
