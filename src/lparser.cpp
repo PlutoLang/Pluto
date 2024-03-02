@@ -3790,16 +3790,16 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
     leavelevel(ls);
   }
   else {  /* restassign -> '=' explist */
-    check(ls, '=');
-    if ((int)ls->t.seminfo.i != 0) {  /* is there a saved binop? */
+    if (ls->t.token != TK_NE)
+      check(ls, '=');
+    BinOpr compound_op = (ls->t.token == TK_NE ? OPR_BXOR : getbinopr((int)ls->t.seminfo.i));
+    if (compound_op != OPR_NOBINOPR) {  /* compound operator? */
       if (l_unlikely(ls->t.seminfo.i == TK_POW))
         throw_warn(ls, "'**' is deprecated", "use '^' instead", WT_DEPRECATED);
-      BinOpr op = getbinopr((int)ls->t.seminfo.i);  /* binary operation from lexer state */
-      if (op == OPR_COAL)
+      if (compound_op == OPR_COAL)
         throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
-      lua_assert(op != OPR_NOBINOPR);
       check_condition(ls, nvars == 1, "unsupported tuple assignment");
-      compoundassign(ls, &lh->v, op);  /* perform binop & assignment */
+      compoundassign(ls, &lh->v, compound_op);  /* perform binop & assignment */
       return;  /* avoid default */
     }
     luaX_next(ls);
@@ -4559,7 +4559,7 @@ static void exprstat (LexState *ls) {
   FuncState *fs = ls->fs;
   struct LHS_assign v;
   suffixedexp(ls, &v.v);
-  if (ls->t.token == '=' || ls->t.token == ',') { /* stat -> assignment ? */
+  if (ls->t.token == '=' || ls->t.token == ',' || ls->t.token == TK_NE) { /* stat -> assignment ? */
     v.prev = NULL;
     check_assignment(ls, &v.v);
     restassign(ls, &v, 1);
