@@ -5604,6 +5604,9 @@ LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
 #ifndef PLUTO_USE_CONST
   disablekeyword(&lexstate, TK_CONST);
 #endif
+#ifndef PLUTO_USE_GLOBAL
+  disablekeyword(&lexstate, TK_GLOBAL);
+#endif
   mainfunc(&lexstate, &funcstate);
   lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
   /* all scopes should be correctly finished */

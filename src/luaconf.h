@@ -883,10 +883,15 @@
 */
 
 // If defined, Pluto will imply 'pluto_use let' at the beginning of every script.
+// Note that this keyword is deprecated as of 0.9.0.
 //#define PLUTO_USE_LET
 
 // If defined, Pluto will imply 'pluto_use const' at the beginning of every script.
+// Note that this keyword is deprecated as of 0.9.0.
 //#define PLUTO_USE_CONST
+
+// If defined, Pluto will imply 'pluto_use global' at the beginning of every script.
+//#define PLUTO_USE_GLOBAL
 
 /*
 ** {====================================================================
