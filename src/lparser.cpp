@@ -3555,7 +3555,7 @@ static void inexpr (LexState *ls, expdesc *v, int flags) {
   luaK_dischargevars(ls->fs, &v2);
   luaK_exp2nextreg(ls->fs, &v2);
   luaK_codeABC(ls->fs, OP_IN, v->u.reg, v2.u.reg, 0);
-  ls->fs->f->onPlutoOpUsed(0);
+  ls->fs->f->lua_vm_compatible = false;
   ls->fs->freereg = base + 1;
 }
 
