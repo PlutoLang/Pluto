@@ -381,10 +381,10 @@ static int generatekeypair (lua_State *L) {
 
 static int l_encrypt (lua_State *L) {
   size_t mode_len;
-  const char *mode = luaL_checklstring(L, 1, &mode_len);
+  const char *mode = luaL_checklstring(L, 2, &mode_len);
   if (mode_len >= 7 && memcmp(mode, "aes-", 4) == 0) {
     size_t data_len;
-    const char *in_data = luaL_checklstring(L, 2, &data_len);
+    const char *in_data = luaL_checklstring(L, 1, &data_len);
     char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15 + 16));  /* need up to 15 for alignment and up to 16 for padding */
     if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
       data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
@@ -479,7 +479,7 @@ static int l_encrypt (lua_State *L) {
     soup::Bigint *p = lua_getfield(L, 3, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
     soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {  /* private key? */
-      std::string data = pluto_checkstring(L, 2);
+      std::string data = pluto_checkstring(L, 1);
       if (strcmp(mode, "rsa-pkcs1") == 0) {
         data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptPkcs1(std::move(data)).toBinary();
       }
@@ -490,7 +490,7 @@ static int l_encrypt (lua_State *L) {
       return 1;
     }
     else if (n && e) {  /* public key? */
-      std::string data = pluto_checkstring(L, 2);
+      std::string data = pluto_checkstring(L, 1);
       if (strcmp(mode, "rsa-pkcs1") == 0) {
         data = soup::RsaPublicKey(*n, *e).encryptPkcs1(std::move(data)).toBinary();
       }
@@ -508,10 +508,10 @@ static int l_encrypt (lua_State *L) {
 
 static int l_decrypt (lua_State *L) {
   size_t mode_len;
-  const char *mode = luaL_checklstring(L, 1, &mode_len);
+  const char *mode = luaL_checklstring(L, 2, &mode_len);
   if (mode_len >= 7 && memcmp(mode, "aes-", 4) == 0) {
     size_t data_len;
-    const char *in_data = luaL_checklstring(L, 2, &data_len);
+    const char *in_data = luaL_checklstring(L, 1, &data_len);
     char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15));  /* need up to 15 for alignment */
     if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
       data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
@@ -616,7 +616,7 @@ static int l_decrypt (lua_State *L) {
     soup::Bigint *p = lua_getfield(L, 3, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
     soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {  /* private key? */
-      std::string data = pluto_checkstring(L, 2);
+      std::string data = pluto_checkstring(L, 1);
       if (strcmp(mode, "rsa-pkcs1") == 0) {
         data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptPkcs1(soup::Bigint::fromBinary(data));
       }
@@ -627,7 +627,7 @@ static int l_decrypt (lua_State *L) {
       return 1;
     }
     else if (n && e) {  /* public key? */
-      std::string data = pluto_checkstring(L, 2);
+      std::string data = pluto_checkstring(L, 1);
       if (strcmp(mode, "rsa-pkcs1") == 0) {
         data = soup::RsaPublicKey(*n, *e).decryptPkcs1(soup::Bigint::fromBinary(data));
       }
@@ -644,12 +644,12 @@ static int l_decrypt (lua_State *L) {
 
 
 static int l_sign (lua_State *L) {
-  const char *mode = luaL_checkstring(L, 1);
+  const char *mode = luaL_checkstring(L, 2);
   if (strcmp(mode, "rsa-sha1") == 0 || strcmp(mode, "rsa-sha256") == 0) {
     soup::Bigint *p = lua_getfield(L, 3, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
     soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {
-      std::string data = pluto_checkstring(L, 2);
+      std::string data = pluto_checkstring(L, 1);
       if (strcmp(mode, "rsa-sha1") == 0) {
         data = soup::RsaPrivateKey::fromPrimes(*p, *q).sign<soup::sha1>(data).toBinary();
       }
@@ -666,12 +666,12 @@ static int l_sign (lua_State *L) {
 
 
 static int l_verify (lua_State *L) {
-  const char *mode = luaL_checkstring(L, 1);
+  const char *mode = luaL_checkstring(L, 2);
   if (strcmp(mode, "rsa-sha1") == 0 || strcmp(mode, "rsa-sha256") == 0) {
     soup::Bigint *n = lua_getfield(L, 3, "n") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (n) lua_pop(L, 1);
     soup::Bigint *e = lua_getfield(L, 3, "e") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (e) lua_pop(L, 1);
     if (n && e) {
-      std::string data = pluto_checkstring(L, 2);
+      std::string data = pluto_checkstring(L, 1);
       std::string sig = pluto_checkstring(L, 4);
       if (strcmp(mode, "rsa-sha1") == 0) {
         lua_pushboolean(L, soup::RsaPublicKey(*n, *e).verify<soup::sha1>(data, soup::Bigint::fromBinary(sig)));
