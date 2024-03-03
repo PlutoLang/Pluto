@@ -1638,19 +1638,19 @@ do
     local iv <const> = "My Top Secret IV"
     local aadata <const> = "Additional authenticated data UwU"
 
-    assert(crypto.encrypt("aes-ecb", "Hello from Pluto", key) |> base64.encode == "v3WiSKT9g5TJfuq72QXVyg==")
-    assert(crypto.encrypt("aes-ecb-pkcs7", "Hello, world!", key) |> base64.encode == "YHB7hez0jYXtaxUqLj5qRw==")
-    assert(crypto.encrypt("aes-cbc", "Hello from Pluto", key, iv) |> base64.encode == "dyJWNeZQx6fjKr15cGd6Ng==")
-    assert(crypto.encrypt("aes-cbc-pkcs7", "Hello, world!", key, iv) |> base64.encode == "a3bHHwmClgOnNAVFUWgwAw==")
-    local enc, tag = crypto.encrypt("aes-gcm", "Hello from Pluto!", aadata, key, iv)
+    assert(crypto.encrypt("Hello from Pluto", "aes-ecb", key) |> base64.encode == "v3WiSKT9g5TJfuq72QXVyg==")
+    assert(crypto.encrypt("Hello, world!", "aes-ecb-pkcs7", key) |> base64.encode == "YHB7hez0jYXtaxUqLj5qRw==")
+    assert(crypto.encrypt("Hello from Pluto", "aes-cbc", key, iv) |> base64.encode == "dyJWNeZQx6fjKr15cGd6Ng==")
+    assert(crypto.encrypt("Hello, world!", "aes-cbc-pkcs7", key, iv) |> base64.encode == "a3bHHwmClgOnNAVFUWgwAw==")
+    local enc, tag = crypto.encrypt("Hello from Pluto!", "aes-gcm", aadata, key, iv)
     assert(base64.encode(enc) == "wR/89K4T9cGKI9baKR0s7xI=")
     assert(base64.encode(tag) == "d62kzEuotTdpAgYTrzdPpQ==")
 
-    assert(crypto.decrypt("aes-ecb", base64.decode("v3WiSKT9g5TJfuq72QXVyg=="), key) == "Hello from Pluto")
-    assert(crypto.decrypt("aes-ecb-pkcs7", base64.decode("YHB7hez0jYXtaxUqLj5qRw=="), key) == "Hello, world!")
-    assert(crypto.decrypt("aes-cbc", base64.decode("dyJWNeZQx6fjKr15cGd6Ng=="), key, iv) == "Hello from Pluto")
-    assert(crypto.decrypt("aes-cbc-pkcs7", base64.decode("a3bHHwmClgOnNAVFUWgwAw=="), key, iv) == "Hello, world!")
-    assert(crypto.decrypt("aes-gcm", base64.decode("wR/89K4T9cGKI9baKR0s7xI="), aadata, key, iv, base64.decode("d62kzEuotTdpAgYTrzdPpQ==")) == "Hello from Pluto!")
+    assert(crypto.decrypt(base64.decode("v3WiSKT9g5TJfuq72QXVyg=="), "aes-ecb", key) == "Hello from Pluto")
+    assert(crypto.decrypt(base64.decode("YHB7hez0jYXtaxUqLj5qRw=="), "aes-ecb-pkcs7", key) == "Hello, world!")
+    assert(crypto.decrypt(base64.decode("dyJWNeZQx6fjKr15cGd6Ng=="), "aes-cbc", key, iv) == "Hello from Pluto")
+    assert(crypto.decrypt(base64.decode("a3bHHwmClgOnNAVFUWgwAw=="), "aes-cbc-pkcs7", key, iv) == "Hello, world!")
+    assert(crypto.decrypt(base64.decode("wR/89K4T9cGKI9baKR0s7xI="), "aes-gcm", aadata, key, iv, base64.decode("d62kzEuotTdpAgYTrzdPpQ==")) == "Hello from Pluto!")
 
     local priv = {
         p = bigint.new("3835446257"),
@@ -1661,13 +1661,13 @@ do
         e = bigint.new(0x10001),
     }
 
-    local enc = crypto.encrypt("rsa", "Hi", pub)
+    local enc = crypto.encrypt("Hi", "rsa", pub)
     assert(base64.encode(enc) == "w1v3stxRHCs=")
-    assert(crypto.decrypt("rsa", enc, priv) == "Hi")
+    assert(crypto.decrypt(enc, "rsa", priv) == "Hi")
 
-    enc = crypto.encrypt("rsa", "Hi", priv)
+    enc = crypto.encrypt("Hi", "rsa", priv)
     assert(base64.encode(enc) == "GClnRNYar5c=")
-    assert(crypto.decrypt("rsa", enc, pub) == "Hi")
+    assert(crypto.decrypt(enc, "rsa", pub) == "Hi")
 
     priv = {
         p = bigint.new("115443384115231951475820445136871322101870729500298182134363293112660251666017"),
@@ -1678,8 +1678,8 @@ do
         e = bigint.new(0x10001),
     }
 
-    local sig = crypto.sign("rsa-sha1", "Pluto is certified cool", priv)
-    assert(crypto.verify("rsa-sha1", "Pluto is certified cool", pub, sig))
+    local sig = crypto.sign("Pluto is certified cool", "rsa-sha1", priv)
+    assert(crypto.verify("Pluto is certified cool", "rsa-sha1", pub, sig))
 
 end
 
