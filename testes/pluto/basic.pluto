@@ -1593,6 +1593,12 @@ do
     assert({ 2, 4, 6 }:checkall(|x| -> x % 2 == 0) == true)
 end
 do
+    local t = { 1, 2, 3, "foo", "bar" }
+    assert(t:size() == 5)
+    t:clear()
+    assert(t:size() == 0)
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)

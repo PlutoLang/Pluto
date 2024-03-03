@@ -55,6 +55,11 @@ LUAI_FUNC unsigned int luaH_realasize (const Table *t);
 LUAI_FUNC unsigned int luaH_gethsize (const Table *t);
 
 
+#ifndef PLUTO_LUA_LINKABLE
+LUAI_FUNC void luaH_clear (lua_State *L, Table *t);
+#endif
+
+
 #if defined(LUA_DEBUG)
 LUAI_FUNC Node *luaH_mainposition (const Table *t, const TValue *key);
 #endif
