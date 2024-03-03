@@ -14,8 +14,7 @@ namespace soup
 		explicit JsonString(std::string&& value) noexcept;
 		explicit JsonString(const char*& c) SOUP_EXCAL;
 
-		[[nodiscard]] std::string encode() const SOUP_EXCAL final;
-
+		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
 		bool binaryEncode(Writer& w) const final;
 
 		operator std::string& () noexcept

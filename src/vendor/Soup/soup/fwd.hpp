@@ -50,6 +50,8 @@ namespace soup
 	struct PlistDict;
 	struct PlistArray;
 	struct PlistString;
+	struct XmlMode;
+	struct XmlNode;
 	struct XmlTag;
 	struct XmlText;
 
@@ -116,7 +118,6 @@ namespace soup
 	class Range;
 	template <typename T> class SharedPtr;
 	template <typename T> class UniquePtr;
-	struct VirtualRegion;
 	template <class T> class WeakRef;
 
 	// mem.alloc

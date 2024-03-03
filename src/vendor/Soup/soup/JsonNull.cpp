@@ -9,9 +9,9 @@ namespace soup
 	{
 	}
 
-	std::string JsonNull::encode() const SOUP_EXCAL
+	void JsonNull::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
-		return "null";
+		str.append("null");
 	}
 
 	bool JsonNull::binaryEncode(Writer& w) const

@@ -14,9 +14,16 @@ namespace soup
 	{
 	}
 
-	std::string JsonBool::encode() const SOUP_EXCAL
+	void JsonBool::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
-		return value ? "true" : "false";
+		if (value)
+		{
+			str.append("true");
+		}
+		else
+		{
+			str.append("false");
+		}
 	}
 
 	bool JsonBool::binaryEncode(Writer& w) const

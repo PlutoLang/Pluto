@@ -10,8 +10,7 @@ namespace soup
 
 		explicit JsonInt(int64_t value = 0) noexcept;
 
-		[[nodiscard]] std::string encode() const SOUP_EXCAL final;
-
+		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
 		bool binaryEncode(Writer& w) const final;
 		
 		operator int64_t() const noexcept

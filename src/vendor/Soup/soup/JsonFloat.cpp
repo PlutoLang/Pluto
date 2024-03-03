@@ -10,9 +10,9 @@ namespace soup
 	{
 	}
 
-	std::string JsonFloat::encode() const SOUP_EXCAL
+	void JsonFloat::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
-		return string::fdecimal(value);
+		str.append(string::fdecimal(value));
 	}
 
 	bool JsonFloat::binaryEncode(Writer& w) const

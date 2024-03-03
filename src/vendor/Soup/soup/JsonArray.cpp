@@ -40,19 +40,18 @@ namespace soup
 		++c;
 	}
 
-	std::string JsonArray::encode() const SOUP_EXCAL
+	void JsonArray::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
-		std::string res(1, '[');
+		str.push_back('[');
 		for (auto i = children.begin(); i != children.end(); ++i)
 		{
-			res.append((*i)->encode());
+			(*i)->encodeAndAppendTo(str);
 			if (i != children.end() - 1)
 			{
-				res.push_back(',');
+				str.push_back(',');
 			}
 		}
-		res.push_back(']');
-		return res;
+		str.push_back(']');
 	}
 
 	std::string JsonArray::encodePretty(const std::string& prefix) const SOUP_EXCAL

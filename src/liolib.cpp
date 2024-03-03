@@ -24,7 +24,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "vendor/Soup/soup/os.hpp"
+#include "vendor/Soup/soup/filesystem.hpp"
 #include "vendor/Soup/soup/string.hpp"
 
 
@@ -1116,9 +1116,9 @@ static int contents (lua_State *L) {
     /* getter */
     std::filesystem::path file = getStringStreamPathForRead(L, 1);
     size_t len;
-    if (auto data = soup::os::createFileMapping(file, len)) {
+    if (auto data = soup::filesystem::createFileMapping(file, len)) {
       lua_pushlstring(L, (const char*)data, len);
-      soup::os::destroyFileMapping(data, len);
+      soup::filesystem::destroyFileMapping(data, len);
       return 1;
     }
   }

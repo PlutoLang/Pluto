@@ -33,6 +33,7 @@ namespace soup
 
 	SharedPtr<Worker> DetachedScheduler::addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL
 	{
+		auto ret = Scheduler::addWorker(std::move(w));
 		if (!thrd.isRunning())
 		{
 			thrd.start([](Capture&& cap)
@@ -40,7 +41,7 @@ namespace soup
 				cap.get<DetachedScheduler*>()->threadFunc();
 			}, this);
 		}
-		return Scheduler::addWorker(std::move(w));
+		return ret;
 	}
 
 	struct UpdateConfigTask : public Task

@@ -105,16 +105,16 @@ namespace soup
 		}
 	}
 
-	std::string JsonString::encode() const SOUP_EXCAL
+	void JsonString::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
-		std::string str = *this;
-		string::replaceAll(str, "\\", "\\\\");
-		string::replaceAll(str, "\"", "\\\"");
-		string::replaceAll(str, "\r", "\\r");
-		string::replaceAll(str, "\n", "\\n");
-		str.insert(0, 1, '"');
-		str.push_back('"');
-		return str;
+		std::string encoded = *this;
+		string::replaceAll(encoded, "\\", "\\\\");
+		string::replaceAll(encoded, "\"", "\\\"");
+		string::replaceAll(encoded, "\r", "\\r");
+		string::replaceAll(encoded, "\n", "\\n");
+		encoded.insert(0, 1, '"');
+		encoded.push_back('"');
+		str.append(encoded);
 	}
 
 	bool JsonString::binaryEncode(Writer& w) const

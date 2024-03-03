@@ -44,21 +44,20 @@ namespace soup
 		++c;
 	}
 
-	std::string JsonObject::encode() const SOUP_EXCAL
+	void JsonObject::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
-		std::string res(1, '{');
+		str.push_back('{');
 		for (auto i = children.begin(); i != children.end(); ++i)
 		{
-			res.append(i->first->encode());
-			res.push_back(':');
-			res.append(i->second->encode());
+			i->first->encodeAndAppendTo(str);
+			str.push_back(':');
+			i->second->encodeAndAppendTo(str);
 			if (i != children.end() - 1)
 			{
-				res.push_back(',');
+				str.push_back(',');
 			}
 		}
-		res.push_back('}');
-		return res;
+		str.push_back('}');
 	}
 
 	std::string JsonObject::encodePretty(const std::string& prefix) const SOUP_EXCAL

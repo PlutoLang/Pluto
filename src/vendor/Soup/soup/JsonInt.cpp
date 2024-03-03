@@ -9,9 +9,9 @@ namespace soup
 	{
 	}
 
-	std::string JsonInt::encode() const SOUP_EXCAL
+	void JsonInt::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
-		return std::to_string(value);
+		str.append(std::to_string(value));
 	}
 
 	bool JsonInt::binaryEncode(Writer& w) const
