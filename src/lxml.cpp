@@ -1,3 +1,5 @@
+#include <cstring> // strcmp
+
 #define LUA_LIB
 #include "lualib.h"
 
@@ -37,8 +39,18 @@ static void pushxmltag (lua_State *L, const soup::XmlTag& tag) {
 }
 
 static int xml_decode (lua_State *L) {
+  const soup::XmlMode *mode = &soup::xml::MODE_XML;
+  if (lua_gettop(L) >= 2) {
+    const char *modename = luaL_checkstring(L, 2);
+    if (strcmp(modename, "html") == 0)
+      mode = &soup::xml::MODE_HTML;
+    else if (strcmp(modename, "lax") == 0)
+      mode = &soup::xml::MODE_LAX_XML;
+    else if (strcmp(modename, "xml") != 0)
+      luaL_error(L, "unknown parser mode '%s'", modename);
+  }
   std::string data = pluto_checkstring(L, 1);
-  auto root = soup::xml::parseAndDiscardMetadata(data);
+  auto root = soup::xml::parseAndDiscardMetadata(data, *mode);
   pushxmltag(L, *root);
   return 1;
 }
