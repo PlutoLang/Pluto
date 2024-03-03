@@ -767,10 +767,18 @@ static int checkall (lua_State *L) {
 }
 
 
+static int tclear (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  luaH_clear(L, hvalue(index2value(L, 1)));
+  return 0;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"clear", tclear},
   {"checkall", checkall},
   {"find", tfind},
   {"reduce", treduce},

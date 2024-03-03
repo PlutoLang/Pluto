@@ -1027,6 +1027,16 @@ LUAI_FUNC unsigned int luaH_gethsize (const Table *t) {
 }
 
 
+LUAI_FUNC void luaH_clear (lua_State *L, Table *t) {
+  /* clear array part */
+  luaM_freearray(L, t->array, luaH_realasize(t));
+  t->array = NULL;
+  t->alimit = 0;
+  /* clear hash part */
+  freehash(L, t);
+  setnodevector(L, t, 0);
+}
+
 
 #if defined(LUA_DEBUG)
 
