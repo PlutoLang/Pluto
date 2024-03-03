@@ -288,7 +288,7 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
                       const TValue *slot) {
   int loop;  /* counter to avoid infinite loops */
   const TValue *tm;  /* metamethod */
-  int isValueString = ttisstring(t) && ttisinteger(key);
+  const bool isValueString = ttisstring(t) && ttisinteger(key);
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
     if (slot == NULL) {  /* 't' is not a table? */
       lua_assert(!ttistable(t));
@@ -347,6 +347,7 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
 void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
                      TValue *val, const TValue *slot) {
   int loop;  /* counter to avoid infinite loops */
+  const bool isValueString = ttisstring(t) && ttisinteger(key);
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
     const TValue *tm;  /* '__newindex' metamethod */
     if (slot != NULL) {  /* is 't' a table? */
@@ -367,10 +368,41 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
       }
       /* else will try the metamethod */
     }
-    else {  /* not a table; check metamethod */
-      tm = luaT_gettmbyobj(L, t, TM_NEWINDEX);
-      if (l_unlikely(notm(tm)))
-        luaG_typeerror(L, t, "index");
+    else {  /* not a table */
+      if (isValueString) {
+        TString *ts = tsvalue(t);
+        lua_Integer index = ivalue(key);
+        if (!ttisstring(val) || tsslen(tsvalue(val)) != 1)
+          luaG_runerror(L, "String indexing can only be used to insert 1-byte strings");
+        if (index == tsslen(ts) + 1) {  /* insert at end? */
+          setsvalue2s(L, L->top.p, ts);
+          L->top.p++;
+          setsvalue2s(L, L->top.p, tsvalue(val));
+          L->top.p++;
+          luaV_concat(L, 2);
+          lua_assert(ttisstring(s2v(L->top.p)));
+          L->top.p--;
+          setsvalue(L, const_cast<TValue*>(t), tsvalue(s2v(L->top.p)));
+        }
+        else {
+          if (index < 0) { /* negative index, index from end of string */
+            index += tsslen(tsvalue(t)) + 1;
+          }
+          if (index <= 0 || (size_t)index > tsslen(tsvalue(t)))
+            luaG_runerror(L, "position out of bounds");
+          auto tmp = (char*)luaM_malloc_(L, tsslen(tsvalue(t)), LUA_VLNGSTR);  /* make temporary copy to modify string without stepping on luaS internals */
+          memcpy(tmp, tsvalue(t)->contents, tsslen(tsvalue(t)));
+          tmp[index - 1] = tsvalue(val)->contents[0];
+          setsvalue(L, const_cast<TValue*>(t), luaS_newlstr(L, tmp, tsslen(tsvalue(t))));
+          luaM_free_(L, tmp, tsslen(tsvalue(t)));
+        }
+        return;
+      }
+      else {
+        tm = luaT_gettmbyobj(L, t, TM_NEWINDEX);  /* check metamethod */
+        if (l_unlikely(notm(tm)))
+          luaG_typeerror(L, t, "index");
+      }
     }
     /* try the metamethod */
     if (ttisfunction(tm)) {
