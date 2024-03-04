@@ -51,6 +51,7 @@ static int l_connect (lua_State *L) {
   const char *host = luaL_checkstring(L, 1);
   auto port = static_cast<uint16_t>(luaL_checkinteger(L, 2));
 
+  StandaloneSocket& ss = *new (lua_newuserdata(L, sizeof(StandaloneSocket))) StandaloneSocket{};
   if (luaL_newmetatable(L, "pluto:socket")) {
     lua_pushliteral(L, "__index");
     luaL_loadbuffer(L, "return require\"pluto:socket\"", 28, 0);
@@ -63,10 +64,7 @@ static int l_connect (lua_State *L) {
     });
     lua_settable(L, -3);
   }
-  lua_pop(L, 1);
-
-  StandaloneSocket& ss = *new (lua_newuserdata(L, sizeof(StandaloneSocket))) StandaloneSocket{};
-  luaL_setmetatable(L, "pluto:socket");
+  lua_setmetatable(L, -2);
 
   if (!lua_isyieldable(L)) {
     ss.sock = ss.sched.addSocket();
