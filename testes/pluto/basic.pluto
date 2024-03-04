@@ -1630,6 +1630,11 @@ do
     t = cat.decode(data, "expanded")
     assert(t[1].name == "First")
     assert(t[2].name == "Second")
+
+    -- Expanded Mode Metatable
+    data = "List: With Value\n\tChild: With Value\n"
+    t = cat.decode(data, "expanded")
+    assert(t.List.Child.value == "With Value")
 end
 do
     local { base64, bigint, crypto } = require"*"

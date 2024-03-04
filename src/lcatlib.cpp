@@ -74,6 +74,20 @@ static void cat_decode_aux_flat (lua_State *L, const soup::catNode& node, bool w
   }
 }
 
+static int find_cat_node (lua_State *L) {
+  lua_pushnil(L);
+  while (lua_next(L, -2)) {
+    lua_pushliteral(L, "name");
+    lua_rawget(L, -2);
+    if (lua_compare(L, 2, -1, LUA_OPEQ)) {
+      lua_pop(L, 1);
+      return 1;
+    }
+    lua_pop(L, 2);
+  }
+  return 0;
+}
+
 static void cat_decode_aux_expanded (lua_State* L, const soup::catNode& node) {
   lua_Integer i = 1;
   for (const auto& child : node.children) {
@@ -95,6 +109,17 @@ static void cat_decode_aux_expanded (lua_State* L, const soup::catNode& node) {
       lua_newtable(L);
       cat_decode_aux_expanded(L, *child);
       lua_settable(L, -3);
+
+      if (luaL_newmetatable(L, "pluto:cat_expanded_node")) {
+        lua_pushliteral(L, "__index");
+        lua_pushcfunction(L, [](lua_State *L) -> int {
+          lua_pushliteral(L, "children");
+          lua_rawget(L, 1);
+          return find_cat_node(L);
+        });
+        lua_settable(L, -3);
+      }
+      lua_setmetatable(L, -2);
     }
 
     lua_settable(L, -3);
@@ -121,8 +146,17 @@ static int cat_decode (lua_State *L) {
     lua_newtable(L);
     if (flat)
       cat_decode_aux_flat(L, *root, withorder);
-    else
+    else {
       cat_decode_aux_expanded(L, *root);
+      lua_newtable(L);
+      lua_pushliteral(L, "__index");
+      lua_pushcfunction(L, [](lua_State *L) -> int {
+        lua_pushvalue(L, 1);
+        return find_cat_node(L);
+      });
+      lua_settable(L, -3);
+      lua_setmetatable(L, -2);
+    }
     return 1;
   }
   return 0;
