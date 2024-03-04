@@ -1616,18 +1616,18 @@ do
     local cat = require"pluto:cat"
 
     local data = "List: With Value\n\tChild: With Value\n"
-    local t = cat.decode(data)
+    local t = cat.decode(data, "flat")
     assert(t.List.__value == "With Value")
     assert(t.List.Child == "With Value")
     assert(cat.encode(t) == data)
 
     data = "Hello: World\n"
-    t = cat.decode(data)
+    t = cat.decode(data, "flat")
     assert(t.Hello == "World")
     assert(cat.encode(t) == data)
 
     data = "First\nSecond"
-    t = cat.decode(data, cat.expanded)
+    t = cat.decode(data, "expanded")
     assert(t[1].name == "First")
     assert(t[2].name == "Second")
 end
