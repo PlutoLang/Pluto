@@ -44,7 +44,7 @@ static int cat_encode (lua_State *L) {
   return 1;
 }
 
-static void cat_decode_aux (lua_State *L, const soup::catNode& node, bool withorder) {
+static void cat_decode_aux_flat (lua_State *L, const soup::catNode& node, bool withorder) {
   if (!node.value.empty()) {
     lua_pushliteral(L, "__value");
     pluto_pushstring(L, node.value);
@@ -54,7 +54,7 @@ static void cat_decode_aux (lua_State *L, const soup::catNode& node, bool withor
     pluto_pushstring(L, child->name);
     if (!child->children.empty()) {
       lua_newtable(L);
-      cat_decode_aux(L, *child, withorder);
+      cat_decode_aux_flat(L, *child, withorder);
     }
     else {
       pluto_pushstring(L, child->value);
@@ -102,19 +102,27 @@ static void cat_decode_aux_expanded (lua_State* L, const soup::catNode& node) {
 }
 
 static int cat_decode (lua_State *L) {
-  int flags = (int)luaL_optinteger(L, 2, 0);
-  const bool expanded = (flags & (1 << 0));
-  const bool withorder = (flags & (1 << 1));
-  if (expanded && withorder)
-    luaL_error(L, "cat.expanded and cat.withorder are mutually exclusive");
+  bool flat = false;
+  bool withorder = false;
+  if (lua_gettop(L) >= 2) {
+    const char *mode = luaL_checkstring(L, 2);
+    if (strcmp(mode, "flat") == 0)
+      flat = true;
+    else if (strcmp(mode, "flatwithorder") == 0) {
+      flat = true;
+      withorder = true;
+    }
+    else if (strcmp(mode, "expanded") != 0)
+      luaL_error(L, "unknown output format '%s'", mode);
+  }
   std::string data = pluto_checkstring(L, 1);
   soup::StringRefReader sr(data);
   if (auto root = soup::catParse(sr)) {
     lua_newtable(L);
-    if (expanded)
-      cat_decode_aux_expanded(L, *root);
+    if (flat)
+      cat_decode_aux_flat(L, *root, withorder);
     else
-      cat_decode_aux(L, *root, withorder);
+      cat_decode_aux_expanded(L, *root);
     return 1;
   }
   return 0;
@@ -126,16 +134,4 @@ static const luaL_Reg funcs[] = {
   {nullptr, nullptr}
 };
 
-LUAMOD_API int luaopen_cat (lua_State *L) {
-  luaL_newlib(L, funcs);
-
-  // decode flags
-  lua_pushinteger(L, 1 << 0);
-  lua_setfield(L, -2, "expanded");
-  lua_pushinteger(L, 1 << 1);
-  lua_setfield(L, -2, "withorder");
-
-  return 1;
-}
-
-const Pluto::PreloadedLibrary Pluto::preloaded_cat{ "cat", funcs, &luaopen_cat };
+PLUTO_NEWLIB(cat)
