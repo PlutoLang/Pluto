@@ -141,8 +141,9 @@ static int cat_decode (lua_State *L) {
     else if (strcmp(mode, "expanded") != 0)
       luaL_error(L, "unknown output format '%s'", mode);
   }
-  std::string data = pluto_checkstring(L, 1);
-  soup::StringRefReader sr(data);
+  size_t len;
+  const char *data = luaL_checklstring(L, 1, &len);
+  soup::StringRefReader sr(data, len);
   if (auto root = soup::catParse(sr)) {
     lua_newtable(L);
     if (flat)

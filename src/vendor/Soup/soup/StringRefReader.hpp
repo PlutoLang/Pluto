@@ -9,11 +9,17 @@ namespace soup
 	class StringRefReader final : public ioSeekableReader
 	{
 	public:
-		const std::string& data;
+		const char* data;
+		size_t size;
 		size_t offset = 0;
 
-		StringRefReader(const std::string& data, bool little_endian = true)
-			: ioSeekableReader(little_endian), data(data)
+		StringRefReader(const std::string& str, bool little_endian = true)
+			: ioSeekableReader(little_endian), data(str.data()), size(str.size())
+		{
+		}
+
+		StringRefReader(const char* data, size_t size, bool little_endian = true)
+			: ioSeekableReader(little_endian), data(data), size(size)
 		{
 		}
 
@@ -21,16 +27,16 @@ namespace soup
 
 		bool hasMore() final
 		{
-			return offset != data.size();
+			return offset != size;
 		}
 
 		bool raw(void* data, size_t len) noexcept final
 		{
-			SOUP_IF_UNLIKELY ((offset + len) > this->data.size())
+			SOUP_IF_UNLIKELY ((offset + len) > this->size)
 			{
 				return false;
 			}
-			memcpy(reinterpret_cast<char*>(data), this->data.data() + offset, len);
+			memcpy(reinterpret_cast<char*>(data), this->data + offset, len);
 			offset += len;
 			return true;
 		}
@@ -47,7 +53,7 @@ namespace soup
 
 		void seekEnd() final
 		{
-			offset = data.size();
+			offset = size;
 		}
 	};
 }
