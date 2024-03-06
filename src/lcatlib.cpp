@@ -4,6 +4,7 @@
 #include "lualib.h"
 
 #include "vendor/Soup/soup/cat.hpp"
+#include "vendor/Soup/soup/string.hpp"
 #include "vendor/Soup/soup/StringRefReader.hpp"
 
 static void cat_encode_aux (lua_State *L, std::string& data, const std::string& prefix = {}) {
@@ -14,7 +15,7 @@ static void cat_encode_aux (lua_State *L, std::string& data, const std::string& 
     lua_pop(L, 1);
     if (strcmp(name, "__value") != 0) {
       data.append(prefix);
-      data.append(name);
+      data.append(soup::string::replaceAll(name, ":", "\\:"));
       if (lua_istable(L, -1)) {
         lua_pushliteral(L, "__value");
         if (lua_rawget(L, -2) > LUA_TNIL) {

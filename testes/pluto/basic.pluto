@@ -1630,6 +1630,11 @@ do
     data = "List: With Value\n\tChild: With Value\n"
     t = cat.decode(data, "expanded")
     assert(t.List.Child.value == "With Value")
+
+    -- Colons in keys
+    data = cat.encode({ ["Need: More"] = "Colons" })
+    t = cat.decode(data, "flat")
+    assert(t["Need: More"] == "Colons")
 end
 do
     local { base64, bigint, crypto } = require"*"
