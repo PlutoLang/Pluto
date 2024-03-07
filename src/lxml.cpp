@@ -49,8 +49,9 @@ static int xml_decode (lua_State *L) {
     else if (strcmp(modename, "xml") != 0)
       luaL_error(L, "unknown parser mode '%s'", modename);
   }
-  std::string data = pluto_checkstring(L, 1);
-  auto root = soup::xml::parseAndDiscardMetadata(data, *mode);
+  size_t len;
+  const char *data = luaL_checklstring(L, 1, &len);
+  auto root = soup::xml::parseAndDiscardMetadata(data, data + len, *mode);
   pushxmltag(L, *root);
   return 1;
 }

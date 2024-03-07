@@ -16,10 +16,12 @@ namespace soup
 		static XmlMode MODE_LAX_XML;
 		static XmlMode MODE_HTML;
 
-		[[nodiscard]] static std::vector<UniquePtr<XmlNode>> parse(const std::string& xml, const XmlMode& mode = MODE_XML);
 		[[nodiscard]] static UniquePtr<XmlTag> parseAndDiscardMetadata(const std::string& xml, const XmlMode& mode = MODE_XML);
+		[[nodiscard]] static UniquePtr<XmlTag> parseAndDiscardMetadata(const char* begin, const char* end, const XmlMode& mode = MODE_XML);
+		[[nodiscard]] static std::vector<UniquePtr<XmlNode>> parse(const std::string& xml, const XmlMode& mode = MODE_XML);
+		[[nodiscard]] static std::vector<UniquePtr<XmlNode>> parse(const char* begin, const char* end, const XmlMode& mode = MODE_XML);
 	private:
-		[[nodiscard]] static UniquePtr<XmlNode> parse(const std::string& xml, const XmlMode& mode, std::string::const_iterator& i);
+		[[nodiscard]] static UniquePtr<XmlNode> parseImpl(const char*& i, const char* end, const XmlMode& mode);
 	};
 
 	struct XmlNode

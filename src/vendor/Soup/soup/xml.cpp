@@ -17,25 +17,14 @@ namespace soup
 	XmlMode xml::MODE_LAX_XML{ {}, true };
 	XmlMode xml::MODE_HTML{ { "area", "base", "br", "col", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr" }, true };
 
-	std::vector<UniquePtr<XmlNode>> xml::parse(const std::string& xml, const XmlMode& mode)
-	{
-		std::vector<UniquePtr<XmlNode>> res{};
-
-		auto i = xml.begin();
-		do
-		{
-			if (auto node = parse(xml, mode, i))
-			{
-				res.emplace_back(std::move(node));
-			}
-		} while (i != xml.end());
-
-		return res;
-	}
-
 	UniquePtr<XmlTag> xml::parseAndDiscardMetadata(const std::string& xml, const XmlMode& mode)
 	{
-		auto nodes = parse(xml, mode);
+		return parseAndDiscardMetadata(xml.data(), &xml.data()[xml.size()], mode);
+	}
+
+	UniquePtr<XmlTag> xml::parseAndDiscardMetadata(const char* begin, const char* end, const XmlMode& mode)
+	{
+		auto nodes = parse(begin, end, mode);
 
 		for (auto i = nodes.begin(); i != nodes.end(); )
 		{
@@ -66,13 +55,34 @@ namespace soup
 		return body;
 	}
 
-	UniquePtr<XmlNode> xml::parse(const std::string& xml, const XmlMode& mode, std::string::const_iterator& i)
+	std::vector<UniquePtr<XmlNode>> xml::parse(const std::string& xml, const XmlMode& mode)
 	{
-		while (i != xml.end() && string::isSpace(*i))
+		return parse(xml.data(), &xml.data()[xml.size()], mode);
+	}
+
+	std::vector<UniquePtr<XmlNode>> xml::parse(const char* begin, const char* end, const XmlMode& mode)
+	{
+		std::vector<UniquePtr<XmlNode>> res{};
+
+		auto i = begin;
+		do
+		{
+			if (auto node = parseImpl(i, end, mode))
+			{
+				res.emplace_back(std::move(node));
+			}
+		} while (i != end);
+
+		return res;
+	}
+
+	UniquePtr<XmlNode> xml::parseImpl(const char*& i, const char* end, const XmlMode& mode)
+	{
+		while (i != end && string::isSpace(*i))
 		{
 			++i;
 		}
-		if (i == xml.end())
+		if (i == end)
 		{
 			return {};
 		}
@@ -81,10 +91,10 @@ namespace soup
 		{
 			++i;
 			StringBuilder name_builder;
-			name_builder.beginCopy(xml, i);
+			name_builder.beginCopy(i);
 			for (;; ++i)
 			{
-				if (i == xml.end())
+				if (i == end)
 				{
 					return tag;
 				}
@@ -93,23 +103,23 @@ namespace soup
 					break;
 				}
 			}
-			name_builder.endCopy(xml, i);
+			name_builder.endCopy(i);
 			tag = soup::make_unique<XmlTag>();
 			tag->name = std::move(name_builder);
 			if (*i != '>')
 			{
 				// Attributes
 				StringBuilder name;
-				name.beginCopy(xml, i);
+				name.beginCopy(i);
 				for (;; ++i)
 				{
-					if (i == xml.end())
+					if (i == end)
 					{
 						return tag;
 					}
 					if (*i == '>')
 					{
-						name.endCopy(xml, i);
+						name.endCopy(i);
 						if (!name.empty())
 						{
 							if (mode.empty_attribute_syntax)
@@ -122,7 +132,7 @@ namespace soup
 					}
 					if (*i == ' ')
 					{
-						name.endCopy(xml, i);
+						name.endCopy(i);
 						if (!name.empty())
 						{
 							if (mode.empty_attribute_syntax)
@@ -131,11 +141,11 @@ namespace soup
 							}
 							name.clear();
 						}
-						name.beginCopy(xml, i + 1);
+						name.beginCopy(i + 1);
 					}
 					else if (*i == '/')
 					{
-						name.endCopy(xml, i);
+						name.endCopy(i);
 						if (!name.empty())
 						{
 							if (mode.empty_attribute_syntax)
@@ -145,7 +155,7 @@ namespace soup
 							name.clear();
 						}
 						if (mode.self_closing_tags.empty()
-							&& (i + 1) != xml.end()
+							&& (i + 1) != end
 							&& *(i + 1) == '>'
 							)
 						{
@@ -155,23 +165,23 @@ namespace soup
 							i += 2;
 							return tag;
 						}
-						name.beginCopy(xml, i + 1);
+						name.beginCopy(i + 1);
 					}
 					else if (*i == '=')
 					{
-						name.endCopy(xml, i);
+						name.endCopy(i);
 						StringBuilder value;
 						++i;
-						if (i != xml.end() && *i == '"')
+						if (i != end && *i == '"')
 						{
 #if DEBUG_PARSE
 							std::cout << "Collecting value for attribute " << name << ": ";
 #endif
 							++i;
-							value.beginCopy(xml, i);
+							value.beginCopy(i);
 							for (;; ++i)
 							{
-								if (i == xml.end())
+								if (i == end)
 								{
 									return tag;
 								}
@@ -186,19 +196,19 @@ namespace soup
 #if DEBUG_PARSE
 							std::cout << std::endl;
 #endif
-							value.endCopy(xml, i);
+							value.endCopy(i);
 							tag->attributes.emplace_back(std::move(name), std::move(value));
 						}
-						else if (i != xml.end() && *i == '\'')
+						else if (i != end && *i == '\'')
 						{
 #if DEBUG_PARSE
 							std::cout << "Collecting value for attribute " << name << ": ";
 #endif
 							++i;
-							value.beginCopy(xml, i);
+							value.beginCopy(i);
 							for (;; ++i)
 							{
-								if (i == xml.end())
+								if (i == end)
 								{
 									return tag;
 								}
@@ -213,7 +223,7 @@ namespace soup
 #if DEBUG_PARSE
 							std::cout << std::endl;
 #endif
-							value.endCopy(xml, i);
+							value.endCopy(i);
 							tag->attributes.emplace_back(std::move(name), std::move(value));
 						}
 						else
@@ -227,7 +237,7 @@ namespace soup
 							}
 						}
 						name.clear();
-						name.beginCopy(xml, i + 1);
+						name.beginCopy(i + 1);
 					}
 				}
 			}
@@ -245,16 +255,16 @@ namespace soup
 			}
 		}
 		StringBuilder text;
-		while (i != xml.end() && string::isSpace(*i))
+		while (i != end && string::isSpace(*i))
 		{
 			++i;
 		}
-		text.beginCopy(xml, i);
-		for (; i != xml.end(); ++i)
+		text.beginCopy(i);
+		for (; i != end; ++i)
 		{
 			if (*i == '<')
 			{
-				text.endCopy(xml, i);
+				text.endCopy(i);
 #if DEBUG_PARSE
 				if (!text.empty())
 				{
@@ -266,7 +276,7 @@ namespace soup
 					return soup::make_unique<XmlText>(std::move(text));
 				}
 
-				if ((i + 1) != xml.end()
+				if ((i + 1) != end
 					&& *(i + 1) == '/'
 					)
 				{
@@ -281,15 +291,15 @@ namespace soup
 
 					i += 2;
 					StringBuilder tbc_tag;
-					tbc_tag.beginCopy(xml, i);
-					for (; i != xml.end(); ++i)
+					tbc_tag.beginCopy(i);
+					for (; i != end; ++i)
 					{
 						if (*i == '>')
 						{
 							break;
 						}
 					}
-					tbc_tag.endCopy(xml, i);
+					tbc_tag.endCopy(i);
 					++i;
 #if DEBUG_PARSE
 					std::cout << "tbc tag: " << tbc_tag << std::endl;
@@ -306,31 +316,31 @@ namespace soup
 #endif
 						return tag;
 					}
-					text.beginCopy(xml, i);
+					text.beginCopy(i);
 					break;
 				}
 
 				// Handle CDATA sections
-				if ((i + 1) != xml.end() && *(i + 1) == '!'
-					&& (i + 2) != xml.end() && *(i + 2) == '['
-					&& (i + 3) != xml.end() && *(i + 3) == 'C'
-					&& (i + 4) != xml.end() && *(i + 4) == 'D'
-					&& (i + 5) != xml.end() && *(i + 5) == 'A'
-					&& (i + 6) != xml.end() && *(i + 6) == 'T'
-					&& (i + 7) != xml.end() && *(i + 7) == 'A'
-					&& (i + 8) != xml.end() && *(i + 8) == '['
+				if ((i + 1) != end && *(i + 1) == '!'
+					&& (i + 2) != end && *(i + 2) == '['
+					&& (i + 3) != end && *(i + 3) == 'C'
+					&& (i + 4) != end && *(i + 4) == 'D'
+					&& (i + 5) != end && *(i + 5) == 'A'
+					&& (i + 6) != end && *(i + 6) == 'T'
+					&& (i + 7) != end && *(i + 7) == 'A'
+					&& (i + 8) != end && *(i + 8) == '['
 					)
 				{
 					i += 9;
-					text.beginCopy(xml, i);
-					for (; i != xml.end(); ++i)
+					text.beginCopy(i);
+					for (; i != end; ++i)
 					{
 						if (*i == ']'
-							&& (i + 1) != xml.end() && *(i + 1) == ']'
-							&& (i + 2) != xml.end() && *(i + 2) == '>'
+							&& (i + 1) != end && *(i + 1) == ']'
+							&& (i + 2) != end && *(i + 2) == '>'
 							)
 						{
-							text.endCopy(xml, i);
+							text.endCopy(i);
 							i += 3;
 							break;
 						}
@@ -341,7 +351,7 @@ namespace soup
 						std::cout << "Copied text from CDATA section: " << text << std::endl;
 					}
 #endif
-					text.beginCopy(xml, i);
+					text.beginCopy(i);
 					--i; // Cursor is already in the right place but for loop will do `++i`
 					continue;
 				}
@@ -355,23 +365,23 @@ namespace soup
 					text.clear();
 				}
 #if DEBUG_PARSE
-				auto child = parse(xml, mode, i);
+				auto child = parseImpl(i, end, mode);
 				std::cout << "Recursed for " << child->encode() << std::endl;
 				tag->children.emplace_back(std::move(child));
 #else
-				tag->children.emplace_back(parse(xml, mode, i));
+				tag->children.emplace_back(parseImpl(i, end, mode));
 #endif
-				if (i == xml.end())
+				if (i == end)
 				{
-					text.beginCopy(xml, i);
+					text.beginCopy(i);
 					break;
 				}
-				while (string::isSpace(*i) && ++i != xml.end());
-				text.beginCopy(xml, i);
+				while (string::isSpace(*i) && ++i != end);
+				text.beginCopy(i);
 				--i; // Cursor is already in the right place but for loop will do `++i`
 			}
 		}
-		text.endCopy(xml, i);
+		text.endCopy(i);
 		if (!tag)
 		{
 			return soup::make_unique<XmlText>(std::move(text));
