@@ -1622,13 +1622,13 @@ do
     assert(cat.encode(t) == data)
 
     data = "First\nSecond"
-    t = cat.decode(data, "expanded")
+    t = cat.decode(data, "full")
     assert(t[1].name == "First")
     assert(t[2].name == "Second")
 
     -- Expanded Mode Metatable
     data = "List: With Value\n\tChild: With Value\n"
-    t = cat.decode(data, "expanded")
+    t = cat.decode(data, "full")
     assert(t.List.Child.value == "With Value")
 
     -- Colons in keys
