@@ -1130,6 +1130,15 @@ do
     -- Other types of function calls are still okay, tho, since string and table are not valid statements.
     ;("Hello") |> require"json".encode |> |x| -> assert(x == [["Hello"]])
     ;("Hello") |> (require"json".encode) |> |x| -> assert(x == [["Hello"]])
+
+    -- Method calls
+    local obj = {
+        function setValue(value)
+            self.value = value
+        end
+    }
+    ;(69) |> obj:setValue
+    assert(obj.value == 69)
 end
 
 print "Testing standard library additions."
