@@ -1134,34 +1134,24 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
 
   /* if function is yet to be loaded into a register, load it into the correct one. */
   if (freg == -1) {
-    if (func->k == VRELOC) {
-      if (!fcanreloc) {
-        luaK_checkstack(fs, 1);
-        exp2reg(fs, func, basereg + 2);
-        freg = basereg;
-        luaK_codeABC(fs, OP_MOVE, freg, basereg + 2, 0);
-      }
-      else {
-        freg = basereg;
-        exp2reg(fs, func, freg);
-      }
+    lua_assert(func->k == VRELOC);
+    if (!fcanreloc) {
+      luaK_checkstack(fs, 1);
+      exp2reg(fs, func, basereg + 2);
+      freg = basereg;
+      luaK_codeABC(fs, OP_MOVE, freg, basereg + 2, 0);
     }
     else {
-      lua_assert(func->k == VNONRELOC);
-      freg = func->u.reg;
+      freg = basereg;
+      exp2reg(fs, func, freg);
     }
   }
 
   /* if argument is yet to be loaded into a register, load it into the correct one. */
   if (ereg == -1) {
-    if (e->k == VNIL || e->k == VFALSE || e->k == VTRUE || e->k == VKSTR || e->k == VK || e->k == VKFLT || e->k == VKINT || e->k == VRELOC) {
-      ereg = basereg + 1;
-      exp2reg(fs, e, ereg);
-    }
-    else {
-      lua_assert(e->k == VNONRELOC);
-      ereg = e->u.reg;
-    }
+    lua_assert(e->k == VNIL || e->k == VFALSE || e->k == VTRUE || e->k == VKSTR || e->k == VK || e->k == VKFLT || e->k == VKINT || e->k == VRELOC);
+    ereg = basereg + 1;
+    exp2reg(fs, e, ereg);
   }
 
   /* ensure function is in correct register */
