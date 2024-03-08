@@ -2982,12 +2982,25 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
           return;
         }
         luaX_next(ls);
-        expdesc func;
-        simpleexp(ls, &func, E_PIPERHS);
-        luaK_prepcallfirstarg(fs, v, &func);
+        int nparams = 1;
+        if (luaX_lookahead(ls) == ':') {
+          luaK_reserveregs(fs, 2);
+          luaK_exp2nextreg(fs, v);
+          fs->freereg -= 3;
+          primaryexp(ls, v);
+          checknext(ls, ':');
+          expdesc key;
+          codename(ls, &key);
+          luaK_self(fs, v, &key);
+          ++nparams;
+        }
+        else {
+          expdesc func;
+          simpleexp(ls, &func, E_PIPERHS);
+          luaK_prepcallfirstarg(fs, v, &func);
+        }
         lua_assert(v->k == VNONRELOC);
         int base = v->u.reg;  /* base register for call */
-        int nparams = 1;
         if (testnext(ls, '|')) {
           do {
             expdesc arg;
