@@ -7,7 +7,50 @@
 #include "vendor/Soup/soup/string.hpp"
 #include "vendor/Soup/soup/StringRefReader.hpp"
 
+static void cat_encode_aux (lua_State *L, std::string& data, const std::string& prefix);
+
+static void cat_encode_value (lua_State *L, std::string& data, const std::string& prefix) {
+  if (lua_istable(L, -1)) {
+    lua_pushliteral(L, "__value");
+    if (lua_rawget(L, -2) > LUA_TNIL) {
+      data.append(": ");
+      data.append(lua_tostring(L, -1));
+    }
+    lua_pop(L, 1);
+    data.push_back('\n');
+    cat_encode_aux(L, data, prefix + "\t");
+  }
+  else {
+    data.append(": ");
+    data.append(lua_tostring(L, -1));
+    data.push_back('\n');
+  }
+}
+
 static void cat_encode_aux (lua_State *L, std::string& data, const std::string& prefix = {}) {
+  lua_pushliteral(L, "__order");
+  if (lua_rawget(L, -2) == LUA_TTABLE) {
+    /* stack: table, order */
+    lua_pushnil(L);
+    /* stack: table, order, orderidx */
+    while (lua_next(L, -2)) {
+      /* stack: table, order, orderidx, fieldname */
+      lua_pushvalue(L, -1);
+      const char *fieldname = lua_tostring(L, -1);
+      lua_pop(L, 1);
+      if (strcmp(fieldname, "__value") != 0) {
+		data.append(prefix);
+		data.append(soup::string::replaceAll(fieldname, ":", "\\:"));
+        lua_rawget(L, -4);
+        /* stack: table, order, orderidx, fieldvalue */
+        cat_encode_value(L, data, prefix);
+      }
+      lua_pop(L, 1);
+    }
+    return;
+  }
+  lua_pop(L, 1);
+
   lua_pushnil(L);
   while (lua_next(L, -2)) {
     lua_pushvalue(L, -2);
@@ -16,21 +59,7 @@ static void cat_encode_aux (lua_State *L, std::string& data, const std::string& 
     if (strcmp(name, "__value") != 0) {
       data.append(prefix);
       data.append(soup::string::replaceAll(name, ":", "\\:"));
-      if (lua_istable(L, -1)) {
-        lua_pushliteral(L, "__value");
-        if (lua_rawget(L, -2) > LUA_TNIL) {
-          data.append(": ");
-          data.append(lua_tostring(L, -1));
-        }
-        lua_pop(L, 1);
-        data.push_back('\n');
-        cat_encode_aux(L, data, prefix + "\t");
-      }
-      else {
-        data.append(": ");
-        data.append(lua_tostring(L, -1));
-        data.push_back('\n');
-      }
+      cat_encode_value(L, data, prefix);
     }
     lua_pop(L, 1);
   }

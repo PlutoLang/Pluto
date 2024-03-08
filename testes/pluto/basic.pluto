@@ -1635,6 +1635,13 @@ do
     data = cat.encode({ ["Need: More"] = "Colons" })
     t = cat.decode(data, "flat")
     assert(t["Need: More"] == "Colons")
+
+    -- __order
+    assert(cat.encode({
+        __order = { "Hello", "World" },
+        Hello = ",",
+        World = "!",
+    }) == "Hello: ,\nWorld: !\n")
 end
 do
     local { base64, bigint, crypto } = require"*"
