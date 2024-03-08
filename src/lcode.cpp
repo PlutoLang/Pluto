@@ -1111,8 +1111,8 @@ void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
   const int basereg = fs->freereg;  /* base register for call */
   luaK_reserveregs(fs, 2);  /* function and first arg */
 
-  int freg = (func->k == VNONRELOC || func->k == VSAFECALL) ? func->u.reg : -1;
-  int ereg = (e->k == VNONRELOC || e->k == VSAFECALL) ? e->u.reg : -1;
+  int freg = func->k == VNONRELOC ? func->u.reg : -1;
+  int ereg = e->k == VNONRELOC ? e->u.reg : -1;
 
   bool fcanreloc = true;
   if (ereg == basereg) {  /* argument is in the register where the function should be? */
