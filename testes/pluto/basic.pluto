@@ -1238,6 +1238,14 @@ do
     assert(xml.decode([[<root non-standard-attr />]], "xml").attributes?["non-standard-attr"] == nil)
     assert(xml.decode([[<root non-standard-attr />]], "lax").attributes?["non-standard-attr"] == "")
     assert(xml.decode([[<root non-standard-attr />]], "html").attributes?["non-standard-attr"] == "")
+
+    -- Metatable
+    local root = xml.decode([[
+        <root>
+            <node />
+        </root>
+    ]])
+    assert(root.node.tag == "node")
 end
 do
     local t = { key = "value" }
@@ -1626,7 +1634,7 @@ do
     assert(t[1].name == "First")
     assert(t[2].name == "Second")
 
-    -- Expanded Mode Metatable
+    -- Metatable
     data = "List: With Value\n\tChild: With Value\n"
     t = cat.decode(data, "full")
     assert(t.List.Child.value == "With Value")

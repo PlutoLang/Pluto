@@ -36,6 +36,28 @@ static void pushxmltag (lua_State *L, const soup::XmlTag& tag) {
     }
     lua_settable(L, -3);
   }
+
+  if (luaL_newmetatable(L, "pluto:xml_full_node")) {
+    lua_pushliteral(L, "__index");
+    lua_pushcfunction(L, [](lua_State *L) -> int {
+      lua_pushliteral(L, "children");
+      if (lua_rawget(L, 1) > LUA_TNIL) {
+        lua_pushnil(L);
+        while (lua_next(L, -2)) {
+          lua_pushliteral(L, "tag");
+          lua_rawget(L, -2);
+          if (lua_compare(L, 2, -1, LUA_OPEQ)) {
+            lua_pop(L, 1);
+            return 1;
+          }
+          lua_pop(L, 2);
+        }
+      }
+      return 0;
+    });
+    lua_settable(L, -3);
+  }
+  lua_setmetatable(L, -2);
 }
 
 static int xml_decode (lua_State *L) {
