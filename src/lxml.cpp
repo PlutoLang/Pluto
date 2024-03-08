@@ -44,13 +44,16 @@ static void pushxmltag (lua_State *L, const soup::XmlTag& tag) {
       if (lua_rawget(L, 1) > LUA_TNIL) {
         lua_pushnil(L);
         while (lua_next(L, -2)) {
-          lua_pushliteral(L, "tag");
-          lua_rawget(L, -2);
-          if (lua_compare(L, 2, -1, LUA_OPEQ)) {
+          if (lua_type(L, -1) == LUA_TTABLE) {
+            lua_pushliteral(L, "tag");
+            lua_rawget(L, -2);
+            if (lua_compare(L, 2, -1, LUA_OPEQ)) {
+              lua_pop(L, 1);
+              return 1;
+            }
             lua_pop(L, 1);
-            return 1;
           }
-          lua_pop(L, 2);
+          lua_pop(L, 1);
         }
       }
       return 0;

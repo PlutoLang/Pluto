@@ -1257,10 +1257,12 @@ do
     -- Metatable
     local root = xml.decode([[
         <root>
-            <node />
+            <node>text</node>
         </root>
     ]])
     assert(root.node.tag == "node")
+    assert(root.node.children[1] == "text")
+    assert(root.node.deez == nil)
 end
 do
     local t = { key = "value" }
