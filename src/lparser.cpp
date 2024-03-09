@@ -4266,6 +4266,44 @@ static void constexprifstat (LexState *ls, int line) {
 }
 
 
+static void constexprdefinestat (LexState *ls, int line) {
+  FuncState *fs = ls->fs;
+  int vidx = new_localvar(ls, str_checkname(ls, N_OVERRIDABLE), line);
+  TypeHint hint = gettypehint(ls);
+  Vardesc *var = getlocalvardesc(fs, vidx);
+  var->vd.kind = RDKCTC;
+  *var->vd.hint = hint;
+
+  expdesc e;
+  init_exp(&e, VNIL, 0);
+  if (testnext(ls, '=')) {
+    ls->pushContext(PARCTX_CREATE_VAR);
+    TypeHint t;
+    expr_propagate(ls, &e, t);
+    ls->popContext(PARCTX_CREATE_VAR);
+  }
+  if (!luaK_exp2const(fs, &e, &var->k))
+    throwerr(ls, "variable was not assigned a compile-time constant value", "expression not constant", line);
+
+  fs->nactvar++;  /* don't adjustlocalvars, but count it */
+}
+
+
+static void constexprstat (LexState *ls, int line) {
+  if (testnext(ls, TK_IF)) {
+    constexprifstat(ls, line);
+  }
+  else if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "define") == 0) {
+    luaX_next(ls);  /* skip 'define' */
+    constexprdefinestat(ls, line);
+  }
+  else {
+    const char *token = luaX_token2str(ls, ls->t.token);
+    throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+  }
+}
+
+
 static void localfunc (LexState *ls) {
   expdesc b;
   FuncState *fs = ls->fs;
@@ -4288,8 +4326,10 @@ static int getlocalattribute (LexState *ls) {
     checknext(ls, '>');
     if (strcmp(attr, "const") == 0)
       return RDKCONST;  /* read-only variable */
-    else if (strcmp(attr, "constexpr") == 0)
+    else if (strcmp(attr, "constexpr") == 0) {
+      throw_warn(ls, "the 'constexpr' attribute will be removed in future versions of Pluto.", "use the 'const' attribute or '$define' statement, instead.", WT_DEPRECATED);
       return RDKCONSTEXP;  /* read-only variable */
+    }
     else if (strcmp(attr, "close") == 0)
       return RDKTOCLOSE;  /* to-be-closed variable */
     else {
@@ -5030,8 +5070,7 @@ static void statement (LexState *ls, TypeHint *prop) {
     }
     case '$': {
       luaX_next(ls);
-      checknext(ls, TK_IF);
-      constexprifstat(ls, line);
+      constexprstat(ls, line);
       break;
     }
     case TK_WHILE: {  /* stat -> whilestat */

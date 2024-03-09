@@ -2095,7 +2095,7 @@ do
 end
 -- Class overriding '__index'
 do
-    local extraOffset <constexpr> = 10
+    $define extraOffset = 10
 
     class Counter
         __num = 1
@@ -2372,7 +2372,7 @@ end
 print "Testing compile-time conditionals."
 do
     local debug_bytecode = string.dump(load([[
-        local DEBUG <constexpr> = true
+        $define DEBUG = true
         $if DEBUG then
             print("Script running in debug mode")
         $else
@@ -2380,7 +2380,7 @@ do
         $end
     ]], ""))
     local release_bytecode = string.dump(load([[
-        local DEBUG <constexpr> = false
+        $define DEBUG = false
         $if DEBUG then
             print("Script running in debug mode")
         $else
