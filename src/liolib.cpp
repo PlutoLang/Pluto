@@ -930,6 +930,18 @@ static int absolute (lua_State *L) {
   return 1;
 }
 
+
+static int relative (lua_State *L) {
+  Protect(
+    const auto f = getStringStreamPathForRead(L, 1);
+    const auto r = std::filesystem::relative(f);
+    lua_pushstring(L, (const char*)r.u8string().c_str());
+  );
+
+  return 1;
+}
+
+
 static int io_part (lua_State *L) {
   Protect(
     std::filesystem::path path = getStringStreamPathRaw(L, 1);
@@ -1147,6 +1159,7 @@ static const luaL_Reg iolib[] = {
   {"makedir", makedir},
   {"makedirs", makedirs},
   {"absolute", absolute},
+  {"relative", relative},
   {"part", io_part},
   {"copy", io_copy}, /* added in Pluto 0.8.0 */
   {"copyto", io_copyto}, /* deprecated as of Pluto 0.8.0 */
