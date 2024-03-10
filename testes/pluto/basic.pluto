@@ -166,6 +166,14 @@ if __newindex then end
 end
 
 f()]]
+
+    -- field-shadow
+    assert_warn[[
+    print(dumpvar{
+        first = 1,
+        second = 2,
+        first = 3,
+    })]]
 end
 
 print "Testing assertion library."

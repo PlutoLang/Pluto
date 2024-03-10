@@ -1452,6 +1452,15 @@ typedef struct ConsControl {
 } ConsControl;
 
 
+static void preassignfield (LexState *ls, expdesc& key) {
+  if (key.k == VKSTR) {
+    if (ls->constructorfieldsets.top().count(key.u.strval))
+      throw_warn(ls, "duplicate table field", "this overwrites the value assigned to this field earlier", WT_FIELD_SHADOW);
+    else
+      ls->constructorfieldsets.top().emplace(key.u.strval);
+  }
+}
+
 static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   /* recfield -> (NAME | '['exp']') = exp */
   FuncState *fs = ls->fs;
@@ -1483,6 +1492,7 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
     UNUSED(gettypehint(ls));
   cc->nh++;
   tab = *cc->t;
+  preassignfield(ls, key);
   luaK_indexed(fs, &tab, &key);
   if (for_class) {
     if (testnext(ls, '='))
@@ -1507,6 +1517,7 @@ static void prenamedfield (LexState *ls, ConsControl *cc, const char *name) {
   luaX_next(ls); /* skip name token */
   checknext(ls, '=');
   tab = *cc->t;
+  preassignfield(ls, key);
   luaK_indexed(fs, &tab, &key);
   expr(ls, &val);
   luaK_storevar(fs, &tab, &val);
@@ -1623,6 +1634,7 @@ static void constructor (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
   int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  ls->constructorfieldsets.emplace();
   ConsControl cc;
   luaK_code(fs, 0);  /* space for extra arg. */
   cc.na = cc.nh = cc.tostore = 0;
@@ -1640,6 +1652,7 @@ static void constructor (LexState *ls, expdesc *t) {
   check_match(ls, '}', '{', line);
   lastlistfield(fs, &cc);
   luaK_settablesize(fs, pc, t->u.reg, cc.na, cc.nh);
+  ls->constructorfieldsets.pop();
 }
 
 
@@ -1747,6 +1760,7 @@ static void classexpr (LexState *ls, expdesc *t) {
   int line = ls->getLineNumber();
   testnext(ls, TK_BEGIN);
   int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  ls->constructorfieldsets.emplace();
   ConsControl cc;
   luaK_code(fs, 0);  /* space for extra arg. */
   cc.na = cc.nh = cc.tostore = 0;
@@ -1763,6 +1777,7 @@ static void classexpr (LexState *ls, expdesc *t) {
   check_match(ls, TK_END, TK_CLASS, line);
   lastlistfield(fs, &cc);
   luaK_settablesize(fs, pc, t->u.reg, cc.na, cc.nh);
+  ls->constructorfieldsets.pop();
 }
 
 

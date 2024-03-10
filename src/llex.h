@@ -182,6 +182,7 @@ enum WarningType : int {
   WT_IMPLICIT_GLOBAL,
   WT_UNANNOTATED_FALLTHROUGH,
   WT_DISCARDED_RETURN,
+  WT_FIELD_SHADOW,
 
   NUM_WARNING_TYPES
 };
@@ -203,6 +204,7 @@ inline const char* const luaX_warnNames[] = {
   "implicit-global",
   "unannotated-fallthrough",
   "discarded-return",
+  "field-shadow",
 };
 static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
@@ -391,6 +393,7 @@ struct LexState {
   std::stack<ClassData> classes{};
   std::stack<FuncArgsState> funcargsstates{};
   std::stack<BodyState> bodystates{};
+  std::stack<std::unordered_set<TString*>> constructorfieldsets{};
   std::vector<EnumDesc> enums{};
   std::vector<void*> parse_time_allocations{};
   std::unordered_set<TString*> localstat_variable_names{};
