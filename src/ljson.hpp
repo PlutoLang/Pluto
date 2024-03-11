@@ -43,7 +43,7 @@ static bool isIndexBasedTable(lua_State* L, int i)
 
 static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 {
-	auto type = lua_type(L, i);
+	const auto type = lua_type(L, i);
 	if (type == LUA_TBOOLEAN)
 	{
 		return soup::make_unique<soup::JsonBool>(lua_toboolean(L, i));

@@ -5,6 +5,54 @@
 
 #include "vendor/Soup/soup/xml.hpp"
 
+static soup::UniquePtr<soup::XmlNode> check_xml (lua_State *L, int i) {
+  const auto type = lua_type(L, i);
+  if (type == LUA_TTABLE) {
+    lua_pushvalue(L, i);
+    auto tag = soup::make_unique<soup::XmlTag>();
+    lua_pushliteral(L, "tag");
+    if (lua_rawget(L, -2) == LUA_TSTRING) {
+      tag->name = pluto_checkstring(L, -1);
+      lua_pop(L, 1);  /* pop result of lua_rawget */
+      lua_pushliteral(L, "attributes");
+      if (lua_rawget(L, -2) != LUA_TNONE) {
+        if (lua_type(L, -1) == LUA_TTABLE) {
+          lua_pushnil(L);
+          while (lua_next(L, -2)) {
+            lua_pushvalue(L, -2);
+            tag->attributes.emplace_back(pluto_checkstring(L, -1), pluto_checkstring(L, -2));
+            lua_pop(L, 2);
+          }
+        }
+        lua_pop(L, 1);  /* pop result of lua_rawget */
+      }
+      lua_pushliteral(L, "children");
+      if (lua_rawget(L, -2) != LUA_TNONE) {
+        if (lua_type(L, -1) == LUA_TTABLE) {
+          lua_pushnil(L);
+          while (lua_next(L, -2)) {
+            tag->children.emplace_back(check_xml(L, -1));
+            lua_pop(L, 1);
+          }
+        }
+        lua_pop(L, 1);  /* pop result of lua_rawget */
+      }
+      lua_pop(L, 1);  /* pop table from lua_pushvalue */
+      return tag;
+    }
+  }
+  else if (type == LUA_TSTRING) {
+    return soup::make_unique<soup::XmlText>(pluto_checkstring(L, i));
+  }
+  luaL_typeerror(L, i, "XML-castable type");
+}
+
+static int xml_encode (lua_State *L) {
+  auto root = check_xml(L, 1);
+  pluto_pushstring(L, root->encode());
+  return 1;
+}
+
 static void pushxmltag (lua_State *L, const soup::XmlTag& tag) {
   lua_newtable(L);
   lua_pushliteral(L, "tag");
@@ -82,6 +130,7 @@ static int xml_decode (lua_State *L) {
 }
 
 static const luaL_Reg funcs[] = {
+  {"encode", xml_encode},
   {"decode", xml_decode},
   {nullptr, nullptr}
 };
