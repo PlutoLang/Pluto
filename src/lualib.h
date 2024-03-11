@@ -13,11 +13,11 @@
 #define LUA_VERSUFFIX          "_" LUA_VERSION_MAJOR "_" LUA_VERSION_MINOR
 
 
-#define LUA_GK		1
+#define LUA_GLIBK		1
 LUAMOD_API int (luaopen_base) (lua_State *L);
 
 #define LUA_LOADLIBNAME	"package"
-#define LUA_LOADLIBK	(LUA_GK << 1)
+#define LUA_LOADLIBK	(LUA_GLIBK << 1)
 LUAMOD_API int (luaopen_package) (lua_State *L);
 
 
@@ -127,10 +127,10 @@ LUAMOD_API int (luaopen_canvas)    (lua_State *L);
 LUAMOD_API int (luaopen_buffer)    (lua_State *L);
 
 /* open selected libraries */
-LUALIB_API void (luaL_openselectedlibs)(lua_State* L, int what);
+LUALIB_API void (luaL_openselectedlibs)(lua_State* L, int load, int preload);
 
 /* open all libraries */
-#define luaL_openlibs(L)	luaL_openselectedlibs(L, ~0)
+#define luaL_openlibs(L)	luaL_openselectedlibs(L, ~0, 0)
 
 /* utility for implementation of "universal" variants */
 #define pluto_uwrap(L, f, r) \
