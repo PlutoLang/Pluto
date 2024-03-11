@@ -1028,7 +1028,8 @@ static int finishnodeset (Table *t, const TValue *slot, TValue *val) {
   }
   else if (isabstkey(slot))
     return HNOTFOUND;  /* no slot with that key */
-  else return (cast(Node*, slot) - t->node) + HFIRSTNODE;  /* node encoded */
+  else  /* return node encoded */
+    return cast_int((cast(Node*, slot) - t->node)) + HFIRSTNODE;
 }
 
 
