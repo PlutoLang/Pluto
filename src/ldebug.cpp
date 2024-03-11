@@ -248,6 +248,7 @@ LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
   lua_lock(L);
   name = luaG_findlocal(L, ar->i_ci, n, &pos);
   if (name) {
+    api_checkpop(L, 1);
 #ifdef PLUTO_ENABLE_TABLE_FREEZING
     if (ttistable(s2v(pos))) {
       if (hvalue(s2v(pos))->isfrozen) {
