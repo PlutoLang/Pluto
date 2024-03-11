@@ -1227,7 +1227,11 @@ static void warnfon (void *ud, const char *message, int tocont) {
 #define BUFSEED		((BUFSEEDB + sizeof(int) - 1) / sizeof(int))
 
 
-#define addbuff(b,v)	(memcpy(b, &(v), sizeof(v)), b += sizeof(v))
+/*
+** Copy the contents of variable 'v' into the buffer pointed by 'b'.
+** (The '&b[0]' disguises 'b' to fix an absurd warning from clang.)
+*/
+#define addbuff(b,v)	(memcpy(&b[0], &(v), sizeof(v)), b += sizeof(v))
 
 
 static unsigned int luai_makeseed (void) {
@@ -1241,7 +1245,7 @@ static unsigned int luai_makeseed (void) {
   /* fill (rare but possible) remain of the buffer with zeros */
   memset(b, 0, sizeof(buff) - BUFSEEDB);
   res = buff[0];
-  for (i = 0; i < BUFSEED; i++)
+  for (i = 1; i < BUFSEED; i++)
     res ^= (res >> 3) + (res << 7) + buff[i];
   return res;
 }
