@@ -10,26 +10,30 @@ static const luaL_Reg funcs[] = {
 LUAMOD_API int luaopen_scheduler (lua_State *L) {
 	const auto code = R"EOC(pluto_use "0.6.0"
 
+local scheduler = {}
+
 local coros = {}
 local function resume(coro)
     if select("#", coroutine.xresume(coro)) ~= 0 then
         warn("Coroutine yielded values to scheduler lib. Discarding them.")
     end
 end
-export function add(f)
+local function add(f)
     local coro = coroutine.create(f)
     table.insert(coros, coro)
     resume(coro)
     return coro
 end
-export function addloop(f)
+scheduler.add = add
+function scheduler.addloop(f)
     return add(function()
         while f() ~= false do
             coroutine.yield()
         end
     end)
 end
-export function run()
+scheduler.yieldfunc = || -> do os.sleep(1) end
+function scheduler.run()
     local all_dead
     repeat
         all_dead = true
@@ -41,9 +45,10 @@ export function run()
                 coros[i] = nil
             end
         end
-        os.sleep(1)
+        scheduler.yieldfunc()
     until all_dead
-end)EOC";
+end
+return scheduler)EOC";
 	luaL_loadbuffer(L, code, strlen(code), "pluto:scheduler");
 	lua_call(L, 0, 1);
 	return 1;
