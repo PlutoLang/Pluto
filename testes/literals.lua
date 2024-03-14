@@ -229,7 +229,7 @@ do  -- reuse of long strings
   assert(a1 == getadd(foo2()))
 
   local sd = "0123456789" .. "0123456789012345678901234567890123456789"
-  assert(sd == s1 and getadd(sd) ~= a1)
+  assert(sd == s1) -- [Pluto] removed the check that addresses are not identical, because we do this concat at compile-time.
 end
 
 
