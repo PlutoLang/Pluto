@@ -80,7 +80,7 @@ LUALIB_API void luaL_openlibs (lua_State *L) {
 pluto_use "0.6.0"
 
 class exception
-    __name = "exception"
+    __name = "pluto:exception"
 
     function __construct(public what)
         local caller

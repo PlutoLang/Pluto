@@ -12,7 +12,7 @@ LUAMOD_API int luaopen_vector3(lua_State* L) {
 
 local vector3
  class vector3
-  __name = "vector3"
+  __name = "pluto:vector3"
 
   function __construct(x, y, z)
     if x ~= nil and y == nil and z == nil then
