@@ -3629,7 +3629,29 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
     }
     else {
       TypeHint *subexpr_prop = nullptr;
-      if (op == OPR_COAL) {
+      if (op == OPR_CONCAT) {
+        if (prop)
+          prop->emplaceTypeDesc(VT_STR);
+        TString *lhs = nullptr;
+        if (v->k == VKSTR)
+          lhs = v->u.strval;
+        else if (v->k == VCONST && ttisstring(&ls->dyd->actvar.arr[v->u.info].k))
+          lhs = tsvalue(&ls->dyd->actvar.arr[v->u.info].k);
+        if (lhs && ls->t.token == TK_STRING) {
+          setsvalue2s(ls->L, ls->L->top.p, lhs);
+          ls->L->top.p++;
+          setsvalue2s(ls->L, ls->L->top.p, ls->t.seminfo.ts);
+          ls->L->top.p++;
+          luaV_concat(ls->L, 2);
+          ls->L->top.p--;
+          v->k = VKSTR;
+          v->u.strval = tsvalue(s2v(ls->L->top.p));
+          luaX_next(ls);
+          op = getbinopr(ls->t.token);
+          continue;
+        }
+      }
+      else if (op == OPR_COAL) {
         if (luaK_isalwaysnil(ls, v)) {
           /* weird, but nothing worth talking about... */
         }
