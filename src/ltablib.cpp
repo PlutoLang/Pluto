@@ -819,7 +819,7 @@ LUAMOD_API int luaopen_table (lua_State *L) {
   lua_settable(L, -3);
 
   lua_pushliteral(L, "max");
-  luaL_loadstring(L, "return |t| -> table.reduce(t, math.max)");
+  luaL_loadstring(L, "return |t| -> table.reduce(t, math.max, math.mininteger)");
   lua_call(L, 0, 1);
   lua_settable(L, -3);
 
