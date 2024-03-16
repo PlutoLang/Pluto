@@ -20,18 +20,20 @@ namespace soup
 {
 	static thread_local Scheduler* this_thread_running_scheduler = nullptr;
 
-	SharedPtr<Worker> Scheduler::addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL
+	void Scheduler::addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL
 	{
-		return pending_workers.emplace_front(std::move(w))->data;
+		pending_workers.emplace_front(std::move(w));
 	}
 
 #if !SOUP_WASM
 	SharedPtr<Socket> Scheduler::addSocket() SOUP_EXCAL
 	{
-		return addSocket(soup::make_shared<Socket>());
+		auto s = soup::make_shared<Socket>();
+		addSocket(s);
+		return s;
 	}
 
-	SharedPtr<Socket> Scheduler::addSocket(SharedPtr<Socket>&& sock) SOUP_EXCAL
+	void Scheduler::addSocket(SharedPtr<Socket> sock) SOUP_EXCAL
 	{
 #if !SOUP_WINDOWS
 		sock->setNonBlocking();
@@ -381,6 +383,22 @@ namespace soup
 				return w;
 			}
 		}
+
+		// Iterating over the AtomicDeque is fine here because this function should only be called on the scheduler thread, which is the same one that would pop.
+		for (auto node = pending_workers.head.load(); node != nullptr; node = node->next.load())
+		{
+			const SharedPtr<Socket>& w = node->data;
+			if (w->type == WORKER_TYPE_SOCKET
+				&& static_cast<Socket*>(w.get())->custom_data.isStructInMap(ReuseTag)
+				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(ReuseTag).host == host
+				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(ReuseTag).port == port
+				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(ReuseTag).tls == tls
+				)
+			{
+				return w;
+			}
+		}
+
 		return {};
 	}
 

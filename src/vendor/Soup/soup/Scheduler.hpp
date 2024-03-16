@@ -49,23 +49,27 @@ namespace soup
 
 		virtual ~Scheduler() = default;
 
-		virtual SharedPtr<Worker> addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL;
+		virtual void addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL;
 
 #if !SOUP_WASM
 		SharedPtr<Socket> addSocket() SOUP_EXCAL;
-		SharedPtr<Socket> addSocket(SharedPtr<Socket>&& sock) SOUP_EXCAL;
+		void addSocket(SharedPtr<Socket> sock) SOUP_EXCAL;
 
 		template <typename T, SOUP_RESTRICT(std::is_same_v<T, Socket>)>
-		SharedPtr<T> addSocket(T&& sock) SOUP_EXCAL
+		SharedPtr<Socket> addSocket(T&& sock) SOUP_EXCAL
 		{
-			return addSocket(soup::make_shared<Socket>(std::move(sock)));
+			auto s = soup::make_shared<Socket>(std::move(sock));
+			addSocket(s);
+			return s;
 		}
 #endif
 
 		template <typename T, typename...Args>
 		SharedPtr<T> add(Args&&...args) SOUP_EXCAL
 		{
-			return addWorker(soup::make_shared<T>(std::forward<Args>(args)...));
+			auto w = soup::make_shared<T>(std::forward<Args>(args)...);
+			addWorker(SharedPtr<T>(w));
+			return w;
 		}
 
 		void setDontMakeReusableSockets() noexcept

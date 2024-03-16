@@ -18,7 +18,7 @@ namespace soup
 		DetachedScheduler(netConfig&& conf = {}) noexcept;
 		~DetachedScheduler() SOUP_EXCAL;
 
-		SharedPtr<Worker> addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL final;
+		void addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL final;
 
 		[[nodiscard]] bool isActive() const noexcept { return thrd.isRunning(); }
 		void awaitCompletion() noexcept { return thrd.awaitCompletion(); }
