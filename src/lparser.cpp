@@ -4265,18 +4265,26 @@ static void constexprifstat (LexState *ls, int line) {
     }
   }
   checknext(ls, TK_THEN);
-  if (disposition == true)
+  if (disposition == true) {
     block(ls);
-  else
-    skip_block(ls);
-  if (testnext(ls, '$')) check(ls, TK_ELSE);
-  if (testnext(ls, TK_ELSE)) {
-    if (disposition == false)
-      block(ls);
-    else
-      skip_block(ls);
   }
-  testnext(ls, '$');
+  else {
+    skip_block(ls);
+  }
+  if (!testnext(ls, '$')) {
+    throw_warn(ls, "Compile-time control flow statement should be prefixed with a $", WT_DEPRECATED);
+  }
+  if (testnext(ls, TK_ELSE)) {
+    if (disposition == false) {
+      block(ls);
+    }
+    else {
+      skip_block(ls);
+    }
+    if (!testnext(ls, '$')) {
+      throw_warn(ls, "Compile-time control flow statement should be prefixed with a $", WT_DEPRECATED);
+    }
+  }
   check_match(ls, TK_END, TK_IF, line);
 }
 
