@@ -49,7 +49,7 @@ return class
                     resume(coro)
                     all_dead = false
                 elseif coroutine.status(coro) == "dead" then
-                    coros[i] = nil
+                    self.coros[i] = nil
                 end
             end
             self.yieldfunc()
