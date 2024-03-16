@@ -49,7 +49,12 @@ static soup::UniquePtr<soup::XmlNode> check_xml (lua_State *L, int i) {
 
 static int xml_encode (lua_State *L) {
   auto root = check_xml(L, 1);
-  pluto_pushstring(L, root->encode());
+  if (lua_istrue(L, 2)) {
+    pluto_pushstring(L, root->encodePretty());
+  }
+  else {
+    pluto_pushstring(L, root->encode());
+  }
   return 1;
 }
 
