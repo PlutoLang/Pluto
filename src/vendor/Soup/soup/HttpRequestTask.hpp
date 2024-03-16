@@ -5,11 +5,11 @@
 #include <optional>
 
 #include "base.hpp"
+#include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "Uri.hpp"
 #if !SOUP_WASM
 #include "DelayedCtor.hpp"
-#include "HttpRequest.hpp"
 #include "netConnectTask.hpp"
 #include "SharedPtr.hpp"
 #endif
@@ -18,8 +18,8 @@ namespace soup
 {
 	class HttpRequestTask : public PromiseTask<std::optional<HttpResponse>>
 	{
-#if !SOUP_WASM
 	public:
+#if !SOUP_WASM
 		enum State : uint8_t
 		{
 			START = 0,
@@ -35,15 +35,21 @@ namespace soup
 			bool dont_keep_alive = false;
 			bool attempted_reuse /*= false*/;
 		};
+#endif
 		HttpRequest hr;
+#if !SOUP_WASM
 		DelayedCtor<netConnectTask> connector;
 		SharedPtr<Socket> sock;
 		time_t awaiting_response_since;
+#else
+		std::vector<const char*> headers;
+#endif
 
 		HttpRequestTask(HttpRequest&& hr);
 		HttpRequestTask(const Uri& uri);
 		HttpRequestTask(std::string host, std::string path);
 
+#if !SOUP_WASM
 		void onTick() final;
 
 	protected:
@@ -56,9 +62,6 @@ namespace soup
 		[[nodiscard]] std::string toString() const SOUP_EXCAL final;
 		[[nodiscard]] netStatus getStatus() const noexcept;
 #else
-	public:
-		HttpRequestTask(const Uri& uri);
-
 		void onTick() noexcept final;
 
 		int getSchedulingDisposition() const noexcept final;

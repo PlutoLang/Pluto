@@ -1,7 +1,5 @@
 #include "HttpRequest.hpp"
 
-#if !SOUP_WASM
-
 #include "joaat.hpp"
 #include "ObfusString.hpp"
 #include "Scheduler.hpp"
@@ -56,6 +54,34 @@ namespace soup
 		return header_fields.at(ObfusString("Host"));
 	}
 
+	std::string HttpRequest::getUrl() const
+	{
+		std::string str;
+		if (use_tls)
+		{
+			str = "https://";
+		}
+		else
+		{
+			str = "http://";
+		}
+		str.append(getHost());
+		if (port != (use_tls ? 443 : 80))
+		{
+			str.push_back(':');
+			str.append(std::to_string(port));
+		}
+		if (path_is_encoded)
+		{
+			str.append(path);
+		}
+		else
+		{
+			str.append(urlenc::encode(path));
+		}
+		return str;
+	}
+
 	void HttpRequest::setPath(std::string&& path)
 	{
 		this->path = std::move(path);
@@ -80,6 +106,7 @@ namespace soup
 		setBody(std::move(payload));
 	}
 
+#if !SOUP_WASM
 	struct HttpRequestExecuteData
 	{
 		const HttpRequest* req;
@@ -490,6 +517,5 @@ namespace soup
 		}, CaptureRecvEventStream{ callback, std::move(cap) });
 		receiver_cap.get<HttpResponseReceiver>().tick(s, std::move(receiver_cap));
 	}
-}
-
 #endif
+}

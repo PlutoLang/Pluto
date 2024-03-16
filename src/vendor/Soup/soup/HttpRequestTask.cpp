@@ -9,17 +9,11 @@
 #include "Scheduler.hpp"
 #include "time.hpp"
 #else
-#include <emscripten/fetch.h>
+#include <emscripten/fetch.h> // https://github.com/emscripten-core/emscripten/blob/main/system/include/emscripten/fetch.h
 #endif
 
 namespace soup
 {
-#if !SOUP_WASM
-	HttpRequestTask::HttpRequestTask(HttpRequest&& _hr)
-		: hr(std::move(_hr))
-	{
-	}
-
 	HttpRequestTask::HttpRequestTask(const Uri& uri)
 		: HttpRequestTask(HttpRequest(uri))
 	{
@@ -27,6 +21,12 @@ namespace soup
 
 	HttpRequestTask::HttpRequestTask(std::string host, std::string path)
 		: HttpRequestTask(HttpRequest(std::move(host), std::move(path)))
+	{
+	}
+
+#if !SOUP_WASM
+	HttpRequestTask::HttpRequestTask(HttpRequest&& _hr)
+		: hr(std::move(_hr))
 	{
 	}
 
@@ -208,11 +208,19 @@ namespace soup
 		return NET_PENDING;
 	}
 #else
-	HttpRequestTask::HttpRequestTask(const Uri& uri)
+	HttpRequestTask::HttpRequestTask(HttpRequest&& _hr)
+		: hr(std::move(_hr))
 	{
 		emscripten_fetch_attr_t attr;
 		emscripten_fetch_attr_init(&attr);
-		strcpy(attr.requestMethod, "GET");
+		if ((hr.method.size() + 1) < sizeof(attr.requestMethod))
+		{
+			strcpy(attr.requestMethod, hr.method.c_str());
+		}
+		else
+		{
+			strcpy(attr.requestMethod, "GET");
+		}
 		attr.userData = this;
 		attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
 		attr.onsuccess = [](emscripten_fetch_t* fetch)
@@ -228,7 +236,29 @@ namespace soup
 			((HttpRequestTask*)fetch->userData)->setWorkDone();
 			emscripten_fetch_close(fetch);
 		};
-		auto url = uri.toString();
+		for (const auto& field : hr.header_fields)
+		{
+			if (field.first != "Host"
+				&& field.first != "User-Agent"
+				&& field.first != "Connection"
+				&& field.first != "Accept-Encoding"
+				)
+			{
+				headers.emplace_back(field.first.c_str());
+				headers.emplace_back(field.second.c_str());
+			}
+		}
+		if (!headers.empty())
+		{
+			headers.emplace_back(nullptr);
+			attr.requestHeaders = &headers[0];
+		}
+		if (!hr.body.empty())
+		{
+			attr.requestData = hr.body.data();
+			attr.requestDataSize = hr.body.size();
+		}
+		auto url = hr.getUrl();
 		emscripten_fetch(&attr, url.c_str());
 	}
 

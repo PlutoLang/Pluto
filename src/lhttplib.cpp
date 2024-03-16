@@ -64,6 +64,21 @@ static int http_request (lua_State *L) {
       optionsidx = 2;
   }
 
+#ifdef PLUTO_DISABLE_HTTP_COMPLETELY
+  luaL_error(L, "disallowed by content moderation policy");
+#endif
+#ifdef PLUTO_HTTP_REQUEST_HOOK
+  if (!PLUTO_HTTP_REQUEST_HOOK(L, uri.c_str()))
+    luaL_error(L, "disallowed by content moderation policy");
+#endif
+
+#if SOUP_WASM
+  if (!lua_isyieldable(L)) {
+    luaL_error(L, "HTTP requests are not possible in this WASM environment due to running Pluto as a blocking program.");
+  }
+#endif
+
+  soup::HttpRequest hr(soup::Uri(std::move(uri)));
   if (optionsidx) {
     lua_pushnil(L);
     while (lua_next(L, optionsidx)) {
@@ -78,22 +93,30 @@ static int http_request (lua_State *L) {
       }
       lua_pop(L, 1);
     }
-  }
 
-#ifdef PLUTO_DISABLE_HTTP_COMPLETELY
-  luaL_error(L, "disallowed by content moderation policy");
-#endif
-#ifdef PLUTO_HTTP_REQUEST_HOOK
-  if (!PLUTO_HTTP_REQUEST_HOOK(L, uri.c_str()))
-    luaL_error(L, "disallowed by content moderation policy");
-#endif
+    lua_pushliteral(L, "method");
+    if (lua_rawget(L, optionsidx) > LUA_TNIL)
+      hr.method = pluto_checkstring(L, -1);
+    lua_pop(L, 1);
+    lua_pushliteral(L, "headers");
+    if (lua_rawget(L, optionsidx) > LUA_TNIL) {
+      lua_pushnil(L);
+      while (lua_next(L, -2)) {
+        hr.setHeader(pluto_checkstring(L, -2), pluto_checkstring(L, -1));
+        lua_pop(L, 1);
+      }
+    }
+    lua_pop(L, 1);
+    lua_pushliteral(L, "body");
+    if (lua_rawget(L, optionsidx) > LUA_TNIL)
+      hr.setPayload(pluto_checkstring(L, -1));
+    else if (hr.method != "GET")
+      hr.setPayload("");
+    lua_pop(L, 1);
+  }
 
 #if SOUP_WASM
-  if (!lua_isyieldable(L)) {
-    luaL_error(L, "HTTP requests are not possible in this WASM environment due to running Pluto as a blocking program.");
-  }
-  auto pTask = new (lua_newuserdata(L, sizeof(soup::HttpRequestTask))) soup::HttpRequestTask(std::move(uri));
-  /* Soup doesn't have a lot of options for the WASM specialization. Maybe something to look at in the future. */
+  auto pTask = new (lua_newuserdata(L, sizeof(soup::HttpRequestTask))) soup::HttpRequestTask(std::move(hr));
   lua_newtable(L);
   lua_pushliteral(L, "__gc");
   lua_pushcfunction(L, [](lua_State *L) {
@@ -107,27 +130,8 @@ static int http_request (lua_State *L) {
   if (G(L)->scheduler == nullptr) {
     G(L)->scheduler = new soup::DetachedScheduler();
   }
-  auto spTask = reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->add<soup::HttpRequestTask>(std::move(uri));
+  auto spTask = reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->add<soup::HttpRequestTask>(std::move(hr));
   if (optionsidx) {
-    lua_pushliteral(L, "method");
-    if (lua_rawget(L, optionsidx) > LUA_TNIL)
-      spTask->hr.method = pluto_checkstring(L, -1);
-    lua_pop(L, 1);
-    lua_pushliteral(L, "headers");
-    if (lua_rawget(L, optionsidx) > LUA_TNIL) {
-      lua_pushnil(L);
-      while (lua_next(L, -2)) {
-        spTask->hr.setHeader(pluto_checkstring(L, -2), pluto_checkstring(L, -1));
-        lua_pop(L, 1);
-      }
-    }
-    lua_pop(L, 1);
-    lua_pushliteral(L, "body");
-    if (lua_rawget(L, optionsidx) > LUA_TNIL)
-      spTask->hr.setPayload(pluto_checkstring(L, -1));
-    else if (spTask->hr.method != "GET")
-      spTask->hr.setPayload("");
-    lua_pop(L, 1);
     lua_pushliteral(L, "prefer_ipv6");
     if (lua_rawget(L, optionsidx) > LUA_TNIL)
       spTask->prefer_ipv6 = lua_istrue(L, -1);

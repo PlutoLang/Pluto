@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base.hpp"
-#if !SOUP_WASM
 #include "fwd.hpp"
 
 #include <optional>
@@ -27,6 +26,7 @@ namespace soup
 		HttpRequest(const Uri& uri);
 
 		[[nodiscard]] const std::string& getHost() const;
+		[[nodiscard]] std::string getUrl() const;
 
 		void setPath(std::string&& path);
 	private:
@@ -34,6 +34,7 @@ namespace soup
 	public:
 		void setPayload(std::string payload);
 
+#if !SOUP_WASM
 		[[nodiscard]] std::optional<HttpResponse> execute() const; // blocking
 		void executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}) const; // blocking
 		[[nodiscard]] std::string getDataToSend() const SOUP_EXCAL;
@@ -49,6 +50,6 @@ namespace soup
 
 		static void recvResponse(Socket& s, void callback(Socket&, std::optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
 		static void recvEventStream(Socket& s, void callback(Socket&, std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
+#endif
 	};
 }
-#endif
