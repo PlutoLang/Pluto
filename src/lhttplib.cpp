@@ -35,13 +35,38 @@ static int push_http_response (lua_State *L, soup::HttpRequestTask& task) {
 #endif
 }
 
-static int http_request_cont (lua_State *L, int status, lua_KContext ctx) {
-  auto pTask = reinterpret_cast<soup::HttpRequestTask*>(ctx);
+template <typename Task, int(*callback)(lua_State* L, Task&)>
+static int await_task_cont (lua_State *L, int status, lua_KContext ctx) {
+  auto pTask = reinterpret_cast<Task*>(ctx);
   if (!pTask->isWorkDone()) {
-    return lua_yieldk(L, 0, ctx, http_request_cont);
+    return lua_yieldk(L, 0, ctx, &await_task_cont<Task, callback>);
   }
-  return push_http_response(L, *pTask);
+  return callback(L, *pTask);
 }
+
+#if !SOUP_WASM
+template <typename Task, int(*callback)(lua_State* L, Task&)>
+static int await_task (lua_State *L, soup::SharedPtr<Task>&& spTask) {
+  if (lua_isyieldable(L)) {
+    auto pTask = spTask.get();
+
+    new (lua_newuserdata(L, sizeof(soup::SharedPtr<Task>))) soup::SharedPtr<Task>(std::move(spTask));
+    lua_newtable(L);
+    lua_pushliteral(L, "__gc");
+    lua_pushcfunction(L, [](lua_State *L) {
+      std::destroy_at<>(reinterpret_cast<soup::SharedPtr<Task>*>(lua_touserdata(L, 1)));
+      return 0;
+    });
+    lua_settable(L, -3);
+    lua_setmetatable(L, -2);
+
+    return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), &await_task_cont<Task, callback>);
+  }
+  while (!spTask->isWorkDone())
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  return callback(L, *spTask);
+}
+#endif
 
 #ifdef PLUTO_HTTP_REQUEST_HOOK
 extern bool PLUTO_HTTP_REQUEST_HOOK(lua_State* L, const char* url);
@@ -125,7 +150,7 @@ static int http_request (lua_State *L) {
   });
   lua_settable(L, -3);
   lua_setmetatable(L, -2);
-  return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), http_request_cont);
+  return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), &await_task_cont<soup::HttpRequestTask, push_http_response>);
 #else
   if (G(L)->scheduler == nullptr) {
     G(L)->scheduler = new soup::DetachedScheduler();
@@ -137,29 +162,51 @@ static int http_request (lua_State *L) {
       spTask->prefer_ipv6 = lua_istrue(L, -1);
     lua_pop(L, 1);
   }
-  if (lua_isyieldable(L)) {
-    auto pTask = spTask.get();
-
-    new (lua_newuserdata(L, sizeof(spTask))) decltype(spTask) (std::move(spTask));
-    lua_newtable(L);
-    lua_pushliteral(L, "__gc");
-    lua_pushcfunction(L, [](lua_State *L) {
-      std::destroy_at<>(reinterpret_cast<decltype(spTask)*>(lua_touserdata(L, 1)));
-      return 0;
-    });
-    lua_settable(L, -3);
-    lua_setmetatable(L, -2);
-
-    return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), http_request_cont);
-  }
-  while (!spTask->isWorkDone())
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-  return push_http_response(L, *spTask);
+  return await_task<soup::HttpRequestTask, push_http_response>(L, std::move(spTask));
 #endif
 }
 
+#if !SOUP_WASM
+struct HasConnectionTask : public soup::PromiseTask<bool> {
+  std::string host;
+  uint16_t port;
+  bool tls;
+
+  HasConnectionTask(std::string&& host, uint16_t port, bool tls) : host(std::move(host)), port(port), tls(tls) {}
+
+  void onTick() {
+    fulfil(soup::Scheduler::get()->findReusableSocket(host, port, tls));
+  }
+};
+
+static int http_hasconnection_result (lua_State *L, HasConnectionTask& task) {
+  lua_pushboolean(L, task.result);
+  return 1;
+}
+
+static int http_hasconnection (lua_State *L) {
+  soup::Uri uri(pluto_checkstring(L, 1));
+  if (G(L)->scheduler
+    && reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->isActive()
+    ) {
+    bool tls = (uri.scheme != "http");
+    uint16_t port = uri.port;
+    if (port == 0) {
+      port = (tls ? 443 : 80);
+    }
+    auto spTask = reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->add<HasConnectionTask>(std::move(uri.host), port, tls);
+    return await_task<HasConnectionTask, http_hasconnection_result>(L, std::move(spTask));
+  }
+  lua_pushboolean(L, false);
+  return 1;
+}
+#endif
+
 static const luaL_Reg funcs[] = {
   {"request", http_request},
+#if !SOUP_WASM
+  {"hasconnection", http_hasconnection},
+#endif
   {nullptr, nullptr}
 };
 
