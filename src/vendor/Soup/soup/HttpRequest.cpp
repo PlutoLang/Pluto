@@ -121,10 +121,10 @@ namespace soup
 		if (sock->connect(host, port))
 		{
 			Scheduler sched{};
-			auto s = sched.addSocket(std::move(sock));
+			sched.addSocket(sock);
 			if (use_tls)
 			{
-				s->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
+				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
 				{
 					auto& data = *cap.get<HttpRequestExecuteData*>();
 					execute_recvResponse(s, &data.resp);
@@ -132,8 +132,8 @@ namespace soup
 			}
 			else
 			{
-				send(*s);
-				execute_recvResponse(*s, &data.resp);
+				send(*sock);
+				execute_recvResponse(*sock, &data.resp);
 			}
 			sched.setAddWorkerCanWaitForeverForAllICare();
 			sched.run();
@@ -156,10 +156,10 @@ namespace soup
 		if (sock->connect(host, port))
 		{
 			Scheduler sched{};
-			auto s = sched.addSocket(std::move(sock));
+			sched.addSocket(sock);
 			if (use_tls)
 			{
-				s->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
+				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
 				{
 					auto* data = cap.get<HttpRequestExecuteEventStreamData*>();
 					executeEventStream_recv(s, data);
@@ -167,8 +167,8 @@ namespace soup
 			}
 			else
 			{
-				send(*s);
-				executeEventStream_recv(*s, &data);
+				send(*sock);
+				executeEventStream_recv(*sock, &data);
 			}
 			sched.run();
 		}
