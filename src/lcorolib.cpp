@@ -11,12 +11,13 @@
 
 
 #include <stdlib.h>
-#include <time.h>
 
 #include "lua.h"
 
 #include "lauxlib.h"
 #include "lualib.h"
+
+#include "vendor/Soup/soup/time.hpp"
 
 
 static lua_State *getco (lua_State *L) {
@@ -128,7 +129,7 @@ static int luaB_yield (lua_State *L) {
 
 
 static int sleepcont (lua_State *L, int status, lua_KContext resume_after) {
-  if (clock() < resume_after) {
+  if (soup::time::millis() < resume_after) {
     return lua_yieldk(L, lua_gettop(L), resume_after, sleepcont);
   }
   return 0;
@@ -137,7 +138,7 @@ static int sleepcont (lua_State *L, int status, lua_KContext resume_after) {
 
 static int luaB_sleep (lua_State *L) {
   auto resume_after = static_cast<lua_KContext>(luaL_checkinteger(L, 1));
-  resume_after += static_cast<lua_KContext>(clock());
+  resume_after += static_cast<lua_KContext>(soup::time::millis());
   lua_settop(L, 0);
   return lua_yieldk(L, lua_gettop(L), resume_after, sleepcont);
 }
