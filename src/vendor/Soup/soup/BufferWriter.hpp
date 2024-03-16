@@ -23,9 +23,20 @@ namespace soup
 
 		~BufferWriter() final = default;
 
-		bool raw(void* data, size_t size) SOUP_EXCAL final
+		bool raw(void* data, size_t size) noexcept final
 		{
-			buf.append(data, size);
+#if SOUP_EXCEPTIONS
+			try
+#endif
+			{
+				buf.append(data, size);
+			}
+#if SOUP_EXCEPTIONS
+			catch (...)
+			{
+				return false;
+			}
+#endif
 			return true;
 		}
 	};

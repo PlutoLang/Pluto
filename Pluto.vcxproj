@@ -543,6 +543,7 @@
     <ClCompile Include="src\vendor\Soup\soup\pem.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Promise.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\rand.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\Reader.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\rsa.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Scheduler.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SelfDeletingThread.cpp" />
@@ -565,6 +566,7 @@
     <ClCompile Include="src\vendor\Soup\soup\urlenc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\version_compare.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Worker.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\Writer.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\X509Certchain.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\X509Certificate.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\X509RelativeDistinguishedName.cpp" />
@@ -661,7 +663,6 @@
     <ClInclude Include="src\vendor\Soup\soup\IntStruct.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\IntVector.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ioBase.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\ioSeekableReader.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\IpAddr.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\IpGroups.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Ipv6Maths.hpp" />

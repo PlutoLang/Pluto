@@ -33,7 +33,7 @@ namespace soup
 	struct time
 	{
 		// When using time::millisSince(0), the return value might be rather small if the system epoch is recent.
-		// Using time::LONGAGO instead of 0 will ensure will ensure that the "millisSince" will be sufficiently large.
+		// Using time::LONGAGO instead of 0 will ensure that the "millisSince" will be sufficiently large.
 		static constexpr std::time_t LONGAGO = -0x1000'0000;
 
 		// System-dependent time

@@ -69,7 +69,6 @@ namespace soup
 	class BitWriter;
 
 	// io.stream
-	class ioSeekableReader;
 	class Reader;
 	class StringReader;
 	class Writer;

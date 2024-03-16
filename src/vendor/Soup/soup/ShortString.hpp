@@ -79,6 +79,18 @@ namespace soup
 		{
 			return strlen(c_str());
 		}
+
+		[[nodiscard]] char& operator [](size_t Index) noexcept
+		{
+			SOUP_DEBUG_ASSERT(Index < S);
+			return m_data[Index];
+		}
+
+		[[nodiscard]] const char& operator [](size_t Index) const noexcept
+		{
+			SOUP_DEBUG_ASSERT(Index < S);
+			return m_data[Index];
+		}
 	};
 	static_assert(sizeof(ShortString<1>) == 2);
 	static_assert(sizeof(ShortString<2>) == 3);

@@ -103,17 +103,12 @@ namespace soup
 
 	std::string string::fromFile(const std::filesystem::path& file)
 	{
-		std::string ret{};
-		if (std::filesystem::exists(file))
+		std::string ret;
+		size_t len;
+		if (auto addr = soup::filesystem::createFileMapping(file, len))
 		{
-			std::ifstream t(file, std::ios::binary);
-
-			t.seekg(0, std::ios::end);
-			const auto s = static_cast<size_t>(t.tellg());
-			t.seekg(0, std::ios::beg);
-
-			ret.reserve(s);
-			ret.assign((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+			ret = std::string((const char*)addr, len);
+			soup::filesystem::destroyFileMapping(addr, len);
 		}
 		return ret;
 	}

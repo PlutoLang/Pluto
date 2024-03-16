@@ -238,7 +238,7 @@ namespace soup
 		return hash(str.data(), str.size());
 	}
 
-	std::string sha256::hash(ioSeekableReader& r) SOUP_EXCAL
+	std::string sha256::hash(Reader& r) SOUP_EXCAL
 	{
 		std::string digest(32, '\0');
 		sha256_state sha;

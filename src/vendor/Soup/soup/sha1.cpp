@@ -207,7 +207,7 @@ namespace soup
 #endif
 
 	template <bool intrin>
-	static std::string sha1_hash_impl(ioSeekableReader& r) SOUP_EXCAL
+	static std::string sha1_hash_impl(Reader& r) SOUP_EXCAL
 	{
 		// init
 		uint32_t digest[] = {
@@ -307,7 +307,7 @@ namespace soup
 		return bin;
 	}
 
-	std::string sha1::hash(ioSeekableReader& r) SOUP_EXCAL
+	std::string sha1::hash(Reader& r) SOUP_EXCAL
 	{
 #if SHA1_USE_INTRIN
 		const CpuInfo& cpu_info = CpuInfo::get();

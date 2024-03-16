@@ -11,116 +11,97 @@ namespace soup
 	public:
 		using ioBase::ioBase;
 
-		[[nodiscard]] virtual bool hasMore() = 0;
+		[[nodiscard]] virtual bool hasMore() noexcept = 0;
+		[[nodiscard]] virtual size_t getPosition() = 0;
+		virtual void seek(size_t pos) = 0;
+		void seekBegin() { seek(0); }
+		virtual void seekEnd() = 0;
+
+		[[nodiscard]] size_t getRemainingBytes()
+		{
+			const size_t pos = getPosition();
+			seekEnd();
+			const size_t remaining = (getPosition() - pos);
+			seek(pos);
+			return remaining;
+		}
 
 		bool skip(size_t len)
 		{
-			std::string v;
-			return str(len, v);
+			seek(getPosition() + len);
+			return true;
 		}
 
 		// An unsigned 64-bit integer encoded in 1..9 bytes. The most significant bit of bytes 1 to 8 is used to indicate if another byte follows.
-		bool u64_dyn(uint64_t& v) noexcept
-		{
-			v = 0;
-			uint8_t bits = 0;
-			while (true)
-			{
-				uint8_t b;
-				if (!u8(b))
-				{
-					return false;
-				}
-				bool has_next = ((b >> 7) & (bits < 56));
-				if (has_next)
-				{
-					b &= 0x7F;
-				}
-				v |= ((uint64_t)b << bits);
-				if (!has_next)
-				{
-					break;
-				}
-				bits += 7;
-			}
-			return true;
-		}
+		bool u64_dyn(uint64_t& v) noexcept;
 
 		// A signed 64-bit integer encoded in 1..9 bytes.
-		bool i64_dyn(int64_t& v)
-		{
-			bool neg;
-			uint8_t b;
-			if (!u8(b))
-			{
-				return false;
-			}
-			uint64_t out = (b & 0b111111);
-			neg = ((b >> 6) & 1);
-			if ((b >> 7))
-			{
-				uint8_t bits = 6;
-				while (true)
-				{
-					if (!u8(b))
-					{
-						return false;
-					}
-					bool has_next = ((b >> 7) & (bits < 55));
-					if (has_next)
-					{
-						b &= 0x7F;
-					}
-					out |= ((uint64_t)b << bits);
-					if (!has_next)
-					{
-						break;
-					}
-					bits += 7;
-				}
-			}
-			if (neg)
-			{
-				if (out == 0)
-				{
-					v = ((uint64_t)1 << 63);
-				}
-				else
-				{
-					v = (out * -1);
-				}
-			}
-			else
-			{
-				v = out;
-			}
-			return true;
-		}
+		bool i64_dyn(int64_t& v) noexcept;
 
-		// An integer where every byte's most significant bit is used to indicate if another byte follows.
+		// An integer where every byte's most significant bit is used to indicate if another byte follows, most significant byte first.
 		template <typename Int>
-		bool om(Int& v)
+		bool om(Int& v) noexcept
 		{
-			Int val{};
-			while (hasMore())
+			v = {};
+			uint8_t byte;
+			while (u8(byte))
 			{
-				uint8_t byte;
-				u8(byte);
-				val <<= 7;
-				val |= (byte & 0x7F);
+				v <<= 7;
+				v |= (byte & 0x7F);
 				if (!(byte & 0x80))
 				{
-					break;
+					return true;
 				}
 			}
-			v = val;
-			return true;
+			return false;
 		}
 
 		// Specialisation of the above for Bigint.
-		bool om_bigint(Bigint& v);
+		bool om_bigint(Bigint& v) SOUP_EXCAL;
 
-		bool mysql_lenenc(uint64_t& v)
+		// An integer where every byte's most significant bit is used to indicate if another byte follows, least significant byte first. This is compatible with unsigned LEB128.
+		template <typename Int>
+		bool oml(Int& v) noexcept
+		{
+			v = {};
+			uint8_t byte;
+			uint8_t shift = 0;
+			while (u8(byte))
+			{
+				v |= (static_cast<Int>(byte & 0x7F) << shift);
+				if (!(byte & 0x80))
+				{
+					return true;
+				}
+				shift += 7;
+			}
+			return false;
+		}
+
+		// Signed LEB128.
+		template <typename Int>
+		bool soml(Int& v) noexcept
+		{
+			v = {};
+			uint8_t byte;
+			uint8_t shift = 0;
+			while (u8(byte))
+			{
+				v |= (static_cast<Int>(byte & 0x7F) << shift);
+				if (!(byte & 0x80))
+				{
+					if (shift < (sizeof(Int) * 8) && (byte & 0x40))
+					{
+						v |= (~0 << shift);
+					}
+					return true;
+				}
+				shift += 7;
+			}
+			return false;
+		}
+
+		bool mysql_lenenc(uint64_t& v) noexcept
 		{
 			uint8_t first;
 			if (u8(first))
@@ -164,13 +145,13 @@ namespace soup
 		}
 
 		// Null-terminated string.
-		bool str_nt(std::string& v)
+		bool str_nt(std::string& v) SOUP_EXCAL
 		{
 			v.clear();
 			while (true)
 			{
 				char c;
-				if (!ioBase::c(c))
+				SOUP_IF_UNLIKELY (!ioBase::c(c))
 				{
 					return false;
 				}
@@ -185,20 +166,20 @@ namespace soup
 
 		// Length-prefixed string.
 		template <typename T>
-		bool str_lp(std::string& v, const T max_len = -1)
+		bool str_lp(std::string& v, const T max_len = -1) SOUP_EXCAL
 		{
 			T len;
 			return ser<T>(len) && len <= max_len && str(static_cast<size_t>(len), v);
 		}
 
 		// Length-prefixed string, using u64_dyn for the length prefix.
-		bool str_lp_u64_dyn(std::string& v)
+		bool str_lp_u64_dyn(std::string& v) SOUP_EXCAL
 		{
 			uint64_t len;
 			return u64_dyn(len) && str((size_t)len, v);
 		}
 
-		bool bigint_lp_u64_dyn(Bigint& v);
+		bool bigint_lp_u64_dyn(Bigint& v) SOUP_EXCAL;
 
 		// Length-prefixed string, using mysql_lenenc for the length prefix.
 		bool str_lp_mysql(std::string& v)
@@ -208,56 +189,56 @@ namespace soup
 		}
 
 		// Length-prefixed string, using u8 for the length prefix.
-		[[deprecated]] bool str_lp_u8(std::string& v, const uint8_t max_len = 0xFF)
+		[[deprecated]] bool str_lp_u8(std::string& v, const uint8_t max_len = 0xFF) SOUP_EXCAL
 		{
 			return str_lp<u8_t>(v, max_len);
 		}
 
 		// Length-prefixed string, using u16 for the length prefix.
-		[[deprecated]] bool str_lp_u16(std::string& v, const uint16_t max_len = 0xFFFF)
+		[[deprecated]] bool str_lp_u16(std::string& v, const uint16_t max_len = 0xFFFF) SOUP_EXCAL
 		{
 			return str_lp<u16_t>(v, max_len);
 		}
 
 		// Length-prefixed string, using u24 for the length prefix.
-		[[deprecated]] bool str_lp_u24(std::string& v, const uint32_t max_len = 0xFFFFFF)
+		[[deprecated]] bool str_lp_u24(std::string& v, const uint32_t max_len = 0xFFFFFF) SOUP_EXCAL
 		{
 			return str_lp<u24_t>(v, max_len);
 		}
 
 		// Length-prefixed string, using u32 for the length prefix.
-		[[deprecated]] bool str_lp_u32(std::string& v, const uint32_t max_len = 0xFFFFFFFF)
+		[[deprecated]] bool str_lp_u32(std::string& v, const uint32_t max_len = 0xFFFFFFFF) SOUP_EXCAL
 		{
 			return str_lp<u32_t>(v, max_len);
 		}
 
 		// Length-prefixed string, using u64 for the length prefix.
-		[[deprecated]] bool str_lp_u64(std::string& v)
+		[[deprecated]] bool str_lp_u64(std::string& v) SOUP_EXCAL
 		{
 			return str_lp<u64_t>(v);
 		}
 
 		// String with known length.
-		bool str(size_t len, std::string& v)
+		bool str(size_t len, std::string& v) SOUP_EXCAL
 		{
 			v = std::string(len, '\0');
 			return raw(v.data(), len);
 		}
 
 		// std::vector<uint8_t> with u8 size prefix.
-		bool vec_u8_u8(std::vector<uint8_t>& v)
+		bool vec_u8_u8(std::vector<uint8_t>& v) SOUP_EXCAL
 		{
 			uint8_t len;
-			if (!u8(len))
+			SOUP_IF_UNLIKELY (!u8(len))
 			{
 				return false;
 			}
 			v.clear();
 			v.reserve(len);
-			for (; len; --len)
+			while (len--)
 			{
 				uint8_t entry;
-				if (!u8(entry))
+				SOUP_IF_UNLIKELY (!u8(entry))
 				{
 					return false;
 				}
@@ -267,19 +248,19 @@ namespace soup
 		}
 
 		// std::vector<uint16_t> with u16 size prefix.
-		bool vec_u16_u16(std::vector<uint16_t>& v)
+		bool vec_u16_u16(std::vector<uint16_t>& v) SOUP_EXCAL
 		{
 			uint16_t len;
-			if (!ioBase::u16(len))
+			SOUP_IF_UNLIKELY (!ioBase::u16(len))
 			{
 				return false;
 			}
 			v.clear();
 			v.reserve(len / 2);
-			for (; len; --len)
+			while (len--)
 			{
 				uint16_t entry;
-				if (!ioBase::u16(entry))
+				SOUP_IF_UNLIKELY (!ioBase::u16(entry))
 				{
 					return false;
 				}
@@ -289,10 +270,10 @@ namespace soup
 		}
 
 		// std::vector<uint16_t> with u16 byte length prefix.
-		bool vec_u16_bl_u16(std::vector<uint16_t>& v)
+		bool vec_u16_bl_u16(std::vector<uint16_t>& v) SOUP_EXCAL
 		{
 			uint16_t len;
-			if (!ioBase::u16(len))
+			SOUP_IF_UNLIKELY (!ioBase::u16(len))
 			{
 				return false;
 			}
@@ -301,7 +282,7 @@ namespace soup
 			for (; len >= sizeof(uint16_t); len -= sizeof(uint16_t))
 			{
 				uint16_t entry;
-				if (!ioBase::u16(entry))
+				SOUP_IF_UNLIKELY (!ioBase::u16(entry))
 				{
 					return false;
 				}
@@ -311,10 +292,10 @@ namespace soup
 		}
 
 		// vector of str_nt with u64_dyn length prefix.
-		bool vec_str_nt_u64_dyn(std::vector<std::string>& v)
+		bool vec_str_nt_u64_dyn(std::vector<std::string>& v) SOUP_EXCAL
 		{
 			uint64_t len;
-			if (!u64_dyn(len))
+			SOUP_IF_UNLIKELY (!u64_dyn(len))
 			{
 				return false;
 			}
@@ -323,7 +304,7 @@ namespace soup
 			for (; len != 0; --len)
 			{
 				std::string entry;
-				if (!str_nt(entry))
+				SOUP_IF_UNLIKELY (!str_nt(entry))
 				{
 					return false;
 				}
@@ -333,10 +314,10 @@ namespace soup
 		}
 
 		// vector of str_lp<u24_t> with u24 byte length prefix.
-		bool vec_str_lp_u24_bl_u24(std::vector<std::string>& v)
+		bool vec_str_lp_u24_bl_u24(std::vector<std::string>& v) SOUP_EXCAL
 		{
 			uint32_t len;
-			if (!ioBase::u24(len))
+			SOUP_IF_UNLIKELY (!ioBase::u24(len))
 			{
 				return false;
 			}
@@ -345,7 +326,7 @@ namespace soup
 			while (len >= 3)
 			{
 				std::string entry;
-				if (!str_lp<u24_t>(entry))
+				SOUP_IF_UNLIKELY (!str_lp<u24_t>(entry))
 				{
 					return false;
 				}
@@ -356,13 +337,13 @@ namespace soup
 		}
 
 		// Null-terminated vector of str_lp<u8_t>.
-		bool vec_nt_str_lp_u8(std::vector<std::string>& v)
+		bool vec_nt_str_lp_u8(std::vector<std::string>& v) SOUP_EXCAL
 		{
 			v.clear();
 			while (true)
 			{
 				std::string entry;
-				if (!str_lp<u8_t>(entry))
+				SOUP_IF_UNLIKELY (!str_lp<u8_t>(entry))
 				{
 					return false;
 				}
@@ -376,13 +357,13 @@ namespace soup
 		}
 
 		// Reader-specific
-		virtual bool getLine(std::string& line) noexcept
+		virtual bool getLine(std::string& line) SOUP_EXCAL
 		{
 			line.clear();
 			char c;
 			while (ioBase::c(c))
 			{
-				SOUP_IF_UNLIKELY (c == '\n')
+				if (c == '\n')
 				{
 					return true;
 				}

@@ -1,29 +1,29 @@
 #pragma once
 
-#include "ioSeekableReader.hpp"
+#include "Reader.hpp"
 
 #include <cstring> // memcpy
 
 namespace soup
 {
-	class StringReader final : public ioSeekableReader
+	class StringReader final : public Reader
 	{
 	public:
 		std::string data;
 		size_t offset = 0;
 
 		StringReader(Endian endian = ENDIAN_LITTLE) noexcept
-			: ioSeekableReader(endian)
+			: Reader(endian)
 		{
 		}
 
 		StringReader(std::string&& data, Endian endian = ENDIAN_LITTLE) noexcept
-			: ioSeekableReader(endian), data(std::move(data))
+			: Reader(endian), data(std::move(data))
 		{
 		}
 
 		StringReader(std::string&& data, bool little_endian) noexcept
-			: ioSeekableReader(little_endian), data(std::move(data))
+			: Reader(little_endian), data(std::move(data))
 		{
 		}
 
@@ -67,7 +67,7 @@ namespace soup
 		}
 
 		// Faster alternative to std::stringstream + std::getline
-		bool getLine(std::string& line) noexcept final
+		bool getLine(std::string& line) SOUP_EXCAL final
 		{
 			size_t next = data.find('\n', offset);
 			SOUP_IF_LIKELY (next != std::string::npos)

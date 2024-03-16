@@ -1,12 +1,12 @@
 #pragma once
 
-#include "ioSeekableReader.hpp"
+#include "Reader.hpp"
 
 #include <cstring> // memcpy
 
 namespace soup
 {
-	class StringRefReader final : public ioSeekableReader
+	class StringRefReader final : public Reader
 	{
 	public:
 		const char* data;
@@ -14,18 +14,18 @@ namespace soup
 		size_t offset = 0;
 
 		StringRefReader(const std::string& str, bool little_endian = true)
-			: ioSeekableReader(little_endian), data(str.data()), size(str.size())
+			: Reader(little_endian), data(str.data()), size(str.size())
 		{
 		}
 
 		StringRefReader(const char* data, size_t size, bool little_endian = true)
-			: ioSeekableReader(little_endian), data(data), size(size)
+			: Reader(little_endian), data(data), size(size)
 		{
 		}
 
 		~StringRefReader() final = default;
 
-		bool hasMore() final
+		bool hasMore() noexcept final
 		{
 			return offset != size;
 		}
@@ -41,17 +41,17 @@ namespace soup
 			return true;
 		}
 
-		[[nodiscard]] size_t getPosition() final
+		[[nodiscard]] size_t getPosition() noexcept final
 		{
 			return offset;
 		}
 
-		void seek(size_t pos) final
+		void seek(size_t pos) noexcept final
 		{
 			offset = pos;
 		}
 
-		void seekEnd() final
+		void seekEnd() noexcept final
 		{
 			offset = size;
 		}

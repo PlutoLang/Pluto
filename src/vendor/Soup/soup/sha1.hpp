@@ -13,6 +13,6 @@ namespace soup
 		static constexpr auto BLOCK_BYTES = 64u;
 
 		[[nodiscard]] static std::string hash(const std::string& str) SOUP_EXCAL;
-		[[nodiscard]] static std::string hash(ioSeekableReader& r) SOUP_EXCAL;
+		[[nodiscard]] static std::string hash(Reader& r) SOUP_EXCAL;
 	};
 }

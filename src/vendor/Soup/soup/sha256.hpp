@@ -14,6 +14,6 @@ namespace soup
 
 		[[nodiscard]] static std::string hash(const void* data, size_t len) SOUP_EXCAL;
 		[[nodiscard]] static std::string hash(const std::string& str) SOUP_EXCAL;
-		[[nodiscard]] static std::string hash(ioSeekableReader& r) SOUP_EXCAL;
+		[[nodiscard]] static std::string hash(Reader& r) SOUP_EXCAL;
 	};
 }

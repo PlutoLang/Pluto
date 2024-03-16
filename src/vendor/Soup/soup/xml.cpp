@@ -14,8 +14,8 @@
 namespace soup
 {
 	XmlMode xml::MODE_XML{};
-	XmlMode xml::MODE_LAX_XML{ {}, true };
-	XmlMode xml::MODE_HTML{ { "area", "base", "br", "col", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr" }, true };
+	XmlMode xml::MODE_LAX_XML{ {}, true, true };
+	XmlMode xml::MODE_HTML{ { "area", "base", "br", "col", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr" }, true, true };
 
 	UniquePtr<XmlTag> xml::parseAndDiscardMetadata(const std::string& xml, const XmlMode& mode)
 	{
@@ -226,6 +226,33 @@ namespace soup
 							value.endCopy(i);
 							tag->attributes.emplace_back(std::move(name), std::move(value));
 						}
+						else if (i != end && string::isAlphaNum(*i) && mode.unquoted_attributes)
+						{
+#if DEBUG_PARSE
+							std::cout << "Collecting value for attribute " << name << ": ";
+#endif
+							value.beginCopy(i);
+							for (;; ++i)
+							{
+								if (i == end)
+								{
+									return tag;
+								}
+								if (!string::isAlphaNum(*i))
+								{
+									break;
+								}
+#if DEBUG_PARSE
+								std::cout << *i;
+#endif
+							}
+#if DEBUG_PARSE
+							std::cout << std::endl;
+#endif
+							value.endCopy(i);
+							tag->attributes.emplace_back(std::move(name), std::move(value));
+
+						}
 						else
 						{
 #if DEBUG_PARSE
@@ -397,13 +424,28 @@ namespace soup
 		return tag;
 	}
 
-	std::string XmlNode::encode(const XmlMode& mode) const noexcept
+	void XmlNode::encodeAndAppendTo(std::string& str, const XmlMode& mode) const SOUP_EXCAL
 	{
 		if (is_text)
 		{
-			return static_cast<const XmlText*>(this)->encode();
+			static_cast<const XmlText*>(this)->encodeAndAppendTo(str);
 		}
-		return static_cast<const XmlTag*>(this)->encode(mode);
+		else
+		{
+			static_cast<const XmlTag*>(this)->encodeAndAppendTo(str, mode);
+		}
+	}
+
+	void XmlNode::encodePrettyAndAppendTo(std::string& str, const XmlMode& mode, unsigned depth) const SOUP_EXCAL
+	{
+		if (is_text)
+		{
+			static_cast<const XmlText*>(this)->encodeAndAppendTo(str);
+		}
+		else
+		{
+			static_cast<const XmlTag*>(this)->encodePrettyAndAppendTo(str, mode, depth);
+		}
 	}
 
 	bool XmlNode::isTag() const noexcept
@@ -452,16 +494,70 @@ namespace soup
 		return *static_cast<const XmlText*>(this);
 	}
 
-	std::string XmlTag::encode(const XmlMode& mode) const noexcept
+	void XmlTag::encodeAndAppendTo(std::string& str, const XmlMode& mode) const SOUP_EXCAL
 	{
 #if SOUP_CPP20
 		const bool is_self_closing = mode.self_closing_tags.contains(name);
 #else
 		const bool is_self_closing = mode.self_closing_tags.count(name);
 #endif
-
-		std::string str(1, '<');
+		str.push_back('<');
 		str.append(name);
+		encodeAttributesAndAppendTo(str, mode);
+		if (is_self_closing)
+		{
+			str.append(" /");
+		}
+		str.push_back('>');
+		for (const auto& child : children)
+		{
+			child->encodeAndAppendTo(str, mode);
+		}
+		if (!is_self_closing)
+		{
+			str.append("</");
+			str.append(name);
+			str.push_back('>');
+		}
+	}
+
+	void XmlTag::encodePrettyAndAppendTo(std::string& str, const XmlMode& mode, unsigned depth) const SOUP_EXCAL
+	{
+#if SOUP_CPP20
+		const bool is_self_closing = mode.self_closing_tags.contains(name);
+#else
+		const bool is_self_closing = mode.self_closing_tags.count(name);
+#endif
+		str.push_back('<');
+		str.append(name);
+		encodeAttributesAndAppendTo(str, mode);
+		if (is_self_closing)
+		{
+			str.append(" /");
+		}
+		str.push_back('>');
+		const auto child_depth = (depth + 1);
+		for (const auto& child : children)
+		{
+			str.push_back('\n');
+			str.append(child_depth * 4, ' ');
+			child->encodePrettyAndAppendTo(str, mode, child_depth);
+		}
+		if (!is_self_closing)
+		{
+			if (!children.empty())
+			{
+				str.push_back('\n');
+				str.append(depth * 4, ' ');
+			}
+			str.append("</");
+			str.append(name);
+			str.push_back('>');
+		}
+	}
+
+	void XmlTag::encodeAttributesAndAppendTo(std::string& str, const XmlMode& mode) const SOUP_EXCAL
+	{
 		for (const auto& e : attributes)
 		{
 			str.push_back(' ');
@@ -487,22 +583,6 @@ namespace soup
 				}
 			}
 		}
-		if (is_self_closing)
-		{
-			str.append(" /");
-		}
-		str.push_back('>');
-		for (const auto& child : children)
-		{
-			str.append(child->encode(mode));
-		}
-		if (!is_self_closing)
-		{
-			str.append("</");
-			str.append(name);
-			str.push_back('>');
-		}
-		return str;
 	}
 
 	bool XmlTag::hasAttribute(const std::string& name) const noexcept
@@ -558,12 +638,12 @@ namespace soup
 		string::replaceAll(this->contents, "&gt;", ">");
 	}
 
-	std::string XmlText::encode() const noexcept
+	void XmlText::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
 		std::string contents = this->contents;
 		string::replaceAll(contents, "&", "&amp;");
 		string::replaceAll(contents, "<", "&lt;");
 		string::replaceAll(contents, ">", "&gt;");
-		return contents;
+		str.append(contents);
 	}
 }
