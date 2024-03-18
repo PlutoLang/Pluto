@@ -63,6 +63,11 @@ static int bigint_hex (lua_State *L) {
   return 1;
 }
 
+static int bigint_bitlength (lua_State *L) {
+  lua_pushinteger(L, checkbigint(L, 1)->getBitLength());
+  return 1;
+}
+
 void pushbigint (lua_State *L, soup::Bigint&& x) {
   if (l_unlikely(luaL_newmetatable(L, "pluto:bigint"))) {
     lua_pushliteral(L, "__gc");
@@ -113,6 +118,7 @@ static const luaL_Reg funcs[] = {
   {"pow", bigint_pow},
   {"tostring", bigint_tostring},
   {"hex", bigint_hex},
+  {"bitlength", bigint_bitlength},
   {nullptr, nullptr}
 };
 
