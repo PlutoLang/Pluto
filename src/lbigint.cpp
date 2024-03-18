@@ -87,6 +87,10 @@ void pushbigint (lua_State *L, soup::Bigint&& x) {
     lua_pushliteral(L, "__tostring");
     lua_pushcfunction(L, bigint_tostring);
     lua_settable(L, -3);
+    lua_pushliteral(L, "__index");
+    luaL_loadbuffer(L, "return require\"pluto:bigint\"", 28, 0);
+    lua_call(L, 0, 1);
+    lua_settable(L, -3);
   }
   lua_pop(L, 1);
 
