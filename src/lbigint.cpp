@@ -32,6 +32,13 @@ static int bigint_mul (lua_State *L) {
 }
 
 static int bigint_div (lua_State *L) {
+  auto [q, r] = checkbigint(L, 1)->divide(*checkbigint(L, 2));
+  pushbigint(L, std::move(q));
+  pushbigint(L, std::move(r));
+  return 2;
+}
+
+static int bigint_div_mm (lua_State *L) {
   pushbigint(L, *checkbigint(L, 1) / *checkbigint(L, 2));
   return 1;
 }
@@ -69,7 +76,7 @@ void pushbigint (lua_State *L, soup::Bigint&& x) {
     lua_pushcfunction(L, bigint_mul);
     lua_settable(L, -3);
     lua_pushliteral(L, "__div");
-    lua_pushcfunction(L, bigint_div);
+    lua_pushcfunction(L, bigint_div_mm);
     lua_settable(L, -3);
     lua_pushliteral(L, "__mod");
     lua_pushcfunction(L, bigint_mod);
