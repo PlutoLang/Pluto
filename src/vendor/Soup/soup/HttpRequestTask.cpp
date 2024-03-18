@@ -228,6 +228,7 @@ namespace soup
 			HttpResponse resp;
 			resp.body = std::string(fetch->data, fetch->numBytes);
 			resp.status_code = fetch->status;
+			resp.status_text = fetch->statusText;
 			((HttpRequestTask*)fetch->userData)->fulfil(std::move(resp));
 			emscripten_fetch_close(fetch);
 		};
