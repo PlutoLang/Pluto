@@ -746,7 +746,7 @@ static int luaB_range (lua_State *L) {
     step = 1;
   }
 
-  lua_newtable(L);
+  lua_createtable(L, cast(int, end - start), 0);
   lua_Integer idx = 1;
   for (lua_Integer i = start; i <= end; i += step, ++idx) {
     lua_pushinteger(L, i);
