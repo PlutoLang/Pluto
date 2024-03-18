@@ -41,7 +41,7 @@ static int bigint_mod (lua_State *L) {
   return 1;
 }
 
-static int bigint_exp (lua_State *L) {
+static int bigint_pow (lua_State *L) {
   pushbigint(L, checkbigint(L, 1)->pow(*checkbigint(L, 2)));
   return 1;
 }
@@ -75,7 +75,7 @@ void pushbigint (lua_State *L, soup::Bigint&& x) {
     lua_pushcfunction(L, bigint_mod);
     lua_settable(L, -3);
     lua_pushliteral(L, "__pow");
-    lua_pushcfunction(L, bigint_exp);
+    lua_pushcfunction(L, bigint_pow);
     lua_settable(L, -3);
     lua_pushliteral(L, "__tostring");
     lua_pushcfunction(L, bigint_tostring);
@@ -94,6 +94,7 @@ static const luaL_Reg funcs[] = {
   {"mul", bigint_mul},
   {"div", bigint_div},
   {"mod", bigint_mod},
+  {"pow", bigint_pow},
   {"tostring", bigint_tostring},
   {nullptr, nullptr}
 };
