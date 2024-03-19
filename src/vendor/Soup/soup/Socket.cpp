@@ -374,9 +374,9 @@ namespace soup
 		case 12: return TLS_GREASE_12;
 		case 13: return TLS_GREASE_13;
 		case 14: return TLS_GREASE_14;
-		default:;
+		case 15: return TLS_GREASE_15;
 		}
-		return TLS_GREASE_15;
+		SOUP_UNREACHABLE;
 	}
 
 	struct CaptureValidateCertchain
@@ -459,7 +459,7 @@ namespace soup
 		}
 
 		{
-			// Note: NGINX/OpenSSL (e.g., api.deepl.com) closes with "internal_error" if signature_algorithms is not present.
+			// Note: If not present, { rsa_pkcs1_sha1 } is implied. NGINX/OpenSSL may close with "internal_error" if the server is not able to accept that, e.g. api.deepl.com.
 
 			std::vector<uint16_t> supported_signature_schemes{
 				TlsSignatureScheme::rsa_pkcs1_sha1,

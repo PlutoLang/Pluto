@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint> // uintptr_t
 #include <utility> // move
 
 #include "base.hpp" // SOUP_EXCAL

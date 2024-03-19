@@ -6,6 +6,7 @@ namespace soup
 {
 	// algos.rng.interface
 	struct RngInterface;
+	struct StatelessRngInterface;
 
 	// audio
 	class audPlayback;

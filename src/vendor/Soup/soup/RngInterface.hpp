@@ -13,4 +13,8 @@ namespace soup
 			return generate() & 1;
 		}
 	};
+
+	struct StatelessRngInterface : public RngInterface
+	{
+	};
 }

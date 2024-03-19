@@ -1,5 +1,7 @@
 #include "base64.hpp"
 
+#include <cstdint>
+
 /*
 Original source: https://gist.github.com/tomykaira/f0fd86b6c73063283afe550bc5d77594
 Original licence follows.

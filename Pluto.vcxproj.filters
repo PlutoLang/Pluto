@@ -257,9 +257,6 @@
     </ClCompile>
     <ClCompile Include="src\lschedulerlib.cpp" />
     <ClCompile Include="src\lsocketlib.cpp" />
-    <ClCompile Include="src\vendor\Soup\soup\os.cpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\filesystem.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
@@ -274,6 +271,27 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
     <ClCompile Include="src\lxml.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\HardwareRng.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\DefaultRngInterface.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\Intrin\hardware_rng.cpp">
+      <Filter>vendor\Soup\Intrin</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\sha384.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\sha512.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\Writer.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\Reader.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -337,9 +355,6 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\ioBase.hpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClInclude>
-    <ClInclude Include="src\vendor\Soup\soup\ioSeekableReader.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\json.hpp">
@@ -777,9 +792,6 @@
     <ClInclude Include="src\vendor\Soup\soup\log.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
-    <ClInclude Include="src\vendor\Soup\soup\os.hpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\filesystem.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
@@ -793,6 +805,21 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\StringBuilder.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\HardwareRng.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\DefaultRngInterface.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\sha384.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\sha512.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\TlsSignatureScheme.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>

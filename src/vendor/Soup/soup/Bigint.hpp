@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base.hpp"
+#include "type.hpp" // halfsize_t, halfintmax_t
 
 #ifndef SOUP_BIGINT_USE_INTVECTOR
 #define SOUP_BIGINT_USE_INTVECTOR SOUP_WINDOWS

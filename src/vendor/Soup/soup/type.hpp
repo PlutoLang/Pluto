@@ -3,10 +3,19 @@
 #include "base.hpp"
 #include "fwd.hpp"
 
+#include <cstdint>
 #include <string>
 
 namespace soup
 {
+#if SOUP_BITS == 64
+	using halfintmax_t = int32_t;
+	using halfsize_t = uint32_t;
+#elif SOUP_BITS == 32
+	using halfintmax_t = int16_t;
+	using halfsize_t = uint16_t;
+#endif
+
 	// net
 	using certchain_validator_t = bool(*)(const X509Certchain&, const std::string&, StructMap&) SOUP_EXCAL;
 

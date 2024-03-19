@@ -495,6 +495,7 @@
     <ClCompile Include="src\lzio.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\aes_helper.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\crc32_pclmul.cpp" />
+    <ClCompile Include="src\vendor\Soup\Intrin\hardware_rng.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\sha1_transform_intrin.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\sha256_transform_intrin.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\adler32.cpp" />
@@ -510,6 +511,7 @@
     <ClCompile Include="src\vendor\Soup\soup\CpuInfo.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\crc32.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Curve25519.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\DefaultRngInterface.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\deflate.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\DetachedScheduler.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\dnsHttpResolver.cpp" />
@@ -521,6 +523,7 @@
     <ClCompile Include="src\vendor\Soup\soup\dns_records.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ecc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\filesystem.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\HardwareRng.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\HttpRequest.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\HttpRequestTask.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\IpAddr.cpp" />
@@ -634,6 +637,7 @@
     <ClInclude Include="src\vendor\Soup\soup\crc32.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CryptoHashAlgo.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Curve25519.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\DefaultRngInterface.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\deflate.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\DelayedCtor.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\deleter.hpp" />
@@ -657,6 +661,7 @@
     <ClInclude Include="src\vendor\Soup\soup\filesystem.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\format.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\fwd.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\HardwareRng.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\HttpRequest.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\HttpRequestTask.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\HttpResponse.hpp" />
