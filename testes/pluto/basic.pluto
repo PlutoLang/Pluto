@@ -1751,7 +1751,21 @@ do
 
     local sig = crypto.sign("Pluto is certified cool", "rsa-sha1", priv)
     assert(crypto.verify("Pluto is certified cool", "rsa-sha1", pub, sig))
+end
+do
+    local bigint = require "pluto:bigint"
 
+    do
+        local q, r = new bigint(10):div(new bigint(3))
+        assert(q:tostring() == "3")
+        assert(r:tostring() == "1")
+    end
+
+    do
+        local n = bigint.new("11355630182234424425429331560518598643298965915936825610957270519615363349759012613228119611304846673085167794661819394470107090216347491908311079792054357")
+        assert(n:hex() == "D8D12A03AE2F14B16CBFDF160FF7AC97911862B3D048F18E3B95E909A08D91AAD4BA48D8A1FE4EBC555782FDE14D13085A35F6F62D57A4F86CE1FF32503A9055")
+        assert(n:bitlength() == 512)
+    end
 end
 
 print "Testing default table metatable."
