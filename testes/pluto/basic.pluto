@@ -1767,6 +1767,26 @@ do
         assert(n:bitlength() == 512)
     end
 end
+do
+    local { scheduler, socket } = require "*"
+
+    local sched = new scheduler()
+    sched:add(function()
+        local l = socket.listen(30724)
+        local s = l:accept()
+        while data := s:recv() do
+            s:send(data)
+        end
+    end)
+    sched:add(function()
+        local s = socket.connect("localhost", 30724)
+        assert(s)
+        s:send("Hello")
+        assert(s:recv() == "Hello")
+        s:close()
+    end)
+    sched:run()
+end
 
 print "Testing default table metatable."
 do
