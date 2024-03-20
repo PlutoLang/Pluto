@@ -265,6 +265,26 @@ static const luaL_Reg funcs[] = {
   {NULL, NULL}
 };
 
-PLUTO_NEWLIB(socket)
+LUAMOD_API int luaopen_socket (lua_State *L) {
+  luaL_newlib(L, funcs);
+
+  lua_pushliteral(L, "bind");
+  luaL_loadstring(L, R"EOC(
+return function(sched, port, callback)
+    sched:add(function()
+        local l = require"pluto:socket".listen(port)
+        while s := l:accept() do
+            sched:add(function()
+                callback(s)
+            end)
+        end
+    end)
+end)EOC");
+  lua_call(L, 0, 1);
+  lua_settable(L, -3);
+
+  return 1;
+}
+const Pluto::PreloadedLibrary Pluto::preloaded_socket{ "socket", funcs, &luaopen_socket };
 
 #endif
