@@ -23,7 +23,7 @@ function check_compiler()
 	}
 
 	$compiler = resolve_installed_program($argv[1]);
-	$compiler .= " -std=c++17 -O3 -fvisibility=hidden";
+	$compiler .= " -std=c++17 -O3 -fvisibility=hidden -fno-rtti";
 	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 	{
 		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
