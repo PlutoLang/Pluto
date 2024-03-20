@@ -196,6 +196,7 @@ static int restaccept (lua_State *L, Listener& l) {
   ss.sched.addSocket(std::move(l.accepted));
   ss.from_listener = true;
   ss.recvLoop();
+  l.serv.tick();  /* avoid having the to yield/block for the next call to accept */
   return 1;
 }
 
