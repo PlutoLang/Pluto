@@ -2238,8 +2238,10 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
     namedvararg(ls, varargname);
   TypeHint retprop{};
   if (testnext(ls, TK_DO)) {
+    ls->pushContext(PARCTX_BODY);
     statlist(ls, &retprop, true);
     check_match(ls, TK_END, TK_ARROW, line);
+    ls->popContext(PARCTX_BODY);
   }
   else {
     ls->pushContext(PARCTX_LAMBDA_BODY);
