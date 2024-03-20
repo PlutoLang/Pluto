@@ -168,6 +168,12 @@ static int starttls (lua_State *L) {
   return 1;
 }
 
+static int socket_close (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  ss.sock->close();
+  return 0;
+}
+
 struct Listener {
   soup::Server serv;
   soup::ServerService srv{ &onTunnelEstablished };
@@ -261,6 +267,7 @@ static const luaL_Reg funcs[] = {
   {"recv", l_recv},
   {"unrecv", unrecv},
   {"starttls", starttls},
+  {"close", socket_close},
   {"listen", l_listen},
   {NULL, NULL}
 };
