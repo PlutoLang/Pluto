@@ -550,6 +550,7 @@
     <ClCompile Include="src\vendor\Soup\soup\rsa.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Scheduler.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SelfDeletingThread.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\Server.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\sha1.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\sha256.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\sha384.cpp" />
@@ -713,6 +714,9 @@
     <ClInclude Include="src\vendor\Soup\soup\Scheduler.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\scoped_enum.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\SelfDeletingThread.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\Server.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\ServerService.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\ServerServiceUdp.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\sha1.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\sha256.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\sha384.hpp" />

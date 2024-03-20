@@ -292,6 +292,9 @@
     <ClCompile Include="src\vendor\Soup\soup\Reader.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\Server.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -820,6 +823,15 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\TlsSignatureScheme.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\ServerServiceUdp.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\Server.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\ServerService.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>
