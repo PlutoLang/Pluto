@@ -3,7 +3,7 @@
 #define LUA_LIB
 #include "lualib.h"
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_vector3[] = {
   {nullptr, nullptr}
 };
 
@@ -203,4 +203,4 @@ return vector3)EOC";
     return 1;
 }
 
-const Pluto::PreloadedLibrary Pluto::preloaded_vector3{ "vector3", funcs, &luaopen_vector3 };
+const Pluto::PreloadedLibrary Pluto::preloaded_vector3{ "vector3", funcs_vector3, &luaopen_vector3 };

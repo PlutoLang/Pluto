@@ -155,6 +155,8 @@ namespace soup
 #endif
 	}
 
+#undef max
+
 	EccPoint EccCurve::multiplyAndAdd(const EccPoint& G, const Bigint& u1, const EccPoint& Q, const Bigint& u2) const
 	{
 		EccPoint R;

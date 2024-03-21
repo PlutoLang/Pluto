@@ -193,7 +193,7 @@ static int cat_decode (lua_State *L) {
   return 0;
 }
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_cat[] = {
   {"encode", cat_encode},
   {"decode", cat_decode},
   {nullptr, nullptr}

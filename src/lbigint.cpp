@@ -113,7 +113,7 @@ void pushbigint (lua_State *L, soup::Bigint&& x) {
   luaL_setmetatable(L, "pluto:bigint");
 }
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_bigint[] = {
   {"new", bigint_new},
   {"add", bigint_add},
   {"sub", bigint_sub},

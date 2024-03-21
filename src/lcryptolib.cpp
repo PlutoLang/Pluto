@@ -695,7 +695,7 @@ static int l_adler32 (lua_State *L) {
 }
 
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_crypto[] = {
   {"hexdigest", hexdigest},  /* deprecated since 0.8.0 */
   {"random", random},
   {"sha1", l_sha1},
