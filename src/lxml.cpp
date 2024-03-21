@@ -134,7 +134,7 @@ static int xml_decode (lua_State *L) {
   return 1;
 }
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_xml[] = {
   {"encode", xml_encode},
   {"decode", xml_decode},
   {nullptr, nullptr}

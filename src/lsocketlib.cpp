@@ -262,7 +262,7 @@ static int l_listen (lua_State *L) {
   return l.serv.bind(port, &l.srv) ? 1 : 0;
 }
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_socket[] = {
   {"connect", l_connect},
   {"send", l_send},
   {"recv", l_recv},
@@ -274,7 +274,7 @@ static const luaL_Reg funcs[] = {
 };
 
 LUAMOD_API int luaopen_socket (lua_State *L) {
-  luaL_newlib(L, funcs);
+  luaL_newlib(L, funcs_socket);
 
   lua_pushliteral(L, "bind");
   luaL_loadstring(L, R"EOC(
@@ -293,6 +293,6 @@ end)EOC");
 
   return 1;
 }
-const Pluto::PreloadedLibrary Pluto::preloaded_socket{ "socket", funcs, &luaopen_socket };
+const Pluto::PreloadedLibrary Pluto::preloaded_socket{ "socket", funcs_socket, &luaopen_socket };
 
 #endif

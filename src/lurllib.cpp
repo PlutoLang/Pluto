@@ -42,7 +42,7 @@ static int url_parse (lua_State *L) {
 }
 
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_url[] = {
   {"encode", url_encode},
   {"decode", url_decode},
   {"parse", url_parse},

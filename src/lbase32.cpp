@@ -15,7 +15,7 @@ static int decode(lua_State* L) {
 	return 1;
 }
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_base32[] = {
 	{"encode", encode},
 	{"decode", decode},
 	{nullptr, nullptr}

@@ -54,7 +54,7 @@ namespace Pluto {
 }
 
 
-#define PLUTO_NEWLIB(name) LUAMOD_API int luaopen_##name(lua_State *L) { luaL_newlib(L, funcs); return 1; } const Pluto::PreloadedLibrary Pluto::preloaded_##name { #name, funcs, &luaopen_##name };
+#define PLUTO_NEWLIB(name) LUAMOD_API int luaopen_##name(lua_State *L) { luaL_newlib(L, funcs_##name); return 1; } const Pluto::PreloadedLibrary Pluto::preloaded_##name { #name, funcs_##name, &luaopen_##name };
 
 
 #define LUAL_NUMSIZES	(sizeof(lua_Integer)*16 + sizeof(lua_Number))

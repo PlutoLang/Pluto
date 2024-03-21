@@ -202,7 +202,7 @@ static int http_hasconnection (lua_State *L) {
 }
 #endif
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_http[] = {
   {"request", http_request},
 #if !SOUP_WASM
   {"hasconnection", http_hasconnection},

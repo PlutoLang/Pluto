@@ -40,7 +40,7 @@ static int urlDecodeDeprecated(lua_State* L) {
 	return urlDecode(L);
 }
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_base64[] = {
 	{"encode", encode},
 	{"decode", decode},
 	{"urlencode", urlEncode},  /* added in Pluto 0.8.0 */
