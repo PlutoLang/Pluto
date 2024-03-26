@@ -44,13 +44,12 @@
 
 
 
-#define luaH_fastgeti(t,k,res,hres) \
+#define luaH_fastgeti(t,k,res,tag) \
   { Table *h = t; lua_Unsigned u = l_castS2U(k); \
     if ((u - 1u < h->alimit)) { \
-      int tag = *getArrTag(h,(u)-1u); \
-      if (tagisempty(tag)) hres = HNOTFOUND; \
-      else { farr2val(h, u, tag, res); hres = HOK; }} \
-    else { hres = luaH_getint(h, u, res); }}
+      tag = *getArrTag(h,(u)-1u); \
+      if (!tagisempty(tag)) { farr2val(h, u, tag, res); }} \
+    else { tag = luaH_getint(h, u, res); }}
 
 
 #define luaH_fastseti(t,k,val,hres) \
@@ -62,15 +61,15 @@
     else { hres = luaH_psetint(h, u, val); }}
 
 
-/* results from get/pset */
+/* results from pset */
 #define HOK		0
 #define HNOTFOUND	1
 #define HNOTATABLE	2
 #define HFIRSTNODE	3
 
 /*
-** 'luaH_get*' operations set 'res' and return HOK, unless the value is
-** absent. In that case, they set nothing and return HNOTFOUND.
+** 'luaH_get*' operations set 'res', unless the value is absent, and
+** return the tag of the result,
 ** The 'luaH_pset*' (pre-set) operations set the given value and return
 ** HOK, unless the original value is absent. In that case, if the key
 ** is really absent, they return HNOTFOUND. Otherwise, if there is a
@@ -87,7 +86,8 @@
 /*
 ** The array part of a table is represented by an array of cells.
 ** Each cell is composed of NM tags followed by NM values, so that
-** no space is wasted in padding.
+** no space is wasted in padding. The last cell may be incomplete,
+** that is, it may have fewer than NM values.
 */
 #define NM      cast_uint(sizeof(Value))
 
