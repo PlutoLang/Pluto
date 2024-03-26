@@ -37,44 +37,56 @@
 
 
 /*
-** these libs are loaded by lua.c and are readily available to any Lua
-** program
+** Standard Libraries. (Must be listed in the same ORDER of their
+** respective constants LUA_<libname>K.)
 */
-static const luaL_Reg loadedlibs[] = {
+static const luaL_Reg stdlibs[] = {
   {LUA_GNAME, luaopen_base},
   {LUA_LOADLIBNAME, luaopen_package},
 #ifndef PLUTO_NO_COROLIB
   {LUA_COLIBNAME, luaopen_coroutine},
 #endif
-  {LUA_TABLIBNAME, luaopen_table},
-#ifndef PLUTO_NO_FILESYSTEM
-  {LUA_IOLIBNAME, luaopen_io},
-#endif
-  {LUA_OSLIBNAME, luaopen_os},
-  {LUA_STRLIBNAME, luaopen_string},
-  {LUA_MATHLIBNAME, luaopen_math},
-  {LUA_UTF8LIBNAME, luaopen_utf8},
 #ifndef PLUTO_NO_DEBUGLIB
   {LUA_DBLIBNAME, luaopen_debug},
 #endif
+#ifndef PLUTO_NO_FILESYSTEM
+  {LUA_IOLIBNAME, luaopen_io},
+#endif
+  {LUA_MATHLIBNAME, luaopen_math},
+  {LUA_OSLIBNAME, luaopen_os},
+  {LUA_STRLIBNAME, luaopen_string},
+  {LUA_TABLIBNAME, luaopen_table},
+  {LUA_UTF8LIBNAME, luaopen_utf8},
   {NULL, NULL}
 };
 
 
-LUALIB_API void luaL_openlibs (lua_State *L) {
+/*
+** require and preload selected standard libraries
+*/
+LUALIB_API void luaL_openselectedlibs (lua_State *L, int load, int preload) {
+  int mask;
   const luaL_Reg *lib;
-
-  for (lib = loadedlibs; lib->func; lib++) {
-    luaL_requiref(L, lib->name, lib->func, 1);
-    lua_pop(L, 1);  /* remove lib */
+  luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
+  for (lib = stdlibs, mask = 1; lib->name != NULL; lib++, mask <<= 1) {
+    if (load & mask) {  /* selected? */
+      luaL_requiref(L, lib->name, lib->func, 1);  /* require library */
+      lua_pop(L, 1);  /* remove result from the stack */
+    }
+    else if (preload & mask) {  /* selected? */
+      lua_pushcfunction(L, lib->func);
+      lua_setfield(L, -2, lib->name);  /* add library to PRELOAD table */
+    }
   }
+  lua_assert((mask >> 1) == LUA_UTF8LIBK);
 
   luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
   for (const Pluto::PreloadedLibrary* lib : Pluto::all_preloaded) {
     lua_pushcfunction(L, lib->init);
     lua_setfield(L, -2, lib->name);
   }
-  lua_pop(L, 1);
+
+  lua_pop(L, 1);  /* remove PRELOAD table */
 
   const auto startup_code = R"EOC(
 pluto_use "0.6.0"

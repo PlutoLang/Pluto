@@ -455,7 +455,7 @@ print("testing binary chunks")
 do
   local header = string.pack("c4BBc6BBB",
     "\27Lua",                                  -- signature
-    0x54,                                      -- version 5.4 (0x54)
+    0x55,                                      -- version 5.5 (0x55)
     0,                                         -- format
     "\x19\x93\r\n\x1a\n",                      -- data
     4,                                         -- size of instruction
@@ -491,6 +491,31 @@ do
   for i = 1, #c - 1 do
     local st, msg = load(string.sub(c, 1, i))
     assert(not st and string.find(msg, "truncated"))
+  end
+end
+
+
+do   -- check reuse of strings in dumps
+  local str = "|" .. string.rep("X", 50) .. "|"
+  local foo = load(string.format([[
+    local str <const> = "%s"
+    return {
+      function () return str end,
+      function () return str end,
+      function () return str end
+    }
+  ]], str))
+  -- count occurrences of 'str' inside the dump
+  local dump = string.dump(foo)
+  local _, count = string.gsub(dump, str, {})
+  -- there should be only two occurrences:
+  -- one inside the source, other the string itself.
+  assert(count == 2)
+
+  if T then  -- check reuse of strings in undump
+    local funcs = load(dump)()
+    assert(string.format("%p", T.listk(funcs[1])[1]) ==
+           string.format("%p", T.listk(funcs[3])[1]))
   end
 end
 

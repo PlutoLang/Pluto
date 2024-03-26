@@ -369,7 +369,7 @@ static lua_Number I2d (Rand64 x) {
   SRand64 sx = (SRand64)(trim64(x) >> shift64_FIG);
   lua_Number res = (lua_Number)(sx) * scaleFIG;
   if (sx < 0)
-    res += 1.0;  /* correct the two's complement if negative */
+    res += l_mathop(1.0);  /* correct the two's complement if negative */
   lua_assert(0 <= res && res < 1);
   return res;
 }
@@ -637,28 +637,18 @@ static void setseed (lua_State *L, Rand64 *state,
 }
 
 
-/*
-** Set a "random" seed. To get some randomness, use the current time
-** and the address of 'L' (in case the machine does address space layout
-** randomization).
-*/
-static void randseed (lua_State *L, RanState *state) {
-  lua_Unsigned seed1 = (lua_Unsigned)time(NULL);
-  lua_Unsigned seed2 = (lua_Unsigned)(size_t)L;
-  setseed(L, state->s, seed1, seed2);
-}
-
-
 static int math_randomseed (lua_State *L) {
   RanState *state = (RanState *)lua_touserdata(L, lua_upvalueindex(1));
+  lua_Unsigned n1, n2;
   if (lua_isnone(L, 1)) {
-    randseed(L, state);
+    n1 = luaL_makeseed(L);  /* "random" seed */
+    n2 = I2UInt(nextrand(state->s));  /* in case seed is not that random... */
   }
   else {
-    lua_Integer n1 = luaL_checkinteger(L, 1);
-    lua_Integer n2 = luaL_optinteger(L, 2, 0);
-    setseed(L, state->s, n1, n2);
+    n1 = luaL_checkinteger(L, 1);
+    n2 = luaL_optinteger(L, 2, 0);
   }
+  setseed(L, state->s, n1, n2);
   return 2;  /* return seeds */
 }
 
@@ -675,7 +665,7 @@ static const luaL_Reg randfuncs[] = {
 */
 static void setrandfunc (lua_State *L) {
   RanState *state = (RanState *)lua_newuserdatauv(L, sizeof(RanState), 0);
-  randseed(L, state);  /* initialize with a "random" seed */
+  setseed(L, state->s, luaL_makeseed(L), 0);  /* initialize with random seed */
   lua_pop(L, 2);  /* remove pushed seeds */
   luaL_setfuncs(L, randfuncs, 1);
 

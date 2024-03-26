@@ -210,9 +210,9 @@ assert(T.querytab(a) == 64)    -- array part has 64 elements
 a[32] = true; a[48] = true;    -- binary search will find these ones
 a[51] = true                   -- binary search will miss this one
 assert(#a == 48)               -- this will set the limit
-assert(select(4, T.querytab(a)) == 48)  -- this is the limit now
+assert(select(3, T.querytab(a)) == 48)  -- this is the limit now
 a[50] = true                   -- this will set a new limit
-assert(select(4, T.querytab(a)) == 50)  -- this is the limit now
+assert(select(3, T.querytab(a)) == 50)  -- this is the limit now
 -- but the size is larger (and still inside the array part)
 assert(#a == 51)
 
@@ -609,10 +609,12 @@ do
   a = 0; for i=1.0, 0.99999, -1 do a=a+1 end; assert(a==1)
 end
 
-do   -- changing the control variable
-  local a
-  a = 0; for i = 1, 10 do a = a + 1; i = "x" end; assert(a == 10)
-  a = 0; for i = 10.0, 1, -1 do a = a + 1; i = "x" end; assert(a == 10)
+do   -- attempt to change the control variable
+  local st, msg = load "for i = 1, 10 do i = 10 end"
+  assert(not st and string.find(msg, "attempt to reassign constant 'i'")) -- [Pluto] updated error message
+
+  local st, msg = load "for v, k in pairs{} do v = 10 end"
+  assert(not st and string.find(msg, "attempt to reassign constant 'v'")) -- [Pluto] updated error message
 end
 
 -- conversion
