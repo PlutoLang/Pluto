@@ -283,15 +283,15 @@ static int floatforloop (StkId ra) {
 
 
 /*
-** Finish the table access 'val = t[key]'.
+** Finish the table access 'val = t[key]' and return the tag of the result.
 */
-void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
-                      int hres) {
+int luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
+                      int tag) {
   int loop;  /* counter to avoid infinite loops */
   const TValue *tm;  /* metamethod */
   int isValueString = ttisstring(t) && ttisinteger(key);
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
-    if (hres == HNOTATABLE) {  /* 't' is not a table? */
+    if (tag == LUA_VNOTABLE) {  /* 't' is not a table? */
       lua_assert(!ttistable(t));
       if (isValueString) { /* index for character of string */
         lua_Integer index = ivalue(key);
@@ -300,11 +300,11 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
         }
         if (((lua_Integer)tsslen(tsvalue(t)) < index) || (index < 1)) { /* invalid index */
           setnilvalue(s2v(val));
-          return;
+          return LUA_TNIL;
         }
         else { /* index is valid */
           setsvalue(L, s2v(val), luaS_newlstr(L, &getstr(tsvalue(t))[index - 1], 1));
-          return;
+          return LUA_TSTRING;
         }
       }
       else {
@@ -318,21 +318,22 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
       tm = fasttm(L, hvalue(t)->metatable, TM_INDEX);  /* table's metamethod */
       if (tm == NULL) {  /* no metamethod? */
         setnilvalue(s2v(val));  /* result is nil */
-        return;
+        return LUA_VNIL;
       }
       /* else will try the metamethod */
     }
     if (ttisfunction(tm)) {  /* is metamethod a function? */
       luaT_callTMres(L, tm, t, key, val);  /* call it */
-      return;
+      return ttypetag(s2v(val));
     }
     t = tm;  /* else try to access 'tm[key]' */
-    luaV_fastget(t, key, s2v(val), luaH_get, hres);
-    if (hres == HOK)
-      return;  /* done */
+    luaV_fastget(t, key, s2v(val), luaH_get, tag);
+    if (!tagisempty(tag))
+      return tag;  /* done */
     /* else repeat (tail call 'luaV_finishget') */
   }
   luaG_runerror(L, "'__index' chain too long; possible loop");
+  return 0;  /* to avoid warnings */
 }
 
 
@@ -751,7 +752,7 @@ bool luaV_searchelement (lua_State* L, Table* t, const TValue* element) {
   unsigned int array_size = luaH_realasize(t) + 1;
   for (; i < array_size; i++) {
     TValue val;
-    if (luaH_getint(t, i, &val) == HOK && luaV_equalobj(L, element, &val)) {
+    if (!tagisempty(luaH_getint(t, i, &val)) && luaV_equalobj(L, element, &val)) {
       return true;
     }
   }
@@ -1449,10 +1450,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *upval = cl->upvals[GETARG_B(i)]->v.p;
         TValue *rc = KC(i);
         TString *key = tsvalue(rc);  /* key must be a short string */
-        int hres;
-        luaV_fastget(upval, key, s2v(ra), luaH_getshortstr, hres);
-        if (hres != HOK)
-          Protect(luaV_finishget(L, upval, rc, ra, hres));
+        int tag;
+        luaV_fastget(upval, key, s2v(ra), luaH_getshortstr, tag);
+        if (tagisempty(tag))
+          Protect(luaV_finishget(L, upval, rc, ra, tag));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
@@ -1464,14 +1465,14 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         StkId ra = RA(i);
         TValue *rb = vRB(i);
         TValue *rc = vRC(i);
-        int hres;
+        int tag;
         if (ttisinteger(rc)) {  /* fast track for integers? */
-          luaV_fastgeti(rb, ivalue(rc), s2v(ra), hres);
+          luaV_fastgeti(rb, ivalue(rc), s2v(ra), tag);
         }
         else
-          luaV_fastget(rb, rc, s2v(ra), luaH_get, hres);
-        if (hres != HOK)  /* fast track for integers? */
-          Protect(luaV_finishget(L, rb, rc, ra, hres));
+          luaV_fastget(rb, rc, s2v(ra), luaH_get, tag);
+        if (tagisempty(tag))
+          Protect(luaV_finishget(L, rb, rc, ra, tag));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
@@ -1483,12 +1484,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         StkId ra = RA(i);
         TValue *rb = vRB(i);
         int c = GETARG_C(i);
-        int hres;
-        luaV_fastgeti(rb, c, s2v(ra), hres);
-        if (hres != HOK) {
+        int tag;
+        luaV_fastgeti(rb, c, s2v(ra), tag);
+        if (tagisempty(tag)) {
           TValue key;
           setivalue(&key, c);
-          Protect(luaV_finishget(L, rb, &key, ra, hres));
+          Protect(luaV_finishget(L, rb, &key, ra, tag));
         }
         vmDumpInit();
         vmDumpAddA();
@@ -1502,10 +1503,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = vRB(i);
         TValue *rc = KC(i);
         TString *key = tsvalue(rc);  /* key must be a short string */
-        int hres;
-        luaV_fastget(rb, key, s2v(ra), luaH_getshortstr, hres);
-        if (hres != HOK)
-          Protect(luaV_finishget(L, rb, rc, ra, hres));
+        int tag;
+        luaV_fastget(rb, key, s2v(ra), luaH_getshortstr, tag);
+        if (tagisempty(tag))
+          Protect(luaV_finishget(L, rb, rc, ra, tag));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
@@ -1652,14 +1653,14 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_SELF) {
         StkId ra = RA(i);
-        int hres;
+        int tag;
         TValue *rb = vRB(i);
         TValue *rc = RKC(i);
         TString *key = tsvalue(rc);  /* key must be a string */
         setobj2s(L, ra + 1, rb);
-        luaV_fastget(rb, key, s2v(ra), luaH_getstr, hres);
-        if (hres != HOK)
-          Protect(luaV_finishget(L, rb, rc, ra, hres));
+        luaV_fastget(rb, key, s2v(ra), luaH_getstr, tag);
+        if (tagisempty(tag))
+          Protect(luaV_finishget(L, rb, rc, ra, tag));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
