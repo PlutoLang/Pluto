@@ -18,8 +18,6 @@
 
 namespace soup
 {
-	static thread_local Scheduler* this_thread_running_scheduler = nullptr;
-
 	void Scheduler::addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL
 	{
 		pending_workers.emplace_front(std::move(w));
@@ -327,11 +325,6 @@ namespace soup
 		}
 	}
 #endif
-
-	Scheduler* Scheduler::get()
-	{
-		return this_thread_running_scheduler;
-	}
 
 	size_t Scheduler::getNumWorkers() const
 	{

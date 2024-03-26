@@ -22,6 +22,9 @@ namespace soup
 	// All other operations are subject to race conditions.
 	class Scheduler
 	{
+	private:
+		inline static thread_local Scheduler* this_thread_running_scheduler = nullptr;
+
 	public:
 		std::vector<SharedPtr<Worker>> workers{};
 		AtomicDeque<SharedPtr<Worker>> pending_workers{};
@@ -111,7 +114,7 @@ namespace soup
 #endif
 
 	public:
-		[[nodiscard]] static Scheduler* get();
+		[[nodiscard]] static Scheduler* get() { return this_thread_running_scheduler; }
 
 		[[nodiscard]] size_t getNumWorkers() const;
 		[[nodiscard]] size_t getNumWorkersOfType(uint8_t type) const;

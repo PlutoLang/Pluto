@@ -73,17 +73,22 @@ namespace soup
 	class Reader;
 	class StringReader;
 	class Writer;
+	class StringWriter;
 
-	// lang
+	// lang.agnostic
+	struct aglTranspiler;
+
+	// lang.compiler
 	struct astBlock;
 	struct astNode;
 	class LangDesc;
 	struct Lexeme;
+	struct LexemeParser;
 	class ParserState;
 	struct Token;
 
-	// lang.agnostic
-	struct aglTranspiler;
+	// lang.compiler.ir
+	struct irFunction;
 
 	// lang.reflection
 	struct rflFunc;
@@ -101,12 +106,14 @@ namespace soup
 	struct Vector3;
 
 	// math.3d
-	struct BoxCorners;
 	class Matrix;
 	struct Mesh;
 	struct Poly;
 	class Quaternion;
 	struct Ray;
+
+	// math.3d.geometry
+	struct gmBoxCorners;
 
 	// math.3d.scene
 	struct Scene;

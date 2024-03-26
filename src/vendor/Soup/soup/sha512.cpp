@@ -33,15 +33,6 @@ SOFTWARE.
 
 namespace soup
 {
-	static constexpr unsigned int SEQUENCE_LEN = (1024 / 64);
-	static constexpr size_t HASH_LEN = 8;
-	static constexpr size_t WORKING_VAR_LEN = 8;
-	static constexpr size_t MESSAGE_BLOCK_SIZE = 1024;
-	static constexpr size_t CHAR_LEN_BITS = 8;
-	static constexpr size_t WORD_LEN = 8;
-
-	static const uint64_t hPrime[8] = { 0x6a09e667f3bcc908ULL, 0xbb67ae8584caa73bULL, 0x3c6ef372fe94f82bULL, 0xa54ff53a5f1d36f1ULL, 0x510e527fade682d1ULL, 0x9b05688c2b3e6c1fULL, 0x1f83d9abfb41bd6bULL, 0x5be0cd19137e2179ULL };
-
 	std::string sha512::hash(const void* data, size_t len) SOUP_EXCAL
 	{
 		uint64_t h[HASH_LEN]; // buffer holding the message digest (512-bit = 8 64-bit words)

@@ -61,6 +61,48 @@ namespace soup
 		// There are better ways to encode Bigints, tho, such as bigint_lp_u64_dyn.
 		bool om_bigint(const Bigint& v) SOUP_EXCAL;
 
+		// An integer where every byte's most significant bit is used to indicate if another byte follows, least significant byte first. This is compatible with unsigned LEB128.
+		template <typename Int>
+		bool oml(const Int& v) noexcept
+		{
+			bool ret = true;
+			Int in = v;
+			while (true)
+			{
+				uint8_t byte = (in & 0x7F);
+				in >>= 7;
+				if (in == 0)
+				{
+					ret &= u8(byte);
+					break;
+				}
+				byte |= 0x80;
+				ret &= u8(byte);
+			}
+			return ret;
+		}
+
+		// Signed LEB128.
+		template <typename Int>
+		bool soml(const Int& v) noexcept
+		{
+			bool ret = true;
+			Int in = v;
+			while (true)
+			{
+				uint8_t byte = (in & 0x7F);
+				in >>= 7;
+				if ((byte & 0x40) ? (in == -1) : (in == 0))
+				{
+					ret &= u8(byte);
+					break;
+				}
+				byte |= 0x80;
+				ret &= u8(byte);
+			}
+			return ret;
+		}
+
 		bool mysql_lenenc(const uint64_t& v) noexcept;
 
 		// Null-terminated string.

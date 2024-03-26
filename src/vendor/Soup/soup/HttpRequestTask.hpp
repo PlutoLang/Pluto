@@ -30,11 +30,8 @@ namespace soup
 
 		State state = START;
 		bool prefer_ipv6 = false; // for funny things like https://api.lovense.com/api/lan/getToys
-		union
-		{
-			bool dont_keep_alive = false;
-			bool attempted_reuse /*= false*/;
-		};
+		bool dont_use_reusable_sockets = false;
+		bool retry_on_broken_pipe = false; // internal
 #endif
 		HttpRequest hr;
 #if !SOUP_WASM
@@ -53,7 +50,7 @@ namespace soup
 		void onTick() final;
 
 	protected:
-		void doRecycle();
+		void sendRequestOnReusedSocket();
 		void cannotRecycle();
 
 		void recvResponse() SOUP_EXCAL;

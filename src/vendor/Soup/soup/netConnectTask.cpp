@@ -114,11 +114,6 @@ namespace soup
 		}
 	}
 
-	bool netConnectTask::wasSuccessful() const
-	{
-		return sock.hasConnection();
-	}
-
 	SharedPtr<Socket> netConnectTask::getSocket()
 	{
 		return getSocket(*Scheduler::get());

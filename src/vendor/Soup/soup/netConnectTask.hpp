@@ -50,6 +50,11 @@ namespace soup
 		[[nodiscard]] std::string toString() const SOUP_EXCAL final;
 		[[nodiscard]] netStatus getStatus() const noexcept;
 	};
+
+	inline bool netConnectTask::wasSuccessful() const
+	{
+		return sock.hasConnection();
+	}
 }
 
 #endif

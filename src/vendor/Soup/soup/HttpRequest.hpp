@@ -45,7 +45,7 @@ namespace soup
 	public:
 		[[nodiscard]] static bool isChallengeResponse(const HttpResponse& res) SOUP_EXCAL;
 
-		void setClose() noexcept;
+		[[deprecated("HttpRequest is already 'Connection: close' by default.")]] void setClose() noexcept;
 		void setKeepAlive() noexcept;
 
 		static void recvResponse(Socket& s, void callback(Socket&, std::optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;

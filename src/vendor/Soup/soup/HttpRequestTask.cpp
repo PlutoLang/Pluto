@@ -35,15 +35,19 @@ namespace soup
 		switch (state)
 		{
 		case START:
-			if (!dont_keep_alive
-				&& !Scheduler::get()->dont_make_reusable_sockets
-				)
+			if (!dont_use_reusable_sockets)
 			{
-				hr.setKeepAlive();
 				sock = Scheduler::get()->findReusableSocket(hr.getHost(), hr.port, hr.use_tls);
 				if (sock)
 				{
-					doRecycle();
+					if (sock->custom_data.getStructFromMap(ReuseTag).is_busy)
+					{
+						state = WAIT_TO_REUSE;
+					}
+					else
+					{
+						sendRequestOnReusedSocket();
+					}
 					break;
 				}
 				// Another task to the same remote may be in the CONNECTING state at this point,
@@ -60,11 +64,7 @@ namespace soup
 			}
 			else if (!sock->custom_data.getStructFromMap(ReuseTag).is_busy)
 			{
-				sock->custom_data.getStructFromMap(ReuseTag).is_busy = true;
-				state = AWAIT_RESPONSE;
-				awaiting_response_since = time::unixSeconds();
-				hr.send(*sock);
-				recvResponse();
+				sendRequestOnReusedSocket();
 			}
 			break;
 
@@ -81,12 +81,9 @@ namespace soup
 				if (!Scheduler::get()->dont_make_reusable_sockets)
 				{
 					// Tag socket we just created for reuse, if it's not a one-off.
-					SOUP_IF_UNLIKELY (Scheduler::get()->findReusableSocket(hr.getHost(), hr.port, hr.use_tls))
+					SOUP_IF_LIKELY (!Scheduler::get()->findReusableSocket(hr.getHost(), hr.port, hr.use_tls))
 					{
-						hr.setClose();
-					}
-					else
-					{
+						hr.setKeepAlive();
 						sock->custom_data.getStructFromMap(ReuseTag).init(hr.getHost(), hr.port, hr.use_tls);
 					}
 				}
@@ -112,8 +109,9 @@ namespace soup
 			{
 				sock->close();
 				sock.reset();
-				if (attempted_reuse)
+				if (retry_on_broken_pipe)
 				{
+					retry_on_broken_pipe = false;
 					//logWriteLine(soup::format("AWAIT_RESPONSE from {} - broken pipe, making a new one", hr.getHost()));
 					cannotRecycle(); // transition to CONNECTING state
 				}
@@ -134,21 +132,15 @@ namespace soup
 		}
 	}
 
-	void HttpRequestTask::doRecycle()
+	void HttpRequestTask::sendRequestOnReusedSocket()
 	{
-		attempted_reuse = true;
-		if (sock->custom_data.getStructFromMap(ReuseTag).is_busy)
-		{
-			state = WAIT_TO_REUSE;
-		}
-		else
-		{
-			sock->custom_data.getStructFromMap(ReuseTag).is_busy = true;
-			state = AWAIT_RESPONSE;
-			awaiting_response_since = time::unixSeconds();
-			hr.send(*sock);
-			recvResponse();
-		}
+		state = AWAIT_RESPONSE;
+		retry_on_broken_pipe = true;
+		sock->custom_data.getStructFromMapConst(ReuseTag).is_busy = true;
+		awaiting_response_since = time::unixSeconds();
+		hr.setKeepAlive();
+		hr.send(*sock);
+		recvResponse();
 	}
 
 	void HttpRequestTask::cannotRecycle()
