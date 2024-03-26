@@ -74,6 +74,7 @@ static int bigint_bitlength (lua_State *L) {
 }
 
 void pushbigint (lua_State *L, soup::Bigint&& x) {
+  new (lua_newuserdata(L, sizeof(soup::Bigint))) soup::Bigint(std::move(x));
   if (l_unlikely(luaL_newmetatable(L, "pluto:bigint"))) {
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State* L) {
@@ -107,10 +108,7 @@ void pushbigint (lua_State *L, soup::Bigint&& x) {
     lua_call(L, 0, 1);
     lua_settable(L, -3);
   }
-  lua_pop(L, 1);
-
-  new (lua_newuserdata(L, sizeof(soup::Bigint))) soup::Bigint (std::move(x));
-  luaL_setmetatable(L, "pluto:bigint");
+  lua_setmetatable(L, -2);
 }
 
 static const luaL_Reg funcs_bigint[] = {
