@@ -2098,6 +2098,20 @@ do
     end)
     sched:run()
 end
+do
+    local regex = require "pluto:regex"
+
+    local pattern = new regex [[/^the (only )?one$/i]]
+    assert(pattern:match("THE ONE"))
+    assert(not pattern:match("NOT THE ONE"))
+
+    pattern = new regex [[/anywhere from (\d+) to (\d+)/]]
+    local match = pattern:match("anywhere from 3 to 5")
+    assert(match)
+    assert(match[0] == "anywhere from 3 to 5")
+    assert(match[1] == "3")
+    assert(match[2] == "5")
+end
 
 print "Testing default table metatable."
 do
