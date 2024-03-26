@@ -395,7 +395,7 @@ LUA_API void lua_arith (lua_State *L, int op) {
   }
   /* first operand at top - 2, second at top - 1; result go to top - 2 */
   luaO_arith(L, op, s2v(L->top.p - 2), s2v(L->top.p - 1), L->top.p - 2);
-  L->top.p--;  /* remove second operand */
+  L->top.p--;  /* pop second operand */
   lua_unlock(L);
 }
 
@@ -723,27 +723,27 @@ LUA_API int lua_pushthread (lua_State *L) {
 
 
 static int auxgetstr (lua_State *L, const TValue *t, const char *k) {
-  int hres;
+  int tag;
   TString *str = luaS_new(L, k);
-  luaV_fastget(t, str, s2v(L->top.p), luaH_getstr, hres);
-  if (hres == HOK) {
+  luaV_fastget(t, str, s2v(L->top.p), luaH_getstr, tag);
+  if (!tagisempty(tag)) {
     api_incr_top(L);
   }
   else {
     setsvalue2s(L, L->top.p, str);
     api_incr_top(L);
-    luaV_finishget(L, t, s2v(L->top.p - 1), L->top.p - 1, hres);
+    tag = luaV_finishget(L, t, s2v(L->top.p - 1), L->top.p - 1, tag);
   }
   lua_unlock(L);
-  return ttype(s2v(L->top.p - 1));
+  return novariant(tag);
 }
 
 
 static void getGlobalTable (lua_State *L, TValue *gt) {
   Table *registry = hvalue(&G(L)->l_registry);
-  int hres = luaH_getint(registry, LUA_RIDX_GLOBALS, gt);
-  (void)hres;  /* avoid warnings (not used) when checks are off */
-  api_check(L, hres == HOK, "global table must exist");
+  int tag = luaH_getint(registry, LUA_RIDX_GLOBALS, gt);
+  (void)tag;  /* avoid not-used warnings when checks are off */
+  api_check(L, novariant(tag) == LUA_TTABLE, "global table must exist");
 }
 
 
@@ -756,16 +756,16 @@ LUA_API int lua_getglobal (lua_State *L, const char *name) {
 
 
 LUA_API int lua_gettable (lua_State *L, int idx) {
-  int hres;
+  int tag;
   TValue *t;
   lua_lock(L);
   api_checkpop(L, 1);
   t = index2value(L, idx);
-  luaV_fastget(t, s2v(L->top.p - 1), s2v(L->top.p - 1), luaH_get, hres);
-  if (hres != HOK)
-    luaV_finishget(L, t, s2v(L->top.p - 1), L->top.p - 1, hres);
+  luaV_fastget(t, s2v(L->top.p - 1), s2v(L->top.p - 1), luaH_get, tag);
+  if (tagisempty(tag))
+    tag = luaV_finishget(L, t, s2v(L->top.p - 1), L->top.p - 1, tag);
   lua_unlock(L);
-  return ttype(s2v(L->top.p - 1));
+  return novariant(tag);
 }
 
 
@@ -777,27 +777,27 @@ LUA_API int lua_getfield (lua_State *L, int idx, const char *k) {
 
 LUA_API int lua_geti (lua_State *L, int idx, lua_Integer n) {
   TValue *t;
-  int hres;
+  int tag;
   lua_lock(L);
   t = index2value(L, idx);
-  luaV_fastgeti(t, n, s2v(L->top.p), hres);
-  if (hres != HOK) {
+  luaV_fastgeti(t, n, s2v(L->top.p), tag);
+  if (tagisempty(tag)) {
     TValue key;
     setivalue(&key, n);
-    luaV_finishget(L, t, &key, L->top.p, hres);
+    tag = luaV_finishget(L, t, &key, L->top.p, tag);
   }
   api_incr_top(L);
   lua_unlock(L);
-  return ttype(s2v(L->top.p - 1));
+  return novariant(tag);
 }
 
 
-l_sinline int finishrawget (lua_State *L, int hres) {
-  if (hres != HOK)  /* avoid copying empty items to the stack */
+static int finishrawget (lua_State *L, int tag) {
+  if (tagisempty(tag))  /* avoid copying empty items to the stack */
     setnilvalue(s2v(L->top.p));
   api_incr_top(L);
   lua_unlock(L);
-  return ttype(s2v(L->top.p - 1));
+  return novariant(tag);
 }
 
 
@@ -810,23 +810,23 @@ l_sinline Table *gettable (lua_State *L, int idx) {
 
 LUA_API int lua_rawget (lua_State *L, int idx) {
   Table *t;
+  int tag;
   lua_lock(L);
   api_checkpop(L, 1);
   t = gettable(L, idx);
-  if (luaH_get(t, s2v(L->top.p - 1), s2v(L->top.p - 1)) != HOK)
-    setnilvalue(s2v(L->top.p - 1));
-  lua_unlock(L);
-  return ttype(s2v(L->top.p - 1));
+  tag = luaH_get(t, s2v(L->top.p - 1), s2v(L->top.p - 1));
+  L->top.p--;  /* pop key */
+  return finishrawget(L, tag);
 }
 
 
 LUA_API int lua_rawgeti (lua_State *L, int idx, lua_Integer n) {
   Table *t;
-  int hres;
+  int tag;
   lua_lock(L);
   t = gettable(L, idx);
-  luaH_fastgeti(t, n, s2v(L->top.p), hres);
-  return finishrawget(L, hres);
+  luaH_fastgeti(t, n, s2v(L->top.p), tag);
+  return finishrawget(L, tag);
 }
 
 
@@ -1359,7 +1359,7 @@ LUA_API int lua_next (lua_State *L, int idx) {
   if (more)
     api_incr_top(L);
   else  /* no more elements */
-    L->top.p -= 1;  /* remove key */
+    L->top.p--;  /* pop key */
   lua_unlock(L);
   return more;
 }
