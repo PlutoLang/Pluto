@@ -360,8 +360,8 @@ static unsigned int arrayindex (lua_Integer k) {
 ** elements in the array part, then elements in the hash part. The
 ** beginning of a traversal is signaled by 0.
 */
-static unsigned int findindex (lua_State *L, Table *t, TValue *key,
-                               unsigned int asize) {
+static unsigned findindex (lua_State *L, Table *t, TValue *key,
+                               unsigned asize) {
   unsigned int i;
   if (ttisnil(key)) return 0;  /* first iteration */
   i = ttisinteger(key) ? arrayindex(ivalue(key)) : 0;
@@ -464,7 +464,7 @@ static int keyinarray (Table *t, lua_Integer key) {
 ** will go to the array part; return the optimal size.  (The condition
 ** 'twotoi > 0' in the for loop stops the loop if 'twotoi' overflows.)
 */
-static unsigned int computesizes (unsigned int nums[], unsigned int *pna) {
+static unsigned computesizes (unsigned nums[], unsigned *pna) {
   int i;
   unsigned int twotoi;  /* 2^i (candidate for optimal size) */
   unsigned int a = 0;  /* number of elements smaller than 2^i */
@@ -508,7 +508,7 @@ l_sinline int arraykeyisempty (const Table *t, lua_Integer key) {
 ** number of keys that will go into corresponding slice and return
 ** total number of non-nil keys.
 */
-static unsigned int numusearray (const Table *t, unsigned int *nums) {
+static unsigned numusearray (const Table *t, unsigned *nums) {
   int lg;
   unsigned int ttlg;  /* 2^lg */
   unsigned int ause = 0;  /* summation of 'nums' */
@@ -535,7 +535,7 @@ static unsigned int numusearray (const Table *t, unsigned int *nums) {
 }
 
 
-static int numusehash (const Table *t, unsigned int *nums, unsigned int *pna) {
+static int numusehash (const Table *t, unsigned *nums, unsigned *pna) {
   int totaluse = 0;  /* total number of elements */
   int ause = 0;  /* elements added to 'nums' (can go to array part) */
   int i = sizenode(t);
@@ -569,8 +569,8 @@ static size_t concretesize (unsigned int size) {
 
 
 static ArrayCell *resizearray (lua_State *L , Table *t,
-                               unsigned int oldasize,
-                               unsigned int newasize) {
+                               unsigned oldasize,
+                               unsigned newasize) {
   size_t oldasizeb = concretesize(oldasize);
   size_t newasizeb = concretesize(newasize);
   void *a = luaM_reallocvector(L, t->array, oldasizeb, newasizeb, lu_byte);
@@ -585,7 +585,7 @@ static ArrayCell *resizearray (lua_State *L , Table *t,
 ** comparison ensures that the shift in the second one does not
 ** overflow.
 */
-static void setnodevector (lua_State *L, Table *t, unsigned int size) {
+static void setnodevector (lua_State *L, Table *t, unsigned size) {
   if (size == 0) {  /* no elements to hash part? */
     t->node = cast(Node *, dummynode);  /* use common 'dummynode' */
     t->lsizenode = 0;
@@ -697,8 +697,8 @@ static void clearNewSlice (Table *t, unsigned oldasize, unsigned newasize) {
 ** nils and reinserts the elements of the old hash back into the new
 ** parts of the table.
 */
-void luaH_resize (lua_State *L, Table *t, unsigned int newasize,
-                                          unsigned int nhsize) {
+void luaH_resize (lua_State *L, Table *t, unsigned newasize,
+                                          unsigned nhsize) {
   Table newt;  /* to keep the new hash part */
   unsigned int oldasize = setlimittosize(t);
   ArrayCell *newarray;
@@ -1281,7 +1281,7 @@ lua_Unsigned luaH_getn (Table *t) {
 /*
 ** Returns the size of the table's hash part.
 */
-LUAI_FUNC unsigned int luaH_gethsize (const Table *t) {
+LUAI_FUNC unsigned luaH_gethsize (const Table *t) {
   unsigned int nums[MAXABITS + 1];
   unsigned int na;
   return numusehash(t, nums, &na);
