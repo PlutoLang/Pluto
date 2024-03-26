@@ -112,7 +112,7 @@ static int http_request (lua_State *L) {
         lua_pop(L, 1);
       }
       const char *str = lua_tostring(L, -2);
-      if (strcmp(str, "url") != 0 && strcmp(str, "method") != 0 && strcmp(str, "headers") != 0 && strcmp(str, "body") != 0 && strcmp(str, "prefer_ipv6") != 0) {
+      if (strcmp(str, "url") != 0 && strcmp(str, "method") != 0 && strcmp(str, "headers") != 0 && strcmp(str, "body") != 0 && strcmp(str, "prefer_ipv6") != 0 && strcmp(str, "dont_reuse") != 0 && strcmp(str, "dont_make_reusable") != 0) {
         pluto_warning(L, luaO_pushfstring(L, "unrecognized http request option: %s", lua_tostring(L, -2)));
         lua_pop(L, 1);
       }
@@ -160,6 +160,14 @@ static int http_request (lua_State *L) {
     lua_pushliteral(L, "prefer_ipv6");
     if (lua_rawget(L, optionsidx) > LUA_TNIL)
       spTask->prefer_ipv6 = lua_istrue(L, -1);
+    lua_pop(L, 1);
+    lua_pushliteral(L, "dont_reuse");
+    if (lua_rawget(L, optionsidx) > LUA_TNIL)
+      spTask->dont_use_reusable_sockets = lua_istrue(L, -1);
+    lua_pop(L, 1);
+    lua_pushliteral(L, "dont_make_reusable");
+    if (lua_rawget(L, optionsidx) > LUA_TNIL)
+      spTask->dont_make_reusable_sockets = lua_istrue(L, -1);
     lua_pop(L, 1);
   }
   return await_task<soup::HttpRequestTask, push_http_response>(L, std::move(spTask));

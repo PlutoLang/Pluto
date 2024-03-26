@@ -78,7 +78,9 @@ namespace soup
 				}
 				sock = connector->getSocket();
 				connector.destroy();
-				if (!Scheduler::get()->dont_make_reusable_sockets)
+				if (dont_make_reusable_sockets == false
+					&& Scheduler::get()->dont_make_reusable_sockets == false
+					)
 				{
 					// Tag socket we just created for reuse, if it's not a one-off.
 					SOUP_IF_LIKELY (!Scheduler::get()->findReusableSocket(hr.getHost(), hr.port, hr.use_tls))
