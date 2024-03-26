@@ -169,11 +169,11 @@ f()]]
 
     -- field-shadow
     assert_warn[[
-    print(dumpvar{
+    local t = {
         first = 1,
         second = 2,
         first = 3,
-    })]]
+    }]]
 end
 
 print "Testing assertion library."
