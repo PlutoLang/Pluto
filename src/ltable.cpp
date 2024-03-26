@@ -940,22 +940,17 @@ static int hashkeyisempty (Table *t, lua_Integer key) {
 static int finishnodeget (const TValue *val, TValue *res) {
   if (!ttisnil(val)) {
     setobj(((lua_State*)NULL), res, val);
-    return HOK;  /* success */
   }
-  else
-    return HNOTFOUND;  /* could not get value */
+  return ttypetag(val);
 }
 
 
 int luaH_getint (Table *t, lua_Integer key, TValue *res) {
   if (keyinarray(t, key)) {
     int tag = *getArrTag(t, key - 1);
-    if (!tagisempty(tag)) {
+    if (!tagisempty(tag))
       farr2val(t, key, tag, res);
-      return HOK;  /* success */
-    }
-    else
-      return ~cast_int(key);  /* empty slot in the array part */
+    return tag;
   }
   else
     return finishnodeget(getintfromhash(t, key), res);
