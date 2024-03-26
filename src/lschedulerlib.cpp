@@ -25,11 +25,13 @@ return class
         self.coros = {}
     end
 
-    function add(f)
-        local coro = coroutine.create(f)
-        table.insert(self.coros, coro)
-        resume(coro)
-        return coro
+    function add(t)
+        if type(t) ~= "thread" then
+            t = coroutine.create(t)
+        end
+        table.insert(self.coros, t)
+        resume(t)
+        return t
     end
 
     function addloop(f)
