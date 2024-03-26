@@ -341,7 +341,7 @@ LUA_API int lua_resetthread (lua_State *L) {
 }
 
 
-LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, unsigned int seed) {
+LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, unsigned seed) {
   int i;
   lua_State *L;
   global_State *g;
