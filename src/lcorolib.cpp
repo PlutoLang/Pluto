@@ -17,6 +17,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "vendor/Soup/soup/time.hpp"
+
 
 static lua_State *getco (lua_State *L) {
   lua_State *co = lua_tothread(L, 1);
@@ -126,6 +128,22 @@ static int luaB_yield (lua_State *L) {
 }
 
 
+static int sleepcont (lua_State *L, int status, lua_KContext resume_after) {
+  if (soup::time::millis() < resume_after) {
+    return lua_yieldk(L, lua_gettop(L), resume_after, sleepcont);
+  }
+  return 0;
+}
+
+
+static int luaB_sleep (lua_State *L) {
+  auto resume_after = static_cast<lua_KContext>(luaL_checkinteger(L, 1));
+  resume_after += static_cast<lua_KContext>(soup::time::millis());
+  lua_settop(L, 0);
+  return lua_yieldk(L, lua_gettop(L), resume_after, sleepcont);
+}
+
+
 #define COS_RUN		0
 #define COS_DEAD	1
 #define COS_YIELD	2
@@ -209,15 +227,26 @@ static const luaL_Reg co_funcs[] = {
   {"status", luaB_costatus},
   {"wrap", luaB_cowrap},
   {"yield", luaB_yield},
+  {"sleep", luaB_sleep},
   {"isyieldable", luaB_yieldable},
   {"close", luaB_close},
   {NULL, NULL}
 };
 
 
+static void createmetatable (lua_State *L) {
+  lua_newthread(L);  /* dummy thread */
+  lua_newtable(L);
+  lua_pushvalue(L, -3);  /* get coroutine library */
+  lua_setfield(L, -2, "__index");  /* metatable.__index = coroutine */
+  lua_setmetatable(L, -2);  /* set table as metatable for threads */
+  lua_pop(L, 1);  /* pop dummy thread */
+}
+
 
 LUAMOD_API int luaopen_coroutine (lua_State *L) {
   luaL_newlib(L, co_funcs);
+  createmetatable(L);
   return 1;
 }
 

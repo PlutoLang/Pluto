@@ -56,13 +56,16 @@ static const char *const luaX_tokens [] = {
     "pluto_use",
     "pluto_switch", "pluto_continue", "pluto_enum", "pluto_new", "pluto_class", "pluto_parent", "pluto_export", "pluto_try", "pluto_catch",
           "switch",       "continue",       "enum",       "new",       "class",       "parent",       "export",       "try",       "catch",
-    "let", "const",
+    "let", "const", "global",
+#ifdef PLUTO_PARSER_SUGGESTIONS
     "pluto_suggest_0", "pluto_suggest_1",
+#endif
     "return", "then", "true", "until", "while",
-    "//", "..", "...", "==", ">=", "<=", "~=", "<=>",
+    "//", "..", "...", "==", ">=", "<=", "~=", "!=", "<=>",
     "<<", ">>", "::", "<eof>",
     "<number>", "<integer>", "<name>", "<string>",
-    "**", "??", ":=", "->",
+    "**", "??", ":=", "->", "|>",
+    "<fallthrough annotation>", "<pluto_use annotation>",
 };
 
 
@@ -128,7 +131,7 @@ const char *luaX_token2str_noq (LexState *ls, int token) {
     case TK_NAME: case TK_STRING:
       if (!ls->hasDoneLexerPass() || ls->t.token != token)
         return luaX_tokens[token - FIRST_RESERVED];
-      ret = luaO_pushfstring(ls->L, "%s", ls->t.seminfo.ts->contents);
+      ret = luaO_pushfstring(ls->L, "%s", getstr(ls->t.seminfo.ts));
       ls->L->top.p--;
       break;
     case TK_FLT: case TK_INT:
@@ -399,13 +402,15 @@ static void read_long_string (LexState *ls, SemInfo *seminfo, size_t sep) {
         break;
       }
       default: {
+        ls->appendLineBuff(ls->current);
         if (seminfo) save_and_next(ls);
         else next(ls);
       }
     }
   } endloop:
-  seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 1,
-                                   luaZ_bufflen(ls->buff) - sep - 1);
+  if (seminfo)
+    seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 1,
+                                     luaZ_bufflen(ls->buff) - sep - 1);
 }
 
 
@@ -580,23 +585,44 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           ls->appendLineBuff('-');
           next(ls);
           if (ls->current == '[') {  /* long comment? */
+            ls->appendLineBuff('[');
             size_t sep = skip_sep(ls);
             luaZ_resetbuffer(ls->buff);  /* 'skip_sep' may dirty the buffer */
             if (sep >= 2) {
-              ls->appendLineBuff(sep, '[');
-              SemInfo si;
-              read_long_string(ls, &si, sep);  /* skip long comment */
-              ls->appendLineBuff(getstr(si.ts));
-              ls->appendLineBuff(sep, ']');
-              luaZ_resetbuffer(ls->buff);  /* previous call may dirty the buff. */
+              ls->appendLineBuff(sep - 2, '=');
+              ls->appendLineBuff('[');
+              read_long_string(ls, nullptr, sep);  /* skip long comment */
+              luaZ_resetbuffer(ls->buff);  /* 'read_long_string' may dirty the buffer */
+              ls->appendLineBuff(']');
+              ls->appendLineBuff(sep - 2, '=');
+              ls->appendLineBuff(']');
+              if (ls->getLineBuff().find("@fallthrough") != std::string::npos)
+                return TK_FALLTHROUGH;
               break;
             }
           }
           /* else short comment */
+          while (ls->current == ' ') {
+            ls->appendLineBuff(' ');
+            next(ls);  /* skip leading spaces */
+          }
+          if (ls->current == '@') {  /* attribute? */
+            ls->appendLineBuff('@');
+            next(ls);
+            while (lislalnum(ls->current))
+              save_and_next(ls);
+            ls->appendLineBuff(luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
+            if (strncmp(luaZ_buffer(ls->buff), "pluto_use", luaZ_bufflen(ls->buff)) == 0) {
+              return TK_USEANN;
+            }
+            luaZ_resetbuffer(ls->buff);
+          }
           while (!currIsNewline(ls) && ls->current != EOZ) {
             ls->appendLineBuff(ls->current);
             next(ls);  /* skip until end of line (or end of file) */
           }
+          if (ls->getLineBuff().find("@fallthrough") != std::string::npos)
+            return TK_FALLTHROUGH;
           break;
         }
       }
@@ -605,7 +631,12 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
         size_t sep = skip_sep(ls);
         luaZ_resetbuffer(ls->buff);
         if (sep >= 2) {
+          ls->appendLineBuff(sep - 2, '=');
+          ls->appendLineBuff('[');
           read_long_string(ls, seminfo, sep);
+          ls->appendLineBuff(']');
+          ls->appendLineBuff(sep - 2, '=');
+          ls->appendLineBuff(']');
           return TK_STRING;
         }
         else if (sep == 0)  /* '[=...' missing second bracket? */
@@ -873,7 +904,7 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
                                   luaZ_bufflen(ls->buff));
           seminfo->ts = ts;
-          ls->appendLineBuff(ts->contents);
+          ls->appendLineBuff(getstr(ts));
           if (isreserved(ts))
             return ts->extra - 1 + FIRST_RESERVED;
           else {
@@ -907,7 +938,7 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
       case '!': {
         next(ls);
         if (check_next1(ls, '='))
-          return TK_NE;  /* '!=' */
+          return TK_NE2;  /* '!=' */
         seminfo->ts = luaX_newliteral(ls, "!");
         return TK_NOT;
       }
@@ -951,10 +982,24 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           return '*';
         }
       }
+      case '|': {
+        int c = ls->current;
+        next(ls);
+        ls->appendLineBuff(c);
+        if (check_next1(ls, '=')) {
+          seminfo->i = c;
+          ls->appendLineBuff('=');
+          return '=';
+        }
+        if (check_next1(ls, '>')) {
+          ls->appendLineBuff('>');
+          return TK_PIPE;
+        }
+        return c;
+      }
       /* compound support */
-      case '+':
-      case '^': case '%':
-      case '|': case '&': { 
+      case '+': case '^':
+      case '%': case '&': {
         int c = ls->current;
         next(ls);
         if (check_next1(ls, '=')) {
@@ -1058,12 +1103,4 @@ int luaX_lookahead (LexState *ls) {
 
 const Token& luaX_lookbehind (LexState *ls) {
   return ls->tokens.at(ls->tidx - 1);
-}
-
-
-void luaX_checkspecial (LexState *ls) {
-  if (ls->shouldSuggest()) {
-    SuggestionsState ss(ls);
-    ss.pushLocals();
-  }
 }

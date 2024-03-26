@@ -25,6 +25,8 @@
 #include "lstate.h"
 #endif
 
+#include "vendor/Soup/soup/base.hpp"
+
 
 /*
 ** {==================================================================
@@ -474,6 +476,24 @@ static const luaL_Reg syslib[] = {
 
 LUAMOD_API int luaopen_os (lua_State *L) {
   luaL_newlib(L, syslib);
+
+  /* define os.platform constant */
+  lua_pushliteral(L, "platform");
+#if SOUP_WINDOWS
+  lua_pushliteral(L, "windows");
+#elif SOUP_WASM
+  lua_pushliteral(L, "wasm");
+#elif SOUP_LINUX
+  lua_pushliteral(L, "linux");
+#elif SOUP_MACOS
+  lua_pushliteral(L, "macos");
+#elif SOUP_ANDROID
+  lua_pushliteral(L, "android");
+#else
+  lua_pushliteral(L, "unknown");
+#endif
+  lua_settable(L, -3);
+
   return 1;
 }
 

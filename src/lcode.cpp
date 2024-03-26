@@ -1104,45 +1104,71 @@ void luaK_self (FuncState *fs, expdesc *e, expdesc *key) {
 ** Convert expression 'e' into 'func(e,'.
 */
 void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func) {
-  luaK_exp2anyreg(fs, func);
-  int freg = func->u.reg;  /* register where 'func' was placed */
   luaK_dischargevars(fs, e);
-  if (e->k == VNIL || e->k == VFALSE || e->k == VTRUE || e->k == VKSTR || e->k == VK || e->k == VKFLT || e->k == VKINT || e->k == VRELOC) {  /* 'e' is yet to be loaded into a register? */
-    freeexp(fs, func);
-    const int basereg = fs->freereg;  /* base register for call */
-    exp2reg(fs, e, basereg + 1);
-    luaK_reserveregs(fs, 2);  /* function and first arg */
-    if (basereg != freg) {  /* ensure function is in correct register */
-      luaK_codeABC(fs, OP_MOVE, basereg, freg, 0);
+  luaK_dischargevars(fs, func);
+
+  freeexps(fs, e, func);
+  const int basereg = fs->freereg;  /* base register for call */
+  luaK_reserveregs(fs, 2);  /* function and first arg */
+
+  int freg = func->k == VNONRELOC ? func->u.reg : -1;
+  int ereg = e->k == VNONRELOC ? e->u.reg : -1;
+
+  bool fcanreloc = true;
+  if (ereg == basereg) {  /* argument is in the register where the function should be? */
+    if (freg == basereg + 1) {  /* function is in the register where the argument should be? */
+      /* oh dear. we have to swap them around. move function into a temporary register. */
+      luaK_checkstack(fs, 1);
+      int tmpreg = basereg + 2;
+      luaK_codeABC(fs, OP_MOVE, tmpreg, freg, 0);
+      freg = tmpreg;
     }
-    e->u.reg = basereg;
-    e->k = VNONRELOC;  /* expression has a fixed register */
+    luaK_codeABC(fs, OP_MOVE, basereg + 1, ereg, 0);  /* move it where it should be */
+    ereg = basereg + 1;  /* and don't do it again */
+    fcanreloc = false;  /* if function is VRELOC, that would be before this MOVE instruction, so we have to use a different register for it. */
   }
-  else {
-    luaK_exp2anyreg(fs, e);
-    int ereg = e->u.reg;  /* register where 'e' was placed */
-    freeexps(fs, e, func);
-    e->u.reg = fs->freereg;  /* base register for call */
-    e->k = VNONRELOC;  /* expression has a fixed register */
-    luaK_reserveregs(fs, 2);  /* function and first arg */
-    if (ereg == e->u.reg) {  /* argument is in the register where the function should be? */
-      if (freg == e->u.reg + 1) {  /* function is in the register where the argument should be? */
-        /* oh dear. we have to swap them around. move function into a temporary register. */
-        luaK_checkstack(fs, 1);
-        int tmpreg = e->u.reg + 2;
-        luaK_codeABC(fs, OP_MOVE, tmpreg, freg, 0);
-        freg = tmpreg;
-      }
-      luaK_codeABC(fs, OP_MOVE, e->u.reg + 1, ereg, 0);  /* move it where it should be */
-      ereg = e->u.reg + 1;  /* and don't do it again */
+  if (freg == basereg + 1) {  /* function is in the register where the argument should be? */
+    luaK_codeABC(fs, OP_MOVE, basereg, freg, 0);  /* move it where it should be */
+    freg = basereg;  /* and don't do it again */
+  }
+
+  /* if function is yet to be loaded into a register, load it into the correct one. */
+  if (freg == -1) {
+    lua_assert(func->k == VRELOC);
+    if (!fcanreloc) {
+      luaK_checkstack(fs, 1);
+      exp2reg(fs, func, basereg + 2);
+      freg = basereg;
+      luaK_codeABC(fs, OP_MOVE, freg, basereg + 2, 0);
     }
-    if (e->u.reg != freg) {  /* ensure function is in correct register */
-      luaK_codeABC(fs, OP_MOVE, e->u.reg, freg, 0);
-    }
-    if (e->u.reg + 1 != ereg) {  /* ensure argument is in correct register */
-      luaK_codeABC(fs, OP_MOVE, e->u.reg + 1, ereg, 0);
+    else {
+      freg = basereg;
+      exp2reg(fs, func, freg);
     }
   }
+
+  /* if argument is yet to be loaded into a register, load it into the correct one. */
+  if (ereg == -1) {
+    lua_assert(e->k == VNIL || e->k == VFALSE || e->k == VTRUE || e->k == VKSTR || e->k == VK || e->k == VKFLT || e->k == VKINT || e->k == VRELOC);
+    ereg = basereg + 1;
+    exp2reg(fs, e, ereg);
+  }
+
+  /* ensure function is in correct register */
+  if (basereg != freg) {
+    luaK_codeABC(fs, OP_MOVE, basereg, freg, 0);
+  }
+
+  /* ensure argument is in correct register */
+  if (basereg + 1 != ereg) {
+    luaK_codeABC(fs, OP_MOVE, basereg + 1, ereg, 0);
+  }
+
+  fs->freereg = basereg + 2;  /* luaK_dischargevars may have free'd registers */
+
+  /* finally, update expdesc */
+  e->u.reg = basereg;
+  e->k = VNONRELOC;  /* expression has a fixed register */
 }
 
 

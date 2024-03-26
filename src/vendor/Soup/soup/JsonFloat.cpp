@@ -10,16 +10,16 @@ namespace soup
 	{
 	}
 
-	std::string JsonFloat::encode() const
+	void JsonFloat::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
-		return string::fdecimal(value);
+		str.append(string::fdecimal(value));
 	}
 
 	bool JsonFloat::binaryEncode(Writer& w) const
 	{
 		uint8_t b = JSON_FLOAT;
 		uint64_t val;
-		memcpy(&val, &value, sizeof(double)); static_assert(sizeof(uint64_t) == sizeof(value));
+		*reinterpret_cast<double*>(&val) = value;
 		return w.u8(b)
 			&& w.u64(val)
 			;

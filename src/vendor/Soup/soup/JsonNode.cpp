@@ -36,226 +36,24 @@ namespace soup
 			;
 	}
 
-	std::string JsonNode::encodePretty(const std::string& prefix) const
+	void JsonNode::encodePrettyAndAppendTo(std::string& str, unsigned depth) const SOUP_EXCAL
 	{
 		if (isArr())
 		{
-			return reinterpretAsArr().encodePretty(prefix);
+			reinterpretAsArr().encodePrettyAndAppendTo(str, depth);
 		}
-		if (isObj())
+		else if (isObj())
 		{
-			return reinterpretAsObj().encodePretty(prefix);
+			reinterpretAsObj().encodePrettyAndAppendTo(str, depth);
 		}
-		return encode();
-	}
-
-	bool JsonNode::binaryEncode(Writer& w) const
-	{
-		return false;
-	}
-
-	JsonArray& JsonNode::asArr()
-	{
-		if (!isArr())
+		else
 		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
+			encodeAndAppendTo(str);
 		}
-		return reinterpretAsArr();
 	}
 
-	JsonBool& JsonNode::asBool()
+	void JsonNode::throwTypeError()
 	{
-		if (!isBool())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsBool();
-	}
-
-	JsonFloat& JsonNode::asFloat()
-	{
-		if (!isFloat())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsFloat();
-	}
-
-	JsonInt& JsonNode::asInt()
-	{
-		if (!isInt())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsInt();
-	}
-
-	JsonObject& JsonNode::asObj()
-	{
-		if (!isObj())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsObj();
-	}
-
-	JsonString& JsonNode::asStr()
-	{
-		if (!isStr())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsStr();
-	}
-
-	const JsonArray& JsonNode::asArr() const
-	{
-		if (!isArr())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsArr();
-	}
-
-	const JsonBool& JsonNode::asBool() const
-	{
-		if (!isBool())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsBool();
-	}
-
-	const JsonFloat& JsonNode::asFloat() const
-	{
-		if (!isFloat())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsFloat();
-	}
-
-	const JsonInt& JsonNode::asInt() const
-	{
-		if (!isInt())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsInt();
-	}
-
-	const JsonObject& JsonNode::asObj() const
-	{
-		if (!isObj())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsObj();
-	}
-
-	const JsonString& JsonNode::asStr() const
-	{
-		if (!isStr())
-		{
-			SOUP_THROW(Exception("JsonNode has unexpected type"));
-		}
-		return reinterpretAsStr();
-	}
-
-	bool JsonNode::isArr() const noexcept
-	{
-		return type == JSON_ARRAY;
-	}
-
-	bool JsonNode::isBool() const noexcept
-	{
-		return type == JSON_BOOL;
-	}
-
-	bool JsonNode::isFloat() const noexcept
-	{
-		return type == JSON_FLOAT;
-	}
-
-	bool JsonNode::isInt() const noexcept
-	{
-		return type == JSON_INT;
-	}
-
-	bool JsonNode::isNull() const noexcept
-	{
-		return type == JSON_NULL;
-	}
-
-	bool JsonNode::isObj() const noexcept
-	{
-		return type == JSON_OBJECT;
-	}
-
-	bool JsonNode::isStr() const noexcept
-	{
-		return type == JSON_STRING;
-	}
-
-	// Using reinterpret_cast instead of static_cast because not all of these types are known in this compilation unit
-
-	JsonArray& JsonNode::reinterpretAsArr() noexcept
-	{
-		return *reinterpret_cast<JsonArray*>(this);
-	}
-
-	JsonBool& JsonNode::reinterpretAsBool() noexcept
-	{
-		return *reinterpret_cast<JsonBool*>(this);
-	}
-
-	JsonFloat& JsonNode::reinterpretAsFloat() noexcept
-	{
-		return *reinterpret_cast<JsonFloat*>(this);
-	}
-
-	JsonInt& JsonNode::reinterpretAsInt() noexcept
-	{
-		return *reinterpret_cast<JsonInt*>(this);
-	}
-
-	JsonObject& JsonNode::reinterpretAsObj() noexcept
-	{
-		return *reinterpret_cast<JsonObject*>(this);
-	}
-
-	JsonString& JsonNode::reinterpretAsStr() noexcept
-	{
-		return *reinterpret_cast<JsonString*>(this);
-	}
-
-	const JsonArray& JsonNode::reinterpretAsArr() const noexcept
-	{
-		return *reinterpret_cast<const JsonArray*>(this);
-	}
-
-	const JsonBool& JsonNode::reinterpretAsBool() const noexcept
-	{
-		return *reinterpret_cast<const JsonBool*>(this);
-	}
-
-	const JsonFloat& JsonNode::reinterpretAsFloat() const noexcept
-	{
-		return *reinterpret_cast<const JsonFloat*>(this);
-	}
-
-	const JsonInt& JsonNode::reinterpretAsInt() const noexcept
-	{
-		return *reinterpret_cast<const JsonInt*>(this);
-	}
-
-	const JsonObject& JsonNode::reinterpretAsObj() const noexcept
-	{
-		return *reinterpret_cast<const JsonObject*>(this);
-	}
-
-	const JsonString& JsonNode::reinterpretAsStr() const noexcept
-	{
-		return *reinterpret_cast<const JsonString*>(this);
+		SOUP_THROW(Exception("JsonNode has unexpected type"));
 	}
 }

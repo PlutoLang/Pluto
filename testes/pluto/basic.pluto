@@ -1,19 +1,21 @@
 print "Welcome to the test suite."
 
--- Testing warnings
+local function assert_warn(code)
+    assert(wcall(function(msg)
+        local chunk, err = load(code)
+        if chunk then chunk() else error(err) end
+    end) ~= "")
+end
+
+local function assert_no_warn(code)
+    assert(wcall(function(msg)
+        local chunk, err = load(code)
+        if chunk then chunk() else error(err) end
+    end) == "")
+end
+
+print "Testing warnings."
 do
-    local function assert_warn(code)
-        assert(wcall(function(msg)
-            load(code)()
-        end) ~= "")
-    end
-
-    local function assert_no_warn(code)
-        assert(wcall(function(msg)
-            load(code)()
-        end) == "")
-    end
-
     assert_warn([[local a; local a]]) -- var-shadow
 
     assert_no_warn[[
@@ -157,9 +159,24 @@ if mt then
 end
 if __newindex then end
 ]]
+
+    -- discarded-return basic test
+    assert_warn[[local function f() <nodiscard>
+    return 69
 end
 
-print "Testing assertion library"
+f()]]
+
+    -- field-shadow
+    assert_warn[[
+    local t = {
+        first = 1,
+        second = 2,
+        first = 3,
+    }]]
+end
+
+print "Testing assertion library."
 do
     local assert = require("assert")
 
@@ -279,12 +296,6 @@ do
     assert(b == 4.0)
 
     a, b = 1, 2
-    a **= 2
-    b **= 2
-    assert(a == 1.0)
-    assert(b == 4.0)
-
-    a, b = 1, 2
     a |= 1
     b |= 1
     assert(a == 1)
@@ -319,6 +330,12 @@ do
     b >>= 1
     assert(a == 0)
     assert(b == 1)
+
+    a, b = 0xf0, 0x0f
+    a ~= 0xff
+    b ~= 0xff
+    assert(a == 0x0f)
+    assert(b == 0xf0)
 
     local t = {
         tt = {
@@ -552,7 +569,6 @@ do
         nil,
         "ARRAY"
     }
-    assert(nil in t)
     assert("KEY" in t)
     assert("ARRAY" in t)
     assert(("NOTHING" in t) == false)
@@ -567,7 +583,6 @@ do
             "ARRAY"
         }
     }
-    assert(nil in t.subt)
     assert("KEY" in t.subt)
     assert("ARRAY" in t.subt)
     local function proxy(b)
@@ -595,15 +610,12 @@ do -- check stack corruption
     assert(a == "KEY")
     local b = || -> "Hello World"
     local c = "ARRAY"
-    local d = nil
     assert(c in t)
-    assert(d in t)
     local e = "NOTHING"
     assert(not e in t)
     assert(a == "KEY")
     assert(b() == "Hello World")
     assert(c == "ARRAY")
-    assert(d == nil)
     assert(e == "NOTHING")
 end
 do 
@@ -704,6 +716,7 @@ do
         pluto_switch value do
             default:
             error()
+            break
             case casecond:
         end
     end
@@ -712,6 +725,7 @@ do
         pluto_switch value do
             default:
             error()
+            break
             case casecond:
         end
     end
@@ -874,6 +888,7 @@ do
         case 1:
         default:
         error()
+        break
         case 3:
         t = true
     end
@@ -899,6 +914,7 @@ do
     switch true do
         default:
             error()
+            break
         case (87 == 87):
     end
 end
@@ -908,6 +924,7 @@ do
     switch x do
         default:
             error()
+            break
         case y + 1: -- x == y + 1
     end
 end
@@ -1106,6 +1123,38 @@ do
     --]] --> Doing this will break tests done with dofile(), since the environment is reused.
 end
 
+print "Testing pipe operator."
+do
+    local function f(x)
+        assert(x == 69)
+    end
+
+    local a, b = {} |> dumpvar
+    assert(type(a) == "string")
+    assert(b == nil)
+
+    assert(("69") |> tonumber == 69)
+
+    -- Additional arguments shorthand (longhand would be writing a lambda)
+    assert(("69") |> tonumber|16| == 0x69)
+
+    -- Try to avoid syntax ambiguity by not allowing function call with '(' in the chain after pipe operator was used.
+    ;(69) |> f (69) |> f
+
+    -- Other types of function calls are still okay, tho, since string and table are not valid statements.
+    ;("Hello") |> require"json".encode |> |x| -> assert(x == [["Hello"]])
+    ;("Hello") |> (require"json".encode) |> |x| -> assert(x == [["Hello"]])
+
+    -- Method calls
+    local obj = {
+        function setValue(value)
+            self.value = value
+        end
+    }
+    ;(69) |> obj:setValue
+    assert(obj.value == 69)
+end
+
 print "Testing standard library additions."
 do
     local v3 = require"pluto:vector3"
@@ -1149,22 +1198,28 @@ do
     assert($crypto.fnv1a("hello world") == 8618312879776256743)
     assert($crypto.joaat("hello world") == 1045060183)
 
+    assert(crypto.sha1("Pluto") == "bce8c9aca4120776fad6b517874aa09c46405454")
+    assert(crypto.sha1("Pluto", true) == "\xbc\xe8\xc9\xac\xa4\x12\x07\x76\xfa\xd6\xb5\x17\x87\x4a\xa0\x9c\x46\x40\x54\x54")
     assert(crypto.sha256("Pluto") == "8dad5f6a7dd2dcd8c35ec2fd7babb499bcad60d27d73fe73eca2ce025dfd3b47")
     assert(crypto.sha256("Pluto", true) == "\x8d\xad\x5f\x6a\x7d\xd2\xdc\xd8\xc3\x5e\xc2\xfd\x7b\xab\xb4\x99\xbc\xad\x60\xd2\x7d\x73\xfe\x73\xec\xa2\xce\x02\x5d\xfd\x3b\x47")
+    assert(crypto.sha384("Pluto", false) == "db890233a919b6745d632633c419e14540ff79f1a89bc4ac194b00e7f913f0f06d5d4d7d6cc2b4aaf9485d223afb8cf0")
+    assert(crypto.sha512("Pluto", false) == "ee8410a8bf9511b94fd6669b5c3e0c4b86e8e4bf7baa8dbd2773d4d6381dd1aecebbe391bef4c6158620ab3f6b794907652d4432c2301d7e1a6caf520565cdf2")
 end
 do
     local base64 = require("base64")
-    assert(base64.encode("Hello") == "SGVsbG8")
+    assert(base64.encode("Hello") == "SGVsbG8=")
+    assert(base64.encode("Hello", false) == "SGVsbG8")
     assert(base64.decode("SGVsbG8") == "Hello")
+    assert(base64.decode("SGVsbG8=") == "Hello")
+
     assert(base64.urlencode("Hello") == "SGVsbG8")
     assert(base64.urldecode("SGVsbG8") == "Hello")
-    assert(base64.decode(base64.encode("Hello", true)) == "Hello")
 
     -- Binary safe
     assert(base64.encode("") == "")
     assert(base64.decode("") == "")
-    assert(base64.encode("\x00") == "AA")
-    assert(base64.decode("AA") == "\x00")
+    assert(base64.encode("\x00") == "AA==")
+    assert(base64.decode("AA==") == "\x00")
 end
 do
     local base32 = require("base32")
@@ -1172,8 +1227,70 @@ do
     -- Binary safe
     assert(base32.encode("") == "")
     assert(base32.decode("") == "")
-    assert(base32.encode("\x00") == "AA")
-    assert(base32.decode("AA") == "\x00")
+    assert(base32.encode("\x00") == "AA======")
+    assert(base32.decode("AA======") == "\x00")
+end
+do
+    local json = require("json")
+
+    assert(json.decode([[{"a":null]]).a == nil)
+    assert(json.decode([[{"a":null}]], json.withnull).a == json.null)
+
+    do
+        local t = {
+            __order = { "a", "b", "c" },
+            a = 1,
+            b = 2,
+            c = 3
+        }
+        assert(json.encode(t) == [[{"a":1,"b":2,"c":3}]])
+    end
+
+    assert(json.encode(json.null) == "null")
+
+    do
+        local t = json.decode([[{"a":1,"b":2,"c":3}]], json.withorder)
+        assert(t.__order[1] == "a")
+        assert(t.__order[2] == "b")
+        assert(t.__order[3] == "c")
+    end
+end
+do
+    local xml = require "pluto:xml"
+
+    -- Decode
+    assert(xml.decode([[<root non-standard-attr />]], "xml").attributes?["non-standard-attr"] == nil)
+    assert(xml.decode([[<root non-standard-attr />]], "lax").attributes?["non-standard-attr"] == "")
+    assert(xml.decode([[<root non-standard-attr />]], "html").attributes?["non-standard-attr"] == "")
+
+    -- Decode: Metatable
+    local root = xml.decode([[
+        <root>
+            <node>text</node>
+        </root>
+    ]])
+    assert(root.node.tag == "node")
+    assert(root.node.children[1] == "text")
+    assert(root.node.deez == nil)
+
+    -- Encode
+    assert(xml.encode{
+        tag = "root",
+        children = {
+            {
+                tag = "entry",
+                attributes = {
+                    ["type"] = "primary"
+                },
+                children = {
+                    "Text node"
+                }
+            },
+            {
+                tag = "entry"
+            }
+        }
+    } == [[<root><entry type="primary">Text node</entry><entry></entry></root>]])
 end
 do
     local t = { key = "value" }
@@ -1317,6 +1434,16 @@ do
     local url = require"pluto:url"
     assert(url.encode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
     assert(url.decode(url.encode(str)) == str)
+
+    local parts = require"url".parse("http://username:password@hostname:9090/path?arg=value#anchor")
+    assert(parts.scheme == "http")
+    assert(parts.user == "username")
+    assert(parts.pass == "password")
+    assert(parts.host == "hostname")
+    assert(parts.port == 9090)
+    assert(parts.path == "/path")
+    assert(parts.query == "arg=value")
+    assert(parts.fragment == "anchor")
 end
 do
     local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
@@ -1404,6 +1531,102 @@ do
     assert(t.key == 0)
 end
 do
+    assert(0 == {1,2,}:size(true))
+    assert(1 == {1,2, a = "a" }:size(true))
+    assert(2 == {1,2, a = "a", b = "b" }:size(true))
+    assert(3 == {1,2, a = "a", b = "b", c = "c" }:size(true))
+    assert(4 == {1,2, a = "a", b = "b", c = "c", d = "d" }:size(true))
+    assert(5 == {1,2, a = "a", b = "b", c = "c", d = "d", e = "e" }:size(true))
+
+    assert(2 == {1,2,}:size(false))
+    assert(3 == {1,2, a = "a" }:size(false))
+    assert(4 == {1,2, a = "a", b = "b" }:size(false))
+    assert(5 == {1,2, a = "a", b = "b", c = "c" }:size(false))
+    assert(6 == {1,2, a = "a", b = "b", c = "c", d = "d" }:size(false))
+    assert(7 == {1,2, a = "a", b = "b", c = "c", d = "d", e = "e" }:size(false))
+end
+do
+    local t = { 1, 2, 3 }
+    assert(t:reduce(|a, b| -> a + b) == 6)
+    assert(t:reduce(math.max, math.mininteger) == 3)
+    assert(t:reduce(math.min, math.maxinteger) == 1)
+    assert({"a", "b", "c"}:reduce(|a, b| -> a .. b, "") == "abc")
+end
+do
+    local t = { 3, 2, 1 }
+    local ts = t:sorted()
+    assert(t[1] == 3)
+    assert(t[2] == 2)
+    assert(t[3] == 1)
+    assert(ts[1] == 1)
+    assert(ts[2] == 2)
+    assert(ts[3] == 3)
+end
+do
+    local t = { 1, 2, 3 }
+    local tm = t:mapped(|n| -> n * 2)
+    assert(t[1] == 1)
+    assert(t[2] == 2)
+    assert(t[3] == 3)
+    assert(tm[1] == 2)
+    assert(tm[2] == 4)
+    assert(tm[3] == 6)
+end
+do
+    local t = { 1, 2, 3, 4, 5 }
+    local tf = t:filtered(|n| -> n % 2 ~= 0)
+    assert(t[1] == 1)
+    assert(t[2] == 2)
+    assert(t[3] == 3)
+    assert(t[4] == 4)
+    assert(t[5] == 5)
+    assert(tf[1] == 1)
+    assert(tf[2] == nil)
+    assert(tf[3] == 3)
+    assert(tf[4] == nil)
+    assert(tf[5] == 5)
+end
+do
+    local t = { 1, 2, 3 }
+    local tr = t:reversed()
+    assert(t[1] == 1)
+    assert(t[2] == 2)
+    assert(t[3] == 3)
+    assert(tr[1] == 3)
+    assert(tr[2] == 2)
+    assert(tr[3] == 1)
+end
+do
+    local t = { 1, 2, 3 }
+    t[2] = nil
+    local tr = t:reordered()
+    assert(t[1] == 1)
+    assert(t[2] == nil)
+    assert(t[3] == 3)
+    assert(tr[1] == 1)
+    assert(tr[2] == 3)
+    assert(tr[3] == nil)
+end
+do
+    local menu = {
+        { id = 1, name = "Apple" },
+        { id = 2, name = "Banana" },
+    }
+    assert(menu:find(|item| -> item.id == 1).name == "Apple")
+    assert(menu:find(|item| -> item.id == 2).name == "Banana")
+    assert(menu:find(|item| -> item.id == 3) == nil)
+end
+do
+    assert({ 1, 2, 3 }:checkall(|x| -> x % 2 == 0) == false)
+    assert({ 2, 4, 6 }:checkall(|x| -> x % 2 == 0) == true)
+end
+do
+    local t = { 1, 2, 3, "foo", "bar" }
+    assert(t:size() == 5)
+    t:clear()
+    assert(t:size() == 0)
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
@@ -1415,6 +1638,155 @@ do
     assert(math.isnan(0 / 0) == true)
     assert(math.isnan(69) == false)
 end
+do
+    local t = range(3)
+    assert(#t == 3)
+    assert(t[1] == 1)
+    assert(t[2] == 2)
+    assert(t[3] == 3)
+end
+do
+    local t = range(3, 6)
+    assert(#t == 4)
+    assert(t[1] == 3)
+    assert(t[2] == 4)
+    assert(t[3] == 5)
+    assert(t[4] == 6)
+end
+do
+    local t = range(1, 10, 2)
+    assert(#t == 5)
+    assert(t[1] == 1)
+    assert(t[2] == 3)
+    assert(t[3] == 5)
+    assert(t[4] == 7)
+    assert(t[5] == 9)
+end
+do
+    assert(range(10):min() == 1)
+    assert(range(10):max() == 10)
+end
+do
+    local cat = require"pluto:cat"
+
+    local data = "List: With Value\n\tChild: With Value\n"
+    local t = cat.decode(data, "flat")
+    assert(t.List.__value == "With Value")
+    assert(t.List.Child == "With Value")
+    assert(cat.encode(t) == data)
+
+    data = "Hello: World\n"
+    t = cat.decode(data, "flat")
+    assert(t.Hello == "World")
+    assert(cat.encode(t) == data)
+
+    data = "First\nSecond"
+    t = cat.decode(data, "full")
+    assert(t[1].name == "First")
+    assert(t[2].name == "Second")
+
+    -- Metatable
+    data = "List: With Value\n\tChild: With Value\n"
+    t = cat.decode(data, "full")
+    assert(t.List.Child.value == "With Value")
+
+    -- Colons in keys
+    data = cat.encode({ ["Need: More"] = "Colons" })
+    t = cat.decode(data, "flat")
+    assert(t["Need: More"] == "Colons")
+
+    -- __order
+    assert(cat.encode({
+        __order = { "Hello", "World" },
+        Hello = ",",
+        World = "!",
+    }) == "Hello: ,\nWorld: !\n")
+end
+do
+    local { base64, bigint, crypto } = require"*"
+
+    local key <const> = "A Top Secret Key"
+    local iv <const> = "My Top Secret IV"
+    local aadata <const> = "Additional authenticated data UwU"
+
+    assert(crypto.encrypt("Hello from Pluto", "aes-ecb", key) |> base64.encode == "v3WiSKT9g5TJfuq72QXVyg==")
+    assert(crypto.encrypt("Hello, world!", "aes-ecb-pkcs7", key) |> base64.encode == "YHB7hez0jYXtaxUqLj5qRw==")
+    assert(crypto.encrypt("Hello from Pluto", "aes-cbc", key, iv) |> base64.encode == "dyJWNeZQx6fjKr15cGd6Ng==")
+    assert(crypto.encrypt("Hello, world!", "aes-cbc-pkcs7", key, iv) |> base64.encode == "a3bHHwmClgOnNAVFUWgwAw==")
+    local enc, tag = crypto.encrypt("Hello from Pluto!", "aes-gcm", aadata, key, iv)
+    assert(base64.encode(enc) == "wR/89K4T9cGKI9baKR0s7xI=")
+    assert(base64.encode(tag) == "d62kzEuotTdpAgYTrzdPpQ==")
+
+    assert(crypto.decrypt(base64.decode("v3WiSKT9g5TJfuq72QXVyg=="), "aes-ecb", key) == "Hello from Pluto")
+    assert(crypto.decrypt(base64.decode("YHB7hez0jYXtaxUqLj5qRw=="), "aes-ecb-pkcs7", key) == "Hello, world!")
+    assert(crypto.decrypt(base64.decode("dyJWNeZQx6fjKr15cGd6Ng=="), "aes-cbc", key, iv) == "Hello from Pluto")
+    assert(crypto.decrypt(base64.decode("a3bHHwmClgOnNAVFUWgwAw=="), "aes-cbc-pkcs7", key, iv) == "Hello, world!")
+    assert(crypto.decrypt(base64.decode("wR/89K4T9cGKI9baKR0s7xI="), "aes-gcm", aadata, key, iv, base64.decode("d62kzEuotTdpAgYTrzdPpQ==")) == "Hello from Pluto!")
+
+    local priv = {
+        p = bigint.new("3835446257"),
+        q = bigint.new("3714629299"),
+    }
+    local pub = {
+        n = priv.p * priv.q, -- 14247261040992083843
+        e = bigint.new(0x10001),
+    }
+
+    local enc = crypto.encrypt("Hi", "rsa", pub)
+    assert(base64.encode(enc) == "w1v3stxRHCs=")
+    assert(crypto.decrypt(enc, "rsa", priv) == "Hi")
+
+    enc = crypto.encrypt("Hi", "rsa", priv)
+    assert(base64.encode(enc) == "GClnRNYar5c=")
+    assert(crypto.decrypt(enc, "rsa", pub) == "Hi")
+
+    priv = {
+        p = bigint.new("115443384115231951475820445136871322101870729500298182134363293112660251666017"),
+        q = bigint.new("98365361248415863235179644468056200977592391948608651522703704315152579004021"),
+    }
+    pub = {
+        n = priv.p * priv.q, -- 11355630182234424425429331560518598643298965915936825610957270519615363349759012613228119611304846673085167794661819394470107090216347491908311079792054357
+        e = bigint.new(0x10001),
+    }
+
+    local sig = crypto.sign("Pluto is certified cool", "rsa-sha1", priv)
+    assert(crypto.verify("Pluto is certified cool", "rsa-sha1", pub, sig))
+end
+do
+    local bigint = require "pluto:bigint"
+
+    do
+        local q, r = new bigint(10):div(new bigint(3))
+        assert(q:tostring() == "3")
+        assert(r:tostring() == "1")
+    end
+
+    do
+        local n = bigint.new("11355630182234424425429331560518598643298965915936825610957270519615363349759012613228119611304846673085167794661819394470107090216347491908311079792054357")
+        assert(n:hex() == "D8D12A03AE2F14B16CBFDF160FF7AC97911862B3D048F18E3B95E909A08D91AAD4BA48D8A1FE4EBC555782FDE14D13085A35F6F62D57A4F86CE1FF32503A9055")
+        assert(n:bitlength() == 512)
+    end
+end
+do
+    local { scheduler, socket } = require "*"
+
+    local sched = new scheduler()
+    sched:add(function()
+        local l = socket.listen(30724)
+        local s = l:accept()
+        while data := s:recv() do
+            s:send(data)
+        end
+    end)
+    sched:add(function()
+        local s = socket.connect("localhost", 30724)
+        assert(s)
+        s:send("Hello")
+        assert(s:recv() == "Hello")
+        s:close()
+    end)
+    sched:run()
+end
 
 print "Testing default table metatable."
 do
@@ -1424,6 +1796,12 @@ do
     assert(t:contains("apple") == 1)
     assert(t:contains("banana") == 2)
     assert(t:contains("orange") == nil)
+end
+
+-- 'thread' type is given a metatable by Pluto
+do
+    local coro = coroutine.create(function() end)
+    assert(coro:status() == "suspended")
 end
 
 print "Testing default arguments."
@@ -1467,6 +1845,11 @@ do
     assert(t:foo() == "hello")
     assert(t:bar() == "world")
 end
+do
+    local f = |a = "No comment"| -> a
+    assert(f() == "No comment")
+    assert(f("Hello") == "Hello")
+end
 
 print "Testing walrus operator."
 do
@@ -1485,6 +1868,13 @@ do
         f()
     end
     executeFunc(function()
+        if c := 3 then
+            assert(c == 3)
+        else
+            error()
+        end
+    end)
+    executeFunc(|| -> do
         if c := 3 then
             assert(c == 3)
         else
@@ -1780,7 +2170,7 @@ do
 end
 -- Class overriding '__index'
 do
-    local extraOffset <constexpr> = 10
+    $define extraOffset = 10
 
     class Counter
         __num = 1
@@ -1934,6 +2324,12 @@ do
     assert(t[1] == "Hello")
     assert(t[2] == 1337)
 end
+do
+    local f = |...args| -> table.size(args)
+    assert(f() == 0)
+    assert(f(1) == 1)
+    assert(f(1, 2) == 2)
+end
 
 print "Testing export."
 do
@@ -2042,12 +2438,16 @@ do
     pluto_use class
 
     class Human end
+
+    -- Superfluous tokens after pluto_use annotation are ignored
+    assert(load[[--@pluto_use * = false   Some comment here
+return true]]() == true)
 end
 
 print "Testing compile-time conditionals."
 do
     local debug_bytecode = string.dump(load([[
-        local DEBUG <constexpr> = true
+        $define DEBUG = true
         $if DEBUG then
             print("Script running in debug mode")
         $else
@@ -2055,7 +2455,7 @@ do
         $end
     ]], ""))
     local release_bytecode = string.dump(load([[
-        local DEBUG <constexpr> = false
+        $define DEBUG = false
         $if DEBUG then
             print("Script running in debug mode")
         $else
@@ -2241,7 +2641,25 @@ do
     assert(get_val() <=> get_val() == 0)
 end
 
-print("Testing modified require semantics.")
+print "Testing implicit/explicit global creation."
+do
+    assert_warn [[pluto_use global; a = 1]]
+    assert_warn [[pluto_use global; function a() end]]
+    assert_warn [[pluto_use global; class a end]]
+    assert_no_warn [[pluto_use global; local a; a = 1]]
+    assert_no_warn [[pluto_use global; local a; do a = 1 end]]
+
+    -- explicit globals
+    assert_no_warn [[pluto_use global; global a = 1]]
+    assert_no_warn [[pluto_use global; global function a() end]]
+    assert_no_warn [[pluto_use global; global class a end]]
+
+    -- predefine globals
+    assert_no_warn [[pluto_use global; global a; a = 1]]
+    assert_no_warn [[pluto_use global; global a, b; a = 1; b = 2]]
+end
+
+print "Testing modified require semantics."
 do
     local currentdir = io.absolute(io.currentdir())
     if not io.currentdir():endswith("testes") then

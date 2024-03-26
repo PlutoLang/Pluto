@@ -52,7 +52,7 @@
 */
 #if !defined(LUAI_THROW)				/* { */
 
-#if defined(__cplusplus) && defined(PLUTO_USE_THROW)	/* { */
+#if defined(__cplusplus) && !defined(LUA_USE_LONGJMP)	/* { */
 
 /* C++ exceptions */
 #define LUAI_THROW(L,c)		throw(c)

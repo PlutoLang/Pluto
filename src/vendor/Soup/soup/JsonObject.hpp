@@ -19,8 +19,8 @@ namespace soup
 		explicit JsonObject() noexcept;
 		explicit JsonObject(const char*& c) noexcept;
 
-		[[nodiscard]] std::string encode() const final;
-		[[nodiscard]] std::string encodePretty(const std::string& prefix = {}) const;
+		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
+		void encodePrettyAndAppendTo(std::string& str, unsigned depth = 0) const SOUP_EXCAL;
 
 		bool binaryEncode(Writer& w) const final;
 
@@ -52,6 +52,7 @@ namespace soup
 		void add(std::string k, uint32_t v);
 		void add(std::string k, int64_t v);
 		void add(std::string k, bool v);
+		void add(std::string k, double v);
 
 		template <typename T, SOUP_RESTRICT(std::is_base_of_v<JsonNode, T>)>
 		void add(std::string k, UniquePtr<T>&& v)

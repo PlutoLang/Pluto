@@ -41,7 +41,7 @@ namespace soup
 
 		void operator =(const char* b) noexcept
 		{
-			SOUP_ASSERT_PRECOND(strlen(b) <= S);
+			SOUP_DEBUG_ASSERT(strlen(b) <= S);
 			strncpy(data(), b, S);
 		}
 
@@ -78,6 +78,18 @@ namespace soup
 		[[nodiscard]] size_t size() const noexcept
 		{
 			return strlen(c_str());
+		}
+
+		[[nodiscard]] char& operator [](size_t Index) noexcept
+		{
+			SOUP_DEBUG_ASSERT(Index < S);
+			return m_data[Index];
+		}
+
+		[[nodiscard]] const char& operator [](size_t Index) const noexcept
+		{
+			SOUP_DEBUG_ASSERT(Index < S);
+			return m_data[Index];
 		}
 	};
 	static_assert(sizeof(ShortString<1>) == 2);

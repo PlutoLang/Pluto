@@ -3,7 +3,7 @@
 #define LUA_LIB
 #include "lualib.h"
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg funcs_vector3[] = {
   {nullptr, nullptr}
 };
 
@@ -12,7 +12,7 @@ LUAMOD_API int luaopen_vector3(lua_State* L) {
 
 local vector3
  class vector3
-  __name = "vector3"
+  __name = "pluto:vector3"
 
   function __construct(x, y, z)
     if x ~= nil and y == nil and z == nil then
@@ -203,4 +203,4 @@ return vector3)EOC";
     return 1;
 }
 
-const Pluto::PreloadedLibrary Pluto::preloaded_vector3{ "vector3", funcs, &luaopen_vector3 };
+const Pluto::PreloadedLibrary Pluto::preloaded_vector3{ "vector3", funcs_vector3, &luaopen_vector3 };

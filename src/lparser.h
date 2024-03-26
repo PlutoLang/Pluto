@@ -149,6 +149,7 @@ struct TypeDesc {
   TypeHint* retn;
   static constexpr int MAX_TYPED_PARAMS = 10;
   TypeHint* params[MAX_TYPED_PARAMS];
+  bool nodiscard = false;
 
   TypeDesc() = default;
 

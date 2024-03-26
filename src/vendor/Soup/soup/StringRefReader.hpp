@@ -1,63 +1,59 @@
 #pragma once
 
-#include "ioSeekableReader.hpp"
+#include "Reader.hpp"
+
+#include <cstring> // memcpy
 
 namespace soup
 {
-	class StringRefReader final : public ioSeekableReader
+	class StringRefReader final : public Reader
 	{
 	public:
-		const std::string& data;
+		const char* data;
+		size_t size;
 		size_t offset = 0;
 
-		StringRefReader(const std::string& data, bool little_endian = true)
-			: ioSeekableReader(little_endian), data(data)
+		StringRefReader(const std::string& str, bool little_endian = true)
+			: Reader(little_endian), data(str.data()), size(str.size())
+		{
+		}
+
+		StringRefReader(const char* data, size_t size, bool little_endian = true)
+			: Reader(little_endian), data(data), size(size)
 		{
 		}
 
 		~StringRefReader() final = default;
 
-		bool hasMore() final
+		bool hasMore() noexcept final
 		{
-			return offset != data.size();
+			return offset != size;
 		}
 
-		bool u8(uint8_t& v) final
+		bool raw(void* data, size_t len) noexcept final
 		{
-			if (offset == data.size())
+			SOUP_IF_UNLIKELY ((offset + len) > this->size)
 			{
 				return false;
 			}
-			v = (uint8_t)data.at(offset++);
-			return true;
-		}
-
-	protected:
-		bool str_impl(std::string& v, size_t len) final
-		{
-			if ((offset + len) > data.size())
-			{
-				return false;
-			}
-			v = data.substr(offset, len);
+			memcpy(reinterpret_cast<char*>(data), this->data + offset, len);
 			offset += len;
 			return true;
 		}
 
-	public:
-		[[nodiscard]] size_t getPosition() final
+		[[nodiscard]] size_t getPosition() noexcept final
 		{
 			return offset;
 		}
 
-		void seek(size_t pos) final
+		void seek(size_t pos) noexcept final
 		{
 			offset = pos;
 		}
 
-		void seekEnd() final
+		void seekEnd() noexcept final
 		{
-			offset = data.size();
+			offset = size;
 		}
 	};
 }

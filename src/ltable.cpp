@@ -1017,6 +1017,26 @@ lua_Unsigned luaH_getn (Table *t) {
 }
 
 
+/*
+** Returns the size of the table's hash part.
+*/
+LUAI_FUNC unsigned int luaH_gethsize (const Table *t) {
+  unsigned int nums[MAXABITS + 1];
+  unsigned int na;
+  return numusehash(t, nums, &na);
+}
+
+
+LUAI_FUNC void luaH_clear (lua_State *L, Table *t) {
+  /* clear array part */
+  luaM_freearray(L, t->array, luaH_realasize(t));
+  t->array = NULL;
+  t->alimit = 0;
+  /* clear hash part */
+  freehash(L, t);
+  setnodevector(L, t, 0);
+}
+
 
 #if defined(LUA_DEBUG)
 

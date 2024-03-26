@@ -303,7 +303,17 @@ typedef struct global_State {
   lua_WarnFunction warnf;  /* warning function */
   void *ud_warn;         /* auxiliary data to 'warnf' */
 #ifndef PLUTO_LUA_LINKABLE
-  void* user_data;       /* a pointer to data you, the user, would like to specify */
+  void* user_data;  /* a pointer to data you, the user, would like to specify */
+  bool compatible_switch : 1;
+  bool compatible_continue : 1;
+  bool compatible_enum : 1;
+  bool compatible_new : 1;
+  bool compatible_class : 1;
+  bool compatible_parent : 1;
+  bool compatible_export : 1;
+  bool compatible_try : 1;
+  bool compatible_catch : 1;
+  void* scheduler;  /* internal use only; do not use this in your own code. */
 #endif
 #ifdef PLUTO_ETL_ENABLE
   std::time_t deadline;  /* internal use only; do not use this in your own code. */
@@ -311,6 +321,18 @@ typedef struct global_State {
 #ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
   TValue table_mt;  /* internal use only; do not use this in your own code. */
 #endif
+
+  void setCompatibilityMode(bool b) noexcept {
+    compatible_switch = b;
+    compatible_continue = b;
+    compatible_enum = b;
+    compatible_new = b;
+    compatible_class = b;
+    compatible_parent = b;
+    compatible_export = b;
+    compatible_try = b;
+    compatible_catch = b;
+  }
 } global_State;
 
 class Registry {
@@ -363,6 +385,12 @@ struct lua_State {
   [[nodiscard]] inline Registry GetReg() {
       return this;
   }
+
+#ifdef PLUTO_ETL_ENABLE
+  void checkEtl();
+#else
+  void checkEtl() {}
+#endif
 };
 
 

@@ -14,7 +14,14 @@
 #include <sstream>
 #include <iomanip>
 
+#include "vendor/Soup/soup/adler32.hpp"
+#include "vendor/Soup/soup/aes.hpp"
+#include "vendor/Soup/soup/crc32.hpp"
+#include "vendor/Soup/soup/rsa.hpp"
+#include "vendor/Soup/soup/sha1.hpp"
 #include "vendor/Soup/soup/sha256.hpp"
+#include "vendor/Soup/soup/sha384.hpp"
+#include "vendor/Soup/soup/sha512.hpp"
 #include "vendor/Soup/soup/string.hpp"
 
 
@@ -28,7 +35,7 @@ static int fnv1(lua_State *L)
   for (auto& c : s)
   {
     hash *= FNV_prime;
-    hash ^= c;
+    hash ^= (uint8_t)c;
   }
 
   lua_pushinteger(L, hash);
@@ -45,7 +52,7 @@ static int fnv1a(lua_State *L)
   
   for (auto& c : s)
   {
-    hash ^= c;
+    hash ^= (uint8_t)c;
     hash *= FNV_prime;
   }
 
@@ -241,7 +248,7 @@ static int crc32(lua_State *L)
 {
   size_t len;
   const auto text = luaL_checklstring(L, 1, &len);
-  const auto hash = crc32_impl(text, (int)len, (uint32_t)luaL_optinteger(L, 2, 0));
+  const auto hash = soup::crc32::hash((const uint8_t*)text, len, (uint32_t)luaL_optinteger(L, 2, 0));
   lua_pushinteger(L, hash);
   return 1;
 }
@@ -259,12 +266,53 @@ static int lua(lua_State *L)
 }
 
 
+static int l_sha1(lua_State *L)
+{
+  const auto text = pluto_checkstring(L, 1);
+  const bool binary = lua_istrue(L, 2);
+  auto digest = soup::sha1::hash(text);
+  if (!binary) {
+    digest = soup::string::bin2hexLower(digest);
+  }
+  pluto_pushstring(L, digest);
+  return 1;
+}
+
+
 static int l_sha256(lua_State *L)
 {
   size_t l;
   const char* text = luaL_checklstring(L, 1, &l);
   const bool binary = lua_istrue(L, 2);
   auto digest = soup::sha256::hash(text, l);
+  if (!binary) {
+    digest = soup::string::bin2hexLower(digest);
+  }
+  pluto_pushstring(L, digest);
+  return 1;
+}
+
+
+static int l_sha384(lua_State *L)
+{
+  size_t l;
+  const char* text = luaL_checklstring(L, 1, &l);
+  const bool binary = lua_istrue(L, 2);
+  auto digest = soup::sha384::hash(text, l);
+  if (!binary) {
+    digest = soup::string::bin2hexLower(digest);
+  }
+  pluto_pushstring(L, digest);
+  return 1;
+}
+
+
+static int l_sha512(lua_State *L)
+{
+  size_t l;
+  const char* text = luaL_checklstring(L, 1, &l);
+  const bool binary = lua_istrue(L, 2);
+  auto digest = soup::sha512::hash(text, l);
   if (!binary) {
     digest = soup::string::bin2hexLower(digest);
   }
@@ -302,10 +350,358 @@ static int hexdigest(lua_State *L)
 }
 
 
-static const luaL_Reg funcs[] = {
+void pushbigint (lua_State *L, soup::Bigint&& x);
+soup::Bigint* checkbigint (lua_State *L, int i);
+
+
+static int generatekeypair (lua_State *L) {
+  auto type = luaL_checkstring(L, 1);
+  auto bits = (int)luaL_checkinteger(L, 2);
+  if (strcmp(type, "rsa") != 0) {
+    luaL_error(L, "Unknown type");
+  }
+  auto kp = soup::RsaKeypair::generate(bits < 0 ? bits * -1 : bits, bits < 0);
+  lua_newtable(L);
+  lua_pushliteral(L, "n");
+  pushbigint(L, std::move(kp.n));
+  lua_settable(L, -3);
+  lua_pushliteral(L, "e");
+  pushbigint(L, std::move(kp.e));
+  lua_settable(L, -3);
+  lua_newtable(L);
+  lua_pushliteral(L, "p");
+  pushbigint(L, std::move(kp.p));
+  lua_settable(L, -3);
+  lua_pushliteral(L, "q");
+  pushbigint(L, std::move(kp.q));
+  lua_settable(L, -3);
+  return 2;
+}
+
+
+static int l_encrypt (lua_State *L) {
+  size_t mode_len;
+  const char *mode = luaL_checklstring(L, 2, &mode_len);
+  if (mode_len >= 7 && memcmp(mode, "aes-", 4) == 0) {
+    size_t data_len;
+    const char *in_data = luaL_checklstring(L, 1, &data_len);
+    char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15 + 16));  /* need up to 15 for alignment and up to 16 for padding */
+    if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
+      data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
+    }
+    memcpy(data, in_data, data_len);
+    const char *aadata = NULL;  /* for AEAD ciphers */
+    size_t aadata_len;
+    const char *key;
+    size_t key_len;
+    const char *iv = NULL;
+    size_t iv_len;
+    if (memcmp(&mode[4], "cbc", 3) == 0 || memcmp(&mode[4], "cfb", 3) == 0) {
+      key = luaL_checklstring(L, 3, &key_len);
+      iv = luaL_checklstring(L, 4, &iv_len);
+    }
+    else if (memcmp(&mode[4], "ecb", 3) == 0) {
+      key = luaL_checklstring(L, 3, &key_len);
+    }
+    else if (memcmp(&mode[4], "gcm", 3) == 0) {
+      aadata = luaL_checklstring(L, 3, &aadata_len);
+      key = luaL_checklstring(L, 4, &key_len);
+      iv = luaL_checklstring(L, 5, &iv_len);
+    }
+    else {
+      luaL_error(L, "Unknown mode");
+    }
+
+    if (key_len != 16 && key_len != 24 && key_len != 32) {
+      luaL_error(L, "Key length must be 16, 24, or 32 bytes for 128, 192, or 256-bit AES, respectively.");
+    }
+    if (!aadata && iv && iv_len != 16) {
+      luaL_error(L, "IV must be 16 bytes");
+    }
+
+    if (mode_len != 7) {
+      if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
+        size_t next_aligned_size = ((data_len / 16) + 1) * 16;
+        auto pad_size = static_cast<char>(next_aligned_size - data_len);
+        for (size_t i = data_len; i != next_aligned_size; ++i) {
+          data[i] = pad_size;
+        }
+        data_len = next_aligned_size;
+      }
+      else {
+        luaL_error(L, "Unknown mode");
+      }
+    }
+
+    uint8_t tag[16];
+    if (memcmp(&mode[4], "cbc", 3) == 0) {
+      soup::aes::cbcEncrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv)
+      );
+    }
+    else if (memcmp(&mode[4], "cfb", 3) == 0) {
+      soup::aes::cfbEncrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv)
+      );
+    }
+    else if (memcmp(&mode[4], "ecb", 3) == 0) {
+      soup::aes::ecbEncrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len
+      );
+    }
+    else if (memcmp(&mode[4], "gcm", 3) == 0) {
+      soup::aes::gcmEncrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(aadata), aadata_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv), iv_len,
+        tag
+      );
+    }
+
+    lua_pushlstring(L, data, data_len);
+    if (aadata) {
+      lua_remove(L, -2);
+      lua_pushlstring(L, reinterpret_cast<const char*>(tag), 16);
+      return 2;
+    }
+    return 1;
+  }
+  else if (mode_len >= 3 && memcmp(mode, "rsa", 3) == 0) {
+    luaL_checktype(L, 3, LUA_TTABLE);
+    soup::Bigint *n = lua_getfield(L, 3, "n") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (n) lua_pop(L, 1);
+    soup::Bigint *e = lua_getfield(L, 3, "e") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (e) lua_pop(L, 1);
+    soup::Bigint *p = lua_getfield(L, 3, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
+    soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
+    if (p && q) {  /* private key? */
+      std::string data = pluto_checkstring(L, 1);
+      if (strcmp(mode, "rsa-pkcs1") == 0) {
+        data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptPkcs1(std::move(data)).toBinary();
+      }
+      else {
+        data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptUnpadded(std::move(data)).toBinary();
+      }
+      pluto_pushstring(L, data);
+      return 1;
+    }
+    else if (n && e) {  /* public key? */
+      std::string data = pluto_checkstring(L, 1);
+      if (strcmp(mode, "rsa-pkcs1") == 0) {
+        data = soup::RsaPublicKey(*n, *e).encryptPkcs1(std::move(data)).toBinary();
+      }
+      else {
+        data = soup::RsaPublicKey(*n, *e).encryptUnpadded(std::move(data)).toBinary();
+      }
+      pluto_pushstring(L, data);
+      return 1;
+    }
+    else luaL_error(L, "Invalid key");
+  }
+  else luaL_error(L, "Unknown mode");
+}
+
+
+static int l_decrypt (lua_State *L) {
+  size_t mode_len;
+  const char *mode = luaL_checklstring(L, 2, &mode_len);
+  if (mode_len >= 7 && memcmp(mode, "aes-", 4) == 0) {
+    size_t data_len;
+    const char *in_data = luaL_checklstring(L, 1, &data_len);
+    char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15));  /* need up to 15 for alignment */
+    if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
+      data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
+    }
+    memcpy(data, in_data, data_len);
+    const char *aadata = NULL;  /* for AEAD ciphers */
+    size_t aadata_len;
+    const char *key;
+    size_t key_len;
+    const char *iv = NULL;
+    size_t iv_len;
+    const char *tag;  /* for AEAD ciphers */
+    if (memcmp(&mode[4], "cbc", 3) == 0 || memcmp(&mode[4], "cfb", 3) == 0) {
+      key = luaL_checklstring(L, 3, &key_len);
+      iv = luaL_checklstring(L, 4, &iv_len);
+    }
+    else if (memcmp(&mode[4], "ecb", 3) == 0) {
+      key = luaL_checklstring(L, 3, &key_len);
+    }
+    else if (memcmp(&mode[4], "gcm", 3) == 0) {
+      aadata = luaL_checklstring(L, 3, &aadata_len);
+      key = luaL_checklstring(L, 4, &key_len);
+      iv = luaL_checklstring(L, 5, &iv_len);
+      size_t tag_len;
+      tag = luaL_checklstring(L, 6, &tag_len);
+      if (tag_len != 16) {
+        luaL_error(L, "Authentication Tag must be 16 bytes");
+      }
+    }
+    else {
+      luaL_error(L, "Unknown mode");
+    }
+
+    if (key_len != 16 && key_len != 24 && key_len != 32) {
+      luaL_error(L, "Key length must be 16, 24, or 32 bytes for 128, 192, or 256-bit AES, respectively.");
+    }
+    if (!aadata && iv && iv_len != 16) {
+      luaL_error(L, "IV must be 16 bytes");
+    }
+
+    bool pkcs7 = false;
+    if (mode_len != 7) {
+      if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
+        pkcs7 = true;
+      }
+      else {
+        luaL_error(L, "Unknown mode");
+      }
+    }
+
+    if (memcmp(&mode[4], "cbc", 3) == 0) {
+      soup::aes::cbcDecrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv)
+      );
+    }
+    else if (memcmp(&mode[4], "cfb", 3) == 0) {
+      soup::aes::cfbDecrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv)
+      );
+    }
+    else if (memcmp(&mode[4], "ecb", 3) == 0) {
+      soup::aes::ecbDecrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(key), key_len
+      );
+    }
+    else if (memcmp(&mode[4], "gcm", 3) == 0) {
+      if (!soup::aes::gcmDecrypt(
+        reinterpret_cast<uint8_t*>(data), data_len,
+        reinterpret_cast<const uint8_t*>(aadata), aadata_len,
+        reinterpret_cast<const uint8_t*>(key), key_len,
+        reinterpret_cast<const uint8_t*>(iv), iv_len,
+        reinterpret_cast<const uint8_t*>(tag)
+      )) {
+        luaL_error(L, "AES-GCM authentication failed");
+      }
+    }
+
+    if (pkcs7) {
+      char pad_size = data[data_len - 1];
+      if (l_unlikely(pad_size < 1 || pad_size > 16)) {
+        luaL_error(L, "PKCS#7 unpadding failed");
+      }
+      for (auto i = pad_size; i; --i) {
+        if (l_unlikely(data[--data_len] != pad_size)) {
+          luaL_error(L, "PKCS#7 unpadding failed");
+        }
+      }
+    }
+
+    lua_pushlstring(L, data, data_len);
+    return 1;
+  }
+  else if (mode_len >= 3 && memcmp(mode, "rsa", 3) == 0) {
+    luaL_checktype(L, 3, LUA_TTABLE);
+    soup::Bigint *n = lua_getfield(L, 3, "n") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (n) lua_pop(L, 1);
+    soup::Bigint *e = lua_getfield(L, 3, "e") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (e) lua_pop(L, 1);
+    soup::Bigint *p = lua_getfield(L, 3, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
+    soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
+    if (p && q) {  /* private key? */
+      std::string data = pluto_checkstring(L, 1);
+      if (strcmp(mode, "rsa-pkcs1") == 0) {
+        data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptPkcs1(soup::Bigint::fromBinary(data));
+      }
+      else {
+        data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptUnpadded(soup::Bigint::fromBinary(data));
+      }
+      pluto_pushstring(L, data);
+      return 1;
+    }
+    else if (n && e) {  /* public key? */
+      std::string data = pluto_checkstring(L, 1);
+      if (strcmp(mode, "rsa-pkcs1") == 0) {
+        data = soup::RsaPublicKey(*n, *e).decryptPkcs1(soup::Bigint::fromBinary(data));
+      }
+      else {
+        data = soup::RsaPublicKey(*n, *e).decryptUnpadded(soup::Bigint::fromBinary(data));
+      }
+      pluto_pushstring(L, data);
+      return 1;
+    }
+    else luaL_error(L, "Invalid key");
+  }
+  else luaL_error(L, "Unknown mode");
+}
+
+
+static int l_sign (lua_State *L) {
+  const char *mode = luaL_checkstring(L, 2);
+  if (strcmp(mode, "rsa-sha1") == 0 || strcmp(mode, "rsa-sha256") == 0) {
+    soup::Bigint *p = lua_getfield(L, 3, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
+    soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
+    if (p && q) {
+      std::string data = pluto_checkstring(L, 1);
+      if (strcmp(mode, "rsa-sha1") == 0) {
+        data = soup::RsaPrivateKey::fromPrimes(*p, *q).sign<soup::sha1>(data).toBinary();
+      }
+      else {
+        data = soup::RsaPrivateKey::fromPrimes(*p, *q).sign<soup::sha256>(data).toBinary();
+      }
+      pluto_pushstring(L, data);
+      return 1;
+    }
+    else luaL_error(L, "Invalid private key");
+  }
+  else luaL_error(L, "Unknown mode");
+}
+
+
+static int l_verify (lua_State *L) {
+  const char *mode = luaL_checkstring(L, 2);
+  if (strcmp(mode, "rsa-sha1") == 0 || strcmp(mode, "rsa-sha256") == 0) {
+    soup::Bigint *n = lua_getfield(L, 3, "n") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (n) lua_pop(L, 1);
+    soup::Bigint *e = lua_getfield(L, 3, "e") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (e) lua_pop(L, 1);
+    if (n && e) {
+      std::string data = pluto_checkstring(L, 1);
+      std::string sig = pluto_checkstring(L, 4);
+      if (strcmp(mode, "rsa-sha1") == 0) {
+        lua_pushboolean(L, soup::RsaPublicKey(*n, *e).verify<soup::sha1>(data, soup::Bigint::fromBinary(sig)));
+      }
+      else {
+        lua_pushboolean(L, soup::RsaPublicKey(*n, *e).verify<soup::sha256>(data, soup::Bigint::fromBinary(sig)));
+      }
+      return 1;
+    }
+    else luaL_error(L, "Invalid public key");
+  }
+  else luaL_error(L, "Unknown mode");
+}
+
+
+static int l_adler32 (lua_State *L) {
+  size_t size;
+  const char* data = luaL_checklstring(L, 1, &size);
+  lua_pushinteger(L, soup::adler32::hash(data, size));
+  return 1;
+}
+
+
+static const luaL_Reg funcs_crypto[] = {
   {"hexdigest", hexdigest},  /* deprecated since 0.8.0 */
   {"random", random},
+  {"sha1", l_sha1},
   {"sha256", l_sha256},
+  {"sha384", l_sha384},
+  {"sha512", l_sha512},
   {"lua", lua},
   {"crc32", crc32},
   {"lookup3", lookup3},
@@ -323,7 +719,13 @@ static const luaL_Reg funcs[] = {
   {"joaat", joaat},
   {"fnv1a", fnv1a},
   {"fnv1", fnv1},
-  {NULL, NULL}  
+  {"generatekeypair", generatekeypair},
+  {"encrypt", l_encrypt},
+  {"decrypt", l_decrypt},
+  {"sign", l_sign},
+  {"verify", l_verify},
+  {"adler32", l_adler32},
+  {NULL, NULL}
 };
 
 PLUTO_NEWLIB(crypto)

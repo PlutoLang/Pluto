@@ -1,5 +1,7 @@
 #include "base64.hpp"
 
+#include <cstdint>
+
 /*
 Original source: https://gist.github.com/tomykaira/f0fd86b6c73063283afe550bc5d77594
 Original licence follows.
@@ -39,17 +41,17 @@ namespace soup
 		'4', '5', '6', '7', '8', '9', '+', '/'
 	};
 
-	std::string base64::encode(const char* data, const bool pad) noexcept
+	std::string base64::encode(const char* data, const bool pad) SOUP_EXCAL
 	{
 		return encode(data, strlen(data), pad);
 	}
 
-	std::string base64::encode(const std::string& data, const bool pad) noexcept
+	std::string base64::encode(const std::string& data, const bool pad) SOUP_EXCAL
 	{
 		return encode(data.data(), data.size(), pad);
 	}
 
-	std::string base64::encode(const char* const data, const size_t size, const bool pad) noexcept
+	std::string base64::encode(const char* const data, const size_t size, const bool pad) SOUP_EXCAL
 	{
 		return encode(data, size, pad, table_encode_base64);
 	}
@@ -65,22 +67,22 @@ namespace soup
 		'4', '5', '6', '7', '8', '9', '-', '_'
 	};
 
-	std::string base64::urlEncode(const char* data, const bool pad) noexcept
+	std::string base64::urlEncode(const char* data, const bool pad) SOUP_EXCAL
 	{
 		return urlEncode(data, strlen(data), pad);
 	}
 
-	std::string base64::urlEncode(const std::string& data, const bool pad) noexcept
+	std::string base64::urlEncode(const std::string& data, const bool pad) SOUP_EXCAL
 	{
 		return urlEncode(data.data(), data.size(), pad);
 	}
 
-	std::string base64::urlEncode(const char* const data, const size_t size, const bool pad) noexcept
+	std::string base64::urlEncode(const char* const data, const size_t size, const bool pad) SOUP_EXCAL
 	{
 		return encode(data, size, pad, table_encode_base64url);
 	}
 
-	std::string base64::encode(const char* const data, const size_t size, const bool pad, const char* table) noexcept
+	std::string base64::encode(const char* const data, const size_t size, const bool pad, const char* table) SOUP_EXCAL
 	{
 		size_t out_len = 4 * ((size + 2) / 3);
 		std::string enc(out_len, '\0');
@@ -145,7 +147,7 @@ namespace soup
 		64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
 	};
 
-	std::string base64::decode(std::string enc)
+	std::string base64::decode(std::string enc) SOUP_EXCAL
 	{
 		return decode(std::move(enc), table_decode_base64);
 	}
@@ -169,12 +171,12 @@ namespace soup
 		64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
 	};
 
-	std::string base64::urlDecode(std::string enc)
+	std::string base64::urlDecode(std::string enc) SOUP_EXCAL
 	{
 		return decode(std::move(enc), table_decode_base64url);
 	}
 
-	std::string base64::decode(std::string&& enc, const unsigned char* table)
+	std::string base64::decode(std::string&& enc, const unsigned char* table) SOUP_EXCAL
 	{
 		std::string out{};
 		if (!enc.empty())

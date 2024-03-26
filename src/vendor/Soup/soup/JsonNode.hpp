@@ -1,7 +1,5 @@
 #pragma once
 
-#include "TreeNode.hpp"
-
 #include "base.hpp"
 #include "fwd.hpp"
 
@@ -10,7 +8,7 @@
 
 namespace soup
 {
-	struct JsonNode : public TreeNode
+	struct JsonNode
 	{
 		JsonNodeType type;
 
@@ -19,6 +17,8 @@ namespace soup
 		{
 		}
 
+		virtual ~JsonNode() = default;
+
 #if SOUP_CPP20
 		std::strong_ordering operator <=>(const JsonNode& b) const;
 #endif
@@ -26,10 +26,12 @@ namespace soup
 		bool operator !=(const JsonNode& b) const;
 		bool operator <(const JsonNode& b) const;
 
-		[[nodiscard]] virtual std::string encode() const = 0;
-		[[nodiscard]] std::string encodePretty(const std::string& prefix = {}) const;
+		[[nodiscard]] std::string encode() const SOUP_EXCAL;
+		[[nodiscard]] std::string encodePretty() const SOUP_EXCAL;
+		virtual void encodeAndAppendTo(std::string& str) const SOUP_EXCAL = 0;
+		void encodePrettyAndAppendTo(std::string& str, unsigned depth = 0) const SOUP_EXCAL;
 
-		virtual bool binaryEncode(Writer& w) const; // specific to soup
+		virtual bool binaryEncode(Writer& w) const = 0; // specific to soup
 
 		// Type casts; will throw if node is of different type.
 		[[nodiscard]] JsonArray& asArr();
@@ -67,5 +69,227 @@ namespace soup
 		[[nodiscard]] const JsonInt& reinterpretAsInt() const noexcept;
 		[[nodiscard]] const JsonObject& reinterpretAsObj() const noexcept;
 		[[nodiscard]] const JsonString& reinterpretAsStr() const noexcept;
+
+	protected:
+		static void throwTypeError();
 	};
+
+	inline std::string JsonNode::encode() const SOUP_EXCAL
+	{
+		std::string str;
+		encodeAndAppendTo(str);
+		return str;
+	}
+
+	inline std::string JsonNode::encodePretty() const SOUP_EXCAL
+	{
+		std::string str;
+		encodePrettyAndAppendTo(str);
+		return str;
+	}
+
+	inline JsonArray& JsonNode::asArr()
+	{
+		SOUP_IF_UNLIKELY (!isArr())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsArr();
+	}
+
+	inline JsonBool& JsonNode::asBool()
+	{
+		SOUP_IF_UNLIKELY (!isBool())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsBool();
+	}
+
+	inline JsonFloat& JsonNode::asFloat()
+	{
+		SOUP_IF_UNLIKELY (!isFloat())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsFloat();
+	}
+
+	inline JsonInt& JsonNode::asInt()
+	{
+		SOUP_IF_UNLIKELY (!isInt())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsInt();
+	}
+
+	inline JsonObject& JsonNode::asObj()
+	{
+		SOUP_IF_UNLIKELY (!isObj())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsObj();
+	}
+
+	inline JsonString& JsonNode::asStr()
+	{
+		SOUP_IF_UNLIKELY(!isStr())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsStr();
+	}
+
+	inline const JsonArray& JsonNode::asArr() const
+	{
+		SOUP_IF_UNLIKELY (!isArr())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsArr();
+	}
+
+	inline const JsonBool& JsonNode::asBool() const
+	{
+		SOUP_IF_UNLIKELY (!isBool())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsBool();
+	}
+
+	inline const JsonFloat& JsonNode::asFloat() const
+	{
+		SOUP_IF_UNLIKELY (!isFloat())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsFloat();
+	}
+
+	inline const JsonInt& JsonNode::asInt() const
+	{
+		SOUP_IF_UNLIKELY (!isInt())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsInt();
+	}
+
+	inline const JsonObject& JsonNode::asObj() const
+	{
+		SOUP_IF_UNLIKELY (!isObj())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsObj();
+	}
+
+	inline const JsonString& JsonNode::asStr() const
+	{
+		SOUP_IF_UNLIKELY (!isStr())
+		{
+			throwTypeError();
+		}
+		return reinterpretAsStr();
+	}
+
+	inline bool JsonNode::isArr() const noexcept
+	{
+		return type == JSON_ARRAY;
+	}
+
+	inline bool JsonNode::isBool() const noexcept
+	{
+		return type == JSON_BOOL;
+	}
+
+	inline bool JsonNode::isFloat() const noexcept
+	{
+		return type == JSON_FLOAT;
+	}
+
+	inline bool JsonNode::isInt() const noexcept
+	{
+		return type == JSON_INT;
+	}
+
+	inline bool JsonNode::isNull() const noexcept
+	{
+		return type == JSON_NULL;
+	}
+
+	inline bool JsonNode::isObj() const noexcept
+	{
+		return type == JSON_OBJECT;
+	}
+
+	inline bool JsonNode::isStr() const noexcept
+	{
+		return type == JSON_STRING;
+	}
+
+	// Using reinterpret_cast instead of static_cast because not all of these types may be known
+
+	inline JsonArray& JsonNode::reinterpretAsArr() noexcept
+	{
+		return *reinterpret_cast<JsonArray*>(this);
+	}
+
+	inline JsonBool& JsonNode::reinterpretAsBool() noexcept
+	{
+		return *reinterpret_cast<JsonBool*>(this);
+	}
+
+	inline JsonFloat& JsonNode::reinterpretAsFloat() noexcept
+	{
+		return *reinterpret_cast<JsonFloat*>(this);
+	}
+
+	inline JsonInt& JsonNode::reinterpretAsInt() noexcept
+	{
+		return *reinterpret_cast<JsonInt*>(this);
+	}
+
+	inline JsonObject& JsonNode::reinterpretAsObj() noexcept
+	{
+		return *reinterpret_cast<JsonObject*>(this);
+	}
+
+	inline JsonString& JsonNode::reinterpretAsStr() noexcept
+	{
+		return *reinterpret_cast<JsonString*>(this);
+	}
+
+	inline const JsonArray& JsonNode::reinterpretAsArr() const noexcept
+	{
+		return *reinterpret_cast<const JsonArray*>(this);
+	}
+
+	inline const JsonBool& JsonNode::reinterpretAsBool() const noexcept
+	{
+		return *reinterpret_cast<const JsonBool*>(this);
+	}
+
+	inline const JsonFloat& JsonNode::reinterpretAsFloat() const noexcept
+	{
+		return *reinterpret_cast<const JsonFloat*>(this);
+	}
+
+	inline const JsonInt& JsonNode::reinterpretAsInt() const noexcept
+	{
+		return *reinterpret_cast<const JsonInt*>(this);
+	}
+
+	inline const JsonObject& JsonNode::reinterpretAsObj() const noexcept
+	{
+		return *reinterpret_cast<const JsonObject*>(this);
+	}
+
+	inline const JsonString& JsonNode::reinterpretAsStr() const noexcept
+	{
+		return *reinterpret_cast<const JsonString*>(this);
+	}
 }

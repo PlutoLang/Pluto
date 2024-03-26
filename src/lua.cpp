@@ -23,6 +23,7 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "lstate.h"
 
 
 #if !defined(LUA_PROGNAME)
@@ -100,6 +101,7 @@ static void print_usage (const char *badoption) {
   "  -v        show version information\n"
   "  -E        ignore environment variables\n"
   "  -W        turn warnings off\n"
+  "  -c        enable compatibility mode\n"
   "  --        stop handling options\n"
   "  -         stop handling options and execute stdin\n"
   ,
@@ -277,6 +279,7 @@ static int handle_script (lua_State *L, char **argv) {
 #define has_v		4	/* -v */
 #define has_e		8	/* -e */
 #define has_E		16	/* -E */
+#define has_c       32  /* -c */
 
 
 /*
@@ -333,6 +336,9 @@ static int collectargs (char **argv, int *first) {
           if (argv[i] == NULL || argv[i][0] == '-')
             return has_error;  /* no next argument or it is another option */
         }
+        break;
+      case 'c':
+        args |= has_c;
         break;
       default:  /* invalid option */
         return has_error;
@@ -645,6 +651,7 @@ static int pmain (lua_State *L) {
     lua_pushboolean(L, 1);  /* signal for libraries to ignore env. vars. */
     lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
   }
+  L->l_G->setCompatibilityMode(args & has_c);
   luaL_openlibs(L);  /* open standard libraries */
   createargtable(L, argv, argc, script);  /* create table 'arg' */
   lua_gc(L, LUA_GCRESTART);  /* start GC... */

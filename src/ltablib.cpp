@@ -423,7 +423,32 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up,
 }
 
 
+/*
+** For each key-value pair in the table at -1, assigns it to the table at -2.
+** Pops the latter table from the stack.
+*/
+static void trivialcopy (lua_State* L) {
+  lua_pushnil(L);
+  /* stack now: newtable, table, key */
+  while (lua_next(L, -2)) {
+    /* stack now: newtable, table, key, value */
+    lua_pushvalue(L, -2);
+    lua_pushvalue(L, -2);
+    lua_settable(L, -6);
+    lua_pop(L, 1);
+  }
+  lua_pop(L, 1);
+}
+
+
+template <bool make_copy>
 static int sort (lua_State *L) {
+  if (make_copy) {
+    lua_newtable(L);
+    lua_pushvalue(L, 1);
+    trivialcopy(L);
+    lua_replace(L, 1);
+  }
   lua_Integer n = aux_getn(L, 1, TAB_RW);
   if (n > 1) {  /* non-trivial interval? */
     luaL_argcheck(L, n < INT_MAX, 1, "array too big");
@@ -487,12 +512,18 @@ static int tcontains (lua_State *L) {
 }
 
 
+template <bool make_copy>
 static int tfilter (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
   const bool callwithkey = lua_istrue(L, 3);
 
+  if (make_copy)
+    lua_newtable(L);
   lua_pushvalue(L, 1);
+  if (make_copy) {
+    trivialcopy(L);
+  }
   lua_pushnil(L);
   /* stack now: table, key */
   while (lua_next(L, -2)) {
@@ -529,11 +560,14 @@ static int tfilter (lua_State *L) {
 }
 
 
+template <bool make_copy>
 static int tmap (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
   const bool callwithkey = lua_istrue(L, 3);
 
+  if (make_copy)
+    lua_newtable(L);
   lua_pushvalue(L, 1);
   lua_pushnil(L);
   /* stack now: table, key */
@@ -553,19 +587,26 @@ static int tmap (lua_State *L) {
     lua_pushvalue(L, -3);
     lua_pushvalue(L, -2);
     /* stack now: table, key, value, mapped_value, key, mapped_value */
-    lua_settable(L, -6);
+    lua_settable(L, make_copy ? -7 : -6);
     /* stack now: table, key, value, mapped_value */
     lua_pop(L, 2);
     /* stack now: table, key */
   }
   /* stack now: table */
+  if (make_copy)
+    lua_pop(L, 1);
   return 1;
 }
 
 
+template <bool make_copy>
 static int treverse (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
 
+  if (make_copy) {
+    lua_settop(L, 1);
+    lua_newtable(L);
+  }
   const lua_Unsigned l = lua_rawlen(L, 1);
   for (lua_Unsigned i = 1; i <= l/2; ++i) {
     lua_pushinteger(L, l - i + 1);
@@ -574,16 +615,28 @@ static int treverse (lua_State *L) {
     lua_pushinteger(L, i);
     lua_pushinteger(L, l - i + 1);
     lua_rawget(L, 1);
-    lua_rawset(L, 1);
-    lua_rawset(L, 1);
+    lua_rawset(L, make_copy ? 2 : 1);
+    lua_rawset(L, make_copy ? 2 : 1);
+  }
+  if (make_copy && (l % 2 != 0)) {
+    /* for oddly sized tables, we need to manually copy the element in the middle */
+    lua_pushinteger(L, l/2+1);
+    lua_pushinteger(L, l/2+1);
+    lua_rawget(L, 1);
+    lua_rawset(L, 2);
   }
   return 1;
 }
 
 
 TValue *index2value (lua_State *L, int idx);
+template <bool make_copy>
 static int treorder (lua_State* L) {
   luaL_checktype(L, 1, LUA_TTABLE);
+  lua_settop(L, 1);
+
+  if (make_copy)
+    lua_newtable(L);
 
   lua_pushvalue(L, 1); // stack: table
   lua_pushnil(L); // stack: table, key
@@ -591,23 +644,133 @@ static int treorder (lua_State* L) {
   lua_Integer idx = 1;
   while (lua_next(L, -2)) { // stack: table, key, value
     if (lua_isinteger(L, -2)) {
-      if (auto val = lua_tointeger(L, -2); val > idx) {
-        lua_pushinteger(L, val); // stack: table, key, value, key
-        lua_pushnil(L); // stack: table, key, value, key, value
-        lua_settable(L, 1); // stack: table, key, value
+      if (!make_copy) {
+        if (auto val = lua_tointeger(L, -2); val > idx) {
+          lua_pushinteger(L, val); // stack: table, key, value, key
+          lua_pushnil(L); // stack: table, key, value, key, value
+          lua_settable(L, 1); // stack: table, key, value
+        }
       }
 
       lua_pushinteger(L, idx++); // stack: table, key, value, key
       lua_pushvalue(L, -2); // stack; table, key, value, key, value
-      lua_settable(L, 1); // stack; table, key, value
+      lua_settable(L, make_copy ? 2 : 1); // stack; table, key, value
     }
 
     lua_pop(L, 1); // stack: table, key
   }
+  if (make_copy)
+    lua_pop(L, 1);
 
-  luaH_resizearray(L, hvalue(index2value(L, 1)), (unsigned int)idx);
-  lua_settop(L, 1);
+  luaH_resizearray(L, hvalue(index2value(L, -1)), (unsigned int)idx);
   return 1;
+}
+
+
+static int tsize (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  Table *t = hvalue(index2value(L, 1));
+
+  const bool hashonly = lua_istrue(L, 2);
+
+  unsigned int size = luaH_gethsize(t);
+  if (!hashonly)
+    size += luaH_realasize(t);
+
+  lua_pushinteger(L, size);
+  return 1;
+}
+
+
+static int treduce (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  luaL_checktype(L, 2, LUA_TFUNCTION);
+
+  if (!lua_isnoneornil(L, 3)) {
+    lua_pushvalue(L, 3);
+  }
+  else lua_pushinteger(L, 0);
+
+  lua_pushvalue(L, 1);
+  lua_pushnil(L);
+  /* stack now: accum, table, key */
+  while (lua_next(L, -2)) {
+    /* stack now: accum, table, key, value */
+    lua_pushvalue(L, 2);
+    lua_pushvalue(L, -5);
+    /* stack now: accum, table, key, value, func, accum */
+    lua_pushvalue(L, -3);
+    /* stack now: accum, table, key, value, func, accum, value */
+    lua_call(L, 2, 1);
+    /* stack now: accum, table, key, value, new_accum */
+    lua_replace(L, -5);
+    lua_pop(L, 1);
+    /* stack now: accum, table, key */
+  }
+  lua_pop(L, 1);
+  return 1;
+}
+
+
+static int tfind (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  luaL_checktype(L, 2, LUA_TFUNCTION);
+
+  lua_pushvalue(L, 1);
+  lua_pushnil(L);
+  /* stack now: table, key */
+  while (lua_next(L, -2)) {
+    /* stack now: table, key, value */
+    lua_pushvalue(L, 2);
+    /* stack now: table, key, value, func */
+    lua_pushvalue(L, -2);
+    /* stack now: table, key, value, func, value */
+    lua_call(L, 1, 1);
+    /* stack now: table, key, value, bool */
+    if (lua_istrue(L, -1)) {
+      lua_pop(L, 1);
+      return 1;
+    }
+    lua_pop(L, 2);
+    /* stack now: table, key */
+  }
+  lua_pop(L, 1);
+  lua_pushnil(L);
+  return 1;
+}
+
+
+static int checkall (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  luaL_checktype(L, 2, LUA_TFUNCTION);
+
+  lua_pushvalue(L, 1);
+  lua_pushnil(L);
+  /* stack now: table, key */
+  while (lua_next(L, -2)) {
+    /* stack now: table, key, value */
+    lua_pushvalue(L, 2);
+    /* stack now: table, key, value, func */
+    lua_pushvalue(L, -2);
+    /* stack now: table, key, value, func, value */
+    lua_call(L, 1, 1);
+    /* stack now: table, key, value, bool */
+    if (!lua_istrue(L, -1)) {
+      return 1;
+    }
+    lua_pop(L, 2);
+    /* stack now: table, key */
+  }
+  lua_pop(L, 1);
+  lua_pushboolean(L, true);
+  return 1;
+}
+
+
+static int tclear (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  luaH_clear(L, hvalue(index2value(L, 1)));
+  return 0;
 }
 
 
@@ -615,10 +778,19 @@ static int treorder (lua_State* L) {
 
 
 static const luaL_Reg tab_funcs[] = {
-  {"reorder", treorder},
-  {"reverse", treverse},
-  {"map", tmap},
-  {"filter", tfilter},
+  {"clear", tclear},
+  {"checkall", checkall},
+  {"find", tfind},
+  {"reduce", treduce},
+  {"size", tsize},
+  {"reorder", treorder<false>},
+  {"reordered", treorder<true>},
+  {"reverse", treverse<false>},
+  {"reversed", treverse<true>},
+  {"map", tmap<false>},
+  {"mapped", tmap<true>},
+  {"filter", tfilter<false>},
+  {"filtered", tfilter<true>},
   {"foreach", foreach},
   {"contains", tcontains},
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
@@ -631,7 +803,8 @@ static const luaL_Reg tab_funcs[] = {
   {"unpack", tunpack},
   {"remove", tremove},
   {"move", tmove},
-  {"sort", sort},
+  {"sort", sort<false>},
+  {"sorted", sort<true>},
   {"getn", getn},
   {NULL, NULL}
 };
@@ -639,6 +812,17 @@ static const luaL_Reg tab_funcs[] = {
 
 LUAMOD_API int luaopen_table (lua_State *L) {
   luaL_newlib(L, tab_funcs);
+
+  lua_pushliteral(L, "min");
+  luaL_loadstring(L, "return |t| -> table.reduce(t, math.min, math.maxinteger)");
+  lua_call(L, 0, 1);
+  lua_settable(L, -3);
+
+  lua_pushliteral(L, "max");
+  luaL_loadstring(L, "return |t| -> table.reduce(t, math.max, math.mininteger)");
+  lua_call(L, 0, 1);
+  lua_settable(L, -3);
+
   return 1;
 }
 

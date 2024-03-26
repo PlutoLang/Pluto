@@ -392,7 +392,7 @@ static int lookforfunc (lua_State *L, const char *path, const char *sym) {
   if (reg == NULL) {  /* must load library? */
 #ifdef PLUTO_LOADCLIB_HOOK
     if (!PLUTO_LOADCLIB_HOOK(L, path))
-      luaL_error(L, "library failed content moderation policy");
+      luaL_error(L, "disallowed by content moderation policy");
 #endif
     reg = lsys_load(L, path, *sym == '*');  /* global symbols if 'sym'=='*' */
     if (reg == NULL) return ERRLIB;  /* unable to load library */

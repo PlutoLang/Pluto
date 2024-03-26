@@ -50,6 +50,15 @@ namespace Pluto {
   extern const PreloadedLibrary preloaded_assert;
   extern const PreloadedLibrary preloaded_vector3;
   extern const PreloadedLibrary preloaded_url;
+  extern const PreloadedLibrary preloaded_star;
+  extern const PreloadedLibrary preloaded_cat;
+  extern const PreloadedLibrary preloaded_http;
+  extern const PreloadedLibrary preloaded_scheduler;
+#ifndef __EMSCRIPTEN__
+  extern const PreloadedLibrary preloaded_socket;
+#endif
+  extern const PreloadedLibrary preloaded_bigint;
+  extern const PreloadedLibrary preloaded_xml;
 
   inline const PreloadedLibrary* const all_preloaded[] = {
     &preloaded_crypto,
@@ -59,16 +68,34 @@ namespace Pluto {
     &preloaded_assert,
     &preloaded_vector3,
     &preloaded_url,
+    &preloaded_star,
+    &preloaded_cat,
+    &preloaded_http,
+    &preloaded_scheduler,
+#ifndef __EMSCRIPTEN__
+    &preloaded_socket,
+#endif
+    &preloaded_bigint,
+    &preloaded_xml,
   };
 }
 
-LUAMOD_API int (luaopen_crypto)  (lua_State *L);
-LUAMOD_API int (luaopen_json)    (lua_State *L);
-LUAMOD_API int (luaopen_base32)  (lua_State *L);
-LUAMOD_API int (luaopen_base64)  (lua_State *L);
-LUAMOD_API int (luaopen_assert)  (lua_State *L);
-LUAMOD_API int (luaopen_vector3) (lua_State *L);
-LUAMOD_API int (luaopen_url)     (lua_State *L);
+LUAMOD_API int (luaopen_crypto)    (lua_State *L);
+LUAMOD_API int (luaopen_json)      (lua_State *L);
+LUAMOD_API int (luaopen_base32)    (lua_State *L);
+LUAMOD_API int (luaopen_base64)    (lua_State *L);
+LUAMOD_API int (luaopen_assert)    (lua_State *L);
+LUAMOD_API int (luaopen_vector3)   (lua_State *L);
+LUAMOD_API int (luaopen_url)       (lua_State *L);
+LUAMOD_API int (luaopen_star)      (lua_State *L);
+LUAMOD_API int (luaopen_cat)       (lua_State *L);
+LUAMOD_API int (luaopen_http)      (lua_State *L);
+LUAMOD_API int (luaopen_scheduler) (lua_State *L);
+#ifndef __EMSCRIPTEN__
+LUAMOD_API int (luaopen_socket)    (lua_State *L);
+#endif
+LUAMOD_API int (luaopen_bigint)    (lua_State *L);
+LUAMOD_API int (luaopen_xml)       (lua_State *L);
 
 /* open all previous libraries */
 LUALIB_API void (luaL_openlibs) (lua_State *L);

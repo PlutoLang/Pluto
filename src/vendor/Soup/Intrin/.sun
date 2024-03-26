@@ -1,5 +1,9 @@
 +*.cpp
 static
 
+arg -maes
+arg -mpclmul
+arg -mrdrnd
+arg -mrdseed
 arg -msha
 arg -msse4.1

@@ -28,7 +28,7 @@ foreach(scandir(__DIR__."/soup") as $file)
 }
 if(is_dir(__DIR__."/Intrin"))
 {
-	$clang .= " -maes -mpclmul -msha -msse4.1";
+	$clang .= " -maes -mpclmul -mrdrnd -mrdseed -msha -msse4.1";
 	foreach(scandir(__DIR__."/Intrin") as $file)
 	{
 		if(substr($file, -4) == ".cpp")

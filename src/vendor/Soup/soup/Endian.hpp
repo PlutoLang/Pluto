@@ -8,21 +8,18 @@
 
 #include "IntStruct.hpp"
 
-#undef LITTLE_ENDIAN
-#undef BIG_ENDIAN
-
 namespace soup
 {
 	enum Endian : bool
 	{
-		LITTLE_ENDIAN = true,
-		BIG_ENDIAN = false,
+		ENDIAN_LITTLE = true,
+		ENDIAN_BIG = false,
 #if SOUP_CPP20
-		NATIVE_ENDIAN = (std::endian::native == std::endian::little),
+		ENDIAN_NATIVE = (std::endian::native == std::endian::little),
 #else
-		NATIVE_ENDIAN = true,
+		ENDIAN_NATIVE = true,
 #endif
-		NETWORK_ENDIAN = BIG_ENDIAN,
+		ENDIAN_NETWORK = ENDIAN_BIG,
 	};
 
 	SOUP_INT_STRUCT(native_u16_t, uint16_t);
@@ -81,7 +78,7 @@ namespace soup
 
 		[[nodiscard]] static constexpr network_u16_t toNetwork(native_u16_t val) noexcept
 		{
-			if constexpr (NATIVE_ENDIAN != NETWORK_ENDIAN)
+			if constexpr (ENDIAN_NATIVE != ENDIAN_NETWORK)
 			{
 				return invert(val.data);
 			}
@@ -90,7 +87,7 @@ namespace soup
 
 		[[nodiscard]] static constexpr network_u32_t toNetwork(native_u32_t val) noexcept
 		{
-			if constexpr (NATIVE_ENDIAN != NETWORK_ENDIAN)
+			if constexpr (ENDIAN_NATIVE != ENDIAN_NETWORK)
 			{
 				return invert(val.data);
 			}
@@ -99,7 +96,7 @@ namespace soup
 
 		[[nodiscard]] static constexpr network_u64_t toNetwork(native_u64_t val) noexcept
 		{
-			if constexpr (NATIVE_ENDIAN != NETWORK_ENDIAN)
+			if constexpr (ENDIAN_NATIVE != ENDIAN_NETWORK)
 			{
 				return invert(val.data);
 			}
@@ -108,7 +105,7 @@ namespace soup
 
 		[[nodiscard]] static constexpr native_u16_t toNative(network_u16_t val) noexcept
 		{
-			if constexpr (NATIVE_ENDIAN != NETWORK_ENDIAN)
+			if constexpr (ENDIAN_NATIVE != ENDIAN_NETWORK)
 			{
 				return invert(val.data);
 			}
@@ -117,7 +114,7 @@ namespace soup
 
 		[[nodiscard]] static constexpr native_u32_t toNative(network_u32_t val) noexcept
 		{
-			if constexpr (NATIVE_ENDIAN != NETWORK_ENDIAN)
+			if constexpr (ENDIAN_NATIVE != ENDIAN_NETWORK)
 			{
 				return invert(val.data);
 			}
@@ -126,7 +123,7 @@ namespace soup
 
 		[[nodiscard]] static constexpr native_u64_t toNative(network_u64_t val) noexcept
 		{
-			if constexpr (NATIVE_ENDIAN != NETWORK_ENDIAN)
+			if constexpr (ENDIAN_NATIVE != ENDIAN_NETWORK)
 			{
 				return invert(val.data);
 			}

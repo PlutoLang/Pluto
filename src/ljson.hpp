@@ -1,6 +1,6 @@
 #pragma once
 
-// https://github.com/calamity-inc/Soup-Lua-Bindings/blob/main/soup_lua_bindings.hpp
+#include <algorithm>
 
 #include "vendor/Soup/soup/json.hpp"
 #include "vendor/Soup/soup/JsonInt.hpp"
@@ -43,7 +43,7 @@ static bool isIndexBasedTable(lua_State* L, int i)
 
 static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 {
-	auto type = lua_type(L, i);
+	const auto type = lua_type(L, i);
 	if (type == LUA_TBOOLEAN)
 	{
 		return soup::make_unique<soup::JsonBool>(lua_toboolean(L, i));
@@ -61,7 +61,7 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 	}
 	else if (type == LUA_TSTRING)
 	{
-		return soup::make_unique<soup::JsonString>(lua_tostring(L, i));
+		return soup::make_unique<soup::JsonString>(pluto_checkstring(L, i));
 	}
 	else if (type == LUA_TTABLE)
 	{
@@ -91,12 +91,36 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 				lua_pop(L, 2);
 			}
 			lua_pop(L, 1);
+			if (auto itOrder = obj->findIt("__order"); itOrder != obj->end())
+			{
+				if (itOrder->second->isArr())
+				{
+					auto upOrder = std::move(itOrder->second);
+					obj->erase(itOrder);
+					std::sort(obj->begin(), obj->end(), [pOrder{ static_cast<soup::JsonArray*>(upOrder.get()) }]
+						(const soup::JsonObject::Container::value_type& a, const soup::JsonObject::Container::value_type& b)
+					{
+						for (const auto& val : *pOrder)
+						{
+							if (*a.first == val)
+							{
+								return true;
+							}
+							if (*b.first == val)
+							{
+								return false;
+							}
+						}
+						return false;
+					});
+				}
+			}
 			return obj;
 		}
 	}
 	else if (type == LUA_TLIGHTUSERDATA)
 	{
-		if (reinterpret_cast<uintptr_t>(lua_touserdata(L, i)) == 'PJNL')
+		if (reinterpret_cast<uintptr_t>(lua_touserdata(L, i)) == 0xF01D)
 		{
 			return soup::make_unique<soup::JsonNull>();
 		}
@@ -104,47 +128,73 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 	luaL_typeerror(L, i, "JSON-castable type");
 }
 
-static void pushFromJson(lua_State* L, const soup::JsonNode& node)
+static void pushFromJson(lua_State* L, const soup::JsonNode& node, int flags)
 {
-	if (node.isBool())
+	switch (node.type)
 	{
-		lua_pushboolean(L, node.asBool().value);
-	}
-	else if (node.isInt())
-	{
-		lua_pushinteger(L, node.asInt().value);
-	}
-	else if (node.isFloat())
-	{
-		lua_pushnumber(L, node.asFloat().value);
-	}
-	else if (node.isStr())
-	{
-		pluto_pushstring(L, node.asStr().value);
-	}
-	else if (node.isArr())
-	{
-		lua_newtable(L);
-		lua_Integer i = 1;
-		for (const auto& child : node.asArr().children)
+	case soup::JSON_BOOL:
+		lua_pushboolean(L, node.reinterpretAsBool().value);
+		break;
+
+	case soup::JSON_INT:
+		lua_pushinteger(L, node.reinterpretAsInt().value);
+		break;
+
+	case soup::JSON_FLOAT:
+		lua_pushnumber(L, node.reinterpretAsFloat().value);
+		break;
+
+	case soup::JSON_STRING:
+		pluto_pushstring(L, node.reinterpretAsStr().value);
+		break;
+
+	case soup::JSON_ARRAY:
 		{
-			lua_pushinteger(L, i++);
-			pushFromJson(L, *child);
-			lua_settable(L, -3);
+			lua_newtable(L);
+			lua_Integer i = 1;
+			for (const auto& child : node.reinterpretAsArr().children)
+			{
+				lua_pushinteger(L, i++);
+				pushFromJson(L, *child, flags);
+				lua_settable(L, -3);
+			}
 		}
-	}
-	else if (node.isObj())
-	{
-		lua_newtable(L);
-		for (const auto& e : node.asObj().children)
+		break;
+
+	case soup::JSON_OBJECT:
 		{
-			pushFromJson(L, *e.first);
-			pushFromJson(L, *e.second);
-			lua_settable(L, -3);
+			lua_newtable(L);
+			for (const auto& e : node.reinterpretAsObj().children)
+			{
+				pushFromJson(L, *e.first, flags);
+				pushFromJson(L, *e.second, flags);
+				lua_settable(L, -3);
+			}
+			if (flags & (1 << 1))
+			{
+				lua_pushliteral(L, "__order");
+				lua_newtable(L);
+				lua_Integer i = 1;
+				for (const auto& e : node.reinterpretAsObj().children)
+				{
+					lua_pushinteger(L, i++);
+					pushFromJson(L, *e.first, flags);
+					lua_settable(L, -3);
+				}
+				lua_settable(L, -3);
+			}
 		}
-	}
-	else
-	{
-		lua_pushnil(L);
+		break;
+
+	case soup::JSON_NULL:
+		if (flags & (1 << 0))
+		{
+			lua_pushlightuserdata(L, reinterpret_cast<void*>(static_cast<uintptr_t>(0xF01D)));
+		}
+		else
+		{
+			lua_pushnil(L);
+		}
+		break;
 	}
 }

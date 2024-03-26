@@ -6,6 +6,7 @@ namespace soup
 {
 	// algos.rng.interface
 	struct RngInterface;
+	struct StatelessRngInterface;
 
 	// audio
 	class audPlayback;
@@ -13,7 +14,7 @@ namespace soup
 
 	// crypto
 	struct RsaKeypair;
-	struct TrustStore;
+	class TrustStore;
 	class YubikeyValidator;
 
 	// crypto.x509
@@ -42,7 +43,7 @@ namespace soup
 	class drData;
 
 	// data.regex
-	struct RegexConstraintTransitionable;
+	struct RegexConstraint;
 	struct RegexGroup;
 	struct RegexMatcher;
 
@@ -50,6 +51,8 @@ namespace soup
 	struct PlistDict;
 	struct PlistArray;
 	struct PlistString;
+	struct XmlMode;
+	struct XmlNode;
 	struct XmlTag;
 	struct XmlText;
 
@@ -67,21 +70,25 @@ namespace soup
 	class BitWriter;
 
 	// io.stream
-	class ioSeekableReader;
 	class Reader;
 	class StringReader;
 	class Writer;
+	class StringWriter;
 
-	// lang
+	// lang.agnostic
+	struct aglTranspiler;
+
+	// lang.compiler
 	struct astBlock;
 	struct astNode;
 	class LangDesc;
 	struct Lexeme;
+	struct LexemeParser;
 	class ParserState;
 	struct Token;
 
-	// lang.agnostic
-	struct aglTranspiler;
+	// lang.compiler.ir
+	struct irFunction;
 
 	// lang.reflection
 	struct rflFunc;
@@ -99,12 +106,14 @@ namespace soup
 	struct Vector3;
 
 	// math.3d
-	struct BoxCorners;
 	class Matrix;
 	struct Mesh;
 	struct Poly;
 	class Quaternion;
 	struct Ray;
+
+	// math.3d.geometry
+	struct gmBoxCorners;
 
 	// math.3d.scene
 	struct Scene;
@@ -116,7 +125,6 @@ namespace soup
 	class Range;
 	template <typename T> class SharedPtr;
 	template <typename T> class UniquePtr;
-	struct VirtualRegion;
 	template <class T> class WeakRef;
 
 	// mem.alloc
@@ -138,6 +146,7 @@ namespace soup
 	class IpAddr;
 	struct netConfig;
 	class netIntel;
+	enum netStatus : uint8_t;
 	class Server;
 	struct ServerService;
 	struct ServerServiceUdp;

@@ -302,7 +302,7 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
           return;
         }
         else { /* index is valid */
-          setsvalue(L, s2v(val), luaS_newlstr(L, &tsvalue(t)->contents[index - 1], 1));
+          setsvalue(L, s2v(val), luaS_newlstr(L, &getstr(tsvalue(t))[index - 1], 1));
           return;
         }
       }
@@ -2696,13 +2696,18 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmbreak;
       }
     }
-#ifdef PLUTO_ETL_ENABLE
-    if (L->l_G->deadline < std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) {
-      PLUTO_ETL_TIMESUP
-      return;
-    }
-#endif
+    L->checkEtl();
   }
 }
+
+
+#ifdef PLUTO_ETL_ENABLE
+void lua_State::checkEtl() {
+  lua_State* const L = this;
+  if (l_unlikely(L->l_G->deadline < std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count())) {
+    PLUTO_ETL_TIMESUP
+  }
+}
+#endif
 
 /* }================================================================== */

@@ -23,17 +23,25 @@ function check_compiler()
 	}
 
 	$compiler = resolve_installed_program($argv[1]);
-	$compiler .= " -std=c++17 -O3 -fvisibility=hidden";
+	$compiler .= " -std=c++17 -O3 -fvisibility=hidden -fno-rtti";
 	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 	{
 		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
 	}
 	else
 	{
-		$compiler .= " -Wno-unused-command-line-argument -lm -lstdc++";
+		$compiler .= " -Wno-unused-command-line-argument -lm -lstdc++ -pthread";
+		if (!getenv("ANDROID_ROOT"))
+		{
+			$compiler .= " -lresolv";
+		}
 		if (PHP_OS_FAMILY != "Darwin")
 		{
-			$compiler .= " -fPIC -lstdc++fs -fuse-ld=lld";
+			$compiler .= " -fPIC -fuse-ld=lld";
+			if (!getenv("ANDROID_ROOT"))
+			{
+				$compiler .= " -lstdc++fs";
+			}
 		}
 	}
 }

@@ -455,7 +455,7 @@ static int luaB_load (lua_State *L) {
 #endif
 #ifdef PLUTO_LOAD_HOOK
   if (!PLUTO_LOAD_HOOK(L, s))
-    luaL_error(L, "chunk failed content moderation policy");
+    luaL_error(L, "disallowed by content moderation policy");
 #endif
     const char *chunkname = luaL_optstring(L, 2, s);
     status = luaL_loadbufferx(L, s, l, chunkname, mode);
@@ -733,7 +733,32 @@ static int luaB_compareversions (lua_State *L) {
 }
 
 
+static int luaB_range (lua_State *L) {
+  lua_Integer start, end, step;
+  if (!lua_isnoneornil(L, 2)) {
+    start = luaL_checkinteger(L, 1);
+    end = luaL_checkinteger(L, 2);
+    step = luaL_optinteger(L, 3, 1);
+  }
+  else {
+    start = 1;
+    end = luaL_checkinteger(L, 1);
+    step = 1;
+  }
+
+  lua_createtable(L, cast(int, end - start), 0);
+  lua_Integer idx = 1;
+  for (lua_Integer i = start; i <= end; i += step, ++idx) {
+    lua_pushinteger(L, i);
+    lua_rawseti(L, -2, idx);
+    L->checkEtl();
+  }
+  return 1;
+}
+
+
 static const luaL_Reg base_funcs[] = {
+  {"range", luaB_range},
   {"compareversions", luaB_compareversions},
   {"exportvar", luaB_exportvar},
   {"dumpvar", luaB_dumpvar},

@@ -3,6 +3,7 @@
 #include "Exception.hpp"
 #include "json.hpp"
 #include "JsonBool.hpp"
+#include "JsonFloat.hpp"
 #include "JsonInt.hpp"
 #include "JsonString.hpp"
 #include "string.hpp"
@@ -43,46 +44,47 @@ namespace soup
 		++c;
 	}
 
-	std::string JsonObject::encode() const
+	void JsonObject::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
-		std::string res(1, '{');
+		str.push_back('{');
 		for (auto i = children.begin(); i != children.end(); ++i)
 		{
-			res.append(i->first->encode());
-			res.push_back(':');
-			res.append(i->second->encode());
+			i->first->encodeAndAppendTo(str);
+			str.push_back(':');
+			i->second->encodeAndAppendTo(str);
 			if (i != children.end() - 1)
 			{
-				res.push_back(',');
+				str.push_back(',');
 			}
 		}
-		res.push_back('}');
-		return res;
+		str.push_back('}');
 	}
 
-	std::string JsonObject::encodePretty(const std::string& prefix) const
+	void JsonObject::encodePrettyAndAppendTo(std::string& str, unsigned depth) const SOUP_EXCAL
 	{
 		if (children.empty())
 		{
-			return "{}";
+			str.append("{}");
 		}
-		std::string rprefix = prefix;
-		rprefix.append("    ");
-		std::string res = "{\n";
-		for (auto i = children.begin(); i != children.end(); ++i)
+		else
 		{
-			res.append(rprefix);
-			res.append(i->first->encode());
-			res.append(": ");
-			res.append(i->second->encodePretty(rprefix));
-			if (i != children.end() - 1)
+			const auto child_depth = (depth + 1);
+			str.append("{\n");
+			for (auto i = children.begin(); i != children.end(); ++i)
 			{
-				res.push_back(',');
+				str.append(child_depth * 4, ' ');
+				i->first->encodeAndAppendTo(str);
+				str.append(": ");
+				i->second->encodePrettyAndAppendTo(str, child_depth);
+				if (i != children.end() - 1)
+				{
+					str.push_back(',');
+				}
+				str.push_back('\n');
 			}
-			res.push_back('\n');
+			str.append(depth * 4, ' ');
+			str.push_back('}');
 		}
-		res.append(prefix).push_back('}');
-		return res;
 	}
 
 	bool JsonObject::binaryEncode(Writer& w) const
@@ -264,5 +266,10 @@ namespace soup
 	void JsonObject::add(std::string k, bool v)
 	{
 		add(soup::make_unique<JsonString>(std::move(k)), soup::make_unique<JsonBool>(v));
+	}
+
+	void JsonObject::add(std::string k, double v)
+	{
+		add(soup::make_unique<JsonString>(std::move(k)), soup::make_unique<JsonFloat>(v));
 	}
 }

@@ -44,12 +44,14 @@ enum RESERVED {
   TK_PUSE, // New compatibility keywords.
   TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, TK_PTRY, TK_PCATCH,
   TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, TK_TRY, TK_CATCH, // New non-compatible keywords.
-  TK_LET, TK_CONST, // New optional keywords.
+  TK_LET, TK_CONST, TK_GLOBAL, // New optional keywords.
+#ifdef PLUTO_PARSER_SUGGESTIONS
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
+#endif
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
   TK_IDIV, TK_CONCAT, TK_DOTS,
-  TK_EQ, TK_GE, TK_LE, TK_NE, TK_SPACESHIP,
+  TK_EQ, TK_GE, TK_LE, TK_NE, TK_NE2, TK_SPACESHIP,
   TK_SHL, TK_SHR, TK_DBCOLON, TK_EOS,
   TK_FLT, TK_INT, TK_NAME, TK_STRING,
   /* Pluto symbols */
@@ -57,6 +59,8 @@ enum RESERVED {
   TK_COAL,    /* null coal.        */
   TK_WALRUS,  /* walrus operator   */
   TK_ARROW,
+  TK_PIPE,
+  TK_FALLTHROUGH, TK_USEANN,  /* annotations */
 };
 
 #define FIRST_COMPAT TK_PUSE
@@ -67,7 +71,12 @@ enum RESERVED {
 
 #define END_COMPAT FIRST_NON_COMPAT
 #define END_NON_COMPAT FIRST_OPTIONAL
+#ifdef PLUTO_PARSER_SUGGESTIONS
 #define END_OPTIONAL FIRST_SPECIAL
+#define END_SPECIAL TK_RETURN
+#else
+#define END_OPTIONAL TK_RETURN
+#endif
 
 /* number of reserved words */
 #define NUM_RESERVED	(cast_int(LAST_RESERVED-FIRST_RESERVED + 1))
@@ -141,12 +150,14 @@ struct Token {
   }
 
   [[nodiscard]] bool IsOptional() const noexcept {
-      return (token >= FIRST_OPTIONAL && token < FIRST_SPECIAL);
+      return (token >= FIRST_OPTIONAL && token < END_OPTIONAL);
   }
 
+#ifdef PLUTO_PARSER_SUGGESTIONS
   [[nodiscard]] bool IsSpecial() const noexcept {
-      return (token >= FIRST_SPECIAL && token < TK_RETURN);
+      return (token >= FIRST_SPECIAL && token < END_SPECIAL);
   }
+#endif
 
   [[nodiscard]] bool IsOverridable() const noexcept {
       return token == TK_PARENT || token == TK_PPARENT;
@@ -162,12 +173,16 @@ enum WarningType : int {
   WT_TYPE_MISMATCH,
   WT_UNREACHABLE_CODE,
   WT_EXCESSIVE_ARGUMENTS,
-  WT_DEPRECATED,  /* currently unused. how ironic. */
+  WT_DEPRECATED,
   WT_BAD_PRACTICE,
   WT_POSSIBLE_TYPO,
   WT_NON_PORTABLE_CODE,
   WT_NON_PORTABLE_BYTECODE,
   WT_NON_PORTABLE_NAME,
+  WT_IMPLICIT_GLOBAL,
+  WT_UNANNOTATED_FALLTHROUGH,
+  WT_DISCARDED_RETURN,
+  WT_FIELD_SHADOW,
 
   NUM_WARNING_TYPES
 };
@@ -186,6 +201,10 @@ inline const char* const luaX_warnNames[] = {
   "non-portable-code",
   "non-portable-bytecode",
   "non-portable-name",
+  "implicit-global",
+  "unannotated-fallthrough",
+  "discarded-return",
+  "field-shadow",
 };
 static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
@@ -374,13 +393,16 @@ struct LexState {
   std::stack<ClassData> classes{};
   std::stack<FuncArgsState> funcargsstates{};
   std::stack<BodyState> bodystates{};
+  std::stack<std::unordered_set<TString*>> constructorfieldsets{};
   std::vector<EnumDesc> enums{};
   std::vector<void*> parse_time_allocations{};
   std::unordered_set<TString*> localstat_variable_names{};
   std::unordered_set<TString*> localstat_expression_names{};
   std::vector<void*> localstat_ts{};
+  std::unordered_set<TString*> explicit_globals{};
   std::unordered_map<const TString*, void*> global_props{};
   KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
+  bool nodiscard = false;
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
@@ -446,6 +468,10 @@ struct LexState {
     getLineBuff().append(str);
   }
 
+  void appendLineBuff(const char* str, size_t len) {
+    getLineBuff().append(str, len);
+  }
+
   void appendLineBuff(char c) {
     getLineBuff().push_back(c);
   }
@@ -502,9 +528,11 @@ struct LexState {
         ;
   }
 
+#ifdef PLUTO_PARSER_SUGGESTIONS
   [[nodiscard]] bool shouldSuggest() const noexcept {
     return t.token == TK_SUGGEST_0 || t.token == TK_SUGGEST_1;
   }
+#endif
 
   [[nodiscard]] bool isKeywordEnabled(int t) const noexcept {
     static_assert((KS_ENABLED_BY_USER & 1) == 0);
@@ -545,4 +573,3 @@ LUAI_FUNC l_noret luaX_syntaxerror (LexState *ls, const char *s);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);
 LUAI_FUNC const char *luaX_reserved2str (int token);
-LUAI_FUNC void luaX_checkspecial (LexState *ls);

@@ -52,6 +52,12 @@ LUAI_FUNC void luaH_free (lua_State *L, Table *t);
 LUAI_FUNC int luaH_next (lua_State *L, Table *t, StkId key);
 LUAI_FUNC lua_Unsigned luaH_getn (Table *t);
 LUAI_FUNC unsigned int luaH_realasize (const Table *t);
+LUAI_FUNC unsigned int luaH_gethsize (const Table *t);
+
+
+#ifndef PLUTO_LUA_LINKABLE
+LUAI_FUNC void luaH_clear (lua_State *L, Table *t);
+#endif
 
 
 #if defined(LUA_DEBUG)
