@@ -10,12 +10,6 @@ static const luaL_Reg funcs[] = {
 LUAMOD_API int luaopen_scheduler (lua_State *L) {
 	const auto code = R"EOC(pluto_use "0.6.0"
 
-local function resume(coro)
-    if select("#", coroutine.xresume(coro)) ~= 0 then
-        warn("Coroutine yielded values to scheduler. Discarding them.")
-    end
-end
-
 return class
     __name = "pluto:scheduler"
 
@@ -25,12 +19,29 @@ return class
         self.coros = {}
     end
 
+    function internalresume(coro)
+        if not self.errorfunc then
+            if select("#", coroutine.xresume(coro)) ~= 0 then
+                warn("Coroutine yielded values to scheduler. Discarding them.")
+            end
+        else
+            local ok, val = coroutine.resume(coro)
+            if ok then
+                if val ~= nil then
+                    warn("Coroutine yielded values to scheduler. Discarding them.")
+                end
+            else
+                self.errorfunc(val)
+            end
+        end
+    end
+
     function add(t)
         if type(t) ~= "thread" then
             t = coroutine.create(t)
         end
         table.insert(self.coros, t)
-        resume(t)
+        self:internalresume(t)
         return t
     end
 
@@ -48,7 +59,7 @@ return class
             all_dead = true
             for i, coro in self.coros do
                 if coroutine.status(coro) == "suspended" then
-                    resume(coro)
+                    self:internalresume(coro)
                     all_dead = false
                 elseif coroutine.status(coro) == "dead" then
                     self.coros[i] = nil
