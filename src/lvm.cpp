@@ -326,8 +326,8 @@ int luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
       /* else will try the metamethod */
     }
     if (ttisfunction(tm)) {  /* is metamethod a function? */
-      luaT_callTMres(L, tm, t, key, val);  /* call it */
-      return ttypetag(s2v(val));
+      tag = luaT_callTMres(L, tm, t, key, val);  /* call it */
+      return tag;  /* return tag of the result */
     }
     t = tm;  /* else try to access 'tm[key]' */
     luaV_fastget(t, key, s2v(val), luaH_get, tag);
@@ -633,8 +633,8 @@ int luaV_equalobj (lua_State *L, const TValue *t1, const TValue *t2) {
   if (tm == NULL)  /* no TM? */
     return 0;  /* objects are different */
   else {
-    luaT_callTMres(L, tm, t1, t2, L->top.p);  /* call TM */
-    return !l_isfalse(s2v(L->top.p));
+    int tag = luaT_callTMres(L, tm, t1, t2, L->top.p);  /* call TM */
+    return !tagisfalse(tag);
   }
 }
 
