@@ -280,8 +280,36 @@ static LStream *newfile (lua_State *L) {
 }
 
 
+#ifdef PLUTO_READ_FILE_HOOK
+extern bool PLUTO_READ_FILE_HOOK(lua_State* L, const char* path);
+#endif
+
+#ifdef PLUTO_WRITE_FILE_HOOK
+extern bool PLUTO_WRITE_FILE_HOOK(lua_State* L, const char* path);
+#endif
+
+
+static void policycheck (lua_State *L, const char *filename, const char *mode) {
+  if (mode[0] == 'r') {
+#ifdef PLUTO_READ_FILE_HOOK
+    if (!PLUTO_READ_FILE_HOOK(L, filename)) {
+      luaL_error(L, "disallowed by content moderation policy");
+    }
+#endif
+  }
+  else {
+#ifdef PLUTO_WRITE_FILE_HOOK
+    if (!PLUTO_WRITE_FILE_HOOK(L, (const char*)filename)) {
+      luaL_error(L, "disallowed by content moderation policy");
+    }
+#endif
+  }
+}
+
+
 static void opencheck (lua_State *L, const char *fname, const char *mode) {
   LStream *p = newfile(L);
+  policycheck(L, fname, mode);
   p->f = luaL_fopen(fname, strlen(fname), mode, strlen(mode));
   if (l_unlikely(p->f == NULL))
     luaL_error(L, "cannot open file '%s' (%s)", fname, strerror(errno));
@@ -294,8 +322,8 @@ static int io_open (lua_State *L) {
   const char *filename = luaL_checklstring(L, 1, &filename_len);
   const char *mode = luaL_optlstring(L, 2, "r", &mode_len);
   LStream *p = newfile(L);
-  const char *md = mode;  /* to traverse/check mode */
-  luaL_argcheck(L, l_checkmode(md), 2, "invalid mode");
+  luaL_argcheck(L, l_checkmode(mode), 2, "invalid mode");
+  policycheck(L, filename, mode);
   p->f = luaL_fopen(filename, filename_len, mode, mode_len);
 
   if (p->f != nullptr)
@@ -823,10 +851,6 @@ static int f_flush (lua_State *L) {
 #endif
 }
 
-#ifdef PLUTO_READ_FILE_HOOK
-extern bool PLUTO_READ_FILE_HOOK(lua_State* L, const char* path);
-#endif
-
 [[nodiscard]] static std::filesystem::path getStringStreamPathForRead(lua_State *L, int idx) {
   const auto path = getStringStreamPathRaw(L, idx);
 #ifdef PLUTO_NO_FILESYSTEM
@@ -839,10 +863,6 @@ extern bool PLUTO_READ_FILE_HOOK(lua_State* L, const char* path);
 #endif
   return path;
 }
-
-#ifdef PLUTO_WRITE_FILE_HOOK
-extern bool PLUTO_WRITE_FILE_HOOK(lua_State* L, const char* path);
-#endif
 
 [[nodiscard]] static std::filesystem::path getStringStreamPathForWrite(lua_State *L, int idx) {
   const auto path = getStringStreamPathRaw(L, idx);
