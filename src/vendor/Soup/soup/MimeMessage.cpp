@@ -101,7 +101,9 @@ namespace soup
 	{
 		if (auto key_offset = line.find(": "); key_offset != std::string::npos)
 		{
-			header_fields.emplace(normaliseHeaderCasing(line.substr(0, key_offset)), line.substr(key_offset + 2));
+			auto value = line.substr(key_offset + 2);
+			string::trim(value);
+			header_fields.emplace(normaliseHeaderCasing(line.substr(0, key_offset)), std::move(value));
 		}
 	}
 
