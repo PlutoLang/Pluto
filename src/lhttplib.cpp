@@ -208,12 +208,39 @@ static int http_hasconnection (lua_State *L) {
   lua_pushboolean(L, false);
   return 1;
 }
+
+static int http_closeconnections_cont (lua_State *L, int status, lua_KContext ctx) {
+  if (G(L)->scheduler
+    && reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->isActive()
+    ) {
+    return lua_yieldk(L, 0, 0, http_closeconnections_cont);
+  }
+  delete reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler);
+  G(L)->scheduler = nullptr;
+  return 0;
+}
+
+/* does the DetachedScheduler cleanup in a non-blocking manner */
+static int http_closeconnections (lua_State *L) {
+  if (!lua_isyieldable(L)) {
+    luaL_error(L, "http.closeconnections must be called inside a coroutine");
+  }
+  if (G(L)->scheduler
+    && reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->isActive()
+    ) {
+    reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->setDontMakeReusableSockets();
+    reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->closeReusableSockets();
+    return lua_yieldk(L, 0, 0, http_closeconnections_cont);
+  }
+  return 0;
+}
 #endif
 
 static const luaL_Reg funcs_http[] = {
   {"request", http_request},
 #if !SOUP_WASM
   {"hasconnection", http_hasconnection},
+  {"closeconnections", http_closeconnections},
 #endif
   {nullptr, nullptr}
 };
