@@ -159,7 +159,10 @@ namespace soup
 			if (s.custom_data.isStructInMap(ReuseTag))
 			{
 				s.custom_data.getStructFromMap(ReuseTag).is_busy = false;
-				s.keepAlive();
+				if (Scheduler::get()->dont_make_reusable_sockets == false)
+				{
+					s.keepAlive();
+				}
 			}
 		}, this);
 	}

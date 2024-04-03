@@ -28,6 +28,7 @@ namespace soup
 
 	DetachedScheduler::~DetachedScheduler() SOUP_EXCAL
 	{
+		setDontMakeReusableSockets();
 		closeReusableSockets();
 	}
 
