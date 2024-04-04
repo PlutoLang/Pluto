@@ -75,9 +75,6 @@ namespace soup
 	class Writer;
 	class StringWriter;
 
-	// lang.agnostic
-	struct aglTranspiler;
-
 	// lang.compiler
 	struct astBlock;
 	struct astNode;

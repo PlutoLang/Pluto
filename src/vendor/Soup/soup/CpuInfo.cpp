@@ -1,23 +1,31 @@
 #include "CpuInfo.hpp"
+
 #if SOUP_X86
+	#include "string.hpp"
 
-#include "string.hpp"
-
-#if defined(_MSC_VER) && !defined(__clang__)
-#include <intrin.h>
-#else
-#include <cpuid.h>
+	#if defined(_MSC_VER) && !defined(__clang__)
+		#include <intrin.h>
+	#else
+		#include <cpuid.h>
+	#endif
+#elif SOUP_ARM
+	#if SOUP_WINDOWS
+		#include <Windows.h>
+	#else
+		#include <sys/auxv.h>
+	#endif
 #endif
 
 namespace soup
 {
-#define EAX arr[0]
-#define EBX arr[1]
-#define EDX arr[2]
-#define ECX arr[3]
-
 	CpuInfo::CpuInfo() noexcept
 	{
+#if SOUP_X86
+	#define EAX arr[0]
+	#define EBX arr[1]
+	#define EDX arr[2]
+	#define ECX arr[3]
+
 		char buf[17];
 		buf[16] = 0;
 		invokeCpuid(buf, 0);
@@ -58,16 +66,29 @@ namespace soup
 			invokeCpuid(arr, 0x80000001);
 			extended_features_1_ecx = ECX;
 		}
-	}
 
-	const CpuInfo& CpuInfo::get() noexcept
-	{
-		static CpuInfo inst;
-		return inst;
+	#undef EAX
+	#undef EBX
+	#undef EDX
+	#undef ECX
+#elif SOUP_ARM
+	#if SOUP_WINDOWS
+		armv8_aes = IsProcessorFeaturePresent(PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE);
+		armv8_sha1 = IsProcessorFeaturePresent(PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE);
+		armv8_sha2 = IsProcessorFeaturePresent(PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE);
+		armv8_crc32 = IsProcessorFeaturePresent(PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE);
+	#else
+		armv8_aes = getauxval(AT_HWCAP) & HWCAP_AES;
+		armv8_sha1 = getauxval(AT_HWCAP) & HWCAP_SHA1;
+		armv8_sha2 = getauxval(AT_HWCAP) & HWCAP_SHA2;
+		armv8_crc32 = getauxval(AT_HWCAP) & HWCAP_CRC32;
+	#endif
+#endif
 	}
 
 	std::string CpuInfo::toString() const SOUP_EXCAL
 	{
+#if SOUP_X86
 		std::string str = "CPUID Support Level: ";
 		str.append(string::hex(cpuid_max_eax));
 		str.append("\nCPUID Extended Support Level: ");
@@ -106,28 +127,36 @@ namespace soup
 		}
 
 		return str;
+#elif SOUP_ARM
+		std::string str = "ARMv8 AES: ";
+		str.append(armv8_aes ? "true" : "false");
+		str.append("\nARMv8 SHA1: ").append(armv8_sha1 ? "true" : "false");
+		str.append("\nARMv8 SHA2: ").append(armv8_sha2 ? "true" : "false");
+		str.append("\nARMv8 CRC32: ").append(armv8_crc32 ? "true" : "false");
+		return str;
+#endif
 	}
 
+#if SOUP_X86
 	void CpuInfo::invokeCpuid(void* out, uint32_t eax) noexcept
 	{
-#if defined(_MSC_VER) && !defined(__clang__)
+	#if defined(_MSC_VER) && !defined(__clang__)
 		__cpuid(((int*)out), eax);
 		std::swap(((int*)out)[2], ((int*)out)[3]);
-#else
+	#else
 		__cpuid(eax, ((int*)out)[0], ((int*)out)[1], ((int*)out)[3], ((int*)out)[2]);
-#endif
+	#endif
 	}
 
 	void CpuInfo::invokeCpuid(void* out, uint32_t eax, uint32_t ecx) noexcept
 	{
-#if defined(__GNUC__)
+	#if defined(__GNUC__)
 		((uint32_t*)out)[3] = ecx;
 		__get_cpuid(eax, &((uint32_t*)out)[0], &((uint32_t*)out)[1], &((uint32_t*)out)[3], &((uint32_t*)out)[2]);
-#else
+	#else
 		__cpuidex(((int*)out), eax, ecx);
 		std::swap(((int*)out)[2], ((int*)out)[3]);
-#endif
+	#endif
 	}
-}
-
 #endif
+}

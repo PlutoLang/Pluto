@@ -2,6 +2,7 @@
 
 #include "base.hpp"
 
+#include <cstddef> // size_t
 #include <cstdint>
 #include <vector>
 

@@ -10,26 +10,43 @@ namespace soup
 		SharedPtr<bool> sp;
 
 	public:
-		TransientTokenBase() SOUP_EXCAL;
-		TransientTokenBase(bool valid) SOUP_EXCAL;
+		TransientTokenBase() SOUP_EXCAL
+			: sp(soup::make_shared<bool>(true))
+		{
+		}
+
+		TransientTokenBase(bool valid) SOUP_EXCAL
+			: sp(soup::make_shared<bool>(valid))
+		{
+		}
 
 		[[nodiscard]] bool isValid() const noexcept
 		{
 			return *sp;
 		}
 
-		void invalidate() const noexcept;
+		void invalidate() const noexcept
+		{
+			*sp = false;
+		}
 
-		void reset() noexcept;
+		void reset() noexcept
+		{
+			sp.reset();
+		}
 
-		void refresh() noexcept;
+		void refresh() SOUP_EXCAL
+		{
+			invalidate();
+			sp = soup::make_shared<bool>(true);
+		}
 	};
 
 	struct TransientToken : public TransientTokenBase
 	{
 		using TransientTokenBase::TransientTokenBase;
 
-		~TransientToken()
+		~TransientToken() noexcept
 		{
 			invalidate();
 		}

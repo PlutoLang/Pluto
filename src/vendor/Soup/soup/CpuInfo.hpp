@@ -1,18 +1,31 @@
 #pragma once
 
 #include "base.hpp"
-#if SOUP_X86
 
-#include <cstdint>
 #include <string>
+#if SOUP_X86
+#include <cstdint>
 
 #include "ShortString.hpp"
+#endif
 
 namespace soup
 {
 	class CpuInfo
 	{
+	private:
+		CpuInfo() noexcept;
+
 	public:
+		[[nodiscard]] static const CpuInfo& get() noexcept
+		{
+			static CpuInfo inst;
+			return inst;
+		}
+
+		[[nodiscard]] std::string toString() const SOUP_EXCAL;
+
+#if SOUP_X86
 		uint32_t cpuid_max_eax;
 		uint64_t cpuid_extended_max_eax;
 		ShortString<16> vendor_id;
@@ -32,12 +45,6 @@ namespace soup
 		uint16_t base_frequency;
 		uint16_t max_frequency;
 		uint16_t bus_frequency;
-
-	private:
-		CpuInfo() noexcept;
-
-	public:
-		[[nodiscard]] static const CpuInfo& get() noexcept;
 
 		[[nodiscard]] bool supportsSSE() const noexcept
 		{
@@ -104,11 +111,13 @@ namespace soup
 			return (extended_features_1_ecx >> 11) & 1;
 		}
 
-		[[nodiscard]] std::string toString() const SOUP_EXCAL;
-
 		static void invokeCpuid(void* out, uint32_t eax) noexcept;
 		static void invokeCpuid(void* out, uint32_t eax, uint32_t ecx) noexcept;
+#elif SOUP_ARM
+		bool armv8_aes;
+		bool armv8_sha1;
+		bool armv8_sha2;
+		bool armv8_crc32;
+#endif
 	};
 }
-
-#endif

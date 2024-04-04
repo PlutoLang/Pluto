@@ -2,20 +2,16 @@
 
 #include "base.hpp"
 
-#if SOUP_X86 && SOUP_BITS == 64 && defined(SOUP_USE_INTRIN)
+#if defined(SOUP_USE_INTRIN) && SOUP_BITS == 64 && (SOUP_X86 || SOUP_ARM)
 #define SHA256_USE_INTRIN true
 #else
 #define SHA256_USE_INTRIN false
 #endif
 
-#include <cstring> // memcpy
-
-#include "StringRefReader.hpp"
-
 #if SHA256_USE_INTRIN
 #include "CpuInfo.hpp"
-#include "Endian.hpp"
 #endif
+#include "Reader.hpp"
 
 /*
 Original source: https://github.com/983/SHA-256
@@ -72,14 +68,37 @@ namespace soup
 #if SHA256_USE_INTRIN
 	[[nodiscard]] static bool sha256_can_use_intrin() noexcept
 	{
+	#if SOUP_X86
 		const CpuInfo& cpu_info = CpuInfo::get();
 		return cpu_info.supportsSSSE3()
 			&& cpu_info.supportsSHA()
 			;
+	#elif SOUP_ARM
+		return CpuInfo::get().armv8_sha2;
+	#endif
 	}
 
-	extern void sha256_transform_intrin(uint32_t state[8], const uint8_t data[]) noexcept;
+	extern void sha256_transform_intrin(uint32_t state[8], const uint8_t data[64]) noexcept;
 #endif
+
+	inline const uint32_t sha256_k[8 * 8] = {
+		0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+		0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+		0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+		0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+		0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+		0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+		0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+		0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+		0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+		0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+		0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+		0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+		0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+		0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+		0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+		0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+	};
 
 	static void sha256_block(sha256_state* sha) noexcept
 	{
@@ -92,25 +111,6 @@ namespace soup
 #endif
 
 		uint32_t* state = sha->state;
-
-		static const uint32_t k[8 * 8] = {
-			0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
-			0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-			0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-			0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-			0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
-			0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-			0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-			0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-			0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-			0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-			0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
-			0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-			0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
-			0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-			0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-			0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-		};
 
 		uint32_t a = state[0];
 		uint32_t b = state[1];
@@ -129,16 +129,16 @@ namespace soup
 
 			for (j = 0; j < 16; j += 4) {
 				uint32_t temp;
-				temp = h + step1(e, f, g) + k[i + j + 0] + w[j + 0];
+				temp = h + step1(e, f, g) + sha256_k[i + j + 0] + w[j + 0];
 				h = temp + d;
 				d = temp + step2(a, b, c);
-				temp = g + step1(h, e, f) + k[i + j + 1] + w[j + 1];
+				temp = g + step1(h, e, f) + sha256_k[i + j + 1] + w[j + 1];
 				g = temp + c;
 				c = temp + step2(d, a, b);
-				temp = f + step1(g, h, e) + k[i + j + 2] + w[j + 2];
+				temp = f + step1(g, h, e) + sha256_k[i + j + 2] + w[j + 2];
 				f = temp + b;
 				b = temp + step2(c, d, a);
-				temp = e + step1(f, g, h) + k[i + j + 3] + w[j + 3];
+				temp = e + step1(f, g, h) + sha256_k[i + j + 3] + w[j + 3];
 				e = temp + a;
 				a = temp + step2(b, c, d);
 			}

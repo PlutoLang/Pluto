@@ -71,7 +71,7 @@ namespace soup
 	   OFFSET_PAIR(1025, 9), OFFSET_PAIR(1537, 9), OFFSET_PAIR(2049, 10), OFFSET_PAIR(3073, 10), OFFSET_PAIR(4097, 11), OFFSET_PAIR(6145, 11), OFFSET_PAIR(8193, 12), OFFSET_PAIR(12289, 12), OFFSET_PAIR(16385, 13), OFFSET_PAIR(24577, 13),
 	};
 
-	class BitReader
+	class DeflateBitReader
 	{
 	private:
 		int shifter_bit_count_ = 0;
@@ -87,7 +87,7 @@ namespace soup
 		 * @param in_block pointer to the start of the compressed block
 		 * @param in_block_end pointer to the end of the compressed block + 1
 		 */
-		explicit BitReader(unsigned char* in_block, unsigned char* in_block_end)
+		explicit DeflateBitReader(unsigned char* in_block, unsigned char* in_block_end)
 			: in_block_(in_block), in_block_end_(in_block_end), in_block_start_(in_block)
 		{
 		}
@@ -365,7 +365,7 @@ namespace soup
 		 * @param code_length output code lengths table
 		 * @param bit_reader bit reader context
 		 */
-		static bool readRawLengths(const int len_bits, const int read_symbols, const int symbols, unsigned char* code_length, BitReader& bit_reader)
+		static bool readRawLengths(const int len_bits, const int read_symbols, const int symbols, unsigned char* code_length, DeflateBitReader& bit_reader)
 		{
 			const unsigned char code_len_syms[kCodeLenSyms] = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
 			int i;
@@ -400,7 +400,7 @@ namespace soup
 		 * @param code_length output code lengths table
 		 * @param bit_reader bit reader context
 		 */
-		bool readLength(const unsigned int* tables_rev_symbol_table, const int read_symbols, const int symbols, unsigned char* code_length, BitReader& bit_reader)
+		bool readLength(const unsigned int* tables_rev_symbol_table, const int read_symbols, const int symbols, unsigned char* code_length, DeflateBitReader& bit_reader)
 		{
 			int i;
 			if (read_symbols < 0 || symbols < 0 || read_symbols > symbols)
@@ -469,7 +469,7 @@ namespace soup
 		 *
 		 * @return symbol, or -1 for error
 		 */
-		unsigned int readValue(const unsigned int* rev_symbol_table, BitReader& bit_reader)
+		unsigned int readValue(const unsigned int* rev_symbol_table, DeflateBitReader& bit_reader)
 		{
 			unsigned int stream = bit_reader.peekBits();
 			unsigned int fast_sym_bits = this->fast_symbol_[stream & ((1 << kFastSymbolBits) - 1)];
@@ -505,7 +505,7 @@ namespace soup
 	};
 
 
-	unsigned int copyStored(BitReader& bit_reader, unsigned char* out, size_t out_offset, uint16_t block_size_max)
+	unsigned int copyStored(DeflateBitReader& bit_reader, unsigned char* out, size_t out_offset, uint16_t block_size_max)
 	{
 		SOUP_IF_UNLIKELY (!bit_reader.alignToByte())
 		{
@@ -540,7 +540,7 @@ namespace soup
 		return stored_length;
 	}
 
-	unsigned int decompressBlock(BitReader& br, bool dynamic_block, unsigned char* out, size_t out_offset, size_t block_size_max)
+	unsigned int decompressBlock(DeflateBitReader& br, bool dynamic_block, unsigned char* out, size_t out_offset, size_t block_size_max)
 	{
 		HuffmanDecoder literals_decoder;
 		HuffmanDecoder offset_decoder;
@@ -897,7 +897,7 @@ namespace soup
 			check_sum = adler32::INITIAL;
 		}
 
-		BitReader br(current_compressed_data, end_compressed_data);
+		DeflateBitReader br(current_compressed_data, end_compressed_data);
 
 		res.decompressed = std::string(max_decompressed_size, '\0');
 		auto out = reinterpret_cast<uint8_t*>(&res.decompressed.at(0));

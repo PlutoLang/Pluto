@@ -28,7 +28,14 @@ foreach(scandir(__DIR__."/soup") as $file)
 }
 if(is_dir(__DIR__."/Intrin"))
 {
-	$clang .= " -maes -mpclmul -mrdrnd -mrdseed -msha -msse4.1";
+	if (php_uname("m") == "aarch64")
+	{
+		$clang .= " -march=armv8+crypto+crc";
+	}
+	else
+	{
+		$clang .= " -maes -mpclmul -mrdrnd -mrdseed -msha -msse4.1";
+	}
 	foreach(scandir(__DIR__."/Intrin") as $file)
 	{
 		if(substr($file, -4) == ".cpp")

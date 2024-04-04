@@ -2,7 +2,7 @@
 
 #include "base.hpp"
 
-#if SOUP_X86 && SOUP_BITS == 64 && defined(SOUP_USE_INTRIN)
+#if defined(SOUP_USE_INTRIN) && SOUP_BITS == 64 && (SOUP_X86 || SOUP_ARM)
 #define SHA1_USE_INTRIN true
 #else
 #define SHA1_USE_INTRIN false
@@ -20,13 +20,13 @@ namespace soup
 	// Original source: https://github.com/vog/sha1
 	// Original licence: Dedicated to the public domain.
 
-	template <size_t BLOCK_INTS, bool intrin>
+	template <size_t BLOCK_INTS, bool lsb>
 	void buffer_to_block(const std::string& buffer, uint32_t block[BLOCK_INTS]) noexcept
 	{
-		/* Convert the std::string (byte buffer) to a uint32_t array (MSB) */
+		/* Convert the std::string (byte buffer) to a uint32_t array */
 		for (size_t i = 0; i < BLOCK_INTS; i++)
 		{
-			if constexpr (intrin)
+			if constexpr (lsb)
 			{
 				block[i] = (buffer[4 * i + 0] & 0xff)
 					| (buffer[4 * i + 1] & 0xff) << 8
@@ -203,7 +203,7 @@ namespace soup
 	}
 
 #if SHA1_USE_INTRIN
-	extern void sha1_transform_intrin(uint32_t state[5], const uint8_t data[]) noexcept;
+	extern void sha1_transform_intrin(uint32_t state[5], const uint8_t data[64]) noexcept;
 #endif
 
 	template <bool intrin>
@@ -231,13 +231,19 @@ namespace soup
 #if SHA1_USE_INTRIN
 			if constexpr (intrin)
 			{
+	#if SOUP_X86
 				sha1_transform_intrin(digest, (const uint8_t*)buffer.data());
+	#else
+				uint32_t block[BLOCK_INTS];
+				buffer_to_block<BLOCK_INTS, false>(buffer, block);
+				sha1_transform_intrin(digest, (const uint8_t*)block);
+	#endif
 			}
 			else
 #endif
 			{
 				uint32_t block[BLOCK_INTS];
-				buffer_to_block<BLOCK_INTS, intrin>(buffer, block);
+				buffer_to_block<BLOCK_INTS, intrin && SOUP_X86>(buffer, block);
 				transform(digest, block);
 			}
 			++transforms;
@@ -259,7 +265,7 @@ namespace soup
 		}
 
 		uint32_t block[BLOCK_INTS];
-		buffer_to_block<BLOCK_INTS, intrin>(buffer, block);
+		buffer_to_block<BLOCK_INTS, intrin && SOUP_X86>(buffer, block);
 
 		if (orig_size > sha1::BLOCK_BYTES - 8)
 		{
@@ -283,8 +289,13 @@ namespace soup
 #if SHA1_USE_INTRIN
 		if constexpr (intrin)
 		{
+	#if SOUP_X86
 			block[BLOCK_INTS - 1] = Endianness::invert((uint32_t)total_bits);
 			block[BLOCK_INTS - 2] = Endianness::invert((uint32_t)(total_bits >> 32));
+	#else
+			block[BLOCK_INTS - 1] = (uint32_t)total_bits;
+			block[BLOCK_INTS - 2] = (uint32_t)(total_bits >> 32);
+	#endif
 			sha1_transform_intrin(digest, (const uint8_t*)block);
 		}
 		else
@@ -311,9 +322,13 @@ namespace soup
 	{
 #if SHA1_USE_INTRIN
 		const CpuInfo& cpu_info = CpuInfo::get();
+	#if SOUP_X86
 		if (cpu_info.supportsSSSE3()
 			&& cpu_info.supportsSHA()
 			)
+	#elif SOUP_ARM
+		if (cpu_info.armv8_sha1)
+	#endif
 		{
 			return sha1_hash_impl<true>(r);
 		}

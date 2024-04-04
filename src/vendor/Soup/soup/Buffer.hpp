@@ -8,6 +8,7 @@
 #define SOUP_BUFFER_NO_RESIZE false
 #endif
 
+#include "alloc.hpp"
 #if SOUP_BUFFER_NO_RESIZE
 #include "Exception.hpp"
 #endif

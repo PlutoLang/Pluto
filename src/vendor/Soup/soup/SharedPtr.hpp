@@ -82,7 +82,7 @@ namespace soup
 						const auto inst = this->inst;
 						std::destroy_at<>(inst);
 						std::destroy_at<>(this);
-						::operator delete(reinterpret_cast<void*>(inst)/*, sizeof(T) + sizeof(typename SharedPtr<T>::Data)*/);
+						::operator delete(reinterpret_cast<void*>(inst));
 					}
 					else
 					{
@@ -262,19 +262,20 @@ namespace soup
 	template <typename T, typename...Args, SOUP_RESTRICT(!std::is_array_v<T>)>
 	[[nodiscard]] SharedPtr<T> make_shared(Args&&...args)
 	{
-		void* const b = ::operator new(sizeof(T) + sizeof(typename SharedPtr<T>::Data));
+		struct Combined
+		{
+			alignas(T) char t[sizeof(T)];
+			typename SharedPtr<T>::Data data;
+		};
+
+		void* const b = ::operator new(sizeof(Combined));
 		typename SharedPtr<T>::Data* data;
 #if SOUP_EXCEPTIONS
 		try
 #endif
 		{
-#if true
 			auto inst = soup::construct_at<>(reinterpret_cast<T*>(b), std::forward<Args>(args)...);
-			data = soup::construct_at<>(reinterpret_cast<typename SharedPtr<T>::Data*>(reinterpret_cast<uintptr_t>(b) + sizeof(T)), inst);
-#else
-			auto inst = soup::construct_at<>(reinterpret_cast<T*>(reinterpret_cast<uintptr_t>(b) + sizeof(typename SharedPtr<T>::Data)), std::forward<Args>(args)...);
-			data = soup::construct_at<>(reinterpret_cast<typename SharedPtr<T>::Data*>(b), inst);
-#endif
+			data = soup::construct_at<>(reinterpret_cast<typename SharedPtr<T>::Data*>(reinterpret_cast<uintptr_t>(b) + offsetof(Combined, data)), inst);
 		}
 #if SOUP_EXCEPTIONS
 		catch (...)

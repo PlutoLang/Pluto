@@ -75,6 +75,12 @@
 	#define SOUP_X86 false
 #endif
 
+#if defined(__arm__) || defined(__aarch64__) || defined(_M_ARM) || defined(_M_ARM64)
+	#define SOUP_ARM true
+#else
+	#define SOUP_ARM false
+#endif
+
 // === Determine if code inspector
 
 #ifdef __INTELLISENSE__
@@ -157,13 +163,8 @@
 
 // === Development helpers
 
-#include <cstddef> // size_t
-
 namespace soup
 {
-	[[nodiscard]] void* malloc(size_t size) /* SOUP_EXCAL */;
-	[[nodiscard]] void* realloc(void* ptr, size_t new_size) /* SOUP_EXCAL */;
-
 	[[noreturn]] void throwAssertionFailed();
 	[[noreturn]] void throwAssertionFailed(const char* what);
 }

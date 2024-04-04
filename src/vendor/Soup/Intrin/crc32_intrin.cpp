@@ -1,12 +1,20 @@
-#if defined(__x86_64__) || defined(_M_X64)
-
+#include <cstddef>
 #include <cstdint>
 
-#include <smmintrin.h> // _mm_extract_epi32
-#include <wmmintrin.h> // _mm_clmulepi64_si128
+#if defined(__x86_64__) || defined(_M_X64)
+	#include <smmintrin.h> // _mm_extract_epi32
+	#include <wmmintrin.h> // _mm_clmulepi64_si128
+#elif defined(__aarch64__) || defined(_M_ARM64)
+	#ifdef _WIN32
+		#include <intrin.h>
+	#else
+		#include <arm_acle.h>
+	#endif
+#endif
 
 namespace soup
 {
+#if defined(__x86_64__) || defined(_M_X64)
 	uint32_t crc32_pclmul(const uint8_t* p, size_t size, uint32_t crc) noexcept
 	{
 		static const uint64_t
@@ -32,6 +40,21 @@ namespace soup
 		b = _mm_xor_si128(_mm_clmulepi64_si128(_mm_and_si128(b, z), _mm_loadl_epi64(reinterpret_cast<const __m128i*>(s_k5k0)), 0), _mm_srli_si128(b, 4));
 		return ~_mm_extract_epi32(_mm_xor_si128(b, _mm_clmulepi64_si128(_mm_and_si128(_mm_clmulepi64_si128(_mm_and_si128(b, z), u, 16), z), u, 0)), 1);
 	}
-}
-
+#elif defined(__aarch64__) || defined(_M_ARM64)
+	uint32_t crc32_armv8(const uint8_t* p, size_t size, uint32_t crc) noexcept
+	{
+		crc = ~crc;
+		for (; size >= 8; size -= 8)
+		{
+			crc = __crc32d(crc, *reinterpret_cast<const uint64_t*>(p));
+			p += 8;
+		}
+		while (size--)
+		{
+			crc = __crc32b(crc, *p++);
+		}
+		crc = ~crc;
+		return crc;
+	}
 #endif
+}

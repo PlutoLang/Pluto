@@ -707,12 +707,13 @@
     <ClCompile Include="src\lxml.cpp" />
     <ClCompile Include="src\lzio.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\aes_helper.cpp" />
-    <ClCompile Include="src\vendor\Soup\Intrin\crc32_pclmul.cpp" />
+    <ClCompile Include="src\vendor\Soup\Intrin\crc32_intrin.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\hardware_rng.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\sha1_transform_intrin.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\sha256_transform_intrin.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\adler32.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\aes.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\alloc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Asn1Identifier.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Asn1Sequence.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base.cpp" />
@@ -825,6 +826,7 @@
     <ClInclude Include="src\lzio.h" />
     <ClInclude Include="src\vendor\Soup\soup\adler32.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\aes.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\alloc.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Asn1Element.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Asn1Identifier.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Asn1Sequence.hpp" />

@@ -2,7 +2,7 @@
 
 #include "base.hpp"
 
-#if SOUP_X86 && SOUP_BITS == 64 && defined(SOUP_USE_INTRIN)
+#if defined(SOUP_USE_INTRIN) && SOUP_BITS == 64 && (SOUP_X86 || SOUP_ARM)
 #define CRC32_USE_INTRIN true
 #else
 #define CRC32_USE_INTRIN false
@@ -94,7 +94,9 @@ namespace soup
 
 #if CRC32_USE_INTRIN
 	extern uint32_t crc32_pclmul(const uint8_t* p, size_t size, uint32_t crc) noexcept;
+	extern uint32_t crc32_armv8(const uint8_t* p, size_t size, uint32_t crc) noexcept;
 
+	#if SOUP_X86
 	static uint32_t crc32_sse41_simd(const uint8_t* data, size_t size, uint32_t init) noexcept
 	{
 		if (size < 16)
@@ -106,11 +108,13 @@ namespace soup
 		uint32_t c = crc32_pclmul(data, simd_len, init);
 		return crc32_slice_by_4(data + simd_len, size - simd_len, c);
 	}
+	#endif
 #endif
 
 	uint32_t crc32::hash(const uint8_t* data, size_t size, uint32_t init) noexcept
 	{
 #if CRC32_USE_INTRIN
+	#if SOUP_X86
 		const CpuInfo& cpu_info = CpuInfo::get();
 		if (cpu_info.supportsPCLMULQDQ()
 			&& cpu_info.supportsSSE4_1()
@@ -118,6 +122,12 @@ namespace soup
 		{
 			return crc32_sse41_simd(data, size, init);
 		}
+	#elif SOUP_ARM
+		if (CpuInfo::get().armv8_crc32)
+		{
+			return crc32_armv8(data, size, init);
+		}
+	#endif
 #endif
 		return crc32_slice_by_4(data, size, init);
 	}

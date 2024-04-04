@@ -114,9 +114,6 @@
     <ClCompile Include="src\vendor\Soup\Intrin\aes_helper.cpp">
       <Filter>vendor\Soup\Intrin</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\Soup\Intrin\crc32_pclmul.cpp">
-      <Filter>vendor\Soup\Intrin</Filter>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\adler32.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
@@ -293,6 +290,12 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\Server.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\Intrin\crc32_intrin.cpp">
+      <Filter>vendor\Soup\Intrin</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\alloc.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
   </ItemGroup>
@@ -832,6 +835,9 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\ServerService.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\alloc.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>

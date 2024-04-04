@@ -6,11 +6,11 @@
 
 namespace soup
 {
-	static thread_local netConfig inst;
+	static thread_local netConfig netConfig_inst;
 
 	netConfig& netConfig::get()
 	{
-		return inst;
+		return netConfig_inst;
 	}
 
 	netConfig::netConfig() :
