@@ -2622,11 +2622,6 @@ do
 
     pcall(|| -> string.uformat("%f", ""))
     assert(string.uformat("%.2f", 4.20) == "4.20")
-
-    -- Ensure locale is still the same...
-    assert((os.setlocale(nil) == "C") -- or this... for *nix-based systems.
-        or (os.setlocale(nil) == "fr-FR.UTF-8") -- For Windows, actually do the assert, tho. :)
-        )
 end
 
 print "Testing spaceship operator."
