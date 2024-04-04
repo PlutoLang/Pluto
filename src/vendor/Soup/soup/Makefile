@@ -1,4 +1,4 @@
-CXX=g++ -std=c++17 -O3 -fvisibility=hidden -flto
+CXX=g++ -std=c++17 -O3 -flto -fvisibility=hidden -fPIC
 CFLAGS=-c -Wall -DSOUP_USE_INTRIN
 
 LIBNAME=libsoup.a

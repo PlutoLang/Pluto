@@ -6,7 +6,7 @@
 # Your platform. See PLATS for possible values.
 PLAT=
 
-CXX= g++ -std=c++17 -O3 -flto -fvisibility=hidden
+CXX= g++ -std=c++17 -O3 -flto -fvisibility=hidden -fPIC
 CXXFLAGS= -Wno-multichar $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm $(SYSLIBS) $(MYLIBS)
@@ -38,6 +38,7 @@ CMCFLAGS=
 PLATS= guess aix bsd freebsd generic linux linux-readline macosx mingw posix solaris
 
 LUA_A=	libpluto.a
+LUA_SO= libpluto.so
 CORE_O=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o
 LIB_O=	lauxlib.o lbaselib.o lcorolib.o ldblib.o liolib.o lmathlib.o loadlib.o loslib.o lstrlib.o lcryptolib.o ltablib.o lutf8lib.o lassertlib.o lvector3lib.o lbase32.o lbase64.o ljson.o lurllib.o linit.o lstarlib.o lcatlib.o lhttplib.o lschedulerlib.o lsocketlib.o lbigint.o lxml.o
 BASE_O= $(CORE_O) $(LIB_O) $(MYOBJS)
@@ -49,7 +50,7 @@ LUAC_T=	plutoc
 LUAC_O=	luac.o
 
 ALL_O= $(BASE_O) $(LUA_O) $(LUAC_O)
-ALL_T= $(LUA_A) $(LUA_T) $(LUAC_T)
+ALL_T= $(LUA_A) $(LUA_T) $(LUAC_T) $(LUA_SO)
 ALL_A= $(LUA_A)
 
 # Targets start here.
@@ -66,6 +67,9 @@ $(LUA_A): $(BASE_O)
 	cd vendor/Soup/soup && $(MAKE) && cd ../..
 	$(AR) $@ $(BASE_O) vendor/Soup/Intrin/*.o vendor/Soup/soup/*.o
 	$(RANLIB) $@
+
+$(LUA_SO): $(BASE_O) $(LUA_A)
+	$(CXX) -shared -Wl,-soname,$(LUA_SO) -o $@ $? ${LIBS}
 
 $(LUA_T): $(LUA_O) $(LUA_A)
 	$(CXX) -o $@ $(LDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
