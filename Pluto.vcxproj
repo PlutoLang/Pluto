@@ -777,7 +777,6 @@
     <ClCompile Include="src\vendor\Soup\soup\Task.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Thread.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\time.cpp" />
-    <ClCompile Include="src\vendor\Soup\soup\TransientToken.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\TrustStore.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\unicode.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Uri.cpp" />
