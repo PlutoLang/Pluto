@@ -11,13 +11,13 @@ $pluto_version or die("Failed to determine Pluto version");
 
 $arch = trim(shell_exec("dpkg --print-architecture"));
 
-mkdir("pluto");
-mkdir("pluto/DEBIAN");
-mkdir("pluto/usr");
-mkdir("pluto/usr/bin");
-mkdir("pluto/usr/lib");
-mkdir("pluto/usr/include");
-mkdir("pluto/usr/include/pluto");
+@mkdir("pluto");
+@mkdir("pluto/DEBIAN");
+@mkdir("pluto/usr");
+@mkdir("pluto/usr/bin");
+@mkdir("pluto/usr/lib");
+@mkdir("pluto/usr/include");
+@mkdir("pluto/usr/include/pluto");
 
 file_put_contents("pluto/DEBIAN/control", <<<EOC
 Package: pluto
