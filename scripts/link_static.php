@@ -3,11 +3,11 @@ require __DIR__."/common.php";
 
 if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 {
-	$cmd = resolve_installed_program("llvm-ar")." rcu src/libpluto.a";
+	$cmd = resolve_installed_program("llvm-ar")." rcu src/libplutostatic.a";
 }
 else
 {
-	$cmd = resolve_installed_program("ar")." rcu src/libpluto.a";
+	$cmd = resolve_installed_program("ar")." rcu src/libplutostatic.a";
 }
 
 for_each_obj(function($file)

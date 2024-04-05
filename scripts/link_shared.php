@@ -3,7 +3,7 @@ require __DIR__."/common.php";
 check_compiler();
 
 prepare_link();
-$cmd = $compiler." -shared -o src/libplutoso.so";
+$cmd = $compiler." -shared -o src/libpluto.so";
 
 for_each_obj(function($file)
 {

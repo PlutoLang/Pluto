@@ -37,8 +37,8 @@ copy("src/plutoc", "pluto/usr/bin/plutoc");
 chmod("pluto/usr/bin/pluto", 0755);
 chmod("pluto/usr/bin/plutoc", 0755);
 
-copy("src/libpluto.a", "pluto/usr/lib/libpluto.a");
-copy("src/libplutoso.so", "pluto/usr/lib/libplutoso.so");
+//copy("src/libplutostatic.a", "pluto/usr/lib/libplutostatic.a");
+copy("src/libpluto.so", "pluto/usr/lib/libpluto.so");
 
 copy("src/lua.h", "pluto/usr/include/pluto/lua.h");
 copy("src/lua.hpp", "pluto/usr/include/pluto/lua.hpp");
