@@ -1031,12 +1031,7 @@
 //#define PLUTO_LOADCLIB_HOOK ContmodOnLoadCLib
 
 // If defined, Pluto will not load the io library, and exclude os.remove and os.rename.
-// Furthermore, these functions will be bricked such that they do not work.
-//   This is done largely to ensure package.loadlib gets nothing from loading their symbols
-//   There has been exploits in the past that have managed to load these lua_CFunction objects provided they're in memory. This shouldn't even be considered a worry with Pluto, since they are literally compiled to do nothing instead of only getting excluded from luaL_openlibs.
-// 
 // It's highly suggested in most cases to define PLUTO_NO_OS_EXECUTE below too, since os.execute can be used for filesystem access. 
-// 
 // It's suggested you implement PLUTO_LOADCLIB_HOOK, etc, for even more powerful coverage. Package.loadlib can still load other Pluto/Lua libraries and use their lua_CFunction objects.
 //#define PLUTO_NO_FILESYSTEM
 

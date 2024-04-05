@@ -28,6 +28,9 @@
 #include "vendor/Soup/soup/string.hpp"
 
 
+// As a "last stand" measure to ensure that Pluto, when compiled as a DLL, can itself not be loaded via package.loadlib to provide functions that the integrator wanted disabled.
+// This should be reasonably effective on Windows where the DLL is expected to be shipped with the program, if static linking is not used.
+// On Linux, static linking is the way to go -- and even then, it is still possible that there is a SO with these functions fully functional somewhere on the system.
 #ifdef PLUTO_NO_FILESYSTEM
 #define FS_FUNCTION return 0;
 #else
