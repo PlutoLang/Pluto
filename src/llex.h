@@ -321,7 +321,6 @@ enum ParserContext : lu_byte {
   PARCTX_NONE,
   PARCTX_CREATE_VAR,
   PARCTX_CREATE_VARS,
-  PARCTX_FUNCARGS,
   PARCTX_BODY,
   PARCTX_LAMBDA_BODY,
   PARCTX_TERNARY_C,  /* 'c' in 'a ? b : c' */

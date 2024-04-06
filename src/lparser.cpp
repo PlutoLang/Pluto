@@ -925,10 +925,11 @@ static void singlevarinner (LexState *ls, TString *varname, expdesc *var, bool l
 static void singlevar (LexState *ls, expdesc *var, TString *varname, bool localonly = false) {
   if (gett(ls) == TK_WALRUS) {
     luaX_next(ls);
-    if (ls->getContext() == PARCTX_CREATE_VARS)
-      throwerr(ls, "unexpected ':=' while creating multiple variable", "unexpected ':='");
-    if (ls->getContext() == PARCTX_FUNCARGS)  /* could also be detected with `ls->fs->freereg != luaY_nvarstack(ls->fs)` */
-      throwerr(ls, "unexpected ':=' while processing function arguments", "unexpected ':='");
+    if (ls->getContext() == PARCTX_CREATE_VARS
+      || ls->fs->freereg != luaY_nvarstack(ls->fs)  /* function arguments, table constructor */
+      ) {
+      throwerr(ls, "':=' is not allowed in this context", "unexpected ':='");
+    }
     new_localvar(ls, varname);
     expr(ls, var);
     adjust_assign(ls, 1, 1, var);
@@ -2321,7 +2322,6 @@ static bool isnamedarg (LexState *ls) {
 }
 
 static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
-  ls->pushContext(PARCTX_FUNCARGS);
   FuncState *fs = ls->fs;
   expdesc args;
   FuncArgsState& fas = ls->funcargsstates.emplace();
@@ -2445,7 +2445,6 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
   luaK_fixline(fs, line);
   fs->freereg = base+1;  /* call remove function and arguments and leaves
                             (unless changed) one result */
-  ls->popContext(PARCTX_FUNCARGS);
   ls->funcargsstates.pop();
 }
 
