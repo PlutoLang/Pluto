@@ -18,7 +18,7 @@ file_put_contents(".chocogen.json", <<<EOC
 {
     "path": ["pluto.exe", "plutoc.exe", "LICENSE.txt", "VERIFICATION.txt"],
     "title": "Pluto Language",
-    "description": "A superset of Lua 5.4 — with unique features, optimizations, and improvements.",
+    "description": "A superset of Lua 5.4 with a focus on general-purpose programming.",
     "authors": "Ryan Starrett, Sainan",
     "website": "https://pluto-lang.org/",
     "repository": "https://github.com/PlutoLang/Pluto",

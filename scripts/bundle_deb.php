@@ -27,7 +27,7 @@ Priority: optional
 Architecture: $arch
 Essential: no
 Maintainer: Sainan <sainan@calamity.gg>
-Description: A superset of Lua 5.4 — with unique features, optimizations, and improvements.
+Description: A superset of Lua 5.4 with a focus on general-purpose programming.
 
 EOC);
 chmod("pluto/DEBIAN/control", 0644);
