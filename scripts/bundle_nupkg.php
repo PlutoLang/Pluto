@@ -25,7 +25,7 @@ file_put_contents(".chocogen.json", <<<EOC
     "tags": "pluto lua development programming foss cross-platform non-admin",
     "icon": "https://pluto-lang.org/img/logo.png",
     "license": "https://github.com/PlutoLang/Pluto/blob/main/LICENSE",
-    "changelog": "https://github.com/PlutoLang/Pluto/releases",
+    "changelog": "https://pluto-lang.org/docs/Changelog",
     "issues": "https://github.com/PlutoLang/Pluto/issues"
 }
 EOC);
