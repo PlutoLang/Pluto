@@ -2999,7 +2999,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         }
         luaX_next(ls);
         int nparams = 1;
-        if (luaX_lookahead(ls) == ':') {
+        if (!(flags & E_NO_COLON) && luaX_lookahead(ls) == ':') {
           luaK_reserveregs(fs, 2);
           luaK_exp2nextreg(fs, v);
           fs->freereg -= 3;
@@ -3012,7 +3012,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         }
         else {
           expdesc func;
-          simpleexp(ls, &func, E_PIPERHS);
+          simpleexp(ls, &func, flags | E_PIPERHS);
           luaK_prepcallfirstarg(fs, v, &func);
         }
         lua_assert(v->k == VNONRELOC);
