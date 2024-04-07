@@ -264,6 +264,10 @@ do
     containserror("Absent", assert.searcherror, "hello world", error, "abc")
     assert.equal({}, {})
     assert.nequal({}, { 1 })
+    noerror(assert.contains, "hello world", "apple pie hello world yellow apple")
+    noerror(assert.contains, "my element", { 1, 2, 3, 4, "my element", 5 })
+    haserror(assert.contains, "hello world", "nothing to see here")
+    haserror(assert.contains, "my element", { 1, 2, 3, 4, "my not element", 5 })
 end
 
 print "Testing compound assignment."
