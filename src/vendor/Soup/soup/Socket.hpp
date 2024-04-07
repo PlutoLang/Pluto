@@ -20,7 +20,7 @@
 #include "StructMap.hpp"
 #include "UniquePtr.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class Socket : public Worker
 	{

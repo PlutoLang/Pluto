@@ -3,10 +3,12 @@
 #include <cstdint>
 #include <type_traits>
 
+#include "base.hpp"
+
 #undef min
 #undef max
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct branchless
 	{

@@ -5,7 +5,7 @@
 #include "IpAddr.hpp"
 #include "rand.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct CidrSubnet4
 	{

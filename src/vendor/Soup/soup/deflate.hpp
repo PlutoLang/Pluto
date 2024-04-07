@@ -3,7 +3,9 @@
 #include <cstddef>
 #include <string>
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 	struct deflate
 	{

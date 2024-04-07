@@ -2,7 +2,7 @@
 
 #include "Writer.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	JsonBool::JsonBool() noexcept
 		: JsonNode(JSON_BOOL)

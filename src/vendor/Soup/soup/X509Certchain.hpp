@@ -5,7 +5,7 @@
 #include "fwd.hpp"
 #include "X509Certificate.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct X509Certchain
 	{

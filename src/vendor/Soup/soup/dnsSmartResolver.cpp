@@ -7,7 +7,7 @@
 #include "ObfusString.hpp"
 #include "WeakRef.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct dnsSmartLookupTask : public dnsLookupTask
 	{

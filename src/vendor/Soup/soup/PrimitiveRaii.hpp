@@ -2,7 +2,7 @@
 
 #include "IntStruct.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	template <typename T, T InvalidValue = 0>
 	struct PrimitiveRaii : public IntStruct<T>

@@ -3,7 +3,9 @@
 #include <string>
 #include <vector>
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 	struct pem
 	{

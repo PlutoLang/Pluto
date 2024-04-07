@@ -3,7 +3,7 @@
 #include "logSink.hpp"
 #include "UniquePtr.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	extern UniquePtr<logSink> g_logSink;
 

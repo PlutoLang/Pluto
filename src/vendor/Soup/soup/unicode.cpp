@@ -1,6 +1,6 @@
 #include "unicode.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	char32_t unicode::utf8_to_utf32_char(std::string::const_iterator& it, const std::string::const_iterator end) noexcept
 	{

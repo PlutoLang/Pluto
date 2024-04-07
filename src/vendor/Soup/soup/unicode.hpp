@@ -23,7 +23,7 @@
 #endif
 static_assert(sizeof(UTF16_CHAR_TYPE) == 2);
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct unicode
 	{

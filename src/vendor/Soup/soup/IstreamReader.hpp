@@ -4,7 +4,7 @@
 
 #include <istream>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class IstreamReader final : public Reader
 	{

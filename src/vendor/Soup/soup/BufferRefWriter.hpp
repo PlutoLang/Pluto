@@ -4,7 +4,7 @@
 
 #include "Buffer.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class BufferRefWriter final : public Writer
 	{

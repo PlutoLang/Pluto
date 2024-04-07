@@ -4,7 +4,7 @@
 
 #include "RngInterface.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	// For the purposes of this class, "hardware RNG" is such that no bit is predictable to an attacker even with unlimited resources.
 	// As such, it uses RDSEED on x86, whereas FastHardwareRng uses RDRAND.

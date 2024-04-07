@@ -3,11 +3,12 @@
 #include <random>
 #include <string>
 
+#include "base.hpp"
 #include "macros.hpp"
 
 #define ARRAY_RAND(arr) arr[::soup::rand(0, COUNT(arr) - 1)]
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class rand_impl
 	{

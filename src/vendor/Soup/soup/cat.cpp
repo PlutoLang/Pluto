@@ -3,7 +3,7 @@
 #include "Reader.hpp"
 #include "string.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 #define CAT_ASSERT(x) SOUP_IF_UNLIKELY (!(x)) { return {}; }
 

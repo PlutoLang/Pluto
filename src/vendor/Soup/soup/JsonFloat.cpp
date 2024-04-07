@@ -3,7 +3,7 @@
 #include "string.hpp"
 #include "Writer.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	JsonFloat::JsonFloat(double value) noexcept
 		: JsonNode(JSON_FLOAT), value(value)

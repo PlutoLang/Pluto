@@ -28,7 +28,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace soup
+NAMESPACE_SOUP
 {
 	static constexpr char table_encode_base64[] = {
 		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',

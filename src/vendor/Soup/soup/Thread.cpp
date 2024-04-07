@@ -5,7 +5,7 @@
 #include "format.hpp"
 #include "SelfDeletingThread.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	Thread::Thread(void(*f)(Capture&&), Capture&& cap)
 	{

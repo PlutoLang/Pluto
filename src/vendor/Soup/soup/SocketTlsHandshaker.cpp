@@ -4,9 +4,10 @@
 
 #include "ObfusString.hpp"
 #include "sha256.hpp"
+#include "sha384.hpp"
 #include "TlsHandshake.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	SocketTlsHandshaker::SocketTlsHandshaker(void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& callback_capture) noexcept
 		: callback(callback), callback_capture(std::move(callback_capture))
@@ -32,16 +33,16 @@ namespace soup
 		{
 			if (extended_master_secret)
 			{
-				master_secret = sha256::tls_prf(
+				master_secret = getPseudoRandomBytes(
 					ObfusString("extended master secret"),
 					48,
 					std::move(pre_master_secret),
-					sha256::hash(layer_bytes)
+					getLayerBytesHash()
 				);
 			}
 			else
 			{
-				master_secret = sha256::tls_prf(
+				master_secret = getPseudoRandomBytes(
 					ObfusString("master secret"),
 					48,
 					std::move(pre_master_secret),
@@ -57,6 +58,7 @@ namespace soup
 	void SocketTlsHandshaker::getKeys(std::string& client_write_mac, std::string& server_write_mac, std::vector<uint8_t>& client_write_key, std::vector<uint8_t>& server_write_key, std::vector<uint8_t>& client_write_iv, std::vector<uint8_t>& server_write_iv) SOUP_EXCAL
 	{
 		size_t mac_key_length = 20; // SHA1 = 20, SHA256 = 32
+		size_t fixed_iv_length = 0;
 		switch (cipher_suite)
 		{
 		case TLS_RSA_WITH_AES_128_CBC_SHA256:
@@ -67,10 +69,11 @@ namespace soup
 			break;
 
 		case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
-		//case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
+		case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
 		case TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
-		//case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
+		case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
 			mac_key_length = 0;
+			fixed_iv_length = 4;
 			break;
 		}
 
@@ -80,24 +83,14 @@ namespace soup
 		case TLS_RSA_WITH_AES_256_CBC_SHA:
 		case TLS_RSA_WITH_AES_256_CBC_SHA256:
 		case TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:
+		case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
 		case TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:
+		case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
 			enc_key_length = 32;
 			break;
 		}
 
-		size_t fixed_iv_length = 0;
-		switch (cipher_suite)
-		{
-		case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
-		//case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
-		case TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
-		//case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
-			fixed_iv_length = 4;
-			break;
-		}
-
-		// tls_prf should use sha384 for TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 & TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 as per RFC5289.
-		auto key_block = sha256::tls_prf(
+		auto key_block = getPseudoRandomBytes(
 			ObfusString("key expansion"),
 			(mac_key_length * 2) + (enc_key_length * 2) + (fixed_iv_length * 2),
 			getMasterSecret(),
@@ -128,9 +121,35 @@ namespace soup
 		return getFinishVerifyData(ObfusString("server finished"));
 	}
 
-	std::string SocketTlsHandshaker::getFinishVerifyData(const std::string& label) SOUP_EXCAL
+	std::string SocketTlsHandshaker::getFinishVerifyData(std::string label) SOUP_EXCAL
 	{
-		return sha256::tls_prf(label, 12, getMasterSecret(), sha256::hash(layer_bytes));
+		return getPseudoRandomBytes(std::move(label), 12, getMasterSecret(), getLayerBytesHash());
+	}
+
+	std::string SocketTlsHandshaker::getPseudoRandomBytes(std::string label, const size_t bytes, const std::string& secret, const std::string& seed) const SOUP_EXCAL
+	{
+		switch (cipher_suite)
+		{
+		default:
+			return sha256::tls_prf(std::move(label), bytes, secret, seed);
+
+		case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
+		case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
+			return sha384::tls_prf(std::move(label), bytes, secret, seed);
+		}
+	}
+
+	std::string SocketTlsHandshaker::getLayerBytesHash() const SOUP_EXCAL
+	{
+		switch (cipher_suite)
+		{
+		default:
+			return sha256::hash(layer_bytes);
+
+		case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
+		case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
+			return sha384::hash(layer_bytes);
+		}
 	}
 }
 #endif

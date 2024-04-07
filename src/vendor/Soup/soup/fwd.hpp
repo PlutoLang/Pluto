@@ -2,7 +2,9 @@
 
 #include <cstdint>
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 	// algos.rng.interface
 	struct RngInterface;
@@ -44,7 +46,7 @@ namespace soup
 
 	// data.regex
 	struct RegexConstraint;
-	struct RegexGroup;
+	class RegexGroup;
 	struct RegexMatcher;
 
 	// data.xml
@@ -95,7 +97,6 @@ namespace soup
 
 	// ling.chatbot
 	struct cbCmd;
-	class cbParser;
 
 	// math
 	class Bigint;
@@ -131,10 +132,7 @@ namespace soup
 
 	// mem.vft
 	struct memVft;
-	namespace rtti
-	{
-		struct object;
-	}
+	struct RttiObject;
 
 	// misc.chess
 	struct ChessCoordinate;

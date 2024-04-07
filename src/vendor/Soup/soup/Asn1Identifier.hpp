@@ -3,7 +3,9 @@
 #include <cstdint>
 #include <string>
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 	struct Asn1Identifier
 	{

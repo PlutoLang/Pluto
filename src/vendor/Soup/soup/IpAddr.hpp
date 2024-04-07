@@ -19,7 +19,7 @@
 #define SOUP_IPV4(a, b, c, d) ::soup::native_u32_t((a << 24) | (b << 16) | (c << 8) | d)
 #define SOUP_IPV4_NWE(a, b, c, d) ((soup::ENDIAN_NATIVE == soup::ENDIAN_NETWORK) ? ::soup::network_u32_t((a << 24) | (b << 16) | (c << 8) | d) : ::soup::network_u32_t((d << 24) | (c << 16) | (b << 8) | a))
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class IpAddr
 	{

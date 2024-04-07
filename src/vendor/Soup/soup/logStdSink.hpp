@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct logStdSink : public logSink
 	{

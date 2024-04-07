@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	template <typename T>
 	struct CryptoHashAlgo

@@ -5,7 +5,7 @@
 #include "DetachedScheduler.hpp"
 #include "WeakRef.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	static DetachedScheduler dns_async_sched;
 

@@ -2,7 +2,7 @@
 
 #include "Bigint.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	bool Writer::u64_dyn(const uint64_t& v) noexcept
 	{

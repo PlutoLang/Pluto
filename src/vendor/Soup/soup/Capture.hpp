@@ -7,7 +7,7 @@
 #include "deleter.hpp"
 #include "type_traits.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class Capture
 	{

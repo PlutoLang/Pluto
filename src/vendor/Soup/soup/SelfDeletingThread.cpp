@@ -3,7 +3,7 @@
 
 #include "log.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	SelfDeletingThread::SelfDeletingThread(void(*f)(Capture&&), Capture&& cap)
 		: Thread(), f(f), cap(std::move(cap))

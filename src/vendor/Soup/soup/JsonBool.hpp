@@ -2,7 +2,7 @@
 
 #include "JsonNode.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct JsonBool : public JsonNode
 	{

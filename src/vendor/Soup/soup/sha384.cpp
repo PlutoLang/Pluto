@@ -32,7 +32,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-namespace soup
+NAMESPACE_SOUP
 {
 	std::string sha384::hash(const void* data, size_t len) SOUP_EXCAL
 	{

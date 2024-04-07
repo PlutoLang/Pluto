@@ -5,7 +5,7 @@
 #include "string.hpp"
 #include "urlenc.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	// URI = scheme ":" ["//" authority] path ["?" query] ["#" fragment]
 	// authority = [userinfo "@"] host [":" port]

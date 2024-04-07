@@ -14,7 +14,7 @@
 #include "StringRefReader.hpp"
 #include "StringWriter.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	template <typename T>
 	class Packet

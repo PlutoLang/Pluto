@@ -2,7 +2,7 @@
 
 #include "MimeMessage.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct HttpResponse : public MimeMessage
 	{

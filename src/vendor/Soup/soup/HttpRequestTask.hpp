@@ -14,7 +14,7 @@
 #include "SharedPtr.hpp"
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class HttpRequestTask : public PromiseTask<std::optional<HttpResponse>>
 	{

@@ -7,7 +7,7 @@
 #include "fwd.hpp"
 #include "UniquePtr.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class xml
 	{

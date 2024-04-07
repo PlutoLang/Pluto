@@ -4,7 +4,7 @@
 
 #include "base.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	uint32_t joaat::hash(const std::string& str, uint32_t initial) noexcept
 	{

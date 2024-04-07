@@ -2,7 +2,9 @@
 
 #include <utility> // forward
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 	// Like std::construct_at except it doesn't require C++ 20
 	template <typename T, typename...Args>

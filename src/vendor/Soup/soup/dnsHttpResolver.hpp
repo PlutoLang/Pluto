@@ -5,7 +5,7 @@
 
 #include "dnsRawResolver.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct dnsHttpResolver : public dnsRawResolver
 	{

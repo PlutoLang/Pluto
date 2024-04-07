@@ -2,7 +2,7 @@
 
 #include "rand.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	uint64_t DefaultRngInterface::generate()
 	{

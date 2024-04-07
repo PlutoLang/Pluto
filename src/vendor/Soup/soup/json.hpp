@@ -12,7 +12,7 @@
 #include "JsonObject.hpp"
 #include "JsonString.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct json
 	{

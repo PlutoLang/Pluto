@@ -3,10 +3,11 @@
 #include <cstdint>
 #include <unordered_map>
 
+#include "base.hpp"
 #include "Capture.hpp"
 #include "joaat.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct StructMap : public std::unordered_map<uint32_t, Capture>
 	{

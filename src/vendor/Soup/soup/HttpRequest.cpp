@@ -14,7 +14,7 @@
 #include "log.hpp"
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	HttpRequest::HttpRequest(std::string method, std::string host, std::string path)
 		: MimeMessage({

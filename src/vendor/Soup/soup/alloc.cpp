@@ -5,7 +5,7 @@
 
 #include "base.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	void* malloc(size_t size) /* SOUP_EXCAL */
 	{

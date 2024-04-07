@@ -6,7 +6,7 @@
 #include "ObfusString.hpp"
 #include "string.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	MimeMessage::MimeMessage(std::unordered_map<std::string, std::string>&& header_fields, std::string&& body)
 		: header_fields(std::move(header_fields)), body(std::move(body))

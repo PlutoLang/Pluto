@@ -10,7 +10,7 @@
 #include "StringRefReader.hpp"
 #include "time.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	Asn1Sequence::Asn1Sequence() SOUP_EXCAL
 		: std::vector<Asn1Element>()

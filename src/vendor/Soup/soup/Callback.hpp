@@ -4,7 +4,7 @@
 
 #include "Capture.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	template <typename CaptureArgT, typename Ret, typename...Args>
 	struct CallbackBase

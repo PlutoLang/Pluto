@@ -9,7 +9,7 @@
 #include "string.hpp"
 #include "Writer.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	using Container = JsonObject::Container;
 

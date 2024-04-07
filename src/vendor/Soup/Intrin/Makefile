@@ -9,7 +9,7 @@ ifeq ($(shell uname -m),aarch64)
 endif
 
 LIBNAME=libsoupintrin.a
-OBJS=aes_helper.o crc32_intrin.o hardware_rng.o sha1_transform_intrin.o sha256_transform_intrin.o
+OBJS=aes_helper.o crc32_intrin.o hardware_rng.o sha1_transform.o sha256_transform.o
 
 all: $(LIBNAME)
 

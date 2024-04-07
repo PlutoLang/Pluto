@@ -2,7 +2,7 @@
 
 #include "RngInterface.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct DefaultRngInterface : public StatelessRngInterface
 	{

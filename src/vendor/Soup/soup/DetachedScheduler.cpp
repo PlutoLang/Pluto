@@ -3,7 +3,7 @@
 
 #include "log.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 #if SOUP_EXCEPTIONS
 	static void onException(Worker& w, const std::exception& e, Scheduler&)

@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 
-namespace soup
+NAMESPACE_SOUP
 {
 #if SOUP_BITS == 64
 	using halfintmax_t = int32_t;

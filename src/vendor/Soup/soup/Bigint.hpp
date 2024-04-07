@@ -29,7 +29,7 @@
 #include "stringifyable.hpp"
 #include "Task.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class Bigint
 	{

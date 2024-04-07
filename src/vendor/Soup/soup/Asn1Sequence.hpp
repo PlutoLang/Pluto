@@ -8,7 +8,7 @@
 
 #include "Asn1Element.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct Asn1Sequence : public std::vector<Asn1Element>
 	{

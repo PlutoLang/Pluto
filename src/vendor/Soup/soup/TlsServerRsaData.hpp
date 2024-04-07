@@ -5,7 +5,7 @@
 
 #include "rsa.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct TlsServerRsaData
 	{

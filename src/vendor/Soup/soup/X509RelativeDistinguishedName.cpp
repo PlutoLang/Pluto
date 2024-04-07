@@ -2,7 +2,7 @@
 
 #include "Asn1Sequence.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	void X509RelativeDistinguishedName::read(const Asn1Sequence& seq)
 	{

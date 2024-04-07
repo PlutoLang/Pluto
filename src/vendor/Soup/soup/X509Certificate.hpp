@@ -7,7 +7,7 @@
 #include "rsa.hpp"
 #include "X509RelativeDistinguishedName.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct X509Certificate
 	{

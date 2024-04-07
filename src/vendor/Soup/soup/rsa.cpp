@@ -13,7 +13,7 @@
 #include "sha256.hpp"
 #include "X509RelativeDistinguishedName.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	using namespace literals;
 

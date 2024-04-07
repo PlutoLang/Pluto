@@ -6,7 +6,7 @@
 #include "string.hpp"
 #include "StringWriter.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	bool dnsRawResolver::checkBuiltinResult(std::vector<UniquePtr<dnsRecord>>& res, dnsType qtype, const std::string& name) SOUP_EXCAL
 	{

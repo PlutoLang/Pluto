@@ -5,7 +5,7 @@
 
 #include "filesystem.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	std::string string::escape(const std::string& str)
 	{

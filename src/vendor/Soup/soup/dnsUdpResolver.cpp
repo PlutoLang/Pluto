@@ -7,7 +7,7 @@
 #include "Scheduler.hpp"
 #include "Socket.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct CaptureUdpLookup
 	{

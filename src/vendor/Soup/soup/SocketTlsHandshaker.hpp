@@ -13,7 +13,7 @@
 #include "X509Certchain.hpp"
 #include "X509Certificate.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class SocketTlsHandshaker
 	{
@@ -54,7 +54,9 @@ namespace soup
 		[[nodiscard]] std::string getClientFinishVerifyData() SOUP_EXCAL;
 		[[nodiscard]] std::string getServerFinishVerifyData() SOUP_EXCAL;
 	private:
-		[[nodiscard]] std::string getFinishVerifyData(const std::string& label) SOUP_EXCAL;
+		[[nodiscard]] std::string getFinishVerifyData(std::string label) SOUP_EXCAL;
+		[[nodiscard]] std::string getPseudoRandomBytes(std::string label, const size_t bytes, const std::string& secret, const std::string& seed) const SOUP_EXCAL;
+		[[nodiscard]] std::string getLayerBytesHash() const SOUP_EXCAL;
 	};
 }
 #endif

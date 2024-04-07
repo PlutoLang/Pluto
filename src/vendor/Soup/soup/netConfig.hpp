@@ -8,7 +8,7 @@
 #include "dnsResolver.hpp"
 #include "UniquePtr.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct netConfig
 	{

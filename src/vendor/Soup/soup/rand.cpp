@@ -1,6 +1,6 @@
 #include "rand.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	uint8_t rand_impl::byte(uint8_t min) noexcept
 	{

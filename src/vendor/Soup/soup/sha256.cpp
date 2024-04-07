@@ -18,7 +18,14 @@ Original source: https://github.com/983/SHA-256
 Original licence: Dedicated to the public domain.
 */
 
-namespace soup
+#if SHA256_USE_INTRIN
+namespace soup_intrin
+{
+	extern void sha256_transform(uint32_t state[8], const uint8_t data[64]) noexcept;
+}
+#endif
+
+NAMESPACE_SOUP
 {
 	struct sha256_state
 	{
@@ -77,8 +84,6 @@ namespace soup
 		return CpuInfo::get().armv8_sha2;
 	#endif
 	}
-
-	extern void sha256_transform_intrin(uint32_t state[8], const uint8_t data[64]) noexcept;
 #endif
 
 	inline const uint32_t sha256_k[8 * 8] = {
@@ -106,7 +111,7 @@ namespace soup
 		static bool good_cpu = sha256_can_use_intrin();
 		if (good_cpu)
 		{
-			return sha256_transform_intrin(sha->state, sha->buffer);
+			return soup_intrin::sha256_transform(sha->state, sha->buffer);
 		}
 #endif
 

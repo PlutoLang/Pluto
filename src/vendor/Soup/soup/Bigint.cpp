@@ -11,7 +11,7 @@
 #include "RngInterface.hpp"
 #include "string.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	using chunk_t = Bigint::chunk_t;
 	using chunk_signed_t = Bigint::chunk_signed_t;

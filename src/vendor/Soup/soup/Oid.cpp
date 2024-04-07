@@ -6,7 +6,7 @@
 #include "StringRefReader.hpp"
 #include "StringRefWriter.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	Oid Oid::COMMON_NAME = { 2, 5, 4, 3 };
 	Oid Oid::RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 1 };

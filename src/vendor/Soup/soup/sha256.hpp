@@ -4,7 +4,7 @@
 
 #include "fwd.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct sha256 : public CryptoHashAlgo<sha256>
 	{

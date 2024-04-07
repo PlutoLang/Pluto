@@ -8,14 +8,20 @@
 #define SHA1_USE_INTRIN false
 #endif
 
-#include "StringRefReader.hpp"
-
 #if SHA1_USE_INTRIN
 #include "CpuInfo.hpp"
 #include "Endian.hpp"
 #endif
+#include "StringRefReader.hpp"
 
-namespace soup
+#if SHA1_USE_INTRIN
+namespace soup_intrin
+{
+	extern void sha1_transform(uint32_t state[5], const uint8_t data[64]) noexcept;
+}
+#endif
+
+NAMESPACE_SOUP
 {
 	// Original source: https://github.com/vog/sha1
 	// Original licence: Dedicated to the public domain.
@@ -202,10 +208,6 @@ namespace soup
 		return hash(r);
 	}
 
-#if SHA1_USE_INTRIN
-	extern void sha1_transform_intrin(uint32_t state[5], const uint8_t data[64]) noexcept;
-#endif
-
 	template <bool intrin>
 	static std::string sha1_hash_impl(Reader& r) SOUP_EXCAL
 	{
@@ -232,11 +234,11 @@ namespace soup
 			if constexpr (intrin)
 			{
 	#if SOUP_X86
-				sha1_transform_intrin(digest, (const uint8_t*)buffer.data());
+				soup_intrin::sha1_transform(digest, (const uint8_t*)buffer.data());
 	#else
 				uint32_t block[BLOCK_INTS];
 				buffer_to_block<BLOCK_INTS, false>(buffer, block);
-				sha1_transform_intrin(digest, (const uint8_t*)block);
+				soup_intrin::sha1_transform(digest, (const uint8_t*)block);
 	#endif
 			}
 			else
@@ -272,7 +274,7 @@ namespace soup
 #if SHA1_USE_INTRIN
 			if constexpr (intrin)
 			{
-				sha1_transform_intrin(digest, (const uint8_t*)block);
+				soup_intrin::sha1_transform(digest, (const uint8_t*)block);
 			}
 			else
 #endif
@@ -296,7 +298,7 @@ namespace soup
 			block[BLOCK_INTS - 1] = (uint32_t)total_bits;
 			block[BLOCK_INTS - 2] = (uint32_t)(total_bits >> 32);
 	#endif
-			sha1_transform_intrin(digest, (const uint8_t*)block);
+			soup_intrin::sha1_transform(digest, (const uint8_t*)block);
 		}
 		else
 #endif

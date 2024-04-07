@@ -10,7 +10,7 @@
 #include "Socket.hpp"
 #include "time.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class netConnectTask : public Task
 	{

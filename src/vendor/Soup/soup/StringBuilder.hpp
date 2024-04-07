@@ -2,7 +2,9 @@
 
 #include <string>
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 	class StringBuilder : public std::string
 	{

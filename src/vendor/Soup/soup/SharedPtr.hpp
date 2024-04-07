@@ -16,7 +16,7 @@
 #include <unordered_set>
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	// Why not std::shared_ptr?
 	// - Stores a deleter despite being templated

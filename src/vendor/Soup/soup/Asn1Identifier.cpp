@@ -2,7 +2,7 @@
 
 #include "StringWriter.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	std::string Asn1Identifier::toDer() const
 	{

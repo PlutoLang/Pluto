@@ -2,10 +2,10 @@
 
 #include <utility> // forward
 
-#include "base.hpp" // SOUP_EXCAL
+#include "base.hpp"
 #include "type_traits.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	// Why not std::unique_ptr?
 	// - Stores a deleter despite being templated

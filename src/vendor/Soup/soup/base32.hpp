@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	// Made with code from:
 	// - https://github.com/mjg59/tpmtotp

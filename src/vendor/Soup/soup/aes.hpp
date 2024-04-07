@@ -6,7 +6,7 @@
 
 #include "base.hpp" // SOUP_EXCAL
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class aes
 	{

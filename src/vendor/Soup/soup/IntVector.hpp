@@ -3,12 +3,12 @@
 #include <cstring> // memcpy
 
 #include "alloc.hpp"
-#ifdef _DEBUG
 #include "base.hpp"
+#ifdef _DEBUG
 #include "Exception.hpp"
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	template <typename T>
 	class IntVector
