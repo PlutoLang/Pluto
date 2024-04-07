@@ -138,12 +138,6 @@ local a: bool|int = f() ?? 0]]
     end
 end]]
 
-    -- unreachable-code can use type propagation information
-    assert_warn[[local foo
-if foo then
-    print(":(")
-end]]
-
     -- forstat propragates its return type too
     assert_no_warn[[local function whatever(): ?bool
     for { 1 } as v do
@@ -174,6 +168,15 @@ f()]]
         second = 2,
         first = 3,
     }]]
+
+    -- possible unreachable-code false-positive
+    assert_no_warn[[local next
+while true do
+    if next then
+        break
+    end
+    next = true
+end]]
 end
 
 print "Testing assertion library."
