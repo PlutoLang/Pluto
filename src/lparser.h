@@ -126,7 +126,7 @@ typedef struct expdesc {
   int f;  /* patch list of 'exit when false' */
   ValType code_primitive;
 
-  void normaliseFalse() {
+  void normalizeFalse() {
     if (k == VNIL) k = VFALSE;
   }
 } expdesc;
