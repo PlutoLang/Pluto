@@ -3703,7 +3703,7 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
     luaK_patchtohere(fs, condition);
     checknext(ls, ':');
     ls->pushContext(PARCTX_TERNARY_C);
-    expr(ls, v, prop);
+    expr(ls, v, prop, flags & E_NO_COLON);
     ls->popContext(PARCTX_TERNARY_C);
     luaK_exp2reg(fs, v, reg);
     luaK_patchtohere(fs, escape);
