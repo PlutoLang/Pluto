@@ -3443,13 +3443,13 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
 }
 
 
-static void inexpr (LexState *ls, expdesc *v) {
+static void inexpr (LexState *ls, expdesc *v, int flags) {
   expdesc v2;
   checknext(ls, TK_IN);
   luaK_exp2nextreg(ls->fs, v);
   lua_assert(v->k == VNONRELOC);
   int base = v->u.reg;
-  simpleexp(ls, &v2);
+  simpleexp(ls, &v2, flags);
   luaK_dischargevars(ls->fs, &v2);
   luaK_exp2nextreg(ls->fs, &v2);
   luaK_codeABC(ls->fs, OP_IN, v->u.reg, v2.u.reg, 0);
@@ -3597,7 +3597,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
     simpleexp(ls, v, flags, prop);
     if (ls->t.token == TK_IN) {
       throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
-      inexpr(ls, v);
+      inexpr(ls, v, flags);
       if (prop) prop->emplaceTypeDesc(VT_BOOL);
     }
   }
