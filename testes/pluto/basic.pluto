@@ -1881,6 +1881,30 @@ do
             error()
         end
     end)
+
+    -- New local for each loop iteration (if it were the same local, capturing it could result in stack corruption.)
+    do
+        local cnt=10
+        local function next()
+            cnt=cnt-1
+            if cnt == 0 then return false end
+            return cnt
+        end
+
+        local t = {}
+        while a:=next() do
+            t[#t+1] = ||->a
+        end
+        assert(t[1]() == 9)
+        assert(t[2]() == 8)
+        assert(t[3]() == 7)
+        assert(t[4]() == 6)
+        assert(t[5]() == 5)
+        assert(t[6]() == 4)
+        assert(t[7]() == 3)
+        assert(t[8]() == 2)
+        assert(t[9]() == 1)
+    end
 end
 
 print "Testing for-as loop."
