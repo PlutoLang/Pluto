@@ -1,0 +1,34 @@
+local assert = require("assert")
+
+local errors = {
+	function add(intended_error, bad_code)
+		self.storage[intended_error] = bad_code
+	end,
+
+	function run()
+		for intended_error, bad_code in self.storage do
+			local _, fail = load(bad_code)
+			assert.contains(intended_error, fail)
+		end
+	end,
+
+	["storage"] = {},
+}
+
+-- Walrus
+do
+	$define context_disallowed = "':=' is not allowed in this context"
+
+	errors:add(context_disallowed, 
+	[[
+	local tab = {a:=1, (||->do tab=1 end)()}
+	]])
+
+	errors:add(context_disallowed, 
+	[[
+	error(a:=1)
+	]])
+end
+
+
+errors:run()
