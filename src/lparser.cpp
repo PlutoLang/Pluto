@@ -3696,7 +3696,7 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
       throw_warn(ls, "unreachable code", "the condition before the '?' is always falsy, hence the expression before the ':' is never used.", WT_UNREACHABLE_CODE);
     luaK_goiftrue(ls->fs, v);
     int condition = v->f;
-    expr(ls, v, prop, true);
+    expr(ls, v, prop, E_NO_COLON);
     auto fs = ls->fs;
     auto reg = luaK_exp2anyreg(fs, v);
     luaK_concat(fs, &escape, luaK_jump(fs));
