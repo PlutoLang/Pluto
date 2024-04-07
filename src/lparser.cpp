@@ -3080,7 +3080,7 @@ static void newexpr (LexState *ls, expdesc *v) {
 
 
 static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nullptr, int flags = 0);
-static BinOpr custombinaryoperator (LexState *ls, expdesc *v, TString *impl) {
+static BinOpr custombinaryoperator (LexState *ls, expdesc *v, int flags, TString *impl) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
 
@@ -3092,7 +3092,7 @@ static BinOpr custombinaryoperator (LexState *ls, expdesc *v, TString *impl) {
   int base = v->u.reg;  /* base register for call */
 
   expdesc arg2;
-  auto nextop = subexpr(ls, &arg2, 3);
+  auto nextop = subexpr(ls, &arg2, 3, nullptr, flags);
   luaK_exp2nextreg(fs, &arg2);
 
   int nparams = fs->freereg - (base + 1);
@@ -3619,11 +3619,11 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
     int line = ls->getLineNumber();
     luaX_next(ls);  /* skip operator */
     if (op == OPR_INSTANCEOF) {
-      custombinaryoperator(ls, v, luaS_newliteral(ls->L, "Pluto_operator_instanceof"));
+      custombinaryoperator(ls, v, flags, luaS_newliteral(ls->L, "Pluto_operator_instanceof"));
       nextop = getbinopr(ls->t.token);
     }
     else if (op == OPR_SPACESHIP) {
-      custombinaryoperator(ls, v, luaS_newliteral(ls->L, "Pluto_operator_spaceship"));
+      custombinaryoperator(ls, v, flags, luaS_newliteral(ls->L, "Pluto_operator_spaceship"));
       nextop = getbinopr(ls->t.token);
     }
     else {
