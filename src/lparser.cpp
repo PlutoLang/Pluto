@@ -1300,7 +1300,6 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
   auto line = ls->getLineNumber();
   FuncState *fs = ls->fs;
   BlockCnt *bl = fs->bl;
-  int upval = 0;
   int foundloops = 0;
   luaX_next(ls); /* skip TK_CONTINUE */
   lua_Integer backwards = 1;
@@ -1314,7 +1313,6 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
   backwards += backwards_surplus;
   while (bl) {
     if (!bl->isloop) { /* not a loop, continue search */
-      upval |= bl->upval; /* amend upvalues for closing. */
       bl = bl->previous; /* jump back current blocks to find the loop */
     }
     else { /* found a loop */
@@ -1323,14 +1321,13 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
         break;
       }
       else { /* continue search */
-        upval |= bl->upval;
         bl = bl->previous;
         ++foundloops;
       }
     }
   }
   if (bl) {
-    if (upval) luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
+    luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
     luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
   }
   else {
