@@ -3026,7 +3026,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
 }
 
 
-static int cond (LexState *ls, bool for_while_loop = false);
+static int cond (LexState *ls);
 static void ifexpr (LexState *ls, expdesc *v) {
   /*
   ** Patch published by Ryota Hirose.
@@ -3882,13 +3882,10 @@ static void walrusexpr (LexState *ls, expdesc *v) {
     expr(ls, v);
 }
 
-static int cond (LexState *ls, bool for_while_loop) {
+static int cond (LexState *ls) {
   /* cond -> exp */
   expdesc v;
-  if (for_while_loop)
-    walrusexpr(ls, &v);  /* read condition */
-  else
-    expr(ls, &v);  /* read condition */
+  expr(ls, &v);  /* read condition */
   v.normaliseFalse();
   luaK_goiftrue(ls->fs, &v);
   return v.f;
@@ -3994,21 +3991,33 @@ static void whilestat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   int whileinit;
   int condexit;
-  BlockCnt walrusbl;
-  enterblock(fs, &walrusbl, 0);
   BlockCnt bl;
   luaX_next(ls);  /* skip WHILE */
   whileinit = luaK_getlabel(fs);
-  condexit = cond(ls, true);
-  enterblock(fs, &bl, 1);
-  checknext(ls, TK_DO);
-  block(ls);
+  if (luaX_lookahead(ls) == TK_WALRUS) {
+    enterblock(fs, &bl, 1);
+    BlockCnt innerbl;
+    enterblock(fs, &innerbl, 0);
+    expdesc v;
+    walrusexpr(ls, &v);
+    v.normaliseFalse();
+    luaK_goiftrue(ls->fs, &v);
+    condexit = v.f;
+    checknext(ls, TK_DO);
+    statlist(ls);
+    leaveblock(fs);
+  }
+  else {
+    condexit = cond(ls);
+    enterblock(fs, &bl, 1);
+    checknext(ls, TK_DO);
+    block(ls);
+  }
   luaK_jumpto(fs, whileinit);
   luaK_patchlist(fs, bl.scopeend, whileinit);
   check_match(ls, TK_END, TK_WHILE, line);
   leaveblock(fs);
   luaK_patchtohere(fs, condexit);  /* false conditions finish the loop */
-  leaveblock(fs);
 }
 
 
