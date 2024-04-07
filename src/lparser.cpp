@@ -2817,7 +2817,7 @@ static void parentexp (LexState *ls, expdesc *v) {
 }
 
 
-static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
+static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp -> NAME | '(' expr ')' */
   if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
     const bool is_overridable = ls->t.IsOverridable();
@@ -2875,7 +2875,7 @@ static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   int line = ls->getLineNumber();
-  primaryexp(ls, v, flags);
+  primaryexp(ls, v);
   if (prop) {
     if (v->k == VINDEXUP) {
       TValue *key = &ls->fs->f->k[v->u.ind.idx];
