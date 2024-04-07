@@ -4,7 +4,7 @@
 #include "JsonArray.hpp"
 #include "JsonObject.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 #if SOUP_CPP20
 	std::strong_ordering JsonNode::operator<=>(const JsonNode& b) const

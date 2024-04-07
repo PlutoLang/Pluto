@@ -2,7 +2,7 @@
 
 #include "logStdSink.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	UniquePtr<logSink> g_logSink = soup::make_unique<logStdSink>();
 }

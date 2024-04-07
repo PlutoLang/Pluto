@@ -3,7 +3,7 @@
 #include "base64.hpp"
 #include "string.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	std::string pem::encode(const std::string& label, const std::string& bin)
 	{

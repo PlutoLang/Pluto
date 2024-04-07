@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct ServerServiceUdp
 	{

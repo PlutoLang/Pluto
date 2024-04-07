@@ -2,7 +2,7 @@
 
 #include "Packet.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct TlsProtocolVersion
 	{

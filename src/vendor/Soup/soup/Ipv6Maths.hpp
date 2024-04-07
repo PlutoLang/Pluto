@@ -10,7 +10,7 @@
 #undef min
 #undef max
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct Ipv6Maths
 	{

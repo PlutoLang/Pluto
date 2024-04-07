@@ -709,8 +709,8 @@
     <ClCompile Include="src\vendor\Soup\Intrin\aes_helper.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\crc32_intrin.cpp" />
     <ClCompile Include="src\vendor\Soup\Intrin\hardware_rng.cpp" />
-    <ClCompile Include="src\vendor\Soup\Intrin\sha1_transform_intrin.cpp" />
-    <ClCompile Include="src\vendor\Soup\Intrin\sha256_transform_intrin.cpp" />
+    <ClCompile Include="src\vendor\Soup\Intrin\sha1_transform.cpp" />
+    <ClCompile Include="src\vendor\Soup\Intrin\sha256_transform.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\adler32.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\aes.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\alloc.cpp" />

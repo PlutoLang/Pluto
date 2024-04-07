@@ -9,7 +9,7 @@
 #include "string.hpp"
 #include "StringLiteral.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 #pragma pack(push, 1)
 	template <size_t Size>

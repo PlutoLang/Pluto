@@ -5,7 +5,7 @@
 #include "string.hpp"
 #include "UniquePtr.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	dnsRecordFactory dnsRecord::getFactory(dnsType type)
 	{

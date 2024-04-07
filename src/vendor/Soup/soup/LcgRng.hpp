@@ -4,7 +4,7 @@
 
 #include "Endian.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	// Linear congruential generator (LCG)
 	struct LcgRng

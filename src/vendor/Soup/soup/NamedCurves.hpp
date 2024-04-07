@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cstdint>
+
+#include "base.hpp"
 #include "scoped_enum.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	SCOPED_ENUM(NamedCurves, uint16_t,
 		sect163k1 = 1,

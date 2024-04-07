@@ -9,7 +9,7 @@
 #endif
 
 #if SOUP_SPACESHIP_USE_STD
-namespace soup
+NAMESPACE_SOUP
 {
 	using strong_ordering = ::std::strong_ordering;
 }
@@ -25,7 +25,7 @@ namespace soup
 	return 0;
 }
 #else
-namespace soup
+NAMESPACE_SOUP
 {
 	class strong_ordering
 	{

@@ -6,7 +6,7 @@
 #include "fwd.hpp"
 #include "UniquePtr.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	/**
 	 * Cat (short for Colons and Tabs) is a format that arose from our need for a simple data exchange format that is human-readable and maybe even human-writable.

@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct sha384 : public CryptoHashAlgo<sha384>
 	{

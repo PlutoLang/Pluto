@@ -3,7 +3,9 @@
 #include <cstdint>
 #include <utility> // move
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 #pragma pack(push, 1)
 	template <typename T = uint32_t>

@@ -2,7 +2,9 @@
 
 #include <cstdint>
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 	// Original source: https://www.dlbeer.co.nz/oss/c25519.html and https://github.com/DavyLandman/compact25519
 	// Original licence: Dedicated to the public domain.

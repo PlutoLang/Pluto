@@ -6,7 +6,7 @@
 #include "JsonNodeType.hpp"
 #include <string>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct JsonNode
 	{

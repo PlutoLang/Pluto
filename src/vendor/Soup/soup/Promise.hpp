@@ -5,7 +5,7 @@
 #include "Capture.hpp"
 #include "SelfDeletingThread.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class PromiseBase
 	{

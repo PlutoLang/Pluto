@@ -5,7 +5,7 @@
 #include "UniquePtr.hpp"
 #include <vector>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct JsonArrayIterator
 	{

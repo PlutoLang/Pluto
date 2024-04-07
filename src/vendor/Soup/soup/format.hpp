@@ -2,9 +2,10 @@
 
 #include <string>
 
+#include "base.hpp"
 #include "type_traits.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	// For format strings known at compile-time, std::format is faster.
 	// Although the way std::format deals with custom types requires more boilerplate and ends up making it lose its time advantage.

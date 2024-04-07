@@ -4,7 +4,7 @@
 #include "dnsSmartResolver.hpp"
 #include "Socket.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	static thread_local netConfig netConfig_inst;
 

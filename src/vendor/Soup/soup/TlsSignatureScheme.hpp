@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cstdint>
+
+#include "base.hpp"
 #include "scoped_enum.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	SCOPED_ENUM(TlsSignatureScheme, uint16_t,
 		rsa_pkcs1_sha1 = 0x0201,

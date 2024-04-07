@@ -5,7 +5,7 @@
 #include "base.hpp" // SOUP_EXCAL
 #include "PoppedNode.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	template <typename Data>
 	struct AtomicDeque

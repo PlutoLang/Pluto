@@ -9,7 +9,7 @@
 #include "Callback.hpp"
 #include "Capture.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	enum : uint8_t
 	{

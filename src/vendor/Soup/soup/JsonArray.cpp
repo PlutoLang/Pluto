@@ -4,7 +4,7 @@
 #include "string.hpp"
 #include "Writer.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	JsonNode& JsonArrayIterator::operator*() const noexcept
 	{

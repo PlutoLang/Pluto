@@ -7,7 +7,7 @@
 #include "string.hpp"
 #include "TrustStore.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	bool X509Certchain::fromDer(const std::vector<std::string>& vec) SOUP_EXCAL
 	{

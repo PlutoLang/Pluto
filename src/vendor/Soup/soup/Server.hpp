@@ -6,7 +6,7 @@
 #include "fwd.hpp"
 #include "type.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class Server : public Scheduler
 	{

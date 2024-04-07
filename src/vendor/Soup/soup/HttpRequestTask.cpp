@@ -12,7 +12,7 @@
 #include <emscripten/fetch.h> // https://github.com/emscripten-core/emscripten/blob/main/system/include/emscripten/fetch.h
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	HttpRequestTask::HttpRequestTask(const Uri& uri)
 		: HttpRequestTask(HttpRequest(uri))

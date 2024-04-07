@@ -6,7 +6,7 @@
 #include "dnsType.hpp"
 #include "IpAddr.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct dnsRecord;
 

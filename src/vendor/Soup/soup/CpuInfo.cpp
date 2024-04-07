@@ -16,7 +16,7 @@
 	#endif
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	CpuInfo::CpuInfo() noexcept
 	{

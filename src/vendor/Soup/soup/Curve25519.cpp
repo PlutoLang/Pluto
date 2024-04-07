@@ -4,7 +4,7 @@
 
 #include "rand.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 #define F25519_SIZE 32
 

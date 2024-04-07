@@ -2,7 +2,7 @@
 
 #include "StringRefReader.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	std::vector<std::string> dnsName::resolve(const std::string& data, unsigned int max_recursions) const
 	{

@@ -3,7 +3,7 @@
 #include "Packet.hpp"
 #include "type.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	SOUP_PACKET(TlsHandshake)
 	{

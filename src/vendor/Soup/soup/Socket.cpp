@@ -47,7 +47,7 @@
 #include "log.hpp"
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 #if !SOUP_WINDOWS
 	static void sigpipe_handler_proc(int)
@@ -427,6 +427,10 @@ namespace soup
 			TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, // Apache + Let's Encrypt
 			TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, // Apache + Let's Encrypt
 		});
+		vector_emplace_back_randomised(hello.cipher_suites, {
+			TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, // api64.ipify.org
+			TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		});
 		hello.cipher_suites.emplace(
 			hello.cipher_suites.begin() + rand(0, hello.cipher_suites.size() - 1),
 			tls_randGreaseyCiphersuite()
@@ -572,6 +576,8 @@ namespace soup
 						case TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:
 						case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
 						case TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
+						case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
+						case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
 							s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 							{
 								if (handshake_type != TlsHandshake::server_key_exchange)

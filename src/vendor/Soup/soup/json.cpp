@@ -10,7 +10,7 @@
 #include "Reader.hpp"
 #include "string.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	UniquePtr<JsonNode> json::decode(const std::string& data)
 	{

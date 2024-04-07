@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct Exception : public std::runtime_error
 	{

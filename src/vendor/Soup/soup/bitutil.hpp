@@ -1,12 +1,12 @@
 #pragma once
 
-#include "base.hpp"
-
 #include <cstddef> // size_t
 #include <cstdint>
 #include <vector>
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 	struct bitutil
 	{

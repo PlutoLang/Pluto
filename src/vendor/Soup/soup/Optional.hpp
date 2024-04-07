@@ -2,7 +2,9 @@
 
 #include <optional>
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 	template <typename T>
 	struct Optional : public std::optional<T>

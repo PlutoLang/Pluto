@@ -5,7 +5,7 @@
 #include "Bigint.hpp"
 #include "JsonObject.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct RsaMod
 	{

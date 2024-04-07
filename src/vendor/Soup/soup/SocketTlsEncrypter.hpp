@@ -6,7 +6,7 @@
 #include "base.hpp"
 #include "type.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct SocketTlsEncrypter
 	{

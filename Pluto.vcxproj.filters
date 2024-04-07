@@ -92,18 +92,12 @@
     <ClCompile Include="src\vendor\Soup\soup\CpuInfo.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\Soup\Intrin\sha256_transform_intrin.cpp">
-      <Filter>vendor\Soup\Intrin</Filter>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\base.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
     <ClCompile Include="src\lurllib.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\sha1.cpp">
       <Filter>vendor\Soup\soup</Filter>
-    </ClCompile>
-    <ClCompile Include="src\vendor\Soup\Intrin\sha1_transform_intrin.cpp">
-      <Filter>vendor\Soup\Intrin</Filter>
     </ClCompile>
     <ClCompile Include="src\lstarlib.cpp" />
     <ClCompile Include="src\lcatlib.cpp" />
@@ -228,9 +222,6 @@
     <ClCompile Include="src\vendor\Soup\soup\time.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\Soup\soup\TransientToken.cpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\TrustStore.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
@@ -297,6 +288,12 @@
     </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\alloc.cpp">
       <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\Intrin\sha1_transform.cpp">
+      <Filter>vendor\Soup\Intrin</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\Intrin\sha256_transform.cpp">
+      <Filter>vendor\Soup\Intrin</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

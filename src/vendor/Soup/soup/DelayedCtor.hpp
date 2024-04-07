@@ -12,7 +12,7 @@
 #include "memory.hpp" // construct_at
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	template <typename T>
 	class alignas(T) DelayedCtor

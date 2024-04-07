@@ -4,7 +4,7 @@
 #include "CidrSubnet6.hpp"
 #include "CidrSupernet.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct IpGroups
 	{

@@ -2,7 +2,7 @@
 
 #include "type.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct TlsContentType
 	{

@@ -37,7 +37,7 @@ SOFTWARE.
 #define X64BIT_SHIFTER
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 #ifdef X64BIT_SHIFTER
 	using shifter_t = uint64_t;

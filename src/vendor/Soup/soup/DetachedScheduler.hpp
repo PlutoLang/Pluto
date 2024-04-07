@@ -6,7 +6,7 @@
 #include "netConfig.hpp"
 #include "Thread.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class DetachedScheduler : public Scheduler
 	{

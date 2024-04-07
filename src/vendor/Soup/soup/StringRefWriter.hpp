@@ -2,7 +2,7 @@
 
 #include "Writer.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class StringRefWriter final : public Writer
 	{

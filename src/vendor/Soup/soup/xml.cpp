@@ -11,7 +11,7 @@
 #include <iostream>
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	XmlMode xml::MODE_XML{};
 	XmlMode xml::MODE_LAX_XML{ {}, true, true };

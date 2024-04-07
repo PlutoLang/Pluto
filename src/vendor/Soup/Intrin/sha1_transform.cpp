@@ -6,13 +6,13 @@
 	#include <arm_neon.h>
 #endif
 
-namespace soup
+namespace soup_intrin
 {
 	// Original source: https://github.com/noloader/SHA-Intrinsics
 	// Original licence: Dedicated to the public domain.
 
 #if defined(__x86_64__) || defined(_M_X64)
-	void sha1_transform_intrin(uint32_t state[5], const uint8_t data[64]) noexcept
+	void sha1_transform(uint32_t state[5], const uint8_t data[64]) noexcept
 	{
 		__m128i ABCD, ABCD_SAVE, E0, E0_SAVE, E1;
 		__m128i MSG0, MSG1, MSG2, MSG3;
@@ -193,7 +193,7 @@ namespace soup
 		state[4] = _mm_extract_epi32(E0, 3);
 	}
 #elif defined(__aarch64__) || defined(_M_ARM64)
-	void sha1_transform_intrin(uint32_t state[5], const uint8_t data[64]) noexcept
+	void sha1_transform(uint32_t state[5], const uint8_t data[64]) noexcept
 	{
 		uint32x4_t ABCD, ABCD_SAVED;
 		uint32x4_t TMP0, TMP1;

@@ -8,7 +8,7 @@
 #include "TlsProtocolVersion.hpp"
 #include "TlsRandom.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	SOUP_PACKET(TlsClientHello)
 	{

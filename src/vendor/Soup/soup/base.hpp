@@ -1,5 +1,14 @@
 #pragma once
 
+// === Namespace
+
+namespace soup
+{
+	namespace epoch_0 {};
+	using namespace epoch_0;
+};
+#define NAMESPACE_SOUP namespace soup::epoch_0
+
 // === Platform/ABI macros
 
 #ifdef _WIN32
@@ -142,7 +151,7 @@
 
 	#include <stdexcept>
 
-	namespace soup
+	NAMESPACE_SOUP
 	{
 		[[noreturn]] void throwImpl(std::exception&& e);
 	}
@@ -163,7 +172,7 @@
 
 // === Development helpers
 
-namespace soup
+NAMESPACE_SOUP
 {
 	[[noreturn]] void throwAssertionFailed();
 	[[noreturn]] void throwAssertionFailed(const char* what);

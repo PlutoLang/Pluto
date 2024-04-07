@@ -19,7 +19,7 @@
 #include "string.hpp"
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	std::filesystem::path filesystem::u8path(const std::string& str)
 	{

@@ -7,7 +7,7 @@
 #include "base.hpp"
 #include "Oid.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct X509RelativeDistinguishedName : public std::vector<std::pair<Oid, std::string>>
 	{

@@ -42,7 +42,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-namespace soup
+#if AES_USE_INTRIN
+namespace soup_intrin
+{
+	extern void aes_encrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
+	extern void aes_encrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
+	extern void aes_encrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
+	extern void aes_decrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
+	extern void aes_decrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
+	extern void aes_decrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
+	extern void aes_expand_key_128(uint8_t w[176], const uint8_t key[16]) noexcept;
+	extern void aes_expand_key_192(uint8_t w[208], const uint8_t key[24]) noexcept;
+	extern void aes_expand_key_256(uint8_t w[240], const uint8_t key[32]) noexcept;
+}
+#endif
+
+NAMESPACE_SOUP
 {
 	static constexpr int Nb = 4;
 	static constexpr unsigned int blockBytesLen = 4 * Nb * sizeof(uint8_t);
@@ -409,12 +424,6 @@ namespace soup
 		return true;
 	}
 
-#if AES_USE_INTRIN
-	extern void aes_helper_encrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
-	extern void aes_helper_encrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
-	extern void aes_helper_encrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
-#endif
-
 	void aes::encryptBlock(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240], const int Nr) noexcept
 	{
 #if AES_USE_INTRIN
@@ -422,15 +431,15 @@ namespace soup
 		{
 			if (Nr == 10)
 			{
-				return aes_helper_encrypt_block_128(in, out, roundKeys);
+				return soup_intrin::aes_encrypt_block_128(in, out, roundKeys);
 			}
 			else if (Nr == 12)
 			{
-				return aes_helper_encrypt_block_192(in, out, roundKeys);
+				return soup_intrin::aes_encrypt_block_192(in, out, roundKeys);
 			}
 			else if (Nr == 14)
 			{
-				return aes_helper_encrypt_block_256(in, out, roundKeys);
+				return soup_intrin::aes_encrypt_block_256(in, out, roundKeys);
 			}
 		}
 #endif
@@ -476,12 +485,6 @@ namespace soup
 		}
 	}
 
-#if AES_USE_INTRIN
-	extern void aes_helper_decrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
-	extern void aes_helper_decrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
-	extern void aes_helper_decrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
-#endif
-
 	void aes::decryptBlock(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240], const int Nr) noexcept
 	{
 #if AES_USE_INTRIN
@@ -489,15 +492,15 @@ namespace soup
 		{
 			if (Nr == 10)
 			{
-				return aes_helper_decrypt_block_128(in, out, roundKeys);
+				return soup_intrin::aes_decrypt_block_128(in, out, roundKeys);
 			}
 			else if (Nr == 12)
 			{
-				return aes_helper_decrypt_block_192(in, out, roundKeys);
+				return soup_intrin::aes_decrypt_block_192(in, out, roundKeys);
 			}
 			else if (Nr == 14)
 			{
-				return aes_helper_decrypt_block_256(in, out, roundKeys);
+				return soup_intrin::aes_decrypt_block_256(in, out, roundKeys);
 			}
 		}
 #endif
@@ -541,12 +544,6 @@ namespace soup
 		}
 	}
 
-#if AES_USE_INTRIN
-	extern void aes_helper_expand_key_128(uint8_t w[176], const uint8_t key[16]) noexcept;
-	extern void aes_helper_expand_key_192(uint8_t w[208], const uint8_t key[24]) noexcept;
-	extern void aes_helper_expand_key_256(uint8_t w[240], const uint8_t key[32]) noexcept;
-#endif
-
 	void aes::expandKey(uint8_t w[240], const uint8_t* key, size_t key_len) noexcept
 	{
 #if AES_USE_INTRIN
@@ -554,15 +551,15 @@ namespace soup
 		{
 			if (key_len == 16)
 			{
-				return aes_helper_expand_key_128(w, key);
+				return soup_intrin::aes_expand_key_128(w, key);
 			}
 			else if (key_len == 24)
 			{
-				return aes_helper_expand_key_192(w, key);
+				return soup_intrin::aes_expand_key_192(w, key);
 			}
 			else if (key_len == 32)
 			{
-				return aes_helper_expand_key_256(w, key);
+				return soup_intrin::aes_expand_key_256(w, key);
 			}
 		}
 #endif

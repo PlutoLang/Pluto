@@ -2,7 +2,7 @@
 
 #include "Ipv6Maths.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct CidrSubnet6
 	{

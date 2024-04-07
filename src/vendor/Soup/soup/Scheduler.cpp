@@ -16,7 +16,7 @@
 #include "Stopwatch.hpp"
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	void Scheduler::addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL
 	{

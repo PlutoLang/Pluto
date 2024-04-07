@@ -13,7 +13,7 @@
 
 #undef min
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class string
 	{

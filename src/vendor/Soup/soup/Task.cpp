@@ -4,7 +4,7 @@
 
 #include "Scheduler.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	Task::Task() noexcept
 		: Worker(WORKER_TYPE_TASK)

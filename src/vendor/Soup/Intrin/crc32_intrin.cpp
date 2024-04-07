@@ -12,7 +12,7 @@
 	#endif
 #endif
 
-namespace soup
+namespace soup_intrin
 {
 #if defined(__x86_64__) || defined(_M_X64)
 	uint32_t crc32_pclmul(const uint8_t* p, size_t size, uint32_t crc) noexcept

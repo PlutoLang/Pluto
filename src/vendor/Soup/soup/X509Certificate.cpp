@@ -9,7 +9,7 @@
 #include "sha512.hpp"
 #include "string.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	bool X509Certificate::fromDer(const std::string& str) noexcept
 	{

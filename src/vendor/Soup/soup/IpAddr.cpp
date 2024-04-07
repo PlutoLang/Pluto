@@ -5,7 +5,7 @@
 #include "netConfig.hpp"
 #include "string.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	bool IpAddr::fromString(const char* str) noexcept
 	{

@@ -4,7 +4,7 @@
 #if SOUP_POSIX
 #include <signal.h>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct signal
 	{

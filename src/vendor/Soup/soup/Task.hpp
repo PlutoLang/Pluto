@@ -2,7 +2,7 @@
 
 #include "Worker.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class Task : public Worker
 	{

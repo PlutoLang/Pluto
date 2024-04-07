@@ -2,7 +2,7 @@
 
 #include "Writer.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	JsonNull::JsonNull() noexcept
 		: JsonNode(JSON_NULL)

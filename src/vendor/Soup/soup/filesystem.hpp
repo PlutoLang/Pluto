@@ -8,7 +8,7 @@
 #include <Windows.h>
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct filesystem
 	{

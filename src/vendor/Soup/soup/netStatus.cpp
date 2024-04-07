@@ -1,6 +1,6 @@
 #include "netStatus.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	const char* netStatusToString(netStatus status)
 	{

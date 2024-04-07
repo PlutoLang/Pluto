@@ -2,7 +2,7 @@
 
 #include <thread>
 
-namespace soup
+NAMESPACE_SOUP
 {
 	void PromiseBase::awaitFulfilment()
 	{

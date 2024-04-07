@@ -4,7 +4,7 @@
 #include "fwd.hpp"
 #include "CryptoHashAlgo.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct sha1 : public CryptoHashAlgo<sha1>
 	{

@@ -3,7 +3,7 @@
 #include "base.hpp"
 #include "TransientToken.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	// To make your structs weakref-able, simply add this property -> soup::TransientToken transient_token;
 	template <class T>

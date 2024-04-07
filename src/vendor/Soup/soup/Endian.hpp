@@ -8,7 +8,7 @@
 
 #include "IntStruct.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	enum Endian : bool
 	{

@@ -4,7 +4,7 @@
 
 #include "dnsName.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	SOUP_PACKET(dnsResource)
 	{

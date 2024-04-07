@@ -9,7 +9,7 @@ static_assert(sizeof(void*) * 8 == SOUP_BITS);
 #include "Exception.hpp"
 #include "ObfusString.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 #if !SOUP_EXCEPTIONS
 	void throwImpl(std::exception&& e)

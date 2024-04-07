@@ -2,7 +2,7 @@
 
 #include "Writer.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	JsonInt::JsonInt(int64_t value) noexcept
 		: JsonNode(JSON_INT), value(value)

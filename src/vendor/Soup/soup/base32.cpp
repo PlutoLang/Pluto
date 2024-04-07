@@ -5,7 +5,7 @@
 
 #include "bitutil.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	static const char b32_alpha[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 

@@ -16,7 +16,7 @@
 #include "SharedPtr.hpp"
 #include "Worker.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	// The only thing you are allowed to do from other threads is add a worker since that can be done atomically.
 	// All other operations are subject to race conditions.

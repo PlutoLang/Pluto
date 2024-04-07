@@ -4,7 +4,7 @@
 #include "ObfusString.hpp"
 #include "rand.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	using namespace literals;
 

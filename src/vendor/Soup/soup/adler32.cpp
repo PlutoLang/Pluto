@@ -12,7 +12,7 @@
 #define MOD28(a) a %= BASE
 #define MOD63(a) a %= BASE
 
-namespace soup
+NAMESPACE_SOUP
 {
 	uint32_t adler32::hash(const std::string& data)
 	{

@@ -4,7 +4,7 @@
 
 #include "rand.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	template <typename Subnet, size_t Size>
 	struct CidrSupernet

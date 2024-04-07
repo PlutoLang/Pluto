@@ -4,7 +4,7 @@
 #include "Socket.hpp"
 #include "Task.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	void Worker::awaitPromiseCompletion(PromiseBase* p, void(*f)(Worker&, Capture&&), Capture&& cap)
 	{

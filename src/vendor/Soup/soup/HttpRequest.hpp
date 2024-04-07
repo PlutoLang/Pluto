@@ -9,7 +9,7 @@
 #include "MimeMessage.hpp"
 #include "HttpResponse.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class HttpRequest : public MimeMessage
 	{

@@ -7,7 +7,7 @@
 #include "Endian.hpp"
 #include "IntStruct.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	using u8_t = uint8_t;
 	using u16_t = uint16_t;

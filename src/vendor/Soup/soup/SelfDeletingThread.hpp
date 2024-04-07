@@ -3,7 +3,7 @@
 #include "Thread.hpp"
 #if !SOUP_WASM
 
-namespace soup
+NAMESPACE_SOUP
 {
 	class SelfDeletingThread : public Thread
 	{

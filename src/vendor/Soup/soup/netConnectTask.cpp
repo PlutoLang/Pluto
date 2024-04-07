@@ -7,7 +7,7 @@
 #include "rand.hpp"
 #include "Scheduler.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	netConnectTask::netConnectTask(const std::string& host, uint16_t port, bool prefer_ipv6)
 	{

@@ -11,7 +11,7 @@
 #include "ObfusString.hpp"
 #include "Scheduler.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct dnsLookupWrapperTask : public dnsLookupTask
 	{

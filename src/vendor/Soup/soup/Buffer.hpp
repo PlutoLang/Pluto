@@ -9,11 +9,12 @@
 #endif
 
 #include "alloc.hpp"
+#include "base.hpp"
 #if SOUP_BUFFER_NO_RESIZE
 #include "Exception.hpp"
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	// This extremely simple implementation outperforms std::vector & std::string, barring magic optimisations, e.g. clang with std::string::push_back.
 	class Buffer

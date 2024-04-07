@@ -6,7 +6,7 @@
 #include "sha256.hpp"
 #include "TlsMac.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	size_t SocketTlsEncrypter::getMacLength() const noexcept
 	{

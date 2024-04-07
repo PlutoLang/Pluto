@@ -4,7 +4,7 @@
 #include "unicode.hpp"
 #include "Writer.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	JsonString::JsonString() noexcept
 		: JsonNode(JSON_STRING)

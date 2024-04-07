@@ -4,7 +4,7 @@
 
 #include <immintrin.h>
 
-namespace soup
+namespace soup_intrin
 {
 	// RDSEED
 

@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cstdint>
+
+#include "base.hpp"
 #include "scoped_enum.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	SCOPED_ENUM(TlsExtensionType, uint16_t,
 		server_name = 0,

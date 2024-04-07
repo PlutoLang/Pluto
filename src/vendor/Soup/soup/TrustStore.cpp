@@ -4,7 +4,7 @@
 #include "macros.hpp"
 #include "pem.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	const TrustStore& TrustStore::fromMozilla() SOUP_EXCAL
 	{

@@ -7,7 +7,7 @@
 #define timegm _mkgmtime
 #endif
 
-namespace soup
+NAMESPACE_SOUP
 {
 	static const char wdays[(7 * 3) + 1] = "SunMonTueWedThuFriSat";
 	static const char months[(12 * 3) + 1] = "JanFebMarAprMayJunJulAugSepOctNovDec";

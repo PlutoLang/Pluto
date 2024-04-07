@@ -6,7 +6,7 @@
 #include "ServerServiceUdp.hpp"
 #include "Socket.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct CaptureServerPort
 	{

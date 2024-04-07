@@ -2,7 +2,7 @@
 
 #include "Bigint.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	bool Reader::u64_dyn(uint64_t& v) noexcept
 	{

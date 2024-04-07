@@ -1,6 +1,8 @@
 #pragma once
 
-namespace soup
+#include "base.hpp"
+
+NAMESPACE_SOUP
 {
 	struct MimeType
 	{

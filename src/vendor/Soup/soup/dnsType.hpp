@@ -5,7 +5,7 @@
 
 #include "Optional.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	enum dnsType : uint16_t
 	{

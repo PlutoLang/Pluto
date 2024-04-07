@@ -2,7 +2,7 @@
 
 #include "TlsRecord.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	SOUP_PACKET(TlsMac)
 	{

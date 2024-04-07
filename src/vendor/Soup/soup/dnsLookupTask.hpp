@@ -7,7 +7,7 @@
 #include "dns_records.hpp"
 #include "UniquePtr.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	using dnsLookupTask = PromiseTask<std::vector<UniquePtr<dnsRecord>>>;
 

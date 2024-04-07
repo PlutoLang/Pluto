@@ -7,7 +7,7 @@
 
 #include "SocketAddr.hpp"
 
-namespace soup
+NAMESPACE_SOUP
 {
 	struct dnsUdpResolver : public dnsRawResolver
 	{
