@@ -1853,7 +1853,6 @@ enum expflags {
   E_NO_CALL  = 1 << 1,
   E_NO_BOR   = 1 << 2,
   E_PIPERHS  = 1 << 3,
-  E_WALRUS   = 1 << 4,
 };
 
 static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr);
@@ -2823,17 +2822,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
   if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
     const bool is_overridable = ls->t.IsOverridable();
     TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
-    if (gett(ls) == TK_WALRUS) {
-      if (!(flags & E_WALRUS))
-        throwerr(ls, "':=' is not allowed in this context", "unexpected ':='");
-      luaX_next(ls);
-      new_localvar(ls, varname);
-      expr(ls, v);
-      adjust_assign(ls, 1, 1, v);
-      adjustlocalvars(ls, 1);
-    }
-    else
-      singlevar(ls, v, varname, is_overridable);
+    singlevar(ls, v, varname, is_overridable);
     if (!ls->classes.empty() && strcmp(getstr(varname), "self") == 0) {
       selfexp(ls, v);
       return;
@@ -3037,7 +3026,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
 }
 
 
-int cond (LexState *ls, bool for_while_loop = false);
+static int cond (LexState *ls, bool for_while_loop = false);
 static void ifexpr (LexState *ls, expdesc *v) {
   /*
   ** Patch published by Ryota Hirose.
@@ -3570,7 +3559,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   if (uop != OPR_NOUNOPR) {  /* prefix (unary) operator? */
     int line = ls->getLineNumber();
     luaX_next(ls);  /* skip operator */
-    subexpr(ls, v, UNARY_PRIORITY, nullptr, flags & ~E_WALRUS);
+    subexpr(ls, v, UNARY_PRIORITY, nullptr, flags);
     luaK_prefix(ls->fs, uop, v, line);
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
@@ -3587,7 +3576,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       luaK_infix(ls->fs, OPR_ADD, v);
 
       expdesc v2;
-      subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, flags & ~E_WALRUS);
+      subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, flags);
       luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
     }
   }
@@ -3666,7 +3655,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       }
       luaK_infix(ls->fs, op, v);
       /* read sub-expression with higher priority */
-      nextop = subexpr(ls, &v2, priority[op].right, subexpr_prop, flags & ~E_WALRUS);
+      nextop = subexpr(ls, &v2, priority[op].right, subexpr_prop, flags);
       luaK_posfix(ls->fs, op, v, &v2, line);
     }
     op = nextop;
@@ -3880,10 +3869,26 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
   luaK_storevar(ls->fs, &lh->v, &e);
 }
 
-int cond (LexState *ls, bool for_while_loop) {
+static void walrusexpr (LexState *ls, expdesc *v) {
+  if (luaX_lookahead(ls) == TK_WALRUS) {
+    TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
+    luaX_next(ls);  /* skip ':=' */
+    new_localvar(ls, varname);
+    expr(ls, v);
+    adjust_assign(ls, 1, 1, v);
+    adjustlocalvars(ls, 1);
+  }
+  else
+    expr(ls, v);
+}
+
+static int cond (LexState *ls, bool for_while_loop) {
   /* cond -> exp */
   expdesc v;
-  expr(ls, &v, nullptr, for_while_loop * E_WALRUS);  /* read condition */
+  if (for_while_loop)
+    walrusexpr(ls, &v);  /* read condition */
+  else
+    expr(ls, &v);  /* read condition */
   v.normaliseFalse();
   luaK_goiftrue(ls->fs, &v);
   return v.f;
@@ -4224,7 +4229,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   expdesc v;
   int jf;  /* instruction to skip 'then' code (if condition is false) */
   luaX_next(ls);  /* skip IF or ELSEIF */
-  expr(ls, &v, nullptr, E_WALRUS);  /* read condition */
+  walrusexpr(ls, &v);  /* read condition */
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);
   if (luaK_isalwaysfalse(ls, &v))
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
