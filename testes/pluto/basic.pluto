@@ -1954,6 +1954,12 @@ do
         assert(t[k] == v)
         k = k + 1
     end
+
+    local function choose(_) return { "for", "as" } end
+    for choose(function() for a as i_should_not_exist do end end) as x do
+        assert(i_should_not_exist == nil, i_should_not_exist)
+        assert(x == "for" or x == "as", x)
+    end
 end
 
 print "Testing enums."
