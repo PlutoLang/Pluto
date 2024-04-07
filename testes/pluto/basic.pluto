@@ -402,6 +402,26 @@ do
         end
         assert(line != "This" and line != "Lines")
     end
+
+    -- Upvalues should be closed
+    do
+        local tmp = false
+        local function c()
+            if tmp then
+                tmp()
+                return false
+            end
+            return 1
+        end
+
+        while c() do
+            local b = 2
+            ::x::
+            if tmp then continue end
+            tmp = ||->do b=nil end
+            goto x
+        end
+    end
 end
 do
     assert(select(2, pcall(load[[--@pluto_warnings disable-all
