@@ -2936,7 +2936,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
           ls->L->top.p--;
         }
         else if (l_unlikely(ls->t.column != (colon_column + 1) && ls->getContext() == PARCTX_TERNARY_C)) {
-          throw_warn(ls, "possible confusion with colons", "the second colon is interpreted as a method call instead of the first colon", "wrap the method call in parentheses", ls->t.line, WT_POSSIBLE_TYPO);
+          throw_warn(ls, "possibly unintended method call", "the second colon is interpreted as a method call", ls->t.line, WT_POSSIBLE_TYPO);
         }
         codename(ls, &key);
         luaK_self(fs, v, &key);
