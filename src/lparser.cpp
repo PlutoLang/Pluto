@@ -4271,6 +4271,7 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   FuncState *fs = ls->fs;
   int escapelist = NO_JUMP;  /* exit list for finished parts */
   test_then_block(ls, &escapelist, prop);  /* IF cond THEN block */
+  int freereg = fs->freereg;
   while (ls->t.token == TK_ELSEIF)
     test_then_block(ls, &escapelist, prop);  /* ELSEIF cond THEN block */
   if (testnext(ls, TK_ELSE)) {
@@ -4280,6 +4281,9 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   }
   check_match(ls, TK_END, TK_IF, line);
   luaK_patchtohere(fs, escapelist);  /* patch escape list to 'if' end */
+  if (fs->freereg != freereg) {  /* Walrus operator used in 'elseif' condition(s)? */
+    luaK_nil(fs, freereg, fs->freereg - freereg);  /* Initialise to nil to avoid UB. */
+  }
 }
 
 
