@@ -1854,10 +1854,10 @@ end
 print "Testing walrus operator."
 do
     if a := 3 then
+        assert(a == 3)
     else
         error()
     end
-    assert(a == 3)
 
     if b := nil then
         error()
@@ -1881,19 +1881,6 @@ do
             error()
         end
     end)
-
-    -- Ensure registers allocated for Walrus operator are initialized
-    local function read_uninit()
-        if a:=2 then
-        elseif b:=3 then -- this initialization won't happen
-        end
-        -- b should be nil here
-        return b
-    end
-    do
-        for k in pairs({}) do end
-    end
-    assert(read_uninit() == nil)
 end
 
 print "Testing for-as loop."

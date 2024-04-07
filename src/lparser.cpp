@@ -3994,6 +3994,8 @@ static void whilestat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   int whileinit;
   int condexit;
+  BlockCnt walrusbl;
+  enterblock(fs, &walrusbl, 0);
   BlockCnt bl;
   luaX_next(ls);  /* skip WHILE */
   whileinit = luaK_getlabel(fs);
@@ -4006,6 +4008,7 @@ static void whilestat (LexState *ls, int line) {
   check_match(ls, TK_END, TK_WHILE, line);
   leaveblock(fs);
   luaK_patchtohere(fs, condexit);  /* false conditions finish the loop */
+  leaveblock(fs);
 }
 
 
@@ -4269,9 +4272,10 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
 static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
   FuncState *fs = ls->fs;
+  BlockCnt walrusbl;
+  enterblock(fs, &walrusbl, 0);
   int escapelist = NO_JUMP;  /* exit list for finished parts */
   test_then_block(ls, &escapelist, prop);  /* IF cond THEN block */
-  int freereg = fs->freereg;
   while (ls->t.token == TK_ELSEIF)
     test_then_block(ls, &escapelist, prop);  /* ELSEIF cond THEN block */
   if (testnext(ls, TK_ELSE)) {
@@ -4281,9 +4285,7 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   }
   check_match(ls, TK_END, TK_IF, line);
   luaK_patchtohere(fs, escapelist);  /* patch escape list to 'if' end */
-  if (fs->freereg != freereg) {  /* Walrus operator used in 'elseif' condition(s)? */
-    luaK_nil(fs, freereg, fs->freereg - freereg);  /* Initialise to nil to avoid UB. */
-  }
+  leaveblock(fs);
 }
 
 
