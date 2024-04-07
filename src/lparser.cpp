@@ -3273,6 +3273,8 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     }
   }
 
+  int nactvarend = ls->fs->nactvar;
+  ls->fs->nactvar = nactvar;  /* variables declared inside of switch body don't exist yet */
   for (auto& c : cases) {
     auto pos = luaX_getpos(ls);
     luaX_setpos(ls, c.tidx);
@@ -3281,6 +3283,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     }
     luaX_setpos(ls, pos);
   }
+  ls->fs->nactvar = nactvarend;
 
   if (default_case != nullptr)
     lgoto(ls, default_case, ls->getLineNumber());

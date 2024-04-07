@@ -987,6 +987,22 @@ do
     assert(getResponse("goodbye") == "Farewell!")
     assert(getResponse("deez") == "Unrecognised word")
 end
+do
+    -- Test variable scoping
+    do
+        for k in pairs({}) do end
+    end
+    local function helper(a, b, c, d, e)
+        assert(a == nil and b == nil and c == nil and d == nil and e == nil)
+    end
+    switch 2 do
+        case 1:
+            break
+        case helper(switch_a, switch_b, switch_c, switch_d, switch_e):
+            local switch_a, switch_b, switch_c, switch_d, switch_e
+            break
+    end
+end
 
 print "Testing switch expression."
 do
