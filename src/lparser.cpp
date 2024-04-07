@@ -3149,16 +3149,12 @@ static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
   return jumps;
 }
 
-struct SwitchCase {
-  size_t tidx;
-  int pc;
-};
-
 static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), void *ud = nullptr) {
   const auto line = ls->getLineNumber();
   const auto switchToken = gett(ls);
   luaX_next(ls); // Skip switch statement.
 
+  ls->switchstates.emplace();
   FuncState *fs = ls->fs;
   BlockCnt sbl;
   enterblock(fs, &sbl, 2);
@@ -3185,7 +3181,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   const auto nactvar = fs->nactvar;
 
-  std::vector<int> first{};
+  std::vector<int>& first = ls->switchstates.top().first;
   TString* const begin_switch = luaS_newliteral(ls->L, "pluto_begin_switch");
   TString* default_case = nullptr;
   int first_pc, default_pc;
@@ -3200,7 +3196,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
   }
 
-  std::vector<SwitchCase> cases{};
+  std::vector<SwitchCase>& cases = ls->switchstates.top().cases;
 
   while (gett(ls) != TK_END) {
     auto case_line = ls->getLineNumber();
@@ -3292,6 +3288,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
+  ls->switchstates.pop();
 }
 
 static void switchstat (LexState *ls) {
