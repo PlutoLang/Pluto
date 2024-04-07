@@ -923,19 +923,6 @@ static void singlevarinner (LexState *ls, TString *varname, expdesc *var, bool l
 }
 
 static void singlevar (LexState *ls, expdesc *var, TString *varname, bool localonly = false) {
-  if (gett(ls) == TK_WALRUS) {
-    luaX_next(ls);
-    if (ls->getContext() == PARCTX_CREATE_VARS
-      || ls->fs->freereg != luaY_nvarstack(ls->fs)  /* function arguments, table constructor */
-      ) {
-      throwerr(ls, "':=' is not allowed in this context", "unexpected ':='");
-    }
-    new_localvar(ls, varname);
-    expr(ls, var);
-    adjust_assign(ls, 1, 1, var);
-    adjustlocalvars(ls, 1);
-    return;
-  }
   singlevarinner(ls, varname, var, localonly);
 }
 
@@ -1866,6 +1853,7 @@ enum expflags {
   E_NO_CALL  = 1 << 1,
   E_NO_BOR   = 1 << 2,
   E_PIPERHS  = 1 << 3,
+  E_WALRUS   = 1 << 4,
 };
 
 static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr);
@@ -2830,12 +2818,22 @@ static void parentexp (LexState *ls, expdesc *v) {
 }
 
 
-static void primaryexp (LexState *ls, expdesc *v) {
+static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
   /* primaryexp -> NAME | '(' expr ')' */
   if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
     const bool is_overridable = ls->t.IsOverridable();
     TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
-    singlevar(ls, v, varname, is_overridable);
+    if (gett(ls) == TK_WALRUS) {
+      if (!(flags & E_WALRUS))
+        throwerr(ls, "':=' is not allowed in this context", "unexpected ':='");
+      luaX_next(ls);
+      new_localvar(ls, varname);
+      expr(ls, v);
+      adjust_assign(ls, 1, 1, v);
+      adjustlocalvars(ls, 1);
+    }
+    else
+      singlevar(ls, v, varname, is_overridable);
     if (!ls->classes.empty() && strcmp(getstr(varname), "self") == 0) {
       selfexp(ls, v);
       return;
@@ -2888,7 +2886,7 @@ static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   int line = ls->getLineNumber();
-  primaryexp(ls, v);
+  primaryexp(ls, v, flags);
   if (prop) {
     if (v->k == VINDEXUP) {
       TValue *key = &ls->fs->f->k[v->u.ind.idx];
@@ -3039,7 +3037,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
 }
 
 
-int cond (LexState *ls);
+int cond (LexState *ls, bool for_while_loop = false);
 static void ifexpr (LexState *ls, expdesc *v) {
   /*
   ** Patch published by Ryota Hirose.
@@ -3882,10 +3880,10 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
   luaK_storevar(ls->fs, &lh->v, &e);
 }
 
-int cond (LexState *ls) {
+int cond (LexState *ls, bool for_while_loop) {
   /* cond -> exp */
   expdesc v;
-  expr(ls, &v);  /* read condition */
+  expr(ls, &v, nullptr, for_while_loop * E_WALRUS);  /* read condition */
   v.normaliseFalse();
   luaK_goiftrue(ls->fs, &v);
   return v.f;
@@ -3994,7 +3992,7 @@ static void whilestat (LexState *ls, int line) {
   BlockCnt bl;
   luaX_next(ls);  /* skip WHILE */
   whileinit = luaK_getlabel(fs);
-  condexit = cond(ls);
+  condexit = cond(ls, true);
   enterblock(fs, &bl, 1);
   checknext(ls, TK_DO);
   block(ls);
@@ -4226,7 +4224,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   expdesc v;
   int jf;  /* instruction to skip 'then' code (if condition is false) */
   luaX_next(ls);  /* skip IF or ELSEIF */
-  expr(ls, &v);  /* read condition */
+  expr(ls, &v, nullptr, E_WALRUS);  /* read condition */
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);
   if (luaK_isalwaysfalse(ls, &v))
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
