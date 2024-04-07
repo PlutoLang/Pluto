@@ -3676,7 +3676,7 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
   if (testnext(ls, '?')) { /* ternary expression? */
     if (prop) prop->clear(); /* we don't care what type the condition is/was */
     int escape = NO_JUMP;
-    v->normaliseFalse();
+    v->normalizeFalse();
     if (luaK_isalwaystrue(ls, v))
       throw_warn(ls, "unreachable code", "the condition before the '?' is always truthy, hence the expression after the ':' is never used.", WT_UNREACHABLE_CODE);
     else if (luaK_isalwaysfalse(ls, v))
@@ -3886,7 +3886,7 @@ static int cond (LexState *ls) {
   /* cond -> exp */
   expdesc v;
   expr(ls, &v);  /* read condition */
-  v.normaliseFalse();
+  v.normalizeFalse();
   luaK_goiftrue(ls->fs, &v);
   return v.f;
 }
@@ -4000,7 +4000,7 @@ static void whilestat (LexState *ls, int line) {
     enterblock(fs, &innerbl, 0);
     expdesc v;
     walrusexpr(ls, &v);
-    v.normaliseFalse();
+    v.normalizeFalse();
     luaK_goiftrue(ls->fs, &v);
     condexit = v.f;
     checknext(ls, TK_DO);
