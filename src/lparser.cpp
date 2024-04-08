@@ -2995,6 +2995,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
           ++nparams;
         }
         else {
+          luaK_exp2nextreg(fs, v);
           expdesc func;
           simpleexp(ls, &func, flags | E_PIPERHS);
           luaK_prepcallfirstarg(fs, v, &func);

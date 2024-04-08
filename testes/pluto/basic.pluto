@@ -1192,6 +1192,12 @@ do
     }
     ;(69) |> obj:setValue
     assert(obj.value == 69)
+
+    -- Indexing a global for argument + function
+    _SERVER = {
+        REDIRECT_INVOKE_FILENAME = "/deez/nuts"
+    }
+    assert(_SERVER.REDIRECT_INVOKE_FILENAME |> io.part|"parent"| == "/deez")
 end
 
 print "Testing standard library additions."
