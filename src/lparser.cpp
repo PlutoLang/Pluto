@@ -308,7 +308,7 @@ static void checknext (LexState *ls, int c) {
 ** raise an error that the expected 'what' should match a 'who'
 ** in line 'where' (if that is not the current line).
 */
-static void check_match (LexState *ls, int what, int who, int where) {
+static void check_match (LexState *ls, int what, int who, int where, NoteSuggestion suggestion = NoteSuggestion::NONE) {
   if (l_unlikely(!testnext(ls, what))) {
     if (where == ls->getLineNumber())  /* all in the same line? */
       error_expected(ls, what);  /* do not need a complex message */
@@ -334,8 +334,13 @@ static void check_match (LexState *ls, int what, int who, int where) {
           .addMsg(luaO_fmt(ls->L, "%d", where))
           .addMsg(")")
           .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
-          .addGenericHere()
-          .finalizeAndThrow();
+          .addGenericHere();
+
+        if (suggestion.hasSuggestion()) {
+          err->addNote(suggestion.getSuggestion());
+        }
+
+        err->finalizeAndThrow();
       }
     }
   }
@@ -1613,7 +1618,12 @@ static void constructor (LexState *ls, expdesc *t) {
     closelistfield(fs, &cc);
     field(ls, &cc);
   } while (testnext(ls, ',') || testnext(ls, ';'));
-  check_match(ls, '}', '{', line);
+  if (ls->t.token == TK_NAME || ls->t.token == TK_FUNCTION || ls->t.token == '[') {
+    check_match(ls, '}', '{', line, NoteSuggestion::MISSING_TABLE_FIELD_DELIMITER);
+  }
+  else {
+    check_match(ls, '}', '{', line);
+  }
   lastlistfield(fs, &cc);
   luaK_settablesize(fs, pc, t->u.reg, cc.na, cc.nh);
   ls->constructorfieldsets.pop();

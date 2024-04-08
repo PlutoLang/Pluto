@@ -19,3 +19,89 @@ do
 	error(a:=1)
 	]])
 end
+
+-- NoteSuggestion
+do
+	$define missing_table_delimiter = "delimited"
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		a,
+		b
+		c,
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		a = 1,
+		b = 2
+		c = 3,
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		function a()
+
+		end,
+
+		function b()
+
+		end
+
+		function c()
+
+		end
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		["a"] = 1,
+		["b"] = 2
+		["c"] = 3,
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		[a] = 1,
+		[b] = 2
+		[c] = 3
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		[a] = 1,
+		[b] = 2,
+
+		function a()
+
+		end
+
+		[c] = 3
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		[a] = 1,
+		[b] = 2
+
+		function a()
+
+		end,
+
+		[c] = 3
+	}
+	]])
+end
