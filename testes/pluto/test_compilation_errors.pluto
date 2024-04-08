@@ -1,34 +1,21 @@
 local assert = require("assert")
 
-local errors = {
-	function add(intended_error, bad_code)
-		self.storage[intended_error] = bad_code
-	end,
-
-	function run()
-		for intended_error, bad_code in self.storage do
-			local _, fail = load(bad_code)
-			assert.contains(intended_error, fail)
-		end
-	end,
-
-	["storage"] = {},
-}
+local function check(intended_error, bad_code)
+	local _, fail = load(bad_code)
+	assert.contains(intended_error, fail)
+end
 
 $define invalid_syntax = "invalid syntax"
 
 -- Walrus
 do
-	errors:add(invalid_syntax, 
+	check(invalid_syntax, 
 	[[
 	local tab = {a:=1, (||->do tab=1 end)()}
 	]])
 
-	errors:add(invalid_syntax, 
+	check(invalid_syntax, 
 	[[
 	error(a:=1)
 	]])
 end
-
-
-errors:run()
