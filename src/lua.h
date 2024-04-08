@@ -519,6 +519,36 @@ struct lua_Debug {
 /* }====================================================================== */
 
 
+#define PLUTO_DEFINE_ENUM_BITFLAG(EnumType) \
+  inline EnumType operator|(EnumType a, EnumType b) { \
+    return static_cast<EnumType>(static_cast<int>(a) | static_cast<int>(b)); \
+  } \
+  \
+  inline EnumType& operator|=(EnumType& a, EnumType b) { \
+    return a = static_cast<EnumType>(static_cast<int>(a) | static_cast<int>(b)); \
+  } \
+  \
+  inline EnumType operator&(EnumType a, EnumType b) { \
+    return static_cast<EnumType>(static_cast<int>(a) & static_cast<int>(b)); \
+  } \
+  \
+  inline EnumType& operator&=(EnumType& a, EnumType b) { \
+    return a = static_cast<EnumType>(static_cast<int>(a) & static_cast<int>(b)); \
+  } \
+  \
+  inline EnumType operator^(EnumType a, EnumType b) { \
+    return static_cast<EnumType>(static_cast<int>(a) ^ static_cast<int>(b)); \
+  } \
+  \
+  inline EnumType& operator^=(EnumType& a, EnumType b) { \
+    return a = static_cast<EnumType>(static_cast<int>(a) ^ static_cast<int>(b)); \
+  } \
+  \
+  inline EnumType operator~(EnumType a) { \
+    return static_cast<EnumType>(~static_cast<int>(a)); \
+  }
+
+
 #define LUAI_TOSTRAUX(x)	#x
 #define LUAI_TOSTR(x)		LUAI_TOSTRAUX(x)
 
