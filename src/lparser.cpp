@@ -102,7 +102,7 @@ typedef struct BlockCnt {
 ** prototypes for recursive non-terminal functions
 */
 static void statement (LexState *ls, TypeHint *prop = nullptr);
-static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, int flags = 0);
+static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, ExpFlags flags = ExpFlags::E_NONE);
 
 
 /*
@@ -1824,14 +1824,7 @@ static void setvararg (FuncState *fs, int nparams) {
 }
 
 
-enum expflags {
-  E_NO_COLON = 1 << 0,
-  E_NO_CALL  = 1 << 1,
-  E_NO_BOR   = 1 << 2,
-  E_PIPERHS  = 1 << 3,
-};
-
-static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr);
+static void simpleexp (LexState *ls, expdesc *v, ExpFlags flags = ExpFlags::E_NONE, TypeHint *prop = nullptr);
 
 
 /* keep advancing until we hit `token` */
@@ -2039,7 +2032,7 @@ static bool getfunctionattribute (LexState *ls) {
 }
 
 
-static void defaultarguments (LexState *ls, int ismethod, const std::vector<size_t>& fallbacks, int flags = 0) {
+static void defaultarguments (LexState *ls, int ismethod, const std::vector<size_t>& fallbacks, ExpFlags flags = ExpFlags::E_NONE) {
   const auto saved_pos = luaX_getpos(ls);
   int fallback_idx = (ismethod ? 1 : 0);
   for (const auto& tidx : fallbacks) {
@@ -2844,9 +2837,9 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
-static void expsuffix (LexState* ls, expdesc* v, int line, int flags, TypeHint *prop);
+static void expsuffix (LexState* ls, expdesc* v, int line, ExpFlags flags, TypeHint *prop);
 
-static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr) {
+static void suffixedexp (LexState *ls, expdesc *v, ExpFlags flags = ExpFlags::E_NONE, TypeHint *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   int line = ls->getLineNumber();
@@ -2860,7 +2853,7 @@ static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop
   expsuffix(ls, v, line, flags, prop);
 }
 
-static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *prop) {
+static void expsuffix (LexState *ls, expdesc *v, int line, ExpFlags flags, TypeHint *prop) {
   FuncState *fs = ls->fs;
   for (;;) {
     switch (ls->t.token) {
@@ -3042,11 +3035,11 @@ static void newexpr (LexState *ls, expdesc *v) {
 }
 
 
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nullptr, int flags = 0);
-static BinOpr binop (LexState *ls, expdesc *v, int limit = 0, TypeHint *prop = nullptr, int flags = 0);
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nullptr, ExpFlags flags = ExpFlags::E_NONE);
+static BinOpr binop (LexState *ls, expdesc *v, int limit = 0, TypeHint *prop = nullptr, ExpFlags flags = ExpFlags::E_NONE);
 
 
-static BinOpr custombinaryoperator (LexState *ls, expdesc *v, int flags, TString *impl) {
+static BinOpr custombinaryoperator (LexState *ls, expdesc *v, ExpFlags flags, TString *impl) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
 
@@ -3092,7 +3085,7 @@ static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
   FuncState *fs = ls->fs;
   const auto case_line = ls->getLineNumber();
 
-  int expr_flags = 0;
+  ExpFlags expr_flags = ExpFlags::E_NONE;
   if (tk == ':') {
     expr_flags |= E_NO_COLON;
   }
@@ -3292,7 +3285,7 @@ static void switchexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
+static void simpleexp (LexState *ls, expdesc *v, ExpFlags flags, TypeHint *prop) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   check_for_non_portable_code(ls);
@@ -3405,7 +3398,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
 }
 
 
-static void inexpr (LexState *ls, expdesc *v, int flags) {
+static void inexpr (LexState *ls, expdesc *v, ExpFlags flags) {
   expdesc v2;
   checknext(ls, TK_IN);
   luaK_exp2nextreg(ls->fs, v);
@@ -3526,7 +3519,7 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int flags) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, ExpFlags flags) {
   UnOpr uop;
   enterlevel(ls);
   uop = getunopr(ls->t.token);
@@ -3571,7 +3564,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   return ret;
 }
 
-static BinOpr binop (LexState *ls, expdesc *v, int limit, TypeHint *prop, int flags) {
+static BinOpr binop (LexState *ls, expdesc *v, int limit, TypeHint *prop, ExpFlags flags) {
   BinOpr op;
   /* expand while operators have priorities higher than 'limit' */
   if (l_unlikely(ls->t.token == TK_POW))
@@ -3645,7 +3638,7 @@ static BinOpr binop (LexState *ls, expdesc *v, int limit, TypeHint *prop, int fl
 }
 
 
-static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
+static void expr (LexState *ls, expdesc *v, TypeHint *prop, ExpFlags flags) {
 #ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
@@ -5241,7 +5234,7 @@ static void statement (LexState *ls, TypeHint *prop) {
     case TK_PNEW: {
       expdesc v;
       newexpr(ls, &v);
-      expsuffix(ls, &v, line, 0, prop);
+      expsuffix(ls, &v, line, ExpFlags::E_NONE, prop);
       break;
     }
     case TK_TRY:
