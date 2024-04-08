@@ -7,3 +7,5 @@ arg -mrdrnd
 arg -mrdseed
 arg -msha
 arg -msse4.1
+
+arg -fPIC
