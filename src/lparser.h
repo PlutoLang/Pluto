@@ -343,6 +343,35 @@ struct TypeHint {
   }
 };
 
+class NoteSuggestion {
+private:
+  int type;
+
+  static constexpr const char* suggestion_map[] = { // Align indexes with enum, so that suggestion_map[MISSING_TABLE_FIELD_DELIMITER] is possible.
+    "Ensure that you've delimited the previous field with ',' or ';'.", // MISSING_TABLE_FIELD_DELIMITER
+    "This note should not be present inside of this message. Report this at: https://github.com/PlutoLang/Pluto/issues", // NONE
+  };
+
+public:
+  enum : int {
+    MISSING_TABLE_FIELD_DELIMITER,
+    NONE
+  };
+  static_assert(sizeof(suggestion_map) / sizeof(const char*) == NONE + 1);
+
+  constexpr NoteSuggestion(int type)
+    : type(type)
+  {}
+
+  [[nodiscard]] constexpr bool hasSuggestion() const {
+    return type != NONE;
+  }
+
+  [[nodiscard]] constexpr const char* getSuggestion() const {
+    return suggestion_map[type];
+  }
+};
+
 /* description of an active local variable */
 typedef union Vardesc {
   struct {
