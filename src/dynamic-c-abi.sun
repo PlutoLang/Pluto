@@ -1,0 +1,16 @@
+name plutocabi
+dynamic
+
+cpp 17
+
+require vendor/Soup/soup include_dir=.
+
++*.cpp
+-lua.cpp
+-luac.cpp
+
+arg -DPLUTO_C_LINKAGE
+
+if windows
+	arg -DLUA_BUILD_AS_DLL
+endif
