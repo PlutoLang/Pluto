@@ -15,16 +15,16 @@ local errors = {
 	["storage"] = {},
 }
 
+$define invalid_syntax = "invalid syntax"
+
 -- Walrus
 do
-	$define context_disallowed = "':=' is not allowed in this context"
-
-	errors:add(context_disallowed, 
+	errors:add(invalid_syntax, 
 	[[
 	local tab = {a:=1, (||->do tab=1 end)()}
 	]])
 
-	errors:add(context_disallowed, 
+	errors:add(invalid_syntax, 
 	[[
 	error(a:=1)
 	]])
