@@ -427,18 +427,34 @@ do
     end
 end
 do
-    assert(select(2, pcall(load[[--@pluto_warnings disable-all
     repeat
-        continue
         local a = 1
-    until a > 0]])):contains("attempt to compare number with nil"))
-    assert(select(2, pcall(load[[--@pluto_warnings disable-all
+        continue
+    until a > 0
+
+    repeat
+        local a = 1
+        if true then
+            continue
+        end
+    until a > 0
+
+    assert(load[[--@pluto_warnings disable-all
     repeat
         if true then
             continue
         end
         local a = 1
-    until a > 0]])):contains("attempt to compare number with nil"))
+    until a > 0]] == nil)
+
+    assert(load[[--@pluto_warnings disable-all
+    repeat
+        if true then
+            local a = ""
+            continue
+        end
+        local a = 1
+    until a > 0]] == nil)
 end
 
 print "Testing table length cache."
