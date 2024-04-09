@@ -455,6 +455,16 @@ do
         end
         local a = 1
     until a > 0]] == nil)
+
+    assert(load[[--@pluto_warnings disable-all
+    repeat
+        if true then
+            local a = ""
+            continue
+        end
+        local a = 1
+        if false then continue end
+    until a > 0]] == nil)
 end
 
 print "Testing table length cache."

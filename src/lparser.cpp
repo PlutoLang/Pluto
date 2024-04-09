@@ -1312,7 +1312,7 @@ static void continuestat (LexState *ls) {
   }
   while (bl) {
     if (bl->isloop != 1) { /* not a loop, continue search */
-      if (bl->nactvarbeforecontinue != -1 && bl != fs->bl) {
+      if (bl->nactvarbeforecontinue == INT_MAX && bl != fs->bl) {
         bl->nactvarbeforecontinue = fs->bl->nactvar;
       }
       bl = bl->previous; /* jump back current blocks to find the loop */
