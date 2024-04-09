@@ -1075,7 +1075,7 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
   bl->isloop = isloop;
   bl->scopeend = NO_JUMP;
   bl->nactvar = fs->nactvar;
-  bl->nactvarbeforecontinue = MAX_INT;
+  bl->nactvarbeforecontinue = -1;
   bl->firstlabel = fs->ls->dyd->label.n;
   bl->firstgoto = fs->ls->dyd->gt.n;
   bl->upval = 0;
@@ -1312,10 +1312,12 @@ static void continuestat (LexState *ls) {
   }
   while (bl) {
     if (bl->isloop != 1) { /* not a loop, continue search */
+      if (bl->nactvarbeforecontinue != -1 && bl != fs->bl) {
+        bl->nactvarbeforecontinue = fs->bl->nactvar;
+      }
       bl = bl->previous; /* jump back current blocks to find the loop */
     }
     else { /* found a loop */
-      bl->nactvarbeforecontinue = std::min(fs->nactvar, bl->nactvarbeforecontinue);
       if (--backwards == 0) { /* this is our loop */
         break;
       }
@@ -4019,15 +4021,18 @@ static void repeatstat (LexState *ls) {
   BlockCnt bl1, bl2;
   enterblock(fs, &bl1, 1);  /* loop block */
   enterblock(fs, &bl2, 0);  /* scope block */
+  bl2.nactvarbeforecontinue = MAX_INT;  /* mark scope block for continuestat */
   luaX_next(ls);  /* skip REPEAT */
   statlist(ls);
   luaK_patchtohere(fs, bl1.scopeend);
   checknext(ls, TK_UNTIL);
-  int nactvar = fs->nactvar;
-  if (bl1.nactvarbeforecontinue != MAX_INT)
-    fs->nactvar = bl1.nactvarbeforecontinue;
+  if (bl2.nactvarbeforecontinue < fs->nactvar) {
+    Vardesc *var = getlocalvardesc(fs, bl2.nactvarbeforecontinue);
+    const char *msg = "continue jumps into the scope of local '%s' defined on line %d";
+    msg = luaO_pushfstring(ls->L, msg, getstr(var->vd.name), var->vd.line);
+    luaK_semerror(ls, msg);  /* raise the error */
+  }
   condexit = cond(ls);  /* read condition (inside scope block) */
-  fs->nactvar = nactvar;
   leaveblock(fs);  /* finish scope */
   if (bl2.upval) {  /* upvalues? */
     int exit = luaK_jump(fs);  /* normal exit must jump over fix */
