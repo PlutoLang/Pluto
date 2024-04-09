@@ -9,3 +9,5 @@ require vendor/Soup/soup include_dir=.
 -luac.cpp
 
 arg -O3
+
+arg -fPIC
