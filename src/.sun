@@ -10,4 +10,7 @@ require vendor/Soup/soup include_dir=.
 
 arg -O3
 
-arg -fPIC
+if linux
+	arg -DLUA_USE_DLOPEN
+	arg -fPIC
+endif

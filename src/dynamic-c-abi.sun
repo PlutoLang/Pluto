@@ -14,3 +14,6 @@ arg -DPLUTO_C_LINKAGE
 if windows
 	arg -DLUA_BUILD_AS_DLL
 endif
+if linux
+	arg -DLUA_USE_DLOPEN
+endif
