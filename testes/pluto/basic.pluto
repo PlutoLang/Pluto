@@ -405,6 +405,16 @@ do
         end
         assert(line != "This" and line != "Lines")
     end
+
+    local b = false
+    local function test()
+        b = true
+        return true
+    end
+    repeat
+        continue
+    until test()
+    assert(b)
 end
 -- Upvalues should be closed
 do
