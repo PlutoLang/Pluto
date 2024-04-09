@@ -13,7 +13,7 @@ local Pluto_operator_new <const> = function(mt, ...)
     mt.__index = mt
   end
   if mt.__construct then
-    t:__construct(...)
+    mt.__construct(t, ...)
   end
   return t
 end

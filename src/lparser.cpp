@@ -5383,11 +5383,13 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "__construct")));
       ls->tokens.emplace_back(Token(TK_THEN));
 
-      //     t:__construct(...)
-      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "t")));
-      ls->tokens.emplace_back(Token(':'));
+      //     mt.__construct(t, ...)
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
+      ls->tokens.emplace_back(Token('.'));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "__construct")));
       ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "t")));
+      ls->tokens.emplace_back(Token(','));
       ls->tokens.emplace_back(Token(TK_DOTS));
       ls->tokens.emplace_back(Token(')'));
 
