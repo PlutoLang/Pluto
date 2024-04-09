@@ -840,6 +840,8 @@ l_noret luaG_ordererror (lua_State *L, const TValue *p1, const TValue *p2) {
 /* add src:line information to 'msg' */
 const char *luaG_addinfo (lua_State *L, const char *msg, TString *src,
                                         int line) {
+  if (line == 'plin')
+    return luaO_pushfstring(L, "[Pluto-injected code]: %s", msg);
   char buff[LUA_IDSIZE];
   if (src)
     luaO_chunkid(buff, getstr(src), tsslen(src));
