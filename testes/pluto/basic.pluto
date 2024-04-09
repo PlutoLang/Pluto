@@ -416,8 +416,55 @@ do
     until test()
     assert(b)
 end
--- Upvalues should be closed
+-- Test upvalues
 do
+    do
+        local function test(w, r)
+            w(1)
+            assert(r()==1)
+            return true
+        end
+
+        repeat
+            local val
+            local function write(v) val = v end
+            continue
+        until test(write, ||->val)
+    end
+
+    do
+        local t
+        repeat
+            do
+                local u1, u2, u3, u4
+                t = ||->u4
+                continue
+            end
+        until true
+        do
+            for k in pairs({}) do end
+        end
+        assert(t() == nil)
+    end
+
+    do
+        local t
+        do
+            for i = 1, 1 do
+                do
+                    local u1
+                    t = ||->u1
+                    continue
+                end
+            end
+        end
+        do
+            local x
+            for k in pairs({}) do end
+        end
+        assert(t() == nil)
+    end
+
     do
         local tmp = false
         local function c()
@@ -435,20 +482,6 @@ do
             tmp = ||->do b=nil end
             goto x
         end
-    end
-
-    do
-        local function test(w, r)
-            w(1)
-            assert(r()==1)
-            return true
-        end
-
-        repeat
-            local val
-            local function write(v) val = v end
-            continue
-        until test(write, ||->val)
     end
 end
 -- Test variable scoping

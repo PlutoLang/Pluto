@@ -1314,16 +1314,7 @@ static void continuestat (LexState *ls) {
     if (backwards == 1 && bl->previous && bl->previous->nactvarbeforecontinue == INT_MAX) {
       bl->previous->nactvarbeforecontinue = bl->nactvar;
     }
-    if (bl->nactvarbeforecontinue != -1) {  /* repeat...until? */
-      if (--backwards == 0) {
-        break;  /* this is our loop */
-      }
-      else {  /* continue search */
-        bl = bl->previous->previous;
-        ++foundloops;
-      }
-    }
-    else if (bl->isloop == 1) {
+    if (bl->isloop == 1) {
       if (--backwards == 0) {
         break;  /* this is our loop */
       }
@@ -1337,13 +1328,7 @@ static void continuestat (LexState *ls) {
     }
   }
   if (bl) {
-    if (bl->nactvarbeforecontinue != -1) {  /* repeat...until? */
-      luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
-    }
-    else {
-      luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0);  /* close upvalues */
-      luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
-    }
+    luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
   }
   else {
     if (foundloops == 0)
@@ -1367,7 +1352,7 @@ static void continuestat (LexState *ls) {
 static void lbreak (LexState *ls, lua_Integer backwards, int line) {
   FuncState *fs = ls->fs;
   BlockCnt *bl = fs->bl;
-  int upval = bl->upval;
+  lu_byte upval = bl->upval;
   while (bl) {
     if (!bl->isloop) { /* not a loop, continue search */
       upval |= bl->upval; /* amend upvalues for closing. */
@@ -3992,6 +3977,14 @@ static void labelstat (LexState *ls, TString *name, int line) {
 }
 
 
+static void patchcontinuetohere (FuncState *fs, BlockCnt& bl) {
+  if (bl.scopeend != NO_JUMP) {
+    luaK_patchtohere(fs, bl.scopeend);
+    luaK_codeABC(fs, OP_CLOSE, luaY_nvarstack(fs), 0, 0);
+  }
+}
+
+
 static void whilestat (LexState *ls, int line) {
   /* whilestat -> WHILE cond DO block END */
   FuncState *fs = ls->fs;
@@ -4019,8 +4012,8 @@ static void whilestat (LexState *ls, int line) {
     checknext(ls, TK_DO);
     block(ls);
   }
+  patchcontinuetohere(fs, bl);
   luaK_jumpto(fs, whileinit);
-  luaK_patchlist(fs, bl.scopeend, whileinit);
   check_match(ls, TK_END, TK_WHILE, line);
   leaveblock(fs);
   luaK_patchtohere(fs, condexit);  /* false conditions finish the loop */
@@ -4038,7 +4031,7 @@ static void repeatstat (LexState *ls) {
   bl2.nactvarbeforecontinue = MAX_INT;  /* mark scope block for continuestat */
   luaX_next(ls);  /* skip REPEAT */
   statlist(ls);
-  luaK_patchtohere(fs, bl2.scopeend);
+  patchcontinuetohere(fs, bl1);
   checknext(ls, TK_UNTIL);
   if (bl2.nactvarbeforecontinue < fs->nactvar) {
     Vardesc *var = getlocalvardesc(fs, bl2.nactvarbeforecontinue);
@@ -4106,8 +4099,8 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen, Typ
   luaK_reserveregs(fs, nvars);
   block(ls, prop);
   leaveblock(fs);  /* end of scope for declared variables */
+  patchcontinuetohere(fs, *bl.previous);
   fixforjump(fs, prep, luaK_getlabel(fs), 0);
-  luaK_patchtohere(fs, bl.previous->scopeend);
   if (isgen) {  /* generic for? */
     luaK_codeABC(fs, OP_TFORCALL, base, 0, nvars);
     luaK_fixline(fs, line);
