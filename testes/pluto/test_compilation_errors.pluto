@@ -104,4 +104,24 @@ do
 		[c] = 3
 	}
 	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		"a",
+		"b"
+		"c"
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		true,
+		false,
+		true,
+		false
+		true
+	}
+	]])
 end

@@ -1618,7 +1618,7 @@ static void constructor (LexState *ls, expdesc *t) {
     closelistfield(fs, &cc);
     field(ls, &cc);
   } while (testnext(ls, ',') || testnext(ls, ';'));
-  if (ls->t.token == TK_NAME || ls->t.token == TK_FUNCTION || ls->t.token == '[') {
+  if (ls->t.token == TK_NAME || ls->t.token == TK_FUNCTION || ls->t.token == '[' || ls->t.isSimple()) {
     check_match(ls, '}', '{', line, NoteSuggestion::MISSING_TABLE_FIELD_DELIMITER);
   }
   else {
