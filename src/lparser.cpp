@@ -1311,10 +1311,10 @@ static void continuestat (LexState *ls) {
     luaX_next(ls);
   }
   while (bl) {
+    if (bl->previous && bl->previous->nactvarbeforecontinue == INT_MAX) {
+      bl->previous->nactvarbeforecontinue = bl->nactvar;
+    }
     if (bl->isloop != 1) { /* not a loop, continue search */
-      if (bl->nactvarbeforecontinue == INT_MAX && bl != fs->bl) {
-        bl->nactvarbeforecontinue = fs->bl->nactvar;
-      }
       bl = bl->previous; /* jump back current blocks to find the loop */
     }
     else { /* found a loop */
