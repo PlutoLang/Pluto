@@ -1026,6 +1026,15 @@ do
             break
     end
 end
+-- Continue can't be used inside of a switch statement
+assert(load[[
+switch 1 do
+case 1:
+    do
+        continue
+    end
+    break
+end]] == nil)
 
 print "Testing switch expression."
 do

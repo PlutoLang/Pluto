@@ -1312,7 +1312,7 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
   }
   backwards += backwards_surplus;
   while (bl) {
-    if (!bl->isloop) { /* not a loop, continue search */
+    if (bl->isloop != 1) { /* not a loop, continue search */
       bl = bl->previous; /* jump back current blocks to find the loop */
     }
     else { /* found a loop */
