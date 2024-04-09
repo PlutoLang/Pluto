@@ -1301,7 +1301,7 @@ static void continuestat (LexState *ls) {
   FuncState *fs = ls->fs;
   BlockCnt *bl = fs->bl;
   int foundloops = 0;
-  luaX_next(ls); /* skip TK_CONTINUE */
+  luaX_next(ls);  /* skip 'continue' */
   lua_Integer backwards = 1;
   if (ls->t.token == TK_INT) {
     backwards = ls->t.seminfo.i;
@@ -1314,22 +1314,36 @@ static void continuestat (LexState *ls) {
     if (backwards == 1 && bl->previous && bl->previous->nactvarbeforecontinue == INT_MAX) {
       bl->previous->nactvarbeforecontinue = bl->nactvar;
     }
-    if (bl->isloop != 1) { /* not a loop, continue search */
-      bl = bl->previous; /* jump back current blocks to find the loop */
-    }
-    else { /* found a loop */
-      if (--backwards == 0) { /* this is our loop */
-        break;
+    if (bl->nactvarbeforecontinue != -1) {  /* repeat...until? */
+      if (--backwards == 0) {
+        break;  /* this is our loop */
       }
-      else { /* continue search */
+      else {  /* continue search */
+        bl = bl->previous->previous;
+        ++foundloops;
+      }
+    }
+    else if (bl->isloop == 1) {
+      if (--backwards == 0) {
+        break;  /* this is our loop */
+      }
+      else {  /* continue search */
         bl = bl->previous;
         ++foundloops;
       }
     }
+    else {  /* not a loop, continue search */
+      bl = bl->previous;
+    }
   }
   if (bl) {
-    luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
-    luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
+    if (bl->nactvarbeforecontinue != -1) {  /* repeat...until? */
+      luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
+    }
+    else {
+      luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0);  /* close upvalues */
+      luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
+    }
   }
   else {
     if (foundloops == 0)
@@ -4024,7 +4038,7 @@ static void repeatstat (LexState *ls) {
   bl2.nactvarbeforecontinue = MAX_INT;  /* mark scope block for continuestat */
   luaX_next(ls);  /* skip REPEAT */
   statlist(ls);
-  luaK_patchtohere(fs, bl1.scopeend);
+  luaK_patchtohere(fs, bl2.scopeend);
   checknext(ls, TK_UNTIL);
   if (bl2.nactvarbeforecontinue < fs->nactvar) {
     Vardesc *var = getlocalvardesc(fs, bl2.nactvarbeforecontinue);
