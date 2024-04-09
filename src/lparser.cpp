@@ -1296,7 +1296,7 @@ static void statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implie
 ** Continue statement. Semantically similar to "goto continue".
 ** Unlike break, this doesn't use labels. It tracks where to jump via BlockCnt.scopeend;
 */
-static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
+static void continuestat (LexState *ls) {
   auto line = ls->getLineNumber();
   FuncState *fs = ls->fs;
   BlockCnt *bl = fs->bl;
@@ -1310,7 +1310,6 @@ static void continuestat (LexState *ls, lua_Integer backwards_surplus = 0) {
     }
     luaX_next(ls);
   }
-  backwards += backwards_surplus;
   while (bl) {
     if (bl->isloop != 1) { /* not a loop, continue search */
       bl = bl->previous; /* jump back current blocks to find the loop */
@@ -3284,14 +3283,7 @@ static void switchstat (LexState *ls) {
     const int case_line = luaX_lookbehind(ls).line;
     if (gett(ls) != TK_CASE && gett(ls) != TK_DEFAULT && gett(ls) != TK_END && gett(ls) != TK_FALLTHROUGH) {  /* non-empty case? */
       do {
-        if (gett(ls) == TK_PCONTINUE
-            || gett(ls) == TK_CONTINUE
-            ) {
-          continuestat(ls, 1);
-        }
-        else {
-          statement(ls);
-        }
+        statement(ls);
       }
       while (gett(ls) != TK_CASE && gett(ls) != TK_DEFAULT && gett(ls) != TK_END && gett(ls) != TK_FALLTHROUGH);
       if (ls->t.token == TK_CASE && ls->laststat.token != TK_BREAK && ls->laststat.token != TK_RETURN && ls->laststat.token != TK_GOTO) {
