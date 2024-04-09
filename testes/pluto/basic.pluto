@@ -476,6 +476,15 @@ do
         end
         local a = 1
     until a > 0]] == nil)
+
+    repeat
+        repeat
+            if true then
+                continue 2
+            end
+            local a = 1
+        until a > 0
+    until true
 end
 
 print "Testing table length cache."
