@@ -652,8 +652,6 @@ static void findloader (lua_State *L, const char *name) {
   if (l_unlikely(lua_getfield(L, lua_upvalueindex(1), "searchers")
                  != LUA_TTABLE))
     luaL_error(L, "'package.searchers' must be a table");
-  luaL_buffinit(L, &msg);
-  /* find available searchers to find a loader */
   if (strncmp(name, PLUTO_REQUIRE_PREFIX, sizeof(PLUTO_REQUIRE_PREFIX) - 1) == 0) {
     const char* package_name = name + sizeof(PLUTO_REQUIRE_PREFIX) - 1;
     lua_pushcfunction(L, searcher_preload);
@@ -669,11 +667,13 @@ static void findloader (lua_State *L, const char *name) {
     }
     return;
   }
+  luaL_buffinit(L, &msg);
+  luaL_addstring(&msg, "\n\t");  /* error-message prefix for first message */
+  /*  iterate over available searchers to find a loader */
   for (i = 1; ; i++) {
-    luaL_addstring(&msg, "\n\t");  /* error-message prefix */
     if (l_unlikely(lua_rawgeti(L, 3, i) == LUA_TNIL)) {  /* no more searchers? */
       lua_pop(L, 1);  /* remove nil */
-      luaL_buffsub(&msg, 2);  /* remove prefix */
+      luaL_buffsub(&msg, 2);  /* remove last prefix */
       luaL_pushresult(&msg);  /* create error message */
       luaL_error(L, "module '%s' not found:%s", name, lua_tostring(L, -1));
     }
@@ -684,11 +684,10 @@ static void findloader (lua_State *L, const char *name) {
     else if (lua_isstring(L, -2)) {  /* searcher returned error message? */
       lua_pop(L, 1);  /* remove extra return */
       luaL_addvalue(&msg);  /* concatenate error message */
+      luaL_addstring(&msg, "\n\t");  /* prefix for next message */
     }
-    else {  /* no error message */
+    else  /* no error message */
       lua_pop(L, 2);  /* remove both returns */
-      luaL_buffsub(&msg, 2);  /* remove prefix */
-    }
   }
 }
 
