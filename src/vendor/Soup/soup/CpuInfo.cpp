@@ -71,7 +71,7 @@ NAMESPACE_SOUP
 	#undef EBX
 	#undef EDX
 	#undef ECX
-#elif SOUP_ARM
+#elif SOUP_ARM && SOUP_BITS == 64
 	#if SOUP_WINDOWS
 		armv8_aes = IsProcessorFeaturePresent(PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE);
 		armv8_sha1 = IsProcessorFeaturePresent(PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE);
@@ -127,13 +127,15 @@ NAMESPACE_SOUP
 		}
 
 		return str;
-#elif SOUP_ARM
+#elif SOUP_ARM && SOUP_BITS == 64
 		std::string str = "ARMv8 AES: ";
 		str.append(armv8_aes ? "true" : "false");
 		str.append("\nARMv8 SHA1: ").append(armv8_sha1 ? "true" : "false");
 		str.append("\nARMv8 SHA2: ").append(armv8_sha2 ? "true" : "false");
 		str.append("\nARMv8 CRC32: ").append(armv8_crc32 ? "true" : "false");
 		return str;
+#else
+        return "";
 #endif
 	}
 
