@@ -1,7 +1,7 @@
 CXX=g++ -std=c++17 -O3 -flto -fvisibility=hidden -fPIC
 CFLAGS=-c -Wall
 
-ifneq (, $(filter $(shell uname -m),x84_64 i686 i368))
+ifneq (, $(filter $(shell uname -m),x84_64 i686 i386))
 	CFLAGS+= -maes -mpclmul -mrdrnd -mrdseed -msha -msse4.1
 endif
 ifeq ($(shell uname -m),aarch64)
