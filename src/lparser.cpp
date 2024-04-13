@@ -190,10 +190,14 @@ static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
 **   - Non-portable keyword usage. (class, switch, etc)
 */
 static void check_for_non_portable_code (LexState *ls) {
-  if (ls->t.IsNonCompatible() && !ls->t.IsOverridable() && ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_ENV) {
-    throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)), WT_NON_PORTABLE_CODE);
-    ls->L->top.p--;
-    return;
+  if (ls->t.IsNonCompatible() && !ls->t.IsOverridable()) {
+    if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
+      ls->setKeywordState(ls->t.token, KS_ENABLED_BY_PLUTO_INFORMED);
+    }
+    if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_INFORMED || ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_ENV) {  /* enabled by a means other than 'pluto_use'? */
+      throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)), WT_NON_PORTABLE_CODE);
+      ls->L->top.p--;
+    }
   }
 }
 
@@ -370,8 +374,16 @@ enum NameFlags {
   return 0;
 }
 
+static void disablekeyword (LexState *ls, int token) {
+  auto i = ls->tokens.begin();
+  if (ls->tidx != -1)
+    i += ls->tidx;  /* don't apply retroactively */
+  for (; i != ls->tokens.end(); ++i)
+    if (i->token == token)
+      i->token = TK_NAME;
+}
+
 static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
-  TString *ts;
 #ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
@@ -380,15 +392,21 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
 #endif
   if (!isnametkn(ls, flags)) {
     if (ls->t.IsNonCompatible()) {
+      if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
+        disablekeyword(ls, ls->t.token);
+        ls->setKeywordState(ls->t.token, KS_DISABLED_BY_PLUTO_INFORMED);
+        luaX_setpos(ls, luaX_getpos(ls));  /* update ls->t */
+        return str_checkname(ls, flags);  /* try again */
+      }
       throwerr(ls, luaO_fmt(ls->L, "expected a name, found %s", luaX_token2str(ls, ls->t.token)), luaO_fmt(ls->L, "%s has a different meaning in Pluto, but you can disable this: https://pluto.do/compat", luaX_token2str(ls, ls->t.token)));
     }
     error_expected(ls, TK_NAME);
   }
-  ts = ls->t.seminfo.ts;
+  TString *ts = ls->t.seminfo.ts;
   lua_assert(ts != nullptr);
   if (!(flags & N_RESERVED) && !(flags & N_RESERVED_NON_VALUE)) {
     if (auto t = find_non_compat_tkn_by_name(ls, getstr(ts)); t != 0 && t != TK_PARENT) {
-      if (ls->getKeywordState(t) != KS_DISABLED_BY_USER) {
+      if (ls->getKeywordState(t) != KS_DISABLED_BY_SCRIPTER) {
         throw_warn(
           ls,
           luaO_fmt(ls->L, "'%s' is a non-portable name", getstr(ts)),
@@ -1828,9 +1846,6 @@ static void localclass (LexState *ls) {
   ls->classes.emplace();
 
   size_t name_pos = luaX_getpos(ls);
-  if (ls->t.token == '=') {
-    throwerr(ls, "expected a class name, found '='", "'class' has a different meaning in Pluto, but you can disable this: https://pluto.do/compat");
-  }
   TString *name = str_checkname(ls, 0);
   size_t parent_pos = checkextends(ls);
 
@@ -4677,7 +4692,16 @@ static void exprstat (LexState *ls) {
   }
   else {  /* stat -> func */
     Instruction *inst;
-    check_condition(ls, v.v.k == VCALL || v.v.k == VSAFECALL, "syntax error");
+    if (l_unlikely(v.v.k != VCALL && v.v.k != VSAFECALL)) {
+      if (luaX_lookbehind(ls).token == TK_NAME) {
+        if (auto t = find_non_compat_tkn_by_name(ls, getstr(luaX_lookbehind(ls).seminfo.ts))) {
+          if (ls->getKeywordState(t) == KS_DISABLED_BY_PLUTO_INFORMED) {
+            throwerr(ls, luaO_fmt(ls->L, "syntax error near %s", luaX_token2str(ls, ls->t.token)), luaO_fmt(ls->L, "%s was not recognized as a statement because it was previously used as an identifier", luaX_token2str(ls, t)));
+          }
+        }
+      }
+      luaX_syntaxerror(ls, "syntax error");
+    }
     inst = &getinstruction(fs, &v.v);
     SETARG_C(*inst, 1);  /* call statement uses no results */
     if (ls->nodiscard) {
@@ -4779,17 +4803,6 @@ static int checkkeyword (LexState *ls) {
   return token;
 }
 
-static void disablekeyword (LexState *ls, int token, bool due_to_compat_mode = false) {
-  if (due_to_compat_mode)
-    ls->setKeywordState(token, KS_DISABLED_BY_ENV);
-  auto i = ls->tokens.begin();
-  if (ls->tidx != -1)
-    i += ls->tidx;  /* don't apply retroactively */
-  for (; i != ls->tokens.end(); ++i)
-    if (i->token == token)
-      i->token = TK_NAME;
-}
-
 static void enablekeyword (LexState *ls, int token) {
   const char* str = luaX_reserved2str(token);
   auto i = ls->tokens.begin() + ls->tidx;
@@ -4810,11 +4823,11 @@ static void enablekeyword (LexState *ls, int token) {
 
 static void togglekeyword (LexState *ls, int token, bool enable) {
   if (ls->isKeywordEnabled(token) != enable) {
-    ls->setKeywordState(token, enable ? KS_ENABLED_BY_USER : KS_DISABLED_BY_USER);
+    ls->setKeywordState(token, enable ? KS_ENABLED_BY_SCRIPTER : KS_DISABLED_BY_SCRIPTER);
     if (enable)
       enablekeyword(ls, token);
     else
-      disablekeyword(ls, token, false);
+      disablekeyword(ls, token);
   }
 }
 
@@ -4887,8 +4900,8 @@ static void usestat (LexState *ls) {
         /* disable all non-compatible keywords as of this Pluto version, then enable those from the elected Pluto version. */
         for (int i = FIRST_NON_COMPAT; i != END_OPTIONAL; ++i) {
           if (ls->isKeywordEnabled(i)) {
-            ls->setKeywordState(i, KS_DISABLED_BY_USER);
-            disablekeyword(ls, i, false);
+            ls->setKeywordState(i, KS_DISABLED_BY_SCRIPTER);
+            disablekeyword(ls, i);
           }
         }
       }
@@ -5311,8 +5324,23 @@ static void statement (LexState *ls, TypeHint *prop) {
 #endif
       if (testnext(ls, TK_FUNCTION))  /* local function? */
         localfunc(ls);
-      else if (testnext2(ls, TK_CLASS, TK_PCLASS))
-        localclass(ls);
+      else if (testnext2(ls, TK_CLASS, TK_PCLASS)) {
+        if (ls->t.token == '=') {
+          if (luaX_lookbehind(ls).token == TK_CLASS && ls->getKeywordState(TK_CLASS) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
+            luaX_prev(ls);
+            disablekeyword(ls, TK_CLASS);
+            ls->setKeywordState(TK_CLASS, KS_DISABLED_BY_PLUTO_INFORMED);
+            luaX_setpos(ls, luaX_getpos(ls));  /* update ls->t */
+            localstat(ls);
+          }
+          else {
+            throwerr(ls, "expected a class name, found '='", "'class' has a different meaning in Pluto, but you can disable this: https://pluto.do/compat");
+          }
+        }
+        else {
+          localclass(ls);
+        }
+      }
       else
         localstat(ls);
       break;
@@ -5854,24 +5882,42 @@ LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
   lexstate.dyd = dyd;
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
   luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
-  if (L->l_G->compatible_switch)
-    disablekeyword(&lexstate, TK_SWITCH, true);
-  if (L->l_G->compatible_continue)
-    disablekeyword(&lexstate, TK_CONTINUE, true);
-  if (L->l_G->compatible_enum)
-    disablekeyword(&lexstate, TK_ENUM, true);
-  if (L->l_G->compatible_new)
-    disablekeyword(&lexstate, TK_NEW, true);
-  if (L->l_G->compatible_class)
-    disablekeyword(&lexstate, TK_CLASS, true);
-  if (L->l_G->compatible_parent)
-    disablekeyword(&lexstate, TK_PARENT, true);
-  if (L->l_G->compatible_export)
-    disablekeyword(&lexstate, TK_EXPORT, true);
-  if (L->l_G->compatible_try)
-    disablekeyword(&lexstate, TK_TRY, true);
-  if (L->l_G->compatible_catch)
-    disablekeyword(&lexstate, TK_CATCH, true);
+  if (L->l_G->compatible_switch) {
+    disablekeyword(&lexstate, TK_SWITCH);
+    lexstate.setKeywordState(TK_SWITCH, KS_DISABLED_BY_ENV);
+  }
+  if (L->l_G->compatible_continue) {
+    disablekeyword(&lexstate, TK_CONTINUE);
+    lexstate.setKeywordState(TK_CONTINUE, KS_DISABLED_BY_ENV);
+  }
+  if (L->l_G->compatible_enum) {
+    disablekeyword(&lexstate, TK_ENUM);
+    lexstate.setKeywordState(TK_ENUM, KS_DISABLED_BY_ENV);
+  }
+  if (L->l_G->compatible_new) {
+    disablekeyword(&lexstate, TK_NEW);
+    lexstate.setKeywordState(TK_NEW, KS_DISABLED_BY_ENV);
+  }
+  if (L->l_G->compatible_class) {
+    disablekeyword(&lexstate, TK_CLASS);
+    lexstate.setKeywordState(TK_CLASS, KS_DISABLED_BY_ENV);
+  }
+  if (L->l_G->compatible_parent) {
+    disablekeyword(&lexstate, TK_PARENT);
+    lexstate.setKeywordState(TK_PARENT, KS_DISABLED_BY_ENV);
+  }
+  if (L->l_G->compatible_export) {
+    disablekeyword(&lexstate, TK_EXPORT);
+    lexstate.setKeywordState(TK_EXPORT, KS_DISABLED_BY_ENV);
+  }
+  if (L->l_G->compatible_try) {
+    disablekeyword(&lexstate, TK_TRY);
+    lexstate.setKeywordState(TK_TRY, KS_DISABLED_BY_ENV);
+  }
+  if (L->l_G->compatible_catch) {
+    disablekeyword(&lexstate, TK_CATCH);
+    lexstate.setKeywordState(TK_CATCH, KS_DISABLED_BY_ENV);
+  }
 #ifndef PLUTO_USE_LET
   disablekeyword(&lexstate, TK_LET);
 #endif
