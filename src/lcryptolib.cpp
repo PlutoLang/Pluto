@@ -27,10 +27,10 @@
 
 static int fnv1(lua_State *L)
 {
-  const auto FNV_offset_basis = 0xcbf29ce484222325;
-  const auto FNV_prime = 0x100000001b3;
+  const auto FNV_offset_basis = 0xcbf29ce484222325ull;
+  const auto FNV_prime = 0x100000001b3ull;
   const std::string s  = luaL_checkstring(L, 1);
-  lua_Integer hash     = FNV_offset_basis;
+  uint64_t hash     = FNV_offset_basis;
   
   for (auto& c : s)
   {
@@ -45,10 +45,10 @@ static int fnv1(lua_State *L)
 
 static int fnv1a(lua_State *L)
 {
-  const auto FNV_offset_basis = 0xcbf29ce484222325;
-  const auto FNV_prime = 0x100000001b3;
+  const auto FNV_offset_basis = 0xcbf29ce484222325ull;
+  const auto FNV_prime = 0x100000001b3ull;
   const std::string s  = luaL_checkstring(L, 1);
-  lua_Integer hash     = FNV_offset_basis;
+  uint64_t hash     = FNV_offset_basis;
   
   for (auto& c : s)
   {
