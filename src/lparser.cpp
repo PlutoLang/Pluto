@@ -1945,46 +1945,6 @@ static void skip_over_simpleexp_within_lambdaparlist (LexState *ls) {
   }
 }
 
-/* keep advancing until we hit non-nested 'else' or 'end' */
-static void skip_block (LexState *ls) {
-  int ends = 0;
-  while (ls->t.token != TK_EOS) {
-    if (ls->t.token == TK_THEN || ls->t.token == TK_DO) {
-      ends++;
-    }
-    else if (ls->t.token == TK_ELSEIF) {
-      ends--; /* "elseif ... then" should offset `ends` by 0, but the 'then' would increment it by 1, so we countact this here. */
-    }
-    else if (ls->t.token == TK_ELSE) {
-      if (ends == 0) {
-        break;
-      }
-    }
-    else if (ls->t.token == TK_END) {
-      if (ends == 0) {
-        break;
-      }
-      ends--;
-    }
-    else if (ls->t.token == '$') {
-      if (luaX_lookahead(ls) == TK_ELSE) {
-        if (ends == 0) {
-          break;
-        }
-      }
-      else if (luaX_lookahead(ls) == TK_END) {
-        if (ends == 0) {
-          break;
-        }
-        ends--;
-      }
-      luaX_next(ls);
-    }
-    luaX_next(ls);
-  }
-}
-
-
 static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* promotions, std::vector<size_t>* fallbacks, TString** varargname, bool lambda) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
@@ -4291,6 +4251,31 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
 }
 
 
+/* keep advancing until we hit non-nested '$else' or '$end' */
+static void skip_constexpr_block (LexState *ls) {
+  int depth = 0;
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.token == '$') {
+      if (luaX_lookahead(ls) == TK_IF) {
+        ++depth;
+      }
+      else if (luaX_lookahead(ls) == TK_ELSE) {
+        if (depth == 0) {
+          break;
+        }
+      }
+      else if (luaX_lookahead(ls) == TK_END) {
+        if (depth == 0) {
+          break;
+        }
+        depth--;
+      }
+      luaX_next(ls);
+    }
+    luaX_next(ls);
+  }
+}
+
 static void constexprifstat (LexState *ls, int line) {
   expdesc c;
   expr(ls, &c);
@@ -4305,7 +4290,7 @@ static void constexprifstat (LexState *ls, int line) {
     block(ls);
   }
   else {
-    skip_block(ls);
+    skip_constexpr_block(ls);
   }
   checknext(ls, '$');
   if (testnext(ls, TK_ELSE)) {
@@ -4313,7 +4298,7 @@ static void constexprifstat (LexState *ls, int line) {
       block(ls);
     }
     else {
-      skip_block(ls);
+      skip_constexpr_block(ls);
     }
     checknext(ls, '$');
   }
