@@ -350,8 +350,6 @@ typedef union Vardesc {
 } Vardesc;
 
 
-#define LABEL_FLAG_CLOSE 0x01
-#define LABEL_FLAG_SPECIAL 0x02
 
 /* description of pending goto statements and label statements */
 typedef struct Labeldesc {
@@ -359,7 +357,8 @@ typedef struct Labeldesc {
   int pc;  /* position in code */
   int line;  /* line where it appeared */
   lu_byte nactvar;  /* number of active variables in that position */
-  lu_byte flags;  /* flags */
+  lu_byte close : 1; /* goto that escapes upvalues */
+  lu_byte special : 1; /* This is a special value for break or continue, the name is then a pointer to a BlockCnt */
 } Labeldesc;
 
 
