@@ -72,16 +72,25 @@ static int luaB_wcall (lua_State *L) {
   const auto og_ud_warn = G(L)->ud_warn;
   const auto og_warnf = G(L)->warnf;
 
-  /* write all warnings to a buffer */
-  luaL_Buffer b;
-  luaL_buffinit(L, &b);
+  /* allocate buffer */
+  auto str = new (lua_newuserdata(L, sizeof(std::string))) std::string{};
+  lua_newtable(L);
+  lua_pushliteral(L, "__gc");
+  lua_pushcfunction(L, [](lua_State *L) -> int {
+    std::destroy_at<>(reinterpret_cast<std::string*>(lua_touserdata(L, -1)));
+    return 0;
+  });
+  lua_settable(L, -3);
+  lua_setmetatable(L, -2);
+
+  /* write all warnings to buffer */
   lua_setwarnf(L, [](void *ud, const char *message, int tocont) {
-    auto B = reinterpret_cast<luaL_Buffer*>(ud);
-    luaL_addstring(B, message);
+    auto str = reinterpret_cast<std::string*>(ud);
+    str->append(message);
     if (!tocont) {
-      luaL_addchar(B, '\n');
+      str->push_back('\n');
     }
-  }, &b);
+  }, str);
 
   /* call provided function */
   lua_pushvalue(L, 1);
@@ -92,7 +101,7 @@ static int luaB_wcall (lua_State *L) {
   G(L)->warnf = og_warnf;
 
   /* return warnings buffer */
-  luaL_pushresult(&b);
+  lua_pushlstring(L, str->data(), str->size());
   return 1;
 }
 
