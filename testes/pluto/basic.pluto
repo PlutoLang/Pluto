@@ -2065,6 +2065,23 @@ do
         assert(t[9]() == 1)
     end
 end
+do -- Local can be used for subsequent binary operators
+    local function initfunc(overwrite)
+        return overwrite ? overwrite : "foobar"
+    end
+
+    if (a := initfunc()) ~= 0 then
+        assert(a == "foobar")
+    else
+        error()
+    end
+
+    if (a := initfunc(0)) ~= 0 then
+        error()
+    else
+        assert(a == 0)
+    end
+end
 
 print "Testing for-as loop."
 do

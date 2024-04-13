@@ -3065,6 +3065,9 @@ static void newexpr (LexState *ls, expdesc *v) {
 
 
 static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nullptr, int flags = 0);
+static BinOpr binop (LexState *ls, expdesc *v, int limit = 0, TypeHint *prop = nullptr, int flags = 0);
+
+
 static BinOpr custombinaryoperator (LexState *ls, expdesc *v, int flags, TString *impl) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
@@ -3543,7 +3546,6 @@ static const struct {
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
 static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int flags) {
-  BinOpr op;
   UnOpr uop;
   enterlevel(ls);
   uop = getunopr(ls->t.token);
@@ -3583,6 +3585,13 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
     leavelevel(ls);
     return OPR_NOBINOPR;
   }
+  auto ret = binop(ls, v, limit, prop, flags);
+  leavelevel(ls);
+  return ret;
+}
+
+static BinOpr binop (LexState *ls, expdesc *v, int limit, TypeHint *prop, int flags) {
+  BinOpr op;
   /* expand while operators have priorities higher than 'limit' */
   if (l_unlikely(ls->t.token == TK_POW))
     throw_warn(ls, "'**' is deprecated", "use '^' instead", WT_DEPRECATED);
@@ -3651,7 +3660,6 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
     }
     op = nextop;
   }
-  leavelevel(ls);
   return op;  /* return first untreated operator */
 }
 
@@ -3861,6 +3869,11 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
 }
 
 static void walrusexpr (LexState *ls, expdesc *v) {
+  const int line = ls->getLineNumber();
+  const auto pos = luaX_getpos(ls);
+  const bool cont = (testnext(ls, '(') && luaX_lookahead(ls) == TK_WALRUS);
+  if (!cont)
+    luaX_setpos(ls, pos);
   if (luaX_lookahead(ls) == TK_WALRUS) {
     TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
     luaX_next(ls);  /* skip ':=' */
@@ -3868,6 +3881,10 @@ static void walrusexpr (LexState *ls, expdesc *v) {
     expr(ls, v);
     adjust_assign(ls, 1, 1, v);
     adjustlocalvars(ls, 1);
+    if (cont) {
+      check_match(ls, ')', '(', line);
+      binop(ls, v);
+    }
   }
   else
     expr(ls, v);
