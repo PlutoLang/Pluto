@@ -2455,9 +2455,8 @@ static void method_call_funcargs (LexState *ls, expdesc *v) {
     v->k = VSAFECALL;
     v->u.pc = pc;  /* instruction pc */
     int jt = luaK_jump(fs);
-    luaK_patchtohere(fs, jf);    
-    luaK_dectop(fs, v->u.reg + 2, v->u.reg + 1);  /* because VSAFECALL is mulret, we need to manage L->top.
-                                                     specifically, decrement it to discard the table that OP_SELF pushed. */
+    luaK_patchtohere(fs, jf);
+    luaK_nil(fs, v->u.reg + 1, 1);  /* failed to call, push nil */
     luaK_patchtohere(fs, jt);
   }
   else
@@ -2517,7 +2516,7 @@ static void safe_navigation (LexState *ls, expdesc *v) {
   }
   if (is_method_call) {
     v->k = VSAFECALL;
-    luaK_dectop(fs, v->u.reg + 2, v->u.reg + 1);
+    luaK_nil(fs, v->u.reg + 1, 1);  /* failed to call, push nil */
     luaK_patchtohere(fs, jt);
   }
 }

@@ -722,11 +722,11 @@ void luaK_setreturns (FuncState *fs, expdesc *e, int nresults) {
   else if (e->k == VSAFECALL) {
     SETARG_C(*pc, nresults + 1);
     if (nresults != LUA_MULTRET) {
-      lua_assert(GET_OPCODE(pc[3]) == OP_LOADNIL);
-      SETARG_B(pc[3], nresults - 1);
+      lua_assert(GET_OPCODE(pc[2]) == OP_LOADNIL);
+      SETARG_B(pc[2], nresults - 1);
       /* handle double-safecall as well (optinst?:optmethod?) */
-      if (e->u.pc + 6 < fs->f->sizecode && GET_OPCODE(pc[4]) == OP_JMP && GET_OPCODE(pc[5]) == OP_CONCAT && GET_OPCODE(pc[6]) == OP_LOADNIL) {
-        SETARG_B(pc[6], nresults - 1);
+      if (e->u.pc + 4 < fs->f->sizecode && GET_OPCODE(pc[3]) == OP_JMP && GET_OPCODE(pc[4]) == OP_LOADNIL) {
+        SETARG_B(pc[4], nresults - 1);
       }
     }
   }
@@ -2043,7 +2043,7 @@ void luaK_finish (FuncState *fs) {
   Proto *p = fs->f;
   for (i = 0; i < fs->pc; i++) {
     Instruction *pc = &p->code[i];
-    //lua_assert(i == 0 || isOT(*(pc - 1)) == isIT(*pc));  /* [Pluto] luaK_settop definitely violates this */
+    lua_assert(i == 0 || isOT(*(pc - 1)) == isIT(*pc));
     switch (GET_OPCODE(*pc)) {
       case OP_RETURN0: case OP_RETURN1: {
         if (!(fs->needclose || p->is_vararg))
@@ -2085,17 +2085,4 @@ void luaK_invertcond (FuncState *fs, int list) {
   expdesc e;
   e.u.pc = list;
   negatecondition(fs, &e);
-}
-
-
-void luaK_settop (FuncState *fs, int reg) {
-  /* OP_CONCAT with R(B) = 1 is a no-op BUT it does set L->top to R(A) + R(B), so that's a bytecode-compatible 'set top' for us. :) */
-  luaK_codeABC(fs, OP_CONCAT, reg - 1, 1, 0);
-}
-
-
-void luaK_dectop (FuncState *fs, int from, int to) {
-  lua_assert(from > to);
-  luaK_settop(fs, to);
-  luaK_nil(fs, to, from - to);
 }
