@@ -4283,9 +4283,7 @@ static void constexprifstat (LexState *ls, int line) {
   else {
     skip_block(ls);
   }
-  if (!testnext(ls, '$')) {
-    throw_warn(ls, "Compile-time control flow statement should be prefixed with a $", WT_DEPRECATED);
-  }
+  checknext(ls, '$');
   if (testnext(ls, TK_ELSE)) {
     if (disposition == false) {
       block(ls);
@@ -4293,9 +4291,7 @@ static void constexprifstat (LexState *ls, int line) {
     else {
       skip_block(ls);
     }
-    if (!testnext(ls, '$')) {
-      throw_warn(ls, "Compile-time control flow statement should be prefixed with a $", WT_DEPRECATED);
-    }
+    checknext(ls, '$');
   }
   check_match(ls, TK_END, TK_IF, line);
 }
