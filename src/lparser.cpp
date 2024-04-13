@@ -5654,6 +5654,17 @@ static void mainfunc (LexState *ls, FuncState *fs) {
 }
 
 
+static void applyenvkeywordpreference (LexState *ls, int t, bool b) {
+  if (b) {
+    ls->setKeywordState(t, KS_ENABLED_BY_ENV);
+  }
+  else {
+    disablekeyword(ls, t);
+    ls->setKeywordState(t, KS_DISABLED_BY_ENV);
+  }
+}
+
+
 LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
                        Dyndata *dyd, const char *name, int firstchar) {
   FuncState funcstate;
@@ -5671,42 +5682,24 @@ LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
   lexstate.dyd = dyd;
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
   luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
-  if (L->l_G->compatible_switch) {
-    disablekeyword(&lexstate, TK_SWITCH);
-    lexstate.setKeywordState(TK_SWITCH, KS_DISABLED_BY_ENV);
-  }
-  if (L->l_G->compatible_continue) {
-    disablekeyword(&lexstate, TK_CONTINUE);
-    lexstate.setKeywordState(TK_CONTINUE, KS_DISABLED_BY_ENV);
-  }
-  if (L->l_G->compatible_enum) {
-    disablekeyword(&lexstate, TK_ENUM);
-    lexstate.setKeywordState(TK_ENUM, KS_DISABLED_BY_ENV);
-  }
-  if (L->l_G->compatible_new) {
-    disablekeyword(&lexstate, TK_NEW);
-    lexstate.setKeywordState(TK_NEW, KS_DISABLED_BY_ENV);
-  }
-  if (L->l_G->compatible_class) {
-    disablekeyword(&lexstate, TK_CLASS);
-    lexstate.setKeywordState(TK_CLASS, KS_DISABLED_BY_ENV);
-  }
-  if (L->l_G->compatible_parent) {
-    disablekeyword(&lexstate, TK_PARENT);
-    lexstate.setKeywordState(TK_PARENT, KS_DISABLED_BY_ENV);
-  }
-  if (L->l_G->compatible_export) {
-    disablekeyword(&lexstate, TK_EXPORT);
-    lexstate.setKeywordState(TK_EXPORT, KS_DISABLED_BY_ENV);
-  }
-  if (L->l_G->compatible_try) {
-    disablekeyword(&lexstate, TK_TRY);
-    lexstate.setKeywordState(TK_TRY, KS_DISABLED_BY_ENV);
-  }
-  if (L->l_G->compatible_catch) {
-    disablekeyword(&lexstate, TK_CATCH);
-    lexstate.setKeywordState(TK_CATCH, KS_DISABLED_BY_ENV);
-  }
+  if (L->l_G->have_preference_switch)
+    applyenvkeywordpreference(&lexstate, TK_SWITCH, L->l_G->preference_switch);
+  if (L->l_G->have_preference_continue)
+    applyenvkeywordpreference(&lexstate, TK_CONTINUE, L->l_G->preference_continue);
+  if (L->l_G->have_preference_enum)
+    applyenvkeywordpreference(&lexstate, TK_ENUM, L->l_G->preference_enum);
+  if (L->l_G->have_preference_new)
+    applyenvkeywordpreference(&lexstate, TK_NEW, L->l_G->preference_new);
+  if (L->l_G->have_preference_class)
+    applyenvkeywordpreference(&lexstate, TK_CLASS, L->l_G->preference_class);
+  if (L->l_G->have_preference_parent)
+    applyenvkeywordpreference(&lexstate, TK_PARENT, L->l_G->preference_parent);
+  if (L->l_G->have_preference_export)
+    applyenvkeywordpreference(&lexstate, TK_EXPORT, L->l_G->preference_export);
+  if (L->l_G->have_preference_try)
+    applyenvkeywordpreference(&lexstate, TK_TRY, L->l_G->preference_try);
+  if (L->l_G->have_preference_catch)
+    applyenvkeywordpreference(&lexstate, TK_CATCH, L->l_G->preference_catch);
 #ifndef PLUTO_USE_LET
   disablekeyword(&lexstate, TK_LET);
 #endif

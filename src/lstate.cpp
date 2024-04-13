@@ -414,34 +414,62 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   setgcparam(g->genmajormul, LUAI_GENMAJORMUL);
   g->genminormul = LUAI_GENMINORMUL;
   for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;
-  g->setCompatibilityMode(false);
+
 #ifdef PLUTO_COMPATIBLE_SWITCH
-  g->compatible_switch = true;
+  g->have_preference_switch = true;
+  g->preference_switch = false;
+#else
+  g->have_preference_switch = false;
 #endif
 #ifdef PLUTO_COMPATIBLE_CONTINUE
-  g->compatible_continue = true;
+  g->have_preference_continue = true;
+  g->preference_continue = false;
+#else
+  g->have_preference_continue = false;
 #endif
 #ifdef PLUTO_COMPATIBLE_ENUM
-  g->compatible_enum = true;
+  g->have_preference_enum = true;
+  g->preference_enum = false;
+#else
+  g->have_preference_enum = false;
 #endif
 #ifdef PLUTO_COMPATIBLE_NEW
-  g->compatible_new = true;
+  g->have_preference_new = true;
+  g->preference_new = false;
+#else
+  g->have_preference_new = false;
 #endif
 #ifdef PLUTO_COMPATIBLE_CLASS
-  g->compatible_class = true;
+  g->have_preference_class = true;
+  g->preference_class = false;
+#else
+  g->have_preference_class = false;
 #endif
 #ifdef PLUTO_COMPATIBLE_PARENT
-  g->compatible_parent = true;
+  g->have_preference_parent = true;
+  g->preference_parent = false;
+#else
+  g->have_preference_parent = false;
 #endif
 #ifdef PLUTO_COMPATIBLE_EXPORT
-  g->compatible_export = true;
+  g->have_preference_export = true;
+  g->preference_export = false;
+#else
+  g->have_preference_export = false;
 #endif
 #ifdef PLUTO_COMPATIBLE_TRY
-  g->compatible_try = true;
+  g->have_preference_try = true;
+  g->preference_try = false;
+#else
+  g->have_preference_try = false;
 #endif
 #ifdef PLUTO_COMPATIBLE_CATCH
-  g->compatible_catch = true;
+  g->have_preference_catch = true;
+  g->preference_catch = false;
+#else
+  g->have_preference_catch = false;
 #endif
+
   g->scheduler = nullptr;
 #ifdef PLUTO_ETL_ENABLE
   g->deadline = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() + PLUTO_ETL_NANOS;
