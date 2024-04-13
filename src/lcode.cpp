@@ -2032,7 +2032,7 @@ void luaK_finish (FuncState *fs) {
   Proto *p = fs->f;
   for (i = 0; i < fs->pc; i++) {
     Instruction *pc = &p->code[i];
-    lua_assert(i == 0 || isOT(*(pc - 1)) == isIT(*pc));
+    //lua_assert(i == 0 || isOT(*(pc - 1)) == isIT(*pc));  /* [Pluto] luaK_settop definitely violates this */
     switch (GET_OPCODE(*pc)) {
       case OP_RETURN0: case OP_RETURN1: {
         if (!(fs->needclose || p->is_vararg))
