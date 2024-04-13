@@ -724,6 +724,10 @@ void luaK_setreturns (FuncState *fs, expdesc *e, int nresults) {
     if (nresults != LUA_MULTRET) {
       lua_assert(GET_OPCODE(pc[3]) == OP_LOADNIL);
       SETARG_B(pc[3], nresults - 1);
+      /* handle double-safecall as well (optinst?:optmethod?) */
+      if (e->u.pc + 6 < fs->f->sizecode && GET_OPCODE(pc[4]) == OP_JMP && GET_OPCODE(pc[5]) == OP_CONCAT && GET_OPCODE(pc[6]) == OP_LOADNIL) {
+        SETARG_B(pc[6], nresults - 1);
+      }
     }
   }
   else {
