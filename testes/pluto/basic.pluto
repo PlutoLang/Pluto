@@ -483,6 +483,18 @@ do
             goto x
         end
     end
+
+    do
+        local tmp
+        while true do
+            local x
+            ::again::
+            if tmp then break 1 end
+            tmp = ||->x
+            goto again
+        end
+        assert(tmp() == nil)
+    end
 end
 -- Test variable scoping
 do
