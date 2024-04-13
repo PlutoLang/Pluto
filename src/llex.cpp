@@ -937,8 +937,11 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
       }
       case '!': {
         next(ls);
-        if (check_next1(ls, '='))
+        if (check_next1(ls, '=')) {
+          ls->appendLineBuff("!=");
           return TK_NE2;  /* '!=' */
+        }
+        ls->appendLineBuff('!');
         seminfo->ts = luaX_newliteral(ls, "!");
         return TK_NOT;
       }
