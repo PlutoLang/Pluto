@@ -613,6 +613,8 @@ end
 
 print "Testing safe navigation."
 do
+    debug.sethook(function() end, "c", 1)
+
     local a = A?.B?.C?.D
     assert(a == nil)
     a = A?["B"]?["C"]?["D"]
@@ -670,6 +672,8 @@ do
     r1, r2 = inst?:method?()
     assert(r1 == true)
     assert(r2 == 69)
+
+    debug.sethook()
 end
 do
     do

@@ -45,7 +45,7 @@
 
 
 
-#define hasmultret(k)		((k) == VCALL || (k) == VSAFECALL || (k) == VVARARG)
+#define hasmultret(k)		((k) == VCALL || (k) == VVARARG)
 
 
 /*
@@ -886,7 +886,7 @@ inline int gett(LexState *ls) {
 static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
   FuncState *fs = ls->fs;
   int needed = nvars - nexps;  /* extra values needed */
-  if (hasmultret(e->k)) {  /* last expression has multiple returns? */
+  if (hasmultret(e->k) || e->k == VSAFECALL) {  /* last expression has multiple returns? */
     int extra = needed + 1;  /* discount last expression itself */
     if (extra < 0)
       extra = 0;
@@ -2356,7 +2356,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
           explist_nonlinear(ls, &args, argtis, fas.argdescs);
           luaX_setpos(ls, tidx);
         }
-        if (hasmultret(args.k))
+        if (hasmultret(args.k) && args.k != VSAFECALL)
           luaK_setmultret(fs, &args);
       }
       check_match(ls, ')', '(', line);
@@ -2418,7 +2418,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
   }
   lua_assert(f->k == VNONRELOC);
   base = f->u.reg;  /* base register for call */
-  if (hasmultret(args.k))
+  if (hasmultret(args.k) && args.k != VSAFECALL)
     nparams = LUA_MULTRET;  /* open call */
   else {
     if (args.k != VVOID)
