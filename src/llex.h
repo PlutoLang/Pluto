@@ -362,10 +362,18 @@ struct EnumDesc {
 };
 
 enum KeywordState : lu_byte {
+  /* "Uninformed" means this is the default state of the keyword and may be adjusted based on observed usage. */
+  KS_ENABLED_BY_PLUTO_UNINFORMED,
+  KS_DISABLED_BY_PLUTO_UNINFORMED,
+  /* "Informed" means the state of the keyword has been informed by observed usage. */
+  KS_ENABLED_BY_PLUTO_INFORMED,
+  KS_DISABLED_BY_PLUTO_INFORMED,
+  /* Environment settings overwrite Pluto. */
   KS_ENABLED_BY_ENV,
   KS_DISABLED_BY_ENV,
-  KS_ENABLED_BY_USER,
-  KS_DISABLED_BY_USER,
+  /* 'pluto_use' overwrites environment and Pluto. */
+  KS_ENABLED_BY_SCRIPTER,
+  KS_DISABLED_BY_SCRIPTER,
 };
 
 struct FuncArgsState {
@@ -432,12 +440,12 @@ struct LexState {
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
     laststat.token = TK_EOS;
-    parser_context_stck.push(PARCTX_NONE); /* ensure there is at least 1 item on the parser context stack */
+    parser_context_stck.push(PARCTX_NONE);  /* ensure there is at least 1 item on the parser context stack */
     for (int i = FIRST_NON_COMPAT; i != END_NON_COMPAT; ++i) {
-      setKeywordState(i, KS_ENABLED_BY_ENV);
+      setKeywordState(i, KS_ENABLED_BY_PLUTO_UNINFORMED);
     }
     for (int i = FIRST_OPTIONAL; i != END_OPTIONAL; ++i) {
-      setKeywordState(i, KS_DISABLED_BY_ENV);
+      setKeywordState(i, KS_DISABLED_BY_ENV);  /* optional keywords are not applicable for auto-detection */
     }
   }
 
@@ -560,9 +568,9 @@ struct LexState {
 #endif
 
   [[nodiscard]] bool isKeywordEnabled(int t) const noexcept {
-    static_assert((KS_ENABLED_BY_USER & 1) == 0);
+    static_assert((KS_ENABLED_BY_SCRIPTER & 1) == 0);
     static_assert((KS_ENABLED_BY_ENV & 1) == 0);
-    static_assert((KS_DISABLED_BY_USER & 1) != 0);
+    static_assert((KS_DISABLED_BY_SCRIPTER & 1) != 0);
     static_assert((KS_DISABLED_BY_ENV & 1) != 0);
     return (getKeywordState(t) & 1) == 0;
   }
