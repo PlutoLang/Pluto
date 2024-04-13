@@ -76,24 +76,24 @@ std::string TypeDesc::toString() const {
   return str;
 }
 
+enum class BlockType : lu_byte {
+  BT_DEFAULT,
+  BT_BREAK,
+  BT_CONTINUE
+};
 
 /*
 ** nodes for block list (list of active blocks)
 */
 typedef struct BlockCnt {
   struct BlockCnt *previous;  /* chain */
-  int breaklist;  /* list of jumps out of this loop */
-  int scopeend;  /* delimits the end of this scope, for 'continue' to jump before. */
   int firstlabel;  /* index of first label in this block */
   int firstgoto;  /* index of first pending goto in this block */
   int nactvar;  /* # active locals outside the block */
-  int nactvarbeforecontinue;  /* # active locals inside of the block until a continue is encountered */
   lu_byte upval;  /* true if some variable in the block is an upvalue */
-  lu_byte isloop;  /* true if 'block' is a loop */
+  BlockType type;  /* one of block types */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
   std::vector<TString*> export_symbols{};
-
-  [[nodiscard]] bool isSwitch() const noexcept { return isloop == 2; }
 } BlockCnt;
 
 
@@ -944,8 +944,14 @@ static void singlevar (LexState *ls, expdesc *var) {
 */
 static l_noret jumpscopeerror (LexState *ls, Labeldesc *gt) {
   const char *varname = getstr(getlocalvardesc(ls->fs, gt->nactvar)->vd.name);
-  const char *msg = "<goto %s> at line %d jumps into the scope of local '%s'";
-  msg = luaO_pushfstring(ls->L, msg, getstr(gt->name), gt->line, varname);
+  const char *msg;
+  if ((gt->flags & LABEL_FLAG_SPECIAL) == 0) {
+    msg = luaO_pushfstring(ls->L, "<goto %s> at line %d jumps into the scope of local '%s'", getstr((TString*)gt->name), gt->line, varname);
+  } else {
+    BlockCnt* bt = (BlockCnt*)gt->name;
+    const char *type = bt->type == BlockType::BT_BREAK ? "break" : bt->type == BlockType::BT_CONTINUE ? "continue" : "?";
+    msg = luaO_pushfstring(ls->L, "%s at line %d jumps into the scope of local '%s'", type, gt->line, varname);
+  }
   luaK_semerror(ls, msg);  /* raise the error */
 }
 
@@ -959,7 +965,8 @@ static void solvegoto (LexState *ls, int g, Labeldesc *label) {
   int i;
   Labellist *gl = &ls->dyd->gt;  /* list of gotos */
   Labeldesc *gt = &gl->arr[g];  /* goto to be resolved */
-  lua_assert(eqstr(gt->name, label->name));
+  lua_assert((gt->flags & LABEL_FLAG_SPECIAL)==(label->flags & LABEL_FLAG_SPECIAL) && 
+        ((label->flags & LABEL_FLAG_SPECIAL) == 0 ? eqstr((TString*)gt->name, (TString*)label->name) : gt->name == label->name));
   if (l_unlikely(gt->nactvar < label->nactvar))  /* enter some scope? */
     jumpscopeerror(ls, gt);
   luaK_patchlist(ls->fs, gt->pc, label->pc);
@@ -978,7 +985,7 @@ static Labeldesc *findlabel (LexState *ls, TString *name) {
   /* check labels in current function for a match */
   for (i = ls->fs->firstlabel; i < dyd->label.n; i++) {
     Labeldesc *lb = &dyd->label.arr[i];
-    if (eqstr(lb->name, name))  /* correct label? */
+    if ((lb->flags & LABEL_FLAG_SPECIAL) == 0 && eqstr((TString*)lb->name, name))  /* correct label? */
       return lb;
   }
   return NULL;  /* label not found */
@@ -988,23 +995,23 @@ static Labeldesc *findlabel (LexState *ls, TString *name) {
 /*
 ** Adds a new label/goto in the corresponding list.
 */
-static int newlabelentry (LexState *ls, Labellist *l, TString *name,
-                          int line, int pc) {
+static int newlabelentry (LexState *ls, Labellist *l, void *name,
+                          int line, int pc, int type) {
   int n = l->n;
   luaM_growvector(ls->L, l->arr, n, l->size,
                   Labeldesc, SHRT_MAX, "labels/gotos");
   l->arr[n].name = name;
   l->arr[n].line = line;
   l->arr[n].nactvar = ls->fs->nactvar;
-  l->arr[n].close = 0;
+  l->arr[n].flags = type;
   l->arr[n].pc = pc;
   l->n = n + 1;
   return n;
 }
 
 
-static int newgotoentry (LexState *ls, TString *name, int line, int pc) {
-  return newlabelentry(ls, &ls->dyd->gt, name, line, pc);
+static int newgotoentry (LexState *ls, void *name, int line, int pc, int type) {
+  return newlabelentry(ls, &ls->dyd->gt, name, line, pc, type);
 }
 
 
@@ -1018,14 +1025,15 @@ static int solvegotos (LexState *ls, Labeldesc *lb) {
   int i = ls->fs->bl->firstgoto;
   int needsclose = 0;
   while (i < gl->n) {
-    if (eqstr(gl->arr[i].name, lb->name)) {
-      needsclose |= gl->arr[i].close;
+    if ((gl->arr[i].flags & LABEL_FLAG_SPECIAL)==(lb->flags & LABEL_FLAG_SPECIAL) && 
+        ((lb->flags & LABEL_FLAG_SPECIAL) == 0 ? eqstr((TString*)gl->arr[i].name, (TString*)lb->name) : gl->arr[i].name == lb->name)) {
+      needsclose |= gl->arr[i].flags;
       solvegoto(ls, i, lb);  /* will remove 'i' from the list */
     }
     else
       i++;
   }
-  return needsclose;
+  return needsclose & LABEL_FLAG_CLOSE;
 }
 
 
@@ -1036,11 +1044,11 @@ static int solvegotos (LexState *ls, Labeldesc *lb) {
 ** a close instruction if necessary.
 ** Returns true iff it added a close instruction.
 */
-static int createlabel (LexState *ls, TString *name, int line,
-                        int last) {
+static int createlabel (LexState *ls, void *name, int line,
+                        int last, int type) {
   FuncState *fs = ls->fs;
   Labellist *ll = &ls->dyd->label;
-  int l = newlabelentry(ls, ll, name, line, luaK_getlabel(fs));
+  int l = newlabelentry(ls, ll, name, line, luaK_getlabel(fs), type);
   if (last) {  /* label is last no-op statement in the block? */
     /* assume that locals are already out of scope */
     ll->arr[l].nactvar = fs->bl->nactvar;
@@ -1064,26 +1072,22 @@ static void movegotosout (FuncState *fs, BlockCnt *bl) {
     Labeldesc *gt = &gl->arr[i];
     /* leaving a variable scope? */
     if (reglevel(fs, gt->nactvar) > reglevel(fs, bl->nactvar))
-      gt->close |= bl->upval;  /* jump may need a close */
+      gt->flags |= bl->upval ? LABEL_FLAG_CLOSE : 0;  /* jump may need a close */
     gt->nactvar = bl->nactvar;  /* update goto level */
   }
 }
 
 
-static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
-  bl->breaklist = NO_JUMP;
-  bl->isloop = isloop;
-  bl->scopeend = NO_JUMP;
+static void enterblock (FuncState *fs, BlockCnt *bl, BlockType type) {
+  bl->type = type;
   bl->nactvar = fs->nactvar;
-  bl->nactvarbeforecontinue = -1;
   bl->firstlabel = fs->ls->dyd->label.n;
   bl->firstgoto = fs->ls->dyd->gt.n;
   bl->upval = 0;
   bl->insidetbc = static_cast<lu_byte>(fs->bl != NULL && fs->bl->insidetbc);
   bl->previous = fs->bl;
   fs->bl = bl;
-  if (!bl->isSwitch())  /* switch expression won't touch registers */
-    lua_assert(fs->freereg == luaY_nvarstack(fs));
+  lua_assert(fs->freereg == luaY_nvarstack(fs));
 }
 
 
@@ -1091,15 +1095,9 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isloop) {
 ** generates an error for an undefined 'goto'.
 */
 static l_noret undefgoto (LexState *ls, Labeldesc *gt) {
-  const char *msg;
-  if (eqstr(gt->name, luaS_newliteral(ls->L, "break"))) {
-    msg = "break outside loop at line %d";
-    msg = luaO_pushfstring(ls->L, msg, gt->line);
-  }
-  else {
-    msg = "no visible label '%s' for <goto> at line %d";
-    msg = luaO_pushfstring(ls->L, msg, getstr(gt->name), gt->line);
-  }
+  lua_assert((gt->flags & LABEL_FLAG_SPECIAL) == 0);
+  const char *msg = "no visible label '%s' for <goto> at line %d";
+  msg = luaO_pushfstring(ls->L, msg, getstr((TString*)gt->name), gt->line);
   ls->setLineNumber(gt->line);
   luaK_semerror(ls, msg);
 }
@@ -1112,12 +1110,11 @@ static void leaveblock (FuncState *fs) {
   int stklevel = reglevel(fs, bl->nactvar);  /* level outside the block */
   removevars(fs, bl->nactvar);  /* remove block locals */
   lua_assert(bl->nactvar == fs->nactvar);  /* back to level on entry */
-  if (bl->isloop)  /* has to fix pending breaks? */
-    hasclose = createlabel(ls, luaS_newliteral(ls->L, "break"), 0, 0);
+  if (bl->type != BlockType::BT_DEFAULT)  /* has to fix pending breaks / continues? */
+    hasclose = createlabel(ls, bl, 0, 0, LABEL_FLAG_SPECIAL);
   if (!hasclose && bl->previous && bl->upval)  /* still need a 'close'? */
     luaK_codeABC(fs, OP_CLOSE, stklevel, 0, 0);
-  if (!bl->isSwitch())
-    fs->freereg = stklevel;  /* free registers */
+  fs->freereg = stklevel;  /* free registers */
   ls->dyd->label.n = bl->firstlabel;  /* remove local labels */
   fs->bl = bl->previous;  /* current block now is previous one */
   if (bl->previous)  /* was it a nested block? */
@@ -1126,7 +1123,6 @@ static void leaveblock (FuncState *fs) {
     if (bl->firstgoto < ls->dyd->gt.n)  /* still pending gotos? */
       undefgoto(ls, &ls->dyd->gt.arr[bl->firstgoto]);  /* error */
   }
-  luaK_patchtohere(fs, bl->breaklist);
   ls->laststat.token = TK_EOS;  /* Prevent unreachable code warnings on blocks that don't explicitly check for TK_END. */
 }
 
@@ -1189,7 +1185,7 @@ static void open_func (LexState *ls, FuncState *fs, BlockCnt *bl) {
   f->source = ls->source;
   luaC_objbarrier(ls->L, f, f->source);
   f->maxstacksize = 2;  /* registers 0/1 are always valid */
-  enterblock(fs, bl, 0);
+  enterblock(fs, bl, BlockType::BT_DEFAULT);
 }
 
 
@@ -1291,6 +1287,22 @@ static void statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implie
   }
 }
 
+static BlockCnt* searchloop(BlockCnt* bl, BlockType type, lua_Integer depth) {
+  while (bl) {
+    if (bl->type == type && --depth == 0) return bl;
+    bl = bl->previous;
+  }
+  return 0;
+}
+
+static int countdepth(BlockCnt* bl, BlockType type) {
+  int depth = 0;
+  while (bl) {
+    if (bl->type == type) depth++;
+    bl = bl->previous;
+  }
+  return depth;
+}
 
 /*
 ** Continue statement. Semantically similar to "goto continue".
@@ -1310,27 +1322,12 @@ static void continuestat (LexState *ls) {
     }
     luaX_next(ls);
   }
-  while (bl) {
-    if (backwards == 1 && bl->previous && bl->previous->nactvarbeforecontinue == INT_MAX) {
-      bl->previous->nactvarbeforecontinue = bl->nactvar;
-    }
-    if (bl->isloop == 1) {
-      if (--backwards == 0) {
-        break;  /* this is our loop */
-      }
-      else {  /* continue search */
-        bl = bl->previous;
-        ++foundloops;
-      }
-    }
-    else {  /* not a loop, continue search */
-      bl = bl->previous;
-    }
-  }
-  if (bl) {
-    luaK_concat(fs, &bl->scopeend, luaK_jump(fs));
+  BlockCnt* l = searchloop(bl, BlockType::BT_CONTINUE, backwards);
+  if (l) {
+    newgotoentry(ls, l, line, luaK_jump(fs), LABEL_FLAG_SPECIAL);
   }
   else {
+    int foundloops = countdepth(bl, BlockType::BT_CONTINUE);
     if (foundloops == 0)
       throwerr(ls, "'continue' outside of a loop","'continue' can only be used inside the context of a loop.", line);
     else {
@@ -1349,29 +1346,12 @@ static void continuestat (LexState *ls) {
 }
 
 
-static void lbreak (LexState *ls, lua_Integer backwards, int line) {
+static void lbreak (LexState *ls, lua_Integer backwards, int line, int jump) {
   FuncState *fs = ls->fs;
   BlockCnt *bl = fs->bl;
-  lu_byte upval = bl->upval;
-  while (bl) {
-    if (!bl->isloop) { /* not a loop, continue search */
-      upval |= bl->upval; /* amend upvalues for closing. */
-      bl = bl->previous; /* jump back current blocks to find the loop */
-    }
-    else { /* found a loop */
-      if (--backwards == 0) { /* this is our loop */
-        break;
-      }
-      else { /* continue search */
-        upval |= bl->upval;
-        bl = bl->previous;
-      }
-    };
-  }
-  if (bl) {
-    if (upval)
-      luaK_codeABC(fs, OP_CLOSE, bl->nactvar, 0, 0); /* close upvalues */
-    luaK_concat(fs, &bl->breaklist, luaK_jump(fs));
+  BlockCnt* l = searchloop(bl, BlockType::BT_BREAK, backwards);
+  if (l) {
+    newgotoentry(ls, l, line, jump, LABEL_FLAG_SPECIAL);
   }
   else {
     throwerr(ls, "break can't skip that many blocks", "try a smaller number", line);
@@ -1397,7 +1377,7 @@ static void breakstat (LexState *ls) {
     }
     luaX_next(ls);
   }
-  lbreak(ls, backwards, line);
+  lbreak(ls, backwards, line, luaK_jump(ls->fs));
 }
 
 
@@ -3097,7 +3077,7 @@ static void lgoto (LexState *ls, TString *name, int line) {
   Labeldesc *lb = findlabel(ls, name);
   if (lb == NULL)  /* no label? */
     /* forward jump; will be resolved when the label is declared */
-    newgotoentry(ls, name, line, luaK_jump(fs));
+    newgotoentry(ls, name, line, luaK_jump(fs), 0);
   else {  /* found a label */
     /* backward jump; will be resolved here */
     int lblevel = reglevel(fs, lb->nactvar);  /* label level */
@@ -3145,13 +3125,12 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   ls->switchstates.emplace();
   FuncState *fs = ls->fs;
   BlockCnt sbl;
-  enterblock(fs, &sbl, 2);
 
-  if (tk == TK_ARROW) {
-    /* doing this only now so 'enterblock' doesn't assert */
-    init_exp(reinterpret_cast<expdesc*>(ud), VNONRELOC, ls->fs->freereg);
-    luaK_reserveregs(ls->fs, 1);
-  }
+  lu_byte freereg = fs->freereg;
+  if (tk == TK_ARROW)
+    fs->freereg = luaY_nvarstack(fs); // To prevent assert in enterblock
+  enterblock(fs, &sbl, BlockType::BT_BREAK);
+  fs->freereg = freereg;
 
   expdesc ctrl;
   expr(ls, &ctrl);
@@ -3181,7 +3160,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     caselist(ls, ud);
   }
   else {
-    newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs)); // goto begin_switch
+    newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs), 0); // goto begin_switch
   }
 
   std::vector<SwitchCase>& cases = ls->switchstates.top().cases;
@@ -3201,7 +3180,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
         throwerr(ls, "switch statement already has a default case", "second default case", case_line);
       default_case = luaS_newliteral(ls->L, "pluto_default_case");
       default_pc = luaK_getlabel(fs);
-      createlabel(ls, default_case, ls->getLineNumber(), false);
+      createlabel(ls, default_case, ls->getLineNumber(), false, 0);
     }
     else {
       checknext(ls, TK_CASE);
@@ -3216,7 +3195,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   if (ls->laststat.token != TK_BREAK) {  /* last block did not have 'break'? */
     if (tk == ':') {  /* switch statement? */
       /* jump to the end of switch as otherwise we would loop infinitely */
-      lbreak(ls, 1, ls->getLineNumber());
+      lbreak(ls, 1, ls->getLineNumber(), luaK_jump(fs));
     }
   }
 
@@ -3225,13 +3204,13 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   if (tk == TK_ARROW && default_case == nullptr) {
     default_case = luaS_newliteral(ls->L, "pluto_default_case");
     default_pc = luaK_getlabel(fs);
-    createlabel(ls, default_case, ls->getLineNumber(), false);
+    createlabel(ls, default_case, ls->getLineNumber(), false, 0);
     const auto line = ls->getLineNumber();
     const auto reg = reinterpret_cast<expdesc*>(ud)->u.reg;
     expdesc cv;
     init_exp(&cv, VNIL, 0);
     luaK_exp2reg(ls->fs, &cv, reg);
-    lbreak(ls, 1, line);
+    lbreak(ls, 1, line, luaK_jump(fs));
   }
 
   if (!first.empty()) {
@@ -3242,7 +3221,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     luaK_patchtohere(fs, first.back());
   }
   else {
-    createlabel(ls, begin_switch, ls->getLineNumber(), false); // ::begin_switch::
+    createlabel(ls, begin_switch, ls->getLineNumber(), false, 0); // ::begin_switch::
   }
 
   /* prune cases that lead to default case */
@@ -3279,6 +3258,8 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
+  if (tk == TK_ARROW)
+    fs->freereg = freereg;
   ls->switchstates.pop();
 }
 
@@ -3300,13 +3281,15 @@ static void switchstat (LexState *ls) {
 }
 
 static void switchexpr (LexState *ls, expdesc *v) {
+  init_exp(v, VNONRELOC, ls->fs->freereg);
+  luaK_reserveregs(ls->fs, 1);
   switchimpl(ls, TK_ARROW, [](LexState *ls, void *ud) {
     const auto line = ls->getLineNumber();
     const auto reg = reinterpret_cast<expdesc*>(ud)->u.reg;
     expdesc cv;
     expr(ls, &cv);
     luaK_exp2reg(ls->fs, &cv, reg);
-    lbreak(ls, 1, line);
+    lbreak(ls, 1, line, luaK_jump(ls->fs));
   }, v);
 }
 
@@ -3711,7 +3694,7 @@ static void block (LexState *ls, TypeHint *prop = nullptr) {
   /* block -> statlist */
   FuncState *fs = ls->fs;
   BlockCnt bl;
-  enterblock(fs, &bl, 0);
+  enterblock(fs, &bl, BlockType::BT_DEFAULT);
   statlist(ls, prop);
   leaveblock(fs);
 }
@@ -3990,15 +3973,7 @@ static void labelstat (LexState *ls, TString *name, int line) {
   while (ls->t.token == ';' || ls->t.token == TK_DBCOLON)
     statement(ls);  /* skip other no-op statements */
   checkrepeated(ls, name);  /* check for repeated labels */
-  createlabel(ls, name, line, block_follow(ls, 0));
-}
-
-
-static void patchcontinuetohere (FuncState *fs, BlockCnt& bl) {
-  if (bl.scopeend != NO_JUMP) {
-    luaK_patchtohere(fs, bl.scopeend);
-    luaK_codeABC(fs, OP_CLOSE, luaY_nvarstack(fs), 0, 0);
-  }
+  createlabel(ls, name, line, block_follow(ls, 0), 0);
 }
 
 
@@ -4008,28 +3983,25 @@ static void whilestat (LexState *ls, int line) {
   int whileinit;
   int condexit;
   BlockCnt bl;
+  BlockCnt innerbl;
+
   luaX_next(ls);  /* skip WHILE */
   whileinit = luaK_getlabel(fs);
+  enterblock(fs, &bl, BlockType::BT_BREAK);
+  enterblock(fs, &innerbl, BlockType::BT_CONTINUE);
   if (luaX_lookahead(ls) == TK_WALRUS) {
-    enterblock(fs, &bl, 1);
-    BlockCnt innerbl;
-    enterblock(fs, &innerbl, 0);
     expdesc v;
     walrusexpr(ls, &v);
     v.normalizeFalse();
     luaK_goiftrue(ls->fs, &v);
     condexit = v.f;
-    checknext(ls, TK_DO);
-    statlist(ls);
-    leaveblock(fs);
   }
   else {
     condexit = cond(ls);
-    enterblock(fs, &bl, 1);
-    checknext(ls, TK_DO);
-    block(ls);
   }
-  patchcontinuetohere(fs, bl);
+  checknext(ls, TK_DO);
+  statlist(ls);
+  leaveblock(fs);
   luaK_jumpto(fs, whileinit);
   check_match(ls, TK_END, TK_WHILE, line);
   leaveblock(fs);
@@ -4043,19 +4015,13 @@ static void repeatstat (LexState *ls) {
   FuncState *fs = ls->fs;
   int repeat_init = luaK_getlabel(fs);
   BlockCnt bl1, bl2;
-  enterblock(fs, &bl1, 1);  /* loop block */
-  enterblock(fs, &bl2, 0);  /* scope block */
-  bl2.nactvarbeforecontinue = MAX_INT;  /* mark scope block for continuestat */
+  enterblock(fs, &bl1, BlockType::BT_BREAK);  /* loop block */
+  enterblock(fs, &bl2, BlockType::BT_CONTINUE);  /* scope block */
   luaX_next(ls);  /* skip REPEAT */
   statlist(ls);
-  patchcontinuetohere(fs, bl1);
+  createlabel(ls, &bl2, 0, 0, LABEL_FLAG_SPECIAL);
+  bl2.type = BlockType::BT_DEFAULT;
   checknext(ls, TK_UNTIL);
-  if (bl2.nactvarbeforecontinue < fs->nactvar) {
-    Vardesc *var = getlocalvardesc(fs, bl2.nactvarbeforecontinue);
-    const char *msg = "continue jumps into the scope of local '%s' defined on line %d";
-    msg = luaO_pushfstring(ls->L, msg, getstr(var->vd.name), var->vd.line);
-    luaK_semerror(ls, msg);  /* raise the error */
-  }
   condexit = cond(ls);  /* read condition (inside scope block) */
   leaveblock(fs);  /* finish scope */
   if (bl2.upval) {  /* upvalues? */
@@ -4111,12 +4077,11 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen, Typ
   int prep, endfor;
   checknext(ls, TK_DO);
   prep = luaK_codeABx(fs, forprep[isgen], base, 0);
-  enterblock(fs, &bl, 0);  /* scope for declared variables */
+  enterblock(fs, &bl, BlockType::BT_CONTINUE);  /* scope for declared variables */
   adjustlocalvars(ls, nvars);
   luaK_reserveregs(fs, nvars);
   block(ls, prop);
   leaveblock(fs);  /* end of scope for declared variables */
-  patchcontinuetohere(fs, *bl.previous);
   fixforjump(fs, prep, luaK_getlabel(fs), 0);
   if (isgen) {  /* generic for? */
     luaK_codeABC(fs, OP_TFORCALL, base, 0, nvars);
@@ -4216,7 +4181,7 @@ static void forstat (LexState *ls, int line, TypeHint *prop) {
   /* forstat -> FOR (fornum | forlist) END */
   FuncState *fs = ls->fs;
   BlockCnt bl;
-  enterblock(fs, &bl, 1);  /* scope for loop and control variables */
+  enterblock(fs, &bl, BlockType::BT_BREAK);  /* scope for loop and control variables */
   luaX_next(ls);  /* skip 'for' */
 
   if (luaX_lookahead(ls) == '=') {
@@ -4253,8 +4218,9 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
     int line = ls->getLineNumber();
     luaK_goiffalse(ls->fs, &v);  /* will jump if condition is true */
     luaX_next(ls);  /* skip 'break' */
-    enterblock(fs, &bl, 0);  /* must enter block before 'goto' */
-    newgotoentry(ls, luaS_newliteral(ls->L, "break"), line, v.t);
+    enterblock(fs, &bl, BlockType::BT_DEFAULT);  /* must enter block before 'goto' */
+    lbreak(ls, 1, line, v.t);
+    // TODO: Allow the integer level for break statements
     while (testnext(ls, ';')) {}  /* skip semicolons */
     if (block_follow(ls, 0)) {  /* jump is the entire block? */
       leaveblock(fs);
@@ -4265,7 +4231,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   }
   else {  /* regular case (not a break) */
     luaK_goiftrue(ls->fs, &v);  /* skip over block if condition is false */
-    enterblock(fs, &bl, 0);
+    enterblock(fs, &bl, BlockType::BT_DEFAULT);
     jf = v.f;
   }
   statlist(ls, prop);  /* 'then' part */
@@ -4284,7 +4250,7 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
   FuncState *fs = ls->fs;
   BlockCnt walrusbl;
-  enterblock(fs, &walrusbl, 0);
+  enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
   int escapelist = NO_JUMP;  /* exit list for finished parts */
   test_then_block(ls, &escapelist, prop);  /* IF cond THEN block */
   while (ls->t.token == TK_ELSEIF)
@@ -4972,7 +4938,7 @@ static void trystat (LexState *ls) {
   key.u.ival = 1;
   luaK_indexed(ls->fs, &econd, &key);
   luaK_goiffalse(ls->fs, &econd);
-  enterblock(ls->fs, &bl, 0);
+  enterblock(ls->fs, &bl, BlockType::BT_DEFAULT);
 
   /* local (e) */
   new_localvar(ls, str_checkname(ls, N_OVERRIDABLE));
