@@ -2112,6 +2112,32 @@ do -- Local can be used for subsequent binary operators
         assert(a == 0)
     end
 end
+do
+    local class Obj
+        function isValid()
+            return true
+        end
+    end
+
+    local function getobj()
+        return new Obj()
+    end
+
+    if (inst := getobj()):isValid() then
+        print(inst)
+    end
+end
+do
+    local function getvalue()
+        return 0
+    end
+
+    local val = 0
+
+    if val >= 0 and val == (cur := getvalue()) then
+        print(cur)
+    end
+end
 
 print "Testing for-as loop."
 do
