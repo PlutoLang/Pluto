@@ -4297,7 +4297,7 @@ static void constexprifstat (LexState *ls, int line) {
   const bool disposition = luaK_isalwaystrue(ls, &c);
   if (disposition == false) {
     if (!luaK_isalwaysfalse(ls, &c)) {
-      luaX_syntaxerror(ls, "Compile-time 'if' must have a condition that can be evaluated at compile-time");
+      throwerr(ls, "this condition cannot be evaluated at compile-time", "");
     }
   }
   checknext(ls, TK_THEN);
