@@ -69,15 +69,6 @@ typedef enum {
 #define vkisvar(k)	(VLOCAL <= (k) && (k) <= VINDEXSTR)
 #define vkisindexed(k)	(VINDEXED <= (k) && (k) <= VINDEXSTR)
 
-enum ExpFlags : int {
-  E_NONE,
-  E_NO_COLON = 1 << 0,
-  E_NO_CALL = 1 << 1,
-  E_NO_BOR = 1 << 2,
-  E_PIPERHS = 1 << 3,
-};
-PLUTO_DEFINE_ENUM_BITFLAG(ExpFlags);
-
 /* types of values, for type hinting and propagation */
 enum ValType : lu_byte {
   VT_NONE = 0,
@@ -110,6 +101,15 @@ enum ValType : lu_byte {
   }
   return "ERROR";
 }
+
+enum ExpFlags : int {
+  E_NONE,
+  E_NO_COLON = 1 << 0,
+  E_NO_CALL = 1 << 1,
+  E_NO_BOR = 1 << 2,
+  E_PIPERHS = 1 << 3,
+};
+PLUTO_DEFINE_ENUM_BITFLAG(ExpFlags);
 
 typedef struct expdesc {
   expkind k;
