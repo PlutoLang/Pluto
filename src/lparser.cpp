@@ -1596,16 +1596,16 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
   }
   else switch(ls->t.token) {
     case TK_NAME: {  /* may be 'listfield', 'recfield' or static 'funcfield' */
-      if (strcmp(getstr(ls->t.seminfo.ts), "static") != 0) {
+      if (strcmp(getstr(ls->t.seminfo.ts), "static") == 0) {
+        luaX_next(ls);
+        check(ls, TK_FUNCTION);
+        funcfield(ls, cc, false);
+      }
+      else {
         if (!for_class && luaX_lookahead(ls) != '=')  /* expression? */
           listfield(ls, cc);
         else
           recfield(ls, cc, for_class);
-      }
-      else { /* static function */
-        luaX_next(ls);
-        check(ls, TK_FUNCTION);
-        funcfield(ls, cc, false);
       }
       break;
     }
