@@ -2799,7 +2799,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
     const bool is_overridable = ls->t.IsOverridable();
     TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
     if (gett(ls) == TK_WALRUS) {
-      if (!(flags & E_WALRUS))
+      if (!(flags & E_WALRUS) || ls->fs->freereg != luaY_nvarstack(ls->fs))
         throwerr(ls, "':=' is not allowed in this context", "unexpected ':='");
       luaX_next(ls);
       new_localvar(ls, varname);
