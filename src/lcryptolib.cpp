@@ -646,6 +646,7 @@ static int l_decrypt (lua_State *L) {
 static int l_sign (lua_State *L) {
   const char *mode = luaL_checkstring(L, 2);
   if (strcmp(mode, "rsa-sha1") == 0 || strcmp(mode, "rsa-sha256") == 0) {
+    luaL_checktype(L, 3, LUA_TTABLE);
     soup::Bigint *p = lua_getfield(L, 3, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
     soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {
@@ -668,6 +669,7 @@ static int l_sign (lua_State *L) {
 static int l_verify (lua_State *L) {
   const char *mode = luaL_checkstring(L, 2);
   if (strcmp(mode, "rsa-sha1") == 0 || strcmp(mode, "rsa-sha256") == 0) {
+    luaL_checktype(L, 3, LUA_TTABLE);
     soup::Bigint *n = lua_getfield(L, 3, "n") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (n) lua_pop(L, 1);
     soup::Bigint *e = lua_getfield(L, 3, "e") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (e) lua_pop(L, 1);
     if (n && e) {
