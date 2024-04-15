@@ -8,6 +8,7 @@
 #include <limits.h>
 
 #include <cstring> // memcpy
+#include <optional>
 #include <stack>
 #include <string>
 #include <string_view>
@@ -343,13 +344,22 @@ enum ParserContext : lu_byte {
 struct ClassData {
   size_t parent_name_pos = 0;
   std::vector<std::string> private_fields{};
-  
-  [[nodiscard]] bool isPrivate(const char* fieldname) const noexcept {
+
+  [[nodiscard]] std::string addField(std::string&& name) {
+    private_fields.emplace_back(name);
+    name.insert(0, "__restricted__");
+    return name;
+  }
+
+  [[nodiscard]] std::optional<std::string> getSpecialName(TString* key) const noexcept {
     for (const auto& pf : private_fields) {
-      if (pf == fieldname)
-        return true;
+      if (pf == getstr(key)) {
+        std::string name = "__restricted__";
+        name.append(getstr(key), tsslen(key));
+        return name;
+      }
     }
-    return false;
+    return std::nullopt;
   }
 };
 
