@@ -405,7 +405,11 @@ typedef struct FuncState {
   lu_byte nups;  /* number of upvalues */
   lu_byte freereg;  /* first free register */
   lu_byte iwthabs;  /* instructions issued since last absolute line info */
-  lu_byte needclose;  /* function needs to close upvalues when returning */
+  lu_byte needclose : 1;  /* function needs to close upvalues when returning */
+  lu_byte istrybody : 1; /* This is a function handling the try body */
+  lu_byte hadnoargret : 1; /* This function had a return without arguments */
+  lu_byte hadsingleargret : 1; /* This function had a return with a single argument */
+  lu_byte hadmultiargret : 1; /* This function had a return with multiarg return */
   short pinnedreg;  /* [Pluto] index of register that may not be free'd or -1 */
 } FuncState;
 
