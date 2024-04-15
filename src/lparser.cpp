@@ -1484,10 +1484,8 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
         name = str_checkname(ls);
       }
       else if (strcmp(getstr(name), "private") == 0) {
-        std::string name_tmp = str_checkname(ls)->toCpp();
-        ls->classes.top().private_fields.emplace_back(name_tmp);
-        name_tmp.insert(0, "__restricted__");
-        name = luaX_newstring(ls, name_tmp.c_str());
+        const auto field_name = ls->classes.top().addField(str_checkname(ls)->toCpp());
+        name = luaX_newstring(ls, field_name.c_str());
       }
     }
     codestring(&key, name);
@@ -1989,9 +1987,7 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
           }
           else if (strcmp(getstr(parname), "private") == 0) {
             parname = str_checkname(ls, N_OVERRIDABLE);
-            std::string field_name = parname->toCpp();
-            ls->classes.top().private_fields.emplace_back(field_name);
-            field_name.insert(0, "__restricted__");
+            const auto field_name = ls->classes.top().addField(parname->toCpp());
             promotions->emplace_back(parname, luaX_newstring(ls, field_name.c_str()));
           }
         }
@@ -2764,10 +2760,8 @@ static void selfexp (LexState *ls, expdesc *v) {
     luaK_exp2anyregup(ls->fs, v);
     expdesc key;
     TString *keystr = str_checkname(ls, N_RESERVED);
-    if (ls->classes.top().isPrivate(getstr(keystr))) {
-      std::string realname = "__restricted__";
-      realname.append(getstr(keystr), tsslen(keystr));
-      codestring(&key, luaX_newstring(ls, realname.c_str()));
+    if (auto special = ls->classes.top().getSpecialName(keystr); special.has_value()) {
+      codestring(&key, luaX_newstring(ls, special.value().c_str()));
     }
     else
       codestring(&key, keystr);
