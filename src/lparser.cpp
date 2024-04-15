@@ -448,7 +448,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
 }
 
 
-[[nodiscard]] static TypeHint gettypehint (LexState *ls, bool funcret = false) noexcept {
+[[nodiscard]] static TypeHint gettypehint (LexState *ls, bool funcret = false) {
   /* TYPEHINT -> [':' TYPEDESC { '|' TYPEDESC } ] */
   TypeHint th;
   if (testnext(ls, ':')) {
