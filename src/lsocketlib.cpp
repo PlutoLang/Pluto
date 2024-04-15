@@ -281,6 +281,7 @@ LUAMOD_API int luaopen_socket (lua_State *L) {
 return function(sched, port, callback)
     sched:add(function()
         local l = require"pluto:socket".listen(port)
+        assert(l, "Failed to bind port "..port)
         while s := l:accept() do
             sched:add(function()
                 callback(s)
