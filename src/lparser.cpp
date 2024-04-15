@@ -393,6 +393,7 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
     if (ls->t.IsNonCompatible()) {
       if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
         disablekeyword(ls, ls->t.token);
+        ls->uninformed_reserved.emplace(ls->t.token, ls->getLineNumber());
         ls->setKeywordState(ls->t.token, KS_DISABLED_BY_PLUTO_INFORMED);
         luaX_setpos(ls, luaX_getpos(ls));  /* update ls->t */
         return str_checkname(ls, flags);  /* try again */
@@ -4699,7 +4700,12 @@ static void exprstat (LexState *ls) {
       if (luaX_lookbehind(ls).token == TK_NAME) {
         if (auto t = find_non_compat_tkn_by_name(ls, getstr(luaX_lookbehind(ls).seminfo.ts))) {
           if (ls->getKeywordState(t) == KS_DISABLED_BY_PLUTO_INFORMED) {
-            throwerr(ls, luaO_fmt(ls->L, "syntax error near %s", luaX_token2str(ls, ls->t.token)), luaO_fmt(ls->L, "%s was not recognized as a statement because it was previously used as an identifier", luaX_token2str(ls, t)));
+            const auto entry = ls->uninformed_reserved.find(t);
+            const auto line = entry == ls->uninformed_reserved.end() ? -1 : entry->second;
+            throwerr(ls,
+              luaO_fmt(ls->L, "syntax error near %s", luaX_token2str(ls, ls->t.token)),
+              luaO_fmt(ls->L, "%s was not recognized as a statement because it was used as an identifier on line %d", luaX_token2str(ls, t), line)
+            );
           }
         }
       }
