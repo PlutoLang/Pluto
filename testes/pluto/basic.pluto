@@ -1958,6 +1958,11 @@ do
 
     local sig = crypto.sign("Pluto is certified cool", "rsa-sha1", priv)
     assert(crypto.verify("Pluto is certified cool", "rsa-sha1", pub, sig))
+
+    local pem = priv |> crypto.exportkey|"pem"|
+    local reimported = pem |> crypto.importkey|"pem"|
+    assert(reimported.p == priv.p)
+    assert(reimported.q == priv.q)
 end
 do
     local bigint = require "pluto:bigint"
