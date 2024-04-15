@@ -436,6 +436,7 @@ struct LexState {
   KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
   bool nodiscard = false;
   bool used_walrus = false;
+  std::unordered_map<int, int> uninformed_reserved{}; // When a reserved word is intelligently disabled for compatibility, it is added to this map. (token, line)
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
