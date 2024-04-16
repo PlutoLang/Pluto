@@ -1564,7 +1564,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 
 
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *funcdesc = nullptr);
-static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod) {
+static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool isprivate = false) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
   int reg = ls->fs->freereg;
@@ -1572,6 +1572,10 @@ static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod) {
   cc->nh++;
   luaX_next(ls); /* skip TK_FUNCTION */
   codename(ls, &key);
+  if (isprivate) {
+    const auto new_name = ls->classes.top().addField(getstr(key.u.strval));
+    codestring(&key, luaX_newstring(ls, new_name.c_str()));
+  }
   if (ismethod)
     ismethod += (strcmp(getstr(key.u.strval), "__construct") == 0);
   tab = *cc->t;
@@ -1600,6 +1604,14 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
         luaX_next(ls);
         check(ls, TK_FUNCTION);
         funcfield(ls, cc, false);
+      }
+      else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "public") == 0) {
+        luaX_next(ls);
+        funcfield(ls, cc, true);
+      }
+      else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
+        luaX_next(ls);
+        funcfield(ls, cc, true, true);
       }
       else {
         if (!for_class && luaX_lookahead(ls) != '=')  /* expression? */
@@ -2748,16 +2760,28 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
 
 
 static void selfexp (LexState *ls, expdesc *v) {
-  if (testnext(ls, '.')) {
-    luaK_exp2anyregup(ls->fs, v);
+  bool ismethod = testnext(ls, ':');
+  if (testnext(ls, '.') || ismethod) {
+    if (!ismethod) {
+      luaK_exp2anyregup(ls->fs, v);
+    }
     expdesc key;
     TString *keystr = str_checkname(ls, N_RESERVED);
+
     if (auto special = ls->classes.top().getSpecialName(keystr); special.has_value()) {
       codestring(&key, luaX_newstring(ls, special.value().c_str()));
     }
-    else
+    else {
       codestring(&key, keystr);
-    luaK_indexed(ls->fs, v, &key);
+    }
+
+    if (!ismethod) {
+      luaK_indexed(ls->fs, v, &key);
+    }
+    else {
+      luaK_self(ls->fs, v, &key);
+      method_call_funcargs(ls, v);
+    }
   }
 }
 
