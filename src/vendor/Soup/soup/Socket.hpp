@@ -138,7 +138,7 @@ NAMESPACE_SOUP
 		bool udpServerSend(const SocketAddr& addr, const std::string& data) noexcept;
 		bool udpServerSend(const IpAddr& ip, uint16_t port, const std::string& data) noexcept;
 
-		void recv(void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
+		void recv(void(*callback)(Socket&, std::string&&, Capture&&), Capture&& cap = {}); // 'excal' as long as callback is
 
 		void udpRecv(void(*callback)(Socket&, SocketAddr&&, std::string&&, Capture&&), Capture&& cap = {}) noexcept;
 
@@ -168,8 +168,8 @@ NAMESPACE_SOUP
 		bool tls_sendRecordEncrypted(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
 
 		void tls_recvHandshake(UniquePtr<SocketTlsHandshaker>&& handshaker, void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&) SOUP_EXCAL, std::string&& pre = {}) SOUP_EXCAL;
-		void tls_recvRecord(TlsContentType_t expected_content_type, void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
-		void tls_recvRecord(void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
+		void tls_recvRecord(TlsContentType_t expected_content_type, void(*callback)(Socket&, std::string&&, Capture&&), Capture&& cap = {}); // 'excal' as long as callback is
+		void tls_recvRecord(void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&), Capture&& cap = {}); // 'excal' as long as callback is
 
 		void tls_close(TlsAlertDescription_t desc) SOUP_EXCAL;
 
@@ -179,15 +179,15 @@ NAMESPACE_SOUP
 		bool transport_send(const std::string& data) const noexcept;
 		bool transport_send(const void* data, int size) const noexcept;
 
-		using transport_recv_callback_t = void(*)(Socket&, std::string&&, Capture&&) SOUP_EXCAL;
+		using transport_recv_callback_t = void(*)(Socket&, std::string&&, Capture&&);
 
 		[[nodiscard]] bool transport_hasData() const;
 
 	protected:
 		[[nodiscard]] std::string transport_recvCommon(int max_bytes) SOUP_EXCAL;
 	public:
-		void transport_recv(int max_bytes, transport_recv_callback_t callback, Capture&& cap = {}) SOUP_EXCAL;
-		void transport_recvExact(int bytes, transport_recv_callback_t callback, Capture&& cap = {}, std::string&& pre = {}) SOUP_EXCAL;
+		void transport_recv(int max_bytes, transport_recv_callback_t callback, Capture&& cap = {}); // 'excal' as long as callback is
+		void transport_recvExact(int bytes, transport_recv_callback_t callback, Capture&& cap = {}, std::string&& pre = {}); // 'excal' as long as callback is
 
 		void transport_close() noexcept;
 

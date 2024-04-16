@@ -30,9 +30,10 @@ NAMESPACE_SOUP
 
 	private:
 		static void expandKey(uint8_t w[240], const uint8_t* key, size_t key_len) noexcept;
+		static void expandKeyForDecryption(uint8_t w[240], const uint8_t* key, size_t key_len) noexcept;
 		[[nodiscard]] static int getNk(size_t key_len) noexcept;
-		[[nodiscard]] static int getNr(size_t key_len) noexcept;
-		[[nodiscard]] static int getNr(const int Nk) noexcept;
+		[[nodiscard]] static int getNrFromKeyLen(size_t key_len) noexcept;
+		[[nodiscard]] static int getNrFromNk(const int Nk) noexcept;
 
 		static void subBytes(uint8_t** state) noexcept;
 		static void shiftRow(uint8_t** state, int i, int n) noexcept;    // shift row i on n positions
@@ -49,7 +50,7 @@ NAMESPACE_SOUP
 		static void invShiftRows(uint8_t** state) noexcept;
 		static void encryptBlock(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240], const int Nr) noexcept;
 		static void decryptBlock(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240], const int Nr) noexcept;
-		static void xorBlocks(uint8_t a[16], const uint8_t b[16]) noexcept;
+		static SOUP_FORCEINLINE void xorBlocks(uint8_t a[16], const uint8_t b[16]) noexcept;
 		static void xorBlocks(uint8_t a[16], const uint8_t b[16], unsigned int len) noexcept;
 
 		static void ghash(uint8_t res[16], const uint8_t h[16], const std::vector<uint8_t>& x) noexcept;

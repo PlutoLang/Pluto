@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base.hpp"
+#if !SOUP_WASM
 
 #include <string>
 #if SOUP_X86
@@ -121,3 +122,5 @@ NAMESPACE_SOUP
 #endif
 	};
 }
+
+#endif
