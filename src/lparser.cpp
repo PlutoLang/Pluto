@@ -4950,9 +4950,9 @@ static void trystat (LexState *ls) {
       if (gt->pc != NO_JUMP) { /* Needs patching up */
         luaK_patchlist(&new_fs, gt->pc, lab);
         for (int j = i + 1; j < gl->n; j++) { /* Look for other gotos with the same name and patch them together */
-          if (samelabelnames(&gl->arr[i], gt)) {
-            luaK_patchlist(&new_fs, gt->pc, lab);
-            gt->pc = NO_JUMP; /* This goto will also later be found, make sure it is later skipped but reamins in this list */
+          if (samelabelnames(&gl->arr[j], gt)) {
+            luaK_patchlist(&new_fs, gl->arr[j].pc, lab);
+            gl->arr[j].pc = NO_JUMP; /* This goto will also later be found, make sure it is later skipped but reamins in this list */
           }
         }
         ret_int(&new_fs, id++); /* Return the goto status */
