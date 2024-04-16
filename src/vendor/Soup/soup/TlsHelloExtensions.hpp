@@ -11,7 +11,7 @@ NAMESPACE_SOUP
 
 		SOUP_PACKET_IO(s)
 		{
-			return s.u16(id)
+			return s.u16_be(id)
 				&& s.template str_lp<u16_t>(data)
 				;
 		}

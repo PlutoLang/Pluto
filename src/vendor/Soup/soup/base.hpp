@@ -4,10 +4,10 @@
 
 namespace soup
 {
-	namespace epoch_0 {};
-	using namespace epoch_0;
+	namespace e0 {};
+	using namespace e0;
 };
-#define NAMESPACE_SOUP namespace soup::epoch_0
+#define NAMESPACE_SOUP namespace soup::e0
 
 // === Platform/ABI macros
 

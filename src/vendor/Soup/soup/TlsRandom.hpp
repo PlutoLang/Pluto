@@ -11,7 +11,7 @@ NAMESPACE_SOUP
 
 		SOUP_PACKET_IO(s)
 		{
-			if (!s.u32(time))
+			if (!s.u32_be(time))
 			{
 				return false;
 			}

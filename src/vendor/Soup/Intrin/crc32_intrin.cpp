@@ -17,6 +17,9 @@ namespace soup_intrin
 #if defined(__x86_64__) || defined(_M_X64)
 	uint32_t crc32_pclmul(const uint8_t* p, size_t size, uint32_t crc) noexcept
 	{
+		// Original source: https://github.com/richgel999/fpng/blob/main/src/fpng.cpp
+		// Original licence: Dedicated to the public domain.
+
 		static const uint64_t
 #ifdef _MSC_VER
 			__declspec(align(16))

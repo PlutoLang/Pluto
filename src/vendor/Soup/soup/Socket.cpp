@@ -1172,11 +1172,11 @@ NAMESPACE_SOUP
 
 	struct CaptureSocketRecv
 	{
-		void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL;
+		void(*callback)(Socket&, std::string&&, Capture&&);
 		Capture cap;
 	};
 
-	void Socket::recv(void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
+	void Socket::recv(void(*callback)(Socket&, std::string&&, Capture&&), Capture&& cap)
 	{
 		if (tls_encrypter_recv.isActive())
 		{
@@ -1184,7 +1184,7 @@ NAMESPACE_SOUP
 				callback,
 				std::move(cap)
 			};
-			auto inner_callback = [](Socket& s, std::string&& data, Capture&& _cap) SOUP_EXCAL
+			auto inner_callback = [](Socket& s, std::string&& data, Capture&& _cap)
 			{
 				auto & cap = _cap.get<CaptureSocketRecv>();
 				cap.callback(s, std::move(data), std::move(cap.cap));
@@ -1381,13 +1381,13 @@ NAMESPACE_SOUP
 	struct CaptureSocketTlsRecvRecordExpect
 	{
 		TlsContentType_t expected_content_type;
-		void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL;
+		void(*callback)(Socket&, std::string&&, Capture&&);
 		Capture cap;
 	};
 
-	void Socket::tls_recvRecord(TlsContentType_t expected_content_type, void(*callback)(Socket&, std::string&&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
+	void Socket::tls_recvRecord(TlsContentType_t expected_content_type, void(*callback)(Socket&, std::string&&, Capture&&), Capture&& cap)
 	{
-		tls_recvRecord([](Socket& s, TlsContentType_t content_type, std::string&& data, Capture&& _cap) SOUP_EXCAL
+		tls_recvRecord([](Socket& s, TlsContentType_t content_type, std::string&& data, Capture&& _cap) // 'excal' as long as callback is
 		{
 			auto& cap = _cap.get<CaptureSocketTlsRecvRecordExpect>();
 			if (content_type == cap.expected_content_type)
@@ -1430,7 +1430,7 @@ NAMESPACE_SOUP
 
 	struct CaptureSocketTlsRecvRecord1
 	{
-		void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&) SOUP_EXCAL;
+		void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&);
 		Capture cap;
 	};
 
@@ -1440,7 +1440,7 @@ NAMESPACE_SOUP
 		TlsContentType_t content_type;
 	};
 
-	void Socket::tls_recvRecord(void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
+	void Socket::tls_recvRecord(void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&), Capture&& cap)
 	{
 		if (!tls_record_buf.empty())
 		{
@@ -1639,7 +1639,7 @@ NAMESPACE_SOUP
 		Capture cap;
 	};
 
-	void Socket::transport_recv(int max_bytes, transport_recv_callback_t callback, Capture&& cap) SOUP_EXCAL
+	void Socket::transport_recv(int max_bytes, transport_recv_callback_t callback, Capture&& cap)
 	{
 		if (canRecurse())
 		{
@@ -1651,7 +1651,7 @@ NAMESPACE_SOUP
 			}
 		}
 		holdup_type = SOCKET;
-		holdup_callback.set([](Worker& w, Capture&& _cap) SOUP_EXCAL
+		holdup_callback.set([](Worker& w, Capture&& _cap) // 'excal' as long as callback is
 		{
 			w.holdup_type = Worker::NONE;
 			auto& cap = _cap.get<CaptureSocketTransportRecv>();
@@ -1669,7 +1669,7 @@ NAMESPACE_SOUP
 		}
 	};
 
-	void Socket::transport_recvExact(int bytes, transport_recv_callback_t callback, Capture&& cap, std::string&& pre) SOUP_EXCAL
+	void Socket::transport_recvExact(int bytes, transport_recv_callback_t callback, Capture&& cap, std::string&& pre)
 	{
 		if (canRecurse())
 		{
@@ -1689,7 +1689,7 @@ NAMESPACE_SOUP
 			}
 		}
 		holdup_type = SOCKET;
-		holdup_callback.set([](Worker& w, Capture&& _cap) SOUP_EXCAL
+		holdup_callback.set([](Worker& w, Capture&& _cap) // 'excal' as long as callback is
 		{
 			w.holdup_type = Worker::NONE;
 			auto& cap = _cap.get<CaptureSocketTransportRecvExact>();

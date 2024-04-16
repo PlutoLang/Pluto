@@ -14,6 +14,9 @@
 #include "Endian.hpp"
 #include "Reader.hpp"
 
+// Original source: https://github.com/richgel999/fpng/blob/main/src/fpng.cpp
+// Original licence: Dedicated to the public domain.
+
 #if CRC32_USE_INTRIN
 namespace soup_intrin
 {
