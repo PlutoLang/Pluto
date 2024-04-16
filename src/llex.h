@@ -345,7 +345,7 @@ struct ClassData {
   size_t parent_name_pos = 0;
   std::vector<std::string> private_fields{};
 
-  [[nodiscard]] std::string addField(std::string&& name) {
+  std::string addField(std::string&& name) {
     private_fields.emplace_back(name);
     name.insert(0, "__restricted__");
     return name;
