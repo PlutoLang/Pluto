@@ -2129,7 +2129,7 @@ do -- Method calls as well
     end
 
     if (inst := getobj()):isValid() then
-        print(inst)
+        assert(inst)
     end
 end
 do -- Can be used in subexpressions
@@ -2140,7 +2140,7 @@ do -- Can be used in subexpressions
     local val = 0
 
     if val >= 0 and val == (cur := getvalue()) then
-        print(cur)
+        assert(cur == 0)
     end
 end
 do -- But scope may be cut short by conditional subexpressions
