@@ -1573,7 +1573,7 @@ static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool 
   luaX_next(ls); /* skip TK_FUNCTION */
   codename(ls, &key);
   if (isprivate) {
-    const auto new_name = ls->classes.top().addField(getstr(key.u.strval));
+    const auto new_name = ls->classes.top().addPrefix(getstr(key.u.strval)); // 'preprocessclass' will pre-register private methods, so addField would add a duplicate entry
     codestring(&key, luaX_newstring(ls, new_name.c_str()));
   }
   if (ismethod)
@@ -1782,6 +1782,59 @@ static void applyextends (LexState *ls, size_t name_pos, size_t parent_pos, int 
   fs->freereg = base + 1;
 }
 
+static void preprocessclass (LexState *ls) {
+  int allowed_ends = 0;
+  const auto start = luaX_getpos(ls);
+
+  while (ls->t.token != TK_EOS) { // TODO: Improve. Syntax errors in a class declaration will make us loop over the entire file before resetting the cursor and raising a compiler error.
+    if (ls->t.token == TK_END) {
+      if (allowed_ends-- <= 0) {
+        // printf("Preprocessed class body ending at line %d.\n", ls->getLineNumber());
+        break;
+      }
+    }
+
+    switch (ls->t.token) {
+    case TK_DO: // Covers many block openers, like TK_FOR, TK_ARROW, etc.
+    case TK_IF:
+    case TK_BEGIN:
+    case TK_CATCH:
+    case TK_FUNCTION:
+      ++allowed_ends;
+      break;
+
+    case TK_CLASS: // class Foo begin end && class t.Foo begin end && local Foo = class end && local Foo = class begin end
+      if (luaX_lookahead(ls) == TK_NAME) { // Class statement
+        checknext(ls, TK_CLASS);
+        str_checkname(ls); // Consume name
+        if (ls->t.token != TK_BEGIN) {
+          ++allowed_ends;
+        }
+      }
+      else if (luaX_lookahead(ls) != TK_BEGIN) { // Class expression
+        ++allowed_ends;
+      }
+      break;
+    }
+
+    if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
+      if (luaX_lookahead(ls) == TK_FUNCTION) {
+        checknext(ls, TK_NAME);
+        checknext(ls, TK_FUNCTION);
+        ls->classes.top().addField(getstr(ls->t.seminfo.ts));
+        ++allowed_ends; // For TK_FUNCTION
+      }
+      else if (luaX_lookahead(ls) == TK_NAME) {
+        checknext(ls, TK_NAME);
+        ls->classes.top().addField(getstr(ls->t.seminfo.ts));
+      }
+    }
+
+    luaX_next(ls);
+  }
+
+  luaX_setpos(ls, start);
+}
 
 static void classexpr (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
@@ -1796,6 +1849,7 @@ static void classexpr (LexState *ls, expdesc *t) {
   init_exp(t, VNONRELOC, fs->freereg);  /* table will be at stack top */
   luaK_reserveregs(fs, 1);
   init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
+  preprocessclass(ls);
   while (ls->t.token != TK_END) {
     lua_assert(cc.v.k == VVOID || cc.tostore > 0);
     closelistfield(fs, &cc);
