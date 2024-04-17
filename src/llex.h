@@ -162,6 +162,20 @@ struct Token {
   [[nodiscard]] bool IsOverridable() const noexcept {
       return token == TK_PARENT || token == TK_PPARENT;
   }
+
+  [[nodiscard]] bool isSimple() const noexcept {
+    switch (token) {
+    case TK_NIL:
+    case TK_FLT:
+    case TK_INT:
+    case TK_TRUE:
+    case TK_FALSE:
+    case TK_STRING:
+      return true;
+    }
+
+    return false;
+  }
 };
 
 
