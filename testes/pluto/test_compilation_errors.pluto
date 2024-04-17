@@ -1,0 +1,21 @@
+local assert = require("assert")
+
+local function check(intended_error, bad_code)
+	local _, fail = load(bad_code)
+	assert.contains(intended_error, fail)
+end
+
+$define invalid_syntax = "':=' is not allowed in this context"
+
+-- Walrus
+do
+	check(invalid_syntax, 
+	[[
+	local tab = {a:=1, (||->do tab=1 end)()}
+	]])
+
+	check(invalid_syntax, 
+	[[
+	error(a:=1)
+	]])
+end
