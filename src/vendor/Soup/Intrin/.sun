@@ -1,6 +1,8 @@
 +*.cpp
 static
 
+arg -O3
+
 arg -maes
 arg -mpclmul
 arg -mrdrnd

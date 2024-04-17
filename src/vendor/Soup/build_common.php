@@ -1,6 +1,6 @@
 <?php
 // Config
-$clang = "clang -std=c++17 -fno-rtti -DSOUP_USE_INTRIN";
+$clang = "clang -std=c++17 -fno-rtti -DSOUP_USE_INTRIN -O3";
 if (defined("PHP_WINDOWS_VERSION_MAJOR"))
 {
 	$clang .= " -D_CRT_SECURE_NO_WARNINGS";
