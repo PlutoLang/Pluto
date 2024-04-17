@@ -2676,6 +2676,52 @@ do
 
     GlobalClass = nil
 end
+-- Order independent private methods / fields / preprocessing
+do
+    local t = {}
+    local class MyClass
+        function __construct(private a)
+            self.var1 = "1"
+            self.var2 = "2"
+            self.var3 = "3"
+            assert(self["var1"] == nil)
+            assert(self["__restricted__var1"] == "1")
+        end
+
+        public function getPublic()
+            if a then else end
+            local a = || -> do end
+            enum A begin
+            end
+            class Foo begin end
+            class t.Foo begin end
+            local MuhClass = class end
+            local MuhClass2 = class begin end
+            return self:getPrivate()
+        end
+
+        private function getPrivate()
+            return self.a
+        end
+
+        private var1
+        private var2,
+        private var3;
+    end
+
+    local var = new MyClass("a")
+
+    assert(var:getPublic() == "a")
+    assert(var.__restricted__getPrivate ~= nil)
+    assert(var.getPrivate == nil)
+    assert(t.Foo ~= nil)
+    assert(var.var1 == nil)
+    assert(var.var2 == nil)
+    assert(var.var3 == nil)
+    assert(var.__restricted__var1 == "1")
+    assert(var.__restricted__var2 == "2")
+    assert(var.__restricted__var3 == "3")
+end
 
 print "Testing named varargs."
 do
