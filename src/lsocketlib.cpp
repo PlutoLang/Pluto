@@ -176,6 +176,18 @@ static int socket_close (lua_State *L) {
   return 0;
 }
 
+static int socket_getpeer (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  auto ipstr = ss.sock->peer.ip.toString();
+  if (!ss.sock->peer.ip.isV4()) {
+    ipstr.insert(0, 1, '[');
+    ipstr.push_back(']');
+  }
+  pluto_pushstring(L, std::move(ipstr));
+  lua_pushinteger(L, ss.sock->peer.getPort());
+  return 2;
+}
+
 struct Listener {
   soup::Server serv;
   soup::ServerService srv{ &onTunnelEstablished };
@@ -271,6 +283,7 @@ static const luaL_Reg funcs_socket[] = {
   {"unrecv", unrecv},
   {"starttls", starttls},
   {"close", socket_close},
+  {"getpeer", socket_getpeer},
   {"listen", l_listen},
   {NULL, NULL}
 };
