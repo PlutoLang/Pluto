@@ -347,16 +347,18 @@ struct ClassData {
 
   std::string addField(std::string&& name) {
     private_fields.emplace_back(name);
+    return addPrefix(std::move(name));
+  }
+
+  [[nodiscard]] std::string addPrefix(std::string&& name) const {
     name.insert(0, "__restricted__");
     return name;
   }
 
-  [[nodiscard]] std::optional<std::string> getSpecialName(TString* key) const noexcept {
+  [[nodiscard]] std::optional<std::string> getSpecialName(TString* key) const {
     for (const auto& pf : private_fields) {
       if (pf == getstr(key)) {
-        std::string name = "__restricted__";
-        name.append(getstr(key), tsslen(key));
-        return name;
+        return addPrefix(getstr(key));
       }
     }
     return std::nullopt;
