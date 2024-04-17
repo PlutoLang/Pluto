@@ -2831,6 +2831,8 @@ do
                     if state == 8 then state = -1 continue 1 end
                     if state == 9 then state = -1 continue 2 end
                     if state == 10 then goto b end
+                    if state == 27 then return 27 end
+                    if state == 28 then return 28, p, p end
                     if state ~= 11 then
                         try
                             if state == 12 then return end
@@ -2845,6 +2847,8 @@ do
                             if state == 21 then state = -1 continue 2 end
                             if state == 22 then goto b end
                             if state == 23 then goto c end
+                            if state == 25 then return 25 end
+                            if state == 26 then return 26, p, p end
                         catch ee then
                             return 12, ee
                         end
@@ -2896,6 +2900,9 @@ do
     assert(reteq(10)(testtry(9)))
     assert(reteq(11)(testtry(10)))
     assert(reteq(4)(testtry(11)))
+    assert(reteq(27)(testtry(27)))
+    assert(reteq(28, nil, nil)(testtry(28)))
+    assert(reteq(28, 4, 4)(testtry(28, 4)))
 
     assert(select('#', testtry(12)) == 0)
     assert(reteq(13, 2)(testtry(13, ||->2)))
@@ -2914,6 +2921,9 @@ do
     assert(reteq(11)(testtry(22)))
     assert(reteq(15)(testtry(23)))
     assert(reteq(4)(testtry(24)))
+    assert(reteq(25)(testtry(25)))
+    assert(reteq(26, nil, nil)(testtry(26)))
+    assert(reteq(26, 4, 4)(testtry(26, 4)))
 end
 
 print "Testing compatibility."

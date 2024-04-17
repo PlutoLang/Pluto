@@ -1181,9 +1181,7 @@ static void open_func (LexState *ls, FuncState *fs, BlockCnt *bl) {
   fs->nactvar = 0;
   fs->needclose = 0;
   fs->istrybody = 0;
-  fs->hadnoargret = 0;
-  fs->hadsingleargret = 0;
-  fs->hadmultiargret = 0;
+  fs->seenrets = 0;
   fs->firstlocal = ls->dyd->actvar.n;
   fs->firstlabel = ls->dyd->label.n;
   fs->bl = NULL;
@@ -1287,7 +1285,7 @@ static void statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implie
       ++i;
       return true;
     });
-    ls->fs->hadsingleargret = 1;
+    ls->fs->seenrets = 1<<1;
     // TODO: Handle in try / catch block
     luaK_ret(ls->fs, luaK_exp2anyreg(ls->fs, &t), 1);
     leavelevel(ls);
@@ -2227,7 +2225,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
   else {
     ls->pushContext(PARCTX_LAMBDA_BODY);
     expr(ls, e, &retprop);
-    ls->fs->hadsingleargret = 1;
+    ls->fs->seenrets |= 1<<1;
     luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
     ls->popContext(PARCTX_LAMBDA_BODY);
   }
@@ -4672,11 +4670,12 @@ static void retstat (LexState *ls, TypeHint *prop) {
   expdesc e;
   int nret;  /* number of values being returned */
   int first = luaY_nvarstack(fs);  /* first slot to be returned */
+  int startpc = fs->pc;
+  int endpc = -1;
   if (block_follow(ls, 1) || ls->t.token == ';'
     || ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT
   ) {
     nret = 0;  /* return no values */
-    fs->hadnoargret = 1;
     if (prop) prop->emplaceTypeDesc(VT_VOID);
   }
   else {
@@ -4688,12 +4687,13 @@ static void retstat (LexState *ls, TypeHint *prop) {
       luaK_indexed(ls->fs, &e, &key);
       luaK_exp2nextreg(ls->fs, &e);
       lua_assert(first == e.u.reg);
+      endpc = fs->pc-1;
+      lua_assert(endpc >= startpc);
     }
     nret = explist(ls, &e, prop);  /* optional return values */
     if (prop && prop->empty())
       prop->emplaceTypeDesc(VT_DUNNO);  /* we are returning something, but we don't know what. (this is needed for trystat.) */
     if (hasmultret(e.k)) {
-      fs->hadmultiargret = 1;
       luaK_setmultret(fs, &e);
       if (e.k == VCALL && nret == 1 && !fs->bl->insidetbc && !fs->istrybody) {  /* tail call? */
         SET_OPCODE(getinstruction(fs,&e), OP_TAILCALL);
@@ -4702,8 +4702,6 @@ static void retstat (LexState *ls, TypeHint *prop) {
       nret = LUA_MULTRET;  /* return all values */
     }
     else {
-      if (nret == 1) fs->hadsingleargret = 1;
-      else fs->hadmultiargret = 1;
       if (nret == 1 && !fs->istrybody) /* only one single value? */
         first = luaK_exp2anyreg(fs, &e);  /* can use original slot */
       else {  /* values must go to the top of the stack */
@@ -4712,20 +4710,25 @@ static void retstat (LexState *ls, TypeHint *prop) {
       }
     }
   }
+  fs->seenrets |= 1 << (nret >= 0 && nret <= 3 ? nret : 3);
   if (fs->istrybody) {
     if (nret == 0) {
       init_exp(&e, VKINT, 0);
       e.u.ival = 0;
       first = luaK_exp2anyreg(fs, &e);  /* can use original slot */
-    } else if (nret == 1) {
-      // TODO: Optimize single arg return
-      luaK_codeABC(ls->fs, OP_CALL, first, nret + 1, 2);
-      ls->fs->freereg = first + 1;
+      nret = 1;
+    } else if (nret == 1 || nret == 2) {
+      fs->f->code[endpc] = CREATE_ABx(OP_LOADI, first, nret + OFFSET_sBx);
+      while (startpc<endpc) {
+        fs->f->code[startpc] = CREATE_sJ(OP_JMP, (endpc-startpc-1) + OFFSET_sJ, 0);
+        startpc++;
+      }
+      nret++;
     } else {
       luaK_codeABC(ls->fs, OP_CALL, first, nret + 1, 2);
       ls->fs->freereg = first + 1;
+      nret = 1;
     }
-    nret = 1;
   }
   luaK_ret(fs, first, nret);
   testnext(ls, ';');  /* skip optional semicolon */
@@ -4904,7 +4907,7 @@ static void trystat (LexState *ls) {
   expdesc ex;
   FuncState new_fs;
   BlockCnt bl;
-  int exitjump;
+  int exitjump = NO_JUMP;
 
   enterblock(ls->fs, &trybl, BlockType::BT_DEFAULT);
 
@@ -4912,26 +4915,25 @@ static void trystat (LexState *ls) {
   luaX_next(ls);
   const bool vararg = ls->fs->f->is_vararg;
 
-  /* local (try status), (try result) = */
-  const auto status_vidx = new_localvarliteral(ls, "(try status)");
-  const auto result_vidx = new_localvarliteral(ls, "(try result)");
+  /* temp (try status), (try result), (try result2), (try result3) = */
+  const auto status_reg = ls->fs->freereg;
+  const auto result_reg = ls->fs->freereg+1;
 
-  /* local (try status), (try result) = pcall */
+  /* temp (try status), (try result), (try result2), (try result3) = pcall */
   singlevar(ls, &ex, luaX_newliteral(ls, "pcall"));
   luaK_exp2nextreg(ls->fs, &ex);
-  auto base = ex.u.reg;
 
-  /* local (try status), (try result) = pcall(function() */
+  /* temp (try status), (try result), (try result2), (try result3) = pcall(function() */
   new_fs.f = addprototype(ls);
   new_fs.f->linedefined = ls->getLineNumber();
   open_func(ls, &new_fs, &bl);
   new_fs.istrybody = 1;
   if (vararg) {
-    /* local (try status), (try result) = pcall(function(...) */
+    /* temp (try status), (try result), (try result2), (try result3) = pcall(function(...) */
     setvararg(&new_fs, 0);
   }
 
-  /* local (try status), (try result) = pcall(function(...) STATLIST */
+  /* temp (try status), (try result), (try result2), (try result3) = pcall(function(...) STATLIST */
   TypeHint prop{};
   statlist(ls, &prop);
 
@@ -4943,7 +4945,7 @@ static void trystat (LexState *ls) {
     removevars(&new_fs, bl.nactvar);  /* remove function locals */
     lua_assert(bl.nactvar == new_fs.nactvar);  /* no variables should remain */
     /* correct pending gotos to current block */
-    int id = 1; // Next id of the goto return status
+    int id = 3; // Next id of the goto return status
     for (int i = bl.firstgoto; i < gl->n; i++) {  /* for each pending goto */
       Labeldesc *gt = &gl->arr[i];
       int lab = luaK_getlabel(&new_fs);
@@ -4963,33 +4965,37 @@ static void trystat (LexState *ls) {
     bl.firstgoto = gl->n; /* Prevent undefgoto errors here on the close_func */
   }
 
-  /* local (try status), (try result) = pcall(function(...) STATLIST end */
+  /* temp (try status), (try result), (try result2), (try result3) = pcall(function(...) STATLIST end */
   new_fs.f->lastlinedefined = ls->getLineNumber();
   codeclosure(ls, &ex);
   close_func(ls);
   luaK_exp2nextreg(ls->fs, &ex);
-  lua_assert(base+1 == ex.u.reg);
+  lua_assert(status_reg+1 == ex.u.reg);
 
   if (vararg) {
-    /* local (try status), (try result) = pcall(function(...) STATLIST end, ... */
+    /* temp (try status), (try result), (try result2), (try result3) = pcall(function(...) STATLIST end, ... */
     init_exp(&ex, VVARARG, luaK_codeABC(ls->fs, OP_VARARG, 0, 0, 1));
     luaK_setmultret(ls->fs, &ex);
   }
 
-  /* local (try status), (try result) = pcall(function(...) STATLIST end, ...) */
-  init_exp(&ex, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, (vararg ? LUA_MULTRET : 1) + 1, 2));
-  ls->fs->freereg = base + 1;
+  /* temp (try status), (try result), (try result2), (try result3) = pcall(function(...) STATLIST end, ...) */
+  init_exp(&ex, VCALL, luaK_codeABC(ls->fs, OP_CALL, status_reg, (vararg ? LUA_MULTRET : 1) + 1, 2));
+  ls->fs->freereg = status_reg+1;
 
-  adjust_assign(ls, 2, 1, &ex);
-  adjustlocalvars(ls, 2);
+  int num_out = new_fs.seenrets & (1<<2) ? 4 : new_fs.seenrets & (1<<1) ? 3 : 2;
+  adjust_assign(ls, num_out, 1, &ex);
+  lua_assert(status_reg+num_out == ls->fs->freereg);
 
   if (!testnext(ls, TK_CATCH))
     check_match(ls, TK_PCATCH, TK_PTRY, line);
 
-  /* if (try status) then */
-  init_var(ls->fs, &ex, status_vidx);
+  auto old_pin = ls->fs->pinnedreg;
 
-  if (trybl.firstgoto == gl->n && !new_fs.hadsingleargret && !new_fs.hadmultiargret && !new_fs.hadnoargret) {
+  /* if not (try status) then jump to catch block */
+  ls->fs->pinnedreg = status_reg;
+  init_exp(&ex, VNONRELOC, status_reg);
+
+  if (trybl.firstgoto == gl->n && !new_fs.seenrets) {
     /* Simple case */
     /* Try body with only a falltrough case */
     /* Just jump over the catch block if there is no error */
@@ -5002,19 +5008,20 @@ static void trystat (LexState *ls) {
     luaK_goiftrue(ls->fs, &ex);
     int skip = ex.f;
 
-    /* Jump to end of try/catch if there is no error */
-    init_var(ls->fs, &ex, result_vidx);
+    /* Jump to end of try/catch in case of falltrough */
+    ls->fs->pinnedreg = result_reg;
+    init_exp(&ex, VNONRELOC, result_reg);
     luaK_goiftrue(ls->fs, &ex);
     exitjump = ex.f;
 
     /* For every goto from the try body make a if case and update the jump */
-    int id = 1;
+    int id = 3;
     int j = trybl.firstgoto;
     for (int i = trybl.firstgoto; i < gl->n; i++) {
       Labeldesc *gt = &gl->arr[i];
       Labeldesc *lb = gt->special ? 0 : findlabel(ls, (TString*)gt->name);
       if (gt->pc != NO_JUMP) {
-        init_var(ls->fs, &ex, result_vidx);
+        init_exp(&ex, VNONRELOC, result_reg);
         test_eqi(ls, &ex, id++, OPR_EQ);
 
         if (lb) {  /* found a label */
@@ -5048,33 +5055,34 @@ static void trystat (LexState *ls) {
     gl->n = j;
 
     /* Update return status */
-    ls->fs->hadsingleargret |= new_fs.hadsingleargret;
-    ls->fs->hadmultiargret |= new_fs.hadmultiargret;
-    ls->fs->hadnoargret |= new_fs.hadnoargret;
+    ls->fs->seenrets |= new_fs.seenrets;
 
     if (ls->fs->istrybody) {
       /* We are ourselves in a try body */
-      if (new_fs.hadnoargret || new_fs.hadsingleargret || new_fs.hadmultiargret) {
+      if (new_fs.seenrets) {
         /* Just return the result as is */
-        init_var(ls->fs, &ex, result_vidx);
-        luaK_exp2anyreg(ls->fs, &ex);
-        luaK_ret(ls->fs, ex.u.reg, 1);
+        luaK_ret(ls->fs, result_reg, num_out-1);
       }
     } else {
-      if (new_fs.hadnoargret) {
-        /* In the try body was a return without arguments */
-        ex.f = NO_JUMP;
-        if (new_fs.hadsingleargret || new_fs.hadmultiargret) {
-          init_var(ls->fs, &ex, result_vidx);
-          test_eqi(ls, &ex, 0, OPR_EQ);
-          luaK_goiftrue(ls->fs, &ex);
+      for (int i=0; i<3; i++) {
+        /* Add specialized returns for specific numbers */
+        /* This is required for the correct number of returns */
+        if (new_fs.seenrets & (1<<i)) {
+          ex.f = NO_JUMP;
+          if (new_fs.seenrets >> (i+1)) {
+            init_exp(&ex, VNONRELOC, result_reg);
+            test_eqi(ls, &ex, i, OPR_EQ);
+            luaK_goiftrue(ls->fs, &ex);
+          }
+          luaK_ret(ls->fs, result_reg+1, i);
+          luaK_patchtohere(ls->fs, ex.f);
         }
-        luaK_ret(ls->fs, luaY_nvarstack(ls->fs), 0);
-        luaK_patchtohere(ls->fs, ex.f);
       }
 
-      if (new_fs.hadsingleargret || new_fs.hadmultiargret) {
-        /* In the try body was a return with one or more returns */
+      if (new_fs.seenrets & (1<<3)) {
+        /* In the try body was a return with more then two returns */
+
+        ls->fs->freereg = status_reg+2;
 
         /* table.unpack */
         expdesc key;
@@ -5082,39 +5090,35 @@ static void trystat (LexState *ls) {
         luaK_exp2anyregup(ls->fs, &ex);
         codestring(&key, luaX_newliteral(ls, "unpack"));
         luaK_indexed(ls->fs, &ex, &key);
-        luaK_exp2nextreg(ls->fs, &ex);
+        luaK_exp2reg(ls->fs, &ex, status_reg);
         lua_assert(ex.k == VNONRELOC);
-        base = ex.u.reg;
 
-        /* table.unpack(results */
-        init_var(ls->fs, &ex, result_vidx);
-        luaK_exp2nextreg(ls->fs, &ex);
-        lua_assert(base+1 == ex.u.reg);
+        /* results is already in result_reg == status_reg+1 */
 
         /* table.unpack(results, 1 */
         init_exp(&ex, VKINT, 0);
         ex.u.ival = 1;
         luaK_exp2nextreg(ls->fs, &ex);
-        lua_assert(base+2 == ex.u.reg);
+        lua_assert(status_reg+2 == ex.u.reg);
 
         /* table.unpack(results, 1, results.n */
-        init_var(ls->fs, &ex, result_vidx);
+        init_exp(&ex, VNONRELOC, result_reg);
         codestring(&key, luaX_newliteral(ls, "n"));
         luaK_indexed(ls->fs, &ex, &key);
         luaK_exp2nextreg(ls->fs, &ex);
-        lua_assert(base+3 == ex.u.reg);
+        lua_assert(status_reg+3 == ex.u.reg);
 
         /* table.unpack(results, 1, results.n) */
-        luaK_codeABC(ls->fs, OP_CALL, base, 4 /* 3 params */, LUA_MULTRET + 1);
-        luaK_ret(ls->fs, base, LUA_MULTRET);  /* final return */
-        ls->fs->freereg = base;
+        luaK_codeABC(ls->fs, trybl.insidetbc ? OP_CALL : OP_TAILCALL, status_reg, 4 /* 3 params */, LUA_MULTRET + 1);
+        luaK_ret(ls->fs, status_reg, LUA_MULTRET);
       }
     }
 
     luaK_patchtohere(ls->fs, skip);
   }
 
-  enterblock(ls->fs, &bl, BlockType::BT_DEFAULT);
+  ls->fs->freereg = status_reg+2;
+  ls->fs->pinnedreg = old_pin;
 
   /* local (e) */
   new_localvar(ls, str_checkname(ls, N_OVERRIDABLE));
@@ -5123,9 +5127,14 @@ static void trystat (LexState *ls) {
   checknext(ls, TK_THEN);
 
   /* local (e) = (try result) */
-  init_var(ls->fs, &ex, result_vidx);
-  adjust_assign(ls, 1, 1, &ex);
+  init_exp(&ex, VNONRELOC, result_reg);
+  luaK_exp2reg(ls->fs, &ex, status_reg);
+  lua_assert(status_reg == luaY_nvarstack(ls->fs));
+  lua_assert(status_reg+1 == ls->fs->freereg);
   adjustlocalvars(ls, 1);
+
+  enterblock(ls->fs, &bl, BlockType::BT_DEFAULT);
+  bl.nactvar--; /* Move e into this block */
 
   statlist(ls);
 
