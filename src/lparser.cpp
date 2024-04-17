@@ -3018,30 +3018,6 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
 }
 
 
-static int cond (LexState *ls, bool for_while_loop = false);
-static void ifexpr (LexState *ls, expdesc *v) {
-  throw_warn(ls, "'if a then b else c' is deprecated", "use 'a ? b : c' instead", WT_DEPRECATED);
-  /*
-  ** Patch published by Ryota Hirose.
-  */
-  FuncState *fs = ls->fs;
-  int condition;
-  int escape = NO_JUMP;
-  int reg;
-  luaX_next(ls);			
-  condition = cond(ls);
-  checknext(ls, TK_THEN);
-  expr(ls, v);					
-  reg = luaK_exp2anyreg(fs, v);			
-  luaK_concat(fs, &escape, luaK_jump(fs));
-  luaK_patchtohere(fs, condition);
-  checknext(ls, TK_ELSE);
-  expr(ls, v);
-  luaK_exp2reg(fs, v, reg);
-  luaK_patchtohere(fs, escape);
-}
-
-
 static void newexpr (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
 
@@ -3553,7 +3529,6 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
     subexpr(ls, v, UNARY_PRIORITY, nullptr, flags & ~E_WALRUS);
     luaK_prefix(ls->fs, uop, v, line);
   }
-  else if (ls->t.token == TK_IF) ifexpr(ls, v);
   else if (ls->t.token == '+') {
     int line = ls->getLineNumber();
     luaX_next(ls); /* skip '+' */
@@ -3860,7 +3835,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
   luaK_storevar(ls->fs, &lh->v, &e);
 }
 
-static int cond (LexState *ls, bool for_while_loop) {
+static int cond (LexState *ls, bool for_while_loop = false) {
   /* cond -> exp */
   expdesc v;
   expr(ls, &v, nullptr, for_while_loop * E_WALRUS);  /* read condition */
