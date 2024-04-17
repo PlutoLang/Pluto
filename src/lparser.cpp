@@ -1277,6 +1277,11 @@ static void statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implie
     enterlevel(ls);
     size_t i = 0;
     expdesc t;
+    if (ls->fs->istrybody) {
+      init_exp(&t, VKINT, 0);
+      t.u.ival = 1;
+      luaK_exp2nextreg(ls->fs, &t);
+    }
     newtable(ls, &t, [ls, &i](expdesc *k, expdesc *v) {
       if (i == ls->fs->bl->export_symbols.size())
         return false;
@@ -1286,8 +1291,7 @@ static void statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implie
       return true;
     });
     ls->fs->seenrets = 1<<1;
-    // TODO: Handle in try / catch block
-    luaK_ret(ls->fs, luaK_exp2anyreg(ls->fs, &t), 1);
+    luaK_ret(ls->fs, luaK_exp2anyreg(ls->fs, &t)-ls->fs->istrybody, 1+ls->fs->istrybody);
     leavelevel(ls);
     ls->fs->bl->export_symbols.clear();
   }

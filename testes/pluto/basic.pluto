@@ -2888,6 +2888,17 @@ do
     assert(reteq(26, nil, nil)(testtry(26)))
     assert(reteq(26, 4, 4)(testtry(26, 4)))
 end
+do
+    -- Export in try body
+    local function f()
+        try
+            export function a() end
+        catch e then
+        end
+    end
+
+    assert(type(f().a)=='function')
+end
 
 print "Testing compatibility."
 do
