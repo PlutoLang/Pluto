@@ -307,7 +307,7 @@ static void checknext (LexState *ls, int c) {
 ** raise an error that the expected 'what' should match a 'who'
 ** in line 'where' (if that is not the current line).
 */
-static void check_match (LexState *ls, int what, int who, int where) {
+static void check_match (LexState *ls, int what, int who, int where, const char* note = nullptr) {
   if (l_unlikely(!testnext(ls, what))) {
     if (where == ls->getLineNumber())  /* all in the same line? */
       error_expected(ls, what);  /* do not need a complex message */
@@ -333,8 +333,13 @@ static void check_match (LexState *ls, int what, int who, int where) {
           .addMsg(luaO_fmt(ls->L, "%d", where))
           .addMsg(")")
           .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
-          .addGenericHere()
-          .finalizeAndThrow();
+          .addGenericHere();
+
+        if (note != nullptr) {
+          err->addNote(note);
+        }
+
+        err->finalizeAndThrow();
       }
     }
   }
@@ -1631,7 +1636,12 @@ static void constructor (LexState *ls, expdesc *t) {
     closelistfield(fs, &cc);
     field(ls, &cc);
   } while (testnext(ls, ',') || testnext(ls, ';'));
-  check_match(ls, '}', '{', line);
+  if (ls->t.token == TK_NAME || ls->t.token == TK_FUNCTION || ls->t.token == '[' || ls->t.isSimple()) {
+    check_match(ls, '}', '{', line, "Ensure that you've delimited the previous field with ',' or ';'.");
+  }
+  else {
+    check_match(ls, '}', '{', line);
+  }
   lastlistfield(fs, &cc);
   luaK_settablesize(fs, pc, t->u.reg, cc.na, cc.nh);
   ls->constructorfieldsets.pop();
