@@ -2724,6 +2724,10 @@ do
             class t.Foo begin end
             local MuhClass = class end
             local MuhClass2 = class begin end
+            local MuhClass3 = pluto_class end
+            local MuhClass4 = pluto_class begin end
+            local MuhClass5 = pluto_class private a; end
+            local MuhClass6 = pluto_class begin private a; end
             return self:getPrivate()
         end
 
