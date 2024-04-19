@@ -343,10 +343,10 @@ enum ParserContext : lu_byte {
 
 struct ClassData {
   size_t parent_name_pos = 0;
-  std::vector<std::string> private_fields{};
+  std::unordered_set<std::string> private_fields{};
 
   std::string addField(std::string&& name) {
-    private_fields.emplace_back(name);
+    private_fields.emplace(name);
     return addPrefix(std::move(name));
   }
 
