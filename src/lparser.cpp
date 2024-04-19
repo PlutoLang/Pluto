@@ -1786,11 +1786,11 @@ static void applyextends (LexState *ls, size_t name_pos, size_t parent_pos, int 
   fs->freereg = base + 1;
 }
 
-static void preprocessclass (LexState *ls) {
+static size_t preprocessclass (LexState *ls) {
   int allowed_ends = 0;
   const auto start = luaX_getpos(ls);
 
-  while (ls->t.token != TK_EOS) { // TODO: Improve. Syntax errors in a class declaration will make us loop over the entire file before resetting the cursor and raising a compiler error.
+  while (ls->t.token != TK_EOS) {
     if (ls->t.token == TK_END) {
       if (allowed_ends-- <= 0) {
         // printf("Preprocessed class body ending at line %d.\n", ls->getLineNumber());
@@ -1837,7 +1837,9 @@ static void preprocessclass (LexState *ls) {
     luaX_next(ls);
   }
 
+  const auto finish = luaX_getpos(ls);
   luaX_setpos(ls, start);
+  return finish;
 }
 
 static void classexpr (LexState *ls, expdesc *t) {
@@ -1853,12 +1855,19 @@ static void classexpr (LexState *ls, expdesc *t) {
   init_exp(t, VNONRELOC, fs->freereg);  /* table will be at stack top */
   luaK_reserveregs(fs, 1);
   init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
-  preprocessclass(ls);
+  const auto finish = preprocessclass(ls);
   while (ls->t.token != TK_END) {
     lua_assert(cc.v.k == VVOID || cc.tostore > 0);
     closelistfield(fs, &cc);
     field(ls, &cc, true);
     (testnext(ls, ',') || testnext(ls, ';'));
+  }
+  if (finish != luaX_getpos(ls)) { // The preprocessor should've terminated at the same exact spot.
+    throwerr(ls,
+      "internal error: 'preprocessclass' failed to handle a block",
+      "",
+      "Report this at: https://github.com/PlutoLang/Pluto/issues"
+    );
   }
   check_match(ls, TK_END, TK_CLASS, line);
   lastlistfield(fs, &cc);
