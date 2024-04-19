@@ -1573,7 +1573,7 @@ static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool 
   luaX_next(ls); /* skip TK_FUNCTION */
   codename(ls, &key);
   if (isprivate) {
-    const auto new_name = ls->classes.top().addPrefix(getstr(key.u.strval)); // 'preprocessclass' will pre-register private methods, so addField would add a duplicate entry
+    const auto new_name = ls->classes.top().addField(getstr(key.u.strval));
     codestring(&key, luaX_newstring(ls, new_name.c_str()));
   }
   if (ismethod)
