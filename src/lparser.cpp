@@ -108,7 +108,7 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, int flags 
 ** Throws an exception into Lua, which will promptly close the program.
 ** This is only called for vital errors, like lexer and/or syntax problems.
 */
-static l_noret throwerr (LexState *ls, const char *err, const char *here, int line) {
+static l_noret throwerr (LexState *ls, const char *err, const char *here, int line, const char *note = nullptr) {
   err = luaG_addinfo(ls->L, err, ls->source, line);
   auto msg = new Pluto::ErrorMessage{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
   msg->addMsg(err);
@@ -117,12 +117,17 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here, int li
        .addMsg(luaX_token2str(ls, ls->t));
   }
   msg->addSrcLine(line)
-     .addGenericHere(here)
-     .finalizeAndThrow();
+     .addGenericHere(here);
+
+  if (note != nullptr) {
+    msg->addNote(note);
+  }
+
+  msg->finalizeAndThrow();
 }
 
-static l_noret throwerr (LexState *ls, const char *err, const char *here) {
-  throwerr(ls, err, here, ls->getLineNumber());
+static l_noret throwerr (LexState *ls, const char *err, const char *here, const char *note = nullptr) {
+  throwerr(ls, err, here, ls->getLineNumber(), note);
 }
 
 
