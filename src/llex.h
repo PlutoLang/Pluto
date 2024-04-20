@@ -70,6 +70,10 @@ enum RESERVED {
 #define FIRST_SPECIAL TK_SUGGEST_0
 #define LAST_RESERVED TK_WHILE
 
+static_assert(TK_PNEW + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_NEW);
+static_assert(TK_PCATCH + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_CATCH);
+static_assert(TK_PSWITCH + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_SWITCH);
+
 #define END_COMPAT FIRST_NON_COMPAT
 #define END_NON_COMPAT FIRST_OPTIONAL
 #ifdef PLUTO_PARSER_SUGGESTIONS
@@ -176,6 +180,14 @@ struct Token {
     }
 
     return false;
+  }
+
+  [[nodiscard]] int normalizedToken() const noexcept {
+    if (IsCompatible() && token != TK_PUSE) {
+      return token + (FIRST_NON_COMPAT - FIRST_COMPAT - 1);
+    }
+
+    return token;
   }
 };
 
