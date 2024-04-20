@@ -360,6 +360,7 @@ NAMESPACE_SOUP
 
 		alignas(16) uint8_t roundKeys[240];
 #if AES_USE_INTRIN
+	#if SOUP_X86 // For expand_key functions
 		if (IS_AES_INTRIN_AVAILBLE)
 		{
 			if (key_len == 16)
@@ -390,6 +391,7 @@ NAMESPACE_SOUP
 				return;
 			}
 		}
+	#endif
 #endif
 		expandKey(roundKeys, key, key_len);
 		const auto Nr = getNrFromKeyLen(key_len);
@@ -405,6 +407,7 @@ NAMESPACE_SOUP
 
 		alignas(16) uint8_t roundKeys[240];
 #if AES_USE_INTRIN
+	#if SOUP_X86 // For expand_key functions
 		if (IS_AES_INTRIN_AVAILBLE)
 		{
 			if (key_len == 16)
@@ -438,6 +441,7 @@ NAMESPACE_SOUP
 				return;
 			}
 		}
+	#endif
 #endif
 		expandKey(roundKeys, key, key_len);
 		const auto Nr = getNrFromKeyLen(key_len);
@@ -692,11 +696,7 @@ NAMESPACE_SOUP
 		expandKey(w, key, key_len);
 
 #if AES_USE_INTRIN
-	#if SOUP_X86
-		if (CpuInfo::get().supportsAESNI())
-	#else
-		if (CpuInfo::get().armv8_aes)
-	#endif
+		if (IS_AES_INTRIN_AVAILBLE)
 		{
 			if (key_len == 16)
 			{
