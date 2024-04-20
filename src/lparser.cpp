@@ -3564,7 +3564,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   if (uop != OPR_NOUNOPR) {  /* prefix (unary) operator? */
     int line = ls->getLineNumber();
     luaX_next(ls);  /* skip operator */
-    subexpr(ls, v, UNARY_PRIORITY, nullptr, flags & ~E_WALRUS);
+    subexpr(ls, v, UNARY_PRIORITY, nullptr, flags);
     luaK_prefix(ls->fs, uop, v, line);
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
@@ -3581,7 +3581,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       luaK_infix(ls->fs, OPR_ADD, v);
 
       expdesc v2;
-      subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, flags & ~E_WALRUS);
+      subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, flags);
       luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
     }
   }
