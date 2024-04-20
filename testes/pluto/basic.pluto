@@ -2701,6 +2701,9 @@ do
             local MuhClass4 = pluto_class begin end
             local MuhClass5 = pluto_class private a; end
             local MuhClass6 = pluto_class begin private a; end
+            enum class MyEnumClass begin
+
+            end
             return self:getPrivate()
         end
 
