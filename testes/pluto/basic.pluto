@@ -2149,6 +2149,16 @@ do -- But scope may be cut short by conditional subexpressions
         assert(walrusvar == nil)
     end
 end
+do -- Unary operators
+    local function getstr()
+        return "hello"
+    end
+    if #(str := getstr()) == 5 then
+        assert(str == "hello")
+    else
+        error()
+    end
+end
 
 print "Testing for-as loop."
 do
