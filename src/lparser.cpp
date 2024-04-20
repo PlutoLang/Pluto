@@ -1792,34 +1792,25 @@ static size_t preprocessclass (LexState *ls) {
   const auto start = luaX_getpos(ls);
 
   while (ls->t.token != TK_EOS) {
-    if (ls->t.token == TK_END) {
-      if (allowed_ends-- <= 0) {
-        // printf("Preprocessed class body ending at line %d.\n", ls->getLineNumber());
-        break;
-      }
+    if (ls->t.token == TK_END && allowed_ends-- <= 0) {
+      // printf("Preprocessed class body ending at line %d.\n", ls->getLineNumber());
+      break;
     }
 
-    switch (ls->t.token) {
+    // This is only checking *inside* our current class body, the parser has already skipped the class declaration.
+    switch (ls->t.normalizedToken()) {
     case TK_DO: // Covers many block openers, like TK_FOR, TK_ARROW, etc.
     case TK_IF:
-    case TK_BEGIN:
+    case TK_CLASS:
     case TK_CATCH:
     case TK_FUNCTION:
       ++allowed_ends;
       break;
 
-    case TK_CLASS: // class Foo begin end && class t.Foo begin end && local Foo = class end && local Foo = class begin end
-      if (luaX_lookahead(ls) == TK_NAME) { // Class statement
-        checknext(ls, TK_CLASS);
-        str_checkname(ls); // Consume name
-        if (ls->t.token != TK_BEGIN) {
-          ++allowed_ends;
-        }
-      }
-      else if (luaX_lookahead(ls) != TK_BEGIN) { // Class expression
+    case TK_ENUM:
+      if (luaX_lookahead(ls) != TK_CLASS) {
         ++allowed_ends;
       }
-      break;
     }
 
     if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
