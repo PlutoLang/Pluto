@@ -2844,7 +2844,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
     case '(': {
       int line = ls->getLineNumber();
       luaX_next(ls);
-      expr(ls, v, nullptr, flags);
+      expr(ls, v, nullptr, flags & E_WALRUS);
       check_match(ls, ')', '(', line);
       luaK_dischargevars(ls->fs, v);
       return;

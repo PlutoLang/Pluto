@@ -702,10 +702,11 @@ do
     assert(x == nil and y == nil and z == nil and w == nil)
 end
 
-print "Testing shorthand ternary."
+print "Testing ternary expression."
 do
-    local a = 3
     -- @pluto_warnings: disable-unreachable-code
+
+    local a = 3
     assert((true ? "yes" : "no") == "yes")
     assert((false ? "yes" : "no") == "no")
     assert((a ? "yes" : "no") == "yes")
@@ -714,6 +715,16 @@ do
     assert((3 == a ? "yes" : "no") == "yes")
     assert((4 == a ? "yes" : "no") == "no")
     assert((nil and nil) ? false : true) -- possible pitfall if we try optimizing for 'always false' conditions
+
+    -- Nested ternary
+    assert(true ? true ? true : false : false)
+
+    -- Method call in 'b' expression
+    local t = {
+        function t() return true end
+    }
+    assert(true ? (t:t()) : false)
+
     -- @pluto_warnings: enable-unreachable-code
 end
 
