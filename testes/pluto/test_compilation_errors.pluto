@@ -1,0 +1,21 @@
+local assert = require("assert")
+
+local function check(intended_error, bad_code)
+	local _, fail = load(bad_code)
+	assert.contains(intended_error, fail)
+end
+
+-- Walrus
+do
+	$define disallowed = "':=' is only allowed in 'if' and 'while' statements"
+
+	check(disallowed, 
+	[[
+	local tab = {a:=1, (||->do tab=1 end)()}
+	]])
+
+	check(disallowed, 
+	[[
+	error(a:=1)
+	]])
+end
