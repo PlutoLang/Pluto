@@ -115,7 +115,7 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here, int li
   msg->addMsg(err);
   if (ls->t.token == TK_EOS && strstr(err, "near '<eof>'") == nullptr) {  /* for 'incomplete' in REPL */
     msg->addMsg(" near ")
-       .addMsg(luaX_token2str(ls, ls->t.token));
+       .addMsg(luaX_token2str(ls, ls->t));
   }
   msg->addSrcLine(line)
      .addGenericHere(here)
@@ -195,7 +195,7 @@ static void check_for_non_portable_code (LexState *ls) {
       ls->setKeywordState(ls->t.token, KS_ENABLED_BY_PLUTO_INFORMED);
     }
     if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_INFORMED || ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_ENV) {  /* enabled by a means other than 'pluto_use'? */
-      throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)), WT_NON_PORTABLE_CODE);
+      throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t)), WT_NON_PORTABLE_CODE);
       ls->L->top.p--;
     }
   }
@@ -237,7 +237,7 @@ static l_noret error_expected (LexState *ls, int token) {
     }
     default: {
       _default:
-      throwerr(ls, luaO_fmt(ls->L, "%s expected near %s", luaX_token2str(ls, token), luaX_token2str(ls, ls->t.token)), "this is invalid syntax.");
+      throwerr(ls, luaO_fmt(ls->L, "%s expected near %s", luaX_token2str(ls, token), luaX_token2str(ls, ls->t)), "this is invalid syntax.");
     }
   }
 }
@@ -399,7 +399,7 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
         luaX_setpos(ls, luaX_getpos(ls));  /* update ls->t */
         return str_checkname(ls, flags);  /* try again */
       }
-      throwerr(ls, luaO_fmt(ls->L, "expected a name, found %s", luaX_token2str(ls, ls->t.token)), luaO_fmt(ls->L, "%s has a different meaning in Pluto, but you can disable this: https://pluto.do/compat", luaX_token2str(ls, ls->t.token)));
+      throwerr(ls, luaO_fmt(ls->L, "expected a name, found %s", luaX_token2str(ls, ls->t)), luaO_fmt(ls->L, "%s has a different meaning in Pluto, but you can disable this: https://pluto.do/compat", luaX_token2str(ls, ls->t)));
     }
     error_expected(ls, TK_NAME);
   }
@@ -1625,7 +1625,7 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
     }
     default: {
       if (for_class)
-        throwerr(ls, luaO_fmt(ls->L, "unexpected token: %s", luaX_token2str(ls, ls->t.token)), "expected a class member");
+        throwerr(ls, luaO_fmt(ls->L, "unexpected token: %s", luaX_token2str(ls, ls->t)), "expected a class member");
       listfield(ls, cc);
       break;
     }
@@ -2643,7 +2643,7 @@ static void const_expr (LexState *ls, expdesc *v) {
       return;
     }
     default: {
-      const char *token = luaX_token2str(ls, ls->t.token);
+      const char *token = luaX_token2str(ls, ls->t);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
   }
@@ -2751,7 +2751,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
       return;
     }
     default: {
-      const char *token = luaX_token2str(ls, ls->t.token);
+      const char *token = luaX_token2str(ls, ls->t);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
   }
@@ -2864,7 +2864,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
       if (ls->t.token == ')' && ls->getContext() == PARCTX_BODY) {
         throwerr(ls, "unexpected ')', expected 'end' to close function.", "missing 'end' before ')'.");
       }
-      const char *token = luaX_token2str(ls, ls->t.token);
+      const char *token = luaX_token2str(ls, ls->t);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
   }
@@ -4345,7 +4345,7 @@ static void constexprstat (LexState *ls, int line) {
     constexprdefinestat(ls, line);
   }
   else {
-    const char *token = luaX_token2str(ls, ls->t.token);
+    const char *token = luaX_token2str(ls, ls->t);
     throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
   }
 }
@@ -4673,7 +4673,7 @@ static void exprstat (LexState *ls) {
             const auto entry = ls->uninformed_reserved.find(t);
             const auto line = entry == ls->uninformed_reserved.end() ? -1 : entry->second;
             throwerr(ls,
-              luaO_fmt(ls->L, "syntax error near %s", luaX_token2str(ls, ls->t.token)),
+              luaO_fmt(ls->L, "syntax error near %s", luaX_token2str(ls, ls->t)),
               luaO_fmt(ls->L, "%s was not recognized as a statement because it was used as an identifier on line %d", luaX_token2str(ls, t), line)
             );
           }
