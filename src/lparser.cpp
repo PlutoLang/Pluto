@@ -1489,7 +1489,7 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
         name = str_checkname(ls);
       }
       else if (strcmp(getstr(name), "private") == 0) {
-        const auto field_name = ls->classes.top().addField(str_checkname(ls)->toCpp());
+        const auto field_name = ls->classes.top().addPrefix(str_checkname(ls)->toCpp());
         name = luaX_newstring(ls, field_name.c_str());
       }
     }
@@ -1578,7 +1578,7 @@ static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool 
   luaX_next(ls); /* skip TK_FUNCTION */
   codename(ls, &key);
   if (isprivate) {
-    const auto new_name = ls->classes.top().addField(getstr(key.u.strval));
+    const auto new_name = ls->classes.top().addPrefix(getstr(key.u.strval));
     codestring(&key, luaX_newstring(ls, new_name.c_str()));
   }
   if (ismethod)
@@ -2058,7 +2058,7 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
           }
           else if (strcmp(getstr(parname), "private") == 0) {
             parname = str_checkname(ls, N_OVERRIDABLE);
-            const auto field_name = ls->classes.top().addField(parname->toCpp());
+            const auto field_name = ls->classes.top().addPrefix(parname->toCpp());
             promotions->emplace_back(parname, luaX_newstring(ls, field_name.c_str()));
           }
         }
