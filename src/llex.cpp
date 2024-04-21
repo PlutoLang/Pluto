@@ -135,11 +135,23 @@ const char *luaX_token2str_noq (LexState *ls, const Token& t) {
       ls->L->top.p--;
       break;
     case TK_FLT:
-      ret = luaO_pushfstring(ls->L, "%f", t.seminfo.r);
+      if (!ls->hasDoneLexerPass()) {
+        save(ls, '\0');
+        ret = luaO_pushfstring(ls->L, "%s", luaZ_buffer(ls->buff));
+      }
+      else {
+        ret = luaO_pushfstring(ls->L, "%f", t.seminfo.r);
+      }
       ls->L->top.p--;
       break;
     case TK_INT:
-      ret = luaO_pushfstring(ls->L, "%I", t.seminfo.i);
+      if (!ls->hasDoneLexerPass()) {
+        save(ls, '\0');
+        ret = luaO_pushfstring(ls->L, "%s", luaZ_buffer(ls->buff));
+      }
+      else {
+        ret = luaO_pushfstring(ls->L, "%I", t.seminfo.i);
+      }
       ls->L->top.p--;
       break;
     default:
