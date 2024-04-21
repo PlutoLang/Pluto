@@ -4327,13 +4327,11 @@ static void constexprdefinestat (LexState *ls, int line) {
   *var->vd.hint = hint;
 
   expdesc e;
-  init_exp(&e, VNIL, 0);
-  if (testnext(ls, '=')) {
-    ls->pushContext(PARCTX_CREATE_VAR);
-    TypeHint t;
-    expr_propagate(ls, &e, t);
-    ls->popContext(PARCTX_CREATE_VAR);
-  }
+  checknext(ls, '=');
+  ls->pushContext(PARCTX_CREATE_VAR);
+  TypeHint t;
+  expr_propagate(ls, &e, t);
+  ls->popContext(PARCTX_CREATE_VAR);
   if (!luaK_exp2const(fs, &e, &var->k))
     throwerr(ls, "variable was not assigned a compile-time constant value", "expression not constant", line);
 
