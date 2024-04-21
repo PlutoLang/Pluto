@@ -1843,11 +1843,12 @@ static void setvararg (FuncState *fs, int nparams) {
 
 
 enum expflags {
-  E_NO_COLON = 1 << 0,
-  E_NO_CALL  = 1 << 1,
-  E_NO_BOR   = 1 << 2,
-  E_PIPERHS  = 1 << 3,
-  E_WALRUS   = 1 << 4,
+  E_NO_COLON         = 1 << 0,
+  E_NO_CALL          = 1 << 1,
+  E_NO_BOR           = 1 << 2,
+  E_PIPERHS          = 1 << 3,
+  E_WALRUS           = 1 << 4,
+  E_OR_KILLED_WALRUS = 1 << 5,
 };
 
 static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr);
@@ -2818,6 +2819,8 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
     const bool is_overridable = ls->t.IsOverridable();
     TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
     if (gett(ls) == TK_WALRUS) {
+      if (flags & E_OR_KILLED_WALRUS)
+        throwerr(ls, "':=' is not allowed in this context", "due to the 'or', it is no longer guaranteed that the local will be initialized by the time it's in scope.");
       if (!(flags & E_WALRUS) || ls->fs->freereg != luaY_nvarstack(ls->fs))
         throwerr(ls, "':=' is not allowed in this context", "unexpected ':='");
       luaX_next(ls);
@@ -2844,7 +2847,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
     case '(': {
       int line = ls->getLineNumber();
       luaX_next(ls);
-      expr(ls, v, nullptr, flags & E_WALRUS);
+      expr(ls, v, nullptr, flags & (E_WALRUS | E_OR_KILLED_WALRUS));
       check_match(ls, ')', '(', line);
       luaK_dischargevars(ls->fs, v);
       return;
@@ -3660,7 +3663,11 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       }
       luaK_infix(ls->fs, op, v);
       /* read sub-expression with higher priority */
-      nextop = subexpr(ls, &v2, priority[op].right, subexpr_prop, (op == OPR_OR) ? (flags & ~E_WALRUS) : flags);
+      if (op == OPR_OR && (flags & E_WALRUS)) {
+        flags &= ~E_WALRUS;
+        flags |= E_OR_KILLED_WALRUS;
+      }
+      nextop = subexpr(ls, &v2, priority[op].right, subexpr_prop, flags);
       luaK_posfix(ls->fs, op, v, &v2, line);
     }
     op = nextop;
