@@ -2828,6 +2828,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
       expr(ls, v);
       adjust_assign(ls, 1, 1, v);
       adjustlocalvars(ls, 1);
+      ls->used_walrus = true;
     }
     else
       singlevar(ls, v, varname, is_overridable);
@@ -3664,6 +3665,8 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       luaK_infix(ls->fs, op, v);
       /* read sub-expression with higher priority */
       if (op == OPR_OR && (flags & E_WALRUS)) {
+        if (ls->used_walrus)
+          throwerr(ls, "'or' invalidates previous usages of walrus operator", "due to the 'or', it is no longer guaranteed that the local will be initialized by the time it's in scope.");
         flags &= ~E_WALRUS;
         flags |= E_OR_KILLED_WALRUS;
       }
@@ -3884,6 +3887,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
 static int cond (LexState *ls, bool for_while_loop) {
   /* cond -> exp */
   expdesc v;
+  ls->used_walrus = false;
   expr(ls, &v, nullptr, for_while_loop * E_WALRUS);  /* read condition */
   v.normalizeFalse();
   luaK_goiftrue(ls->fs, &v);
@@ -4207,6 +4211,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop, bool
   expdesc v;
   int jf;  /* instruction to skip 'then' code (if condition is false) */
   luaX_next(ls);  /* skip IF or ELSEIF */
+  ls->used_walrus = false;
   expr(ls, &v, nullptr, E_WALRUS);  /* read condition */
   has_and = (v.f != NO_JUMP);
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);

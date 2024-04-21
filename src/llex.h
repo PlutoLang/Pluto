@@ -413,6 +413,7 @@ struct LexState {
   std::unordered_map<const TString*, void*> global_props{};
   KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
   bool nodiscard = false;
+  bool used_walrus = false;
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};

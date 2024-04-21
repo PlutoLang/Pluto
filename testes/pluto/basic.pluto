@@ -2160,6 +2160,10 @@ do -- But scope may be cut short by conditional subexpressions
         assert(walrusvar == nil)
     end
 end
+do -- And may not be used in 'or' expressions
+    assert(load[[if false or (a := true) then print(a) end]] == nil)
+    assert(load[[if (false and (a := true)) or true then print(a) end]] == nil)
+end
 do -- Unary operators
     local function getstr()
         return "hello"
