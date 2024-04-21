@@ -134,12 +134,20 @@ const char *luaX_token2str_noq (LexState *ls, int token) {
       ret = luaO_pushfstring(ls->L, "%s", getstr(ls->t.seminfo.ts));
       ls->L->top.p--;
       break;
-    case TK_FLT: case TK_INT:
-      save(ls, '\0');
-      ret = luaO_pushfstring(ls->L, "%s", luaZ_buffer(ls->buff));
+    case TK_FLT:
+      if (token != ls->t.token)
+        goto _default;
+      ret = luaO_pushfstring(ls->L, "%f", ls->t.seminfo.r);
+      ls->L->top.p--;
+      break;
+    case TK_INT:
+      if (token != ls->t.token)
+        goto _default;
+      ret = luaO_pushfstring(ls->L, "%I", ls->t.seminfo.i);
       ls->L->top.p--;
       break;
     default:
+    _default:
       const char *s = luaX_tokens[token - FIRST_RESERVED];
       if (token < TK_EOS) { /* fixed format (symbols and reserved words)? */
           ret = luaO_pushfstring(ls->L, "%s", s);
