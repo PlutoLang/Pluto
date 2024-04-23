@@ -1281,6 +1281,10 @@ void luaK_goiftrue (FuncState *fs, expdesc *e) {
       pc = e->u.pc;  /* save jump position */
       break;
     }
+    case VK: case VKFLT: case VKINT: case VKSTR: case VTRUE: {
+      pc = NO_JUMP;  /* always true; do nothing */
+      break;
+    }
     default: {
       pc = jumponcond(fs, e, 0);  /* jump when false */
       break;
@@ -1306,6 +1310,10 @@ void luaK_goiffalse (FuncState *fs, expdesc *e) {
       pc = e->u.pc;  /* already jump if true */
       break;
     }
+    case VNIL: case VFALSE: {
+      pc = NO_JUMP;  /* always false; do nothing */
+      break;
+    }
     default: {
       pc = jumponcond(fs, e, 1);  /* jump if true */
       break;
@@ -1324,7 +1332,7 @@ void luaK_goiffalse (FuncState *fs, expdesc *e) {
 void luaK_goifnil (FuncState *fs, expdesc *e) {
   int pc;  /* pc of new jump */
   luaK_dischargevars(fs, e);
-  if (luaK_isalwaysnil(fs->ls, e)) {
+  if (luaK_isalwaysnil(fs->ls, e) || e->k == VNIL) {
     pc = NO_JUMP;  /* always nil; do nothing*/
   }
   else {
