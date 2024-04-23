@@ -2075,11 +2075,6 @@ do
         error()
     end
 
-    if (walrusvar := 1) ~= 1 then
-    else
-        assert(walrusvar == 1)
-    end
-
     -- Complex Context: Walrus in function body of a lambda function that is passed an argument
     local function executeFunc(f)
         f()
@@ -2134,11 +2129,12 @@ do -- Local can be used for subsequent binary operators
         error()
     end
 
+    local reached = false
     if (a := initfunc(0)) ~= 0 then
-        error()
     else
-        assert(a == 0)
+        reached = true
     end
+    assert(reached)
 end
 do -- Method calls as well
     local class Obj
@@ -2166,8 +2162,9 @@ do -- Can be used in subexpressions
         assert(cur == 0)
     end
 end
-do -- But scope may be cut short by conditional subexpressions
-    if false and walrusvar := 1 then
+do -- Variable is scoped to its block
+    -- @pluto_warnings disable-next
+    if (walrusvar := 1) and false then
     else
         assert(walrusvar == nil)
     end
