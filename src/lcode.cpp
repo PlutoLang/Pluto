@@ -1215,7 +1215,9 @@ static int jumponcond (FuncState *fs, expdesc *e, int cond) {
 }
 
 
-LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e) {
+LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e, bool jumps_are_ok) {
+  if (hasjumps(e) && !jumps_are_ok)
+    return false;
   if (e->k == VCONST) {
     Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
     lua_assert(vd->vd.kind == RDKCTC);
@@ -1228,7 +1230,9 @@ LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e) {
 }
 
 
-LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e) {
+LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e, bool jumps_are_ok) {
+  if (hasjumps(e) && !jumps_are_ok)
+    return false;
   if (e->k == VCONST) {
     Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
     lua_assert(vd->vd.kind == RDKCTC);
@@ -1244,7 +1248,9 @@ LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e) {
 }
 
 
-LUAI_FUNC bool luaK_isalwaysfalse (LexState *ls, expdesc *e) {
+LUAI_FUNC bool luaK_isalwaysfalse (LexState *ls, expdesc *e, bool jumps_are_ok) {
+  if (hasjumps(e) && !jumps_are_ok)
+    return false;
   if (e->k == VCONST) {
     Vardesc *vd = &ls->dyd->actvar.arr[e->u.info];
     lua_assert(vd->vd.kind == RDKCTC);
@@ -1266,7 +1272,7 @@ LUAI_FUNC bool luaK_isalwaysfalse (LexState *ls, expdesc *e) {
 void luaK_goiftrue (FuncState *fs, expdesc *e) {
   int pc;  /* pc of new jump */
   luaK_dischargevars(fs, e);
-  if (luaK_isalwaystrue(fs->ls, e)) {
+  if (luaK_isalwaystrue(fs->ls, e, true)) {
     pc = NO_JUMP;  /* always true; do nothing */
   }
   else switch (e->k) {
@@ -1292,7 +1298,7 @@ void luaK_goiftrue (FuncState *fs, expdesc *e) {
 void luaK_goiffalse (FuncState *fs, expdesc *e) {
   int pc;  /* pc of new jump */
   luaK_dischargevars(fs, e);
-  if (luaK_isalwaysfalse(fs->ls, e)) {
+  if (luaK_isalwaysfalse(fs->ls, e, true)) {
     pc = NO_JUMP;  /* always false; do nothing */
   }
   else switch (e->k) {
@@ -1318,7 +1324,7 @@ void luaK_goiffalse (FuncState *fs, expdesc *e) {
 void luaK_goifnil (FuncState *fs, expdesc *e) {
   int pc;  /* pc of new jump */
   luaK_dischargevars(fs, e);
-  if (luaK_isalwaysnil(fs->ls, e)) {
+  if (luaK_isalwaysnil(fs->ls, e, true)) {
     pc = NO_JUMP;  /* always nil; do nothing*/
   }
   else {

@@ -169,13 +169,16 @@ f()]]
         first = 3,
     }]]
 
-    -- possible unreachable-code false-positive
+    -- possible unreachable-code false-positives
     assert_no_warn[[local next
 while true do
     if next then
         break
     end
     next = true
+end]]
+    assert_no_warn[[if false and true then
+else
 end]]
 end
 
