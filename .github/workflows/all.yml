@@ -42,7 +42,7 @@ jobs:
           name: "Debian 10 and above - .deb Package"
           path: pluto.deb
   macos:
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - run: php scripts/compile.php clang
