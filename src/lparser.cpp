@@ -4257,7 +4257,7 @@ static void forstat (LexState *ls, int line, TypeHint *prop) {
 }
 
 
-static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop, bool& has_and) {
+static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   /* test_then_block -> [IF | ELSEIF] cond THEN block */
   BlockCnt bl;
   FuncState *fs = ls->fs;
@@ -4266,7 +4266,6 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop, bool
   luaX_next(ls);  /* skip IF or ELSEIF */
   ls->used_walrus = false;
   expr(ls, &v, nullptr, E_WALRUS);  /* read condition */
-  has_and = (v.f != NO_JUMP);
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);
   if (luaK_isalwaysfalse(ls, &v))
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
@@ -4316,20 +4315,15 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   BlockCnt walrusbl;
   enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
   int escapelist = NO_JUMP;  /* exit list for finished parts */
-  bool has_and;
-  test_then_block(ls, &escapelist, prop, has_and);  /* IF cond THEN block */
+  test_then_block(ls, &escapelist, prop);  /* IF cond THEN block */
   while (ls->t.token == TK_ELSEIF) {
-    if (has_and) {
-      leaveblock(fs);
-      enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
-    }
-    test_then_block(ls, &escapelist, prop, has_and);  /* ELSEIF cond THEN block */
+    leaveblock(fs);
+    enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
+    test_then_block(ls, &escapelist, prop);  /* ELSEIF cond THEN block */
   }
   if (testnext(ls, TK_ELSE)) {
-    if (has_and) {
-      leaveblock(fs);
-      enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
-    }
+    leaveblock(fs);
+    enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
     if (ls->t.token == TK_IF && ls->t.line == luaX_lookbehind(ls).line)
       ls->else_if = ls->getLineNumber();
     block(ls, prop);  /* 'else' part */
