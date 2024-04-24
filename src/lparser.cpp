@@ -2944,6 +2944,8 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
           return;
         }
         if ((flags & E_PIPERHS) && ls->t.token == '(') {
+          if (luaX_lookbehind(ls).line == ls->t.line)
+            throw_warn(ls, "possible syntax confusion", "'(' is ignored by the pipe operator. use '|' if you meant to pass additional arguments.", WT_POSSIBLE_TYPO);
           return;
         }
         if (luaX_lookbehind(ls).line != ls->t.line && (ls->getContext() == PARCTX_LAMBDA_BODY || v->k == VCALL)) {
