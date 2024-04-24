@@ -4528,7 +4528,7 @@ static void localstat (LexState *ls) {
           || strcmp(getstr(ls->t.seminfo.ts), "constexpr") == 0
           || strcmp(getstr(ls->t.seminfo.ts), "close") == 0
           ) {
-          throw_warn(ls, "Possibly mistyped attribute", luaO_fmt(ls->L, "Did you mean '<%s>'?", getstr(ls->t.seminfo.ts)), WT_POSSIBLE_TYPO);
+          throw_warn(ls, "possibly mistyped attribute", luaO_fmt(ls->L, "did you mean '<%s>'?", getstr(ls->t.seminfo.ts)), WT_POSSIBLE_TYPO);
           ls->L->top.p--;
         }
       }
