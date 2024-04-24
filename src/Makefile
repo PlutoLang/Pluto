@@ -35,7 +35,7 @@ CMCFLAGS=
 
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
-PLATS= guess aix bsd freebsd generic linux linux-readline macosx mingw posix solaris
+PLATS= guess aix bsd freebsd generic linux linux-readline macosx posix solaris
 
 LUA_A=	libplutostatic.a
 LUA_SO= libpluto.so
@@ -132,12 +132,6 @@ linux-readline:
 
 Darwin macos macosx:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX -DLUA_USE_READLINE" SYSLIBS="-lresolv -lreadline"
-
-mingw:
-	$(MAKE) "LUA_A=libpluto.dll" "LUA_T=pluto.exe" \
-	"AR=$(CXX) -shared -o" "RANLIB=strip --strip-unneeded" \
-	"SYSCFLAGS=-DLUA_BUILD_AS_DLL" "SYSLIBS=" "SYSLDFLAGS=-s" pluto.exe
-	$(MAKE) "LUAC_T=plutoc.exe" plutoc.exe
 
 posix:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX"
