@@ -40,6 +40,16 @@
 */
 /* #define LUA_USE_C89 */
 
+/* [Pluto] Platform auto-detection */
+#if !defined(LUA_USE_LINUX) && defined(__linux__)
+  #define LUA_USE_LINUX
+#endif
+#if !defined(LUA_USE_MACOSX) && defined(__APPLE__) && defined(__MACH__)
+  #define LUA_USE_MACOSX
+#endif
+#if !defined(LUA_USE_IOS) && defined(__APPLE__) && !defined(__MACH__)
+  #define LUA_USE_IOS
+#endif
 
 /*
 ** By default, Lua on Windows use (some) specific Windows features
