@@ -30,7 +30,7 @@ function check_compiler()
 	}
 	else
 	{
-		$compiler .= " -Wno-unused-command-line-argument -lm -lstdc++ -pthread";
+		$compiler .= " -Wno-unused-command-line-argument -lm -lstdc++ -pthread -ldl";
 		if (!getenv("ANDROID_ROOT"))
 		{
 			$compiler .= " -lresolv";
