@@ -359,6 +359,9 @@ enum class VisibilitySpecifier : uint8_t {
 };
 
 struct ClassData {
+  std::string name;
+  std::string pname;
+
   size_t parent_name_pos = 0;
 
   struct Field {

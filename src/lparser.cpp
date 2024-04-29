@@ -1727,7 +1727,21 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
 }
 
 
-static void classname (LexState *ls, expdesc *v) {
+static void classname (LexState *ls, expdesc *v, std::string& to_modify) {
+  const auto n = str_checkname(ls, 0);
+  singlevarinner(ls, n, v);
+  to_modify = n->toCpp();
+  while (ls->t.token == '.') {
+    to_modify.push_back('.');
+    checknext(ls, '.');
+    to_modify.append(str_checkname(ls, 0)->toCpp());
+    luaX_prev(ls); // Move behind TK_NAME
+    luaX_prev(ls); // Move back to '.'
+    fieldsel(ls, v);
+  }
+}
+
+static void classname (LexState* ls, expdesc* v) {
   singlevarinner(ls, str_checkname(ls, 0), v);
   while (ls->t.token == '.')
     fieldsel(ls, v);
@@ -1885,10 +1899,12 @@ static void classstat (LexState *ls, int line, const bool global) {
   size_t name_pos = luaX_getpos(ls);
   expdesc v;
   if (global) {
-    singlevarinner(ls, str_checkname(ls, 0), &v);
+    const auto n = str_checkname(ls, 0);
+    singlevarinner(ls, n, &v);
+    ls->classes.top().name = n->toCpp();
   }
   else {
-    classname(ls, &v);
+    classname(ls, &v, ls->classes.top().name);
     check_assignment(ls, &v);
   }
 
@@ -1924,6 +1940,7 @@ static void localclass (LexState *ls) {
 
   expdesc t;
   classexpr(ls, &t);
+  ls->classes.top().name = name->toCpp();
 
   adjust_assign(ls, 1, 1, &t);
   adjustlocalvars(ls, 1);
