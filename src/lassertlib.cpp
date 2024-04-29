@@ -291,10 +291,7 @@ end
 
 function module.contains(element, container)
   local container_type = type(container)
-  if container_type != "string" and container_type != "table" then
-    error($"expected 'container' argument to be a string or table, got {container_type}")
-  end
-  if container == nil or not element in container then
+  if (container_type != "string" and container_type != "table") or (not element in container) then
     return new AssertionError("contains", element, container):setNameOverride("Element", "Container"):raise()
   end
 end
