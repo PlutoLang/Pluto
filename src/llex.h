@@ -353,12 +353,33 @@ enum ParserContext : lu_byte {
   PARCTX_TERNARY_C,  /* 'c' in 'a ? b : c' */
 };
 
+enum class VisibilitySpecifier : uint8_t {
+  PRIVATE,
+  // PROTECTED, // Unused
+};
+
 struct ClassData {
   size_t parent_name_pos = 0;
-  std::unordered_set<std::string> private_fields{};
 
-  std::string addField(std::string&& name) {
-    private_fields.emplace(name);
+  struct Field {
+    std::string name;
+    VisibilitySpecifier visibility;
+
+    [[nodiscard]] bool operator==(const Field& f) const noexcept {
+      return name == f.name;
+    }
+
+    struct Hash {
+      [[nodiscard]] size_t operator()(const Field& f) const noexcept {
+        return std::hash<std::string>()(f.name);
+      }
+    };
+  };
+
+  std::unordered_set<Field, Field::Hash> fields; // For fields that have visibility specifiers.
+
+  std::string addField(std::string&& name, VisibilitySpecifier visibility = VisibilitySpecifier::PRIVATE) {
+    fields.emplace(Field{ name, visibility });
     return addPrefix(std::move(name));
   }
 
@@ -367,9 +388,9 @@ struct ClassData {
     return name;
   }
 
-  [[nodiscard]] std::optional<std::string> getSpecialName(TString* key) const {
-    for (const auto& pf : private_fields) {
-      if (pf == getstr(key)) {
+  [[nodiscard]] std::optional<std::string> getRealName(TString* key) const {
+    for (const auto& [name, _] : fields) {
+      if (name == getstr(key)) {
         return addPrefix(getstr(key));
       }
     }

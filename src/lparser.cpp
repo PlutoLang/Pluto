@@ -2834,8 +2834,8 @@ static void selfexp (LexState *ls, expdesc *v) {
     expdesc key;
     TString *keystr = str_checkname(ls, N_RESERVED);
 
-    if (auto special = ls->classes.top().getSpecialName(keystr); special.has_value()) {
-      codestring(&key, luaX_newstring(ls, special.value().c_str()));
+    if (auto name = ls->classes.top().getRealName(keystr); name.has_value()) {
+      codestring(&key, luaX_newstring(ls, name.value().c_str()));
     }
     else {
       codestring(&key, keystr);
