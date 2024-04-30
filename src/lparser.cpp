@@ -5569,6 +5569,33 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "p")));
       ls->tokens.emplace_back(Token(')'));
 
+      // if (p_type := type(p)) != "table" then
+      ls->tokens.emplace_back(Token(TK_IF));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "p_type")));
+      ls->tokens.emplace_back(Token(TK_WALRUS));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "type")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "p")));
+      ls->tokens.emplace_back(Token(')'));
+      ls->tokens.emplace_back(Token(')'));
+      ls->tokens.emplace_back(Token(TK_NE));
+      ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "table")));
+      ls->tokens.emplace_back(Token(TK_THEN));
+
+      //   error("expected a class or class-like table to extend, got " .. p_type)
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "error")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "expected a class or class-like table to extend, got ")));
+      ls->tokens.emplace_back(Token(TK_CONCAT));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "p_type")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_INT, 2));
+      ls->tokens.emplace_back(Token(')'));
+
+      // end
+      ls->tokens.emplace_back(Token(TK_END));
+
       //   for { ... } as mm do
       ls->tokens.emplace_back(Token(TK_FOR));
       ls->tokens.emplace_back(Token('{'));

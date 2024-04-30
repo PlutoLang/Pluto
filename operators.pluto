@@ -19,6 +19,9 @@ local Pluto_operator_new <const> = function(mt, ...)
 end
 
 local Pluto_operator_extends <const> = function(c, p)
+  if (p_type := type(p)) != "table" then
+    error("expected a class or class-like table to extend, got " .. p_type)
+  end
   for {
     -- luaT_eventname
     "__gc", "__mode", "__len", "__eq",
