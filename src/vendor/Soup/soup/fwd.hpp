@@ -15,7 +15,9 @@ NAMESPACE_SOUP
 	struct audSound;
 
 	// crypto
+	struct CertStore;
 	struct RsaKeypair;
+	struct RsaPrivateKey;
 	class TrustStore;
 	class YubikeyValidator;
 
@@ -157,7 +159,6 @@ NAMESPACE_SOUP
 
 	// net.tls
 	class SocketTlsHandshaker;
-	struct TlsServerRsaData;
 	struct TlsClientHello;
 
 	// net.web

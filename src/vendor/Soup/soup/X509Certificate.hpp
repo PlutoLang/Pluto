@@ -30,6 +30,7 @@ NAMESPACE_SOUP
 		X509RelativeDistinguishedName issuer;
 		X509RelativeDistinguishedName subject;
 		std::vector<std::string> subject_alt_names;
+		uint8_t max_children = 0;
 
 		bool is_ec;
 		EccPoint key;
@@ -72,8 +73,13 @@ NAMESPACE_SOUP
 			return false;
 		}
 
-		// Does not generate valid certificates by most opinions.
+		[[nodiscard]] const Oid& getAlgoOid() const noexcept;
+
+		// Tries to reconstruct the original ASN.1/DER certificate data based on the data in this struct.
 		[[nodiscard]] Asn1Sequence toAsn1() const SOUP_EXCAL;
 		[[nodiscard]] std::string toDer() const SOUP_EXCAL;
+
+		// Experimental, tries to produce `tbsCertDer` based on the data in this struct.
+		[[nodiscard]] std::string getTbsCertDer() const SOUP_EXCAL;
 	};
 }

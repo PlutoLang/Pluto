@@ -6,8 +6,9 @@
 #include "type.hpp"
 
 #include "Capture.hpp"
+#include "CertStore.hpp"
 #include "Promise.hpp"
-#include "rsa.hpp"
+#include "SharedPtr.hpp"
 #include "SocketTlsEncrypter.hpp"
 #include "TlsCipherSuite.hpp"
 #include "X509Certchain.hpp"
@@ -40,9 +41,9 @@ NAMESPACE_SOUP
 		SocketTlsEncrypter pending_recv_encrypter;
 
 		// server
-		tls_server_cert_selector_t cert_selector;
+		SharedPtr<CertStore> certstore;
 		void(*on_client_hello)(Socket&, TlsClientHello&&);
-		RsaPrivateKey private_key{};
+		const RsaPrivateKey* private_key{};
 
 		explicit SocketTlsHandshaker(void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& callback_capture) noexcept;
 

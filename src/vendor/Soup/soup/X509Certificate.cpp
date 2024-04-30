@@ -13,18 +13,7 @@ NAMESPACE_SOUP
 {
 	bool X509Certificate::fromDer(const std::string& str) noexcept
 	{
-#if SOUP_EXCEPTIONS
-		try
-		{
-#endif
-			return load(Asn1Sequence::fromDer(str));
-#if SOUP_EXCEPTIONS
-		}
-		catch (...)
-		{
-		}
-		return false;
-#endif
+		return load(Asn1Sequence::fromDer(str));
 	}
 
 	bool X509Certificate::load(const Asn1Sequence& cert) noexcept
@@ -34,36 +23,14 @@ NAMESPACE_SOUP
 #endif
 		{
 			auto tbsCert = cert.getSeq(0);
-			switch (joaat::hash(cert.getSeq(1).getOid(0).toString()))
-			{
-			default:
-				sig_type = UNK_WITH_UNK;
-				break;
-
-			case joaat::hash("1.2.840.113549.1.1.5"):
-				sig_type = RSA_WITH_SHA1;
-				break;
-
-			case joaat::hash("1.2.840.113549.1.1.11"):
-				sig_type = RSA_WITH_SHA256;
-				break;
-
-			case joaat::hash("1.2.840.113549.1.1.12"):
-				sig_type = RSA_WITH_SHA384;
-				break;
-
-			case joaat::hash("1.2.840.113549.1.1.13"):
-				sig_type = RSA_WITH_SHA512;
-				break;
-
-			case joaat::hash("1.2.840.10045.4.3.2"):
-				sig_type = ECDSA_WITH_SHA256;
-				break;
-
-			case joaat::hash("1.2.840.10045.4.3.3"):
-				sig_type = ECDSA_WITH_SHA384;
-				break;
-			}
+			auto oid = cert.getSeq(1).getOid(0);
+			if (oid == Oid::SHA1_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA1; }
+			else if (oid == Oid::SHA256_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA256; }
+			else if (oid == Oid::SHA384_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA384; }
+			else if (oid == Oid::SHA512_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA512; }
+			else if (oid == Oid::ECDSA_WITH_SHA256) { sig_type = ECDSA_WITH_SHA256; }
+			else if (oid == Oid::ECDSA_WITH_SHA384) { sig_type = ECDSA_WITH_SHA384; }
+			else { sig_type = UNK_WITH_UNK; }
 			tbsCertDer = tbsCert.toDer();
 			sig = cert.getString(2);
 			sig.erase(0, 1); // trim leading zero
@@ -126,7 +93,8 @@ NAMESPACE_SOUP
 			for (size_t i = 0; i != extensions.countChildren(); ++i)
 			{
 				Asn1Sequence ext = extensions.getSeq(i);
-				if (ext.getOid(0) == Oid::SUBJECT_ALT_NAME)
+				const auto oid = ext.getOid(0);
+				if (oid == Oid::CE_SUBJECTALTNAME)
 				{
 					size_t data_idx = ((ext.at(1).identifier.type == ASN1_BOOLEAN) ? 2 : 1);
 					// RFC 2459, page 33
@@ -147,6 +115,22 @@ NAMESPACE_SOUP
 							{
 								subject_alt_names.emplace_back(IpAddr((uint8_t*)data.getString(j).data()).toString6());
 							}
+						}
+					}
+				}
+				else if (oid == Oid::CE_BASICCONSTRAINTS)
+				{
+					size_t data_idx = ((ext.at(1).identifier.type == ASN1_BOOLEAN) ? 2 : 1);
+					auto data = Asn1Sequence::fromDer(ext.getString(data_idx));
+					if (data.countChildren() > 0 && data.at(0).identifier.type == ASN1_BOOLEAN && data.at(0).data == "\xff") // Is CA?
+					{
+						if (data.countChildren() > 1) // Has chain size limit?
+						{
+							max_children = 1 + data.getInt(1).getChunk(0);
+						}
+						else
+						{
+							max_children = -1;
 						}
 					}
 				}
@@ -252,10 +236,47 @@ NAMESPACE_SOUP
 		return true;
 	}
 
+	const Oid& X509Certificate::getAlgoOid() const noexcept
+	{
+		if (sig_type == RSA_WITH_SHA1) { return Oid::SHA1_WITH_RSA_ENCRYPTION; }
+		else if (sig_type == RSA_WITH_SHA384) { return Oid::SHA384_WITH_RSA_ENCRYPTION; }
+		else if (sig_type == RSA_WITH_SHA512) { return Oid::SHA512_WITH_RSA_ENCRYPTION; }
+		else if (sig_type == ECDSA_WITH_SHA256) { return Oid::ECDSA_WITH_SHA256; }
+		else if (sig_type == ECDSA_WITH_SHA384) { return Oid::ECDSA_WITH_SHA384; }
+		return Oid::SHA256_WITH_RSA_ENCRYPTION;
+	}
+
 	Asn1Sequence X509Certificate::toAsn1() const SOUP_EXCAL
 	{
 		Asn1Sequence algo_seq;
-		algo_seq.addOid(Oid::SHA256_WITH_RSA_ENCRYPTION); // RSA_WITH_SHA256
+		algo_seq.addOid(getAlgoOid());
+		switch (sig_type)
+		{
+		default: // RSA_WITH_*
+			algo_seq.addNull();
+			break;
+
+		case ECDSA_WITH_SHA256:
+		case ECDSA_WITH_SHA384:
+			break;
+		}
+
+		Asn1Sequence cert;
+		cert.addSeq(Asn1Sequence::fromDer(tbsCertDer));
+		cert.addSeq(algo_seq);
+		cert.addBitString(sig);
+		return cert;
+	}
+
+	std::string X509Certificate::toDer() const SOUP_EXCAL
+	{
+		return toAsn1().toDer();
+	}
+
+	std::string X509Certificate::getTbsCertDer() const SOUP_EXCAL
+	{
+		Asn1Sequence algo_seq;
+		algo_seq.addOid(getAlgoOid());
 		algo_seq.addNull();
 
 		//auto tbsCert = Asn1Sequence::fromDer(tbsCertDer);
@@ -295,15 +316,6 @@ NAMESPACE_SOUP
 			tbsCert.addSeq(dummy); // [7] Extensions, should be a context-specific 3.
 		}
 
-		Asn1Sequence cert;
-		cert.addSeq(tbsCert);
-		cert.addSeq(algo_seq);
-		cert.addBitString(sig);
-		return cert;
-	}
-
-	std::string X509Certificate::toDer() const SOUP_EXCAL
-	{
-		return toAsn1().toDer();
+		return tbsCert.toDer();
 	}
 }
