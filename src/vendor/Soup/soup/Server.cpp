@@ -2,8 +2,10 @@
 
 #if !SOUP_WASM
 
+#include "CertStore.hpp"
 #include "ServerService.hpp"
 #include "ServerServiceUdp.hpp"
+#include "SharedPtr.hpp"
 #include "Socket.hpp"
 
 NAMESPACE_SOUP
@@ -29,7 +31,7 @@ NAMESPACE_SOUP
 
 	struct CaptureServerPortCrypto : public CaptureServerPort
 	{
-		tls_server_cert_selector_t cert_selector;
+		SharedPtr<CertStore> certstore;
 		tls_server_on_client_hello_t on_client_hello;
 
 		void processAccept(Socket&& sock) const SOUP_EXCAL
@@ -41,7 +43,7 @@ NAMESPACE_SOUP
 				{
 					service->on_connection_established(*s, *service, *server);
 				}
-				s->enableCryptoServer(cert_selector, [](Socket& s, Capture&& _cap) SOUP_EXCAL
+				s->enableCryptoServer(certstore, [](Socket& s, Capture&& _cap) SOUP_EXCAL
 				{
 					CaptureServerPortCrypto& cap = *_cap.get<CaptureServerPortCrypto*>();
 					cap.service->on_tunnel_established(s, *cap.service, *cap.server);
@@ -75,7 +77,7 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	bool Server::bindCrypto(uint16_t port, ServerService* service, tls_server_cert_selector_t cert_selector, tls_server_on_client_hello_t on_client_hello) noexcept
+	bool Server::bindCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_on_client_hello_t on_client_hello) noexcept
 	{
 		Socket sock6{};
 		if (!sock6.bind6(port))
@@ -83,7 +85,7 @@ NAMESPACE_SOUP
 			return false;
 		}
 		setDataAvailableHandlerCrypto6(sock6);
-		sock6.holdup_callback.cap = CaptureServerPortCrypto{ { this, service }, cert_selector, on_client_hello };
+		sock6.holdup_callback.cap = CaptureServerPortCrypto{ { this, service }, certstore, on_client_hello };
 		addSocket(std::move(sock6));
 
 #if SOUP_WINDOWS
@@ -93,7 +95,7 @@ NAMESPACE_SOUP
 			return false;
 		}
 		setDataAvailableHandlerCrypto4(sock4);
-		sock4.holdup_callback.cap = CaptureServerPortCrypto{ { this, service }, cert_selector, on_client_hello };
+		sock4.holdup_callback.cap = CaptureServerPortCrypto{ { this, service }, certstore, on_client_hello };
 		addSocket(std::move(sock4));
 #endif
 

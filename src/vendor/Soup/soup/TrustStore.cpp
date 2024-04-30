@@ -226,6 +226,21 @@ NAMESPACE_SOUP
 		}
 	}
 
+	bool TrustStore::contains(const X509Certificate& cert) const SOUP_EXCAL
+	{
+		if (auto entry = findCommonName(cert.subject.getCommonName()))
+		{
+			if (entry->isEc() == cert.isEc()
+				&& entry->key.x == cert.key.x
+				&& entry->key.y == cert.key.y
+				)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	const X509Certificate* TrustStore::findCommonName(const std::string& cn) const noexcept
 	{
 		auto i = data.find(cn);

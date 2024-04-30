@@ -16,11 +16,8 @@ NAMESPACE_SOUP
 
 		void cleanup() SOUP_EXCAL;
 
-		[[nodiscard]] bool verify(const std::string& domain, const TrustStore& ts) const SOUP_EXCAL;
-		[[nodiscard]] bool verify(const TrustStore& ts) const SOUP_EXCAL;
-		[[nodiscard]] bool verifyTrust(const TrustStore& ts) const SOUP_EXCAL;
-		[[nodiscard]] bool isAnyInTrustStore(const TrustStore& ts) const SOUP_EXCAL;
-		[[nodiscard]] bool verifySignatures() const SOUP_EXCAL;
+		[[nodiscard]] bool verify(const std::string& domain, const TrustStore& ts, time_t unix_timestamp) const SOUP_EXCAL;
+		[[nodiscard]] bool verify(const TrustStore& ts, time_t unix_timestamp) const SOUP_EXCAL;
 
 		[[nodiscard]] std::string toString() const SOUP_EXCAL;
 	};

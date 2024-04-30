@@ -7,6 +7,9 @@
 #include "string.hpp"
 #include "TrustStore.hpp"
 
+//#include "log.hpp"
+//#include "format.hpp"
+
 NAMESPACE_SOUP
 {
 	bool X509Certchain::fromDer(const std::vector<std::string>& vec) SOUP_EXCAL
@@ -61,71 +64,75 @@ NAMESPACE_SOUP
 		}
 	}
 
-	bool X509Certchain::verify(const std::string& domain, const TrustStore& ts) const SOUP_EXCAL
+	bool X509Certchain::verify(const std::string& domain, const TrustStore& ts, time_t unix_timestamp) const SOUP_EXCAL
 	{
-		return certs.at(0).isValidForDomain(domain)
-			&& verify(ts)
+		return !certs.empty()
+			&& certs.at(0).isValidForDomain(domain)
+			&& verify(ts, unix_timestamp)
 			;
 	}
 
-	bool X509Certchain::verify(const TrustStore& ts) const SOUP_EXCAL
+	bool X509Certchain::verify(const TrustStore& ts, time_t unix_timestamp) const SOUP_EXCAL
 	{
-		return verifyTrust(ts)
-			&& verifySignatures()
-			;
-	}
+		if (certs.at(0).valid_to < unix_timestamp)
+		{
+			return false; // Expired
+		}
 
-	bool X509Certchain::verifyTrust(const TrustStore& ts) const SOUP_EXCAL
-	{
 		if (!certs.empty())
 		{
-			if (isAnyInTrustStore(ts))
-			{
-				return true;
-			}
+			uint8_t max_children = 0;
 
 			const auto& root = certs.back();
-			if (auto entry = ts.findCommonName(root.issuer.getCommonName()))
+			if (ts.contains(root))
 			{
-				if (root.verify(*entry))
-				{
-					return true;
-				}
+				// The root of the chain is a CA cert
+				max_children = root.max_children;
 			}
-		}
-		return false;
-	}
-
-	bool X509Certchain::isAnyInTrustStore(const TrustStore& ts) const SOUP_EXCAL
-	{
-		for (auto i = certs.rbegin(); i != certs.rend(); ++i)
-		{
-			if (auto entry = ts.findCommonName(i->subject.getCommonName()))
+			else
 			{
-				if (entry->isEc() == i->isEc()
-					&& entry->key.x == i->key.x
-					&& entry->key.y == i->key.y
-					)
+				// The root of the chain is an intermediate cert
+				auto entry = ts.findCommonName(root.issuer.getCommonName());
+				if (!entry)
 				{
-					return true;
+					return false; // Root issuer is not in trust store
 				}
-			}
-		}
-		return false;
-	}
-
-	bool X509Certchain::verifySignatures() const SOUP_EXCAL
-	{
-		if (certs.size() > 1)
-		{
-			for (auto i = certs.begin(); i != certs.end() - 1; ++i)
-			{
-				if (!i->verify(*(i + 1)))
+				max_children = entry->max_children;
+				//logWriteLine(format("Allowed # of certs below {}: {}", root.issuer.getCommonName(), max_children));
+				if (max_children == 0)
+				{
+					return false; // Root issuer may not have any children
+				}
+				max_children = std::min<uint8_t>(max_children - 1, root.max_children);
+				if (!root.verify(*entry))
 				{
 					return false;
 				}
 			}
+			//logWriteLine(format("Allowed # of certs below {}: {}", root.subject.getCommonName(), max_children));
+
+			// Now that we have a trusted root, we can follow the chain.
+			if (certs.size() > 1)
+			{
+				for (auto i = certs.rbegin() + 1; i != certs.rend(); ++i)
+				{
+					// Handle path length constraints
+					if (max_children == 0)
+					{
+						return false;
+					}
+					max_children = std::min<uint8_t>(max_children - 1, i->max_children);
+					//logWriteLine(format("Allowed # of certs below {}: {}", i->subject.getCommonName(), max_children));
+
+					// Each cert must be signed by the one above it
+					if (!i->verify(*(i - 1)))
+					{
+						return false;
+					}
+				}
+			}
 		}
+
 		return true;
 	}
 

@@ -845,6 +845,7 @@
     <ClInclude Include="src\vendor\Soup\soup\Callback.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Capture.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\cat.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\CertStore.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CidrSubnet4.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CidrSubnet6.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CidrSupernet.hpp" />
@@ -973,7 +974,6 @@
     <ClInclude Include="src\vendor\Soup\soup\TlsRecord.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsServerHello.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsServerKeyExchange.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\TlsServerRsaData.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsSignatureScheme.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TransientToken.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TreeNode.hpp" />

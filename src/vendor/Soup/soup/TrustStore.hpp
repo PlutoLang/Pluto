@@ -22,6 +22,8 @@ NAMESPACE_SOUP
 		void addCa(std::string&& common_name, std::string&& pem) SOUP_EXCAL;
 		void addCa(std::string&& common_name, X509Certificate&& cert) SOUP_EXCAL;
 
+		[[nodiscard]] bool contains(const X509Certificate& cert) const SOUP_EXCAL;
+
 		[[nodiscard]] const X509Certificate* findCommonName(const std::string& cn) const noexcept;
 	};
 }
