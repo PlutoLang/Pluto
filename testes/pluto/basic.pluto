@@ -2608,6 +2608,25 @@ do
     assert(inst:getWhatever() == 69)
     assert(inst:getPromoted() == 1337)
 end
+-- Extending from global should not unexpectedly push _G
+do
+    class GlobalClass end
+
+    local class ExtendsGlobalExpression1 extends GlobalClass
+        function checkMembers()
+        end
+    end
+
+    local class ExtendsGlobalExpression2 extends GlobalClass
+        function checkMembers()
+        end
+    end
+
+    new ExtendsGlobalExpression1(1):checkMembers()
+    new ExtendsGlobalExpression2(1):checkMembers()
+
+    GlobalClass = nil
+end
 
 print "Testing named varargs."
 do

@@ -1689,6 +1689,14 @@ static void classname (LexState *ls, expdesc *v) {
     fieldsel(ls, v);
 }
 
+static void skip_classname (LexState *ls) {
+  str_checkname(ls, 0);
+  while (ls->t.token == '.') {
+    luaX_next(ls);
+    str_checkname(ls, N_RESERVED);
+  }
+}
+
 static size_t checkextends (LexState *ls) {
   size_t pos = 0;
 #ifdef PLUTO_PARSER_SUGGESTIONS
@@ -1703,8 +1711,7 @@ static size_t checkextends (LexState *ls) {
   if (ls->t.token == TK_EXTENDS) {
     luaX_next(ls);
     pos = luaX_getpos(ls);
-    expdesc dummy;
-    classname(ls, &dummy);
+    skip_classname(ls);
   }
   ls->classes.top().parent_name_pos = pos;
   return pos;
