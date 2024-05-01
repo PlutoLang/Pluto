@@ -355,7 +355,7 @@ enum ParserContext : lu_byte {
 
 enum class VisibilitySpecifier : uint8_t {
   PRIVATE,
-  // PROTECTED, // Unused
+  PROTECTED,
 };
 
 struct ClassData {
@@ -381,7 +381,7 @@ struct ClassData {
 
   std::unordered_set<Field, Field::Hash> fields; // For fields that have visibility specifiers.
 
-  std::string addField(std::string&& name, VisibilitySpecifier visibility = VisibilitySpecifier::PRIVATE) {
+  std::string addField(std::string&& name, VisibilitySpecifier visibility) {
     fields.emplace(Field{ name, visibility });
     return addPrefix(std::move(name));
   }
@@ -398,6 +398,23 @@ struct ClassData {
       }
     }
     return std::nullopt;
+  }
+
+  [[nodiscard]] bool hasProtectedFields() const noexcept {
+    for (const auto& [_, visibility] : fields) {
+      if (visibility == VisibilitySpecifier::PROTECTED) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void inheritFrom(const std::unordered_set<Field, Field::Hash>& to_inherit) {
+    for (const auto& [name, visibility] : to_inherit) {
+      if (visibility == VisibilitySpecifier::PROTECTED) {
+        fields.emplace(Field{ name, visibility });
+      }
+    }
   }
 };
 
@@ -469,7 +486,7 @@ struct LexState {
   int else_if = 0;  /* line on which 'else if' was seen, to raise warning in case of missing 'end' */
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
-  std::stack<ClassData> classes{};
+  std::vector<ClassData> classes{}; // Old -> New
   std::stack<FuncArgsState> funcargsstates{};
   std::stack<BodyState> bodystates{};
   std::stack<SwitchState> switchstates{};
@@ -575,7 +592,7 @@ struct LexState {
   [[nodiscard]] size_t getParentClassPos() const noexcept {
     if (classes.empty())
       return 0;
-    return classes.top().parent_name_pos;
+    return classes.back().parent_name_pos;
   }
 
   WarningConfig& lexPushWarningOverride() {
@@ -632,6 +649,12 @@ struct LexState {
   void setKeywordState(int t, KeywordState ks) noexcept {
     lua_assert(t >= FIRST_NON_COMPAT && t < END_OPTIONAL);
     keyword_states[t - FIRST_NON_COMPAT] = ks;
+  }
+
+  void popLastClass() noexcept {
+    if (!classes.back().hasProtectedFields()) {
+      classes.pop_back();
+    }
   }
 };
 

@@ -2686,6 +2686,77 @@ do
     assert(var.__restricted__var2 == "2")
     assert(var.__restricted__var3 == "3")
 end
+-- Protected fields
+do
+    local class A
+        function __construct(public public_member, private private_member, protected protected_member)
+            assert(self.public_member == 1)
+            assert(self["public_member"] == 1)
+
+            assert(self.private_member == 2)
+            assert(self["private_member"] == nil)
+            assert(self["__restricted__private_member"] == 2)
+
+            assert(self.protected_member == 3)
+            assert(self["protected_member"] == nil)
+            assert(self["__restricted__protected_member"] == 3)
+
+            assert(self:privateFunction() == 2)
+            assert(self:protectedFunction() == 3)
+        end
+
+        private function privateFunction()
+            return 2
+        end
+
+        protected function protectedFunction()
+            return 3
+        end
+    end
+
+    local class B extends A
+        function checkMembers()
+            assert(self.public_member == 1)
+            assert(self["public_member"] == 1)
+
+            assert(self.private_member == nil)
+            assert(self["private_member"] == nil)
+            assert(self["__restricted__private_member"] == 2)
+
+            assert(self.protected_member == 3)
+            assert(self["protected_member"] == nil)
+            assert(self["__restricted__protected_member"] == 3)
+
+            assert(self.privateFunction == nil)
+            assert(self:protectedFunction() == 3)
+        end
+    end
+
+    local class C extends B
+        function checkMembers()
+            assert(self.public_member == 1)
+            assert(self["public_member"] == 1)
+
+            assert(self.private_member == nil)
+            assert(self["private_member"] == nil)
+            assert(self["__restricted__private_member"] == 2)
+
+            assert(self.protected_member == 3)
+            assert(self["protected_member"] == nil)
+            assert(self["__restricted__protected_member"] == 3)
+
+            assert(self.privateFunction == nil)
+            assert(self:protectedFunction() == 3)
+        end
+    end
+
+    local classA = new A(1, 2, 3)
+    local classB = new B(1, 2, 3)
+    local classC = new C(1, 2, 3)
+
+    classB:checkMembers()
+    classC:checkMembers()
+end
 
 print "Testing named varargs."
 do

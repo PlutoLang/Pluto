@@ -1484,12 +1484,8 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
       if (strcmp(getstr(name), "public") == 0) {
         name = str_checkname(ls);
       }
-      else if (strcmp(getstr(name), "protected") == 0) {
-        luaX_syntaxerror(ls, "'protected' is reserved in this context");
-        name = str_checkname(ls);
-      }
-      else if (strcmp(getstr(name), "private") == 0) {
-        const auto field_name = ls->classes.top().addPrefix(str_checkname(ls)->toCpp());
+      else if (strcmp(getstr(name), "private") == 0 || strcmp(getstr(name), "protected") == 0) {
+        const auto field_name = ls->classes.back().addPrefix(str_checkname(ls)->toCpp());
         name = luaX_newstring(ls, field_name.c_str());
       }
     }
@@ -1569,7 +1565,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 
 
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *funcdesc = nullptr);
-static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool isprivate = false) {
+static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool addprefix = false) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
   int reg = ls->fs->freereg;
@@ -1577,8 +1573,8 @@ static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool 
   cc->nh++;
   luaX_next(ls); /* skip TK_FUNCTION */
   codename(ls, &key);
-  if (isprivate) {
-    const auto new_name = ls->classes.top().addPrefix(getstr(key.u.strval));
+  if (addprefix) {
+    const auto new_name = ls->classes.back().addPrefix(getstr(key.u.strval));
     codestring(&key, luaX_newstring(ls, new_name.c_str()));
   }
   if (ismethod)
@@ -1614,7 +1610,7 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
         luaX_next(ls);
         funcfield(ls, cc, true);
       }
-      else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
+      else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && (strcmp(getstr(ls->t.seminfo.ts), "private") == 0 || strcmp(getstr(ls->t.seminfo.ts), "protected") == 0)) {
         luaX_next(ls);
         funcfield(ls, cc, true, true);
       }
@@ -1731,9 +1727,8 @@ static void classname (LexState *ls, expdesc *v, std::string& to_modify) {
   const auto n = str_checkname(ls, 0);
   singlevarinner(ls, n, v);
   to_modify = n->toCpp();
-  while (ls->t.token == '.') {
+  while (testnext(ls, '.')) {
     to_modify.push_back('.');
-    checknext(ls, '.');
     to_modify.append(str_checkname(ls, 0)->toCpp());
     luaX_prev(ls); // Move behind TK_NAME
     luaX_prev(ls); // Move back to '.'
@@ -1747,11 +1742,11 @@ static void classname (LexState* ls, expdesc* v) {
     fieldsel(ls, v);
 }
 
-static void skip_classname (LexState *ls) {
-  str_checkname(ls, 0);
-  while (ls->t.token == '.') {
-    luaX_next(ls);
-    str_checkname(ls, N_RESERVED);
+static void skip_classname (LexState *ls, std::string& parent_name) {
+  parent_name = str_checkname(ls, 0)->toCpp();
+  while (testnext(ls, '.')) {
+    parent_name.push_back('.');
+    parent_name.append(str_checkname(ls, N_RESERVED)->toCpp());
   }
 }
 
@@ -1769,9 +1764,9 @@ static size_t checkextends (LexState *ls) {
   if (ls->t.token == TK_EXTENDS) {
     luaX_next(ls);
     pos = luaX_getpos(ls);
-    skip_classname(ls);
+    skip_classname(ls, ls->classes.back().pname);
   }
-  ls->classes.top().parent_name_pos = pos;
+  ls->classes.back().parent_name_pos = pos;
   return pos;
 }
 
@@ -1827,16 +1822,22 @@ static size_t preprocessclass (LexState *ls) {
       }
     }
 
-    if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
-      if (luaX_lookahead(ls) == TK_FUNCTION) {
-        checknext(ls, TK_NAME);
-        checknext(ls, TK_FUNCTION);
-        ls->classes.top().addField(getstr(ls->t.seminfo.ts));
-        ++allowed_ends; // For TK_FUNCTION
-      }
-      else if (luaX_lookahead(ls) == TK_NAME) {
-        checknext(ls, TK_NAME);
-        ls->classes.top().addField(getstr(ls->t.seminfo.ts));
+    if (ls->t.token == TK_NAME) {
+      const bool is_private = strcmp(getstr(ls->t.seminfo.ts), "private") == 0;
+      const bool is_protected = strcmp(getstr(ls->t.seminfo.ts), "protected") == 0;
+      const auto vis_specifier = is_private ? VisibilitySpecifier::PRIVATE : VisibilitySpecifier::PROTECTED;
+
+      if (is_private || is_protected) {
+        if (luaX_lookahead(ls) == TK_FUNCTION) {
+          checknext(ls, TK_NAME);
+          checknext(ls, TK_FUNCTION);
+          ++allowed_ends; // For TK_FUNCTION
+          ls->classes.back().addField(getstr(ls->t.seminfo.ts), vis_specifier);
+        }
+        else if (luaX_lookahead(ls) == TK_NAME) {
+          checknext(ls, TK_NAME);
+          ls->classes.back().addField(getstr(ls->t.seminfo.ts), vis_specifier);
+        }
       }
     }
 
@@ -1846,6 +1847,19 @@ static size_t preprocessclass (LexState *ls) {
   const auto finish = luaX_getpos(ls);
   luaX_setpos(ls, start);
   return finish;
+}
+
+static void resolveprotected (LexState *ls) {
+  auto& current_class = ls->classes.back();
+
+  if (!current_class.pname.empty()) {
+    for (auto i = std::prev(ls->classes.rend()); i != ls->classes.rbegin(); --i) {
+      if (i->name == current_class.pname) {
+        current_class.inheritFrom(i->fields);
+        break;
+      }
+    }
+  }
 }
 
 static void classexpr (LexState *ls, expdesc *t) {
@@ -1862,6 +1876,7 @@ static void classexpr (LexState *ls, expdesc *t) {
   luaK_reserveregs(fs, 1);
   init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
   const auto finish = preprocessclass(ls);
+  resolveprotected(ls);
   while (ls->t.token != TK_END) {
     lua_assert(cc.v.k == VVOID || cc.tostore > 0);
     closelistfield(fs, &cc);
@@ -1894,17 +1909,17 @@ static void check_assignment (LexState *ls, const expdesc *v) {
 
 
 static void classstat (LexState *ls, int line, const bool global) {
-  ls->classes.emplace();
+  ls->classes.emplace_back();
 
   size_t name_pos = luaX_getpos(ls);
   expdesc v;
   if (global) {
     const auto n = str_checkname(ls, 0);
     singlevarinner(ls, n, &v);
-    ls->classes.top().name = n->toCpp();
+    ls->classes.back().name = n->toCpp();
   }
   else {
-    classname(ls, &v, ls->classes.top().name);
+    classname(ls, &v, ls->classes.back().name);
     check_assignment(ls, &v);
   }
 
@@ -1917,7 +1932,7 @@ static void classstat (LexState *ls, int line, const bool global) {
   luaK_fixline(ls->fs, line);
 
   lua_assert(ls->getParentClassPos() == parent_pos);
-  ls->classes.pop();
+  ls->popLastClass();
 
   if (parent_pos)
     applyextends(ls, name_pos, parent_pos, line);
@@ -1930,7 +1945,7 @@ static void localclass (LexState *ls) {
   luaX_next(ls);
   auto line = ls->getLineNumber();
 
-  ls->classes.emplace();
+  ls->classes.emplace_back();
 
   size_t name_pos = luaX_getpos(ls);
   TString *name = str_checkname(ls, 0);
@@ -1940,13 +1955,13 @@ static void localclass (LexState *ls) {
 
   expdesc t;
   classexpr(ls, &t);
-  ls->classes.top().name = name->toCpp();
+  ls->classes.back().name = name->toCpp();
 
   adjust_assign(ls, 1, 1, &t);
   adjustlocalvars(ls, 1);
 
   lua_assert(ls->getParentClassPos() == parent_pos);
-  ls->classes.pop();
+  ls->popLastClass();
 
   if (parent_pos)
     applyextends(ls, name_pos, parent_pos, line);
@@ -2069,12 +2084,9 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
             parname = str_checkname(ls, N_OVERRIDABLE);
             promotions->emplace_back(parname, parname);
           }
-          else if (strcmp(getstr(parname), "protected") == 0) {
-            luaX_syntaxerror(ls, "'protected' is reserved in this context");
-          }
-          else if (strcmp(getstr(parname), "private") == 0) {
+          else if (strcmp(getstr(parname), "private") == 0 || strcmp(getstr(parname), "protected") == 0) {
             parname = str_checkname(ls, N_OVERRIDABLE);
-            const auto field_name = ls->classes.top().addPrefix(parname->toCpp());
+            const auto field_name = ls->classes.back().addPrefix(parname->toCpp());
             promotions->emplace_back(parname, luaX_newstring(ls, field_name.c_str()));
           }
         }
@@ -2851,7 +2863,7 @@ static void selfexp (LexState *ls, expdesc *v) {
     expdesc key;
     TString *keystr = str_checkname(ls, N_RESERVED);
 
-    if (auto name = ls->classes.top().getRealName(keystr); name.has_value()) {
+    if (auto name = ls->classes.back().getRealName(keystr); name.has_value()) {
       codestring(&key, luaX_newstring(ls, name.value().c_str()));
     }
     else {
@@ -3485,9 +3497,9 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
     case TK_PCLASS: {
       if (prop) prop->emplaceTypeDesc(VT_TABLE);
       luaX_next(ls); /* skip 'class' */
-      ls->classes.emplace();
+      ls->classes.emplace_back();
       classexpr(ls, v);
-      ls->classes.pop();
+      ls->popLastClass();
       return;
     }
     case TK_SWITCH:
