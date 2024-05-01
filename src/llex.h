@@ -362,6 +362,7 @@ struct ClassData {
   std::string name;
   std::string pname;
 
+  size_t created_at = 0;
   size_t parent_name_pos = 0;
 
   struct Field {
@@ -415,6 +416,10 @@ struct ClassData {
         fields.emplace(Field{ name, visibility });
       }
     }
+  }
+
+  [[nodiscard]] bool operator==(const ClassData& other) const noexcept {
+    return created_at != 0 && created_at == other.created_at;
   }
 };
 

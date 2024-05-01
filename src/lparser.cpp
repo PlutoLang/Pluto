@@ -94,6 +94,7 @@ typedef struct BlockCnt {
   BlockType type;  /* one of block types */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
   std::vector<TString*> export_symbols{};
+  std::vector<ClassData> classes;  /* Classes created inside this block. */
 } BlockCnt;
 
 
@@ -1140,6 +1141,16 @@ static void leaveblock (FuncState *fs) {
   int hasclose = 0;
   int stklevel = reglevel(fs, bl->nactvar);  /* level outside the block */
   removevars(fs, bl->nactvar);  /* remove block locals */
+
+  // Classes without protected fields are immediately disposed of. Here, we dispose those with protected fields.
+  for (const auto& cls : bl->classes) {
+    const auto other = std::find(ls->classes.begin(), ls->classes.end(), cls);
+    if (other != ls->classes.end() && *other == cls) {
+      ls->classes.erase(other);
+    }
+  }
+  bl->classes.clear();
+
   lua_assert(bl->nactvar == fs->nactvar);  /* back to level on entry */
   if (bl->type != BlockType::BT_DEFAULT)  /* has to fix pending breaks / continues? */
     hasclose = createlabel(ls, bl, 0, 0, true);
@@ -1872,6 +1883,8 @@ static void classexpr (LexState *ls, expdesc *t) {
   luaK_code(fs, 0);  /* space for extra arg. */
   cc.na = cc.nh = cc.tostore = 0;
   cc.t = t;
+  ls->classes.back().created_at = luaX_getpos(ls);
+  fs->bl->classes.emplace_back(ls->classes.back());
   init_exp(t, VNONRELOC, fs->freereg);  /* table will be at stack top */
   luaK_reserveregs(fs, 1);
   init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
