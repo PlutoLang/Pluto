@@ -3173,12 +3173,14 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   enterblock(fs, &sbl, BlockType::BT_BREAK);
   fs->freereg = freereg;
 
+  int prevpinnedreg = -1;
   expdesc ctrl;
   expr(ls, &ctrl);
   checknext(ls, TK_DO);
   if (!vkhasregister(ctrl.k)) {
     luaK_exp2nextreg(ls->fs, &ctrl);
     if (tk == TK_ARROW) {
+      prevpinnedreg = fs->pinnedreg;
       fs->pinnedreg = ctrl.u.reg;
     }
     else {
@@ -3293,7 +3295,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     lgoto(ls, default_case, ls->getLineNumber());
 
   if (tk == TK_ARROW && fs->pinnedreg != -1) {
-    fs->pinnedreg = -1;
+    fs->pinnedreg = prevpinnedreg;
     luaK_freeexp(fs, &ctrl);
   }
 
