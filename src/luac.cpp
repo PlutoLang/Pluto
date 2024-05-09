@@ -361,15 +361,30 @@ static void PrintCode(const Proto* f)
   Instruction i=code[pc];
   OpCode o=GET_OPCODE(i);
   int a=GETARG_A(i);
-  int b=GETARG_B(i);
-  int c=GETARG_C(i);
-  int ax=GETARG_Ax(i);
-  int bx=GETARG_Bx(i);
-  int sb=GETARG_sB(i);
-  int sc=GETARG_sC(i);
-  int sbx=GETARG_sBx(i);
-  int isk=GETARG_k(i);
+  int b=0;
+  int c=0;
+  int ax=0;
+  int bx=0;
+  int sb=0;
+  int sc=0;
+  int sbx=0;
+  int isk=0;
   int line=luaG_getfuncline(f,pc);
+
+  if (checkopm(i, iABC)) {
+    b=GETARG_B(i);
+    c=GETARG_C(i);
+    sb=GETARG_sB(i);
+    sc=GETARG_sC(i);
+    isk=GETARG_k(i);
+  } else if (checkopm(i, iAx)) {
+    ax=GETARG_Ax(i);
+  } else if (checkopm(i, iABx)) {
+    bx=GETARG_Bx(i);
+  } else if (checkopm(i, iAsBx)) {
+    sbx=GETARG_sBx(i);
+  }
+
   printf("\t%d\t",pc+1);
   if (line>0) printf("[%d]\t",line); else printf("[-]\t");
   printf("%-9s\t",opnames[o]);
