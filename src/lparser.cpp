@@ -1856,6 +1856,7 @@ enum expflags {
   E_PIPERHS          = 1 << 3,
   E_WALRUS           = 1 << 4,
   E_OR_KILLED_WALRUS = 1 << 5,
+  E_NO_CONSUME_COLON = 1 << 6,  /* this expression must not consume a non-nested colon */
 };
 
 static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr);
@@ -2927,7 +2928,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         break;
       }
       case ':': {  /* ':' NAME funcargs */
-        if (flags & E_NO_METHOD_CALL) {
+        if ((flags & E_NO_METHOD_CALL) || (flags & E_NO_CONSUME_COLON)) {
           return;
         }
         expdesc key;
@@ -3004,7 +3005,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         }
         luaX_next(ls);
         int nparams = 1;
-        if (!(flags & E_NO_METHOD_CALL) && luaX_lookahead(ls) == ':') {
+        if (!(flags & E_NO_METHOD_CALL) && !(flags & E_NO_CONSUME_COLON) && luaX_lookahead(ls) == ':') {
           luaK_reserveregs(fs, 2);
           luaK_exp2nextreg(fs, v);
           fs->freereg -= 3;
@@ -3137,7 +3138,7 @@ static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
 
   int expr_flags = 0;
   if (tk == ':') {
-    expr_flags |= E_NO_METHOD_CALL;
+    expr_flags |= E_NO_CONSUME_COLON;
   }
 
   expdesc e, cmpval;
@@ -3396,6 +3397,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       return;
     }
     case TK_FUNCTION: {
+      check_condition(ls, !(flags & E_NO_CONSUME_COLON), "cannot instantiate a function in this context");
       luaX_next(ls);
       if (prop) {
         TypeDesc funcdesc;
@@ -3408,6 +3410,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       return;
     }
     case '|': {
+      check_condition(ls, !(flags & E_NO_CONSUME_COLON), "cannot instantiate a function in this context");
       luaX_next(ls);
       if (prop) {
         TypeDesc funcdesc;
@@ -3698,6 +3701,7 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
 #endif
   subexpr(ls, v, 0, prop, flags);
   if (testnext(ls, '?')) { /* ternary expression? */
+    check_condition(ls, !(flags & E_NO_CONSUME_COLON), "cannot use a ternary expression in this context");
     if (prop) prop->clear(); /* we don't care what type the condition is/was */
     int escape = NO_JUMP;
     v->normalizeFalse();

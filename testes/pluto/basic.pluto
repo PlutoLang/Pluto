@@ -1184,6 +1184,17 @@ case 1:
     end
     break
 end]] == nil)
+-- ':' must be unambiguous
+assert(load[[
+local tab = {
+    print=function(...) print("TabPrint", ...) end
+}
+switch 1 do
+    case 2: break
+    case true?1:tab:
+        print("OK")
+end
+]] == nil)
 
 print "Testing switch expression."
 do
