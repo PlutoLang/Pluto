@@ -1887,6 +1887,42 @@ static void skip_until (LexState *ls, int token) {
   }
 }
 
+/* keep advancing until we hit ':' */
+static void skip_until_colon (LexState *ls) {
+  int parens = 0;
+  int curlys = 0;
+  int ternaries = 0;
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.token == '(') {
+      parens++;
+    }
+    else if (ls->t.token == ')') {
+      parens--;
+    }
+    else if (ls->t.token == '{') {
+      curlys++;
+    }
+    else if (ls->t.token == '}') {
+      curlys--;
+    }
+    else if (ls->t.token == ':') {
+      if (ternaries) {
+        ternaries--;
+      }
+      else if (parens == 0 && curlys == 0) {
+        break;
+      }
+    }
+    else if (ls->t.token == '?') {
+      luaX_next(ls);
+      if (ls->t.token != '[' && ls->t.token != '.' && ls->t.token != ':') {
+        ternaries++;
+      }
+    }
+    luaX_next(ls);
+  }
+}
+
 /* keep advancing until we hit ',' or non-nested ')' */
 static void skip_over_simpleexp_within_parenlist (LexState *ls) {
   int parens = 0;
@@ -3226,7 +3262,15 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     else {
       checknext(ls, TK_CASE);
       cases.emplace_back(SwitchCase{ luaX_getpos(ls), luaK_getlabel(fs) });
-      skip_until(ls, tk); /* skip over casecond */
+
+      /* skip over casecond */
+      if (tk == ':') {
+        skip_until_colon(ls);
+      }
+      else {
+        skip_until(ls, tk);
+      }
+
       checknext(ls, tk);
     }
     ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
