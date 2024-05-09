@@ -1850,7 +1850,7 @@ static void setvararg (FuncState *fs, int nparams) {
 
 
 enum expflags {
-  E_NO_COLON         = 1 << 0,
+  E_NO_METHOD_CALL   = 1 << 0,  /* ':' may not be used to initiate a method call */
   E_NO_CALL          = 1 << 1,
   E_NO_BOR           = 1 << 2,
   E_PIPERHS          = 1 << 3,
@@ -2541,7 +2541,7 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
       ++nargs;
       auto argline = ls->getLineNumber();
       expdesc argexp;
-      simpleexp(ls, &argexp, E_NO_COLON);
+      simpleexp(ls, &argexp, E_NO_METHOD_CALL);
       switch (argexp.k) {
         case VKSTR:
           lua_pushlstring(L, getstr(argexp.u.strval), tsslen(argexp.u.strval));
@@ -2927,7 +2927,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         break;
       }
       case ':': {  /* ':' NAME funcargs */
-        if (flags & E_NO_COLON) {
+        if (flags & E_NO_METHOD_CALL) {
           return;
         }
         expdesc key;
@@ -3004,7 +3004,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         }
         luaX_next(ls);
         int nparams = 1;
-        if (!(flags & E_NO_COLON) && luaX_lookahead(ls) == ':') {
+        if (!(flags & E_NO_METHOD_CALL) && luaX_lookahead(ls) == ':') {
           luaK_reserveregs(fs, 2);
           luaK_exp2nextreg(fs, v);
           fs->freereg -= 3;
@@ -3137,7 +3137,7 @@ static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
 
   int expr_flags = 0;
   if (tk == ':') {
-    expr_flags |= E_NO_COLON;
+    expr_flags |= E_NO_METHOD_CALL;
   }
 
   expdesc e, cmpval;
@@ -3709,14 +3709,14 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
       throw_warn(ls, "unreachable code", "the condition before the '?' is always falsy, hence the expression before the ':' is never used.", WT_UNREACHABLE_CODE);
     luaK_goiftrue(ls->fs, v);
     int condition = v->f;
-    expr(ls, v, prop, E_NO_COLON);
+    expr(ls, v, prop, E_NO_METHOD_CALL);
     auto fs = ls->fs;
     auto reg = luaK_exp2anyreg(fs, v);
     luaK_concat(fs, &escape, luaK_jump(fs));
     luaK_patchtohere(fs, condition);
     checknext(ls, ':');
     ls->pushContext(PARCTX_TERNARY_C);
-    expr(ls, v, prop, flags & E_NO_COLON);
+    expr(ls, v, prop, flags & E_NO_METHOD_CALL);
     ls->popContext(PARCTX_TERNARY_C);
     luaK_exp2reg(fs, v, reg);
     luaK_patchtohere(fs, escape);
