@@ -3273,10 +3273,11 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
             luaK_concat(fs, &fallthrough, e.t);
           }
           const auto last_pc = fs->pc;
-          expr(ls, &cmpval, nullptr, expr_flags);
-          if (last_pc == fs->pc && luaK_exp2const(fs, &cmpval, &k) && (ttisnil(&k) || ttisboolean(&k) || ttisnumber(&k) || ttisstring(&k))) {
+          expr(ls, &e, nullptr, expr_flags);
+          if (last_pc == fs->pc && luaK_exp2const(fs, &e, &k) && (ttisnil(&k) || ttisboolean(&k) || ttisnumber(&k) || ttisstring(&k))) {
             // We have some constant without generated code
             int dup_case = -1;
+            init_exp(&e, VVOID, 0);
             if (ttisfloat(&k) && isnan(fltvalue(&k))) {
               /* Not sure if it is possible to get a NaN constant. */
               throw_warn(ls, "nan case", WT_NAN_CASE);
@@ -3284,6 +3285,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
               if (nil_case != NO_JUMP) dup_case = nil_case;
               else if (had_nil_case) dup_case = -2;
               had_nil_case = true;
+              init_exp(&e, VNIL, 0);
             } else {
               auto res = luaH_get(const_cases, &k);
               if (ttisnil(res)) {
@@ -3303,12 +3305,11 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
               throw_warn(ls, "duplicated case", luaO_fmt(ls->L, "the case on line %d has the same case value", prevline), WT_DUPLICATED_CASE);
               ls->L->top.p--;
             }
-            init_exp(&e, VVOID, 0);
-          } else {
-            luaK_infix(fs, OPR_EQ, &cmpval);
-            e = ctrl;
-            luaK_posfix(fs, OPR_EQ, &cmpval, &e, case_line);
-            e = cmpval;
+          } 
+          if (e.k != VVOID) {
+            luaK_infix(fs, OPR_EQ, &e);
+            cmpval = ctrl;
+            luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
           }
         } while (testnext(ls, ','));
         checknext(ls, tk);
@@ -3322,6 +3323,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
     }
     fs->pinnedreg = old_pinned;
     if (start == fs->pc) {
+      lua_assert(e.k == VVOID);
       // No code for case values, last jump can be removed
       if (fallthrough != NO_JUMP) luaK_rollback(fs, fallthrough);
     } else {
@@ -3333,12 +3335,12 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
       } else {
         next_case = luaK_jump(fs);
       }
+      luaK_patchtohere(fs, fallthrough);
     }
     int target = luaK_getlabel(fs);
     if (had_const_case) case_pc.push_back(target);
     if (is_default) default_pc = target;
     if (had_nil_case) nil_case = target;
-    luaK_patchlist(fs, fallthrough, target);
 
     ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
     fs->freereg = freereg;
@@ -3354,9 +3356,8 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
 
     luaK_patchtohere(fs, entry);
     entry = NO_JUMP;
-    int old_pinned = fs->pinnedreg;
     int average_time_linear = num_consts/2;
-    int average_time_table = luaO_ceillog2(case_pc.size()) + 3; /* Check cache, load value, check nil case, then do the binary search */
+    int average_time_table = luaO_ceillog2(case_pc.size()) + 4; /* Load and check cache, load value, check nil case, then do the binary search */
     if (average_time_linear <= average_time_table) {
       /* Not worth the effort, just do a linear scan */
       const auto line = ls->getLineNumber();
@@ -3370,14 +3371,6 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
         luaK_posfix(ls->fs, OPR_EQ, &cmpval, &e, line);
         luaK_goiffalse(fs, &cmpval);
         luaK_patchlist(fs, cmpval.t, case_pc[ivalue(s2v(&s[1]))]);
-      }
-      if (nil_case != NO_JUMP) {
-        init_exp(&cmpval, VNIL, 0);
-        luaK_infix(ls->fs, OPR_EQ, &cmpval);
-        e = ctrl;
-        luaK_posfix(ls->fs, OPR_EQ, &cmpval, &e, line);
-        luaK_goiffalse(fs, &cmpval);
-        luaK_patchlist(fs, cmpval.t, nil_case);
       }
       if (default_pc != NO_JUMP || first_dynamic != NO_JUMP) entry = luaK_jump(fs);
     } else {
@@ -3460,17 +3453,6 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
       luaK_freeexp(fs, &e);
       int jump = luaK_jump(fs);
       luaK_patchlist(fs, jump, case_pc[case_pc.size()-1]);
-
-      if (nil_case != NO_JUMP) {
-        luaK_patchtohere(fs, entry);
-        init_exp(&cmpval, VNIL, 0);
-        luaK_infix(ls->fs, OPR_EQ, &cmpval);
-        e = ctrl;
-        luaK_posfix(ls->fs, OPR_EQ, &cmpval, &e, line);
-        luaK_goiffalse(fs, &cmpval);
-        luaK_patchlist(fs, cmpval.t, nil_case);
-        entry = default_pc == NO_JUMP && first_dynamic == NO_JUMP ? NO_JUMP : luaK_jump(fs);
-      }
     }
     fs->pinnedreg = old_pinned;
     luaK_patchtohere(fs, fallthrough);
