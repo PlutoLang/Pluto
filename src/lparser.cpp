@@ -3276,12 +3276,13 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
           expr(ls, &cmpval, nullptr, expr_flags);
           if (last_pc == fs->pc && luaK_exp2const(fs, &cmpval, &k) && (ttisnil(&k) || ttisboolean(&k) || ttisnumber(&k) || ttisstring(&k))) {
             // We have some constant without generated code
+            int dup_case = -1;
             if (ttisfloat(&k) && isnan(fltvalue(&k))) {
-              // TODO warn for nan case
+              /* Not sure if it is possible to get a NaN constant. */
+              throw_warn(ls, "nan case", WT_NAN_CASE);
             } else if (ttisnil(&k)) {
-              if (nil_case != NO_JUMP || had_nil_case) {
-                // TODO warn for same const
-              }
+              if (nil_case != NO_JUMP) dup_case = nil_case;
+              else if (had_nil_case) dup_case = -2;
               had_nil_case = true;
             } else {
               auto res = luaH_get(const_cases, &k);
@@ -3291,8 +3292,16 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
                 had_const_case = true;
                 num_consts++;
               } else {
-                // TODO warn for same const
+                dup_case = ivalue(res);
+                dup_case = dup_case == case_pc.size() ? -2 : case_pc[dup_case];
               }
+            }
+            if (dup_case == -2) {
+              throw_warn(ls, "duplicated case", "this case already did check for this value", WT_DUPLICATED_CASE);
+            } else if (dup_case >= 0) {
+              int prevline = luaG_getfuncline(fs->f, dup_case);
+              throw_warn(ls, "duplicated case", luaO_fmt(ls->L, "the case on line %d has the same case value", prevline), WT_DUPLICATED_CASE);
+              ls->L->top.p--;
             }
             init_exp(&e, VVOID, 0);
           } else {

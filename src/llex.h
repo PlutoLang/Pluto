@@ -183,6 +183,8 @@ enum WarningType : int {
   WT_UNANNOTATED_FALLTHROUGH,
   WT_DISCARDED_RETURN,
   WT_FIELD_SHADOW,
+  WT_DUPLICATED_CASE,
+  WT_NAN_CASE,
 
   NUM_WARNING_TYPES
 };
@@ -205,6 +207,8 @@ inline const char* const luaX_warnNames[] = {
   "unannotated-fallthrough",
   "discarded-return",
   "field-shadow",
+  "duplicated-case",
+  "nan-case",
 };
 static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
