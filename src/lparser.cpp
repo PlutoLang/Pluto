@@ -3315,8 +3315,9 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
       }
       if (tk == TK_ARROW) break;
       if (gett(ls) != TK_CASE && gett(ls) != TK_DEFAULT) {
-        if (!testnext(ls, TK_FALLTHROUGH)) break;
-        if (gett(ls) == TK_END) break;
+        // if (!testnext(ls, TK_FALLTHROUGH)) break;
+        // if (gett(ls) == TK_END) break;
+        break;
       }
     }
     fs->pinnedreg = old_pinned;
@@ -3344,6 +3345,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
     caselist(ls);
     fs->freereg = base_reg;
   }
+  removevars(fs, nactvar);
 
   if (case_pc.size() > 0) {
     int fallthrough = jumps_before(ls) ? NO_JUMP : luaK_jump(fs);
