@@ -3344,11 +3344,14 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
     luaK_patchtohere(fs, entry);
     entry = NO_JUMP;
     int old_pinned = fs->pinnedreg;
-    if (num_consts < 4) {
+    int average_time_linear = num_consts/2;
+    int average_time_table = luaO_ceillog2(case_pc.size()) + 3; /* Check cache, load value, check nil case, then do the binary search */
+    if (average_time_linear <= average_time_table) {
       /* Not worth the effort, just do a linear scan */
-      /* XXX not a stable order */
       const auto line = ls->getLineNumber();
       fs->pinnedreg = ctrl.u.reg;
+
+      /* XXX not a stable order */
       while (luaH_next(ls->L, const_cases, s)) {
         const2exp(s2v(&s[0]), &cmpval);
         luaK_infix(ls->fs, OPR_EQ, &cmpval);
@@ -3405,6 +3408,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
       fs->freereg = e.u.reg;
       lua_assert(e.u.reg == t.u.reg+1);
 
+      /* XXX not a stable order */
       while (luaH_next(ls->L, const_cases, s)) {
         e = t;
         const2exp(s2v(&s[0]), &key);
