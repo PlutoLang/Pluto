@@ -6030,7 +6030,6 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   switchcache->name = luaX_newliteral(ls, "(switch-cache)");
   luaC_objbarrier(ls->L, fs->f, switchcache->name);
 
-  int jump = luaK_jump(fs);
   int start = luaK_getlabel(fs);
   BlockCnt body;
   enterblock(fs, &body, BlockType::BT_DEFAULT);
@@ -6047,15 +6046,17 @@ static void mainfunc (LexState *ls, FuncState *fs) {
     expdesc e, t, k, n;
     auto const setmetatable = luaX_newliteral(ls, "setmetatable");
     auto const prevlastline = ls->lastline;
+    auto const special_start = luaK_getlabel(fs);
+    int jump;
+
     lua_assert(fs->freereg == 0);
     lua_assert(fs->pinnedreg == -1);
 
-    ls->lastline = 0;
+    ls->lastline = luaG_getfuncline(fs->f, start);
 
-    luaK_patchtohere(fs, jump);
     init_exp(&e, VUPVAL, 1);
     luaK_goiffalse(fs, &e);
-    luaK_patchlist(fs, e.t, start);
+    jump = e.t;
 
     int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
     luaK_code(fs, 0);  /* space for extra arg. */
@@ -6093,12 +6094,29 @@ static void mainfunc (LexState *ls, FuncState *fs) {
     init_exp(&e, VUPVAL, 1);
     luaK_storevar(fs, &e, &t);
     fs->freereg = 0;
+
+    luaK_patchtohere(fs, jump);
+
+    jump = start;
+    lua_assert(start < fs->pc);
+    auto dup_ins = fs->f->code[start];
+    lua_assert(!testTMode(GET_OPCODE(dup_ins)) && !testMMMode(GET_OPCODE(dup_ins)) && !isOT(dup_ins) && !isIT(dup_ins));
+    luaK_code(fs, dup_ins);
+    if (GET_OPCODE(fs->f->code[start+1]) == OP_EXTRAARG) {
+      luaK_code(fs, fs->f->code[start+1]);
+      start++;
+      fs->f->code[start] = CREATE_sJ(OP_JMP, OFFSET_sJ, 0);
+    }
+    fs->f->code[jump] = CREATE_sJ(OP_JMP, NO_JUMP + OFFSET_sJ, 0);
+
+    luaK_patchlist(fs, jump, special_start);
+
     jump = luaK_jump(fs);
+    luaK_patchlist(fs, jump, start+1);
     ls->lastline = prevlastline;
   } else {
     fs->nups--;
   }
-  luaK_patchlist(fs, jump, start);
 
   close_func(ls);
 }
