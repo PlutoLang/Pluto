@@ -3130,185 +3130,362 @@ static void lgoto (LexState *ls, TString *name, int line) {
   }
 }
 
-
-static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
-  std::vector<int> jumps{};
-  FuncState *fs = ls->fs;
-  const auto case_line = ls->getLineNumber();
-
-  int expr_flags = 0;
-  if (tk == ':') {
-    expr_flags |= E_NO_CONSUME_COLON;
-  }
-
-  expdesc e, cmpval;
-  e = ctrl;
-  luaK_infix(fs, OPR_EQ, &e);
-  expr(ls, &cmpval, nullptr, expr_flags);
-  luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
-  jumps.emplace_back(e.u.pc);
-  while (testnext(ls, ',')) {
-    e = ctrl;
-    luaK_infix(fs, OPR_EQ, &e);
-    expr(ls, &cmpval, nullptr, expr_flags);
-    luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
-    jumps.emplace_back(e.u.pc);
-  }
-  checknext(ls, tk);
-
-  return jumps;
+static bool jumps_before (LexState *ls) {
+  const auto fs = ls->fs;
+  if (fs->pc <= fs->lasttarget) return false;
+  const auto ins = fs->f->code[fs->pc-1];  /* previous instruction */
+  const auto op = GET_OPCODE(ins);
+  if (op == OP_RETURN || op == OP_RETURN0 || op == OP_RETURN1) return true; // A return always jumps
+  if (op != OP_JMP) return false; // Not a jump
+  if (GETARG_sJ(ins) == 0) return false; // Jump just skips the jump
+  return fs->pc < 2 || !testTMode(GET_OPCODE(fs->f->code[fs->pc-2])); // Conditional jumps might fall through
 }
 
-static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), void *ud = nullptr) {
+static void test_eqi (LexState *ls, expdesc* v, lua_Integer val) {
+  expdesc ival;
+  luaK_infix(ls->fs, OPR_EQ, v);
+  init_exp(&ival, VKINT, 0);
+  ival.u.ival = val;
+  luaK_posfix(ls->fs, OPR_EQ, v, &ival, ls->getLineNumber());
+}
+
+static void const2exp (TValue *v, expdesc *e) {
+  if (ttisboolean(v)) {
+    init_exp(e, ttistrue(v) ? VTRUE : VFALSE, 0);
+  } else if (ttisinteger(v)) {
+    init_exp(e, VKINT, 0);
+    e->u.ival = ivalue(v);
+  } else if (ttisfloat(v)) {
+    init_exp(e, VKFLT, 0);
+    e->u.nval = fltvalue(v);
+  } else if (ttisstring(v)) {
+    codestring(e, tsvalue(v));
+  } else {
+    lua_assert(false);
+  }
+}
+
+static void gencomp(FuncState *fs, expdesc *e, BinOpr op, int val) {
+  expdesc v;
+  init_exp(&v, VKINT, 0);
+  v.u.ival = val;
+  luaK_infix(fs, op, e);
+  luaK_posfix(fs, op, e, &v, fs->previousline);
+}
+
+static void genbinarydispatch (FuncState *fs, expdesc *e, int min, int max, const std::vector<int>& pc) {
+  expdesc c;
+  for(;;) {
+    if (min + 2 >= max) {
+      while (min < max) {
+        c = *e;
+        gencomp(fs, &c, OPR_EQ, min);
+        luaK_goiffalse(fs, &c);
+        luaK_patchlist(fs, c.t, pc[min]);
+        min++;
+      }
+      return;
+    }
+    c = *e;
+    int mid = (min + max) / 2;
+    gencomp(fs, &c, OPR_LE, mid);
+    luaK_goiftrue(fs, &c);
+    genbinarydispatch(fs, e, min, mid, pc);
+    int jump = luaK_jump(fs);
+    luaK_patchlist(fs, jump, pc[mid]);
+    luaK_patchtohere(fs, c.f);
+    min = mid+1;
+  }
+}
+
+static void gendispatch (FuncState *fs, expdesc *e, int min, int max, const std::vector<int>& pc) {
+  int old_pinned = fs->pinnedreg;
+  fs->pinnedreg = luaK_exp2anyreg(fs, e);
+  genbinarydispatch(fs, e, min, max, pc);
+  fs->pinnedreg = old_pinned;
+}
+
+static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*)>& caselist) {
+  const auto fs = ls->fs;
   const auto line = ls->getLineNumber();
   const auto switchToken = gett(ls);
+  const auto old_pinned = fs->pinnedreg;
+  const auto nactvar = fs->nactvar;
+  const auto freereg = fs->freereg;
+  const int expr_flags = tk == ':' ? E_NO_CONSUME_COLON : 0; // Could also be E_NO_METHOD_CALL
+  expdesc ctrl, e, cmpval;
+  int default_pc = NO_JUMP;
+  int next_case = NO_JUMP;
+  std::vector<int> case_pc {};
+  TValue k, v;
+  Table* const_cases = luaH_new(ls->L);
+  int num_consts = 0;
+  int nil_case = NO_JUMP;
+
+  /* Pin the const cases table for GC */
+  sethvalue(ls->L, &v, const_cases);
+  luaH_set(ls->L, ls->h, &v, &v);
+
   luaX_next(ls); // Skip switch statement.
 
-  ls->switchstates.emplace();
-  FuncState *fs = ls->fs;
-  BlockCnt sbl;
-
-  lu_byte freereg = fs->freereg;
-  if (tk == TK_ARROW)
-    fs->freereg = luaY_nvarstack(fs); // To prevent assert in enterblock
-  enterblock(fs, &sbl, BlockType::BT_BREAK);
-  fs->freereg = freereg;
-
-  int prevpinnedreg = -1;
-  expdesc ctrl;
   expr(ls, &ctrl);
   checknext(ls, TK_DO);
   if (!vkhasregister(ctrl.k)) {
     luaK_exp2nextreg(ls->fs, &ctrl);
-    if (tk == TK_ARROW) {
-      prevpinnedreg = fs->pinnedreg;
-      fs->pinnedreg = ctrl.u.reg;
-    }
-    else {
-      new_localvarliteral(ls, "(switch control value)"); // Save control value into a local.
-      adjustlocalvars(ls, 1);
-    }
+    lua_assert(ctrl.u.reg == freereg);
   }
 
-  const auto nactvar = fs->nactvar;
-
-  std::vector<int>& first = ls->switchstates.top().first;
-  TString* const begin_switch = luaS_newliteral(ls->L, "pluto_begin_switch");
-  TString* default_case = nullptr;
-  int first_pc, default_pc;
-
-  if (gett(ls) == TK_CASE) {
-    luaX_next(ls); /* Skip 'case' */
-    first = casecond(ls, ctrl, tk);
-    first_pc = luaK_getlabel(fs);
-    caselist(ls, ud);
-  }
-  else {
-    newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs), false); // goto begin_switch
-  }
-
-  std::vector<SwitchCase>& cases = ls->switchstates.top().cases;
+  const auto base_reg = fs->freereg;
+  auto entry = luaK_jump(fs);
+  int first_dynamic = NO_JUMP;
 
   while (gett(ls) != TK_END) {
-    auto case_line = ls->getLineNumber();
     if (fs->nactvar != nactvar) {
       Vardesc *var = getlocalvardesc(ls->fs, nactvar);
       const char *msg = "this case jumps into the scope of local '%s' defined on line %d";
       msg = luaO_pushfstring(ls->L, msg, getstr(var->vd.name), var->vd.line);
       luaK_semerror(ls, msg);  /* raise the error */
     }
-    if (gett(ls) == TK_DEFAULT) {
-      luaX_next(ls); /* Skip 'default' */
-      checknext(ls, tk);
-      if (default_case != nullptr)
-        throwerr(ls, "switch statement already has a default case", "second default case", case_line);
-      default_case = luaS_newliteral(ls->L, "pluto_default_case");
-      default_pc = luaK_getlabel(fs);
-      createlabel(ls, default_case, ls->getLineNumber(), false, false);
-    }
-    else {
-      checknext(ls, TK_CASE);
-      cases.emplace_back(SwitchCase{ luaX_getpos(ls), luaK_getlabel(fs) });
-      skip_until(ls, tk); /* skip over casecond */
-      checknext(ls, tk);
-    }
-    ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
-    caselist(ls, ud);
-  }
 
-  if (ls->laststat.token != TK_BREAK) {  /* last block did not have 'break'? */
-    if (tk == ':') {  /* switch statement? */
-      /* jump to the end of switch as otherwise we would loop infinitely */
-      lbreak(ls, 1, ls->getLineNumber(), luaK_jump(fs));
-    }
-  }
+    int fallthrough = jumps_before(ls) ? NO_JUMP : luaK_jump(fs);
+    bool is_default = false;
+    bool had_const_case = false;
+    bool had_nil_case = false;
+    int start = fs->pc;
 
-  /* if switch expression has no default case, generate one to guarantee nil in that case
-     otherwise, the value returned by the expression would be whatever was in the register before */
-  if (tk == TK_ARROW && default_case == nullptr) {
-    default_case = luaS_newliteral(ls->L, "pluto_default_case");
-    default_pc = luaK_getlabel(fs);
-    createlabel(ls, default_case, ls->getLineNumber(), false, false);
-    const auto line = ls->getLineNumber();
-    const auto reg = reinterpret_cast<expdesc*>(ud)->u.reg;
-    expdesc cv;
-    init_exp(&cv, VNIL, 0);
-    luaK_exp2reg(ls->fs, &cv, reg);
-    lbreak(ls, 1, line, luaK_jump(fs));
-  }
-
-  if (!first.empty()) {
-    for (int i = 0; i != first.size() - 1; ++i) {
-      luaK_patchlist(fs, first.at(i), first_pc);
-    }
-    luaK_invertcond(fs, first.back());
-    luaK_patchtohere(fs, first.back());
-  }
-  else {
-    createlabel(ls, begin_switch, ls->getLineNumber(), false, false); // ::begin_switch::
-  }
-
-  /* prune cases that lead to default case */
-  if (default_case) {
-    for (auto i = cases.begin(); i != cases.end(); ) {
-      if (i->pc == default_pc) {
-        i = cases.erase(i);
+    fs->pinnedreg = ctrl.u.reg;
+    init_exp(&e, VVOID, 0);
+    for(;;) {
+      const auto case_line = ls->getLineNumber();
+      if (gett(ls) == TK_DEFAULT) {
+        luaX_next(ls); /* Skip 'default' */
+        checknext(ls, tk);
+        if (default_pc != NO_JUMP || is_default)
+          throwerr(ls, "switch statement already has a default case", "second default case", case_line);
+        is_default = true;
       }
       else {
-        ++i;
+        checknext(ls, TK_CASE);
+
+        do {
+          if (e.k != VVOID) {
+            luaK_goiffalse(fs, &e);
+            luaK_concat(fs, &fallthrough, e.t);
+          }
+          const auto last_pc = fs->pc;
+          expr(ls, &cmpval, nullptr, expr_flags);
+          if (last_pc == fs->pc && luaK_exp2const(fs, &cmpval, &k) && (ttisnil(&k) || ttisboolean(&k) || ttisnumber(&k) || ttisstring(&k))) {
+            // We have some constant without generated code
+            if (ttisfloat(&k) && isnan(fltvalue(&k))) {
+              // TODO warn for nan case
+            } else if (ttisnil(&k)) {
+              if (nil_case != NO_JUMP || had_nil_case) {
+                // TODO warn for same const
+              }
+              had_nil_case = true;
+            } else {
+              auto res = luaH_get(const_cases, &k);
+              if (ttisnil(res)) {
+                setivalue(&v, case_pc.size());
+                luaH_set(ls->L, const_cases, &k, &v);
+                had_const_case = true;
+                num_consts++;
+              } else {
+                // TODO warn for same const
+              }
+            }
+            init_exp(&e, VVOID, 0);
+          } else {
+            luaK_infix(fs, OPR_EQ, &cmpval);
+            e = ctrl;
+            luaK_posfix(fs, OPR_EQ, &cmpval, &e, case_line);
+            e = cmpval;
+          }
+        } while (testnext(ls, ','));
+        checknext(ls, tk);
+      }
+      if (tk == TK_ARROW) break;
+      if (gett(ls) != TK_CASE && gett(ls) != TK_DEFAULT) {
+        if (!testnext(ls, TK_FALLTHROUGH)) break;
+        if (gett(ls) == TK_END) break;
       }
     }
-  }
-
-  int nactvarend = ls->fs->nactvar;
-  ls->fs->nactvar = nactvar;  /* variables declared inside of switch body don't exist yet */
-  for (auto& c : cases) {
-    auto pos = luaX_getpos(ls);
-    luaX_setpos(ls, c.tidx);
-    for (const auto& j : casecond(ls, ctrl, tk)) {
-      luaK_patchlist(fs, j, c.pc);
+    fs->pinnedreg = old_pinned;
+    if (start == fs->pc) {
+      // No code for case values, last jump can be removed
+      if (fallthrough != NO_JUMP) luaK_rollback(fs, fallthrough);
+    } else {
+      if (first_dynamic == NO_JUMP) first_dynamic = start;
+      luaK_patchlist(fs, next_case, start);
+      if (e.k != VVOID) {
+        luaK_goiftrue(fs, &e);
+        next_case = e.f;
+      } else {
+        next_case = luaK_jump(fs);
+      }
     }
-    luaX_setpos(ls, pos);
-  }
-  ls->fs->nactvar = nactvarend;
+    int target = luaK_getlabel(fs);
+    if (had_const_case) case_pc.push_back(target);
+    if (is_default) default_pc = target;
+    if (had_nil_case) nil_case = target;
+    luaK_patchlist(fs, fallthrough, target);
 
-  if (default_case != nullptr)
-    lgoto(ls, default_case, ls->getLineNumber());
-
-  if (tk == TK_ARROW && fs->pinnedreg != -1) {
-    fs->pinnedreg = prevpinnedreg;
-    luaK_freeexp(fs, &ctrl);
+    ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
+    fs->freereg = freereg;
+    caselist(ls);
+    fs->freereg = base_reg;
   }
+
+  if (case_pc.size() > 0) {
+    int fallthrough = jumps_before(ls) ? NO_JUMP : luaK_jump(fs);
+    StackValue s[2];
+    setnilvalue(s2v(&s[0]));
+
+    luaK_patchtohere(fs, entry);
+    entry = NO_JUMP;
+    int old_pinned = fs->pinnedreg;
+    if (num_consts < 4) {
+      /* Not worth the effort, just do a linear scan */
+      /* XXX not a stable order */
+      const auto line = ls->getLineNumber();
+      fs->pinnedreg = ctrl.u.reg;
+      while (luaH_next(ls->L, const_cases, s)) {
+        const2exp(s2v(&s[0]), &cmpval);
+        luaK_infix(ls->fs, OPR_EQ, &cmpval);
+        e = ctrl;
+        luaK_posfix(ls->fs, OPR_EQ, &cmpval, &e, line);
+        luaK_goiffalse(fs, &cmpval);
+        luaK_patchlist(fs, cmpval.t, case_pc[ivalue(s2v(&s[1]))]);
+      }
+      if (nil_case != NO_JUMP) {
+        init_exp(&cmpval, VNIL, 0);
+        luaK_infix(ls->fs, OPR_EQ, &cmpval);
+        e = ctrl;
+        luaK_posfix(ls->fs, OPR_EQ, &cmpval, &e, line);
+        luaK_goiffalse(fs, &cmpval);
+        luaK_patchlist(fs, cmpval.t, nil_case);
+      }
+      if (default_pc != NO_JUMP || first_dynamic != NO_JUMP) entry = luaK_jump(fs);
+    } else {
+      int id = ls->switchtables++;
+      char buf[10];
+      l_sprintf(buf, sizeof(buf), "%d", id);
+      const auto cache_name = luaX_newliteral(ls, "(switch-cache)");
+      const auto switch_name = luaX_newstring(ls, buf, strlen(buf));
+      expdesc t, key, n;
+
+      /* load cached lookup table */
+      singlevaraux(fs, cache_name, &t, 1);
+      lua_assert(t.k != VVOID);
+      codestring(&key, switch_name);
+      luaK_indexed(fs, &t, &key);
+      luaK_exp2nextreg(fs, &t);
+      fs->pinnedreg = t.u.reg;
+      luaK_goiffalse(fs, &t);
+      entry = t.t;
+      t.t = NO_JUMP;
+
+      /* no cached lookup table, init table now */
+      int tpc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+      luaK_code(fs, 0);  /* space for extra arg. */
+      luaK_settablesize(fs, tpc, t.u.reg, 0, num_consts);
+
+      /* set the metatable of the new table to nil */
+      singlevaraux(fs, cache_name, &e, 1);
+      lua_assert(e.k != VVOID);
+      codestring(&key, luaX_newliteral(ls, "setmetatable"));
+      luaK_indexed(fs, &e, &key);
+      luaK_exp2nextreg(fs, &e);
+
+      n = t;
+      luaK_exp2nextreg(fs, &n);
+      init_exp(&n, VNIL, 0);
+      luaK_exp2nextreg(fs, &n);
+      luaK_codeABC(fs, OP_CALL, e.u.reg, 4 /* 3 params */, 1 /* 0 rets */);
+      fs->freereg = e.u.reg;
+      lua_assert(e.u.reg == t.u.reg+1);
+
+      while (luaH_next(ls->L, const_cases, s)) {
+        e = t;
+        const2exp(s2v(&s[0]), &key);
+        luaK_indexed(fs, &e, &key);
+        init_exp(&n, VKINT, 0);
+        n.u.ival = ivalue(s2v(&s[1]));
+        luaK_storevar(fs, &e, &n);
+        fs->freereg = t.u.reg+1;
+      }
+
+      /* Store created table back into the cache */
+      singlevaraux(fs, cache_name, &e, 1);
+      lua_assert(e.k != VVOID);
+      codestring(&key, switch_name);
+      luaK_indexed(fs, &e, &key);
+      luaK_storevar(fs, &e, &t);
+      fs->freereg = t.u.reg+1;
+
+      luaK_patchtohere(fs, entry);
+
+      e = t;
+      /* Load case-id from table */
+      fs->pinnedreg = ctrl.u.reg;
+      luaK_indexed(fs, &e, &ctrl);
+      fs->pinnedreg = luaK_exp2anyreg(fs, &e);
+      
+      /* is the value in the lookup table */
+      cmpval = e;
+      init_exp(&n, VNIL, 0);
+      luaK_infix(fs, OPR_EQ, &cmpval);
+      luaK_posfix(fs, OPR_EQ, &cmpval, &n, line);
+      luaK_goiffalse(fs, &cmpval);
+      entry = cmpval.t;
+
+      fs->pinnedreg = ctrl.u.reg;
+
+      gendispatch(fs, &e, 0, case_pc.size()-1, case_pc);
+      luaK_freeexp(fs, &e);
+      int jump = luaK_jump(fs);
+      luaK_patchlist(fs, jump, case_pc[case_pc.size()-1]);
+
+      if (nil_case != NO_JUMP) {
+        luaK_patchtohere(fs, entry);
+        init_exp(&cmpval, VNIL, 0);
+        luaK_infix(ls->fs, OPR_EQ, &cmpval);
+        e = ctrl;
+        luaK_posfix(ls->fs, OPR_EQ, &cmpval, &e, line);
+        luaK_goiffalse(fs, &cmpval);
+        luaK_patchlist(fs, cmpval.t, nil_case);
+        entry = default_pc == NO_JUMP && first_dynamic == NO_JUMP ? NO_JUMP : luaK_jump(fs);
+      }
+    }
+    fs->pinnedreg = old_pinned;
+    luaK_patchtohere(fs, fallthrough);
+  }
+
+  luaK_freeexp(fs, &ctrl);
+
+  if (first_dynamic != NO_JUMP) {
+    luaK_patchlist(fs, entry, first_dynamic);
+  } else {
+    next_case = entry;
+  }
+
+  if (default_pc == NO_JUMP) luaK_patchtohere(fs, next_case);
+  else                       luaK_patchlist(fs, next_case, default_pc);
 
   check_match(ls, TK_END, switchToken, line);
-  leaveblock(fs);
-  if (tk == TK_ARROW)
-    fs->freereg = freereg;
-  ls->switchstates.pop();
+
+  /* We are done, unlink the const cases table which is not required any more. */
+  sethvalue(ls->L, &k, const_cases);
+  setnilvalue(&v);
+  luaH_set(ls->L, ls->h, &k, &v);
+
+  return default_pc != NO_JUMP;
 }
 
 static void switchstat (LexState *ls) {
-  switchimpl(ls, ':', [](LexState* ls, void*) {
+  BlockCnt bl;
+  enterblock(ls->fs, &bl, BlockType::BT_BREAK);
+  switchimpl(ls, ':', [](LexState* ls) {
     const int case_line = luaX_lookbehind(ls).line;
     if (gett(ls) == TK_CASE || gett(ls) == TK_DEFAULT || gett(ls) == TK_END) {
       /* this case is empty, nothing to do */
@@ -3329,19 +3506,31 @@ static void switchstat (LexState *ls) {
       else testnext(ls, TK_FALLTHROUGH);
     }
   });
+  leaveblock(ls->fs);
 }
 
 static void switchexpr (LexState *ls, expdesc *v) {
   init_exp(v, VNONRELOC, ls->fs->freereg);
-  luaK_reserveregs(ls->fs, 1);
-  switchimpl(ls, TK_ARROW, [](LexState *ls, void *ud) {
+  luaK_checkstack(ls->fs, 1);
+  int break_jumps = NO_JUMP;
+  bool has_default = switchimpl(ls, TK_ARROW, [v, &break_jumps](LexState *ls) {
     const auto line = ls->getLineNumber();
-    const auto reg = reinterpret_cast<expdesc*>(ud)->u.reg;
+    const auto reg = v->u.reg;
     expdesc cv;
     expr(ls, &cv);
     luaK_exp2reg(ls->fs, &cv, reg);
-    lbreak(ls, 1, line, luaK_jump(ls->fs));
-  }, v);
+    luaK_concat(ls->fs, &break_jumps, luaK_jump(ls->fs));
+  });
+  if (!has_default) {
+    const auto line = ls->getLineNumber();
+    expdesc cv;
+    init_exp(&cv, VNIL, 0);
+    luaK_exp2reg(ls->fs, &cv, v->u.reg);
+  }
+  luaK_reserveregs(ls->fs, 1);
+  luaK_patchtohere(ls->fs, break_jumps);
+
+  lua_assert(ls->fs->freereg == v->u.reg+1);
 }
 
 
@@ -4924,14 +5113,6 @@ static void usestat (LexState *ls) {
   }
 }
 
-static void test_eqi (LexState *ls, expdesc* v, lua_Integer val, BinOpr op) {
-  expdesc ival;
-  luaK_infix(ls->fs, op, v);
-  init_exp(&ival, VKINT, 0);
-  ival.u.ival = val++;
-  luaK_posfix(ls->fs, op, v, &ival, ls->getLineNumber());
-}
-
 static void ret_int(FuncState* fs, lua_Integer val) {
   expdesc v;
   init_exp(&v, VKINT, 0);
@@ -5060,7 +5241,7 @@ static void trystat (LexState *ls) {
       Labeldesc *lb = gt->special ? 0 : findlabel(ls, (TString*)gt->name);
       if (gt->pc != NO_JUMP) {
         init_exp(&ex, VNONRELOC, result_reg);
-        test_eqi(ls, &ex, id++, OPR_EQ);
+        test_eqi(ls, &ex, id++);
 
         if (lb) {  /* found a label */
           /* backward jump; will be resolved here */
@@ -5109,7 +5290,7 @@ static void trystat (LexState *ls) {
           ex.f = NO_JUMP;
           if (new_fs.seenrets >> (i+1)) {
             init_exp(&ex, VNONRELOC, result_reg);
-            test_eqi(ls, &ex, i, OPR_EQ);
+            test_eqi(ls, &ex, i);
             luaK_goiftrue(ls->fs, &ex);
           }
           luaK_ret(ls->fs, result_reg+1, i);
@@ -5833,7 +6014,7 @@ static void builtinoperators (LexState *ls) {
 */
 static void mainfunc (LexState *ls, FuncState *fs) {
   BlockCnt bl;
-  Upvaldesc *env;
+  Upvaldesc *env, *switchcache;
   open_func(ls, fs, &bl);
   setvararg(fs, 0);  /* main function is always declared vararg */
   env = allocupvalue(fs);  /* ...set environment upvalue */
@@ -5842,10 +6023,83 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   env->kind = VDKREG;
   env->name = ls->envn;
   luaC_objbarrier(ls->L, fs->f, env->name);
+  switchcache = allocupvalue(fs);
+  switchcache->instack = 1;
+  switchcache->idx = 0;
+  switchcache->kind = VDKREG;
+  switchcache->name = luaX_newliteral(ls, "(switch-cache)");
+  luaC_objbarrier(ls->L, fs->f, switchcache->name);
+
+  int jump = luaK_jump(fs);
+  int start = luaK_getlabel(fs);
+  BlockCnt body;
+  enterblock(fs, &body, BlockType::BT_DEFAULT);
+
   builtinoperators(ls);
   luaX_next(ls);  /* read first token */
   statlist(ls);  /* parse main body */
   check(ls, TK_EOS);
+
+  luaK_ret(fs, luaY_nvarstack(fs), 0);
+  leaveblock(fs);
+
+  if (ls->switchtables > 0) { // Used switchtable upval
+    expdesc e, t, k, n;
+    auto const setmetatable = luaX_newliteral(ls, "setmetatable");
+    auto const prevlastline = ls->lastline;
+    lua_assert(fs->freereg == 0);
+    lua_assert(fs->pinnedreg == -1);
+
+    ls->lastline = 0;
+
+    luaK_patchtohere(fs, jump);
+    init_exp(&e, VUPVAL, 1);
+    luaK_goiffalse(fs, &e);
+    luaK_patchlist(fs, e.t, start);
+
+    int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+    luaK_code(fs, 0);  /* space for extra arg. */
+    init_exp(&t, VNONRELOC, fs->freereg);
+    luaK_settablesize(fs, pc, t.u.reg, 0, 0);
+    luaK_reserveregs(fs, 1);
+
+    init_exp(&e, VUPVAL, 0);
+    codestring(&k, setmetatable);
+    luaK_indexed(fs, &e, &k);
+    luaK_exp2nextreg(fs, &e);
+
+    fs->pinnedreg = e.u.reg;
+    k = e;
+    luaK_exp2nextreg(fs, &k);
+    fs->pinnedreg = t.u.reg;
+    k = t;
+    luaK_exp2nextreg(fs, &k);
+    init_exp(&k, VNIL, 0);
+    luaK_exp2nextreg(fs, &k);
+    luaK_codeABC(fs, OP_CALL, e.u.reg+1, 4 /* 3 params */, 1 /* 0 rets */);
+    fs->freereg = e.u.reg+1;
+
+    codestring(&k, setmetatable);
+    n = t;
+    luaK_indexed(fs, &n, &k);
+    /* when there are too many constants setmetatable might be loaded
+       with a instruction, so free that reg now.
+    */
+    fs->freereg = e.u.reg+1;
+    luaK_storevar(fs, &n, &e);
+    fs->freereg = t.u.reg+1;
+    fs->pinnedreg = -1;
+
+    init_exp(&e, VUPVAL, 1);
+    luaK_storevar(fs, &e, &t);
+    fs->freereg = 0;
+    jump = luaK_jump(fs);
+    ls->lastline = prevlastline;
+  } else {
+    fs->nups--;
+  }
+  luaK_patchlist(fs, jump, start);
+
   close_func(ls);
 }
 
@@ -5895,9 +6149,17 @@ LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
   disablekeyword(&lexstate, TK_GLOBAL);
 #endif
   mainfunc(&lexstate, &funcstate);
-  lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
+  lua_assert(!funcstate.prev && !lexstate.fs);
   /* all scopes should be correctly finished */
   lua_assert(dyd->actvar.n == 0 && dyd->gt.n == 0 && dyd->label.n == 0);
   L->top.p--;  /* remove scanner's table */
+
+  if (cl->p->sizeupvalues != 1) {
+    cl = luaF_newLclosure(L, funcstate.f->sizeupvalues);  /* Recreate closure with correct number of upvalues */
+    cl->p = funcstate.f;
+    setclLvalue2s(L, L->top.p-1, cl);
+    luaC_objbarrier(L, cl, cl->p);
+  }
+
   return cl;  /* closure is on the stack, too */
 }

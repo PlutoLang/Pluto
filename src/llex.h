@@ -364,16 +364,6 @@ struct BodyState {
   std::vector<size_t> fallbacks{};
 };
 
-struct SwitchCase {
-  size_t tidx;
-  int pc;
-};
-
-struct SwitchState {
-  std::vector<int> first{};
-  std::vector<SwitchCase> cases{};
-};
-
 struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
@@ -390,6 +380,7 @@ struct LexState {
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
+  int switchtables = 0;
 
   bool uses_new = false;
   bool uses_extends = false;
@@ -402,7 +393,6 @@ struct LexState {
   std::stack<ClassData> classes{};
   std::stack<FuncArgsState> funcargsstates{};
   std::stack<BodyState> bodystates{};
-  std::stack<SwitchState> switchstates{};
   std::stack<std::unordered_set<TString*>> constructorfieldsets{};
   std::vector<EnumDesc> enums{};
   std::vector<void*> parse_time_allocations{};

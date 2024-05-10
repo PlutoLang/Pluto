@@ -2092,3 +2092,7 @@ void luaK_invertcond (FuncState *fs, int list) {
   e.u.pc = list;
   negatecondition(fs, &e);
 }
+
+void luaK_rollback (FuncState *fs, int to) {
+  while (fs->pc > to) removelastinstruction(fs);
+}
