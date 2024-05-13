@@ -1195,6 +1195,12 @@ switch 1 do
         print("OK")
 end
 ]] == nil)
+-- Fallthrough can be used on empty cases
+switch 1 do
+    case 1:
+        --[[@fallthrough]]
+    case 2:
+end
 
 print "Testing switch expression."
 do

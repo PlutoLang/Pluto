@@ -3310,7 +3310,14 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 static void switchstat (LexState *ls) {
   switchimpl(ls, ':', [](LexState* ls, void*) {
     const int case_line = luaX_lookbehind(ls).line;
-    if (gett(ls) != TK_CASE && gett(ls) != TK_DEFAULT && gett(ls) != TK_END && gett(ls) != TK_FALLTHROUGH) {  /* non-empty case? */
+    if (gett(ls) == TK_CASE || gett(ls) == TK_DEFAULT || gett(ls) == TK_END) {
+      /* this case is empty, nothing to do */
+    }
+    else if (gett(ls) == TK_FALLTHROUGH) {
+      /* empty case explicitly declaring itself to be a fallthrough */
+      luaX_next(ls);
+    }
+    else {
       do {
         statement(ls);
       }
