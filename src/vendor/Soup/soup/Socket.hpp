@@ -84,12 +84,12 @@ NAMESPACE_SOUP
 		bool kickOffConnect(const IpAddr& ip, uint16_t port) noexcept;
 
 		template <typename T = int>
-		bool setOpt(int name, T&& val) noexcept
+		bool setOpt(int level, int optname, T&& val) noexcept
 		{
 #if SOUP_WINDOWS
-			return setsockopt(fd, SOL_SOCKET, name, (const char*)&val, sizeof(T)) != -1;
+			return setsockopt(fd, level, optname, (const char*)&val, sizeof(T)) != -1;
 #else
-			return setsockopt(fd, SOL_SOCKET, name, &val, sizeof(T)) != -1;
+			return setsockopt(fd, level, optname, &val, sizeof(T)) != -1;
 #endif
 		}
 

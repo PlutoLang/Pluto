@@ -14,7 +14,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] UniquePtr<dnsLookupTask> makeLookupTask(dnsType qtype, const std::string& name) const final;
 
 		mutable UniquePtr<dnsResolver> subresolver{};
-		mutable bool tested_udp = false;
+		mutable bool switched_to_http = false;
 	};
 }
 

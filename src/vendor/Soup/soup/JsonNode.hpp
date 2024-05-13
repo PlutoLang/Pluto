@@ -33,6 +33,8 @@ NAMESPACE_SOUP
 
 		virtual bool binaryEncode(Writer& w) const = 0; // specific to soup
 
+		[[nodiscard]] UniquePtr<JsonNode> clone() const SOUP_EXCAL;
+
 		// Type casts; will throw if node is of different type.
 		[[nodiscard]] JsonArray& asArr();
 		[[nodiscard]] JsonBool& asBool();

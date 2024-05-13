@@ -12,9 +12,9 @@ NAMESPACE_SOUP
 	struct dnsSmartLookupTask : public dnsLookupTask
 	{
 		WeakRef<const dnsSmartResolver> resolv_wr;
+		bool retry = false;
 		dnsType qtype;
 		std::string name;
-
 		UniquePtr<dnsLookupTask> subtask;
 		UniquePtr<dnsHttpResolver> http_resolver;
 
@@ -29,44 +29,36 @@ NAMESPACE_SOUP
 			{
 				if (auto resolv = resolv_wr.getPointer())
 				{
-					if (!resolv->tested_udp)
+					if (subtask->result.has_value())
 					{
-						if (!http_resolver)
+						if (retry)
 						{
-							// This was a UDP query
-							if (!subtask->result.empty())
-							{
-								resolv->tested_udp = true; // Yup, UDP works!
-								fulfil(std::move(subtask->result));
-							}
-							else
-							{
-								std::string server = static_cast<dnsUdpResolver*>(resolv->subresolver.get())->server.ip.toString();
-								http_resolver = soup::make_unique<dnsHttpResolver>();
-								static_cast<dnsHttpResolver*>(http_resolver.get())->server = std::move(server);
-								subtask = http_resolver->makeLookupTask(qtype, name);
-							}
+							resolv->subresolver = std::move(http_resolver);
+							resolv->switched_to_http = true;
 						}
-						else
+						else if (!resolv->switched_to_http)
 						{
-							// This was an HTTP query after a previous UDP query yielded no results
-							if (!subtask->result.empty())
-							{
-								resolv->subresolver = std::move(http_resolver);
-								resolv->tested_udp = true; // UDP does not work, but at least we tested it.
-								fulfil(std::move(subtask->result));
-							}
-							else
-							{
-								// There is a difference between an empty result and no result, but the APIs currently don't expose it.
-								// So, we can't say what works and what doesn't at this point.
-								fulfil(std::move(subtask->result));
-							}
+							static_cast<dnsUdpResolver*>(resolv->subresolver.get())->num_retries = 1; // UDP resolver may now retry once to account for packet loss.
 						}
+						fulfil(std::move(subtask->result));
 					}
 					else
 					{
-						fulfil(std::move(subtask->result));
+						// Lookup failed
+						if (!resolv->switched_to_http && !retry)
+						{
+							// Try switching to using HTTP transport
+							retry = true;
+							std::string server = resolv->server.toString();
+							http_resolver = soup::make_unique<dnsHttpResolver>();
+							static_cast<dnsHttpResolver*>(http_resolver.get())->server = std::move(server);
+							subtask = http_resolver->makeLookupTask(qtype, name);
+						}
+						else
+						{
+							// Out of options, have to report failure.
+							fulfil(std::move(subtask->result));
+						}
 					}
 				}
 				else
@@ -96,6 +88,7 @@ NAMESPACE_SOUP
 		{
 			subresolver = soup::make_unique<dnsUdpResolver>();
 			static_cast<dnsUdpResolver*>(subresolver.get())->server.ip = this->server;
+			static_cast<dnsUdpResolver*>(subresolver.get())->num_retries = 0; // No retries during testing phase.
 		}
 		return soup::make_unique<dnsSmartLookupTask>(*this, qtype, name);
 	}

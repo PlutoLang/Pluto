@@ -2,8 +2,6 @@
 
 #include "Task.hpp"
 
-#include <optional>
-
 #include "base.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
@@ -16,7 +14,7 @@
 
 NAMESPACE_SOUP
 {
-	class HttpRequestTask : public PromiseTask<std::optional<HttpResponse>>
+	class HttpRequestTask : public PromiseTask<Optional<HttpResponse>>
 	{
 	public:
 #if !SOUP_WASM

@@ -90,11 +90,14 @@ NAMESPACE_SOUP
 
 	std::string IpAddr::getReverseDns(dnsResolver& resolver) const
 	{
-		for (const auto& record : resolver.lookup(DNS_PTR, getArpaName()))
+		if (auto records = resolver.lookup(DNS_PTR, getArpaName()))
 		{
-			if (record->type == DNS_PTR)
+			for (const auto& record : *records)
 			{
-				return static_cast<dnsPtrRecord*>(record.get())->data;
+				if (record->type == DNS_PTR)
+				{
+					return static_cast<dnsPtrRecord*>(record.get())->data;
+				}
 			}
 		}
 		return {};

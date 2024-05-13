@@ -30,6 +30,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::string toString() const SOUP_EXCAL;
 
 		[[nodiscard]] bool isHttp() const noexcept;
+		[[nodiscard]] uint16_t getPort() const noexcept;
 		[[nodiscard]] std::string getRequestPath() const SOUP_EXCAL;
 
 		[[nodiscard]] static Uri forFile(std::filesystem::path path) SOUP_EXCAL;

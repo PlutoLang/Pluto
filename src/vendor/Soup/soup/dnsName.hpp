@@ -57,7 +57,7 @@ NAMESPACE_SOUP
 				{
 					uint16_t data = ptr;
 					data |= 0xC000;
-					return s.u16(data);
+					return s.u16_be(data);
 				}
 				else
 				{

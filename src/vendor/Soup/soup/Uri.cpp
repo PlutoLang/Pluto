@@ -2,6 +2,7 @@
 
 #include "base.hpp"
 #include "base64.hpp"
+#include "joaat.hpp"
 #include "string.hpp"
 #include "urlenc.hpp"
 
@@ -191,6 +192,24 @@ NAMESPACE_SOUP
 	bool Uri::isHttp() const noexcept
 	{
 		return scheme == "http" || scheme == "https";
+	}
+
+	uint16_t Uri::getPort() const noexcept
+	{
+		if (port == 0)
+		{
+			switch (joaat::hash(scheme))
+			{
+			case joaat::hash("http"):
+			case joaat::hash("ws"):
+				return 80;
+
+			case joaat::hash("https"):
+			case joaat::hash("wss"):
+				return 443;
+			}
+		}
+		return port;
 	}
 
 	std::string Uri::data(const char* mime_type, const std::string& contents) SOUP_EXCAL

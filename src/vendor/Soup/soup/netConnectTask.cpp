@@ -1,6 +1,10 @@
 #include "netConnectTask.hpp"
 #if !SOUP_WASM
 
+#if !SOUP_WINDOWS
+#include <netinet/tcp.h> // TCP_NODELAY
+#endif
+
 #include "netConfig.hpp"
 #include "netStatus.hpp"
 #include "ObfusString.hpp"
@@ -10,6 +14,7 @@
 NAMESPACE_SOUP
 {
 	netConnectTask::netConnectTask(const std::string& host, uint16_t port, bool prefer_ipv6)
+		: status(NET_PENDING)
 	{
 		if (IpAddr ip; ip.fromString(host))
 		{
@@ -27,6 +32,12 @@ NAMESPACE_SOUP
 			// In order to connect after lookup, we need to remember the port.
 			this->port = port;
 		}
+	}
+
+	netConnectTask::netConnectTask(const IpAddr& addr, uint16_t port)
+		: status(NET_PENDING)
+	{
+		proceedToConnect(addr, port);
 	}
 
 	void netConnectTask::onTick()
@@ -49,7 +60,14 @@ NAMESPACE_SOUP
 				{
 					if (second_lookup)
 					{
-						// No DNS results, bail
+						if (lookup->result.has_value())
+						{
+							status = NET_FAIL_NO_DNS_RESPONSE;
+						}
+						else
+						{
+							status = NET_FAIL_NO_DNS_RESULTS;
+						}
 						lookup.reset();
 						setWorkDone();
 					}
@@ -87,7 +105,7 @@ NAMESPACE_SOUP
 					sock.transport_close();
 					if (second_lookup)
 					{
-						started_connect_at = -2; // signal for `getStatus` that it was a L4 timeout
+						status = NET_FAIL_L4_TIMEOUT;
 						setWorkDone();
 					}
 					else
@@ -98,7 +116,13 @@ NAMESPACE_SOUP
 			}
 			else
 			{
-				if (res == -1)
+				if (res != -1)
+				{
+					// Success
+					sock.setOpt<int>(IPPROTO_TCP, TCP_NODELAY, 1);
+					status = NET_OK;
+				}
+				else
 				{
 					// Error
 					if (!second_lookup)
@@ -106,7 +130,7 @@ NAMESPACE_SOUP
 						doSecondLookup();
 						return;
 					}
-					started_connect_at = -1; // signal for `getStatus` that it was a L4 error
+					status = NET_FAIL_L4_ERROR;
 					sock.transport_close();
 				}
 				setWorkDone();
@@ -162,23 +186,7 @@ NAMESPACE_SOUP
 
 	netStatus netConnectTask::getStatus() const noexcept
 	{
-		if (!isWorkDone())
-		{
-			return NET_PENDING;
-		}
-		if (started_connect_at == 0)
-		{
-			return NET_FAIL_NO_DNS_RESULTS;
-		}
-		if (started_connect_at == -2)
-		{
-			return NET_FAIL_L4_TIMEOUT;
-		}
-		if (started_connect_at == -1)
-		{
-			return NET_FAIL_L4_ERROR;
-		}
-		return NET_OK;
+		return status;
 	}
 }
 

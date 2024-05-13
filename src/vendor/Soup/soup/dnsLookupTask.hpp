@@ -5,11 +5,12 @@
 #include <vector>
 
 #include "dns_records.hpp"
+#include "Optional.hpp"
 #include "UniquePtr.hpp"
 
 NAMESPACE_SOUP
 {
-	using dnsLookupTask = PromiseTask<std::vector<UniquePtr<dnsRecord>>>;
+	using dnsLookupTask = PromiseTask<Optional<std::vector<UniquePtr<dnsRecord>>>>;
 
 	struct dnsCachedResultTask : public dnsLookupTask
 	{

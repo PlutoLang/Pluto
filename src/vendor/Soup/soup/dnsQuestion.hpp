@@ -16,8 +16,8 @@ NAMESPACE_SOUP
 		SOUP_PACKET_IO(s)
 		{
 			return name.io(s)
-				&& s.u16(qtype)
-				&& s.u16(qclass)
+				&& s.u16_be(qtype)
+				&& s.u16_be(qclass)
 				;
 		}
 	};

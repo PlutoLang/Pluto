@@ -17,9 +17,9 @@ NAMESPACE_SOUP
 		SOUP_PACKET_IO(s)
 		{
 			return name.io(s)
-				&& s.u16(rtype)
-				&& s.u16(rclass)
-				&& s.u32(ttl)
+				&& s.u16_be(rtype)
+				&& s.u16_be(rclass)
+				&& s.u32_be(ttl)
 				&& s.template str_lp<u16_t>(rdata)
 				;
 		}

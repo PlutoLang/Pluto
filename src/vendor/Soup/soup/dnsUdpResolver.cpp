@@ -35,7 +35,7 @@ NAMESPACE_SOUP
 		}
 	};
 
-	std::vector<UniquePtr<dnsRecord>> dnsUdpResolver::lookup(dnsType qtype, const std::string& name) const
+	Optional<std::vector<UniquePtr<dnsRecord>>> dnsUdpResolver::lookup(dnsType qtype, const std::string& name) const
 	{
 		{
 			std::vector<UniquePtr<dnsRecord>> res;
@@ -48,15 +48,24 @@ NAMESPACE_SOUP
 		CaptureUdpLookup data;
 		data.id = soup::rand.t<uint16_t>(0, -1);
 
-		Socket sock;
-		if (!sock.udpClientSend(server, getQuery(qtype, name, data.id)))
+		unsigned int remaining_requests = 1 + num_retries;
+		do
 		{
-			return {};
+			Socket sock;
+			if (!sock.udpClientSend(server, getQuery(qtype, name, data.id)))
+			{
+				return {};
+			}
+			Scheduler sched;
+			data.recv(*sched.addSocket(std::move(sock)));
+			sched.runFor(timeout_ms);
+		} while (data.res.empty() && --remaining_requests);
+
+		if (!data.res.empty())
+		{
+			return parseResponse(std::move(data.res));
 		}
-		Scheduler sched;
-		data.recv(*sched.addSocket(std::move(sock)));
-		sched.runFor(timeout_ms);
-		return parseResponse(std::move(data.res));
+		return std::nullopt;
 	}
 }
 
