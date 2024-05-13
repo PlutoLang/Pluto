@@ -251,7 +251,7 @@ NAMESPACE_SOUP
 		sa.sin6_family = AF_INET6;
 		sa.sin6_port = port_ne;
 		memcpy(&sa.sin6_addr, &addr.data, sizeof(in6_addr));
-		return setOpt<int>(SO_REUSEADDR, 1)
+		return setOpt<int>(SOL_SOCKET, SO_REUSEADDR, 1)
 			&& bind(fd, (sockaddr*)&sa, sizeof(sa)) != -1
 			&& (type != SOCK_STREAM || listen(fd, 100) != -1)
 			&& setNonBlocking()
@@ -274,7 +274,7 @@ NAMESPACE_SOUP
 		sa.sin_family = AF_INET;
 		sa.sin_port = port_ne;
 		sa.sin_addr.s_addr = addr.getV4();
-		return setOpt<int>(SO_REUSEADDR, 1)
+		return setOpt<int>(SOL_SOCKET, SO_REUSEADDR, 1)
 			&& bind(fd, (sockaddr*)&sa, sizeof(sa)) != -1
 			&& (type != SOCK_STREAM || listen(fd, 100) != -1)
 			&& setNonBlocking()
@@ -1113,7 +1113,7 @@ NAMESPACE_SOUP
 	bool Socket::initUdpBroadcast4()
 	{
 		return init(AF_INET, SOCK_DGRAM)
-			&& setOpt<bool>(SO_BROADCAST, true)
+			&& setOpt<bool>(SOL_SOCKET, SO_BROADCAST, true)
 			;
 	}
 

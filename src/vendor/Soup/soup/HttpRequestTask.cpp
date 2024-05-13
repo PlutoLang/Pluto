@@ -153,7 +153,7 @@ NAMESPACE_SOUP
 
 	void HttpRequestTask::recvResponse() SOUP_EXCAL
 	{
-		HttpRequest::recvResponse(*sock, [](Socket& s, std::optional<HttpResponse>&& res, Capture&& cap) SOUP_EXCAL
+		HttpRequest::recvResponse(*sock, [](Socket& s, Optional<HttpResponse>&& res, Capture&& cap) SOUP_EXCAL
 		{
 			cap.get<HttpRequestTask*>()->fulfil(std::move(res));
 			if (s.custom_data.isStructInMap(ReuseTag))

@@ -22,6 +22,7 @@ NAMESPACE_SOUP
 		time_t started_connect_at = 0;
 		bool current_lookup_is_ipv6 = false;
 		bool second_lookup = false;
+		netStatus status;
 
 	public:
 		netConnectTask(const char* host, uint16_t port, bool prefer_ipv6 = false)
@@ -31,10 +32,7 @@ NAMESPACE_SOUP
 
 		netConnectTask(const std::string& host, uint16_t port, bool prefer_ipv6 = false);
 
-		netConnectTask(const IpAddr& addr, uint16_t port)
-		{
-			proceedToConnect(addr, port);
-		}
+		netConnectTask(const IpAddr& addr, uint16_t port);
 
 		void onTick() final;
 

@@ -17,7 +17,7 @@ NAMESPACE_SOUP
 		{
 			if (Base::has_value())
 			{
-				outValue = Base::value();
+				outValue = std::move(Base::value());
 				return true;
 			}
 			return false;

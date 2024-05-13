@@ -42,7 +42,7 @@ NAMESPACE_SOUP
 		}
 	};
 
-	std::vector<UniquePtr<dnsRecord>> dnsHttpResolver::lookup(dnsType qtype, const std::string& name) const
+	Optional<std::vector<UniquePtr<dnsRecord>>> dnsHttpResolver::lookup(dnsType qtype, const std::string& name) const
 	{
 		std::vector<UniquePtr<dnsRecord>> res;
 		if (checkBuiltinResult(res, qtype, name))
@@ -56,8 +56,7 @@ NAMESPACE_SOUP
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			} while (!task->isWorkDone());
-			res = std::move(task->result);
-			return res;
+			SOUP_MOVE_RETURN(task->result);
 		}
 		else
 		{

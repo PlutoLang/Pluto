@@ -1,6 +1,7 @@
 #include "JsonNode.hpp"
 
 #include "Exception.hpp"
+#include "json.hpp"
 #include "JsonArray.hpp"
 #include "JsonObject.hpp"
 
@@ -50,6 +51,11 @@ NAMESPACE_SOUP
 		{
 			encodeAndAppendTo(str);
 		}
+	}
+
+	UniquePtr<JsonNode> JsonNode::clone() const SOUP_EXCAL
+	{
+		return json::decode(encode());
 	}
 
 	void JsonNode::throwTypeError()

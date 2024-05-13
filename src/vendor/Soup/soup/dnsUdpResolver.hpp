@@ -13,8 +13,9 @@ NAMESPACE_SOUP
 	{
 		SocketAddr server{ IpAddr(SOUP_IPV4(1, 1, 1, 1)), native_u16_t(53) };
 		unsigned int timeout_ms = 200; // normally would set this to like 3000 but 1.1.1.1 responds in <50 ms and we really don't wanna wait eons
+		unsigned int num_retries = 1;
 
-		[[nodiscard]] std::vector<UniquePtr<dnsRecord>> lookup(dnsType qtype, const std::string& name) const final;
+		[[nodiscard]] Optional<std::vector<UniquePtr<dnsRecord>>> lookup(dnsType qtype, const std::string& name) const final;
 	};
 }
 

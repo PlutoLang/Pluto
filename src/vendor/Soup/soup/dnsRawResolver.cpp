@@ -122,7 +122,7 @@ NAMESPACE_SOUP
 				dnsName target;
 
 				StringReader rdata_sr(std::move(dr.rdata), false);
-				rdata_sr.u16(priority);
+				rdata_sr.u16_be(priority);
 				target.read(rdata_sr);
 
 				res.emplace_back(soup::make_unique<dnsMxRecord>(std::move(name), dr.ttl, priority, string::join(target.resolve(sr.data), '.')));
@@ -133,9 +133,9 @@ NAMESPACE_SOUP
 				dnsName target;
 
 				StringReader rdata_sr(std::move(dr.rdata), false);
-				rdata_sr.u16(priority);
-				rdata_sr.u16(weight);
-				rdata_sr.u16(port);
+				rdata_sr.u16_be(priority);
+				rdata_sr.u16_be(weight);
+				rdata_sr.u16_be(port);
 				target.read(rdata_sr);
 
 				res.emplace_back(soup::make_unique<dnsSrvRecord>(std::move(name), dr.ttl, priority, weight, string::join(target.resolve(sr.data), '.'), port));

@@ -9,13 +9,11 @@ NAMESPACE_SOUP
 {
 	static DetachedScheduler dns_async_sched;
 
-	struct dnsAsyncExecTask : public Task
+	struct dnsAsyncExecTask : public dnsLookupTask
 	{
 		WeakRef<const dnsResolver> resolv;
 		dnsType qtype;
 		std::string name;
-
-		std::vector<UniquePtr<dnsRecord>> result;
 
 		dnsAsyncExecTask(const dnsResolver& resolv, dnsType qtype, const std::string& name)
 			: resolv(&resolv), qtype(qtype), name(name)
@@ -61,7 +59,7 @@ NAMESPACE_SOUP
 		return simplifyIPv6LookupResults(lookup(DNS_AAAA, name));
 	}
 
-	std::vector<UniquePtr<dnsRecord>> dnsResolver::lookup(dnsType qtype, const std::string& name) const
+	Optional<std::vector<UniquePtr<dnsRecord>>> dnsResolver::lookup(dnsType qtype, const std::string& name) const
 	{
 		auto task = makeLookupTask(qtype, name);
 		task->run();
@@ -73,27 +71,33 @@ NAMESPACE_SOUP
 		return soup::make_unique<dnsAsyncWatcherTask>(dns_async_sched.add<dnsAsyncExecTask>(*this, qtype, name));
 	}
 
-	std::vector<IpAddr> dnsResolver::simplifyIPv4LookupResults(const std::vector<UniquePtr<dnsRecord>>& vec)
+	std::vector<IpAddr> dnsResolver::simplifyIPv4LookupResults(const Optional<std::vector<UniquePtr<dnsRecord>>>& results)
 	{
 		std::vector<IpAddr> res{};
-		for (const auto& r : vec)
+		if (results.has_value())
 		{
-			if (r->type == DNS_A)
+			for (const auto& r : *results)
 			{
-				res.emplace_back(static_cast<dnsARecord*>(r.get())->data);
+				if (r->type == DNS_A)
+				{
+					res.emplace_back(static_cast<dnsARecord*>(r.get())->data);
+				}
 			}
 		}
 		return res;
 	}
 
-	std::vector<IpAddr> dnsResolver::simplifyIPv6LookupResults(const std::vector<UniquePtr<dnsRecord>>& vec)
+	std::vector<IpAddr> dnsResolver::simplifyIPv6LookupResults(const Optional<std::vector<UniquePtr<dnsRecord>>>& results)
 	{
 		std::vector<IpAddr> res{};
-		for (const auto& r : vec)
+		if (results.has_value())
 		{
-			if (r->type == DNS_AAAA)
+			for (const auto& r : *results)
 			{
-				res.emplace_back(static_cast<dnsAaaaRecord*>(r.get())->data);
+				if (r->type == DNS_AAAA)
+				{
+					res.emplace_back(static_cast<dnsAaaaRecord*>(r.get())->data);
+				}
 			}
 		}
 		return res;

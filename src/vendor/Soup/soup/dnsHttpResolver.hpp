@@ -12,7 +12,7 @@ NAMESPACE_SOUP
 		std::string server = "1.1.1.1";
 		Scheduler* keep_alive_sched = nullptr;
 
-		[[nodiscard]] std::vector<UniquePtr<dnsRecord>> lookup(dnsType qtype, const std::string& name) const final;
+		[[nodiscard]] Optional<std::vector<UniquePtr<dnsRecord>>> lookup(dnsType qtype, const std::string& name) const final;
 		[[nodiscard]] UniquePtr<dnsLookupTask> makeLookupTask(dnsType qtype, const std::string& name) const final;
 	};
 }

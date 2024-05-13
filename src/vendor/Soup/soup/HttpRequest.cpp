@@ -110,10 +110,10 @@ NAMESPACE_SOUP
 	struct HttpRequestExecuteData
 	{
 		const HttpRequest* req;
-		std::optional<HttpResponse> resp;
+		Optional<HttpResponse> resp;
 	};
 
-	std::optional<HttpResponse> HttpRequest::execute() const
+	Optional<HttpResponse> HttpRequest::execute() const
 	{
 		HttpRequestExecuteData data{ this };
 		auto sock = make_shared<Socket>();
@@ -191,11 +191,11 @@ NAMESPACE_SOUP
 		s.send(getDataToSend());
 	}
 
-	void HttpRequest::execute_recvResponse(Socket& s, std::optional<HttpResponse>* resp) SOUP_EXCAL
+	void HttpRequest::execute_recvResponse(Socket& s, Optional<HttpResponse>* resp) SOUP_EXCAL
 	{
-		recvResponse(s, [](Socket& s, std::optional<HttpResponse>&& resp, Capture&& cap) noexcept
+		recvResponse(s, [](Socket& s, Optional<HttpResponse>&& resp, Capture&& cap) noexcept
 		{
-			*cap.get<std::optional<HttpResponse>*>() = std::move(resp);
+			*cap.get<Optional<HttpResponse>*>() = std::move(resp);
 		}, resp);
 	}
 
@@ -242,7 +242,7 @@ NAMESPACE_SOUP
 		uint64_t bytes_remain = 0;
 
 		bool(*on_body_part)(Socket&, const std::string&, const Capture&) SOUP_EXCAL = nullptr;
-		void(*callback)(Socket&, std::optional<HttpResponse>&&, Capture&&) SOUP_EXCAL = nullptr;
+		void(*callback)(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL = nullptr;
 		Capture cap;
 
 		HttpResponseReceiver(bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, Capture&& cap) noexcept
@@ -250,7 +250,7 @@ NAMESPACE_SOUP
 		{
 		}
 
-		HttpResponseReceiver(void callback(Socket&, std::optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap) noexcept
+		HttpResponseReceiver(void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap) noexcept
 			: callback(callback), cap(std::move(cap))
 		{
 		}
@@ -470,7 +470,7 @@ NAMESPACE_SOUP
 		}
 	};
 
-	void HttpRequest::recvResponse(Socket& s, void callback(Socket&, std::optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& _cap) SOUP_EXCAL
+	void HttpRequest::recvResponse(Socket& s, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& _cap) SOUP_EXCAL
 	{
 		Capture cap = HttpResponseReceiver(callback, std::move(_cap));
 		cap.get<HttpResponseReceiver>().tick(s, std::move(cap));
