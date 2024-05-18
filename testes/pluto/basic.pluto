@@ -180,6 +180,9 @@ end]]
     assert_no_warn[[if false and true then
 else
 end]]
+
+    -- Duplicated case warning
+    assert_warn[[switch a do case 1: case 1: end]]
 end
 
 print "Testing assertion library."
@@ -1282,6 +1285,32 @@ do
         return switch 42 do end
     end
     assert(f() == nil)
+end
+-- Test switch speed
+do
+    local N = 2000
+    local code = "return function(val)\nswitch val do"
+    for i=1, N do
+        code = code .. "\ncase " .. i .. ".5: return " .. i
+    end
+    code = code .. "\ndefault: return -1\nend\nend"
+    local f = load(code)()
+    -- Initialize, this might take more time
+    assert(f(0) == -1)
+    local function timeout()
+        debug.sethook()
+        assert(false)
+    end
+    local function test_with_timing(val)
+        debug.sethook(timeout, '', 40)
+        local ret = f(val)
+        debug.sethook()
+        return ret
+    end
+    for i=1, N do
+        assert(test_with_timing(i+0.5) == i)
+    end
+    assert(test_with_timing(0) == -1)
 end
 
 print "Testing table freezing."
