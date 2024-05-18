@@ -3149,7 +3149,7 @@ static void test_eqi (LexState *ls, expdesc* v, lua_Integer val) {
   luaK_posfix(ls->fs, OPR_EQ, v, &ival, ls->getLineNumber());
 }
 
-static void const2exp (TValue *v, expdesc *e) {
+static void const2exp (const TValue *v, expdesc *e) {
   if (ttisboolean(v)) {
     init_exp(e, ttistrue(v) ? VTRUE : VFALSE, 0);
   } else if (ttisinteger(v)) {
@@ -3173,7 +3173,7 @@ static void gencomp(FuncState *fs, expdesc *e, BinOpr op, int val) {
   luaK_posfix(fs, op, e, &v, fs->previousline);
 }
 
-static void genbinarydispatch (FuncState *fs, expdesc *e, int min, int max, const std::vector<int>& pc) {
+static void genbinarydispatch (FuncState *fs, expdesc *e, int min, int max, Table* pc) {
   expdesc c;
   for(;;) {
     if (min + 2 >= max) {
@@ -3181,7 +3181,8 @@ static void genbinarydispatch (FuncState *fs, expdesc *e, int min, int max, cons
         c = *e;
         gencomp(fs, &c, OPR_EQ, min);
         luaK_goiffalse(fs, &c);
-        luaK_patchlist(fs, c.t, pc[min]);
+        auto res = luaH_getint(pc, min+1);
+        luaK_patchlist(fs, c.t, (int)ivalue(res));
         min++;
       }
       return;
@@ -3192,13 +3193,14 @@ static void genbinarydispatch (FuncState *fs, expdesc *e, int min, int max, cons
     luaK_goiftrue(fs, &c);
     genbinarydispatch(fs, e, min, mid, pc);
     int jump = luaK_jump(fs);
-    luaK_patchlist(fs, jump, pc[mid]);
+    auto res = luaH_getint(pc, mid+1);
+    luaK_patchlist(fs, jump, (int)ivalue(res));
     luaK_patchtohere(fs, c.f);
     min = mid+1;
   }
 }
 
-static void gendispatch (FuncState *fs, expdesc *e, int min, int max, const std::vector<int>& pc) {
+static void gendispatch (FuncState *fs, expdesc *e, int min, int max, Table* pc) {
   int old_pinned = fs->pinnedreg;
   fs->pinnedreg = luaK_exp2anyreg(fs, e);
   genbinarydispatch(fs, e, min, max, pc);
@@ -3225,14 +3227,24 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
   expdesc ctrl, e, cmpval;
   int default_pc = NO_JUMP;
   int next_case = NO_JUMP;
-  std::vector<int> case_pc {};
   TValue k, v;
-  Table* const_cases = luaH_new(ls->L);
   int num_consts = 0;
   int nil_case = NO_JUMP;
+  unsigned int num_cases = 0;
 
+  Table* const_cases = luaH_new(ls->L);
   /* Pin the const cases table for GC */
   sethvalue(ls->L, &v, const_cases);
+  luaH_set(ls->L, ls->h, &v, &v);
+
+  Table* case_pc = luaH_new(ls->L);
+  /* Pin the case_pc table for GC */
+  sethvalue(ls->L, &v, case_pc);
+  luaH_set(ls->L, ls->h, &v, &v);
+
+  Table* order = luaH_new(ls->L);
+  /* Pin the order table for GC */
+  sethvalue(ls->L, &v, order);
   luaH_set(ls->L, ls->h, &v, &v);
 
   luaX_next(ls); // Skip switch statement.
@@ -3298,13 +3310,14 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
             } else {
               auto res = luaH_get(const_cases, &k);
               if (ttisnil(res)) {
-                setivalue(&v, case_pc.size());
+                setivalue(&v, num_cases);
                 luaH_set(ls->L, const_cases, &k, &v);
                 had_const_case = true;
                 num_consts++;
+                luaH_setint(ls->L, order, num_consts, &k);
               } else {
                 dup_case = (int)ivalue(res);
-                dup_case = dup_case == case_pc.size() ? -2 : case_pc[dup_case];
+                dup_case = dup_case == num_cases ? -2 : (int)ivalue(luaH_getint(case_pc, dup_case+1));
               }
             }
             if (dup_case == -2) {
@@ -3346,7 +3359,11 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
       luaK_patchtohere(fs, fallthrough);
     }
     int target = luaK_getlabel(fs);
-    if (had_const_case) case_pc.push_back(target);
+    if (had_const_case) { 
+      num_cases++;
+      setivalue(&v, target);
+      luaH_setint(ls->L, case_pc, num_cases, &v);
+    }
     if (is_default) default_pc = target;
     if (had_nil_case) nil_case = target;
 
@@ -3357,7 +3374,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
   }
   removevars(fs, nactvar);
 
-  if (case_pc.size() > 0) {
+  if (num_cases > 0) {
     int fallthrough = jumps_before(ls) ? NO_JUMP : luaK_jump(fs);
     StackValue s[2];
     setnilvalue(s2v(&s[0]));
@@ -3365,20 +3382,21 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
     luaK_patchtohere(fs, entry);
     entry = NO_JUMP;
     int average_time_linear = num_consts/2;
-    int average_time_table = luaO_ceillog2((unsigned int)case_pc.size()) + 4; /* Load and check cache, load value, check nil case, then do the binary search */
+    int average_time_table = luaO_ceillog2(num_cases) + 4; /* Load and check cache, load value, check nil case, then do the binary search */
     if (average_time_linear <= average_time_table) {
       /* Not worth the effort, just do a linear scan */
       const auto line = ls->getLineNumber();
       fs->pinnedreg = ctrl.u.reg;
 
-      /* XXX not a stable order */
-      while (luaH_next(ls->L, const_cases, s)) {
-        const2exp(s2v(&s[0]), &cmpval);
+      for (int i=0; i<num_consts; i++) {
+        const auto ckey = luaH_getint(order, i+1);
+        const auto cvalue = luaH_get(const_cases, ckey);
+        const2exp(ckey, &cmpval);
         luaK_infix(ls->fs, OPR_EQ, &cmpval);
         e = ctrl;
         luaK_posfix(ls->fs, OPR_EQ, &cmpval, &e, line);
         luaK_goiffalse(fs, &cmpval);
-        luaK_patchlist(fs, cmpval.t, case_pc[ivalue(s2v(&s[1]))]);
+        luaK_patchlist(fs, cmpval.t, (int)ivalue(luaH_getint(case_pc, ivalue(cvalue)+1)));
       }
       if (default_pc != NO_JUMP || first_dynamic != NO_JUMP) entry = luaK_jump(fs);
     } else {
@@ -3420,13 +3438,14 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
       fs->freereg = e.u.reg;
       lua_assert(e.u.reg == t.u.reg+1);
 
-      /* XXX not a stable order */
-      while (luaH_next(ls->L, const_cases, s)) {
+      for (int i=0; i<num_consts; i++) {
+        const auto ckey = luaH_getint(order, i+1);
+        const auto cvalue = luaH_get(const_cases, ckey);
         e = t;
-        const2exp(s2v(&s[0]), &key);
+        const2exp(ckey, &key);
         luaK_indexed(fs, &e, &key);
         init_exp(&n, VKINT, 0);
-        n.u.ival = ivalue(s2v(&s[1]));
+        n.u.ival = ivalue(cvalue);
         luaK_storevar(fs, &e, &n);
         fs->freereg = t.u.reg+1;
       }
@@ -3457,10 +3476,10 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
 
       fs->pinnedreg = ctrl.u.reg;
 
-      gendispatch(fs, &e, 0, (int)case_pc.size() - 1, case_pc);
+      gendispatch(fs, &e, 0, num_cases - 1, case_pc);
       luaK_freeexp(fs, &e);
       int jump = luaK_jump(fs);
-      luaK_patchlist(fs, jump, case_pc[case_pc.size()-1]);
+      luaK_patchlist(fs, jump, (int)ivalue(luaH_getint(case_pc, num_cases)));
     }
     fs->pinnedreg = old_pinned;
     luaK_patchtohere(fs, fallthrough);
@@ -3479,9 +3498,13 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
 
   check_match(ls, TK_END, switchToken, line);
 
-  /* We are done, unlink the const cases table which is not required any more. */
-  sethvalue(ls->L, &k, const_cases);
+  /* We are done, unlink the const cases and other tables which are not required any more. */
   setnilvalue(&v);
+  sethvalue(ls->L, &k, const_cases);
+  luaH_set(ls->L, ls->h, &k, &v);
+  sethvalue(ls->L, &k, case_pc);
+  luaH_set(ls->L, ls->h, &k, &v);
+  sethvalue(ls->L, &k, order);
   luaH_set(ls->L, ls->h, &k, &v);
 
   return default_pc != NO_JUMP;
