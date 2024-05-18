@@ -3205,6 +3205,15 @@ static void gendispatch (FuncState *fs, expdesc *e, int min, int max, const std:
   fs->pinnedreg = old_pinned;
 }
 
+static int getfuncline (FuncState *fs, int pc) {
+  auto f = fs->f;
+  auto oldsizeabslineinfo = f->sizeabslineinfo;
+  f->sizeabslineinfo = fs->nabslineinfo;
+  auto line = luaG_getfuncline(f, pc);
+  f->sizeabslineinfo = oldsizeabslineinfo;
+  return line;
+}
+
 static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*)>& caselist) {
   const auto fs = ls->fs;
   const auto line = ls->getLineNumber();
@@ -3301,7 +3310,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
             if (dup_case == -2) {
               throw_warn(ls, "duplicated case", "this case already did check for this value", WT_DUPLICATED_CASE);
             } else if (dup_case >= 0) {
-              int prevline = luaG_getfuncline(fs->f, dup_case);
+              int prevline = getfuncline(fs, dup_case);
               throw_warn(ls, "duplicated case", luaO_fmt(ls->L, "the case on line %d has the same case value", prevline), WT_DUPLICATED_CASE);
               ls->L->top.p--;
             }
@@ -3316,9 +3325,8 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
       }
       if (tk == TK_ARROW) break;
       if (gett(ls) != TK_CASE && gett(ls) != TK_DEFAULT) {
-        // if (!testnext(ls, TK_FALLTHROUGH)) break;
-        // if (gett(ls) == TK_END) break;
-        break;
+        if (!testnext(ls, TK_FALLTHROUGH)) break;
+        if (gett(ls) == TK_END) break;
       }
     }
     fs->pinnedreg = old_pinned;
@@ -3500,8 +3508,8 @@ static void switchstat (LexState *ls) {
         throw_warn(ls, "possibly unwanted fallthrough", luaO_fmt(ls->L, "the case on line %d flows into this case", case_line), "place `--@fallthrough` before this case if this is intended", ls->getLineNumber(), WT_UNANNOTATED_FALLTHROUGH);
         ls->L->top.p--;
       }
-      else testnext(ls, TK_FALLTHROUGH);
     }
+    testnext(ls, TK_FALLTHROUGH);
   });
   leaveblock(ls->fs);
 }
@@ -6049,7 +6057,7 @@ static void mainfunc (LexState *ls, FuncState *fs) {
     lua_assert(fs->freereg == 0);
     lua_assert(fs->pinnedreg == -1);
 
-    ls->lastline = luaG_getfuncline(fs->f, start);
+    ls->lastline = getfuncline(fs, start);
 
     init_exp(&e, VUPVAL, 1);
     luaK_goiffalse(fs, &e);
