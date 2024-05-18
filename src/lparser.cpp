@@ -3259,6 +3259,7 @@ static bool switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   const auto base_reg = fs->freereg;
   auto entry = luaK_jump(fs);
   int first_dynamic = NO_JUMP;
+  int special_entry = 0;
 
   while (gett(ls) != TK_END) {
     if (fs->nactvar != nactvar) {
@@ -3269,6 +3270,7 @@ static bool switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     }
 
     int fallthrough = jumps_before(ls) ? NO_JUMP : luaK_jump(fs);
+    int last_case = NO_JUMP;
     bool is_default = false;
     bool had_const_case = false;
     bool had_nil_case = false;
@@ -3289,10 +3291,6 @@ static bool switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
         checknext(ls, TK_CASE);
 
         do {
-          if (e.k != VVOID) {
-            luaK_goiffalse(fs, &e);
-            luaK_concat(fs, &fallthrough, e.t);
-          }
           const auto last_pc = fs->pc;
           expr(ls, &e, nullptr, expr_flags);
           if (last_pc == fs->pc && luaK_exp2const(fs, &e, &k) && (ttisnil(&k) || ttisboolean(&k) || ttisnumber(&k) || ttisstring(&k))) {
@@ -3312,9 +3310,17 @@ static bool switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
               if (ttisnil(res)) {
                 setivalue(&v, num_cases);
                 luaH_set(ls->L, const_cases, &k, &v);
-                had_const_case = true;
-                num_consts++;
-                luaH_setint(ls->L, order, num_consts, &k);
+                if (entry == fs->pc-1 && special_entry == 0) {
+                  special_entry = 1;
+                  luaK_rollback(fs, entry);
+                  start = fs->pc;
+                  entry = NO_JUMP;
+                  const2exp(&k, &e);
+                } else {
+                  had_const_case = true;
+                  num_consts++;
+                  luaH_setint(ls->L, order, num_consts, &k);
+                }
               } else {
                 dup_case = (int)ivalue(res);
                 dup_case = dup_case == num_cases ? -2 : (int)ivalue(luaH_getint(case_pc, dup_case+1));
@@ -3329,9 +3335,12 @@ static bool switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
             }
           } 
           if (e.k != VVOID) {
+            luaK_concat(fs, &fallthrough, last_case);
             luaK_infix(fs, OPR_EQ, &e);
             cmpval = ctrl;
             luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
+            luaK_goiffalse(fs, &e);
+            last_case = e.t;
           }
         } while (testnext(ls, ','));
         checknext(ls, tk);
@@ -3344,19 +3353,31 @@ static bool switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     }
     fs->pinnedreg = old_pinned;
     if (start == fs->pc) {
-      lua_assert(e.k == VVOID);
+      lua_assert(e.k == VVOID && special_entry != 1 && last_case == NO_JUMP);
       // No code for case values, last jump can be removed
       if (fallthrough != NO_JUMP) luaK_rollback(fs, fallthrough);
     } else {
-      if (first_dynamic == NO_JUMP) first_dynamic = start;
-      luaK_patchlist(fs, next_case, start);
-      if (e.k != VVOID) {
-        luaK_goiftrue(fs, &e);
-        next_case = e.f;
-      } else {
+      if (special_entry != 1) {
+        if (first_dynamic == NO_JUMP) first_dynamic = start;
+        luaK_patchlist(fs, next_case, start);
+      }
+      if (last_case == NO_JUMP || last_case != fs->pc-1) {
         next_case = luaK_jump(fs);
+        luaK_patchtohere(fs, last_case);
+      } else if (last_case >= 1 && testTMode(GET_OPCODE(fs->f->code[last_case-1]))) {
+        // Last case is a conditional
+        luaK_invertcond(fs, last_case);
+        next_case = last_case;
+      } else {
+        luaK_rollback(fs, last_case);
+        next_case = NO_JUMP;
       }
       luaK_patchtohere(fs, fallthrough);
+      if (special_entry == 1) {
+        special_entry = 2;
+        entry = next_case;
+        next_case = NO_JUMP;
+      }
     }
     int target = luaK_getlabel(fs);
     if (had_const_case) { 
