@@ -3303,7 +3303,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
                 had_const_case = true;
                 num_consts++;
               } else {
-                dup_case = ivalue(res);
+                dup_case = (int)ivalue(res);
                 dup_case = dup_case == case_pc.size() ? -2 : case_pc[dup_case];
               }
             }
@@ -3365,7 +3365,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
     luaK_patchtohere(fs, entry);
     entry = NO_JUMP;
     int average_time_linear = num_consts/2;
-    int average_time_table = luaO_ceillog2(case_pc.size()) + 4; /* Load and check cache, load value, check nil case, then do the binary search */
+    int average_time_table = luaO_ceillog2((unsigned int)case_pc.size()) + 4; /* Load and check cache, load value, check nil case, then do the binary search */
     if (average_time_linear <= average_time_table) {
       /* Not worth the effort, just do a linear scan */
       const auto line = ls->getLineNumber();
@@ -3457,7 +3457,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
 
       fs->pinnedreg = ctrl.u.reg;
 
-      gendispatch(fs, &e, 0, case_pc.size()-1, case_pc);
+      gendispatch(fs, &e, 0, (int)case_pc.size() - 1, case_pc);
       luaK_freeexp(fs, &e);
       int jump = luaK_jump(fs);
       luaK_patchlist(fs, jump, case_pc[case_pc.size()-1]);
