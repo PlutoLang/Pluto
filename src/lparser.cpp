@@ -3216,7 +3216,7 @@ static int getfuncline (FuncState *fs, int pc) {
   return line;
 }
 
-static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*)>& caselist) {
+static bool switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), void* ud) {
   const auto fs = ls->fs;
   const auto line = ls->getLineNumber();
   const auto switchToken = gett(ls);
@@ -3369,7 +3369,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
 
     ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
     fs->freereg = freereg;
-    caselist(ls);
+    caselist(ls, ud);
     fs->freereg = base_reg;
   }
   removevars(fs, nactvar);
@@ -3513,7 +3513,7 @@ static bool switchimpl (LexState *ls, int tk, const std::function<void(LexState*
 static void switchstat (LexState *ls) {
   BlockCnt bl;
   enterblock(ls->fs, &bl, BlockType::BT_BREAK);
-  switchimpl(ls, ':', [](LexState* ls) {
+  switchimpl(ls, ':', [](LexState* ls, void*) {
     const int case_line = luaX_lookbehind(ls).line;
     if (gett(ls) == TK_CASE || gett(ls) == TK_DEFAULT || gett(ls) == TK_END) {
       /* this case is empty, nothing to do */
@@ -3533,22 +3533,23 @@ static void switchstat (LexState *ls) {
       }
     }
     testnext(ls, TK_FALLTHROUGH);
-  });
+  }, nullptr);
   leaveblock(ls->fs);
 }
 
 static void switchexpr (LexState *ls, expdesc *v) {
   init_exp(v, VNONRELOC, ls->fs->freereg);
   luaK_checkstack(ls->fs, 1);
-  int break_jumps = NO_JUMP;
-  bool has_default = switchimpl(ls, TK_ARROW, [v, &break_jumps](LexState *ls) {
+  int data[2] = {NO_JUMP, v->u.reg};
+  bool has_default = switchimpl(ls, TK_ARROW, [](LexState *ls, void* ud) {
+    auto data = reinterpret_cast<int*>(ud);
     const auto line = ls->getLineNumber();
-    const auto reg = v->u.reg;
+    const auto reg = data[1];
     expdesc cv;
     expr(ls, &cv);
     luaK_exp2reg(ls->fs, &cv, reg);
-    luaK_concat(ls->fs, &break_jumps, luaK_jump(ls->fs));
-  });
+    luaK_concat(ls->fs, &data[0], luaK_jump(ls->fs));
+  }, data);
   if (!has_default) {
     const auto line = ls->getLineNumber();
     expdesc cv;
@@ -3556,7 +3557,7 @@ static void switchexpr (LexState *ls, expdesc *v) {
     luaK_exp2reg(ls->fs, &cv, v->u.reg);
   }
   luaK_reserveregs(ls->fs, 1);
-  luaK_patchtohere(ls->fs, break_jumps);
+  luaK_patchtohere(ls->fs, data[0]);
 
   lua_assert(ls->fs->freereg == v->u.reg+1);
 }
