@@ -3564,7 +3564,6 @@ static void switchexpr (LexState *ls, expdesc *v) {
   int data[2] = {NO_JUMP, v->u.reg};
   bool has_default = switchimpl(ls, TK_ARROW, [](LexState *ls, void* ud) {
     auto data = reinterpret_cast<int*>(ud);
-    const auto line = ls->getLineNumber();
     const auto reg = data[1];
     expdesc cv;
     expr(ls, &cv);
@@ -3572,7 +3571,6 @@ static void switchexpr (LexState *ls, expdesc *v) {
     luaK_concat(ls->fs, &data[0], luaK_jump(ls->fs));
   }, data);
   if (!has_default) {
-    const auto line = ls->getLineNumber();
     expdesc cv;
     init_exp(&cv, VNIL, 0);
     luaK_exp2reg(ls->fs, &cv, v->u.reg);
