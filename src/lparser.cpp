@@ -3676,7 +3676,6 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
         else {
           if (luaK_isalwaystrue(ls, v) || luaK_isalwaysfalse(ls, v))
             throw_warn(ls, "unreachable code", "the expression before the '?\?' is never nil, hence the expression after the '?\?' is never used.", WT_UNREACHABLE_CODE);
-          throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
         }
         if (prop) {
           prop->erase(VT_NIL);
@@ -3873,8 +3872,6 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
     if (compound_op != OPR_NOBINOPR) {  /* compound operator? */
       if (l_unlikely(ls->t.seminfo.i == TK_POW))
         throw_warn(ls, "'**' is deprecated", "use '^' instead", WT_DEPRECATED);
-      if (compound_op == OPR_COAL)
-        throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
       check_condition(ls, nvars == 1, "unsupported tuple assignment");
       compoundassign(ls, &lh->v, compound_op);  /* perform binop & assignment */
       return;  /* avoid default */

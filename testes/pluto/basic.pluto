@@ -617,13 +617,16 @@ do
     b = "hello"
     c = a ?? b
     assert(c == "hello")
+    assert(not (a ?? b) == false)
     a = false
     b = "hello"
     a ??= b
     assert(a == false)
+    assert(not (a ?? b) == true)
     a = nil
     a ??= b
     assert(a == "hello")
+    assert(not (a ?? b) == false)
 end
 
 print "Testing safe navigation."
