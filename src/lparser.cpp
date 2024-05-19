@@ -1331,7 +1331,6 @@ static int countdepth(FuncState* fs, BlockType type) {
 static void continuestat (LexState *ls) {
   auto line = ls->getLineNumber();
   FuncState *fs = ls->fs;
-  int foundloops = 0;
   luaX_next(ls);  /* skip 'continue' */
   lua_Integer backwards = 1;
   if (ls->t.token == TK_INT) {
