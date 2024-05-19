@@ -2217,32 +2217,17 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
-        vmDumpAddC();
         vmDumpAdd (GETARG_k(i));
         StkId ra = RA(i);
         TValue *rb = vRB(i);
-        if (GETARG_C(i) == NULL_COALESCE) { /* R(C) is used as an identifier, as it was previously unused. */
-          if (ttisnil(rb)) {
-            pc++;
-            vmDumpOut("; null coalesce, no assignment");
-          }
-          else {
-            setobj2s(L, ra, rb);
-            donextjump(ci);
-            vmDumpOut("; null coalesce, push/assign " << stringify_tvalue(rb));
-          }
+        if (l_isfalse(rb) == GETARG_k(i)) {
+          pc++;
+          vmDumpOut("; no assignment");
         }
         else {
-          if (l_isfalse(rb) == GETARG_k(i))
-          {
-            pc++;
-            vmDumpOut("; no assignment");
-          }
-          else {
-            setobj2s(L, ra, rb);
-            donextjump(ci);
-            vmDumpOut("; push/assign " << stringify_tvalue(rb));
-          }
+          setobj2s(L, ra, rb);
+          donextjump(ci);
+          vmDumpOut("; push/assign " << stringify_tvalue(rb));
         }
         vmbreak;
       }

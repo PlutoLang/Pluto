@@ -257,7 +257,7 @@ static int patchtestreg (FuncState *fs, int node, int reg) {
   Instruction *i = getjumpcontrol(fs, node);
   if (GET_OPCODE(*i) != OP_TESTSET)
     return 0;  /* cannot patch other instructions */
-  if ((reg != NO_REG && reg != GETARG_B(*i)) || GETARG_C(*i) == NULL_COALESCE) /* Prevent NULL_COALESCE from being turned into OP_TEST. */
+  if (reg != NO_REG && reg != GETARG_B(*i))
     SETARG_A(*i, reg);
   else {
      /* no register to put value or register already has the value;
@@ -894,7 +894,7 @@ static void discharge2reg (FuncState *fs, expdesc *e, int reg) {
 ** (Expression still may have jump lists.)
 */
 static void discharge2anyreg (FuncState *fs, expdesc *e) {
-  if (e->k != VNONRELOC&& e->k != VSAFECALL) {  /* no fixed register yet? */
+  if (e->k != VNONRELOC && e->k != VSAFECALL) {  /* no fixed register yet? */
     luaK_reserveregs(fs, 1);  /* get a register */
     discharge2reg(fs, e, fs->freereg-1);  /* put value there */
   }
@@ -1310,29 +1310,6 @@ void luaK_goiffalse (FuncState *fs, expdesc *e) {
       pc = jumponcond(fs, e, 1);  /* jump if true */
       break;
     }
-  }
-  luaK_concat(fs, &e->t, pc);  /* insert new jump in 't' list */
-  luaK_patchtohere(fs, e->f);  /* false list jumps to here (to go through) */
-  e->f = NO_JUMP;
-}
-
-
-
-/*
-** Emit code to go through if 'e' is nil, jump otherwise.
-*/
-void luaK_goifnil (FuncState *fs, expdesc *e) {
-  int pc;  /* pc of new jump */
-  luaK_dischargevars(fs, e);
-  if (luaK_isalwaysnil(fs->ls, e, true)) {
-    pc = NO_JUMP;  /* always nil; do nothing*/
-  }
-  else {
-    discharge2anyreg(fs, e);
-    freeexp(fs, e);
-    luaK_codeABCk(fs, OP_TESTSET, NO_REG, e->u.reg, NULL_COALESCE, 1);
-    fs->f->onPlutoOpUsed(0);
-    pc = luaK_jump(fs);  /* jump if nil */
   }
   luaK_concat(fs, &e->t, pc);  /* insert new jump in 't' list */
   luaK_patchtohere(fs, e->f);  /* false list jumps to here (to go through) */
@@ -1803,7 +1780,21 @@ void luaK_infix (FuncState *fs, BinOpr op, expdesc *v) {
       break;
     }
     case OPR_COAL: {
-      luaK_goifnil(fs, v);
+      int pc;  /* pc of new jump */
+      const auto reg = luaK_exp2anyreg(fs, v);
+      if (luaK_isalwaysnil(fs->ls, v, true)) {
+        pc = NO_JUMP;  /* always nil; do nothing*/
+      }
+      else {
+        luaK_infix(fs, OPR_NE, v);
+        expdesc nil;
+        nil.k = VNIL;
+        nil.t = nil.f = NO_JUMP;
+        luaK_posfix(fs, OPR_NE, v, &nil, fs->ls->getLineNumber());
+        lua_assert(v->k == VJMP);
+        pc = v->u.pc;
+      }
+      v->u.reg = reg;
       break;
     }
     case OPR_CONCAT: {
@@ -1909,16 +1900,19 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
       *e1 = *e2;
       break;
     }
-    case OPR_COAL: {
+    case OPR_OR: {
       lua_assert(e1->f == NO_JUMP);  /* list closed by 'luaK_infix' */
       luaK_concat(fs, &e2->t, e1->t);
       *e1 = *e2;
       break;
     }
-    case OPR_OR: {
-      lua_assert(e1->f == NO_JUMP);  /* list closed by 'luaK_infix' */
-      luaK_concat(fs, &e2->t, e1->t);
-      *e1 = *e2;
+    case OPR_COAL: {
+      if (e1->u.pc != NO_JUMP) {
+        luaK_exp2reg(fs, e2, e1->u.reg);
+        luaK_patchtohere(fs, e1->u.pc);
+      }
+      e1->k = VNONRELOC;
+      /* e1->u.reg already set up */
       break;
     }
     case OPR_CONCAT: {  /* e1 .. e2 */
