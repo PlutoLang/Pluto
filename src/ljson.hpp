@@ -130,6 +130,7 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 
 static void pushFromJson(lua_State* L, const soup::JsonNode& node, int flags)
 {
+	lua_checkstack(L, 1);
 	switch (node.type)
 	{
 	case soup::JSON_BOOL:
