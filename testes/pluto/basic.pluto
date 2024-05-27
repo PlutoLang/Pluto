@@ -1194,8 +1194,7 @@ local tab = {
 }
 switch 1 do
     case 2: break
-    case true?1:tab:
-        print("OK")
+    case true?1:tab: print("OK")
 end
 ]] == nil)
 -- Fallthrough can be used on empty cases
