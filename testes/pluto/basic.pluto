@@ -1476,6 +1476,10 @@ do
         assert(t.__order[2] == "b")
         assert(t.__order[3] == "c")
     end
+
+    assert(json.encode({}) == "[]")
+    assert(json.encode({ __order = {} }) == "{}")
+    assert(json.encode(json.decode("[{},[]]", json.withorder)) == "[{},[]]")
 end
 do
     local xml = require "pluto:xml"

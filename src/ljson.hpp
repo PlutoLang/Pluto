@@ -38,7 +38,7 @@ static bool isIndexBasedTable(lua_State* L, int i)
 		lua_pop(L, 2);
 	}
 	lua_pop(L, 1);
-	return k != 1; // say it's not an index based table if it's empty
+	return true;
 }
 
 static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
