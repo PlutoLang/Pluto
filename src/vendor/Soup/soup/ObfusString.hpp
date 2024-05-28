@@ -9,6 +9,8 @@
 #include "string.hpp"
 #include "StringLiteral.hpp"
 
+#define SOUP_ASSERT_OBF(x, msg) SOUP_IF_UNLIKELY (!(x)) { soup::ObfusString str(msg); ::soup::throwAssertionFailed(str.c_str()); }
+
 NAMESPACE_SOUP
 {
 #pragma pack(push, 1)

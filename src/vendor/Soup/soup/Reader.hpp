@@ -56,9 +56,6 @@ NAMESPACE_SOUP
 			return false;
 		}
 
-		// Specialisation of the above for Bigint.
-		bool om_bigint(Bigint& v) SOUP_EXCAL;
-
 		// An integer where every byte's most significant bit is used to indicate if another byte follows, least significant byte first. This is compatible with unsigned LEB128.
 		template <typename Int>
 		bool oml(Int& v) noexcept
@@ -178,8 +175,6 @@ NAMESPACE_SOUP
 			uint64_t len;
 			return u64_dyn(len) && str((size_t)len, v);
 		}
-
-		bool bigint_lp_u64_dyn(Bigint& v) SOUP_EXCAL;
 
 		// Length-prefixed string, using mysql_lenenc for the length prefix.
 		bool str_lp_mysql(std::string& v)

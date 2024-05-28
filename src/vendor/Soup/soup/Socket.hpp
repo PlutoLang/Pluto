@@ -8,7 +8,7 @@
 #include "Worker.hpp"
 
 #if SOUP_WINDOWS
-#include <Winsock2.h>
+#include <winsock2.h>
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>

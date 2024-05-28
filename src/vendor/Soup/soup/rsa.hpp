@@ -183,8 +183,8 @@ NAMESPACE_SOUP
 		template <typename T>
 		bool io(T& s)
 		{
-			if (s.bigint_lp_u64_dyn(p)
-				&& s.bigint_lp_u64_dyn(q)
+			if (p.io(s)
+				&& q.io(s)
 				)
 			{
 				if constexpr (T::isRead())

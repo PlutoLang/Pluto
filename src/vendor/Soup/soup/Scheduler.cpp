@@ -1,12 +1,11 @@
 #include "Scheduler.hpp"
 
-#include <thread>
-
 #if !SOUP_WINDOWS
 #include <netinet/tcp.h> // TCP_NODELAY
 #endif
 
 #include "log.hpp"
+#include "os.hpp"
 #include "Promise.hpp"
 #include "ReuseTag.hpp"
 #include "Socket.hpp"
@@ -224,7 +223,7 @@ NAMESPACE_SOUP
 #endif
 		if (!(workload_flags & HAS_HIGH_FREQUENCY_TASKS))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			os::sleep(1);
 		}
 	}
 

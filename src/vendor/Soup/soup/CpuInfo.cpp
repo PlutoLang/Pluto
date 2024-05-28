@@ -11,7 +11,7 @@
 	#endif
 #elif SOUP_ARM
 	#if SOUP_WINDOWS
-		#include <Windows.h>
+		#include <windows.h>
 	#else
 		#include <sys/auxv.h>
 	#endif

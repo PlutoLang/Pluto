@@ -7,7 +7,7 @@
 #include <vector>
 
 #if SOUP_WINDOWS
-#include <WinSock2.h>
+#include <winsock2.h>
 #else
 #include <poll.h>
 #endif

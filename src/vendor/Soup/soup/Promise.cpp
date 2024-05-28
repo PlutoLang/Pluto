@@ -1,6 +1,6 @@
 #include "Promise.hpp"
 
-#include <thread>
+#include "os.hpp"
 
 NAMESPACE_SOUP
 {
@@ -8,7 +8,7 @@ NAMESPACE_SOUP
 	{
 		while (isPending())
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			os::sleep(1);
 		}
 	}
 
@@ -16,7 +16,7 @@ NAMESPACE_SOUP
 	{
 		while (isPending())
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			os::sleep(1);
 		}
 	}
 }
