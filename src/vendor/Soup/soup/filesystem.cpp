@@ -3,7 +3,7 @@
 #include <fstream>
 
 #if SOUP_WINDOWS
-#include <ShlObj.h> // CSIDL_COMMON_APPDATA
+#include <shlobj.h> // CSIDL_COMMON_APPDATA
 
 #pragma comment(lib, "Shell32.lib") // SHGetFolderPathW
 #pragma comment(lib, "User32.lib") // SendInput

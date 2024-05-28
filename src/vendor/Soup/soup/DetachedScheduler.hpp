@@ -8,6 +8,7 @@
 
 NAMESPACE_SOUP
 {
+	// This class itself is not thread-safe. If you need multiple threads to access the same instance, use a mutex.
 	class DetachedScheduler : public Scheduler
 	{
 	protected:

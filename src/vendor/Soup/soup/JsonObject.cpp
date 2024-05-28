@@ -29,7 +29,10 @@ NAMESPACE_SOUP
 				break;
 			}
 			auto key = json::decode(c);
-			while (string::isSpace(*++c));
+			while (string::isSpace(*c) || *c == ':')
+			{
+				++c;
+			}
 			auto val = json::decode(c);
 			if (!key || !val)
 			{

@@ -120,7 +120,7 @@ NAMESPACE_SOUP
 	struct Scene;
 
 	// mem
-	struct Pattern;
+	class Pattern;
 	struct CompiletimePatternWithOptBytesBase;
 	class Pointer;
 	class Range;

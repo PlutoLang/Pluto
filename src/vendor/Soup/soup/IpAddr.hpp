@@ -9,7 +9,7 @@
 
 #if SOUP_WINDOWS
 #pragma comment(lib, "Ws2_32.lib")
-#include <Ws2tcpip.h>
+#include <ws2tcpip.h>
 #else
 #include <arpa/inet.h>
 #endif

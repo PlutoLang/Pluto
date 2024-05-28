@@ -2,13 +2,12 @@
 
 #if !SOUP_WASM
 
-#include <thread>
-
 #include "base64.hpp"
 #include "DelayedCtor.hpp"
 #include "HttpRequest.hpp"
 #include "HttpRequestTask.hpp"
 #include "ObfusString.hpp"
+#include "os.hpp"
 #include "Scheduler.hpp"
 
 NAMESPACE_SOUP
@@ -54,7 +53,7 @@ NAMESPACE_SOUP
 			auto task = keep_alive_sched->add<dnsLookupWrapperTask>(makeLookupTask(qtype, name));
 			do
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				os::sleep(1);
 			} while (!task->isWorkDone());
 			SOUP_MOVE_RETURN(task->result);
 		}

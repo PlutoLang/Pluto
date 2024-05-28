@@ -13,7 +13,7 @@
 #define UTF16_IS_LOW_SURROGATE(ch) (((ch) >> 10) == 0x37)
 
 #if SOUP_WINDOWS
-#include <Windows.h>
+#include <windows.h>
 
 #define UTF16_CHAR_TYPE wchar_t
 #define UTF16_STRING_TYPE std::wstring

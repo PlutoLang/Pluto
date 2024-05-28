@@ -24,9 +24,20 @@ namespace soup
 	#ifndef WIN32_LEAN_AND_MEAN
 		#define WIN32_LEAN_AND_MEAN
 	#endif
+
+	#ifdef __MINGW32__
+		#define SOUP_CROSS_COMPILE true
+		#if _WIN32_WINNT < 0x600
+			#undef _WIN32_WINNT
+			#define _WIN32_WINNT 0x600
+		#endif
+	#else
+		#define SOUP_CROSS_COMPILE false
+	#endif
 #else
 	#define SOUP_WINDOWS false
 	#define SOUP_POSIX true
+	#define SOUP_CROSS_COMPILE false
 
 	#ifdef __EMSCRIPTEN__
 		#define SOUP_WASM true

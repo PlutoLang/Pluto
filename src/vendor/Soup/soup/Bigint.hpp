@@ -26,6 +26,7 @@
 #if SOUP_BIGINT_USE_INTVECTOR
 #include "IntVector.hpp"
 #endif
+#include "Packet.hpp"
 #include "stringifyable.hpp"
 #include "Task.hpp"
 
@@ -326,6 +327,24 @@ NAMESPACE_SOUP
 		[[nodiscard]] static Bigint fromBinary(const void* data, size_t size) SOUP_EXCAL;
 		[[nodiscard]] std::string toBinary() const SOUP_EXCAL;
 		[[nodiscard]] std::string toBinary(size_t bytes) const;
+
+		SOUP_PACKET_IO(s) SOUP_EXCAL
+		{
+			SOUP_IF_ISREAD
+			{
+				std::string str;
+				SOUP_IF_LIKELY(s.str_lp_u64_dyn(str))
+				{
+					*this = fromBinary(str);
+					return true;
+				}
+				return false;
+			}
+			SOUP_ELSEIF_ISWRITE
+			{
+				return s.str_lp_u64_dyn(toBinary());
+			}
+		}
 
 		SOUP_STRINGIFYABLE(Bigint)
 	};

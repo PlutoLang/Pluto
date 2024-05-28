@@ -4,7 +4,7 @@
 #if !SOUP_WASM
 
 #if SOUP_WINDOWS
-#include <Windows.h>
+#include <windows.h>
 #else
 #include <pthread.h>
 #endif
@@ -16,6 +16,7 @@
 
 NAMESPACE_SOUP
 {
+	// This class itself is not thread-safe. If you need multiple threads to access the same instance, use a mutex.
 	class Thread
 	{
 	public:
