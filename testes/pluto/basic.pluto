@@ -628,6 +628,18 @@ do
     assert(a == "hello")
     assert(not (a ?? b) == false)
 end
+do
+    local y = nil
+    local x = y ?? 10
+    assert(y == nil)
+    assert(x == 10)
+end
+do
+    local y <const> = nil
+    local x = y ?? 10
+    assert(y == nil)
+    assert(x == 10)
+end
 
 print "Testing safe navigation."
 do
