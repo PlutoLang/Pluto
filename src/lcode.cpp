@@ -1780,10 +1780,9 @@ void luaK_infix (FuncState *fs, BinOpr op, expdesc *v) {
       break;
     }
     case OPR_COAL: {
-      int pc;  /* pc of new jump */
-      const auto reg = luaK_exp2anyreg(fs, v);
+      luaK_exp2nextreg(fs, v);
       if (luaK_isalwaysnil(fs->ls, v, true)) {
-        pc = NO_JUMP;  /* always nil; do nothing*/
+        v->u.pc = NO_JUMP;  /* always nil; do nothing*/
       }
       else {
         luaK_infix(fs, OPR_NE, v);
@@ -1792,9 +1791,8 @@ void luaK_infix (FuncState *fs, BinOpr op, expdesc *v) {
         nil.t = nil.f = NO_JUMP;
         luaK_posfix(fs, OPR_NE, v, &nil, fs->ls->getLineNumber());
         lua_assert(v->k == VJMP);
-        pc = v->u.pc;
+        fs->freereg++;  /* luaK_posfix freed our reg, but we still need it */
       }
-      v->u.reg = reg;
       break;
     }
     case OPR_CONCAT: {
