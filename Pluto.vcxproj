@@ -906,7 +906,6 @@
     <ClInclude Include="src\vendor\Soup\soup\logStdSink.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\macros.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memory.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\memProtFlags.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\MimeMessage.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\MimeType.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\NamedCurves.hpp" />

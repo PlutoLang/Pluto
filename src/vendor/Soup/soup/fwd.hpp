@@ -128,7 +128,7 @@ NAMESPACE_SOUP
 	template <typename T> class UniquePtr;
 	template <class T> class WeakRef;
 
-	// mem.alloc
+	// mem.allocraii
 	struct AllocRaiiLocalBase;
 	struct AllocRaiiRemote;
 	struct AllocRaiiVirtual;
