@@ -22,7 +22,7 @@ NAMESPACE_SOUP
 #if SOUP_CPP20
 		std::strong_ordering operator <=>(const JsonNode& b) const;
 #endif
-		bool operator ==(const JsonNode& b) const;
+		virtual bool operator ==(const JsonNode& b) const;
 		bool operator !=(const JsonNode& b) const;
 		bool operator <(const JsonNode& b) const;
 

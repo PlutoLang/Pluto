@@ -105,16 +105,47 @@ NAMESPACE_SOUP
 		}
 	}
 
+	bool JsonString::operator==(const JsonNode& b) const noexcept
+	{
+		return JSON_STRING == b.type
+			&& value == b.reinterpretAsStr().value
+			;
+	}
+
 	void JsonString::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
-		std::string encoded = *this;
-		string::replaceAll(encoded, "\\", "\\\\");
-		string::replaceAll(encoded, "\"", "\\\"");
-		string::replaceAll(encoded, "\r", "\\r");
-		string::replaceAll(encoded, "\n", "\\n");
-		encoded.insert(0, 1, '"');
-		encoded.push_back('"');
-		str.append(encoded);
+		str.reserve(str.size() + value.size() + 2);
+		str.push_back('"');
+		for (const auto& c : value)
+		{
+			switch (c)
+			{
+			default:
+				str.push_back(c);
+				break;
+
+			case '\\':
+				str.append("\\\\");
+				break;
+
+			case '\"':
+				str.append("\\\"");
+				break;
+
+			case '\r':
+				str.append("\\r");
+				break;
+
+			case '\n':
+				str.append("\\n");
+				break;
+
+			case '\t':
+				str.append("\\t");
+				break;
+			}
+		}
+		str.push_back('"');
 	}
 
 	bool JsonString::binaryEncode(Writer& w) const

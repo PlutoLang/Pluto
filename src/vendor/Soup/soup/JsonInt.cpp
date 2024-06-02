@@ -9,6 +9,13 @@ NAMESPACE_SOUP
 	{
 	}
 
+	bool JsonInt::operator==(const JsonNode& b) const noexcept
+	{
+		return JSON_INT == b.type
+			&& value == b.reinterpretAsInt().value
+			;
+	}
+
 	void JsonInt::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
 		str.append(std::to_string(value));

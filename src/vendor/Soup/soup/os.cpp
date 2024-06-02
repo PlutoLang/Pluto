@@ -12,7 +12,6 @@
 	#include "Exception.hpp"
 	#include "ObfusString.hpp"
 #else
-	#include <sys/mman.h>
 	#include <unistd.h> // getpid, usleep
 	#if _POSIX_C_SOURCE >= 199309L
 		#include <time.h> // nanosleep
@@ -20,7 +19,6 @@
 #endif
 
 #include "filesystem.hpp"
-#include "memProtFlags.hpp"
 #include "rand.hpp"
 #include "string.hpp"
 #include "unicode.hpp"
@@ -125,34 +123,6 @@ NAMESPACE_SOUP
 		pclose(pipe);
 #endif
 		return result;
-	}
-
-	void* os::virtualAlloc(size_t len, int prot)
-	{
-#if SOUP_WINDOWS
-		return VirtualAlloc(nullptr, len, MEM_COMMIT | MEM_RESERVE, memProtFlagsToProtect(prot));
-#else
-		return mmap(nullptr, len, prot, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-#endif
-	}
-
-	void os::virtualFree(void* addr, size_t len)
-	{
-#if SOUP_WINDOWS
-		VirtualFree(addr, len, MEM_DECOMMIT);
-#else
-		munmap(addr, len);
-#endif
-	}
-
-	void os::changeProtection(void* addr, size_t len, int prot)
-	{
-#if SOUP_WINDOWS
-		DWORD oldprotect;
-		VirtualProtect(addr, len, memProtFlagsToProtect(prot), &oldprotect);
-#else
-		mprotect(addr, len, prot);
-#endif
 	}
 
 	pid_t os::getProcessId() noexcept
