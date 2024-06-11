@@ -1435,8 +1435,10 @@ typedef struct ConsControl {
 
 static void preassignfield (LexState *ls, expdesc& key) {
   if (key.k == VKSTR) {
-    if (ls->constructorfieldsets.top().count(key.u.strval))
-      throw_warn(ls, "duplicate table field", "this overwrites the value assigned to this field earlier", WT_FIELD_SHADOW);
+    if (ls->constructorfieldsets.top().count(key.u.strval)) {
+      throw_warn(ls, "duplicate table field", luaO_fmt(ls->L, "this overwrites the value assigned to '%s' field earlier", getstr(key.u.strval)), WT_FIELD_SHADOW);
+      lua_pop(ls->L, 1);
+    }
     else
       ls->constructorfieldsets.top().emplace(key.u.strval);
   }
