@@ -4384,7 +4384,7 @@ static void localfunc (LexState *ls) {
   expdesc b;
   FuncState *fs = ls->fs;
   int fvar = fs->nactvar;  /* function's variable index */
-  new_localvar(ls, str_checkname(ls, 0));  /* new local variable */
+  new_localvar(ls, str_checkname(ls, N_OVERRIDABLE));  /* new local variable */
   adjustlocalvars(ls, 1);  /* enter its scope */
   TypeDesc funcdesc;
   body(ls, &b, 0, ls->getLineNumber(), &funcdesc);  /* function created in next register */
