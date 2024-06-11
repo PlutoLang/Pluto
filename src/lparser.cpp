@@ -2813,6 +2813,7 @@ static void parentexp (LexState *ls, expdesc *v) {
   }
   else {
     singlevar(ls, v, luaS_newliteral(ls->L, "self"));
+    luaK_exp2anyregup(ls->fs, v);
     expdesc key;
     codestring(&key, luaS_newliteral(ls->L, "__parent"));
     luaK_indexed(ls->fs, v, &key);
