@@ -674,11 +674,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, const std::unordered
 }
 
 
-/*
-** Create a new local variable with the given 'name'. Return its index
-** in the function.
-*/
-static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = {}, bool check_globals = true) {
+static int new_localvarex (LexState *ls, TString *name, int kind, int line, TypeHint hint = {}, bool check_globals = true) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -687,7 +683,7 @@ static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = 
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, USHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
-  var->vd.kind = VDKREG;  /* default */
+  var->vd.kind = kind;  /* default */
   var->vd.hint = new_typehint(ls);
   var->vd.prop = new_typehint(ls);
   if (!hint.empty())
@@ -697,8 +693,25 @@ static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = 
   return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
-static int new_localvar (LexState *ls, TString *name, TypeHint hint = {}) {
-  return new_localvar(ls, name, ls->getLineNumber(), std::move(hint));
+
+/*
+** Create a new local variable with the given 'name' and given 'kind'.
+** Return its index in the function.
+*/
+static int new_localvarkind (LexState *ls, TString *name, int kind) {
+  return new_localvarex(ls, name, kind, ls->getLineNumber());
+}
+
+
+/*
+** Create a new local variable with the given 'name' and regular kind.
+*/
+static int new_localvar (LexState *ls, TString *name) {
+  return new_localvarex(ls, name, VDKREG, ls->getLineNumber());
+}
+
+static int new_localvar (LexState *ls, TString *name, int line) {
+  return new_localvarex(ls, name, VDKREG, line);
 }
 
 
@@ -972,7 +985,8 @@ static void singlevar (LexState *ls, expdesc *var) {
 ** local variable.
 */
 static l_noret jumpscopeerror (LexState *ls, Labeldesc *gt) {
-  const char *varname = getstr(getlocalvardesc(ls->fs, gt->nactvar)->vd.name);
+  TString *tsname = getlocalvardesc(ls->fs, gt->nactvar)->vd.name;
+  const char *varname = getstr(tsname);
   const char *msg;
   if (!gt->special) {
     msg = luaO_pushfstring(ls->L, "<goto %s> at line %d jumps into the scope of local '%s'", getstr((TString*)gt->name), gt->line, varname);
@@ -1938,7 +1952,7 @@ static void localclass (LexState *ls) {
 
 
 static void setvararg (FuncState *fs, int nparams) {
-  fs->f->is_vararg = 1;
+  fs->f->flag |= PF_ISVARARG;
   luaK_codeABC(fs, OP_VARARGPREP, nparams, 0, 0);
 }
 
@@ -2062,7 +2076,7 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
           }
         }
         auto parhint = gettypehint(ls);
-        auto vidx = new_localvar(ls, parname, parhint);
+        auto vidx = new_localvarex(ls, parname, VDKREG, ls->getLineNumber(), parhint);
         *getlocalvardesc(fs, vidx)->vd.prop = parhint;  /* set hinted type as propagated type */
         if (fallbacks) {
           if (testnext(ls, '=')) {
@@ -2168,7 +2182,7 @@ static void namedvararg (LexState *ls, TString *varargname) {
   cc.na = cc.nh = cc.tostore = 0;
   cc.t = &t;
   luaK_reserveregs(fs, 1);
-  lua_assert(fs->f->is_vararg);
+  lua_assert(fs->f->flag & PF_ISVARARG);
   init_exp(&cc.v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
   cc.tostore++;
   lastlistfield(fs, &cc);
@@ -2464,7 +2478,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
     }
     const auto expected = funcdesc->getNumParams();
     const auto received = (int)fas.argdescs.size();
-    if (!funcdesc->proto->is_vararg && expected < received) {  /* Too many arguments? */
+    if (!(funcdesc->proto->flag & PF_ISVARARG) && expected < received) {  /* Too many arguments? */
       auto suffix = expected == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
       throw_warn(ls,
         "too many arguments",
@@ -3430,7 +3444,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
     }
     case TK_DOTS: {  /* vararg */
       FuncState *fs = ls->fs;
-      check_condition(ls, fs->f->is_vararg,
+      check_condition(ls, fs->f->flag & PF_ISVARARG,
                       "cannot use '...' outside a vararg function");
       init_exp(v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
       luaX_next(ls);
@@ -3508,7 +3522,7 @@ static void inexpr (LexState *ls, expdesc *v, int flags) {
   luaK_dischargevars(ls->fs, &v2);
   luaK_exp2nextreg(ls->fs, &v2);
   luaK_codeABC(ls->fs, OP_IN, v->u.reg, v2.u.reg, 0);
-  ls->fs->f->onPlutoOpUsed(0);
+  ls->fs->f->lua_vm_compatible = false;
   ls->fs->freereg = base + 1;
 }
 
@@ -4136,6 +4150,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen, Typ
   int prep, endfor;
   checknext(ls, TK_DO);
   prep = luaK_codeABx(fs, forprep[isgen], base, 0);
+  fs->freereg--;  /* both 'forprep' remove one register from the stack */
   enterblock(fs, &bl, BlockType::BT_CONTINUE);  /* scope for declared variables */
   adjustlocalvars(ls, nvars);
   luaK_reserveregs(fs, nvars);
@@ -4158,8 +4173,7 @@ static void fornum (LexState *ls, TString *varname, TypeHint *prop, int line) {
   int base = fs->freereg;
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  new_localvar(ls, varname);
+  new_localvarkind(ls, varname, RDKCONST);  /* control variable */
   checknext(ls, '=');
   exp1(ls);  /* initial value */
   checknext(ls, ',');
@@ -4170,7 +4184,7 @@ static void fornum (LexState *ls, TString *varname, TypeHint *prop, int line) {
     luaK_int(fs, fs->freereg, 1);
     luaK_reserveregs(fs, 1);
   }
-  adjustlocalvars(ls, 3);  /* control variables */
+  adjustlocalvars(ls, 2);  /* start scope for internal variables */
   forbody(ls, base, line, 1, 0, prop);
 }
 
@@ -4179,16 +4193,15 @@ static void forlist (LexState *ls, TString *indexname, TypeHint *prop) {
   /* forlist -> NAME {,NAME} IN explist forbody */
   FuncState *fs = ls->fs;
   expdesc e;
-  int nvars = 5;  /* gen, state, control, toclose, 'indexname' */
+  int nvars = 4;  /* function, state, closing, control */
   int line;
   int base = fs->freereg;
-  /* create control variables */
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  /* create declared variables */
-  new_localvar(ls, indexname);
+  /* create internal variables */
+  new_localvarliteral(ls, "(for state)");  /* iterator function */
+  new_localvarliteral(ls, "(for state)");  /* state */
+  new_localvarliteral(ls, "(for state)");  /* closing var. (after swap) */
+  new_localvarkind(ls, indexname, RDKCONST);  /* control variable */
+  /* other declared variables */
   while (testnext(ls, ',')) {
     new_localvar(ls, str_checkname(ls));
     nvars++;
@@ -4196,10 +4209,10 @@ static void forlist (LexState *ls, TString *indexname, TypeHint *prop) {
   checknext(ls, TK_IN);
   line = ls->getLineNumber();
   adjust_assign(ls, 4, explist(ls, &e), &e);
-  adjustlocalvars(ls, 4);  /* control variables */
-  marktobeclosed(fs);  /* last control var. must be closed */
-  luaK_checkstack(fs, 3);  /* extra space to call generator */
-  forbody(ls, base, line, nvars - 4, 1, prop);
+  adjustlocalvars(ls, 3);  /* start scope for internal variables */
+  marktobeclosed(fs);  /* last internal var. must be closed */
+  luaK_checkstack(fs, 2);  /* extra space to call iterator */
+  forbody(ls, base, line, nvars - 3, 1, prop);
 }
 
 
@@ -4207,32 +4220,30 @@ static void forvlist (LexState *ls, TypeHint *prop) {
   /* forvlist -> explist AS NAME forbody */
   FuncState *fs = ls->fs;
   expdesc e;
-  int nvars = 5;  /* gen, state, control, toclose, 'indexname' */
+  int nvars = 4;  /* function, state, closing, control */
   int line;
   int base = fs->freereg;
-  /* create control variables */
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  new_localvarliteral(ls, "(for state)");
-  /* create variable for key */
-  new_localvar(ls, luaS_newliteral(ls->L, "(for state)"));
+  /* create internal variables */
+  new_localvarliteral(ls, "(for state)");  /* iterator function */
+  new_localvarliteral(ls, "(for state)");  /* state */
+  new_localvarliteral(ls, "(for state)");  /* closing var. (after swap) */
+  new_localvarkind(ls, luaS_newliteral(ls->L, "(for state)"), RDKCONST);  /* control variable */
   /* create variable for value */
   int vidx = new_localvar(ls, luaS_newliteral(ls->L, "(for state)"));
   nvars++;
 
   line = ls->getLineNumber();
   adjust_assign(ls, 4, explist(ls, &e), &e);
-  adjustlocalvars(ls, 4);  /* control variables */
-  marktobeclosed(fs);  /* last control var. must be closed */
-  luaK_checkstack(fs, 3);  /* extra space to call generator */
+  adjustlocalvars(ls, 3);  /* start scope for internal variables */
+  marktobeclosed(fs);  /* last internal var. must be closed */
+  luaK_checkstack(fs, 2);  /* extra space to call iterator */
 
   checknext(ls, TK_AS);
   TString *name = str_checkname(ls);
   checkforshadowing(ls, fs, name, line);
   getlocalvardesc(fs, vidx)->vd.name = name;
 
-  forbody(ls, base, line, nvars - 4, 1, prop);
+  forbody(ls, base, line, nvars - 3, 1, prop);
 }
 
 
@@ -4563,7 +4574,7 @@ static void localstat (LexState *ls) {
   FuncState *fs = ls->fs;
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
-  int vidx, kind;  /* index and kind of last variable */
+  int vidx;  /* index of last variable */
   int nvars = 0;
   int nexps;
   expdesc e;
@@ -4575,10 +4586,11 @@ static void localstat (LexState *ls) {
   do {
     if (is_constexpr)
       luaK_semerror(ls, "<constexpr> must only be used on the last variable in local list");
-    TString* name = str_checkname(ls, N_OVERRIDABLE);
-    vidx = new_localvar(ls, name, line, gettypehint(ls), false);
-    ls->localstat_variable_names.emplace(name);
-    kind = getlocalattribute(ls);
+    TString *vname = str_checkname(ls, N_OVERRIDABLE);
+    auto hint = gettypehint(ls);
+    int kind = getlocalattribute(ls);
+    vidx = new_localvarex(ls, vname, kind, line, std::move(hint), false);
+    ls->localstat_variable_names.emplace(vname);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
@@ -5001,7 +5013,7 @@ static void trystat (LexState *ls) {
 
   const auto line = ls->getLineNumber();
   luaX_next(ls);
-  const bool vararg = ls->fs->f->is_vararg;
+  const bool vararg = (ls->fs->f->flag & PF_ISVARARG);
 
   /* temp (try status), (try result), (try result2), (try result3) = */
   const auto status_reg = ls->fs->freereg;
