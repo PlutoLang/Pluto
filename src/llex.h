@@ -8,6 +8,7 @@
 #include <limits.h>
 
 #include <cstring> // memcpy
+#include <optional>
 #include <stack>
 #include <string>
 #include <string_view>
@@ -68,6 +69,10 @@ enum RESERVED {
 #define FIRST_OPTIONAL TK_LET
 #define FIRST_SPECIAL TK_SUGGEST_0
 #define LAST_RESERVED TK_WHILE
+
+static_assert(TK_PNEW + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_NEW);
+static_assert(TK_PCATCH + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_CATCH);
+static_assert(TK_PSWITCH + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_SWITCH);
 
 #define END_COMPAT FIRST_NON_COMPAT
 #define END_NON_COMPAT FIRST_OPTIONAL
@@ -161,6 +166,28 @@ struct Token {
 
   [[nodiscard]] bool IsOverridable() const noexcept {
       return token == TK_PARENT || token == TK_PPARENT;
+  }
+
+  [[nodiscard]] bool isSimple() const noexcept {
+    switch (token) {
+    case TK_NIL:
+    case TK_FLT:
+    case TK_INT:
+    case TK_TRUE:
+    case TK_FALSE:
+    case TK_STRING:
+      return true;
+    }
+
+    return false;
+  }
+
+  [[nodiscard]] int normalizedToken() const noexcept {
+    if (IsCompatible() && token != TK_PUSE) {
+      return token + (FIRST_NON_COMPAT - FIRST_COMPAT - 1);
+    }
+
+    return token;
   }
 };
 
@@ -328,14 +355,25 @@ enum ParserContext : lu_byte {
 
 struct ClassData {
   size_t parent_name_pos = 0;
-  std::vector<std::string> private_fields{};
-  
-  [[nodiscard]] bool isPrivate(const char* fieldname) const noexcept {
+  std::unordered_set<std::string> private_fields{};
+
+  std::string addField(std::string&& name) {
+    private_fields.emplace(name);
+    return addPrefix(std::move(name));
+  }
+
+  [[nodiscard]] std::string addPrefix(std::string&& name) const {
+    name.insert(0, "__restricted__");
+    return name;
+  }
+
+  [[nodiscard]] std::optional<std::string> getSpecialName(TString* key) const {
     for (const auto& pf : private_fields) {
-      if (pf == fieldname)
-        return true;
+      if (pf == getstr(key)) {
+        return addPrefix(getstr(key));
+      }
     }
-    return false;
+    return std::nullopt;
   }
 };
 
@@ -348,10 +386,18 @@ struct EnumDesc {
 };
 
 enum KeywordState : lu_byte {
+  /* "Uninformed" means this is the default state of the keyword and may be adjusted based on observed usage. */
+  KS_ENABLED_BY_PLUTO_UNINFORMED,
+  KS_DISABLED_BY_PLUTO_UNINFORMED,
+  /* "Informed" means the state of the keyword has been informed by observed usage. */
+  KS_ENABLED_BY_PLUTO_INFORMED,
+  KS_DISABLED_BY_PLUTO_INFORMED,
+  /* Environment settings overwrite Pluto. */
   KS_ENABLED_BY_ENV,
   KS_DISABLED_BY_ENV,
-  KS_ENABLED_BY_USER,
-  KS_DISABLED_BY_USER,
+  /* 'pluto_use' overwrites environment and Pluto. */
+  KS_ENABLED_BY_SCRIPTER,
+  KS_DISABLED_BY_SCRIPTER,
 };
 
 struct FuncArgsState {
@@ -414,16 +460,17 @@ struct LexState {
   KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
   bool nodiscard = false;
   bool used_walrus = false;
+  std::unordered_map<int, int> uninformed_reserved{}; // When a reserved word is intelligently disabled for compatibility, it is added to this map. (token, line)
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
     laststat.token = TK_EOS;
-    parser_context_stck.push(PARCTX_NONE); /* ensure there is at least 1 item on the parser context stack */
+    parser_context_stck.push(PARCTX_NONE);  /* ensure there is at least 1 item on the parser context stack */
     for (int i = FIRST_NON_COMPAT; i != END_NON_COMPAT; ++i) {
-      setKeywordState(i, KS_ENABLED_BY_ENV);
+      setKeywordState(i, KS_ENABLED_BY_PLUTO_UNINFORMED);
     }
     for (int i = FIRST_OPTIONAL; i != END_OPTIONAL; ++i) {
-      setKeywordState(i, KS_DISABLED_BY_ENV);
+      setKeywordState(i, KS_DISABLED_BY_ENV);  /* optional keywords are not applicable for auto-detection */
     }
   }
 
@@ -546,9 +593,9 @@ struct LexState {
 #endif
 
   [[nodiscard]] bool isKeywordEnabled(int t) const noexcept {
-    static_assert((KS_ENABLED_BY_USER & 1) == 0);
+    static_assert((KS_ENABLED_BY_SCRIPTER & 1) == 0);
     static_assert((KS_ENABLED_BY_ENV & 1) == 0);
-    static_assert((KS_DISABLED_BY_USER & 1) != 0);
+    static_assert((KS_DISABLED_BY_SCRIPTER & 1) != 0);
     static_assert((KS_DISABLED_BY_ENV & 1) != 0);
     return (getKeywordState(t) & 1) == 0;
   }
@@ -581,6 +628,6 @@ LUAI_FUNC void luaX_setpos(LexState *ls, size_t pos);
 LUAI_FUNC int luaX_lookahead(LexState *ls);
 LUAI_FUNC const Token& luaX_lookbehind(LexState *ls);
 LUAI_FUNC l_noret luaX_syntaxerror (LexState *ls, const char *s);
-LUAI_FUNC const char *luaX_token2str (LexState *ls, int token);
-LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, int token);
+LUAI_FUNC const char *luaX_token2str (LexState *ls, const Token& t);
+LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, const Token& t);
 LUAI_FUNC const char *luaX_reserved2str (int token);

@@ -289,6 +289,13 @@ function module.type(desired_type, ...)
   end
 end
 
+function module.contains(element, container)
+  local container_type = type(container)
+  if (container_type != "string" and container_type != "table") or (not element in container) then
+    return new AssertionError("contains", element, container):setNameOverride("Element", "Container"):raise()
+  end
+end
+
 setmetatable(module, {
   __call = function (self, cond, err_msg = "assertion failed!")
     err_msg = " " .. err_msg
