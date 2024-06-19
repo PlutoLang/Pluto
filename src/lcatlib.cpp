@@ -14,7 +14,11 @@ static void cat_encode_value (lua_State *L, std::string& data, const std::string
     lua_pushliteral(L, "__value");
     if (lua_rawget(L, -2) > LUA_TNIL) {
       data.append(": ");
-      data.append(lua_tostring(L, -1));
+      size_t len;
+      const char *str = lua_tolstring(L, -1, &len);
+      std::string value(str, len);
+      soup::cat::encodeValue(value);
+      data.append(value);
     }
     lua_pop(L, 1);
     data.push_back('\n');
@@ -22,7 +26,11 @@ static void cat_encode_value (lua_State *L, std::string& data, const std::string
   }
   else {
     data.append(": ");
-    data.append(lua_tostring(L, -1));
+    size_t len;
+    const char* str = lua_tolstring(L, -1, &len);
+    std::string value(str, len);
+    soup::cat::encodeValue(value);
+    data.append(value);
     data.push_back('\n');
   }
 }
@@ -54,11 +62,14 @@ static void cat_encode_aux (lua_State *L, std::string& data, const std::string& 
   lua_pushnil(L);
   while (lua_next(L, -2)) {
     lua_pushvalue(L, -2);
-    const char *name = lua_tostring(L, -1);
+    size_t len;
+    const char *str = lua_tolstring(L, -1, &len);
+    std::string name(str, len);
     lua_pop(L, 1);
-    if (strcmp(name, "__value") != 0) {
+    if (name != "__value") {
       data.append(prefix);
-      data.append(soup::string::replaceAll(name, ":", "\\:"));
+      soup::cat::encodeName(name);
+      data.append(name);
       cat_encode_value(L, data, prefix);
     }
     lua_pop(L, 1);
