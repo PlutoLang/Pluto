@@ -1939,6 +1939,14 @@ do
         Hello = ",",
         World = "!",
     }) == "Hello: ,\nWorld: !\n")
+
+    -- Value encoding
+    data = [[Text: "Look at this backslash: \\\r\nLook at this quote: \""]]
+    t = cat.decode(data, "flat")
+    assert(t["Text"] == "Look at this backslash: \\\r\nLook at this quote: \"")
+    data = cat.encode(t)
+    t = cat.decode(data, "flat")
+    assert(t["Text"] == "Look at this backslash: \\\r\nLook at this quote: \"")
 end
 do
     local { base64, bigint, crypto } = require"*"
