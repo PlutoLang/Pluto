@@ -39,8 +39,8 @@ static void cat_encode_aux (lua_State *L, std::string& data, const std::string& 
       const char *fieldname = lua_tostring(L, -1);
       lua_pop(L, 1);
       if (strcmp(fieldname, "__value") != 0) {
-		data.append(prefix);
-		data.append(soup::string::replaceAll(fieldname, ":", "\\:"));
+        data.append(prefix);
+        data.append(soup::string::replaceAll(fieldname, ":", "\\:"));
         lua_rawget(L, -4);
         /* stack: table, order, orderidx, fieldvalue */
         cat_encode_value(L, data, prefix);
