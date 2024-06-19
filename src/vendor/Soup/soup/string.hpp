@@ -285,17 +285,17 @@ NAMESPACE_SOUP
 
 		// conversions
 
-		[[nodiscard]] static std::string bin2hex(const std::string& str, bool spaces = false)
+		[[nodiscard]] static std::string bin2hex(const std::string& str, bool spaces = false) SOUP_EXCAL
 		{
 			return bin2hexImpl(str, spaces, charset_hex);
 		}
 
-		[[nodiscard]] static std::string bin2hexLower(const std::string& str, bool spaces = false)
+		[[nodiscard]] static std::string bin2hexLower(const std::string& str, bool spaces = false) SOUP_EXCAL
 		{
 			return bin2hexImpl(str, spaces, charset_hex_lower);
 		}
 
-		[[nodiscard]] static std::string bin2hexImpl(const std::string& str, bool spaces, const char* map)
+		[[nodiscard]] static std::string bin2hexImpl(const std::string& str, bool spaces, const char* map) SOUP_EXCAL
 		{
 			std::string res{};
 			res.reserve(str.size() * 2);
@@ -314,6 +314,8 @@ NAMESPACE_SOUP
 			}
 			return res;
 		}
+
+		[[nodiscard]] static std::string hex2bin(const std::string& hex) SOUP_EXCAL;
 
 		enum ToIntFlags : uint8_t
 		{
@@ -600,7 +602,7 @@ NAMESPACE_SOUP
 		// string mutation
 
 		template <class S>
-		static void replaceAll(S& str, const S& from, const S& to) noexcept
+		static void replaceAll(S& str, const S& from, const S& to) SOUP_EXCAL
 		{
 			size_t start_pos = 0;
 			while ((start_pos = str.find(from, start_pos)) != S::npos)
@@ -610,30 +612,30 @@ NAMESPACE_SOUP
 			}
 		}
 
-		static void replaceAll(std::string& str, const std::string& from, const std::string& to) noexcept
+		static void replaceAll(std::string& str, const std::string& from, const std::string& to) SOUP_EXCAL
 		{
 			return replaceAll<std::string>(str, from, to);
 		}
 
-		static void replaceAll(std::wstring& str, const std::wstring& from, const std::wstring& to) noexcept
+		static void replaceAll(std::wstring& str, const std::wstring& from, const std::wstring& to) SOUP_EXCAL
 		{
 			return replaceAll<std::wstring>(str, from, to);
 		}
 
 		template <class S>
-		[[nodiscard]] static S replaceAll(const S& str, const S& from, const S& to) noexcept
+		[[nodiscard]] static S replaceAll(const S& str, const S& from, const S& to) SOUP_EXCAL
 		{
 			S cpy(str);
 			replaceAll(cpy, from, to);
 			return cpy;
 		}
 
-		[[nodiscard]] static std::string replaceAll(const std::string& str, const std::string& from, const std::string& to) noexcept
+		[[nodiscard]] static std::string replaceAll(const std::string& str, const std::string& from, const std::string& to) SOUP_EXCAL
 		{
 			return replaceAll<std::string>(str, from, to);
 		}
 
-		[[nodiscard]] static std::wstring replaceAll(const std::wstring& str, const std::wstring& from, const std::wstring& to) noexcept
+		[[nodiscard]] static std::wstring replaceAll(const std::wstring& str, const std::wstring& from, const std::wstring& to) SOUP_EXCAL
 		{
 			return replaceAll<std::wstring>(str, from, to);
 		}

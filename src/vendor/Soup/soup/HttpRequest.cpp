@@ -1,7 +1,9 @@
 #include "HttpRequest.hpp"
 
+#include "HttpRequestTask.hpp"
 #include "joaat.hpp"
 #include "ObfusString.hpp"
+#include "os.hpp"
 #include "Scheduler.hpp"
 #include "Socket.hpp"
 #include "UniquePtr.hpp"
@@ -113,8 +115,18 @@ NAMESPACE_SOUP
 		Optional<HttpResponse> resp;
 	};
 
-	Optional<HttpResponse> HttpRequest::execute() const
+	Optional<HttpResponse> HttpRequest::execute(Scheduler* keep_alive_sched) const
 	{
+		if (keep_alive_sched)
+		{
+			auto task = keep_alive_sched->add<HttpRequestTask>(HttpRequest(*this));
+			do
+			{
+				os::sleep(1);
+			} while (!task->isWorkDone());
+			SOUP_MOVE_RETURN(task->result);
+		}
+
 		HttpRequestExecuteData data{ this };
 		auto sock = make_shared<Socket>();
 		const auto& host = getHost();
@@ -138,7 +150,7 @@ NAMESPACE_SOUP
 			sched.setAddWorkerCanWaitForeverForAllICare();
 			sched.run();
 		}
-		return data.resp;
+		SOUP_MOVE_RETURN(data.resp);
 	}
 
 	struct HttpRequestExecuteEventStreamData

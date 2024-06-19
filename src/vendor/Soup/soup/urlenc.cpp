@@ -39,7 +39,7 @@ NAMESPACE_SOUP
 			switch (c)
 			{
 			UNRESERVED
-			case '/':
+			case '/': case '@':
 				res.push_back(c);
 				break;
 
@@ -58,7 +58,8 @@ NAMESPACE_SOUP
 			switch (c)
 			{
 			UNRESERVED
-			case '/': case '?': case '=': case '&':
+			case '/': case '@':
+			case '?': case '=': case '&':
 				res.push_back(c);
 				break;
 

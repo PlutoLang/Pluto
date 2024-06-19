@@ -9,11 +9,9 @@
 NAMESPACE_SOUP
 {
 	/**
-	 * Cat (short for Colons and Tabs) is a format that arose from our need for a simple data exchange format that is human-readable and maybe even human-writable.
-	 * People would usually use JSON for that task, but let's not kid ourselves, JSON is not very human-friendly, as I've seen first-hand.
-	 * JSON also has the drawback of being rather difficult to parse, so you'd be crawling to rapidjson, nlohmann/json, or whatever.
-	 * Cat is dead-simple to write from any existing tree structure and a parser can be implemented in about 50 lines of code.
-	 * Strings are the only value type because they can be easily converted to and from bool, int, float, and even custom types.
+	 * Cat (short for Colons and Tabs) is a dead-simple configuration format that arose from our need for a human-friendly & easy-to-parse data exchange format.
+	 * The format itself is described at https://github.com/calamity-inc/Soup/blob/senpai/docs/user/cat.md
+	 * This implementation includes all optional features (value escaping, spaces).
 	 */
 
 	struct catNode
@@ -36,6 +34,14 @@ NAMESPACE_SOUP
 		virtual ~catNode() = default;
 	};
 
-	// Returns a default-constructed UniquePtr in case of malformed data.
-	[[nodiscard]] UniquePtr<catNode> catParse(Reader& r) SOUP_EXCAL;
+	struct cat
+	{
+		// Returns a default-constructed UniquePtr in case of malformed data.
+		[[nodiscard]] static UniquePtr<catNode> parse(Reader& r) SOUP_EXCAL;
+
+		static void encodeName(std::string& name);
+		static void encodeValue(std::string& value) SOUP_EXCAL;
+	};
+
+	[[deprecated]] inline UniquePtr<catNode> catParse(Reader& r) SOUP_EXCAL { return cat::parse(r); }
 }
