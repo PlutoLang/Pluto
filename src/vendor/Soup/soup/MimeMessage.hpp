@@ -18,6 +18,7 @@ NAMESPACE_SOUP
 		MimeMessage(const std::string& data);
 
 		void setBody(std::string body);
+		[[nodiscard]] std::string getBody() const;
 
 		void setContentLength();
 		void setContentType();

@@ -7,40 +7,9 @@
 #include "HttpRequest.hpp"
 #include "HttpRequestTask.hpp"
 #include "ObfusString.hpp"
-#include "os.hpp"
-#include "Scheduler.hpp"
 
 NAMESPACE_SOUP
 {
-	struct dnsLookupWrapperTask : public dnsLookupTask
-	{
-		UniquePtr<dnsLookupTask> subtask;
-
-		dnsLookupWrapperTask(UniquePtr<dnsLookupTask>&& subtask)
-			: subtask(std::move(subtask))
-		{
-		}
-
-		void onTick() final
-		{
-			if (subtask->tickUntilDone())
-			{
-				result = std::move(subtask->result);
-				setWorkDone();
-			}
-		}
-
-		[[nodiscard]] std::string toString() const SOUP_EXCAL final
-		{
-			std::string str = ObfusString("dnsLookupWrapperTask");
-			str.append(": ");
-			str.push_back('[');
-			str.append(subtask->toString());
-			str.push_back(']');
-			return str;
-		}
-	};
-
 	Optional<std::vector<UniquePtr<dnsRecord>>> dnsHttpResolver::lookup(dnsType qtype, const std::string& name) const
 	{
 		std::vector<UniquePtr<dnsRecord>> res;
@@ -48,25 +17,14 @@ NAMESPACE_SOUP
 		{
 			return res;
 		}
-		if (keep_alive_sched)
-		{
-			auto task = keep_alive_sched->add<dnsLookupWrapperTask>(makeLookupTask(qtype, name));
-			do
-			{
-				os::sleep(1);
-			} while (!task->isWorkDone());
-			SOUP_MOVE_RETURN(task->result);
-		}
-		else
-		{
-			std::string path = "/dns-query?dns=";
-			path.append(base64::urlEncode(getQuery(qtype, name)));
 
-			HttpRequest hr(std::string(server), std::move(path));
-			auto hres = hr.execute();
+		std::string path = "/dns-query?dns=";
+		path.append(base64::urlEncode(getQuery(qtype, name)));
 
-			return parseResponse(std::move(hres->body));
-		}
+		HttpRequest hr(std::string(server), std::move(path));
+		auto hres = hr.execute(keep_alive_sched);
+
+		return parseResponse(std::move(hres->body));
 	}
 
 	struct dnsHttpLookupTask : public dnsLookupTask

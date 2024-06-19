@@ -7,6 +7,44 @@
 
 NAMESPACE_SOUP
 {
+	std::string string::hex2bin(const std::string& hex) SOUP_EXCAL
+	{
+		std::string bin;
+		uint8_t val = 0;
+		bool first_nibble = true;
+		for (const auto& c : hex)
+		{
+			if (isNumberChar(c))
+			{
+				val |= (c - '0');
+			}
+			else if (c >= 'a' && c <= 'f')
+			{
+				val |= 0xA + (c - 'a');
+			}
+			else if (c >= 'A' && c <= 'F')
+			{
+				val |= 0xA + (c - 'A');
+			}
+			else
+			{
+				continue;
+			}
+			if (first_nibble)
+			{
+				val <<= 4;
+				first_nibble = false;
+			}
+			else
+			{
+				bin.push_back(val);
+				val = 0;
+				first_nibble = true;
+			}
+		}
+		return bin;
+	}
+
 	std::string string::escape(const std::string& str)
 	{
 		std::string res;

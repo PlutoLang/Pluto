@@ -173,7 +173,7 @@ static int cat_decode (lua_State *L) {
   size_t len;
   const char *data = luaL_checklstring(L, 1, &len);
   soup::StringRefReader sr(data, len);
-  if (auto root = soup::catParse(sr)) {
+  if (auto root = soup::cat::parse(sr)) {
     lua_newtable(L);
     if (flat)
       cat_decode_aux_flat(L, *root, withorder);
