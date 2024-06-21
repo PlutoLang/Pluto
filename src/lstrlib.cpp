@@ -2284,13 +2284,12 @@ static int str_truncate (lua_State *L) {
 
 static int str_replace (lua_State *L) {
   size_t pos = 0;
-  size_t oglen = 0;
   size_t sublen = 0;
   size_t newlen = 0;
 
-  std::string og = luaL_checklstring(L, 1, &oglen);
-  const std::string_view sub = luaL_checklstring(L, 2, &sublen);
-  const std::string_view new_ = luaL_checklstring(L, 3, &newlen);
+  std::string og = pluto_checkstring(L, 1);
+  const char *sub = luaL_checklstring(L, 2, &sublen);
+  const char *new_ = luaL_checklstring(L, 3, &newlen);
   const auto max_replace = luaL_optinteger(L, 4, 0);
 
   luaL_check(L, sublen == 0, "argument 'substitute' for string.replace cannot be empty");
@@ -2298,7 +2297,7 @@ static int str_replace (lua_State *L) {
 
   const bool erase = newlen == 0;
   size_t replacements = 0;
-  while ((pos = og.find(sub, pos)) != std::string::npos) {
+  while ((pos = og.find(sub, pos, sublen)) != std::string::npos) {
     if (max_replace != 0 && replacements++ == max_replace) {
       break;
     }
@@ -2307,7 +2306,7 @@ static int str_replace (lua_State *L) {
       og.erase(pos, sublen);
     }
     else {
-      og.replace(pos, sublen, new_);
+      og.replace(pos, sublen, new_, newlen);
       pos += newlen;
     }
   }
