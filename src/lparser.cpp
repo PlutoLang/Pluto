@@ -4296,7 +4296,7 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
       leaveblock(fs);
       enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
     }
-    if (ls->t.token == TK_IF)
+    if (ls->t.token == TK_IF && ls->t.line == luaX_lookbehind(ls).line)
       ls->else_if = ls->getLineNumber();
     block(ls, prop);  /* 'else' part */
   }
