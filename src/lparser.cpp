@@ -4715,7 +4715,7 @@ static void retstat (LexState *ls, TypeHint *prop) {
   int startpc = fs->pc;
   int endpc = -1;
   if (block_follow(ls, 1) || ls->t.token == ';'
-    || ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT
+    || (!ls->switchstates.empty() && (ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT))
   ) {
     nret = 0;  /* return no values */
     if (prop) prop->emplaceTypeDesc(VT_VOID);

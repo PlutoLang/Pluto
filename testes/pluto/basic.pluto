@@ -3107,6 +3107,12 @@ do
     assert(((true and "hello" or "goodbye") .. "world") == "helloworld")
 end
 assert({ load[[if then print("hello")]] }[2]:contains[[unexpected symbol near 'then']])
+do
+    local function well_in_that(case)
+        return case
+    end
+    assert(well_in_that("case") == "case")
+end
 
 print "Testing universal functions."
 do
