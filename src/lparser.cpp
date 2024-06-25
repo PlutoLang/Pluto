@@ -36,8 +36,6 @@
 #include "lstring.h"
 #include "lsuggestions.hpp"
 #include "ltable.h"
-#include "lauxlib.h"
-#include "lvm.h"
 
 #include "lerrormessage.hpp"
 
@@ -3657,14 +3655,14 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
           else if (v->k == VCONST && ttisstring(&ls->dyd->actvar.arr[v->u.info].k))
             lhs = tsvalue(&ls->dyd->actvar.arr[v->u.info].k);
           if (lhs && ls->t.token == TK_STRING) {
-            setsvalue2s(ls->L, ls->L->top.p, lhs);
-            ls->L->top.p++;
-            setsvalue2s(ls->L, ls->L->top.p, ls->t.seminfo.ts);
-            ls->L->top.p++;
-            luaV_concat(ls->L, 2);
-            ls->L->top.p--;
+            const auto lhs_size = tsslen(lhs);
+            const auto rhs_size = tsslen(ls->t.seminfo.ts);
+            auto data = new char[lhs_size + rhs_size];
+            memcpy(data, getstr(lhs), lhs_size);
+            memcpy(data + lhs_size, getstr(ls->t.seminfo.ts), rhs_size);
             v->k = VKSTR;
-            v->u.strval = tsvalue(s2v(ls->L->top.p));
+            v->u.strval = luaX_newstring(ls, data, lhs_size + rhs_size);
+            delete[] data;
             luaX_next(ls);
             op = getbinopr(ls->t.token);
             continue;
