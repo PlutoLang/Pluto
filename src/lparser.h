@@ -146,7 +146,7 @@ struct TypeDesc {
 
   /* function info */
   Proto* proto = nullptr;
-  TypeHint* retn;
+  TypeHint* retn = nullptr;
   static constexpr int MAX_TYPED_PARAMS = 10;
   TypeHint* params[MAX_TYPED_PARAMS];
   bool nodiscard = false;

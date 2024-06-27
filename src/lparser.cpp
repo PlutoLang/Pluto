@@ -66,6 +66,7 @@
 std::string TypeDesc::toString() const {
   std::string str = vtToString(type);
   if (type == VT_FUNC &&
+      retn &&
       !retn->empty()) {
     str.push_back('(');
     str.append(retn->toString());

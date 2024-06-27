@@ -84,6 +84,12 @@ do
         local a = f()
     end
 
+    -- Another possible exception here
+    assert_warn([[
+    local function delegator(f: function) end
+    delegator()
+    ]])
+
     assert_warn([[local a = 69; local b: string = a]]) -- type mismatch in local-to-local assignment
     assert_warn([[g = 69; local l: string = g]]) -- type mismatch in global-to-local assignment
 
