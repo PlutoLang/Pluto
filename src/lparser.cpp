@@ -3194,9 +3194,8 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   const auto nactvar = fs->nactvar;
 
   std::vector<int>& first = ls->switchstates.top().first;
-  TString* const begin_switch = luaS_newliteral(ls->L, "pluto_begin_switch");
-  TString* default_case = nullptr;
-  int first_pc, default_pc;
+  int default_pc = -1;
+  int first_pc, goto_begin_pc;
 
   if (gett(ls) == TK_CASE) {
     luaX_next(ls); /* Skip 'case' */
@@ -3205,7 +3204,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     caselist(ls, ud);
   }
   else {
-    newgotoentry(ls, begin_switch, ls->getLineNumber(), luaK_jump(fs), false); // goto begin_switch
+    goto_begin_pc = luaK_jump(fs);
   }
 
   std::vector<SwitchCase>& cases = ls->switchstates.top().cases;
@@ -3221,11 +3220,9 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
       checknext(ls, tk);
-      if (default_case != nullptr)
+      if (default_pc != -1)
         throwerr(ls, "switch statement already has a default case", "second default case", case_line);
-      default_case = luaS_newliteral(ls->L, "pluto_default_case");
       default_pc = luaK_getlabel(fs);
-      createlabel(ls, default_case, ls->getLineNumber(), false, false);
     }
     else {
       checknext(ls, TK_CASE);
@@ -3246,10 +3243,8 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   /* if switch expression has no default case, generate one to guarantee nil in that case
      otherwise, the value returned by the expression would be whatever was in the register before */
-  if (tk == TK_ARROW && default_case == nullptr) {
-    default_case = luaS_newliteral(ls->L, "pluto_default_case");
+  if (tk == TK_ARROW && default_pc == -1) {
     default_pc = luaK_getlabel(fs);
-    createlabel(ls, default_case, ls->getLineNumber(), false, false);
     const auto line = ls->getLineNumber();
     const auto reg = reinterpret_cast<expdesc*>(ud)->u.reg;
     expdesc cv;
@@ -3266,11 +3261,11 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     luaK_patchtohere(fs, first.back());
   }
   else {
-    createlabel(ls, begin_switch, ls->getLineNumber(), false, false); // ::begin_switch::
+    luaK_patchtohere(fs, goto_begin_pc);
   }
 
   /* prune cases that lead to default case */
-  if (default_case) {
+  if (default_pc != -1) {
     for (auto i = cases.begin(); i != cases.end(); ) {
       if (i->pc == default_pc) {
         i = cases.erase(i);
@@ -3293,8 +3288,8 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   }
   ls->fs->nactvar = nactvarend;
 
-  if (default_case != nullptr)
-    lgoto(ls, default_case, ls->getLineNumber());
+  if (default_pc != -1)
+    luaK_jumpto(fs, default_pc);
 
   if (tk == TK_ARROW && fs->pinnedreg != -1) {
     fs->pinnedreg = prevpinnedreg;
