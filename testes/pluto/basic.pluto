@@ -1303,6 +1303,14 @@ do
     end
     assert(f() == nil)
 end
+-- Possible infinite loop
+assert(
+    switch 0 do
+        default -> switch 1 do
+            default -> true
+        end
+    end
+)
 
 print "Testing table freezing."
 do
