@@ -93,6 +93,8 @@ typedef struct BlockCnt {
   BlockType type;  /* one of block types */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
   std::vector<TString*> export_symbols{};
+  ValType var_overide = VT_NONE;
+  unsigned short var_overide_vidx;
 } BlockCnt;
 
 
@@ -532,7 +534,12 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
 */
 static void exp_propagate(LexState* ls, const expdesc& e, TypeHint& t) noexcept {
   if (e.k == VLOCAL) {
-    t.merge(*getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop);
+    if (ls->fs->bl->var_overide != VT_NONE && ls->fs->bl->var_overide_vidx == e.u.var.vidx) {
+      t.merge(ls->fs->bl->var_overide);
+    }
+    else {
+      t.merge(*getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop);
+    }
   }
   else if (e.k == VCONST) {
     TValue* val = &ls->dyd->actvar.arr[e.u.info].k;
@@ -549,7 +556,8 @@ static void exp_propagate(LexState* ls, const expdesc& e, TypeHint& t) noexcept 
 }
 
 
-static void process_assign(LexState* ls, Vardesc* var, const TypeHint& t, int line) {
+static void process_assign (LexState *ls, int vidx, const TypeHint& t, int line) {
+  Vardesc *var = getlocalvardesc(ls->fs, vidx);
   auto hinted = !var->vd.hint->empty();
   auto knownvalue = !t.empty();
   auto incompatible = !var->vd.hint->isCompatibleWith(t);
@@ -570,6 +578,9 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeHint& t, int li
     }
   }
   var->vd.prop->merge(t); /* propagate type */
+  if (ls->fs->bl->var_overide != VT_NONE && ls->fs->bl->var_overide_vidx == vidx) {
+    ls->fs->bl->var_overide = t.toPrimitive();
+  }
 }
 
 
@@ -3927,7 +3938,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       }
       if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
         exp_propagate(ls, e, prop);
-        process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), prop, line);
+        process_assign(ls, lh->v.u.var.vidx, prop, line);
       }
       luaK_storevar(ls->fs, &lh->v, &e);
       return;  /* avoid default */
@@ -4264,6 +4275,54 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   expdesc v;
   int jf;  /* instruction to skip 'then' code (if condition is false) */
   luaX_next(ls);  /* skip IF or ELSEIF */
+
+  if (ls->t.token == TK_NAME && eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "type"))) {
+    luaX_next(ls);
+    if (testnext(ls, '(')) {
+      if (isnametkn(ls)) {
+        expdesc var;
+        singlevar(ls, &var);
+        if (var.k == VLOCAL && testnext(ls, ')')) {
+          if (testnext(ls, TK_EQ)) {
+            if (ls->t.token == TK_STRING) {
+              bl.var_overide_vidx = var.u.var.vidx;
+              if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "nil"))) {
+                bl.var_overide = VT_NIL;
+              }
+              else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "boolean"))) {
+                bl.var_overide = VT_BOOL;
+              }
+              else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "number"))) {
+                bl.var_overide = VT_NUMBER;
+              }
+              else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "string"))) {
+                bl.var_overide = VT_STR;
+              }
+              else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "table"))) {
+                bl.var_overide = VT_TABLE;
+              }
+              else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "function"))) {
+                bl.var_overide = VT_FUNC;
+              }
+              else if (!eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "userdata"))
+                && !eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "thread"))
+                && !eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "no value"))
+              ) {
+                throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a possible return value of 'type'", getstr(ls->t.seminfo.ts)), WT_POSSIBLE_TYPO);
+                ls->L->top.p--;
+              }
+            }
+            luaX_prev(ls);  /* back to '==' */
+          }
+          luaX_prev(ls);  /* back to ')' */
+        }
+        luaX_prev(ls);  /* back to nametkn */
+      }
+      luaX_prev(ls);  /* back to '(' */
+    }
+    luaX_prev(ls);  /* back to "type" */
+  }
+
   ls->used_walrus = false;
   expr(ls, &v, nullptr, E_WALRUS);  /* read condition */
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);
@@ -4629,7 +4688,7 @@ static void localstat (LexState *ls) {
   else {
     e.k = VVOID;
     nexps = 0;
-    process_assign(ls, var, TypeHint{ VT_NIL }, line);
+    process_assign(ls, vidx, TypeHint{ VT_NIL }, line);
     checkforshadowing(ls, fs, ls->localstat_variable_names, line);
   }
   if (is_constexpr) {
@@ -4651,7 +4710,7 @@ static void localstat (LexState *ls) {
     else {
       vidx = vidx - nvars + 1;
       for (void* t : ls->localstat_ts) {
-        process_assign(ls, getlocalvardesc(fs, vidx), *(TypeHint*)t, line);
+        process_assign(ls, vidx, *(TypeHint*)t, line);
         ++vidx;
       }
       adjust_assign(ls, nvars, nexps, &e);
@@ -4686,14 +4745,14 @@ static void conststat (LexState *ls) {
     }
     else {
       exp_propagate(ls, e, t);
-      process_assign(ls, var, t, line);
+      process_assign(ls, vidx, t, line);
       adjust_assign(ls, 1, 1, &e);
       adjustlocalvars(ls, 1);
     }
   }
   else {
     e.k = VVOID;
-    process_assign(ls, var, TypeHint{ VT_NIL }, line);
+    process_assign(ls, vidx, TypeHint{ VT_NIL }, line);
     adjust_assign(ls, 1, 0, &e);
     adjustlocalvars(ls, 1);
   }

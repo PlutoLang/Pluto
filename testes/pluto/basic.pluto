@@ -187,6 +187,26 @@ end]]
 else
 end]]
 end
+-- Propagate conditional in block
+do
+    assert_no_warn[[local function test(arg: string|number): void
+        if type(arg) == "string" then
+            local str: string = arg
+        end
+    end]]
+    assert_warn[[local function test(arg: string|number): void
+        if type(arg) == "string" then
+            arg = 69
+            local str: string = arg
+        end
+    end]]
+    assert_no_warn[[local function test(arg: string|number): void
+        if type(arg) == "string" then
+            arg = 69
+            local str: number = arg
+        end
+    end]]
+end
 
 print "Testing assertion library."
 do
