@@ -1896,6 +1896,9 @@ do
     assert(menu:find(|item| -> item.id == 1).name == "Apple")
     assert(menu:find(|item| -> item.id == 2).name == "Banana")
     assert(menu:find(|item| -> item.id == 3) == nil)
+    assert(menu:findindex(|item| -> item.id == 1) == 1)
+    assert(menu:findindex(|item| -> item.id == 2) == 2)
+    assert(menu:findindex(|item| -> item.id == 3) == nil)
 end
 do
     assert({ 1, 2, 3 }:checkall(|x| -> x % 2 == 0) == false)
