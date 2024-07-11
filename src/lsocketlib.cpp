@@ -8,6 +8,7 @@
 #include <queue>
 #include <thread>
 
+#include "vendor/Soup/soup/CertStore.hpp"
 #include "vendor/Soup/soup/netConnectTask.hpp"
 #include "vendor/Soup/soup/Scheduler.hpp"
 #include "vendor/Soup/soup/Server.hpp"
@@ -146,18 +147,52 @@ static int starttlscont (lua_State *L, int status, lua_KContext ctx) {
   return 1;
 }
 
+static void starttlscallback (soup::Socket&, soup::Capture&& cap) SOUP_EXCAL {
+  StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
+  ss.did_tls_handshake = true;
+  ss.recvLoop();  /* re-add recv loop, now on crypto layer */
+}
+
 static int starttls (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
-  if (ss.from_listener) {
-    luaL_error(L, "starttls is currently only possible on client sockets");  /* TODO */
-  }
+
   if (ss.did_tls_handshake)
     return 0;
-  ss.sock->enableCryptoClient(luaL_checkstring(L, 2), [](soup::Socket&, soup::Capture&& cap) SOUP_EXCAL {
-    StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
-    ss.did_tls_handshake = true;
-    ss.recvLoop();  /* re-add recv loop, now on crypto layer */
-  }, &ss);
+
+  if (ss.from_listener) {
+    auto certstore = soup::make_shared<soup::CertStore>();
+    lua_pushnil(L);
+    while (lua_next(L, 2)) {
+      lua_pushliteral(L, "chain");
+      lua_gettable(L, -2);
+      size_t chain_len;
+      const char *chain = luaL_checklstring(L, -1, &chain_len);
+      lua_pop(L, 1);
+      
+      lua_pushliteral(L, "private_key");
+      lua_gettable(L, -2);
+      size_t privkey_len;
+      const char *privkey = luaL_checklstring(L, -1, &privkey_len);
+      lua_pop(L, 1);
+
+      soup::X509Certchain chainstruct;
+      chainstruct.fromPem(std::string(chain, chain_len));
+      certstore->add(std::move(chainstruct), soup::RsaPrivateKey::fromPem(std::string(privkey, privkey_len)));
+
+      lua_pop(L, 1);
+    }
+
+    /* We may have already consumed the client_hello, so we need to give it back to Soup. */
+    while (!ss.recvd.empty()) {
+      ss.sock->transport_unrecv(ss.recvd.back());
+      ss.recvd.pop_back();
+    }
+
+    ss.sock->enableCryptoServer(std::move(certstore), starttlscallback, &ss);
+  }
+  else {
+    ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallback, &ss);
+  }
 
   if (lua_isyieldable(L))
     return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(&ss), starttlscont);
