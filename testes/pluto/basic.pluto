@@ -1914,6 +1914,17 @@ do
     assert(table.back({ "a", "b", "c" }) == "c")
 end
 do
+    local keys = table.keys{
+        a = 1,
+        b = 2,
+        c = 3
+    }
+    assert(#keys == 3)
+    assert(keys:contains("a"))
+    assert(keys:contains("b"))
+    assert(keys:contains("c"))
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
