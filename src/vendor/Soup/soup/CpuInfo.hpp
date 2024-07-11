@@ -18,7 +18,7 @@ NAMESPACE_SOUP
 		CpuInfo() noexcept;
 
 	public:
-		[[nodiscard]] static const CpuInfo& get() noexcept
+		[[nodiscard]] static SOUP_PURE const CpuInfo& get() noexcept
 		{
 			static CpuInfo inst;
 			return inst;
@@ -71,7 +71,7 @@ NAMESPACE_SOUP
 		{
 			return (feature_flags_ecx >> 9) & 1;
 		}
-		
+
 		[[nodiscard]] bool supportsSSE4_1() const noexcept
 		{
 			return (feature_flags_ecx >> 19) & 1;
@@ -95,6 +95,11 @@ NAMESPACE_SOUP
 		[[nodiscard]] bool supportsAVX2() const noexcept
 		{
 			return (extended_features_0_ebx >> 5) & 1;
+		}
+
+		[[nodiscard]] bool supportsAVX512F() const noexcept
+		{
+			return (extended_features_0_ebx >> 16) & 1;
 		}
 
 		[[nodiscard]] bool supportsRDSEED() const noexcept

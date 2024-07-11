@@ -772,7 +772,7 @@ NAMESPACE_SOUP
 		{
 			while (!str.empty())
 			{
-				auto i = str.cbegin();
+				auto i = str.begin();
 				const char c = *i;
 				if (!isSpace(c))
 				{
@@ -787,7 +787,7 @@ NAMESPACE_SOUP
 		{
 			while (!str.empty())
 			{
-				auto i = (str.cend() - 1);
+				auto i = (str.end() - 1);
 				const char c = *i;
 				if (!isSpace(c))
 				{
