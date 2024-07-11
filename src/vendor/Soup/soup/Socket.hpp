@@ -43,7 +43,7 @@ NAMESPACE_SOUP
 		bool dispatched_connection_lost = false;
 		bool callback_recv_on_close = false;
 
-		std::string tls_record_buf{};
+		std::string unrecv_buf{};
 
 		SocketTlsEncrypter tls_encrypter_send;
 		SocketTlsEncrypter tls_encrypter_recv;
@@ -188,6 +188,8 @@ NAMESPACE_SOUP
 	public:
 		void transport_recv(int max_bytes, transport_recv_callback_t callback, Capture&& cap = {}); // 'excal' as long as callback is
 		void transport_recvExact(int bytes, transport_recv_callback_t callback, Capture&& cap = {}, std::string&& pre = {}); // 'excal' as long as callback is
+
+		void transport_unrecv(const std::string& data) SOUP_EXCAL;
 
 		void transport_close() noexcept;
 
