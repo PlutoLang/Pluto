@@ -53,7 +53,7 @@ NAMESPACE_SOUP
 			{
 				return 0;
 			}
-			return 32 - bitutil::getLeastSignificantSetBit(mask);
+			return static_cast<uint8_t>(32 - bitutil::getLeastSignificantSetBit(mask));
 		}
 
 		[[nodiscard]] native_u32_t getLower() const noexcept

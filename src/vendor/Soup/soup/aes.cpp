@@ -443,7 +443,7 @@ NAMESPACE_SOUP
 		}
 	#endif
 #endif
-		expandKey(roundKeys, key, key_len);
+		expandKeyForDecryption(roundKeys, key, key_len);
 		const auto Nr = getNrFromKeyLen(key_len);
 		for (size_t i = 0; i != data_len; i += blockBytesLen)
 		{

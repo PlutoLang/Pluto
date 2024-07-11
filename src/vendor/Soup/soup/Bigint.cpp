@@ -2021,9 +2021,9 @@ NAMESPACE_SOUP
 	{
 		auto bin = toBinary();
 		SOUP_ASSERT(bytes >= bin.size());
-		if (auto pad = (bytes - bin.size()))
+		if (size_t pad = (bytes - bin.size()))
 		{
-			bin.insert(bin.cbegin(), pad, '\0');
+			bin.insert(bin.begin(), pad, '\0');
 		}
 		return bin;
 	}

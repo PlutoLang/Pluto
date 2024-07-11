@@ -188,12 +188,9 @@ NAMESPACE_SOUP
 	size_t unicode::utf8_char_len(const std::string& str) noexcept
 	{
 		size_t char_len = 0;
-		for (const auto& c : str)
+		for (size_t i = 0; i != str.size(); ++i)
 		{
-			if (!UTF8_IS_CONTINUATION(c))
-			{
-				++char_len;
-			}
+			char_len += !UTF8_IS_CONTINUATION(str[i]);
 		}
 		return char_len;
 	}
@@ -201,12 +198,9 @@ NAMESPACE_SOUP
 	size_t unicode::utf16_char_len(const UTF16_STRING_TYPE& str) noexcept
 	{
 		size_t char_len = 0;
-		for (const auto& c : str)
+		for (size_t i = 0; i != str.size(); ++i)
 		{
-			SOUP_IF_LIKELY (!UTF16_IS_LOW_SURROGATE(c))
-			{
-				++char_len;
-			}
+			char_len += !UTF16_IS_LOW_SURROGATE(str[i]);
 		}
 		return char_len;
 	}

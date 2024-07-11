@@ -171,7 +171,7 @@ NAMESPACE_SOUP
 			str.append(ObfusString("Lookup #").str());
 			str.push_back(second_lookup ? '2' : '1');
 			str.append(": ");
-			str.append(current_lookup_is_ipv6 ? ObfusString("AAAA") : ObfusString("A"));
+			str.append(current_lookup_is_ipv6 ? ObfusString("AAAA").str() : ObfusString("A").str());
 			str.append(": ");
 			str.push_back('[');
 			str.append(lookup->toString());
