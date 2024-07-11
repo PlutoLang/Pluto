@@ -659,6 +659,11 @@ static void findloader (lua_State *L, const char *name) {
     lua_pushstring(L, package_name);
     lua_call(L, 1, 2);
     if (!lua_isfunction(L, -2)) {
+#ifdef __EMSCRIPTEN__
+      if (strcmp(package_name, "socket") == 0) {
+        luaL_error(L, "pluto library '%s' is not available in WASM builds", package_name);
+      }
+#endif
       luaL_error(L, "'%s' is not a valid pluto library", package_name);
     }
     return;
