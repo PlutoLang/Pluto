@@ -86,7 +86,7 @@ NAMESPACE_SOUP
 		return std::move(sw.data);
 	}
 
-	std::string sha384::hash(const std::string& str) throw()
+	std::string sha384::hash(const std::string& str) SOUP_EXCAL
 	{
 		return hash(str.data(), str.size());
 	}
