@@ -782,10 +782,32 @@ static int tback (lua_State *L) {
 }
 
 
+static int tkeys (lua_State *L) {
+  lua_newtable(L);
+  lua_Integer i = 0;
+  lua_pushnil(L);
+  /* stack now: tKeys, key */
+  while (lua_next(L, 1)) {
+    /* stack now: tKeys, key, value */
+    lua_pop(L, 1);
+    /* stack now: tKeys, key */
+    lua_pushinteger(L, ++i);
+    /* stack now: tKeys, key, index */
+    lua_pushvalue(L, -2);
+    /* stack now: tKeys, key, index, key */
+    lua_settable(L, -4);
+    /* stack now: tKeys, key */
+  }
+  /* stack now: tKeys */
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"keys", tkeys},
   {"back", tback},
   {"clear", tclear},
   {"checkall", checkall},
