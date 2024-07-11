@@ -775,10 +775,18 @@ static int tclear (lua_State *L) {
 }
 
 
+static int tback (lua_State *L) {
+  getn(L);
+  lua_gettable(L, 1);
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"back", tback},
   {"clear", tclear},
   {"checkall", checkall},
   {"find", tfind<false>},
