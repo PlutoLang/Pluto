@@ -1911,6 +1911,9 @@ do
     assert(t:size() == 0)
 end
 do
+    assert(table.back({ "a", "b", "c" }) == "c")
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
