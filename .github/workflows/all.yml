@@ -29,7 +29,7 @@ jobs:
       - run: php scripts/link_static.php
       - uses: actions/upload-artifact@v4
         with:
-          name: "Debian 10 and above"
+          name: "Linux"
           path: |
             src/pluto
             src/plutoc
@@ -39,7 +39,7 @@ jobs:
       - run: php scripts/bundle_deb.php
       - uses: actions/upload-artifact@v4
         with:
-          name: "Debian 10 and above - .deb Package"
+          name: "Linux - .deb Package"
           path: pluto.deb
   macos:
     runs-on: macos-13
