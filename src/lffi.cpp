@@ -116,6 +116,28 @@ struct FfiFuncWrapper {
   return (FfiFuncWrapper*)luaL_checkudata(L, i, "pluto:ffi.funcwrapper");
 }
 
+#ifdef PLUTO_FFI_CALL_HOOK
+extern bool PLUTO_FFI_CALL_HOOK (lua_State *L, void *addr);
+#endif
+
+static int ffi_funcwrapper_call (lua_State *L) {
+  auto fw = checkfuncwrapper(L, 1);
+#ifdef PLUTO_FFI_CALL_HOOK
+  if (!PLUTO_FFI_CALL_HOOK(L, fw->addr)) {
+    luaL_error(L, "disallowed by content moderation policy");
+  }
+#endif
+  uintptr_t args[soup::ffi::MAX_ARGS];
+  int i = 0;
+  for (const auto& arg_type : fw->args) {
+    lua_assert(i < soup::ffi::MAX_ARGS);
+    args[i] = check_ffi_value(L, 2 + i, arg_type);
+    ++i;
+  }
+  uintptr_t retval = soup::ffi::call(fw->addr, args, i);
+  return push_ffi_value(L, fw->ret, &retval);
+}
+
 static int ffi_lib_wrap (lua_State *L) {
   auto fw = new (lua_newuserdata(L, sizeof(FfiFuncWrapper))) FfiFuncWrapper();
   if (luaL_newmetatable(L, "pluto:ffi.funcwrapper")) {
@@ -126,19 +148,7 @@ static int ffi_lib_wrap (lua_State *L) {
     });
     lua_settable(L, -3);
     lua_pushliteral(L, "__call");
-    lua_pushcfunction(L, [](lua_State *L) {
-      /* TODO: Content moderation */
-      auto fw = checkfuncwrapper(L, 1);
-      uintptr_t args[soup::ffi::MAX_ARGS];
-      int i = 0;
-      for (const auto& arg_type : fw->args) {
-        lua_assert(i < soup::ffi::MAX_ARGS);
-        args[i] = check_ffi_value(L, 2 + i, arg_type);
-        ++i;
-      }
-      uintptr_t retval = soup::ffi::call(fw->addr, args, i);
-      return push_ffi_value(L, fw->ret, &retval);
-    });
+    lua_pushcfunction(L, ffi_funcwrapper_call);
     lua_settable(L, -3);
   }
   lua_setmetatable(L, -2);
