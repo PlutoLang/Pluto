@@ -1037,7 +1037,7 @@
 // Disables os.execute & io.popen.
 //#define PLUTO_NO_OS_EXECUTE
 
-// Eliminate any loading of any binaries. This removes package.loadlib and prevents 'require' from loading any C modules or shared libraries.
+// Eliminate any loading of any binaries. This removes package.loadlib & ffi.open and prevents 'require' from loading any C modules or shared libraries.
 //#define PLUTO_NO_BINARIES
 
 #ifdef PLUTO_NO_BINARIES

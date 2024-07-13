@@ -163,6 +163,7 @@ static int ffi_lib_value (lua_State *L) {
 }
 
 static int ffi_open (lua_State *L) {
+#ifndef PLUTO_NO_BINARIES
   const char *libname = luaL_checkstring(L, 1);
   auto lib = new (lua_newuserdata(L, sizeof(soup::SharedLibrary))) soup::SharedLibrary(libname);
   if (luaL_newmetatable(L, "pluto:ffi.library")) {
@@ -187,6 +188,9 @@ static int ffi_open (lua_State *L) {
   if (!lib->isLoaded()) {
     luaL_error(L, "failed to load library '%s'", libname);
   }
+#else
+  PLUTO_NO_BINARIES_FAIL
+#endif
   return 1;
 }
 
