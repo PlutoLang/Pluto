@@ -160,7 +160,7 @@ static int starttls (lua_State *L) {
     return 0;
 
   if (ss.from_listener) {
-    auto certstore = soup::make_shared<soup::CertStore>();
+    auto certstore = pluto_newclassinst(L, soup::SharedPtr<soup::CertStore>);
     lua_pushnil(L);
     while (lua_next(L, 2)) {
       lua_pushliteral(L, "chain");
@@ -177,7 +177,7 @@ static int starttls (lua_State *L) {
 
       soup::X509Certchain chainstruct;
       chainstruct.fromPem(std::string(chain, chain_len));
-      certstore->add(std::move(chainstruct), soup::RsaPrivateKey::fromPem(std::string(privkey, privkey_len)));
+      (*certstore)->add(std::move(chainstruct), soup::RsaPrivateKey::fromPem(std::string(privkey, privkey_len)));
 
       lua_pop(L, 1);
     }
@@ -188,7 +188,7 @@ static int starttls (lua_State *L) {
       ss.recvd.pop_back();
     }
 
-    ss.sock->enableCryptoServer(std::move(certstore), starttlscallback, &ss);
+    ss.sock->enableCryptoServer(std::move(*certstore), starttlscallback, &ss);
   }
   else {
     ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallback, &ss);
