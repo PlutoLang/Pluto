@@ -14,6 +14,7 @@ NAMESPACE_SOUP
 	public:
 		BigBitset<0x100 / 8> space_characters{};
 		BigBitset<0x100 / 8> token_terminators{};
+		BigBitset<0x100 / 8> special_characters{};
 		std::vector<std::vector<Token>> token_sets{};
 
 		SOUP_CONSTEXPR20 LangDesc()
@@ -34,6 +35,12 @@ NAMESPACE_SOUP
 			token_terminators.enable('[');
 			token_terminators.enable('{');
 			token_terminators.enable(';');
+
+			special_characters.enable('+');
+			special_characters.enable('-');
+			special_characters.enable('*');
+			special_characters.enable('/');
+			special_characters.enable('&');
 		}
 
 		Token& addToken(const char* keyword, Token::parse_t parse = nullptr)
