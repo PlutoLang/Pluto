@@ -23,3 +23,19 @@ colour.b = 127
 assert(colour.r == 255)
 assert(colour.g == 0)
 assert(colour.b == 127)
+
+-- ffi.cdef can also be used to define a struct (stored on the FFI library itself)
+ffi.cdef[[
+struct Colour {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+};
+]]
+colour = ffi.new("Colour")
+colour.r = 255
+colour.g = 0
+colour.b = 127
+assert(colour.r == 255)
+assert(colour.g == 0)
+assert(colour.b == 127)
