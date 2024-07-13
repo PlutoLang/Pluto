@@ -7,3 +7,19 @@ assert(lib:wrap("i32", "add", "i32", "i32")(38, 4) == 42)
 -- 'lib' can be used like any old table:
 lib.add = lib:wrap("i32", "add", "i32", "i32")
 assert(lib.add(32, 10) == 42)
+
+-- Structs
+local Colour = ffi.struct[[
+    struct Colour {
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+    };
+]]
+local colour = new Colour()
+colour.r = 255
+colour.g = 0
+colour.b = 127
+assert(colour.r == 255)
+assert(colour.g == 0)
+assert(colour.b == 127)
