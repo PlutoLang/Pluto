@@ -648,6 +648,7 @@
     <ClCompile Include="src\ldebug.cpp" />
     <ClCompile Include="src\ldo.cpp" />
     <ClCompile Include="src\ldump.cpp" />
+    <ClCompile Include="src\lffi.cpp" />
     <ClCompile Include="src\lfunc.cpp" />
     <ClCompile Include="src\lgc.cpp" />
     <ClCompile Include="src\lhttplib.cpp" />
@@ -737,6 +738,7 @@
     <ClCompile Include="src\vendor\Soup\soup\dnsUdpResolver.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\dns_records.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ecc.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\ffi.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\filesystem.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\HardwareRng.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\HttpRequest.cpp" />
@@ -773,6 +775,7 @@
     <ClCompile Include="src\vendor\Soup\soup\sha256.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\sha384.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\sha512.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\SharedLibrary.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Socket.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SocketTlsEncrypter.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SocketTlsHandshaker.cpp" />
@@ -879,6 +882,7 @@
     <ClInclude Include="src\vendor\Soup\soup\ecc.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Endian.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Exception.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\ffi.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\filesystem.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\format.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\fwd.hpp" />
@@ -973,6 +977,7 @@
     <ClInclude Include="src\vendor\Soup\soup\sha256.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\sha384.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\sha512.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\SharedLibrary.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\SharedPtr.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\shortint_impl.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ShortString.hpp" />

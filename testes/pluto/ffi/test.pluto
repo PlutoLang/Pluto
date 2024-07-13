@@ -1,0 +1,5 @@
+local ffi = require "ffi"
+
+local lib = ffi.open(os.platform == "windows" ? "lib" : "./liblib.so")
+assert(lib:value("u32", "MY_MAGIC_INT") == 69)
+assert(lib:wrap("u32", "add", "u32", "u32")(38, 4) == 42)
