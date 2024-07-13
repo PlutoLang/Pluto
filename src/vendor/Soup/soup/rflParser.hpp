@@ -3,6 +3,7 @@
 #include "LexemeParser.hpp"
 
 #include "fwd.hpp"
+#include "rflType.hpp"
 
 NAMESPACE_SOUP
 {
@@ -11,6 +12,8 @@ NAMESPACE_SOUP
 		explicit rflParser(const std::string& code);
 
 		[[nodiscard]] rflType readType();
+		[[nodiscard]] std::string readRawType();
+		[[nodiscard]] rflType::AccessType readAccessType();
 		[[nodiscard]] rflVar readVar();
 		void readVar(rflVar& var);
 		[[nodiscard]] rflFunc readFunc();
