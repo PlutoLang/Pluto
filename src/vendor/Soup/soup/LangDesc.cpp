@@ -44,6 +44,7 @@ NAMESPACE_SOUP
 		std::vector<Lexeme> lexemes{};
 		std::string lb{};
 		bool lb_is_space = false;
+		bool lb_is_special = false;
 
 		void flushLiteralBuffer()
 		{
@@ -73,6 +74,7 @@ NAMESPACE_SOUP
 			}
 			lb.clear();
 			lb_is_space = false;
+			lb_is_special = false;
 		}
 	};
 
@@ -110,6 +112,22 @@ NAMESPACE_SOUP
 					if (st.lb_is_space
 						|| token_terminators.get((unsigned char)*i)
 						)
+					{
+						st.flushLiteralBuffer();
+						if (special_characters.get((unsigned char)*i))
+						{
+							st.lb_is_special = true;
+						}
+					}
+					else if (special_characters.get((unsigned char)*i))
+					{
+						if (!st.lb_is_special)
+						{
+							st.flushLiteralBuffer();
+							st.lb_is_special = true;
+						}
+					}
+					else if (st.lb_is_special)
 					{
 						st.flushLiteralBuffer();
 					}
