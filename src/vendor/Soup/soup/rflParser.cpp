@@ -87,6 +87,10 @@ NAMESPACE_SOUP
 				}
 			}
 		}
+		if (hasMore())
+		{
+			align();
+		}
 		return f;
 	}
 
@@ -123,11 +127,7 @@ NAMESPACE_SOUP
 			advance(); // skip '}'
 			if (hasMore())
 			{
-				advance(); // skip ';'
-				if (hasMore())
-				{
-					align(); // skip spaces
-				}
+				align();
 			}
 		}
 		return desc;
