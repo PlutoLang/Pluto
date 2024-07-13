@@ -24,14 +24,19 @@ assert(colour.r == 255)
 assert(colour.g == 0)
 assert(colour.b == 127)
 
--- ffi.cdef can also be used to define a struct (stored on the FFI library itself)
+-- ffi.cdef can be used to any number of structs which will be stored on the FFI library itself
 ffi.cdef[[
 struct Colour {
     uint8_t r;
     uint8_t g;
     uint8_t b;
 };
+
+struct Human {
+    const char* name;
+};
 ]]
+
 colour = ffi.new("Colour")
 colour.r = 255
 colour.g = 0
@@ -39,3 +44,7 @@ colour.b = 127
 assert(colour.r == 255)
 assert(colour.g == 0)
 assert(colour.b == 127)
+
+local human = ffi.new("Human")
+human.name = "John"
+assert(human.name == "John")
