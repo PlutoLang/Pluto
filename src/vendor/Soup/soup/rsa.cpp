@@ -334,16 +334,8 @@ NAMESPACE_SOUP
 
 	RsaKeypair RsaKeypair::generate(unsigned int bits, bool lax_length_requirement)
 	{
-		if (FastHardwareRng::isAvailable())
-		{
-			FastHardwareRngInterface rngif;
-			return generate(rngif, bits, lax_length_requirement);
-		}
-		else
-		{
-			DefaultRngInterface rngif;
-			return generate(rngif, bits, lax_length_requirement);
-		}
+		FastHardwareRngInterface rngif;
+		return generate(rngif, bits, lax_length_requirement);
 	}
 
 	RsaKeypair RsaKeypair::generate(StatelessRngInterface& rng, unsigned int bits, bool lax_length_requirement)

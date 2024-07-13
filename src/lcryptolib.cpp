@@ -10,13 +10,13 @@
 
 #include <ios>
 #include <string>
-#include <random>
 #include <sstream>
 #include <iomanip>
 
 #include "vendor/Soup/soup/adler32.hpp"
 #include "vendor/Soup/soup/aes.hpp"
 #include "vendor/Soup/soup/crc32.hpp"
+#include "vendor/Soup/soup/HardwareRng.hpp"
 #include "vendor/Soup/soup/rsa.hpp"
 #include "vendor/Soup/soup/sha1.hpp"
 #include "vendor/Soup/soup/sha256.hpp"
@@ -321,19 +321,9 @@ static int l_sha512(lua_State *L)
 }
 
 
-// This should be fairly secure on systems that employ a randomized device, like /dev/urandom, BCryptGenRandom, etc.
-// But, otherwise, it's not secure whatsoever.
 static int random(lua_State *L)
 {
-  std::random_device dev;
-#if defined(_WIN64) || defined(__x86_64__) || defined(__ppc64__) || defined(_M_X64) || defined(__aarch64__)
-  std::mt19937_64 rng(dev());
-  std::uniform_int_distribution<std::mt19937_64::result_type> dist(luaL_checkinteger(L, 1), luaL_checkinteger(L, 2));
-#else
-  std::mt19937 rng(dev());
-  std::uniform_int_distribution<std::mt19937::result_type> dist((std::mt19937::result_type)luaL_checkinteger(L, 1), (std::mt19937::result_type)luaL_checkinteger(L, 2));
-#endif
-  lua_pushinteger(L, dist(rng));
+  lua_pushinteger(L, static_cast<lua_Integer>(soup::FastHardwareRng::generate64()));
   return 1;
 }
 

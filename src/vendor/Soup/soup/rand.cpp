@@ -1,7 +1,14 @@
 #include "rand.hpp"
 
+#include "HardwareRng.hpp"
+
 NAMESPACE_SOUP
 {
+	uint64_t rand_impl::getSeed() noexcept
+	{
+		return FastHardwareRng::generate64();
+	}
+
 	uint8_t rand_impl::byte(uint8_t min) noexcept
 	{
 		return t<uint8_t>(min, -1);
