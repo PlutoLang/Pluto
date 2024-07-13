@@ -71,7 +71,7 @@ NAMESPACE_SOUP
 	void FastHardwareRng::generate(void* buf, size_t buflen) noexcept
 	{
 #if SOUP_WINDOWS
-		BCryptGenRandom(nullptr, (PUCHAR)buf, buflen, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+		BCryptGenRandom(nullptr, (PUCHAR)buf, (ULONG)buflen, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
 #elif SOUP_LINUX
 		getrandom(buf, buflen, 0);
 #else
