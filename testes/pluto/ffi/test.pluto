@@ -16,7 +16,15 @@ local Colour = ffi.struct[[
         uint8_t b;
     };
 ]]
+assert(ffi.sizeof(Colour) == 3)
+assert(ffi.offsetof(Colour, "r") == 0)
+assert(ffi.offsetof(Colour, "g") == 1)
+assert(ffi.offsetof(Colour, "b") == 2)
 local colour = new Colour()
+assert(ffi.sizeof(colour) == 3)
+assert(ffi.offsetof(colour, "r") == 0)
+assert(ffi.offsetof(colour, "g") == 1)
+assert(ffi.offsetof(colour, "b") == 2)
 colour.r = 255
 colour.g = 0
 colour.b = 127
@@ -36,6 +44,11 @@ struct Human {
     const char* name;
 };
 ]]
+
+assert(ffi.sizeof("Colour") == 3)
+assert(ffi.offsetof("Colour", "r") == 0)
+assert(ffi.offsetof("Colour", "g") == 1)
+assert(ffi.offsetof("Colour", "b") == 2)
 
 colour = ffi.new("Colour")
 colour.r = 255
