@@ -22,6 +22,7 @@ enum FfiType : uint8_t {
   FFI_F32,
   FFI_F64,
   FFI_PTR,
+  FFI_STR,
 };
 
 [[nodiscard]] static FfiType check_ffi_type (lua_State *L, int i) noexcept {
@@ -37,6 +38,7 @@ enum FfiType : uint8_t {
   if (strcmp(str, "f32") == 0) return FFI_F32;
   if (strcmp(str, "f64") == 0) return FFI_F64;
   if (strcmp(str, "ptr") == 0) return FFI_PTR;
+  if (strcmp(str, "str") == 0) return FFI_STR;
   return FFI_VOID;
 }
 
@@ -55,6 +57,11 @@ enum FfiType : uint8_t {
     if (type.name == "int64_t") { return FFI_I64; }
     if (type.name == "uint64_t") { return FFI_U64; }
     if (type.name == "size_t") { return SOUP_BITS == 64 ? FFI_U64 : FFI_U32; }
+  }
+  else if (type.at == soup::rflType::POINTER) {
+    if (type.name == "const char" || type.name == "char") {
+      return FFI_STR;
+    }
   }
   return FFI_PTR;
 }
@@ -96,6 +103,9 @@ static int push_ffi_value (lua_State *L, FfiType type, void *value) {
     case FFI_PTR:
       lua_pushinteger(L, *reinterpret_cast<uintptr_t*>(value));
       return 1;
+    case FFI_STR:
+      lua_pushstring(L, *reinterpret_cast<const char**>(value));
+      return 1;
   }
   SOUP_UNREACHABLE;
 }
@@ -125,10 +135,9 @@ static uintptr_t check_ffi_value (lua_State *L, int i, FfiType type) {
     case FFI_F64:
       return static_cast<uintptr_t>(static_cast<double>(luaL_checknumber(L, i)));
     case FFI_PTR:
-      if (lua_type(L, i) == LUA_TSTRING) {
-        return reinterpret_cast<uintptr_t>(luaL_checkstring(L, i));
-      }
       return static_cast<uintptr_t>(luaL_checkinteger(L, i));
+    case FFI_STR:
+      return reinterpret_cast<uintptr_t>(luaL_checkstring(L, i));
   }
   SOUP_UNREACHABLE;
 }
