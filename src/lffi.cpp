@@ -419,6 +419,10 @@ LUAMOD_API int luaopen_ffi(lua_State *L) {
   lua_pushcclosure(L, ffi_cdef, 1);
   lua_settable(L, -3);
 
+  lua_pushliteral(L, "nullptr");
+  lua_pushinteger(L, 0);
+  lua_settable(L, -3);
+
   return 1;
 }
 
