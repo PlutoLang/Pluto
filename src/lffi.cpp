@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "vendor/Soup/soup/ffi.hpp"
+#include "vendor/Soup/soup/rflFunc.hpp"
 #include "vendor/Soup/soup/rflParser.hpp"
 #include "vendor/Soup/soup/rflStruct.hpp"
 #include "vendor/Soup/soup/SharedLibrary.hpp"
@@ -188,7 +189,7 @@ static int ffi_funcwrapper_call (lua_State *L) {
   return push_ffi_value(L, fw->ret, &retval);
 }
 
-static int ffi_lib_wrap (lua_State *L) {
+static FfiFuncWrapper *newfuncwrapper (lua_State *L) {
   auto fw = new (lua_newuserdata(L, sizeof(FfiFuncWrapper))) FfiFuncWrapper();
   if (luaL_newmetatable(L, "pluto:ffi-funcwrapper")) {
     lua_pushliteral(L, "__gc");
@@ -202,11 +203,20 @@ static int ffi_lib_wrap (lua_State *L) {
     lua_settable(L, -3);
   }
   lua_setmetatable(L, -2);
+  return fw;
+}
+
+static int ffi_lib_wrap (lua_State *L) {
+  auto fw = newfuncwrapper(L);
   fw->ret = check_ffi_type(L, 2);
-  fw->addr = checkffilibfromtable(L, 1)->getAddress(luaL_checkstring(L, 3));
+  const char *name = luaL_checkstring(L, 3);
+  fw->addr = checkffilibfromtable(L, 1)->getAddress(name);
+  if (l_unlikely(fw->addr == nullptr)) {
+    luaL_error(L, "could not find '%s' in library", name);
+  }
   const auto nargtypes = lua_gettop(L) - 4;
   if (nargtypes > soup::ffi::MAX_ARGS) {
-    luaL_error(L, "too many arguments");
+    luaL_error(L, "function has too many parameters");
   }
   fw->args.reserve(nargtypes);
   for (int i = 4; i != 4 + nargtypes; ++i) {
@@ -216,8 +226,60 @@ static int ffi_lib_wrap (lua_State *L) {
 }
 
 static int ffi_lib_value (lua_State *L) {
-  if (void* addr = checkffilibfromtable(L, 1)->getAddress(luaL_checkstring(L, 3))) {
-    return push_ffi_value(L, check_ffi_type(L, 2), addr);
+  const char *name = luaL_checkstring(L, 3);
+  void *addr = checkffilibfromtable(L, 1)->getAddress(luaL_checkstring(L, 3));
+  if (l_unlikely(addr == nullptr)) {
+    luaL_error(L, "could not find '%s' in library", name);
+  }
+  return push_ffi_value(L, check_ffi_type(L, 2), addr);
+}
+
+static int ffi_lib_cdef (lua_State *L) {
+  const auto lib = checkffilibfromtable(L, 1);
+  auto par = pluto_newclassinst(L, soup::rflParser, pluto_checkstring(L, 2));
+  auto var = pluto_newclassinst(L, soup::rflVar);
+  auto func = pluto_newclassinst(L, soup::rflFunc);
+  while (par->hasMore()) {
+    const auto i = par->i;
+    try {
+      *var = par->readVar();
+    }
+    catch (...) {
+      luaL_error(L, "malformed variable");
+    }
+    if (par->align(), par->i->isLiteral() && par->i->val.getString() == "(") {
+      par->i = i;
+      try {
+        *func = par->readFunc();
+        pluto_pushstring(L, func->name);
+        auto fw = newfuncwrapper(L);
+        fw->ret = rfl_type_to_ffi_type(func->return_type);
+        fw->addr = lib->getAddress(func->name.c_str());
+        if (l_unlikely(fw->addr == nullptr)) {
+          luaL_error(L, "could not find '%s' in library", func->name.c_str());
+        }
+        if (func->parameters.size() > soup::ffi::MAX_ARGS) {
+          luaL_error(L, "'%s' has too many parameters", func->name.c_str());
+        }
+        fw->args.reserve(func->parameters.size());
+        for (const auto& param : func->parameters) {
+          fw->args.emplace_back(rfl_type_to_ffi_type(param.type));
+        }
+        lua_settable(L, 1);
+      }
+      catch (...) {
+        luaL_error(L, "malformed function");
+      }
+    }
+    else {
+      void *addr = lib->getAddress(var->name.c_str());
+      if (!addr) {
+        luaL_error(L, "could not find '%s' in library", var->name.c_str());
+      }
+      pluto_pushstring(L, var->name);
+      push_ffi_value(L, rfl_type_to_ffi_type(var->type), addr);
+      lua_settable(L, 1);
+    }
   }
   return 0;
 }
@@ -248,6 +310,9 @@ static int ffi_open (lua_State *L) {
   lua_settable(L, -3);
   lua_pushliteral(L, "value");
   lua_pushcfunction(L, ffi_lib_value);
+  lua_settable(L, -3);
+  lua_pushliteral(L, "cdef");
+  lua_pushcfunction(L, ffi_lib_cdef);
   lua_settable(L, -3);
 #else
   PLUTO_NO_BINARIES_FAIL

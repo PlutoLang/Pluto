@@ -4,9 +4,19 @@ local lib = ffi.open(os.platform == "windows" ? "lib" : "./liblib.so")
 assert(lib:value("i32", "MY_MAGIC_INT") == 69)
 assert(lib:wrap("i32", "add", "i32", "i32")(38, 4) == 42)
 
--- 'lib' can be used like any old table:
+-- 'lib' can be used like any old table
 lib.add = lib:wrap("i32", "add", "i32", "i32")
 assert(lib.add(32, 10) == 42)
+lib.add = nil
+
+-- lib:cdef provides a subset of C as an alternative to the above usage
+lib:cdef[[
+int MY_MAGIC_INT;
+
+int add(int a, int b);
+]]
+assert(lib.MY_MAGIC_INT == 69)
+assert(lib.add(1, 2) == 3)
 
 -- Structs
 local Colour = ffi.struct[[
