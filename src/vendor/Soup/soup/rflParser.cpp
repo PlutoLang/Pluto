@@ -16,37 +16,47 @@ NAMESPACE_SOUP
 	rflType rflParser::readType()
 	{
 		rflType type;
-		type.name = readLiteral();
-		if (type.name == "const")
-		{
-			type.name.push_back(' ');
-			type.name.append(readLiteral());
-		}
-		if (type.name == "unsigned")
-		{
-			type.name.push_back(' ');
-			type.name.append(readLiteral());
-		}
-		type.at = rflType::DIRECT;
-		if (type.name.back() == '*')
-		{
-			type.name.pop_back();
-			type.at = rflType::POINTER;
-		}
-		else if (type.name.back() == '&')
-		{
-			type.name.pop_back();
-			if (type.name.back() == '&')
-			{
-				type.name.pop_back();
-				type.at = rflType::RVALUE_REFERENCE;
-			}
-			else
-			{
-				type.at = rflType::REFERENCE;
-			}
-		}
+		type.name = readRawType();
+		type.at = readAccessType();
 		return type;
+	}
+
+	std::string rflParser::readRawType()
+	{
+		std::string str;
+		str = readLiteral();
+		if (str == "const")
+		{
+			str.push_back(' ');
+			str.append(readLiteral());
+		}
+		if (str == "unsigned")
+		{
+			str.push_back(' ');
+			str.append(readLiteral());
+		}
+		return str;
+	}
+
+	rflType::AccessType rflParser::readAccessType()
+	{
+		const auto next_literal = peekLiteral();
+		if (next_literal == "*")
+		{
+			advance();
+			return rflType::POINTER;
+		}
+		else if (next_literal == "&")
+		{
+			advance();
+			return rflType::REFERENCE;
+		}
+		else if (next_literal == "&&")
+		{
+			advance();
+			return rflType::RVALUE_REFERENCE;
+		}
+		return rflType::DIRECT;
 	}
 
 	rflVar rflParser::readVar()
@@ -118,28 +128,34 @@ NAMESPACE_SOUP
 		}
 		while (peekLiteral() != "}")
 		{
-			rflMember& member = desc.members.emplace_back(rflMember{});
-			readVar(member);
-			member.accessibility = accessibility;
+			const auto type = readRawType();
+			do
+			{
+				rflMember& member = desc.members.emplace_back(rflMember{});
+				member.type.name = type;
+				member.type.at = readAccessType();
+				member.name = readLiteral();
+				member.accessibility = accessibility;
+			} while (peekLiteral() == "," && (advance(), true));
 		}
 		if (hasMore())
 		{
 			advance(); // skip '}'
-			if (hasMore())
-			{
-				align();
-			}
+			align();
 		}
 		return desc;
 	}
 
 	void rflParser::align()
 	{
-		while (i->isSpace()
-			|| (
-				i->isLiteral()
-				&& (i->getLiteral() == "//"
-					|| i->getLiteral().at(0) == '#'
+		while (hasMore()
+			&& (
+				i->isSpace()
+				|| (
+					i->isLiteral()
+					&& (i->getLiteral() == "//"
+						|| i->getLiteral().at(0) == '#'
+						)
 					)
 				)
 			)
@@ -162,6 +178,7 @@ NAMESPACE_SOUP
 	std::string rflParser::readLiteral()
 	{
 		align();
+		SOUP_ASSERT(hasMore());
 		SOUP_ASSERT(i->isLiteral());
 		return (i++)->val.getString();
 	}
@@ -169,7 +186,7 @@ NAMESPACE_SOUP
 	std::string rflParser::peekLiteral()
 	{
 		align();
-		if (i->isLiteral())
+		if (hasMore() && i->isLiteral())
 		{
 			return i->val.getString();
 		}
