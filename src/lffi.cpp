@@ -268,7 +268,7 @@ static int ffi_push_new (lua_State *L, int i) {
   memset(area, 0, size);  /* probably best for memory we give to a script... */
   lua_newtable(L);
   lua_pushliteral(L, "type");
-  lua_pushvalue(L, i);
+  lua_pushvalue(L, i == -1 ? -4 : i);
   lua_settable(L, -3);
   lua_pushliteral(L, "__index");
   lua_pushcfunction(L, [](lua_State *L) {
@@ -312,8 +312,7 @@ static int ffi_push_new (lua_State *L, int i) {
   return 1;
 }
 
-static int ffi_struct (lua_State *L) {
-  auto par = pluto_newclassinst(L, soup::rflParser, pluto_checkstring(L, 1));
+static FfiStruct *ffi_new_struct_type (lua_State *L) {
   auto strct = new (lua_newuserdata(L, sizeof(FfiStruct))) FfiStruct();
   if (luaL_newmetatable(L, "pluto:ffi-struct-type")) {
     lua_pushliteral(L, "__gc");
@@ -334,6 +333,12 @@ static int ffi_struct (lua_State *L) {
     lua_settable(L, -3);
   }
   lua_setmetatable(L, -2);
+  return strct;
+}
+
+static int ffi_struct (lua_State *L) {
+  auto par = pluto_newclassinst(L, soup::rflParser, pluto_checkstring(L, 1));
+  auto strct = ffi_new_struct_type(L);
   try {
     *strct = par->readStruct();
   }
@@ -344,14 +349,68 @@ static int ffi_struct (lua_State *L) {
 }
 
 static int ffi_new (lua_State *L) {
+  if (lua_type(L, 1) == LUA_TSTRING) {
+    lua_pushvalue(L, 1);
+    if (lua_gettable(L, lua_upvalueindex(1)) > LUA_TNIL) {
+      return ffi_push_new(L, -1);
+    }
+  }
   return ffi_push_new(L, 1);
+}
+
+static int ffi_cdef (lua_State *L) {
+  auto par = pluto_newclassinst(L, soup::rflParser, pluto_checkstring(L, 1));
+  lua_pushvalue(L, lua_upvalueindex(1));
+  /* stack now: par, ffi */
+  while (par->hasMore()) {
+    auto strct = ffi_new_struct_type(L);
+    try {
+      *strct = par->readStruct();
+    }
+    catch (...) {
+      luaL_error(L, "malformed struct");
+    }
+    /* stack now: par, ffi, strct */
+    pluto_pushstring(L, strct->name);
+    /* stack now: par, ffi, strct, name */
+    lua_pushvalue(L, -1);
+    /* stack now: par, ffi, strct, name, name */
+    if (lua_gettable(L, -4) > LUA_TNIL) {
+      luaL_error(L, "multiple definitions of '%s'", strct->name.c_str());
+    }
+    /* stack now: par, ffi, strct, name, ffi.name */
+    lua_pop(L, 1);
+    /* stack now: par, ffi, strct, name */
+    lua_pushvalue(L, -2);
+    /* stack now: par, ffi, strct, name, strct */
+    lua_settable(L, -4);
+    /* stack now: par, ffi, strct */
+    lua_pop(L, 1);
+    /* stack now: par, ffi */
+  }
+  return 0;
 }
 
 static const luaL_Reg funcs_ffi[] = {
   {"open", ffi_open},
   {"struct", ffi_struct},
-  {"new", ffi_new},
   {nullptr, nullptr}
 };
 
-PLUTO_NEWLIB(ffi);
+LUAMOD_API int luaopen_ffi(lua_State *L) {
+  luaL_newlib(L, funcs_ffi);
+
+  lua_pushliteral(L, "new");
+  lua_pushvalue(L, -2);
+  lua_pushcclosure(L, ffi_new, 1);
+  lua_settable(L, -3);
+
+  lua_pushliteral(L, "cdef");
+  lua_pushvalue(L, -2);
+  lua_pushcclosure(L, ffi_cdef, 1);
+  lua_settable(L, -3);
+
+  return 1;
+}
+
+const Pluto::PreloadedLibrary Pluto::preloaded_ffi{ "ffi", funcs_ffi, &luaopen_ffi};
