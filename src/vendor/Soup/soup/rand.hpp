@@ -13,12 +13,7 @@ NAMESPACE_SOUP
 	class rand_impl
 	{
 	public:
-		[[nodiscard]] static uint64_t getSeed() noexcept
-		{
-			std::random_device rd{};
-			static_assert(sizeof(std::random_device::result_type) == 4);
-			return ((uint64_t)rd() << 32) | rd();
-		}
+		[[nodiscard]] static uint64_t getSeed() noexcept;
 
 //#define getConstexprSeedCounted() getConstexprSeed(__COUNTER__ + 1)
 
@@ -43,7 +38,7 @@ NAMESPACE_SOUP
 		}
 
 	public:
-		[[nodiscard]] static std::mt19937_64& getMersenneTwister() noexcept
+		[[nodiscard]] static SOUP_PURE std::mt19937_64& getMersenneTwister() noexcept
 		{
 			static std::mt19937_64 mt = getMersenneTwisterImpl();
 			return mt;

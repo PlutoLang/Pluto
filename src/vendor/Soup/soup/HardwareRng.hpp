@@ -1,13 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef> // size_t
 
 #include "RngInterface.hpp"
 
 NAMESPACE_SOUP
 {
-	// For the purposes of this class, "hardware RNG" is such that no bit is predictable to an attacker even with unlimited resources.
-	// As such, it uses RDSEED on x86, whereas FastHardwareRng uses RDRAND.
+	// For the purposes of this class, "hardware RNG" is a true RNG, with each bit coming directly from a hardware entropy source.
 	struct HardwareRng
 	{
 		[[nodiscard]] static bool isAvailable() noexcept;
@@ -17,13 +17,10 @@ NAMESPACE_SOUP
 		[[nodiscard]] static uint64_t generate64() noexcept;
 	};
 
-	// For the purposes of this class, "fast hardware RNG" is such that no bit is predictable to an attacker with limited resources,
-	// but some bits may be predictable to an attacker with unlimited resources.
-	// As such, it uses RDRAND on x86, whereas HardwareRng uses RDSEED.
+	// For the purposes of this class, "fast hardware RNG" is backed by a hardware entropy source, but uses processing (a DRBG) to extrapolate more bits.
 	struct FastHardwareRng
 	{
-		[[nodiscard]] static bool isAvailable() noexcept;
-
+		static void generate(void* buf, size_t buflen) noexcept;
 		[[nodiscard]] static uint16_t generate16() noexcept;
 		[[nodiscard]] static uint32_t generate32() noexcept;
 		[[nodiscard]] static uint64_t generate64() noexcept;
