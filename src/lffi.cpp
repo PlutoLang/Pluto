@@ -287,7 +287,7 @@ static int ffi_push_new (lua_State *L, int i) {
       lua_gettable(L, -2);
       const auto strct = (FfiStruct*)luaL_checkudata(L, -1, "pluto:ffi-struct-type");
       const auto memname = pluto_checkstring(L, 2);
-      const size_t offset = strct->getOffsetOf(memname);
+      const auto offset = strct->getOffsetOf(memname);
       if (l_unlikely(offset == -1)) {
         luaL_error(L, "no member with name '%s'", memname.c_str());
       }
@@ -304,7 +304,7 @@ static int ffi_push_new (lua_State *L, int i) {
       lua_gettable(L, -2);
       const auto strct = (FfiStruct*)luaL_checkudata(L, -1, "pluto:ffi-struct-type");
       const auto memname = pluto_checkstring(L, 2);
-      const size_t offset = strct->getOffsetOf(memname);
+      const auto offset = strct->getOffsetOf(memname);
       if (l_unlikely(offset == -1)) {
         luaL_error(L, "no member with name '%s'", memname.c_str());
       }
@@ -400,6 +400,38 @@ static int ffi_cdef (lua_State *L) {
   return 0;
 }
 
+static FfiStruct *check_struct_type (lua_State *L) {
+  if (lua_type(L, 1) == LUA_TSTRING) {
+    lua_pushvalue(L, 1);
+    if (lua_gettable(L, lua_upvalueindex(1)) > LUA_TNIL) {
+      return (FfiStruct*)luaL_checkudata(L, -1, "pluto:ffi-struct-type");
+    }
+  }
+  if (void *addr = luaL_testudata(L, 1, "pluto:ffi-struct-type")) {
+    return (FfiStruct*)addr;
+  }
+  lua_getmetatable(L, 1);
+  lua_pushliteral(L, "type");
+  lua_gettable(L, -2);
+  return (FfiStruct*)luaL_checkudata(L, -1, "pluto:ffi-struct-type");
+}
+
+static int ffi_sizeof (lua_State *L) {
+  lua_pushinteger(L, check_struct_type(L)->getSize());
+  return 1;
+}
+
+static int ffi_offsetof (lua_State *L) {
+  const auto strct = check_struct_type(L);
+  const auto memname = pluto_checkstring(L, 2);
+  const auto offset = strct->getOffsetOf(memname);
+  if (l_unlikely(offset == -1)) {
+    luaL_error(L, "no member with name '%s'", memname.c_str());
+  }
+  lua_pushinteger(L, offset);
+  return 1;
+}
+
 static const luaL_Reg funcs_ffi[] = {
   {"open", ffi_open},
   {"struct", ffi_struct},
@@ -417,6 +449,16 @@ LUAMOD_API int luaopen_ffi(lua_State *L) {
   lua_pushliteral(L, "cdef");
   lua_pushvalue(L, -2);
   lua_pushcclosure(L, ffi_cdef, 1);
+  lua_settable(L, -3);
+
+  lua_pushliteral(L, "sizeof");
+  lua_pushvalue(L, -2);
+  lua_pushcclosure(L, ffi_sizeof, 1);
+  lua_settable(L, -3);
+
+  lua_pushliteral(L, "offsetof");
+  lua_pushvalue(L, -2);
+  lua_pushcclosure(L, ffi_offsetof, 1);
   lua_settable(L, -3);
 
   lua_pushliteral(L, "nullptr");
