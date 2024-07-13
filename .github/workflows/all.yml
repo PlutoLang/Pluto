@@ -29,7 +29,7 @@ jobs:
       - run: php scripts/link_static.php
       - uses: actions/upload-artifact@v4
         with:
-          name: "Linux"
+          name: "Linux (X64)"
           path: |
             src/pluto
             src/plutoc
@@ -39,7 +39,7 @@ jobs:
       - run: php scripts/bundle_deb.php
       - uses: actions/upload-artifact@v4
         with:
-          name: "Linux - .deb Package"
+          name: "Linux (X64) - .deb Package"
           path: pluto.deb
   macos:
     runs-on: macos-13
@@ -52,7 +52,7 @@ jobs:
       - run: php scripts/link_static.php
       - uses: actions/upload-artifact@v4
         with:
-          name: "MacOS (X86)"
+          name: "MacOS (X64)"
           path: |
             src/pluto
             src/plutoc
@@ -71,7 +71,7 @@ jobs:
       - run: php scripts/link_static.php
       - uses: actions/upload-artifact@v4
         with:
-          name: Windows
+          name: "Windows (X64)"
           path: |
             src/pluto.exe
             src/plutoc.exe
@@ -80,7 +80,7 @@ jobs:
       - run: php scripts/bundle_nupkg.php
       - uses: actions/upload-artifact@v4
         with:
-          name: Windows Chocolatey Package
+          name: "Windows (X64) Chocolatey Package"
           path: plutolang/*.nupkg
   windows-dll:
     runs-on: windows-latest
@@ -96,7 +96,7 @@ jobs:
           fail: true
       - uses: actions/upload-artifact@v4
         with:
-          name: Windows DLL
+          name: "Windows (X64) DLL"
           path: |
             src/pluto.dll
             src/pluto.lib
