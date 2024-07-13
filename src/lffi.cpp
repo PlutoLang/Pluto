@@ -118,8 +118,18 @@ struct FfiFuncWrapper {
   FfiType ret;
 };
 
-[[nodiscard]] static soup::SharedLibrary* checksharedlibrary (lua_State *L, int i) {
+[[nodiscard]] static soup::SharedLibrary* checkffilib (lua_State *L, int i) {
   return (soup::SharedLibrary*)luaL_checkudata(L, i, "pluto:ffi.library");
+}
+
+[[nodiscard]] static soup::SharedLibrary* checkffilibfromtable (lua_State *L, int i) {
+  lua_pushliteral(L, "__object");
+  if (!lua_gettable(L, i)) {
+    luaL_typeerror(L, i, "lua:ffi.library");
+  }
+  auto lib = checkffilib(L, -1);
+  lua_pop(L, 1);
+  return lib;
 }
 
 [[nodiscard]] static FfiFuncWrapper* checkfuncwrapper (lua_State *L, int i) {
@@ -163,7 +173,7 @@ static int ffi_lib_wrap (lua_State *L) {
   }
   lua_setmetatable(L, -2);
   fw->ret = check_ffi_type(L, 2);
-  fw->addr = checksharedlibrary(L, 1)->getAddress(luaL_checkstring(L, 3));
+  fw->addr = checkffilibfromtable(L, 1)->getAddress(luaL_checkstring(L, 3));
   const auto nargtypes = lua_gettop(L) - 4;
   if (nargtypes > soup::ffi::MAX_ARGS) {
     luaL_error(L, "too many arguments");
@@ -176,7 +186,7 @@ static int ffi_lib_wrap (lua_State *L) {
 }
 
 static int ffi_lib_value (lua_State *L) {
-  if (void* addr = checksharedlibrary(L, 1)->getAddress(luaL_checkstring(L, 3))) {
+  if (void* addr = checkffilibfromtable(L, 1)->getAddress(luaL_checkstring(L, 3))) {
     return push_ffi_value(L, check_ffi_type(L, 2), addr);
   }
   return 0;
@@ -185,29 +195,30 @@ static int ffi_lib_value (lua_State *L) {
 static int ffi_open (lua_State *L) {
 #ifndef PLUTO_NO_BINARIES
   const char *libname = luaL_checkstring(L, 1);
-  auto lib = new (lua_newuserdata(L, sizeof(soup::SharedLibrary))) soup::SharedLibrary(libname);
-  if (luaL_newmetatable(L, "pluto:ffi.library")) {
-    lua_pushliteral(L, "__gc");
-    lua_pushcfunction(L, [](lua_State *L) {
-      std::destroy_at<>(checksharedlibrary(L, 1));
-      return 0;
-    });
-    lua_settable(L, -3);
-    lua_pushliteral(L, "__index");
-    lua_newtable(L); {
-      lua_pushliteral(L, "wrap");
-      lua_pushcfunction(L, ffi_lib_wrap);
-      lua_settable(L, -3);
-      lua_pushliteral(L, "value");
-      lua_pushcfunction(L, ffi_lib_value);
+  lua_newtable(L);
+  lua_pushliteral(L, "__object");
+  {
+    auto lib = new (lua_newuserdata(L, sizeof(soup::SharedLibrary))) soup::SharedLibrary(libname);
+    if (luaL_newmetatable(L, "pluto:ffi.library")) {
+      lua_pushliteral(L, "__gc");
+      lua_pushcfunction(L, [](lua_State *L) {
+        std::destroy_at<>(checkffilib(L, 1));
+        return 0;
+      });
       lua_settable(L, -3);
     }
-    lua_settable(L, -3);
+    lua_setmetatable(L, -2);
+    if (!lib->isLoaded()) {
+      luaL_error(L, "failed to load library '%s'", libname);
+    }
   }
-  lua_setmetatable(L, -2);
-  if (!lib->isLoaded()) {
-    luaL_error(L, "failed to load library '%s'", libname);
-  }
+  lua_settable(L, -3);
+  lua_pushliteral(L, "wrap");
+  lua_pushcfunction(L, ffi_lib_wrap);
+  lua_settable(L, -3);
+  lua_pushliteral(L, "value");
+  lua_pushcfunction(L, ffi_lib_value);
+  lua_settable(L, -3);
 #else
   PLUTO_NO_BINARIES_FAIL
 #endif
