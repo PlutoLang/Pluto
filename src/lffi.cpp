@@ -172,7 +172,7 @@ extern bool PLUTO_FFI_CALL_HOOK (lua_State *L, void *addr);
 #endif
 
 static int ffi_funcwrapper_call (lua_State *L) {
-  auto fw = checkfuncwrapper(L, 1);
+  auto fw = checkfuncwrapper(L, lua_upvalueindex(1));
 #ifdef PLUTO_FFI_CALL_HOOK
   if (!PLUTO_FFI_CALL_HOOK(L, fw->addr)) {
     luaL_error(L, "disallowed by content moderation policy");
@@ -182,7 +182,7 @@ static int ffi_funcwrapper_call (lua_State *L) {
   int i = 0;
   for (const auto& arg_type : fw->args) {
     lua_assert(i < soup::ffi::MAX_ARGS);
-    args[i] = check_ffi_value(L, 2 + i, arg_type);
+    args[i] = check_ffi_value(L, 1 + i, arg_type);
     ++i;
   }
   uintptr_t retval = soup::ffi::call(fw->addr, args, i);
@@ -198,11 +198,9 @@ static FfiFuncWrapper *newfuncwrapper (lua_State *L) {
       return 0;
     });
     lua_settable(L, -3);
-    lua_pushliteral(L, "__call");
-    lua_pushcfunction(L, ffi_funcwrapper_call);
-    lua_settable(L, -3);
   }
   lua_setmetatable(L, -2);
+  lua_pushcclosure(L, ffi_funcwrapper_call, 1);
   return fw;
 }
 
