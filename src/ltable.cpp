@@ -653,7 +653,7 @@ void luaH_initmetatable (lua_State *L, Table *t) {
     sethvalue(L, s2v(L->top.p - 1), table_mt);
     /* set __index */
     L->ci->top.p++;
-    lua_pushstring(L, "__index");
+    lua_pushliteral(L, "__index");
     lua_getglobal(L, "table");
     lua_settable(L, -3);
     L->ci->top.p--;
