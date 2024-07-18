@@ -43,6 +43,8 @@ NAMESPACE_SOUP
 				if (name == "int64_t") { return sizeof(int64_t); }
 				if (name == "uint64_t") { return sizeof(uint64_t); }
 				if (name == "size_t") { return sizeof(size_t); }
+				if (name == "float") { return sizeof(float); }
+				if (name == "double") { return sizeof(double); }
 			}
 			return sizeof(size_t);
 		}
