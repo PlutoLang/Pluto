@@ -998,6 +998,8 @@ NAMESPACE_SOUP
 			break;
 		}
 
+		res.compressed_size = (current_compressed_data - (unsigned char*)compressed_data);
+
 		return res;
 	}
 }
