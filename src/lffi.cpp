@@ -58,6 +58,8 @@ enum FfiType : uint8_t {
     if (type.name == "int64_t") { return FFI_I64; }
     if (type.name == "uint64_t") { return FFI_U64; }
     if (type.name == "size_t") { return SOUP_BITS == 64 ? FFI_U64 : FFI_U32; }
+	if (type.name == "float") { return FFI_F32; }
+	if (type.name == "double") { return FFI_F64; }
   }
   else if (type.at == soup::rflType::POINTER) {
     if (type.name == "const char" || type.name == "char") {
