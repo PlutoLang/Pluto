@@ -145,6 +145,28 @@ static uintptr_t check_ffi_value (lua_State *L, int i, FfiType type) {
   SOUP_UNREACHABLE;
 }
 
+static void *weaklytestudata (lua_State *L, int ud, const char *tname) {
+  void *p = lua_touserdata(L, ud);
+  if (p != NULL) {  /* value is a userdata? */
+    if (lua_getmetatable(L, ud)) {  /* does it have a metatable? */
+      lua_pushliteral(L, "__name");
+      if (lua_gettable(L, -2) != LUA_TSTRING || strcmp(lua_tostring(L, -1), tname) != 0) {
+        p = NULL;  /* value is a userdata with wrongly-named metatable */
+      }
+      lua_pop(L, 2);  /* remove metatable and __name */
+      return p;
+    }
+  }
+  return NULL;  /* value is not a userdata with a metatable */
+}
+
+
+static void *weaklycheckudata (lua_State *L, int ud, const char *tname) {
+  void *p = weaklytestudata(L, ud, tname);
+  luaL_argexpected(L, p != NULL, ud, tname);
+  return p;
+}
+
 struct FfiFuncWrapper {
   void* addr;
   std::vector<FfiType> args;
@@ -336,7 +358,7 @@ struct FfiStruct : public soup::rflStruct {
 };
 
 static int ffi_push_new (lua_State *L, int i) {
-  const auto strct = (FfiStruct*)luaL_checkudata(L, i, "pluto:ffi-struct-type");
+  const auto strct = (FfiStruct*)weaklycheckudata(L, i, "pluto:ffi-struct-type");
   const auto size = strct->getSize();
   void* area = lua_newuserdata(L, size + sizeof(uintptr_t) - 1);  /* extra space for __newindex */
   memset(area, 0, size);  /* probably best for memory we give to a script... */
@@ -350,7 +372,7 @@ static int ffi_push_new (lua_State *L, int i) {
     if (lua_getmetatable(L, 1)) {
       lua_pushliteral(L, "type");
       lua_gettable(L, -2);
-      const auto strct = (FfiStruct*)luaL_checkudata(L, -1, "pluto:ffi-struct-type");
+      const auto strct = (FfiStruct*)weaklycheckudata(L, -1, "pluto:ffi-struct-type");
       const auto memname = pluto_checkstring(L, 2);
       const auto offset = strct->getOffsetOf(memname);
       if (l_unlikely(offset == -1)) {
@@ -367,7 +389,7 @@ static int ffi_push_new (lua_State *L, int i) {
     if (lua_getmetatable(L, 1)) {
       lua_pushliteral(L, "type");
       lua_gettable(L, -2);
-      const auto strct = (FfiStruct*)luaL_checkudata(L, -1, "pluto:ffi-struct-type");
+      const auto strct = (FfiStruct*)weaklycheckudata(L, -1, "pluto:ffi-struct-type");
       const auto memname = pluto_checkstring(L, 2);
       const auto offset = strct->getOffsetOf(memname);
       if (l_unlikely(offset == -1)) {
@@ -388,24 +410,26 @@ static int ffi_push_new (lua_State *L, int i) {
 
 static FfiStruct *ffi_new_struct_type (lua_State *L) {
   auto strct = new (lua_newuserdata(L, sizeof(FfiStruct))) FfiStruct();
-  if (luaL_newmetatable(L, "pluto:ffi-struct-type")) {
-    lua_pushliteral(L, "__gc");
-    lua_pushcfunction(L, [](lua_State *L) {
-      std::destroy_at<>((FfiStruct*)luaL_checkudata(L, -1, "pluto:ffi-struct-type"));
-      return 0;
-    });
-    lua_settable(L, -3);
-    lua_pushliteral(L, "__index");
-    lua_newtable(L);  {
-      lua_pushliteral(L, "new");
-      lua_pushvalue(L, -5);
-      lua_pushcclosure(L, [](lua_State *L) {
-        return ffi_push_new(L, lua_upvalueindex(1));
-      }, 1);
-      lua_settable(L, -3);
-    }
+  lua_newtable(L);
+  lua_pushliteral(L, "__name");
+  lua_pushliteral(L, "pluto:ffi-struct-type");
+  lua_settable(L, -3);
+  lua_pushliteral(L, "__gc");
+  lua_pushcfunction(L, [](lua_State *L) {
+    std::destroy_at<>((FfiStruct*)lua_touserdata(L, -1));
+    return 0;
+  });
+  lua_settable(L, -3);
+  lua_pushliteral(L, "__index");
+  lua_newtable(L);  {
+    lua_pushliteral(L, "new");
+    lua_pushvalue(L, -5);
+    lua_pushcclosure(L, [](lua_State *L) {
+      return ffi_push_new(L, lua_upvalueindex(1));
+    }, 1);
     lua_settable(L, -3);
   }
+  lua_settable(L, -3);
   lua_setmetatable(L, -2);
   return strct;
 }
@@ -469,16 +493,16 @@ static FfiStruct *check_struct_type (lua_State *L) {
   if (lua_type(L, 1) == LUA_TSTRING) {
     lua_pushvalue(L, 1);
     if (lua_gettable(L, lua_upvalueindex(1)) > LUA_TNIL) {
-      return (FfiStruct*)luaL_checkudata(L, -1, "pluto:ffi-struct-type");
+      return (FfiStruct*)weaklycheckudata(L, -1, "pluto:ffi-struct-type");
     }
   }
-  if (void *addr = luaL_testudata(L, 1, "pluto:ffi-struct-type")) {
+  if (void *addr = weaklytestudata(L, 1, "pluto:ffi-struct-type")) {
     return (FfiStruct*)addr;
   }
   lua_getmetatable(L, 1);
   lua_pushliteral(L, "type");
   lua_gettable(L, -2);
-  return (FfiStruct*)luaL_checkudata(L, -1, "pluto:ffi-struct-type");
+  return (FfiStruct*)weaklycheckudata(L, -1, "pluto:ffi-struct-type");
 }
 
 static int ffi_sizeof (lua_State *L) {
