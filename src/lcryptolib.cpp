@@ -16,6 +16,7 @@
 #include "vendor/Soup/soup/adler32.hpp"
 #include "vendor/Soup/soup/aes.hpp"
 #include "vendor/Soup/soup/crc32.hpp"
+#include "vendor/Soup/soup/deflate.hpp"
 #include "vendor/Soup/soup/HardwareRng.hpp"
 #include "vendor/Soup/soup/rsa.hpp"
 #include "vendor/Soup/soup/sha1.hpp"
@@ -732,9 +733,28 @@ static int l_verify (lua_State *L) {
 
 static int l_adler32 (lua_State *L) {
   size_t size;
-  const char* data = luaL_checklstring(L, 1, &size);
+  const char *data = luaL_checklstring(L, 1, &size);
   lua_pushinteger(L, soup::adler32::hash(data, size));
   return 1;
+}
+
+
+static int l_deflate (lua_State *L) {
+  size_t size;
+  const char *data = luaL_checklstring(L, 1, &size);
+  auto res = soup::deflate::decompress(data, size);
+  pluto_pushstring(L, res.decompressed);
+  lua_newtable(L);
+  lua_pushliteral(L, "compressed_size");
+  lua_pushinteger(L, res.compressed_size);
+  lua_settable(L, -3);
+  lua_pushliteral(L, "checksum_present");
+  lua_pushboolean(L, res.checksum_present);
+  lua_settable(L, -3);
+  lua_pushliteral(L, "checksum_mismatch");
+  lua_pushboolean(L, res.checksum_mismatch);
+  lua_settable(L, -3);
+  return 2;
 }
 
 
@@ -770,6 +790,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"sign", l_sign},
   {"verify", l_verify},
   {"adler32", l_adler32},
+  {"deflate", l_deflate},
   {NULL, NULL}
 };
 
