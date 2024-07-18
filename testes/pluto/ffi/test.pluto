@@ -71,3 +71,20 @@ assert(colour.b == 127)
 local human = ffi.new("Human")
 human.name = "John"
 assert(human.name == "John")
+
+local Vector3 = ffi.struct[[
+    struct Vector3 {
+        float x;
+        float y;
+        float z;
+    };
+]]
+assert(ffi.sizeof(Vector3) == 3 * 4)
+assert(ffi.offsetof(Vector3, "x") == 0)
+assert(ffi.offsetof(Vector3, "y") == 4)
+assert(ffi.offsetof(Vector3, "z") == 8)
+local position = Vector3.new()
+assert(ffi.sizeof(position) == 3 * 4)
+assert(ffi.offsetof(position, "x") == 0)
+assert(ffi.offsetof(position, "y") == 4)
+assert(ffi.offsetof(position, "z") == 8)
