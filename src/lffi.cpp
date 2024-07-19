@@ -526,6 +526,7 @@ static FfiStruct *check_struct_type (lua_State *L) {
   if (void *addr = weaklytestudata(L, 1, "pluto:ffi-struct-type")) {
     return (FfiStruct*)addr;
   }
+  luaL_checktype(L, 1, LUA_TUSERDATA);
   lua_getmetatable(L, 1);
   lua_pushliteral(L, "type");
   lua_gettable(L, -2);
