@@ -2,6 +2,7 @@
 #include "lualib.h"
 
 #include <cstring> // strcmp
+#include <unordered_set>
 #include <vector>
 
 #include "vendor/Soup/soup/ffi.hpp"
@@ -11,7 +12,8 @@
 #include "vendor/Soup/soup/SharedLibrary.hpp"
 
 enum FfiType : uint8_t {
-  FFI_VOID = 0,
+  FFI_UNKNOWN = 0,
+  FFI_VOID,
   FFI_I8,
   FFI_I16,
   FFI_I32,
@@ -26,8 +28,9 @@ enum FfiType : uint8_t {
   FFI_STR,
 };
 
-[[nodiscard]] static FfiType check_ffi_type (lua_State *L, int i) noexcept {
+[[nodiscard]] static FfiType check_ffi_type (lua_State *L, int i) {
   const char *str = luaL_checkstring(L, i);
+  if (strcmp(str, "void") == 0) return FFI_VOID;
   if (strcmp(str, "i8") == 0) return FFI_I8;
   if (strcmp(str, "i16") == 0) return FFI_I16;
   if (strcmp(str, "i32") == 0) return FFI_I32;
@@ -40,7 +43,7 @@ enum FfiType : uint8_t {
   if (strcmp(str, "f64") == 0) return FFI_F64;
   if (strcmp(str, "ptr") == 0) return FFI_PTR;
   if (strcmp(str, "str") == 0) return FFI_STR;
-  return FFI_VOID;
+  luaL_error(L, "unknown type '%s'", str);
 }
 
 [[nodiscard]] static FfiType rfl_type_to_ffi_type (const soup::rflType& type) noexcept {
@@ -60,6 +63,7 @@ enum FfiType : uint8_t {
     if (type.name == "size_t") { return SOUP_BITS == 64 ? FFI_U64 : FFI_U32; }
     if (type.name == "float") { return FFI_F32; }
     if (type.name == "double") { return FFI_F64; }
+    return FFI_UNKNOWN;
   }
   else if (type.at == soup::rflType::POINTER) {
     if (type.name == "const char" || type.name == "char") {
@@ -276,6 +280,7 @@ static int ffi_lib_cdef (lua_State *L) {
         pluto_pushstring(L, func->name);
         auto fw = newfuncwrapper(L);
         fw->ret = rfl_type_to_ffi_type(func->return_type);
+        SOUP_ASSERT(fw->ret != FFI_UNKNOWN);
         fw->addr = lib->getAddress(func->name.c_str());
         if (l_unlikely(fw->addr == nullptr)) {
           luaL_error(L, "could not find '%s' in library", func->name.c_str());
@@ -286,6 +291,7 @@ static int ffi_lib_cdef (lua_State *L) {
         fw->args.reserve(func->parameters.size());
         for (const auto& param : func->parameters) {
           fw->args.emplace_back(rfl_type_to_ffi_type(param.type));
+          SOUP_ASSERT(fw->args.back() != FFI_UNKNOWN);
         }
         lua_settable(L, 1);
       }
@@ -299,7 +305,11 @@ static int ffi_lib_cdef (lua_State *L) {
         luaL_error(L, "could not find '%s' in library", var->name.c_str());
       }
       pluto_pushstring(L, var->name);
-      push_ffi_value(L, rfl_type_to_ffi_type(var->type), addr);
+      const auto type = rfl_type_to_ffi_type(var->type);
+      if (l_unlikely(type == FFI_UNKNOWN)) {
+        luaL_error(L, "unknown type name");
+      }
+      push_ffi_value(L, type, addr);
       lua_settable(L, 1);
     }
   }
@@ -434,6 +444,21 @@ static FfiStruct *ffi_new_struct_type (lua_State *L) {
   return strct;
 }
 
+static void validate_struct (lua_State *L, const FfiStruct& strct) {
+  auto seen_before = pluto_newclassinst(L, std::unordered_set<std::string>);
+  for (const auto& mem : strct.members) {
+    if (l_unlikely(seen_before->count(mem.name) != 0)) {
+      luaL_error(L, "duplicate member name '%s'", mem.name.c_str());
+    }
+    seen_before->emplace(mem.name);
+
+    if (l_unlikely(rfl_type_to_ffi_type(mem.type) == FFI_UNKNOWN)) {
+      luaL_error(L, "member '%s' has an unknown type", mem.name.c_str());
+    }
+  }
+  lua_pop(L, 1);
+}
+
 static int ffi_struct (lua_State *L) {
   auto par = pluto_newclassinst(L, soup::rflParser, pluto_checkstring(L, 1));
   auto strct = ffi_new_struct_type(L);
@@ -443,6 +468,7 @@ static int ffi_struct (lua_State *L) {
   catch (...) {
     luaL_error(L, "malformed struct");
   }
+  validate_struct(L, *strct);
   return 1;
 }
 
@@ -468,6 +494,7 @@ static int ffi_cdef (lua_State *L) {
     catch (...) {
       luaL_error(L, "malformed struct");
     }
+    validate_struct(L, *strct);
     /* stack now: par, ffi, strct */
     pluto_pushstring(L, strct->name);
     /* stack now: par, ffi, strct, name */
