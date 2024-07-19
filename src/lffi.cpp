@@ -494,6 +494,7 @@ static int ffi_cdef (lua_State *L) {
     catch (...) {
       luaL_error(L, "malformed struct");
     }
+    luaL_check(L, strct->name.empty(), "anonymous structs not supported in ffi.cdef");
     validate_struct(L, *strct);
     /* stack now: par, ffi, strct */
     pluto_pushstring(L, strct->name);
