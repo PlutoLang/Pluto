@@ -88,3 +88,15 @@ assert(ffi.sizeof(position) == 3 * 4)
 assert(ffi.offsetof(position, "x") == 0)
 assert(ffi.offsetof(position, "y") == 4)
 assert(ffi.offsetof(position, "z") == 8)
+
+ffi.cdef[[
+struct PointedAt {
+};
+
+struct PointsAt {
+    PointedAt *target;
+};
+]]
+local pointed_at = ffi.new("PointedAt")
+local points_at = ffi.new("PointsAt")
+points_at.target = pointed_at

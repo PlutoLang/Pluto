@@ -142,7 +142,9 @@ static uintptr_t check_ffi_value (lua_State *L, int i, FfiType type) {
     case FFI_F64:
       return static_cast<uintptr_t>(static_cast<double>(luaL_checknumber(L, i)));
     case FFI_PTR:
-      return static_cast<uintptr_t>(luaL_checkinteger(L, i));
+      if (lua_type(L, 1) != LUA_TUSERDATA)
+        luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
+      return reinterpret_cast<uintptr_t>(lua_touserdata(L, i));
     case FFI_STR:
       return reinterpret_cast<uintptr_t>(luaL_checkstring(L, i));
   }
@@ -580,7 +582,7 @@ LUAMOD_API int luaopen_ffi(lua_State *L) {
   lua_settable(L, -3);
 
   lua_pushliteral(L, "nullptr");
-  lua_pushinteger(L, 0);
+  lua_pushlightuserdata(L, nullptr);
   lua_settable(L, -3);
 
   return 1;
