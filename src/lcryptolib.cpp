@@ -724,7 +724,11 @@ static int l_adler32 (lua_State *L) {
 static int l_deflate (lua_State *L) {
   size_t size;
   const char *data = luaL_checklstring(L, 1, &size);
-  auto res = soup::deflate::decompress(data, size);
+  soup::deflate::DecompressResult res;
+  if (lua_gettop(L) >= 2)
+    res = soup::deflate::decompress(data, size, luaL_checkinteger(L, 2));
+  else
+    res = soup::deflate::decompress(data, size);
   pluto_pushstring(L, res.decompressed);
   lua_newtable(L);
   lua_pushliteral(L, "compressed_size");
