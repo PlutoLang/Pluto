@@ -165,7 +165,7 @@ NAMESPACE_SOUP
 		if (!query.empty())
 		{
 			str.push_back('?');
-			str.append(query);
+			str.append(urlenc::encodePathWithQuery(query));
 		}
 		return str;
 	}
