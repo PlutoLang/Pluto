@@ -899,7 +899,7 @@ NAMESPACE_SOUP
 		DeflateBitReader br(current_compressed_data, end_compressed_data);
 
 		res.decompressed = std::string(max_decompressed_size, '\0');
-		auto out = reinterpret_cast<uint8_t*>(&res.decompressed.at(0));
+		auto out = reinterpret_cast<uint8_t*>(&res.decompressed[0]);
 		size_t current_out_offset = 0;
 		while (true)
 		{
