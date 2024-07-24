@@ -3170,8 +3170,10 @@ end
 print "Testing modified require semantics."
 do
     local currentdir = io.absolute(io.currentdir())
-    if not io.currentdir():endswith("testes") then
-        io.currentdir("testes")
+    if currentdir:endswith("pluto") then
+        io.currentdir("..")
+    else
+        io.contents("example_module.pluto", "")
     end
     package.preload["example_module"] = || -> "Test Value"
     assert(select(2, require("example_module")):contains("example_module.pluto"))
