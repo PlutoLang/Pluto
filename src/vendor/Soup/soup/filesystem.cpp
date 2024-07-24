@@ -3,6 +3,7 @@
 #include <fstream>
 
 #if SOUP_WINDOWS
+#include <windows.h>
 #include <shlobj.h> // CSIDL_COMMON_APPDATA
 
 #pragma comment(lib, "Shell32.lib") // SHGetFolderPathW
@@ -80,6 +81,10 @@ NAMESPACE_SOUP
 #endif
 	}
 
+#if SOUP_WINDOWS
+	static char empty_file_data = 0;
+#endif
+
 	void* filesystem::createFileMapping(const std::filesystem::path& path, size_t& out_len)
 	{
 		void* addr = nullptr;
@@ -91,11 +96,18 @@ NAMESPACE_SOUP
 			SOUP_IF_LIKELY (GetFileSizeEx(f, &liSize))
 			{
 				out_len = static_cast<size_t>(liSize.QuadPart);
-				HANDLE m = CreateFileMappingA(f, nullptr, PAGE_READONLY, liSize.HighPart, liSize.LowPart, NULL);
-				SOUP_IF_LIKELY (m != NULL)
+				if (out_len == 0)
 				{
-					addr = MapViewOfFile(m, FILE_MAP_READ, 0, 0, out_len);
-					CloseHandle(m);
+					addr = &empty_file_data;
+				}
+				else
+				{
+					HANDLE m = CreateFileMappingA(f, nullptr, PAGE_READONLY, liSize.HighPart, liSize.LowPart, NULL);
+					SOUP_IF_LIKELY(m != NULL)
+					{
+						addr = MapViewOfFile(m, FILE_MAP_READ, 0, 0, out_len);
+						CloseHandle(m);
+					}
 				}
 			}
 			CloseHandle(f);
@@ -116,10 +128,15 @@ NAMESPACE_SOUP
 		return addr;
 	}
 
-#if !SOUP_WINDOWS
 	void filesystem::destroyFileMapping(void* addr, size_t len)
 	{
+#if SOUP_WINDOWS
+		if (addr != &empty_file_data)
+		{
+			UnmapViewOfFile(addr);
+		}
+#else
 		munmap(addr, len);
-	}
 #endif
+	}
 }
