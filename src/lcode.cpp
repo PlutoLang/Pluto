@@ -1687,7 +1687,7 @@ static void codebitwise (FuncState *fs, BinOpr opr,
 ** Emit code for order comparisons. When using an immediate operand,
 ** 'isfloat' tells whether the original value was a float.
 */
-static void codeorder (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2) {
+static void codeorder (FuncState *fs, BinOpr opr, expdesc *res, expdesc *e1, expdesc *e2) {
   int r1, r2;
   int im;
   int isfloat = 0;
@@ -1710,8 +1710,8 @@ static void codeorder (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2) {
     op = binopr2op(opr, OPR_LT, OP_LT);
   }
   freeexps(fs, e1, e2);
-  e1->u.pc = condjump(fs, op, r1, r2, isfloat, 1);
-  e1->k = VJMP;
+  res->u.pc = condjump(fs, op, r1, r2, isfloat, 1);
+  res->k = VJMP;
 }
 
 
@@ -1962,11 +1962,12 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
     }
     case OPR_GT: case OPR_GE: {
       /* '(a > b)' <=> '(b < a)';  '(a >= b)' <=> '(b <= a)' */
-      swapexps(e1, e2);
       opr = cast(BinOpr, (opr - OPR_GT) + OPR_LT);
-    }  /* FALLTHROUGH */
+      codeorder(fs, opr, e1, e2, e1);
+      break;
+    }
     case OPR_LT: case OPR_LE: {
-      codeorder(fs, opr, e1, e2);
+      codeorder(fs, opr, e1, e1, e2);
       break;
     }
     default: lua_assert(0);

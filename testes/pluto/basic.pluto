@@ -3281,6 +3281,30 @@ do
     assert_no_warn [[pluto_use global; global a, b; a = 1; b = 2]]
 end
 
+print "Testing chained comparisons."
+do
+    local function f(x)
+        return x
+    end
+
+    -- Normally, chaining the '<', '<=', '>' and '>=' operators is an error because they return a boolean (even with metatables) but error when a boolean is an operand.
+    -- Pluto generates code for it such that 'a < b < c' equals 'a < b and b < c'.
+    assert((0 < f(0) < 100) == false)
+    assert((0 < f(1) < 100) == true)
+    assert((0 < f(100) < 100) == false)
+    assert((100 > f(0) > 0) == false)
+    assert((100 > f(1) > 0) == true)
+    assert((100 > f(100) > 0) == false)
+
+    -- Any chain length is acceptable
+    assert(0 < 1 < 2 < 3)
+
+    -- '==' and '~=' are not changed
+    assert(1 ~= true)
+    assert(1 == 1 == true)
+    assert(1 == 1 ~= 1)
+end
+
 print "Testing modified require semantics."
 do
     local currentdir = io.absolute(io.currentdir())
