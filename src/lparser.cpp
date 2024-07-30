@@ -3623,6 +3623,11 @@ static const struct {
 #define UNARY_PRIORITY	12  /* priority for unary operators */
 
 
+[[nodiscard]] static constexpr bool canchainopr (BinOpr opr) noexcept {
+  return opr == OPR_LT || opr == OPR_LE || opr == OPR_GT || opr == OPR_GE;
+}
+
+
 /*
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
@@ -3737,6 +3742,26 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       }
       nextop = subexpr(ls, &v2, priority[op].right, subexpr_prop, flags);
       luaK_posfix(ls->fs, op, v, &v2, line);
+      if (canchainopr(op) && canchainopr(nextop)) {
+        while (true) {
+          op = nextop;
+          if (v2.k == VNONRELOC) {
+            lua_assert(ls->fs->freereg == v2.u.reg);
+            ls->fs->freereg++;
+          }
+          luaX_next(ls);  /* skip operator */
+          /* to generate 'a < b < c': 'a < b' is in `v`. 'b' is in `v2`. 'c' can be read from lexer state. */
+          luaK_infix(ls->fs, OPR_AND, v);
+          expdesc v3;
+          luaK_infix(ls->fs, op, &v2);
+          nextop = subexpr(ls, &v3, priority[op].right, subexpr_prop, flags);
+          luaK_posfix(ls->fs, op, &v2, &v3, line);
+          luaK_posfix(ls->fs, OPR_AND, v, &v2, line);
+          if (!canchainopr(nextop))
+            break;
+          v2 = v3;
+        }
+      }
     }
     op = nextop;
   }
