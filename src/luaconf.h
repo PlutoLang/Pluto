@@ -1062,10 +1062,12 @@
 //#define PLUTO_NO_COROLIB
 
 // If defined, all HTTP requests will fail.
+// Note that the 'socket' library can still be used to the same effect (with more effort).
 //#define PLUTO_DISABLE_HTTP_COMPLETELY
 
 // If defined, the provided function will be called as bool(lua_State* L, const char* url).
 // If it returns false, a Lua error is raised.
+// Note that the 'socket' library can still be used to the same effect (with more effort).
 //#define PLUTO_HTTP_REQUEST_HOOK ContmodOnHttpRequest
 
 // If defined, the provided function will be called as bool(lua_State* L, const char* path)
