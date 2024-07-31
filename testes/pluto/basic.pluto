@@ -778,6 +778,13 @@ do
     }
     assert(true ? (t:t()) : false)
 
+    -- Longhand: 'if' expression
+    assert(if a == 3 then
+        "yes"
+    else
+        "no"
+    end == "yes")
+
     -- @pluto_warnings: enable-unreachable-code
 end
 
