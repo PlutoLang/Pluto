@@ -2156,7 +2156,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAdd (GETARG_sB(i));
         vmDumpAdd (GETARG_k(i));
-        vmDumpOut ("; " << stringify_tvalue(s2v(RA(i))) << " <= " << GETARG_sB(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(RA(i))) << " < " << GETARG_sB(i));
         vmbreak;
       }
       vmcase(OP_LEI) {
@@ -2165,7 +2165,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAdd (GETARG_sB(i));
         vmDumpAdd (GETARG_k(i));
-        vmDumpOut ("; " << stringify_tvalue(s2v(RA(i))) << " < " << GETARG_sB(i));
+        vmDumpOut ("; " << stringify_tvalue(s2v(RA(i))) << " <= " << GETARG_sB(i));
         vmbreak;
       }
       vmcase(OP_GTI) {
