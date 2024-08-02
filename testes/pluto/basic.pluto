@@ -3304,6 +3304,15 @@ do
     assert(1 == 1 == true)
     assert(1 == 1 ~= 1)
 end
+do
+    local { bigint } = require "*"
+
+    local a = new bigint("69")
+    local b = new bigint("420")
+    local c = new bigint("1337")
+
+    assert((a < b < c) == true)
+end
 
 print "Testing modified require semantics."
 do
