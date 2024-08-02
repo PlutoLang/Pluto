@@ -1232,8 +1232,8 @@ LUAI_FUNC int luaB_ipairsaux (lua_State *L);
   str << "-";
   switch (ttypetag(t)) {
     case LUA_VLCF: str << cast_voidp(cast_sizet(fvalue(t))); break;
-    case LUA_VUSERDATA: str << getudatamem(uvalue(t)); break;
-    case LUA_VLIGHTUSERDATA: str << pvalue(t); break;
+    case LUA_VUSERDATA: str << cast_voidp(getudatamem(uvalue(t))); break;
+    case LUA_VLIGHTUSERDATA: str << cast_voidp(pvalue(t)); break;
     default: str << gcvalue(t);
   }
 
