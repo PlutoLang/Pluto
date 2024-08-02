@@ -3771,8 +3771,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       if (canchainopr(op) && canchainopr(nextop)) {
         while (true) {
           op = nextop;
-          if (v2.k == VNONRELOC) {
-            lua_assert(ls->fs->freereg == v2.u.reg);
+          if (v2.k == VNONRELOC && ls->fs->freereg == v2.u.reg) {
             ls->fs->freereg++;
           }
           luaX_next(ls);  /* skip operator */
