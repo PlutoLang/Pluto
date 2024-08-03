@@ -20,12 +20,12 @@ file_put_contents(".chocogen.json", <<<EOC
     "title": "Pluto Language",
     "description": "A superset of Lua 5.4 with a focus on general-purpose programming.",
     "authors": "Ryan Starrett, Sainan",
-    "website": "https://pluto-lang.org/",
+    "website": "https://plutolang.github.io/",
     "repository": "https://github.com/PlutoLang/Pluto",
     "tags": "pluto lua development programming foss cross-platform non-admin",
-    "icon": "https://pluto-lang.org/img/logo.png",
+    "icon": "https://plutolang.github.io/img/logo.png",
     "license": "https://github.com/PlutoLang/Pluto/blob/main/LICENSE",
-    "changelog": "https://pluto-lang.org/docs/Changelog",
+    "changelog": "https://plutolang.github.io/docs/Changelog",
     "issues": "https://github.com/PlutoLang/Pluto/issues"
 }
 EOC);
