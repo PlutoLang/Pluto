@@ -712,6 +712,7 @@ static int treduce (lua_State *L) {
 }
 
 
+template <bool findindex>
 static int tfind (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
@@ -728,7 +729,7 @@ static int tfind (lua_State *L) {
     lua_call(L, 1, 1);
     /* stack now: table, key, value, bool */
     if (lua_istrue(L, -1)) {
-      lua_pop(L, 1);
+      lua_pop(L, findindex ? 2 : 1);
       return 1;
     }
     lua_pop(L, 2);
@@ -774,13 +775,44 @@ static int tclear (lua_State *L) {
 }
 
 
+static int tback (lua_State *L) {
+  getn(L);
+  lua_gettable(L, 1);
+  return 1;
+}
+
+
+static int tkeys (lua_State *L) {
+  lua_newtable(L);
+  lua_Integer i = 0;
+  lua_pushnil(L);
+  /* stack now: tKeys, key */
+  while (lua_next(L, 1)) {
+    /* stack now: tKeys, key, value */
+    lua_pop(L, 1);
+    /* stack now: tKeys, key */
+    lua_pushinteger(L, ++i);
+    /* stack now: tKeys, key, index */
+    lua_pushvalue(L, -2);
+    /* stack now: tKeys, key, index, key */
+    lua_settable(L, -4);
+    /* stack now: tKeys, key */
+  }
+  /* stack now: tKeys */
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"keys", tkeys},
+  {"back", tback},
   {"clear", tclear},
   {"checkall", checkall},
-  {"find", tfind},
+  {"find", tfind<false>},
+  {"findindex", tfind<true>},
   {"reduce", treduce},
   {"size", tsize},
   {"reorder", treorder<false>},

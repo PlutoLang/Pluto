@@ -1291,7 +1291,6 @@ NAMESPACE_SOUP
 		UniquePtr<SocketTlsHandshaker> handshaker;
 		void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&) SOUP_EXCAL;
 		std::string pre;
-		bool is_new_bytes = false;
 	};
 
 	void Socket::tls_recvHandshake(UniquePtr<SocketTlsHandshaker>&& handshaker, void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&) SOUP_EXCAL, std::string&& pre) SOUP_EXCAL
@@ -1333,11 +1332,6 @@ NAMESPACE_SOUP
 
 			auto& cap = _cap.get<CaptureSocketTlsRecvHandshake>();
 
-			if (cap.is_new_bytes)
-			{
-				cap.handshaker->layer_bytes.append(data);
-			}
-
 			if (!cap.pre.empty())
 			{
 				data.insert(0, cap.pre);
@@ -1356,26 +1350,26 @@ NAMESPACE_SOUP
 				return;
 			}
 
+			cap.handshaker->layer_bytes.append(data.substr(0, 4));
 			data.erase(0, 4);
 
 			if (data.size() > hs.length)
 			{
-				s.tls_record_buf = data.substr(hs.length);
+				s.transport_unrecv(data.substr(hs.length));
+
+				TlsRecord record{};
+				record.content_type = TlsContentType::handshake;
+				record.length = static_cast<uint16_t>(data.size() - hs.length);
+				s.transport_unrecv(record.toBinaryString());
+
 				data.erase(hs.length);
 			}
+
+			cap.handshaker->layer_bytes.append(data);
 
 			cap.callback(s, std::move(cap.handshaker), hs.handshake_type, std::move(data));
 		};
 
-		if (!tls_record_buf.empty())
-		{
-			std::string data = std::move(tls_record_buf);
-			tls_record_buf.clear();
-			record_callback(*this, TlsContentType::handshake, std::move(data), std::move(cap));
-			return;
-		}
-
-		cap.is_new_bytes = true;
 		tls_recvRecord(record_callback, std::move(cap));
 	}
 
@@ -1443,13 +1437,6 @@ NAMESPACE_SOUP
 
 	void Socket::tls_recvRecord(void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&), Capture&& cap)
 	{
-		if (!tls_record_buf.empty())
-		{
-			std::string data = std::move(tls_record_buf);
-			tls_record_buf.clear();
-			callback(*this, TlsContentType::handshake, std::move(data), std::move(cap));
-			return;
-		}
 		transport_recvExact(5, [](Socket& s, std::string&& data, Capture&& cap) SOUP_EXCAL
 		{
 			TlsRecord record{};
@@ -1609,6 +1596,12 @@ NAMESPACE_SOUP
 
 	std::string Socket::transport_recvCommon(int max_bytes) SOUP_EXCAL
 	{
+		if (!unrecv_buf.empty())
+		{
+			std::string ret = unrecv_buf.substr(0, max_bytes);
+			unrecv_buf.erase(0, max_bytes);
+			return ret;
+		}
 		std::string buf(max_bytes, '\0');
 		auto res = ::recv(fd, buf.data(), max_bytes, 0);
 		if (res > 0)
@@ -1696,6 +1689,11 @@ NAMESPACE_SOUP
 			auto& cap = _cap.get<CaptureSocketTransportRecvExact>();
 			static_cast<Socket&>(w).transport_recvExact(cap.bytes, cap.callback, std::move(cap.cap), std::move(cap.buf));
 		}, CaptureSocketTransportRecvExact(bytes, callback, std::move(cap), std::move(pre)));
+	}
+
+	void Socket::transport_unrecv(const std::string& data) SOUP_EXCAL
+	{
+		unrecv_buf.insert(0, data);
 	}
 
 	void Socket::transport_close() noexcept

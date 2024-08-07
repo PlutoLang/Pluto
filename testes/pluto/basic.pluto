@@ -187,6 +187,26 @@ end]]
 else
 end]]
 end
+-- Propagate conditional in block
+do
+    assert_no_warn[[local function test(arg: string|number): void
+        if type(arg) == "string" then
+            local str: string = arg
+        end
+    end]]
+    assert_warn[[local function test(arg: string|number): void
+        if type(arg) == "string" then
+            arg = 69
+            local str: string = arg
+        end
+    end]]
+    assert_no_warn[[local function test(arg: string|number): void
+        if type(arg) == "string" then
+            arg = 69
+            local str: number = arg
+        end
+    end]]
+end
 
 print "Testing assertion library."
 do
@@ -273,6 +293,10 @@ do
     containserror("Absent", assert.searcherror, "hello world", error, "abc")
     assert.equal({}, {})
     assert.nequal({}, { 1 })
+    noerror(assert.contains, "hello world", "apple pie hello world yellow apple")
+    noerror(assert.contains, "my element", { 1, 2, 3, 4, "my element", 5 })
+    haserror(assert.contains, "hello world", "nothing to see here")
+    haserror(assert.contains, "my element", { 1, 2, 3, 4, "my not element", 5 })
 end
 
 print "Testing compound assignment."
@@ -748,6 +772,13 @@ do
         function t() return true end
     }
     assert(true ? (t:t()) : false)
+
+    -- Longhand: 'if' expression
+    assert(if a == 3 then
+        "yes"
+    else
+        "no"
+    end == "yes")
 
     -- @pluto_warnings: enable-unreachable-code
 end
@@ -1867,6 +1898,9 @@ do
     assert(menu:find(|item| -> item.id == 1).name == "Apple")
     assert(menu:find(|item| -> item.id == 2).name == "Banana")
     assert(menu:find(|item| -> item.id == 3) == nil)
+    assert(menu:findindex(|item| -> item.id == 1) == 1)
+    assert(menu:findindex(|item| -> item.id == 2) == 2)
+    assert(menu:findindex(|item| -> item.id == 3) == nil)
 end
 do
     assert({ 1, 2, 3 }:checkall(|x| -> x % 2 == 0) == false)
@@ -1877,6 +1911,20 @@ do
     assert(t:size() == 5)
     t:clear()
     assert(t:size() == 0)
+end
+do
+    assert(table.back({ "a", "b", "c" }) == "c")
+end
+do
+    local keys = table.keys{
+        a = 1,
+        b = 2,
+        c = 3
+    }
+    assert(#keys == 3)
+    assert(keys:contains("a"))
+    assert(keys:contains("b"))
+    assert(keys:contains("c"))
 end
 do
     assert(compareversions("0.1.0", "0.1.0") == 0)
@@ -2011,6 +2059,11 @@ do
 
     local sig = crypto.sign("Pluto is certified cool", "rsa-sha1", priv)
     assert(crypto.verify("Pluto is certified cool", "rsa-sha1", pub, sig))
+
+    local pem = priv |> crypto.exportkey|"pem"|
+    local reimported = pem |> crypto.importkey|"pem"|
+    assert(reimported.p == priv.p)
+    assert(reimported.q == priv.q)
 end
 do
     local bigint = require "pluto:bigint"
@@ -2046,6 +2099,20 @@ do
         s:close()
     end)
     sched:run()
+end
+do
+    local regex = require "pluto:regex"
+
+    local pattern = new regex [[/^the (only )?one$/i]]
+    assert(pattern:match("THE ONE"))
+    assert(not pattern:match("NOT THE ONE"))
+
+    pattern = new regex [[/anywhere from (\d+) to (\d+)/]]
+    local match = pattern:match("anywhere from 3 to 5")
+    assert(match)
+    assert(match[0] == "anywhere from 3 to 5")
+    assert(match[1] == "3")
+    assert(match[2] == "5")
 end
 
 print "Testing default table metatable."
@@ -2128,11 +2195,6 @@ do
         error()
     end
 
-    if (walrusvar := 1) ~= 1 then
-    else
-        assert(walrusvar == 1)
-    end
-
     -- Complex Context: Walrus in function body of a lambda function that is passed an argument
     local function executeFunc(f)
         f()
@@ -2187,11 +2249,12 @@ do -- Local can be used for subsequent binary operators
         error()
     end
 
+    local reached = false
     if (a := initfunc(0)) ~= 0 then
-        error()
     else
-        assert(a == 0)
+        reached = true
     end
+    assert(reached)
 end
 do -- Method calls as well
     local class Obj
@@ -2219,8 +2282,9 @@ do -- Can be used in subexpressions
         assert(cur == 0)
     end
 end
-do -- But scope may be cut short by conditional subexpressions
-    if false and walrusvar := 1 then
+do -- Variable is scoped to its block
+    -- @pluto_warnings disable-next
+    if (walrusvar := 1) and false then
     else
         assert(walrusvar == nil)
     end
@@ -2689,6 +2753,59 @@ do
 
     GlobalClass = nil
 end
+-- Order independent private methods / fields / preprocessing
+do
+    local t = {}
+    local class MyClass
+        function __construct(private a)
+            self.var1 = "1"
+            self.var2 = "2"
+            self.var3 = "3"
+            assert(self["var1"] == nil)
+            assert(self["__restricted__var1"] == "1")
+        end
+
+        public function getPublic()
+            if a then else end
+            local a = || -> do end
+            enum A begin
+            end
+            class Foo begin end
+            class t.Foo begin end
+            local MuhClass = class end
+            local MuhClass2 = class begin end
+            local MuhClass3 = pluto_class end
+            local MuhClass4 = pluto_class begin end
+            local MuhClass5 = pluto_class private a; end
+            local MuhClass6 = pluto_class begin private a; end
+            enum class MyEnumClass begin
+
+            end
+            return self:getPrivate()
+        end
+
+        private function getPrivate()
+            return self.a
+        end
+
+        private var1
+        private var2,
+        private var3;
+    end
+
+    local var = new MyClass("a")
+
+    assert(var:getPublic() == "a")
+    assert(var.__restricted__getPrivate ~= nil)
+    assert(var.getPrivate == nil)
+    assert(t.Foo ~= nil)
+    assert(var.var1 == nil)
+    assert(var.var2 == nil)
+    assert(var.var3 == nil)
+    assert(var.__restricted__var1 == "1")
+    assert(var.__restricted__var2 == "2")
+    assert(var.__restricted__var3 == "3")
+end
 
 print "Testing named varargs."
 do
@@ -2705,38 +2822,6 @@ do
     assert(f() == 0)
     assert(f(1) == 1)
     assert(f(1, 2) == 2)
-end
-
-print "Testing export."
-do
-    local t = load [[export var = 1337
-
-    export function func()
-        return true
-    end
-
-    export class Clazz
-    end
-    ]] ()
-    assert(t.var == 1337)
-    assert(t.func() == true)
-    assert(type(t.Clazz) == "table")
-end
-do
-    local function export_in_non_main_function()
-        export var = 1337
-
-        export function func()
-            return true
-        end
-
-        export class Clazz
-        end
-    end
-    local t = export_in_non_main_function()
-    assert(t.var == 1337)
-    assert(t.func() == true)
-    assert(type(t.Clazz) == "table")
 end
 
 print "Testing optional parentheses."
@@ -3165,6 +3250,39 @@ do
     -- predefine globals
     assert_no_warn [[pluto_use global; global a; a = 1]]
     assert_no_warn [[pluto_use global; global a, b; a = 1; b = 2]]
+end
+
+print "Testing chained comparisons."
+do
+    local function f(x)
+        return x
+    end
+
+    -- Normally, chaining the '<', '<=', '>' and '>=' operators is an error because they return a boolean (even with metatables) but error when a boolean is an operand.
+    -- Pluto generates code for it such that 'a < b < c' equals 'a < b and b < c'.
+    assert((0 < f(0) < 100) == false)
+    assert((0 < f(1) < 100) == true)
+    assert((0 < f(100) < 100) == false)
+    assert((100 > f(0) > 0) == false)
+    assert((100 > f(1) > 0) == true)
+    assert((100 > f(100) > 0) == false)
+
+    -- Any chain length is acceptable
+    assert(0 < 1 < 2 < 3)
+
+    -- '==' and '~=' are not changed
+    assert(1 ~= true)
+    assert(1 == 1 == true)
+    assert(1 == 1 ~= 1)
+end
+do
+    local { bigint } = require "*"
+
+    local a = new bigint("69")
+    local b = new bigint("420")
+    local c = new bigint("1337")
+
+    assert((a < b < c) == true)
 end
 
 print "Testing modified require semantics."

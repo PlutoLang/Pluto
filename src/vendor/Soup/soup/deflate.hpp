@@ -12,6 +12,7 @@ NAMESPACE_SOUP
 		struct DecompressResult
 		{
 			std::string decompressed{};
+			size_t compressed_size = 0;
 			bool checksum_present = false;
 			bool checksum_mismatch = false;
 		};

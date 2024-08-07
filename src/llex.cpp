@@ -72,7 +72,7 @@ static const char *const luaX_tokens [] = {
 #define save_and_next(ls) (save(ls, ls->current), next(ls))
 
 
-static l_noret lexerror (LexState *ls, const char *msg, int token);
+static l_noret lexerror (LexState *ls, const char *msg, const Token& t);
 
 
 void LexState::popContext(ParserContext ctx) {
@@ -108,40 +108,55 @@ void luaX_init (lua_State *L) {
 }
 
 
-const char *luaX_token2str (LexState *ls, int token) {
-  const char *ret = luaO_pushfstring(ls->L, "'%s'", luaX_token2str_noq(ls, token));
+const char *luaX_token2str (LexState *ls, const Token& t) {
+  const char *ret = luaO_pushfstring(ls->L, "'%s'", luaX_token2str_noq(ls, t));
   ls->L->top.p--;
   return ret;
 }
 
 
-/* Converts a token into a string, same as luaX_token2str (but it doesn't quote the token). */
-const char *luaX_token2str_noq (LexState *ls, int token) {
+/* Converts a token into a string, same as luaX_token2str, but doesn't quote the token. */
+const char *luaX_token2str_noq (LexState *ls, const Token& t) {
   const char *ret;
-  if (token < FIRST_RESERVED) {  /* single-byte symbols? */
-    if (lisprint(token)) {
-      ret = luaO_pushfstring(ls->L, "%c", token);
+  if (t.token < FIRST_RESERVED) {  /* single-byte symbols? */
+    if (lisprint(t.token)) {
+      ret = luaO_pushfstring(ls->L, "%c", t.token);
       ls->L->top.p--;
     } else { /* control character */
-      ret = luaO_pushfstring(ls->L, "'<\\%d>'", token);
+      ret = luaO_pushfstring(ls->L, "'<\\%d>'", t.token);
       ls->L->top.p--;
     }
   }
-  else switch (token) {
+  else switch (t.token) {
     case TK_NAME: case TK_STRING:
-      if (!ls->hasDoneLexerPass() || ls->t.token != token)
-        return luaX_tokens[token - FIRST_RESERVED];
-      ret = luaO_pushfstring(ls->L, "%s", getstr(ls->t.seminfo.ts));
+      if (!ls->hasDoneLexerPass())
+        return luaX_tokens[t.token - FIRST_RESERVED];
+      ret = luaO_pushfstring(ls->L, "%s", getstr(t.seminfo.ts));
       ls->L->top.p--;
       break;
-    case TK_FLT: case TK_INT:
-      save(ls, '\0');
-      ret = luaO_pushfstring(ls->L, "%s", luaZ_buffer(ls->buff));
+    case TK_FLT:
+      if (!ls->hasDoneLexerPass()) {
+        save(ls, '\0');
+        ret = luaO_pushfstring(ls->L, "%s", luaZ_buffer(ls->buff));
+      }
+      else {
+        ret = luaO_pushfstring(ls->L, "%f", t.seminfo.r);
+      }
+      ls->L->top.p--;
+      break;
+    case TK_INT:
+      if (!ls->hasDoneLexerPass()) {
+        save(ls, '\0');
+        ret = luaO_pushfstring(ls->L, "%s", luaZ_buffer(ls->buff));
+      }
+      else {
+        ret = luaO_pushfstring(ls->L, "%I", t.seminfo.i);
+      }
       ls->L->top.p--;
       break;
     default:
-      const char *s = luaX_tokens[token - FIRST_RESERVED];
-      if (token < TK_EOS) { /* fixed format (symbols and reserved words)? */
+      const char *s = luaX_tokens[t.token - FIRST_RESERVED];
+      if (t.token < TK_EOS) { /* fixed format (symbols and reserved words)? */
           ret = luaO_pushfstring(ls->L, "%s", s);
           ls->L->top.p--;
       } else  /* names, strings, and numerals */
@@ -156,13 +171,13 @@ const char* luaX_reserved2str (int token) {
 }
 
 
-static l_noret lexerror (LexState *ls, const char *msg, int token) {
+static l_noret lexerror (LexState *ls, const char *msg, const Token& t) {
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->getLineNumber());
   auto err = new Pluto::ErrorMessage{ ls, HRED "syntax error: " BWHT };
   err->addMsg(msg);
-  if (token) {
+  if (t.token) {
     err->addMsg(" near ")
-       .addMsg(luaX_token2str(ls, token))
+       .addMsg(luaX_token2str(ls, t))
        .addSrcLine(ls->getLineNumber())
        .addGenericHere()
        .finalize();
@@ -178,7 +193,7 @@ static l_noret lexerror (LexState *ls, const char *msg, int token) {
 
 
 l_noret luaX_syntaxerror (LexState *ls, const char *msg) {
-  lexerror(ls, msg, ls->t.token);
+  lexerror(ls, msg, ls->t);
 }
 
 
