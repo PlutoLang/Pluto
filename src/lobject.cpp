@@ -42,7 +42,7 @@ int luaO_ceillog2 (unsigned int x) {
     return cast_int(index + 1);
   return 0;
 #else
-  static const lu_byte log_2[256] = {  /* log_2[i] = ceil(log2(i - 1)) */
+  static const lu_byte log_2[256] = {  /* log_2[i - 1] = ceil(log2(i)) */
     0,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
     6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
     7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
@@ -57,6 +57,63 @@ int luaO_ceillog2 (unsigned int x) {
   while (x >= 256) { l += 8; x >>= 8; }
   return l + log_2[x];
 #endif
+}
+
+/*
+** Encodes 'p'% as a floating-point byte, represented as (eeeexxxx).
+** The exponent is represented using excess-7. Mimicking IEEE 754, the
+** representation normalizes the number when possible, assuming an extra
+** 1 before the mantissa (xxxx) and adding one to the exponent (eeee)
+** to signal that. So, the real value is (1xxxx) * 2^(eeee - 7 - 1) if
+** eeee != 0, and (xxxx) * 2^-7 otherwise (subnormal numbers).
+*/
+unsigned int luaO_codeparam (unsigned int p) {
+  if (p >= (cast(lu_mem, 0x1F) << (0xF - 7 - 1)) * 100u)  /* overflow? */
+    return 0xFF;  /* return maximum value */
+  else {
+    p = (cast(l_uint32, p) * 128 + 99) / 100;  /* round up the division */
+    if (p < 0x10)  /* subnormal number? */
+      return p;  /* exponent bits are already zero; nothing else to do */
+    else {
+      int log = luaO_ceillog2(p + 1) - 5;  /* preserve 5 bits */
+      return ((p >> log) - 0x10) | ((log + 1) << 4);
+    }
+  }
+}
+
+
+/*
+** Computes 'p' times 'x', where 'p' is a floating-point byte. Roughly,
+** we have to multiply 'x' by the mantissa and then shift accordingly to
+** the exponent.  If the exponent is positive, both the multiplication
+** and the shift increase 'x', so we have to care only about overflows.
+** For negative exponents, however, multiplying before the shift keeps
+** more significant bits, as long as the multiplication does not
+** overflow, so we check which order is best.
+*/
+l_obj luaO_applyparam (unsigned int p, l_obj x) {
+  unsigned int m = p & 0xF;  /* mantissa */
+  int e = (p >> 4);  /* exponent */
+  if (e > 0) {  /* normalized? */
+    e--;  /* correct exponent */
+    m += 0x10;  /* correct mantissa; maximum value is 0x1F */
+  }
+  e -= 7;  /* correct excess-7 */
+  if (e >= 0) {
+    if (x < (MAX_LOBJ / 0x1F) >> e)  /* no overflow? */
+      return (x * m) << e;  /* order doesn't matter here */
+    else  /* real overflow */
+      return MAX_LOBJ;
+  }
+  else {  /* negative exponent */
+    e = -e;
+    if (x < MAX_LOBJ / 0x1F)  /* multiplication cannot overflow? */
+      return (x * m) >> e;  /* multiplying first gives more precision */
+    else if ((x >> e) <  MAX_LOBJ / 0x1F)  /* cannot overflow after shift? */
+      return (x >> e) * m;
+    else  /* real overflow */
+      return MAX_LOBJ;
+  }
 }
 
 
