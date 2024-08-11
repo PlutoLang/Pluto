@@ -118,7 +118,7 @@ static int murmur2(lua_State *L)
   size_t textLen;
   const auto text = luaL_checklstring(L, 1, &textLen);
   const auto seed = luaL_optinteger(L, 2, 0);
-  unsigned int hash;
+  uint32_t hash;
 
   if (lua_toboolean(L, 3))
     hash = MurmurHashAligned2(text, (int)textLen, (uint32_t)seed);
