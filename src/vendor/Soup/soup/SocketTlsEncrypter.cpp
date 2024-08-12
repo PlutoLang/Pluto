@@ -13,31 +13,37 @@ NAMESPACE_SOUP
 		return mac_key.size();
 	}
 
-	std::string SocketTlsEncrypter::calculateMacBytes(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL
+	std::string SocketTlsEncrypter::calculateMacBytes(TlsContentType_t content_type, size_t content_length) SOUP_EXCAL
 	{
 		TlsMac mac{};
 		mac.seq_num = seq_num++;
 		mac.record.content_type = content_type;
-		mac.record.length = static_cast<uint16_t>(content.size());
+		mac.record.length = static_cast<uint16_t>(content_length);
 		return mac.toBinaryString();
 	}
 
-	std::string SocketTlsEncrypter::calculateMac(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL
+	std::string SocketTlsEncrypter::calculateMac(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL
 	{
-		auto msg = calculateMacBytes(content_type, content);
-		msg.append(content);
-
+		auto msg = calculateMacBytes(content_type, size);
 		if (mac_key.size() == 20)
 		{
-			return sha1::hmac(msg, mac_key);
+			sha1::HmacState st(mac_key);
+			st.append(msg.data(), msg.size());
+			st.append(data, size);
+			st.finalise();
+			return st.getDigest();
 		}
 		//else if (mac_key.size() == 32)
 		{
-			return sha256::hmac(msg, mac_key);
+			sha256::HmacState st(mac_key);
+			st.append(msg.data(), msg.size());
+			st.append(data, size);
+			st.finalise();
+			return st.getDigest();
 		}
 	}
 
-	std::vector<uint8_t> SocketTlsEncrypter::encrypt(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL
+	Buffer SocketTlsEncrypter::encrypt(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL
 	{
 		constexpr auto cipher_bytes = 16;
 
@@ -45,26 +51,25 @@ NAMESPACE_SOUP
 		{
 			constexpr auto record_iv_length = 16;
 
-			auto mac = calculateMac(content_type, content);
-			auto cont_with_mac_size = (content.size() + mac.size());
+			auto mac = calculateMac(content_type, data, size);
+			auto cont_with_mac_size = (size + mac.size());
 			auto aligned_in_len = ((((cont_with_mac_size + 1) / cipher_bytes) + 1) * cipher_bytes);
 			auto pad_len = static_cast<char>(aligned_in_len - cont_with_mac_size);
 
-			std::vector<uint8_t> data{};
-			data.reserve(content.size() + mac.size() + pad_len);
-			data.insert(data.end(), content.begin(), content.end());
-			data.insert(data.end(), mac.begin(), mac.end());
-			data.insert(data.end(), (size_t)pad_len, (pad_len - 1));
+			Buffer buf(size + mac.size() + pad_len);
+			buf.append(data, size);
+			buf.append(mac.data(), mac.size());
+			buf.insert_back((size_t)pad_len, (pad_len - 1));
 
 			auto iv = rand.vec_u8(record_iv_length);
 			aes::cbcEncrypt(
-				data.data(), data.size(),
+				buf.data(), buf.size(),
 				cipher_key.data(), cipher_key.size(),
 				iv.data()
 			);
 
-			iv.insert(iv.end(), data.begin(), data.end());
-			return iv;
+			buf.prepend(iv.data(), iv.size());
+			return buf;
 		}
 		else // AES-GCM
 		{
@@ -74,22 +79,23 @@ NAMESPACE_SOUP
 			auto iv = implicit_iv;
 			iv.insert(iv.end(), nonce_explicit.begin(), nonce_explicit.end());
 
-			auto ad = calculateMacBytes(content_type, content);
+			auto ad = calculateMacBytes(content_type, size);
 
-			std::vector<uint8_t> data(content.begin(), content.end());
+			Buffer buf(size + cipher_bytes + nonce_explicit.size());
+			buf.append(data, size);
 
 			uint8_t tag[cipher_bytes];
 			aes::gcmEncrypt(
-				data.data(), data.size(),
+				buf.data(), buf.size(),
 				(const uint8_t*)ad.data(), ad.size(),
 				cipher_key.data(), cipher_key.size(),
 				iv.data(), iv.size(),
 				tag
 			);
 
-			data.insert(data.end(), tag, tag + cipher_bytes);
-			data.insert(data.begin(), nonce_explicit.begin(), nonce_explicit.end());
-			return data;
+			buf.append(tag, cipher_bytes);
+			buf.prepend(nonce_explicit.data(), nonce_explicit.size());
+			return buf;
 		}
 	}
 

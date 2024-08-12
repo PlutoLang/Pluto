@@ -13,10 +13,11 @@ NAMESPACE_SOUP
 			{
 				return false;
 			}
-			bool has_next = (b >> 7); has_next &= (bits < 56);
-			if (has_next)
+			bool has_next = false;
+			SOUP_IF_LIKELY (bits < 56)
 			{
-				b &= 0x7F;
+				has_next = (b >> 7);
+				b &= 0x7f;
 			}
 			v |= ((uint64_t)b << bits);
 			if (!has_next)
@@ -30,50 +31,27 @@ NAMESPACE_SOUP
 
 	bool Reader::i64_dyn(int64_t& v) noexcept
 	{
-		bool neg;
-		uint8_t b;
-		SOUP_IF_UNLIKELY (!u8(b))
+		uint64_t u;
+		SOUP_IF_UNLIKELY (!u64_dyn(u))
 		{
 			return false;
 		}
-		uint64_t out = (b & 0b111111);
-		neg = ((b >> 6) & 1);
-		if ((b >> 7))
-		{
-			uint8_t bits = 6;
-			while (true)
-			{
-				SOUP_IF_UNLIKELY (!u8(b))
-				{
-					return false;
-				}
-				bool has_next = (b >> 7); has_next &= (bits < 56);
-				if (has_next)
-				{
-					b &= 0x7F;
-				}
-				out |= ((uint64_t)b << bits);
-				if (!has_next)
-				{
-					break;
-				}
-				bits += 7;
-			}
-		}
+		const bool neg = (u >> 6) & 1; // check bit 6
+		u = ((u >> 1) & ~0x3f) | (u & 0x3f); // remove bit 6
 		if (neg)
 		{
-			if (out == 0)
+			if (u == 0)
 			{
 				v = ((uint64_t)1 << 63);
 			}
 			else
 			{
-				v = (out * -1);
+				v = u * -1;
 			}
 		}
 		else
 		{
-			v = out;
+			v = u;
 		}
 		return true;
 	}

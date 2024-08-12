@@ -2,7 +2,7 @@
 
 #include <cstring> // memcpy
 
-#include "StringWriter.hpp"
+#include "Endian.hpp"
 
 /*
 Original source: https://github.com/pr0f3ss/SHA
@@ -35,56 +35,10 @@ NAMESPACE_SOUP
 {
 	std::string sha512::hash(const void* data, size_t len) SOUP_EXCAL
 	{
-		uint64_t h[HASH_LEN]; // buffer holding the message digest (512-bit = 8 64-bit words)
-		memcpy(h, hPrime, WORKING_VAR_LEN * sizeof(uint64_t));
-
-		const size_t l = len * CHAR_LEN_BITS; // length of input in bits
-		const size_t k = (896 - 1 - l) % MESSAGE_BLOCK_SIZE; // length of zero bit padding (l + 1 + k = 896 mod 1024) 
-		const size_t nBuffer = (l + 1 + k + 128) / MESSAGE_BLOCK_SIZE;
-
-		for (size_t i = 0; i != nBuffer; ++i)
-		{
-			uint64_t buffer[SEQUENCE_LEN];
-			for (size_t j = 0; j != SEQUENCE_LEN; ++j)
-			{
-				uint64_t in = 0x0ULL;
-				for (size_t k = 0; k != WORD_LEN; ++k)
-				{
-					size_t index = i * 128 + j * 8 + k;
-					if (index < len)
-					{
-						in = in << 8 | (uint64_t)reinterpret_cast<const uint8_t*>(data)[index];
-					}
-					else if (index == len)
-					{
-						in = in << 8 | 0x80ULL;
-					}
-					else
-					{
-						in = in << 8 | 0x0ULL;
-					}
-				}
-				buffer[j] = in;
-			}
-			if (i == nBuffer - 1)
-			{
-				buffer[SEQUENCE_LEN - 1] = l;
-				buffer[SEQUENCE_LEN - 2] = 0x00ULL;
-			}
-			processBlock(buffer, h);
-		}
-
-		StringWriter sw;
-		sw.data.reserve(8 * 8);
-		sw.u64_be(h[0]);
-		sw.u64_be(h[1]);
-		sw.u64_be(h[2]);
-		sw.u64_be(h[3]);
-		sw.u64_be(h[4]);
-		sw.u64_be(h[5]);
-		sw.u64_be(h[6]);
-		sw.u64_be(h[7]);
-		return std::move(sw.data);
+		State sha;
+		sha.append(data, len);
+		sha.finalise();
+		return sha.getDigest();
 	}
 
 	std::string sha512::hash(const std::string& str) SOUP_EXCAL
@@ -110,6 +64,7 @@ NAMESPACE_SOUP
 		  0x431d67c49c100d4cULL, 0x4cc5d4becb3e42b6ULL, 0x597f299cfc657e2aULL, 0x5fcb6fab3ad6faecULL, 0x6c44198c4a475817ULL };
 
 	static constexpr size_t MESSAGE_SCHEDULE_LEN = 80;
+	static constexpr size_t WORKING_VAR_LEN = 8;
 
 #define Ch(x,y,z) ((x&y)^(~x&z))
 #define Maj(x,y,z) ((x&y)^(x&z)^(y&z))
@@ -119,20 +74,36 @@ NAMESPACE_SOUP
 #define sig0(x) (RotR(x, 1)^RotR(x,8)^(x>>7))
 #define sig1(x) (RotR(x, 19)^RotR(x,61)^(x>>6))
 
-	void sha512::processBlock(uint64_t block[16], uint64_t h[8])
+	sha512::State::State() noexcept
 	{
-		uint64_t s[WORKING_VAR_LEN];
+		state[0] = 0x6a09e667f3bcc908ULL;
+		state[1] = 0xbb67ae8584caa73bULL;
+		state[2] = 0x3c6ef372fe94f82bULL;
+		state[3] = 0xa54ff53a5f1d36f1ULL;
+		state[4] = 0x510e527fade682d1ULL;
+		state[5] = 0x9b05688c2b3e6c1fULL;
+		state[6] = 0x1f83d9abfb41bd6bULL;
+		state[7] = 0x5be0cd19137e2179ULL;
+		buffer_counter = 0;
+		n_bits = 0;
+	}
+
+	void sha512::State::transform() noexcept
+	{
+		// Initialise message schedule
 		uint64_t w[MESSAGE_SCHEDULE_LEN];
-
-		// copy over to message schedule
-		memcpy(w, block, SEQUENCE_LEN * sizeof(uint64_t));
-
-		// Prepare the message schedule
+		for (size_t i = 0; i != BLOCK_BYTES / 8; ++i)
+		{
+			w[i] = Endianness::invert(reinterpret_cast<const uint64_t*>(buffer)[i]);
+		}
 		for (size_t j = 16; j != MESSAGE_SCHEDULE_LEN; ++j)
 		{
 			w[j] = w[j - 16] + sig0(w[j - 15]) + w[j - 7] + sig1(w[j - 2]);
 		}
-		// Initialize the working variables
+
+		// Initialise the working variables
+		uint64_t* const h = this->state;
+		uint64_t s[WORKING_VAR_LEN];
 		memcpy(s, h, WORKING_VAR_LEN * sizeof(uint64_t));
 
 		// Compression
@@ -156,5 +127,40 @@ NAMESPACE_SOUP
 		{
 			h[j] += s[j];
 		}
+	}
+
+	void sha512::State::finalise() noexcept
+	{
+		uint64_t n_bits = this->n_bits;
+
+		appendByte(0x80);
+
+		while (buffer_counter != 120)
+		{
+			appendByte(0);
+		}
+
+		for (int i = 7; i >= 0; i--)
+		{
+			appendByte((n_bits >> 8 * i) & 0xff);
+		}
+	}
+
+	void sha512::State::getDigest(uint8_t out[DIGEST_BYTES]) const noexcept
+	{
+		for (unsigned int i = 0; i != DIGEST_BYTES / 8; i++)
+		{
+			for (int j = 7; j >= 0; j--)
+			{
+				*out++ = (state[i] >> j * 8) & 0xff;
+			}
+		}
+	}
+
+	std::string sha512::State::getDigest() const SOUP_EXCAL
+	{
+		std::string digest(DIGEST_BYTES, '\0');
+		getDigest((uint8_t*)digest.data());
+		return digest;
 	}
 }

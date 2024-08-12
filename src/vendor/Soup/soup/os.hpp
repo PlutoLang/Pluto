@@ -58,4 +58,11 @@ NAMESPACE_SOUP
 		}
 #endif
 	};
+
+#if SOUP_WINDOWS
+	inline void os::sleep(unsigned int ms) noexcept
+	{
+		::Sleep(ms);
+	}
+#endif
 }

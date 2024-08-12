@@ -15,6 +15,7 @@ NAMESPACE_SOUP
 		NET_FAIL_L4_TIMEOUT,
 		NET_FAIL_L4_ERROR,
 		NET_FAIL_L7_TIMEOUT,
+		NET_FAIL_L7_PREMATURE_END,
 	};
 
 	[[nodiscard]] const char* netStatusToString(netStatus status);

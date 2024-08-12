@@ -1,10 +1,5 @@
 #include "sha384.hpp"
 
-#include <cstring> // memcpy
-
-#include "sha512.hpp"
-#include "StringWriter.hpp"
-
 /*
 Original source: https://github.com/pr0f3ss/SHA
 Original licence follows.
@@ -36,58 +31,47 @@ NAMESPACE_SOUP
 {
 	std::string sha384::hash(const void* data, size_t len) SOUP_EXCAL
 	{
-		uint64_t h[HASH_LEN]; // buffer holding the message digest (512-bit = 8 64-bit words)
-		memcpy(h, hPrime, WORKING_VAR_LEN * sizeof(uint64_t));
-
-		const size_t l = len * CHAR_LEN_BITS; // length of input in bits
-		const size_t k = (896 - 1 - l) % MESSAGE_BLOCK_SIZE; // length of zero bit padding (l + 1 + k = 896 mod 1024) 
-		const size_t nBuffer = (l + 1 + k + 128) / MESSAGE_BLOCK_SIZE;
-
-		for (size_t i = 0; i != nBuffer; ++i)
-		{
-			uint64_t buffer[SEQUENCE_LEN];
-			for (size_t j = 0; j != SEQUENCE_LEN; ++j)
-			{
-				uint64_t in = 0x0ULL;
-				for (size_t k = 0; k != WORD_LEN; ++k)
-				{
-					size_t index = i * 128 + j * 8 + k;
-					if (index < len)
-					{
-						in = in << 8 | (uint64_t)reinterpret_cast<const uint8_t*>(data)[index];
-					}
-					else if (index == len)
-					{
-						in = in << 8 | 0x80ULL;
-					}
-					else
-					{
-						in = in << 8 | 0x0ULL;
-					}
-				}
-				buffer[j] = in;
-			}
-			if (i == nBuffer - 1)
-			{
-				buffer[SEQUENCE_LEN - 1] = l;
-				buffer[SEQUENCE_LEN - 2] = 0x00ULL;
-			}
-			sha512::processBlock(buffer, h);
-		}
-
-		StringWriter sw;
-		sw.data.reserve(6 * 8);
-		sw.u64_be(h[0]);
-		sw.u64_be(h[1]);
-		sw.u64_be(h[2]);
-		sw.u64_be(h[3]);
-		sw.u64_be(h[4]);
-		sw.u64_be(h[5]);
-		return std::move(sw.data);
+		State sha;
+		sha.append(data, len);
+		sha.finalise();
+		return sha.getDigest();
 	}
 
 	std::string sha384::hash(const std::string& str) SOUP_EXCAL
 	{
 		return hash(str.data(), str.size());
+	}
+
+	sha384::State::State() noexcept
+	{
+		// implicitly calls sha512::State::State()
+		state[0] = 0xcbbb9d5dc1059ed8ULL;
+		state[1] = 0x629a292a367cd507ULL;
+		state[2] = 0x9159015a3070dd17ULL;
+		state[3] = 0x152fecd8f70e5939ULL;
+		state[4] = 0x67332667ffc00b31ULL;
+		state[5] = 0x8eb44a8768581511ULL;
+		state[6] = 0xdb0c2e0d64f98fa7ULL;
+		state[7] = 0x47b5481dbefa4fa4ULL;
+		//buffer_counter = 0;
+		//n_bits = 0;
+	}
+
+	void sha384::State::getDigest(uint8_t out[DIGEST_BYTES]) const noexcept
+	{
+		for (unsigned int i = 0; i != DIGEST_BYTES / 8; i++)
+		{
+			for (int j = 7; j >= 0; j--)
+			{
+				*out++ = (state[i] >> j * 8) & 0xff;
+			}
+		}
+	}
+
+	std::string sha384::State::getDigest() const SOUP_EXCAL
+	{
+		std::string digest(DIGEST_BYTES, '\0');
+		getDigest((uint8_t*)digest.data());
+		return digest;
 	}
 }

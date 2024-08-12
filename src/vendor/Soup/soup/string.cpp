@@ -144,6 +144,7 @@ NAMESPACE_SOUP
 		std::string ret;
 		if (std::filesystem::exists(file))
 		{
+#if SOUP_WINDOWS // kinda messes with hwHid on Linux, also unsure if memory mapping is faster than direct file access on Linux.
 			size_t len;
 			if (auto addr = soup::filesystem::createFileMapping(file, len))
 			{
@@ -151,6 +152,7 @@ NAMESPACE_SOUP
 				soup::filesystem::destroyFileMapping(addr, len);
 			}
 			else // File might be open in another process, causing memory mapping to fail.
+#endif
 			{
 				std::ifstream t(file, std::ios::binary);
 

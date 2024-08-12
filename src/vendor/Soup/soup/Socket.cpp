@@ -20,6 +20,7 @@
 #include "Exception.hpp"
 #include "NamedCurves.hpp"
 #include "netConfig.hpp"
+#include "ObfusString.hpp"
 #include "rand.hpp"
 #include "sha1.hpp"
 #include "sha256.hpp"
@@ -55,7 +56,7 @@ NAMESPACE_SOUP
 #endif
 
 	Socket::Socket() noexcept
-		: Worker(true)
+		: Worker(WORKER_TYPE_SOCKET)
 	{
 		onConstruct();
 	}
@@ -1101,13 +1102,13 @@ NAMESPACE_SOUP
 		return tls_encrypter_send.isActive();
 	}
 
-	bool Socket::send(const std::string& data) SOUP_EXCAL
+	bool Socket::send(const void* data, size_t size) SOUP_EXCAL
 	{
 		if (tls_encrypter_send.isActive())
 		{
-			return tls_sendRecordEncrypted(TlsContentType::application_data, data);
+			return tls_sendRecordEncrypted(TlsContentType::application_data, data, size);
 		}
-		return transport_send(data);
+		return transport_send(data, static_cast<int>(size));
 	}
 
 	bool Socket::initUdpBroadcast4()
@@ -1271,19 +1272,23 @@ NAMESPACE_SOUP
 
 	bool Socket::tls_sendRecordEncrypted(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL
 	{
-		auto body = tls_encrypter_send.encrypt(content_type, content);
+		return tls_sendRecordEncrypted(content_type, content.data(), content.size());
+	}
+
+	bool Socket::tls_sendRecordEncrypted(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL
+	{
+		auto body = tls_encrypter_send.encrypt(content_type, data, size);
 
 		TlsRecord record{};
 		record.content_type = content_type;
 		record.length = static_cast<uint16_t>(body.size());
 
-		Buffer buf(5 + body.size());
-		BufferRefWriter bw(buf, ENDIAN_BIG);
+		Buffer header(5);
+		BufferRefWriter bw(header, ENDIAN_BIG);
 		record.write(bw);
 
-		buf.append(body.data(), body.size());
-
-		return transport_send(buf);
+		body.prepend(header.data(), header.size());
+		return transport_send(body);
 	}
 
 	struct CaptureSocketTlsRecvHandshake
@@ -1291,7 +1296,6 @@ NAMESPACE_SOUP
 		UniquePtr<SocketTlsHandshaker> handshaker;
 		void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&) SOUP_EXCAL;
 		std::string pre;
-		bool is_new_bytes = false;
 	};
 
 	void Socket::tls_recvHandshake(UniquePtr<SocketTlsHandshaker>&& handshaker, void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&) SOUP_EXCAL, std::string&& pre) SOUP_EXCAL
@@ -1306,9 +1310,10 @@ NAMESPACE_SOUP
 		{
 			if (content_type != TlsContentType::handshake)
 			{
-#if LOGGING
 				if (content_type == TlsContentType::alert)
 				{
+					s.custom_data.getStructFromMap(SocketCloseReason) = tls_alertToCloseReason(data);
+#if LOGGING
 					std::string msg = s.toString();
 					msg.append(" - Remote closing connection with ");
 					if (data.at(0) == 2)
@@ -1319,24 +1324,22 @@ NAMESPACE_SOUP
 					msg.append(std::to_string((int)data.at(1)));
 					msg.append(". See TlsAlertDescription for details.");
 					logWriteLine(std::move(msg));
+#endif
 				}
 				else
 				{
-					std::string msg = "Unexpected content type; expected handshake, found ";
+					std::string msg = ObfusString("Unexpected content type during handshake: ").str();
 					msg.append(std::to_string((int)content_type));
-					logWriteLine(std::move(msg));
-				}
+#if LOGGING
+					logWriteLine(msg);
 #endif
+					s.custom_data.getStructFromMap(SocketCloseReason) = std::move(msg);
+				}
 				s.tls_close(TlsAlertDescription::unexpected_message);
 				return;
 			}
 
 			auto& cap = _cap.get<CaptureSocketTlsRecvHandshake>();
-
-			if (cap.is_new_bytes)
-			{
-				cap.handshaker->layer_bytes.append(data);
-			}
 
 			if (!cap.pre.empty())
 			{
@@ -1356,26 +1359,26 @@ NAMESPACE_SOUP
 				return;
 			}
 
+			cap.handshaker->layer_bytes.append(data.substr(0, 4));
 			data.erase(0, 4);
 
 			if (data.size() > hs.length)
 			{
-				s.tls_record_buf = data.substr(hs.length);
+				s.transport_unrecv(data.substr(hs.length));
+
+				TlsRecord record{};
+				record.content_type = TlsContentType::handshake;
+				record.length = static_cast<uint16_t>(data.size() - hs.length);
+				s.transport_unrecv(record.toBinaryString());
+
 				data.erase(hs.length);
 			}
+
+			cap.handshaker->layer_bytes.append(data);
 
 			cap.callback(s, std::move(cap.handshaker), hs.handshake_type, std::move(data));
 		};
 
-		if (!tls_record_buf.empty())
-		{
-			std::string data = std::move(tls_record_buf);
-			tls_record_buf.clear();
-			record_callback(*this, TlsContentType::handshake, std::move(data), std::move(cap));
-			return;
-		}
-
-		cap.is_new_bytes = true;
 		tls_recvRecord(record_callback, std::move(cap));
 	}
 
@@ -1397,6 +1400,7 @@ NAMESPACE_SOUP
 			}
 			else if (content_type == TlsContentType::alert)
 			{
+				s.custom_data.getStructFromMap(SocketCloseReason) = tls_alertToCloseReason(data);
 #if LOGGING
 				{
 					std::string msg = s.toString();
@@ -1443,13 +1447,6 @@ NAMESPACE_SOUP
 
 	void Socket::tls_recvRecord(void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&), Capture&& cap)
 	{
-		if (!tls_record_buf.empty())
-		{
-			std::string data = std::move(tls_record_buf);
-			tls_record_buf.clear();
-			callback(*this, TlsContentType::handshake, std::move(data), std::move(cap));
-			return;
-		}
 		transport_recvExact(5, [](Socket& s, std::string&& data, Capture&& cap) SOUP_EXCAL
 		{
 			TlsRecord record{};
@@ -1543,7 +1540,7 @@ NAMESPACE_SOUP
 						iv.insert(iv.end(), nonce_explicit.begin(), nonce_explicit.end());
 						data.erase(0, record_iv_length);
 
-						auto ad = s.tls_encrypter_recv.calculateMacBytes(cap.content_type, data);
+						auto ad = s.tls_encrypter_recv.calculateMacBytes(cap.content_type, data.size());
 
 						if (aes::gcmDecrypt(
 							(uint8_t*)data.data(), data.size(),
@@ -1586,6 +1583,18 @@ NAMESPACE_SOUP
 		}
 	}
 
+	std::string Socket::tls_alertToCloseReason(const std::string& data)
+	{
+		std::string msg = ObfusString("Remote closing connection with ").str();
+		if (data.at(0) == 2)
+		{
+			msg.append(ObfusString("fatal ").str());
+		}
+		msg.append(ObfusString("alert: ").str());
+		msg.append(std::to_string((int)data.at(1)));
+		return msg;
+	}
+
 	bool Socket::transport_hasData() const
 	{
 		char buf;
@@ -1609,6 +1618,12 @@ NAMESPACE_SOUP
 
 	std::string Socket::transport_recvCommon(int max_bytes) SOUP_EXCAL
 	{
+		if (!unrecv_buf.empty())
+		{
+			std::string ret = unrecv_buf.substr(0, max_bytes);
+			unrecv_buf.erase(0, max_bytes);
+			return ret;
+		}
 		std::string buf(max_bytes, '\0');
 		auto res = ::recv(fd, buf.data(), max_bytes, 0);
 		if (res > 0)
@@ -1696,6 +1711,11 @@ NAMESPACE_SOUP
 			auto& cap = _cap.get<CaptureSocketTransportRecvExact>();
 			static_cast<Socket&>(w).transport_recvExact(cap.bytes, cap.callback, std::move(cap.cap), std::move(cap.buf));
 		}, CaptureSocketTransportRecvExact(bytes, callback, std::move(cap), std::move(pre)));
+	}
+
+	void Socket::transport_unrecv(const std::string& data) SOUP_EXCAL
+	{
+		unrecv_buf.insert(0, data);
 	}
 
 	void Socket::transport_close() noexcept

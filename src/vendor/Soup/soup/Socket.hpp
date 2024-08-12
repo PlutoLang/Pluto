@@ -43,7 +43,7 @@ NAMESPACE_SOUP
 		bool dispatched_connection_lost = false;
 		bool callback_recv_on_close = false;
 
-		std::string tls_record_buf{};
+		std::string unrecv_buf{};
 
 		SocketTlsEncrypter tls_encrypter_send;
 		SocketTlsEncrypter tls_encrypter_recv;
@@ -126,7 +126,8 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] bool isEncrypted() const noexcept;
 
-		bool send(const std::string& data) SOUP_EXCAL;
+		bool send(const std::string& data) SOUP_EXCAL { return send(data.data(), data.size()); }
+		bool send(const void* data, size_t size) SOUP_EXCAL;
 
 		bool initUdpBroadcast4();
 
@@ -166,12 +167,15 @@ NAMESPACE_SOUP
 		bool tls_sendHandshake(const UniquePtr<SocketTlsHandshaker>& handshaker, TlsHandshakeType_t handshake_type, const std::string& content) SOUP_EXCAL;
 		bool tls_sendRecord(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
 		bool tls_sendRecordEncrypted(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
+		bool tls_sendRecordEncrypted(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL;
 
 		void tls_recvHandshake(UniquePtr<SocketTlsHandshaker>&& handshaker, void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&) SOUP_EXCAL, std::string&& pre = {}) SOUP_EXCAL;
 		void tls_recvRecord(TlsContentType_t expected_content_type, void(*callback)(Socket&, std::string&&, Capture&&), Capture&& cap = {}); // 'excal' as long as callback is
 		void tls_recvRecord(void(*callback)(Socket&, TlsContentType_t, std::string&&, Capture&&), Capture&& cap = {}); // 'excal' as long as callback is
 
 		void tls_close(TlsAlertDescription_t desc) SOUP_EXCAL;
+
+		[[nodiscard]] static std::string tls_alertToCloseReason(const std::string& data);
 
 		// Transport Layer
 
@@ -188,6 +192,8 @@ NAMESPACE_SOUP
 	public:
 		void transport_recv(int max_bytes, transport_recv_callback_t callback, Capture&& cap = {}); // 'excal' as long as callback is
 		void transport_recvExact(int bytes, transport_recv_callback_t callback, Capture&& cap = {}, std::string&& pre = {}); // 'excal' as long as callback is
+
+		void transport_unrecv(const std::string& data) SOUP_EXCAL;
 
 		void transport_close() noexcept;
 

@@ -6,6 +6,8 @@
 #include "base.hpp"
 #include "type.hpp"
 
+#include "Buffer.hpp"
+
 NAMESPACE_SOUP
 {
 	struct SocketTlsEncrypter
@@ -26,10 +28,11 @@ NAMESPACE_SOUP
 		}
 
 		[[nodiscard]] size_t getMacLength() const noexcept;
-		[[nodiscard]] std::string calculateMacBytes(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
-		[[nodiscard]] std::string calculateMac(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
+		[[nodiscard]] std::string calculateMacBytes(TlsContentType_t content_type, size_t content_length) SOUP_EXCAL;
+		[[nodiscard]] std::string calculateMac(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL { return calculateMac(content_type, content.data(), content.size()); }
+		[[nodiscard]] std::string calculateMac(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL;
 
-		[[nodiscard]] std::vector<uint8_t> encrypt(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
+		[[nodiscard]] Buffer encrypt(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL;
 
 		void reset() noexcept;
 	};

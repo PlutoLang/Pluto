@@ -1,9 +1,7 @@
 #pragma once
 
 #include "CryptoHashAlgo.hpp"
-
-#include <cstddef>
-#include <cstdint>
+#include "sha512.hpp"
 
 NAMESPACE_SOUP
 {
@@ -16,14 +14,12 @@ NAMESPACE_SOUP
 		[[nodiscard]] static std::string hash(const void* data, size_t len) SOUP_EXCAL;
 		[[nodiscard]] static std::string hash(const std::string& str) SOUP_EXCAL;
 
+		struct State : public sha512::State
+		{
+			State() noexcept;
 
-		static constexpr unsigned int SEQUENCE_LEN = (1024 / 64);
-		static constexpr size_t HASH_LEN = 8;
-		static constexpr size_t WORKING_VAR_LEN = 8;
-		static constexpr size_t MESSAGE_BLOCK_SIZE = 1024;
-		static constexpr size_t CHAR_LEN_BITS = 8;
-		static constexpr size_t WORD_LEN = 8;
-
-		static constexpr const uint64_t hPrime[8] = { 0xcbbb9d5dc1059ed8ULL, 0x629a292a367cd507ULL, 0x9159015a3070dd17ULL, 0x152fecd8f70e5939ULL, 0x67332667ffc00b31ULL, 0x8eb44a8768581511ULL, 0xdb0c2e0d64f98fa7ULL, 0x47b5481dbefa4fa4ULL };
+			void getDigest(uint8_t out[DIGEST_BYTES]) const noexcept;
+			[[nodiscard]] std::string getDigest() const SOUP_EXCAL;
+		};
 	};
 }

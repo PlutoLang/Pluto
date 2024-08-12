@@ -22,9 +22,10 @@ NAMESPACE_SOUP
 		}
 
 		// An unsigned 64-bit integer encoded in 1..9 bytes. The most significant bit of bytes 1 to 8 is used to indicate if another byte follows.
+		// Lua implementation: https://gist.github.com/Sainan/02c3ac9cea5015341412c92feec95e56
 		bool u64_dyn(const uint64_t& v) noexcept;
 
-		// A signed 64-bit integer encoded in 1..9 bytes.
+		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn.)
 		bool i64_dyn(const int64_t& v) noexcept;
 
 		// An integer where every byte's most significant bit is used to indicate if another byte follows, most significant byte first.

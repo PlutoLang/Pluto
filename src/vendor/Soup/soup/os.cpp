@@ -134,11 +134,10 @@ NAMESPACE_SOUP
 #endif
 	}
 
+#if !SOUP_WINDOWS
 	void os::sleep(unsigned int ms) noexcept
 	{
-#ifdef _WIN32
-		::Sleep(ms);
-#elif _POSIX_C_SOURCE >= 199309L
+#if _POSIX_C_SOURCE >= 199309L
 		struct timespec ts;
 		ts.tv_sec = ms / 1000;
 		ts.tv_nsec = (ms % 1000) * 1000000;
@@ -155,6 +154,7 @@ NAMESPACE_SOUP
 		::usleep((ms % 1000) * 1000);
 #endif
 	}
+#endif
 
 #if SOUP_WINDOWS
 	static bool copy_to_clipboard_utf16(const std::wstring& text)

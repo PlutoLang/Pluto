@@ -109,8 +109,6 @@ NAMESPACE_SOUP
 		case AWAIT_RESPONSE:
 			if (sock->isWorkDoneOrClosed())
 			{
-				sock->close();
-				sock.reset();
 				if (retry_on_broken_pipe)
 				{
 					retry_on_broken_pipe = false;
@@ -120,14 +118,25 @@ NAMESPACE_SOUP
 				else
 				{
 					//logWriteLine(soup::format("AWAIT_RESPONSE from {} - request failed", hr.getHost()));
+					if (sock->custom_data.isStructInMap(SocketCloseReason))
+					{
+						await_response_finish_reason = sock->custom_data.getStructFromMapConst(SocketCloseReason);
+					}
+					else
+					{
+						await_response_finish_reason = netStatusToString(NET_FAIL_L7_PREMATURE_END);
+					}
 					setWorkDone();
 				}
+				sock->close();
+				sock.reset();
 			}
 			else if (time::unixSecondsSince(awaiting_response_since) > 30)
 			{
 				//logWriteLine(soup::format("AWAIT_RESPONSE from {} - timeout", hr.getHost()));
 				sock->close();
 				sock.reset();
+				await_response_finish_reason = netStatusToString(NET_FAIL_L7_TIMEOUT);
 				setWorkDone();
 			}
 			break;
@@ -155,6 +164,7 @@ NAMESPACE_SOUP
 	{
 		HttpRequest::recvResponse(*sock, [](Socket& s, Optional<HttpResponse>&& res, Capture&& cap) SOUP_EXCAL
 		{
+			cap.get<HttpRequestTask*>()->await_response_finish_reason = netStatusToString(NET_OK);
 			cap.get<HttpRequestTask*>()->fulfil(std::move(res));
 			if (s.custom_data.isStructInMap(ReuseTag))
 			{
@@ -193,16 +203,16 @@ NAMESPACE_SOUP
 		return str;
 	}
 
-	netStatus HttpRequestTask::getStatus() const noexcept
+	std::string HttpRequestTask::getStatus() const SOUP_EXCAL
 	{
 		switch (state)
 		{
-		case CONNECTING: return connector->getStatus();
-		case AWAIT_RESPONSE: return isWorkDone() ? (result.has_value() ? NET_OK : NET_FAIL_L7_TIMEOUT) : NET_PENDING;
+		case CONNECTING: return netStatusToString(connector->getStatus());
+		case AWAIT_RESPONSE: return isWorkDone() ? await_response_finish_reason : netStatusToString(NET_PENDING);
 		default: break; // keep the compiler happy
 		}
 		// Assuming `!isWorkDone()` because the task can only finish during CONNECTING and AWAIT_RESPONSE.
-		return NET_PENDING;
+		return netStatusToString(NET_PENDING);
 	}
 #else
 	HttpRequestTask::HttpRequestTask(HttpRequest&& _hr)

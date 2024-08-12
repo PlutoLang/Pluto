@@ -505,7 +505,7 @@ NAMESPACE_SOUP
 	};
 
 
-	unsigned int copyStored(DeflateBitReader& bit_reader, unsigned char* out, size_t out_offset, uint16_t block_size_max)
+	unsigned int copyStored(DeflateBitReader& bit_reader, unsigned char* out, size_t out_offset, size_t block_size_max)
 	{
 		SOUP_IF_UNLIKELY (!bit_reader.alignToByte())
 		{
@@ -531,7 +531,6 @@ NAMESPACE_SOUP
 		SOUP_IF_UNLIKELY (stored_length > block_size_max)
 		{
 			return -1;
-			//stored_length = block_size_max;
 		}
 
 		memcpy(out + out_offset, bit_reader.getInBlock(), stored_length);
@@ -900,7 +899,7 @@ NAMESPACE_SOUP
 		DeflateBitReader br(current_compressed_data, end_compressed_data);
 
 		res.decompressed = std::string(max_decompressed_size, '\0');
-		auto out = reinterpret_cast<uint8_t*>(&res.decompressed.at(0));
+		auto out = reinterpret_cast<uint8_t*>(&res.decompressed[0]);
 		size_t current_out_offset = 0;
 		while (true)
 		{
@@ -911,7 +910,7 @@ NAMESPACE_SOUP
 			switch (block_type)
 			{
 			case 0:
-				block_result = copyStored(br, out, current_out_offset, static_cast<uint16_t>(max_decompressed_size - current_out_offset));
+				block_result = copyStored(br, out, current_out_offset, max_decompressed_size - current_out_offset);
 				break;
 
 			case 1:
@@ -997,6 +996,8 @@ NAMESPACE_SOUP
 			current_compressed_data += 4;
 			break;
 		}
+
+		res.compressed_size = (current_compressed_data - (unsigned char*)compressed_data);
 
 		return res;
 	}
