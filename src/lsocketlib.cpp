@@ -90,7 +90,9 @@ static int l_connect (lua_State *L) {
 }
 
 static int l_send (lua_State *L) {
-  checksocket(L, 1)->sock->send(pluto_checkstring(L, 2));
+  size_t len;
+  const char *str = luaL_checklstring(L, 2, &len);
+  checksocket(L, 1)->sock->send(str, len);
   return 0;
 }
 
