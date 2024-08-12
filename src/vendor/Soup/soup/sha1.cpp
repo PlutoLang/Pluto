@@ -14,20 +14,20 @@
 #endif
 #include "StringRefReader.hpp"
 
-#if SHA1_USE_INTRIN
-namespace soup_intrin
-{
-	extern void sha1_transform(uint32_t state[5], const uint8_t data[64]) noexcept;
-}
-#endif
-
 NAMESPACE_SOUP
 {
+#if SHA1_USE_INTRIN
+	namespace intrin
+	{
+		extern void sha1_transform(uint32_t state[5], const uint8_t data[64]) noexcept;
+	}
+#endif
+
 	// Original source: https://github.com/vog/sha1
 	// Original licence: Dedicated to the public domain.
 
 	template <size_t BLOCK_INTS, bool lsb>
-	void buffer_to_block(const std::string& buffer, uint32_t block[BLOCK_INTS]) noexcept
+	void buffer_to_block(const uint8_t* buffer, uint32_t block[BLOCK_INTS]) noexcept
 	{
 		/* Convert the std::string (byte buffer) to a uint32_t array */
 		for (size_t i = 0; i < BLOCK_INTS; i++)
@@ -103,7 +103,7 @@ NAMESPACE_SOUP
 	 * Hash a single 512-bit block. This is the core of the algorithm.
 	 */
 
-	inline static void transform(uint32_t digest[], uint32_t block[BLOCK_INTS]) noexcept
+	inline static void transform_impl(uint32_t digest[], uint32_t block[BLOCK_INTS]) noexcept
 	{
 		/* Copy digest[] to working vars */
 		uint32_t a = digest[0];
@@ -202,139 +202,110 @@ NAMESPACE_SOUP
 		digest[4] += e;
 	}
 
-	std::string sha1::hash(const std::string& str) SOUP_EXCAL
+	std::string sha1::hash(const void* data, size_t len) SOUP_EXCAL
 	{
-		StringRefReader r(str);
-		return hash(r);
+		State sha;
+		sha.append(data, len);
+		sha.finalise();
+		return sha.getDigest();
 	}
 
-	template <bool intrin>
-	static std::string sha1_hash_impl(Reader& r) SOUP_EXCAL
+	std::string sha1::hash(const std::string& str) SOUP_EXCAL
 	{
-		// init
-		uint32_t digest[] = {
-			0x67452301,
-			0xefcdab89,
-			0x98badcfe,
-			0x10325476,
-			0xc3d2e1f0,
-		};
-		static_assert(sizeof(digest) == sha1::DIGEST_BYTES);
-
-		std::string buffer{};
-		uint64_t transforms = 0;
-
-		size_t in_len = r.getRemainingBytes();
-
-		// update
-		for (; in_len >= sha1::BLOCK_BYTES; in_len -= sha1::BLOCK_BYTES)
-		{
-			r.str(sha1::BLOCK_BYTES, buffer);
-#if SHA1_USE_INTRIN
-			if constexpr (intrin)
-			{
-	#if SOUP_X86
-				soup_intrin::sha1_transform(digest, (const uint8_t*)buffer.data());
-	#else
-				uint32_t block[BLOCK_INTS];
-				buffer_to_block<BLOCK_INTS, false>(buffer, block);
-				soup_intrin::sha1_transform(digest, (const uint8_t*)block);
-	#endif
-			}
-			else
-#endif
-			{
-				uint32_t block[BLOCK_INTS];
-				buffer_to_block<BLOCK_INTS, intrin && SOUP_X86>(buffer, block);
-				transform(digest, block);
-			}
-			++transforms;
-		}
-
-		r.str(in_len, buffer);
-
-		// final
-
-		/* Total number of hashed bits */
-		uint64_t total_bits = (transforms * sha1::BLOCK_BYTES + buffer.size()) * 8;
-
-		/* Padding */
-		buffer += (char)0x80;
-		size_t orig_size = buffer.size();
-		while (buffer.size() < sha1::BLOCK_BYTES)
-		{
-			buffer += (char)0x00;
-		}
-
-		uint32_t block[BLOCK_INTS];
-		buffer_to_block<BLOCK_INTS, intrin && SOUP_X86>(buffer, block);
-
-		if (orig_size > sha1::BLOCK_BYTES - 8)
-		{
-#if SHA1_USE_INTRIN
-			if constexpr (intrin)
-			{
-				soup_intrin::sha1_transform(digest, (const uint8_t*)block);
-			}
-			else
-#endif
-			{
-				transform(digest, block);
-			}
-			for (size_t i = 0; i < BLOCK_INTS - 2; i++)
-			{
-				block[i] = 0;
-			}
-		}
-
-		/* Append total_bits, split this uint64_t into two uint32_t */
-#if SHA1_USE_INTRIN
-		if constexpr (intrin)
-		{
-	#if SOUP_X86
-			block[BLOCK_INTS - 1] = Endianness::invert((uint32_t)total_bits);
-			block[BLOCK_INTS - 2] = Endianness::invert((uint32_t)(total_bits >> 32));
-	#else
-			block[BLOCK_INTS - 1] = (uint32_t)total_bits;
-			block[BLOCK_INTS - 2] = (uint32_t)(total_bits >> 32);
-	#endif
-			soup_intrin::sha1_transform(digest, (const uint8_t*)block);
-		}
-		else
-#endif
-		{
-			block[BLOCK_INTS - 1] = (uint32_t)total_bits;
-			block[BLOCK_INTS - 2] = (uint32_t)(total_bits >> 32);
-			transform(digest, block);
-		}
-
-		std::string bin{};
-		bin.reserve(sha1::DIGEST_BYTES);
-		for (size_t i = 0; i < sizeof(digest) / sizeof(digest[0]); i++)
-		{
-			bin.push_back(((const char*)&digest[i])[3]);
-			bin.push_back(((const char*)&digest[i])[2]);
-			bin.push_back(((const char*)&digest[i])[1]);
-			bin.push_back(((const char*)&digest[i])[0]);
-		}
-		return bin;
+		return hash(str.data(), str.size());
 	}
 
 	std::string sha1::hash(Reader& r) SOUP_EXCAL
 	{
-#if SHA1_USE_INTRIN
-		const CpuInfo& cpu_info = CpuInfo::get();
-	#if SOUP_X86
-		if (cpu_info.supportsSSSE3()
-			&& cpu_info.supportsSHA()
-			)
-	#elif SOUP_ARM
-		if (cpu_info.armv8_sha1)
-	#endif
+		State sha;
+		while (r.hasMore())
 		{
-			return sha1_hash_impl<true>(r);
+			uint8_t b;
+			r.u8(b);
+			sha.appendByte(b);
+		}
+		sha.finalise();
+		return sha.getDigest();
+	}
+
+#if SHA1_USE_INTRIN
+	[[nodiscard]] static bool sha1_can_use_intrin() noexcept
+	{
+	#if SOUP_X86
+		const CpuInfo& cpu_info = CpuInfo::get();
+		return cpu_info.supportsSSSE3()
+			&& cpu_info.supportsSHA()
+			;
+	#elif SOUP_ARM
+		return CpuInfo::get().armv8_sha1;
+	#endif
+	}
+#endif
+
+	sha1::State::State()
+	{
+		state[0] = 0x67452301;
+		state[1] = 0xefcdab89;
+		state[2] = 0x98badcfe;
+		state[3] = 0x10325476;
+		state[4] = 0xc3d2e1f0;
+		buffer_counter = 0;
+		n_bits = 0;
+	}
+
+	void sha1::State::transform() noexcept
+	{
+#if SHA1_USE_INTRIN
+		static bool good_cpu = sha1_can_use_intrin();
+		if (good_cpu)
+		{
+	#if SOUP_X86
+			intrin::sha1_transform(state, buffer);
+	#else
+			uint32_t block[BLOCK_INTS];
+			buffer_to_block<BLOCK_INTS, false>(buffer, block);
+			intrin::sha1_transform(state, (const uint8_t*)block);
+	#endif
+			return;
 		}
 #endif
-		return sha1_hash_impl<false>(r);
+		uint32_t block[BLOCK_INTS];
+		buffer_to_block<BLOCK_INTS, false>(buffer, block);
+		transform_impl(state, block);
+	}
+
+	void sha1::State::finalise() noexcept
+	{
+		uint64_t n_bits = this->n_bits;
+
+		appendByte(0x80);
+
+		while (buffer_counter != 56)
+		{
+			appendByte(0);
+		}
+
+		for (int i = 7; i >= 0; i--)
+		{
+			appendByte((n_bits >> 8 * i) & 0xff);
+		}
+	}
+
+	void sha1::State::getDigest(uint8_t out[DIGEST_BYTES]) const noexcept
+	{
+		for (unsigned int i = 0; i != DIGEST_BYTES / 4; i++)
+		{
+			for (int j = 3; j >= 0; j--)
+			{
+				*out++ = (state[i] >> j * 8) & 0xff;
+			}
+		}
+	}
+
+	std::string sha1::State::getDigest() const SOUP_EXCAL
+	{
+		std::string digest(DIGEST_BYTES, '\0');
+		getDigest((uint8_t*)digest.data());
+		return digest;
 	}
 }

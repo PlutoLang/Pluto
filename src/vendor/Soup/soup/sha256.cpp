@@ -18,15 +18,15 @@ Original source: https://github.com/983/SHA-256
 Original licence: Dedicated to the public domain.
 */
 
-#if SHA256_USE_INTRIN
-namespace soup_intrin
-{
-	extern void sha256_transform(uint32_t state[8], const uint8_t data[64]) noexcept;
-}
-#endif
-
 NAMESPACE_SOUP
 {
+#if SHA256_USE_INTRIN
+	namespace intrin
+	{
+		extern void sha256_transform(uint32_t state[8], const uint8_t data[64]) noexcept;
+	}
+#endif
+
 	struct sha256_state
 	{
 		uint32_t state[8];
@@ -105,17 +105,57 @@ NAMESPACE_SOUP
 		0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 	};
 
-	static void sha256_block(sha256_state* sha) noexcept
+	std::string sha256::hash(const void* data, size_t len) SOUP_EXCAL
+	{
+		State sha;
+		sha.append(data, len);
+		sha.finalise();
+		return sha.getDigest();
+	}
+
+	std::string sha256::hash(const std::string& str) SOUP_EXCAL
+	{
+		return hash(str.data(), str.size());
+	}
+
+	std::string sha256::hash(Reader& r) SOUP_EXCAL
+	{
+		State sha;
+		while (r.hasMore())
+		{
+			uint8_t b;
+			r.u8(b);
+			sha.appendByte(b);
+		}
+		sha.finalise();
+		return sha.getDigest();
+	}
+
+	sha256::State::State() noexcept
+	{
+		state[0] = 0x6a09e667;
+		state[1] = 0xbb67ae85;
+		state[2] = 0x3c6ef372;
+		state[3] = 0xa54ff53a;
+		state[4] = 0x510e527f;
+		state[5] = 0x9b05688c;
+		state[6] = 0x1f83d9ab;
+		state[7] = 0x5be0cd19;
+		buffer_counter = 0;
+		n_bits = 0;
+	}
+
+	void sha256::State::transform() noexcept
 	{
 #if SHA256_USE_INTRIN
 		static bool good_cpu = sha256_can_use_intrin();
 		if (good_cpu)
 		{
-			return soup_intrin::sha256_transform(sha->state, sha->buffer);
+			return intrin::sha256_transform(this->state, this->buffer);
 		}
 #endif
 
-		uint32_t* state = sha->state;
+		uint32_t* state = this->state;
 
 		uint32_t a = state[0];
 		uint32_t b = state[1];
@@ -130,7 +170,7 @@ NAMESPACE_SOUP
 
 		int i, j;
 		for (i = 0; i < 64; i += 16) {
-			update_w(w, i, sha->buffer);
+			update_w(w, i, buffer);
 
 			for (j = 0; j < 16; j += 4) {
 				uint32_t temp;
@@ -159,102 +199,38 @@ NAMESPACE_SOUP
 		state[7] += h;
 	}
 
-	void sha256_init(sha256_state* sha) noexcept
+	void sha256::State::finalise() noexcept
 	{
-		sha->state[0] = 0x6a09e667;
-		sha->state[1] = 0xbb67ae85;
-		sha->state[2] = 0x3c6ef372;
-		sha->state[3] = 0xa54ff53a;
-		sha->state[4] = 0x510e527f;
-		sha->state[5] = 0x9b05688c;
-		sha->state[6] = 0x1f83d9ab;
-		sha->state[7] = 0x5be0cd19;
-		sha->n_bits = 0;
-		sha->buffer_counter = 0;
-	}
+		uint64_t n_bits = this->n_bits;
 
-	void sha256_append_byte(sha256_state* sha, uint8_t byte) noexcept
-	{
-		sha->buffer[sha->buffer_counter++] = byte;
-		sha->n_bits += 8;
+		appendByte(0x80);
 
-		if (sha->buffer_counter == 64) {
-			sha->buffer_counter = 0;
-			sha256_block(sha);
+		while (buffer_counter != 56)
+		{
+			appendByte(0);
+		}
+
+		for (int i = 7; i >= 0; i--)
+		{
+			appendByte((n_bits >> 8 * i) & 0xff);
 		}
 	}
 
-	void sha256_append(sha256_state* sha, const void* src, size_t n_bytes) noexcept
+	void sha256::State::getDigest(uint8_t out[DIGEST_BYTES]) const noexcept
 	{
-		const uint8_t* bytes = (const uint8_t*)src;
-		size_t i;
-
-		for (i = 0; i < n_bytes; i++) {
-			sha256_append_byte(sha, bytes[i]);
-		}
-	}
-
-	void sha256_finalize(sha256_state* sha) noexcept
-	{
-		int i;
-		uint64_t n_bits = sha->n_bits;
-
-		sha256_append_byte(sha, 0x80);
-
-		while (sha->buffer_counter != 56) {
-			sha256_append_byte(sha, 0);
-		}
-
-		for (i = 7; i >= 0; i--) {
-			uint8_t byte = (n_bits >> 8 * i) & 0xff;
-			sha256_append_byte(sha, byte);
-		}
-	}
-
-	void sha256_finalize_bytes(sha256_state* sha, uint8_t dst_bytes[32]) noexcept
-	{
-		int i, j;
-		sha256_finalize(sha);
-
-		for (i = 0; i < 8; i++) {
-			for (j = 3; j >= 0; j--) {
-				*dst_bytes++ = (sha->state[i] >> j * 8) & 0xff;
+		for (unsigned int i = 0; i != DIGEST_BYTES / 4; i++)
+		{
+			for (int j = 3; j >= 0; j--)
+			{
+				*out++ = (state[i] >> j * 8) & 0xff;
 			}
 		}
 	}
 
-	void sha256_bytes(const void* src, size_t n_bytes, uint8_t dst_bytes[32]) noexcept
+	std::string sha256::State::getDigest() const SOUP_EXCAL
 	{
-		sha256_state sha;
-		sha256_init(&sha);
-		sha256_append(&sha, src, n_bytes);
-		sha256_finalize_bytes(&sha, dst_bytes);
-	}
-
-	std::string sha256::hash(const void* data, size_t len) SOUP_EXCAL
-	{
-		std::string digest(32, '\0');
-		sha256_bytes(data, len, (uint8_t*)digest.data());
-		return digest;
-	}
-
-	std::string sha256::hash(const std::string& str) SOUP_EXCAL
-	{
-		return hash(str.data(), str.size());
-	}
-
-	std::string sha256::hash(Reader& r) SOUP_EXCAL
-	{
-		std::string digest(32, '\0');
-		sha256_state sha;
-		sha256_init(&sha);
-		while (r.hasMore())
-		{
-			uint8_t b;
-			r.u8(b);
-			sha256_append_byte(&sha, b);
-		}
-		sha256_finalize_bytes(&sha, (uint8_t*)digest.data());
+		std::string digest(DIGEST_BYTES, '\0');
+		getDigest((uint8_t*)digest.data());
 		return digest;
 	}
 }

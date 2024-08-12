@@ -30,7 +30,7 @@ static int push_http_response (lua_State *L, soup::HttpRequestTask& task) {
 #if SOUP_WASM
   return 1;  /* specialized HttpRequestTask for WASM doesn't have `getStatus` */
 #else
-  lua_pushstring(L, soup::netStatusToString(task.getStatus()));
+  pluto_pushstring(L, task.getStatus());
   return 2;
 #endif
 }

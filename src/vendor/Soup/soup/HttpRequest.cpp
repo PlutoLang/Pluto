@@ -21,7 +21,7 @@ NAMESPACE_SOUP
 	HttpRequest::HttpRequest(std::string method, std::string host, std::string path)
 		: MimeMessage({
 			{ObfusString("Host"), std::move(host)},
-			{ObfusString("User-Agent"), ObfusString("Mozilla/5.0 (compatible; Soup Library; +https://soup.do)")},
+			{ObfusString("User-Agent"), ObfusString("Mozilla/5.0 (compatible; calamity-inc/Soup)")},
 			{ObfusString("Connection"), ObfusString("close")},
 			{ObfusString("Accept-Encoding"), ObfusString("deflate, gzip")},
 		}), method(std::move(method)), path(std::move(path))

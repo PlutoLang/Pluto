@@ -31,6 +31,7 @@ NAMESPACE_SOUP
 		bool dont_use_reusable_sockets = false;
 		bool dont_make_reusable_sockets = false;
 		bool retry_on_broken_pipe = false; // internal
+		std::string await_response_finish_reason; // internal
 #endif
 		HttpRequest hr;
 #if !SOUP_WASM
@@ -56,7 +57,7 @@ NAMESPACE_SOUP
 
 	public:
 		[[nodiscard]] std::string toString() const SOUP_EXCAL final;
-		[[nodiscard]] netStatus getStatus() const noexcept;
+		[[nodiscard]] std::string getStatus() const SOUP_EXCAL;
 #else
 		void onTick() noexcept final;
 

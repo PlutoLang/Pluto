@@ -47,6 +47,15 @@ NAMESPACE_SOUP
 		return static_cast<intptr_t>(in.tellg());
 	}
 
+	bool filesystem::replace(const std::filesystem::path& replaced, const std::filesystem::path& replacement)
+	{
+#if SOUP_WINDOWS
+		return ReplaceFileW(replaced.c_str(), replacement.c_str(), nullptr, 0, 0, 0) != 0;
+#else
+		return rename(replacement.c_str(), replaced.c_str()) == 0;
+#endif
+	}
+
 	std::filesystem::path filesystem::tempfile(const std::string& ext)
 	{
 		std::filesystem::path path;

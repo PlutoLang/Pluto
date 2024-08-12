@@ -160,8 +160,16 @@ NAMESPACE_SOUP
 		{
 			const auto s = m_size;
 			grow(count);
-			memcpy(&m_data[count], &m_data[0], s);
+			memmove(&m_data[count], &m_data[0], s);
 			memset(&m_data[0], value, count);
+		}
+
+		void prepend(const void* src_data, size_t src_size) SOUP_EXCAL
+		{
+			const auto s = m_size;
+			grow(src_size);
+			memmove(&m_data[src_size], &m_data[0], s);
+			memcpy(&m_data[0], src_data, src_size);
 		}
 
 		void insert_back(size_t count, uint8_t value) SOUP_EXCAL

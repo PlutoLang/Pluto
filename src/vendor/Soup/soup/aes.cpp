@@ -42,24 +42,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#if AES_USE_INTRIN
-namespace soup_intrin
-{
-	extern void aes_expand_key_128(uint8_t w[176], const uint8_t key[16]) noexcept;
-	extern void aes_expand_key_192(uint8_t w[208], const uint8_t key[24]) noexcept;
-	extern void aes_expand_key_256(uint8_t w[240], const uint8_t key[32]) noexcept;
-	extern void aes_encrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
-	extern void aes_encrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
-	extern void aes_encrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
-	extern void aes_prepare_decryption_128(uint8_t w[176]) noexcept;
-	extern void aes_prepare_decryption_192(uint8_t w[208]) noexcept;
-	extern void aes_prepare_decryption_256(uint8_t w[240]) noexcept;
-	extern void aes_decrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
-	extern void aes_decrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
-	extern void aes_decrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
-}
-#endif
-
 #if SOUP_X86
 	#define IS_AES_INTRIN_AVAILBLE CpuInfo::get().supportsAESNI()
 #else
@@ -68,6 +50,24 @@ namespace soup_intrin
 
 NAMESPACE_SOUP
 {
+#if AES_USE_INTRIN
+	namespace intrin
+	{
+		extern void aes_expand_key_128(uint8_t w[176], const uint8_t key[16]) noexcept;
+		extern void aes_expand_key_192(uint8_t w[208], const uint8_t key[24]) noexcept;
+		extern void aes_expand_key_256(uint8_t w[240], const uint8_t key[32]) noexcept;
+		extern void aes_encrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
+		extern void aes_encrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
+		extern void aes_encrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
+		extern void aes_prepare_decryption_128(uint8_t w[176]) noexcept;
+		extern void aes_prepare_decryption_192(uint8_t w[208]) noexcept;
+		extern void aes_prepare_decryption_256(uint8_t w[240]) noexcept;
+		extern void aes_decrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
+		extern void aes_decrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
+		extern void aes_decrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
+	}
+#endif
+
 	static constexpr int Nb = 4;
 	static constexpr unsigned int blockBytesLen = 4 * Nb * sizeof(uint8_t);
 
@@ -365,28 +365,28 @@ NAMESPACE_SOUP
 		{
 			if (key_len == 16)
 			{
-				soup_intrin::aes_expand_key_128(roundKeys, key);
+				intrin::aes_expand_key_128(roundKeys, key);
 				for (size_t i = 0; i != data_len; i += blockBytesLen)
 				{
-					soup_intrin::aes_encrypt_block_128(&data[i], &data[i], roundKeys);
+					intrin::aes_encrypt_block_128(&data[i], &data[i], roundKeys);
 				}
 				return;
 			}
 			else if (key_len == 24)
 			{
-				soup_intrin::aes_expand_key_192(roundKeys, key);
+				intrin::aes_expand_key_192(roundKeys, key);
 				for (size_t i = 0; i != data_len; i += blockBytesLen)
 				{
-					soup_intrin::aes_encrypt_block_192(&data[i], &data[i], roundKeys);
+					intrin::aes_encrypt_block_192(&data[i], &data[i], roundKeys);
 				}
 				return;
 			}
 			else if (key_len == 32)
 			{
-				soup_intrin::aes_expand_key_256(roundKeys, key);
+				intrin::aes_expand_key_256(roundKeys, key);
 				for (size_t i = 0; i != data_len; i += blockBytesLen)
 				{
-					soup_intrin::aes_encrypt_block_256(&data[i], &data[i], roundKeys);
+					intrin::aes_encrypt_block_256(&data[i], &data[i], roundKeys);
 				}
 				return;
 			}
@@ -412,31 +412,31 @@ NAMESPACE_SOUP
 		{
 			if (key_len == 16)
 			{
-				soup_intrin::aes_expand_key_128(roundKeys, key);
-				soup_intrin::aes_prepare_decryption_128(roundKeys);
+				intrin::aes_expand_key_128(roundKeys, key);
+				intrin::aes_prepare_decryption_128(roundKeys);
 				for (size_t i = 0; i != data_len; i += blockBytesLen)
 				{
-					soup_intrin::aes_decrypt_block_128(&data[i], &data[i], roundKeys);
+					intrin::aes_decrypt_block_128(&data[i], &data[i], roundKeys);
 				}
 				return;
 			}
 			else if (key_len == 24)
 			{
-				soup_intrin::aes_expand_key_192(roundKeys, key);
-				soup_intrin::aes_prepare_decryption_192(roundKeys);
+				intrin::aes_expand_key_192(roundKeys, key);
+				intrin::aes_prepare_decryption_192(roundKeys);
 				for (size_t i = 0; i != data_len; i += blockBytesLen)
 				{
-					soup_intrin::aes_decrypt_block_192(&data[i], &data[i], roundKeys);
+					intrin::aes_decrypt_block_192(&data[i], &data[i], roundKeys);
 				}
 				return;
 			}
 			else if (key_len == 32)
 			{
-				soup_intrin::aes_expand_key_256(roundKeys, key);
-				soup_intrin::aes_prepare_decryption_256(roundKeys);
+				intrin::aes_expand_key_256(roundKeys, key);
+				intrin::aes_prepare_decryption_256(roundKeys);
 				for (size_t i = 0; i != data_len; i += blockBytesLen)
 				{
-					soup_intrin::aes_decrypt_block_256(&data[i], &data[i], roundKeys);
+					intrin::aes_decrypt_block_256(&data[i], &data[i], roundKeys);
 				}
 				return;
 			}
@@ -513,15 +513,15 @@ NAMESPACE_SOUP
 		{
 			if (Nr == 10)
 			{
-				return soup_intrin::aes_encrypt_block_128(in, out, roundKeys);
+				return intrin::aes_encrypt_block_128(in, out, roundKeys);
 			}
 			else if (Nr == 12)
 			{
-				return soup_intrin::aes_encrypt_block_192(in, out, roundKeys);
+				return intrin::aes_encrypt_block_192(in, out, roundKeys);
 			}
 			else if (Nr == 14)
 			{
-				return soup_intrin::aes_encrypt_block_256(in, out, roundKeys);
+				return intrin::aes_encrypt_block_256(in, out, roundKeys);
 			}
 		}
 #endif
@@ -574,15 +574,15 @@ NAMESPACE_SOUP
 		{
 			if (Nr == 10)
 			{
-				return soup_intrin::aes_decrypt_block_128(in, out, roundKeys);
+				return intrin::aes_decrypt_block_128(in, out, roundKeys);
 			}
 			else if (Nr == 12)
 			{
-				return soup_intrin::aes_decrypt_block_192(in, out, roundKeys);
+				return intrin::aes_decrypt_block_192(in, out, roundKeys);
 			}
 			else if (Nr == 14)
 			{
-				return soup_intrin::aes_decrypt_block_256(in, out, roundKeys);
+				return intrin::aes_decrypt_block_256(in, out, roundKeys);
 			}
 		}
 #endif
@@ -634,15 +634,15 @@ NAMESPACE_SOUP
 		{
 			if (key_len == 16)
 			{
-				return soup_intrin::aes_expand_key_128(w, key);
+				return intrin::aes_expand_key_128(w, key);
 			}
 			else if (key_len == 24)
 			{
-				return soup_intrin::aes_expand_key_192(w, key);
+				return intrin::aes_expand_key_192(w, key);
 			}
 			else if (key_len == 32)
 			{
-				return soup_intrin::aes_expand_key_256(w, key);
+				return intrin::aes_expand_key_256(w, key);
 			}
 		}
 	#endif
@@ -700,15 +700,15 @@ NAMESPACE_SOUP
 		{
 			if (key_len == 16)
 			{
-				soup_intrin::aes_prepare_decryption_128(w);
+				intrin::aes_prepare_decryption_128(w);
 			}
 			else if (key_len == 24)
 			{
-				return soup_intrin::aes_prepare_decryption_192(w);
+				return intrin::aes_prepare_decryption_192(w);
 			}
 			else if (key_len == 32)
 			{
-				return soup_intrin::aes_prepare_decryption_256(w);
+				return intrin::aes_prepare_decryption_256(w);
 			}
 		}
 #endif

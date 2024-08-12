@@ -7,7 +7,7 @@ NAMESPACE_SOUP
 		uint64_t in = v;
 		for (uint8_t i = 0; i != 8; ++i)
 		{
-			uint8_t cur = (in & 0x7F);
+			uint8_t cur = (in & 0x7f);
 			in >>= 7;
 			if (in != 0)
 			{
@@ -29,58 +29,17 @@ NAMESPACE_SOUP
 
 	bool Writer::i64_dyn(const int64_t& v) noexcept
 	{
-		// Split value
-		uint64_t in;
+		uint64_t u;
 		bool neg = (v < 0);
 		if (neg)
 		{
-			in = (v * -1);
-			in &= ~((uint64_t)1 << 63);
+			u = (v * -1) & ~((uint64_t)1 << 63);
 		}
 		else
 		{
-			in = v;
+			u = v;
 		}
-
-		// First byte
-		{
-			uint8_t cur = (in & 0b111111);
-			cur |= (neg << 6);
-			in >>= 6;
-			if (in != 0)
-			{
-				cur |= 0x80;
-				u8(cur);
-			}
-			else
-			{
-				return u8(cur);
-			}
-		}
-
-		// Next 1..7 bytes
-		for (uint8_t i = 0; i != 7; ++i)
-		{
-			uint8_t cur = (in & 0x7F);
-			in >>= 7;
-			if (in != 0)
-			{
-				cur |= 0x80;
-				u8(cur);
-			}
-			else
-			{
-				return u8(cur);
-			}
-		}
-
-		// Optional last byte
-		if (in != 0)
-		{
-			auto byte = (uint8_t)in;
-			return u8(byte);
-		}
-		return true;
+		return u64_dyn(((uint64_t)neg << 6) | ((u & ~0x3f) << 1) | (u & 0x3f));
 	}
 
 	bool Writer::mysql_lenenc(const uint64_t& v) noexcept
