@@ -17,7 +17,7 @@ while (!is_dir("$dir/Soup"))
 $dir .= "/Soup/soup";
 foreach (scandir(".") as $f)
 {
-	if (substr($f, -4) == ".cpp" || substr($f, -4) == ".hpp")
+	if ($f != "base.hpp" && (substr($f, -4) == ".cpp" || substr($f, -4) == ".hpp"))
 	{
 		copy("$dir/$f", $f);
 	}
