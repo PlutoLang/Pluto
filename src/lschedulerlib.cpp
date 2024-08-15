@@ -8,7 +8,7 @@ static const luaL_Reg funcs[] = {
 };
 
 LUAMOD_API int luaopen_scheduler (lua_State *L) {
-	const auto code = R"EOC(pluto_use "0.6.0"
+    const auto code = R"EOC(pluto_use "0.6.0"
 
 return class
     __name = "pluto:scheduler"
@@ -69,9 +69,9 @@ return class
         until all_dead
     end
 end)EOC";
-	luaL_loadbuffer(L, code, strlen(code), "pluto:scheduler");
-	lua_call(L, 0, 1);
-	return 1;
+    luaL_loadbuffer(L, code, strlen(code), "pluto:scheduler");
+    lua_call(L, 0, 1);
+    return 1;
 }
 
 const Pluto::PreloadedLibrary Pluto::preloaded_scheduler{ "scheduler", funcs, &luaopen_scheduler };
