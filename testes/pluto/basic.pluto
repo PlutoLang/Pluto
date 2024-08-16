@@ -1128,7 +1128,10 @@ do
             return
             case 2:
             return 2
-            case 3: -- return before defualt
+            case 3: -- return before case, with break
+            return
+            break
+            case 4: -- return before defualt
             return
             default:
             return
@@ -1138,6 +1141,7 @@ do
     assert(switchfunc(1) == nil)
     assert(switchfunc(2) == 2)
     assert(switchfunc(3) == nil)
+    assert(switchfunc(4) == nil)
 end
 do
     switch true do
@@ -3153,6 +3157,23 @@ do
         goto if_then_goto_test
         ::if_then_goto_test::
     end
+end
+do -- Reserved Identifiers
+    local t = {
+        class = "key"
+    }
+    assert(t.class == "key")
+
+    for i = 1, 10 do
+        if i == 5 then
+            goto continue
+        end
+        ::continue::
+    end
+
+    -- This should still be an error
+    assert(load[[return break]] == nil)
+    assert(load[[return while]] == nil)
 end
 do
     local function compat_names(default, parent)
