@@ -363,7 +363,7 @@ enum NameFlags {
   N_OVERRIDABLE = (1 << 2),
 };
 
-[[nodiscard]] static bool isnametkn (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
+[[nodiscard]] static bool isnametkn (LexState *ls, int flags = 0) {
   return ls->t.token == TK_NAME || ls->t.IsNarrow()
       || ((flags & N_RESERVED_NON_VALUE) && ls->t.IsReservedNonValue())
       || ((flags & N_RESERVED) && ls->t.IsReserved())
@@ -389,7 +389,7 @@ static void disablekeyword (LexState *ls, int token) {
       i->token = TK_NAME;
 }
 
-static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
+static TString *str_checkname (LexState *ls, int flags = 0) {
 #ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
@@ -445,7 +445,7 @@ static void codestring (expdesc *e, TString *s) {
 }
 
 
-static void codename (LexState *ls, expdesc *e, int flags = N_RESERVED_NON_VALUE) {
+static void codename (LexState *ls, expdesc *e, int flags = 0) {
   codestring(e, str_checkname(ls, flags));
 }
 
@@ -485,7 +485,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     if (testnext(ls, '?'))
       th.emplaceTypeDesc(VT_NIL);
     do {
-      TString *ts = str_checkname(ls);
+      TString *ts = str_checkname(ls, N_RESERVED);
       const char *tname = getstr(ts);
       if (strcmp(tname, "number") == 0)
         th.emplaceTypeDesc(VT_NUMBER);
@@ -2898,9 +2898,9 @@ static void parentexp (LexState *ls, expdesc *v) {
 
 static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
   /* primaryexp -> NAME | '(' expr ')' */
-  if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
+  if (isnametkn(ls, N_OVERRIDABLE)) {
     const bool is_overridable = ls->t.IsOverridable();
-    TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
+    TString *varname = str_checkname(ls, N_OVERRIDABLE);
     if (gett(ls) == TK_WALRUS) {
       if (flags & E_OR_KILLED_WALRUS)
         throwerr(ls, "':=' is not allowed in this context", "due to the 'or', it is no longer guaranteed that the local will be initialized by the time it's in scope.");
@@ -4884,7 +4884,7 @@ static void retstat (LexState *ls, TypeHint *prop) {
   int startpc = fs->pc;
   int endpc = -1;
   if (block_follow(ls, 1) || ls->t.token == ';'
-    || (!ls->switchstates.empty() && (ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT))
+    || (!ls->switchstates.empty() && (ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT || ls->t.token == TK_BREAK))
   ) {
     nret = 0;  /* return no values */
     if (prop) prop->emplaceTypeDesc(VT_VOID);
