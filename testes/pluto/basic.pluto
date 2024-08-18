@@ -2103,8 +2103,14 @@ do
     sched:add(function()
         local s = socket.connect("localhost", 30724)
         assert(s)
+        assert(s:peek() == nil)
         s:send("Hello")
+        while s:peek() == nil do
+            coroutine.yield()
+        end
+        assert(s:peek() == "Hello")
         assert(s:recv() == "Hello")
+        assert(s:peek() == nil)
         s:close()
     end)
     sched:run()
