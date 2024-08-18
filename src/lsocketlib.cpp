@@ -213,6 +213,12 @@ static int starttls (lua_State *L) {
   return 1;
 }
 
+static int socket_istls (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  lua_pushboolean(L, ss.did_tls_handshake);
+  return 1;
+}
+
 static int socket_close (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
   ss.sock->close();
@@ -335,6 +341,7 @@ static const luaL_Reg funcs_socket[] = {
   {"recv", l_recv},
   {"unrecv", unrecv},
   {"starttls", starttls},
+  {"istls", socket_istls},
   {"close", socket_close},
   {"getside", socket_getside},
   {"getpeer", socket_getpeer},
