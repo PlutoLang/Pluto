@@ -225,6 +225,12 @@ static int socket_close (lua_State *L) {
   return 0;
 }
 
+static int socket_isopen (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  lua_pushboolean(L, !ss.sock->isWorkDoneOrClosed());
+  return 1;
+}
+
 static int socket_getside (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
   if (ss.from_listener)
@@ -343,6 +349,7 @@ static const luaL_Reg funcs_socket[] = {
   {"starttls", starttls},
   {"istls", socket_istls},
   {"close", socket_close},
+  {"isopen", socket_isopen},
   {"getside", socket_getside},
   {"getpeer", socket_getpeer},
   {"listen", l_listen},

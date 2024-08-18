@@ -2095,10 +2095,12 @@ do
         while data := s:recv() do
             s:send(data)
         end
+        assert(s:isopen() == false)
     end)
     sched:add(function()
         local s = socket.connect("localhost", 30724)
         assert(s)
+        assert(s:isopen() == true)
         assert(s:getside() == "client")
         assert(select(2, s:getpeer()) == 30724)
         assert(s:peek() == nil)
@@ -2110,6 +2112,7 @@ do
         assert(s:recv() == "Hello")
         assert(s:peek() == nil)
         s:close()
+        assert(s:isopen() == false)
     end)
     sched:run()
 end
