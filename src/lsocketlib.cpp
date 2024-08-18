@@ -219,6 +219,15 @@ static int socket_close (lua_State *L) {
   return 0;
 }
 
+static int socket_getside (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  if (ss.from_listener)
+    lua_pushliteral(L, "server");
+  else
+    lua_pushliteral(L, "client");
+  return 1;
+}
+
 static int socket_getpeer (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
   auto ipstr = ss.sock->peer.ip.toString();
@@ -327,6 +336,7 @@ static const luaL_Reg funcs_socket[] = {
   {"unrecv", unrecv},
   {"starttls", starttls},
   {"close", socket_close},
+  {"getside", socket_getside},
   {"getpeer", socket_getpeer},
   {"listen", l_listen},
   {NULL, NULL}
