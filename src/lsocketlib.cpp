@@ -117,14 +117,22 @@ static int recvcont (lua_State *L, int status, lua_KContext ctx) {
   return restrecv(L, ss);
 }
 
+static int l_peek (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  ss.sched.tick();
+  if (!ss.recvd.empty()) {
+    pluto_pushstring(L, ss.recvd.front());
+    return 1;
+  }
+  return 0;
+}
+
 static int l_recv (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
-  
-  if (lua_isyieldable(L))
-    return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(&ss), recvcont);
-
+  ss.sched.tick();
   if (ss.recvd.empty()) {
-    ss.sched.tick();
+    if (lua_isyieldable(L))
+      return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(&ss), recvcont);
     while (ss.recvd.empty() && !ss.sock->isWorkDone()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       ss.sched.tick();
@@ -314,6 +322,7 @@ static int l_listen (lua_State *L) {
 static const luaL_Reg funcs_socket[] = {
   {"connect", l_connect},
   {"send", l_send},
+  {"peek", l_peek},
   {"recv", l_recv},
   {"unrecv", unrecv},
   {"starttls", starttls},
