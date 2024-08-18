@@ -2091,6 +2091,7 @@ do
     sched:add(function()
         local l = socket.listen(30724)
         local s = l:accept()
+        assert(s:getside() == "server")
         while data := s:recv() do
             s:send(data)
         end
@@ -2098,6 +2099,7 @@ do
     sched:add(function()
         local s = socket.connect("localhost", 30724)
         assert(s)
+        assert(s:getside() == "client")
         assert(select(2, s:getpeer()) == 30724)
         assert(s:peek() == nil)
         s:send("Hello")
