@@ -2085,6 +2085,37 @@ do
     end
 end
 do
+    local { scheduler } = require "*"
+
+    -- Test contains
+    do
+        local sched = new scheduler()
+        local t = sched:add(function() end)
+        sched:add(function()
+            while sched:contains(t) do
+                coroutine.yield()
+            end
+        end)
+        sched:run()
+    end
+
+    -- Test remove
+    do
+        local sched = new scheduler()
+        local t = sched:add(function() end)
+        local ok = false
+        sched:add(function()
+            assert(sched:contains(t) == true)
+            sched:remove(t)
+            assert(sched:contains(t) == false)
+            coroutine.yield()
+            ok = true
+        end)
+        sched:run()
+        assert(ok)
+    end
+end
+do
     local { scheduler, socket } = require "*"
 
     local sched = new scheduler()
