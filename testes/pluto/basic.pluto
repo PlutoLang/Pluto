@@ -595,6 +595,11 @@ do
         rawset(t, i, "Hello")
     end
     assert(#t == 1000)
+
+    t = {1}
+    assert(#t == 1)
+    table.clear(t)
+    assert(#t == 0)
 end
 
 print "Testing null coalescing operator."
