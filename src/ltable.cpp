@@ -1035,6 +1035,10 @@ LUAI_FUNC void luaH_clear (lua_State *L, Table *t) {
   /* clear hash part */
   freehash(L, t);
   setnodevector(L, t, 0);
+  /* clear cached length */
+#ifndef PLUTO_DISABLE_LENGTH_CACHE
+  t->length = 0;
+#endif
 }
 
 
