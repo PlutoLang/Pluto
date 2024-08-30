@@ -8,8 +8,10 @@ if(!is_dir("int"))
 
 function build_soup()
 {
+	global $argv;
+
 	echo ">>> Building Soup\n";
-	passthru("php ".__DIR__."/../src/vendor/Soup/build_lib.php");
+	passthru("php ".__DIR__."/../src/vendor/Soup/build_lib.php ".escapeshellarg($argv[1]));
 	echo ">>> Compiling Pluto\n";
 }
 
