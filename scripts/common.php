@@ -56,11 +56,12 @@ function prepare_link()
 
 function resolve_installed_program($exe)
 {
-	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
+	$compiler_exe = escapeshellarg(explode(" ", $exe)[0]);
+	if (defined("PHP_WINDOWS_VERSION_MAJOR") && system("where $compiler_exe") || system("command -v $compiler_exe"))
 	{
-		return escapeshellarg(system("where ".escapeshellarg($exe)));
+		return $exe;
 	}
-	return escapeshellarg(system("which ".escapeshellarg($exe)));
+	die("Cannot find so-called $compiler_exe compiler");
 }
 
 function for_each_obj($f)
