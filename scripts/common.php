@@ -60,7 +60,7 @@ function resolve_installed_program($exe)
 	{
 		return escapeshellarg(system("where ".escapeshellarg($exe)));
 	}
-	return escapeshellarg(system("which ".escapeshellarg($exe)));
+	return escapeshellarg(system("command -v ".escapeshellarg($exe)));
 }
 
 function for_each_obj($f)
