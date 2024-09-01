@@ -46,6 +46,10 @@ function check_compiler()
 			}
 		}
 	}
+	if (getenv("CXXFLAGS"))
+	{
+		$compiler = " ".getenv("CXXFLAGS");
+	}
 }
 
 function prepare_link()
