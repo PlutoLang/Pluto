@@ -50,9 +50,13 @@ NAMESPACE_SOUP
 	bool filesystem::replace(const std::filesystem::path& replaced, const std::filesystem::path& replacement)
 	{
 #if SOUP_WINDOWS
+		SOUP_IF_UNLIKELY (!std::filesystem::exists(replaced))
+		{
+			return MoveFileW(replacement.c_str(), replaced.c_str()) != 0;
+		}
 		return ReplaceFileW(replaced.c_str(), replacement.c_str(), nullptr, 0, 0, 0) != 0;
 #else
-		return rename(replacement.c_str(), replaced.c_str()) == 0;
+		return ::rename(replacement.c_str(), replaced.c_str()) == 0;
 #endif
 	}
 
@@ -76,7 +80,7 @@ NAMESPACE_SOUP
 		return path;
 	}
 
-	std::filesystem::path filesystem::getProgramData() noexcept
+	std::filesystem::path filesystem::getProgramData() SOUP_EXCAL
 	{
 #if SOUP_WINDOWS
 		wchar_t szPath[MAX_PATH];

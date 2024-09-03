@@ -1,5 +1,7 @@
 #include "unicode.hpp"
 
+#include "bitutil.hpp"
+
 NAMESPACE_SOUP
 {
 	char32_t unicode::utf8_to_utf32_char(std::string::const_iterator& it, const std::string::const_iterator end) noexcept
@@ -9,27 +11,19 @@ NAMESPACE_SOUP
 		{
 			return ch;
 		}
-		uint32_t uni;
-		uint8_t todo = 0;
 		SOUP_IF_UNLIKELY (UTF8_IS_CONTINUATION(ch))
 		{
 			return REPLACEMENT_CHAR;
 		}
-		if ((ch & 0b01111000) == 0b01110000) // 11110xxx
-		{
-			uni = (ch & 0b111);
-			todo = 3;
-		}
-		else if ((ch & 0b01110000) == 0b01100000) // 1110xxxx
-		{
-			uni = (ch & 0b1111);
-			todo = 2;
-		}
-		else //if ((ch & 0b01100000) == 0b01000000) // 110xxxxx
-		{
-			uni = (ch & 0b11111);
-			todo = 1;
-		}
+
+		// 11110xxx: todo = 3
+		// 1110xxxx: todo = 2
+		// 110xxxxx: todo = 1
+		uint8_t todo = bitutil::getNumLeadingZeros(static_cast<uint32_t>((uint8_t)~ch)) - 25;
+
+		// Copy 'x' from above into 'uni'
+		uint32_t uni = ch & ((1 << (6 - todo)) - 1);
+
 		for (uint8_t j = 0; j != todo; ++j)
 		{
 			SOUP_IF_UNLIKELY (it == end)
@@ -45,12 +39,12 @@ NAMESPACE_SOUP
 			uni <<= 6;
 			uni |= (ch & 0b111111);
 		}
-		SOUP_IF_UNLIKELY ((uni >= 0xD800 && uni <= 0xDFFF)
+		/*SOUP_IF_UNLIKELY ((uni >= 0xD800 && uni <= 0xDFFF)
 			|| uni > 0x10FFFF
 			)
 		{
 			return REPLACEMENT_CHAR;
-		}
+		}*/
 		return uni;
 	}
 

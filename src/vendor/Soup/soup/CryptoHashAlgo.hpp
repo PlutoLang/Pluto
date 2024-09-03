@@ -2,6 +2,7 @@
 
 #include "base.hpp"
 
+#include <cstdint> // uint8_t
 #include <cstring> // memset, memcpy
 #include <string>
 
@@ -40,22 +41,54 @@ NAMESPACE_SOUP
 		}
 
 		// used as (secret, label, seed) in the RFC
-		[[nodiscard]] static std::string tls_prf(std::string label, const size_t bytes, const std::string& secret, const std::string& seed) SOUP_EXCAL
+		[[nodiscard]] static std::string tls_prf(const std::string& label, const size_t bytes, const std::string& secret, const std::string& seed) SOUP_EXCAL
 		{
 			std::string res{};
 
-			label.append(seed);
+			uint8_t A[T::DIGEST_BYTES];
 
-			std::string A = label;
-			do
+			// Round 1: Initialise A
+			// Typically, every round does 'A = hmac(A, secret)', with the assumption that A is initialised to 'label + seed'.
+			// Here, we do this in one fell swoop.
 			{
-				A = hmac(A, secret);
+				HmacState st(secret);
+				st.append(label.data(), label.size());
+				st.append(seed.data(), seed.size());
+				st.finalise();
+				st.getDigest(A);
+			}
 
-				std::string round_key = A;
-				round_key.append(label);
+			// Round 1: Append bytes
+			{
+				HmacState st(secret);
+				st.append(A, sizeof(A));
+				st.append(label.data(), label.size());
+				st.append(seed.data(), seed.size());
+				st.finalise();
+				res.append(st.getDigest());
+			}
 
-				res.append(hmac(round_key, secret));
-			} while (res.size() < bytes);
+			// Round 2+
+			while (res.size() < bytes)
+			{
+				// Update A
+				{
+					HmacState st(secret);
+					st.append(A, sizeof(A));
+					st.finalise();
+					st.getDigest(A);
+				}
+
+				// Append bytes
+				{
+					HmacState st(secret);
+					st.append(A, sizeof(A));
+					st.append(label.data(), label.size());
+					st.append(seed.data(), seed.size());
+					st.finalise();
+					res.append(st.getDigest());
+				}
+			}
 
 			if (res.size() != bytes)
 			{

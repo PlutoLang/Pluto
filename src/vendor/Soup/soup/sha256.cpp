@@ -113,11 +113,6 @@ NAMESPACE_SOUP
 		return sha.getDigest();
 	}
 
-	std::string sha256::hash(const std::string& str) SOUP_EXCAL
-	{
-		return hash(str.data(), str.size());
-	}
-
 	std::string sha256::hash(Reader& r) SOUP_EXCAL
 	{
 		State sha;

@@ -14,7 +14,7 @@ NAMESPACE_SOUP
 		static constexpr auto BLOCK_BYTES = 128u;
 
 		[[nodiscard]] static std::string hash(const void* data, size_t len) SOUP_EXCAL;
-		[[nodiscard]] static std::string hash(const std::string& str) SOUP_EXCAL;
+		[[nodiscard]] static std::string hash(const std::string& str) SOUP_EXCAL { return hash(str.data(), str.size()); }
 
 		struct State
 		{

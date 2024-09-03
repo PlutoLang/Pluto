@@ -122,7 +122,23 @@ NAMESPACE_SOUP
 			val &= (val - 1);
 		}
 
-		[[nodiscard]] static unsigned int getMostSignificantSetBit(unsigned int mask) noexcept
+		[[nodiscard]] static unsigned int getNumLeadingZeros(uint32_t mask) noexcept
+		{
+			unsigned int res = 32;
+			if (mask != 0)
+			{
+#if defined(_MSC_VER) && !defined(__clang__)
+				unsigned long ret;
+				_BitScanReverse(&ret, mask);
+				res -= ret;
+#else
+				res = __builtin_clz(mask);
+#endif
+			}
+			return res;
+		}
+
+		[[nodiscard]] static unsigned int getMostSignificantSetBit(uint32_t mask) noexcept
 		{
 			SOUP_DEBUG_ASSERT(mask != 0); // UB!
 
