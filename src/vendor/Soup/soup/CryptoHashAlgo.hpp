@@ -4,6 +4,7 @@
 
 #include <cstring> // memset, memcpy
 #include <string>
+#include <cstdint>
 
 NAMESPACE_SOUP
 {
