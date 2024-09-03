@@ -18,3 +18,6 @@ Pluto.vcxproj.user
 # Linux Executables
 src/pluto
 src/plutoc
+
+# `nix build` result
+/result
