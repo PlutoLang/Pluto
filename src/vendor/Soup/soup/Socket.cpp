@@ -1570,6 +1570,11 @@ NAMESPACE_SOUP
 	{
 		if (hasConnection())
 		{
+			if (!custom_data.isStructInMap(SocketCloseReason))
+			{
+				custom_data.getStructFromMap(SocketCloseReason) = ObfusString("TLS protocol error").str();
+			}
+
 			{
 				std::string bin(1, '\2'); // fatal
 				bin.push_back((char)desc); static_assert(sizeof(TlsAlertDescription_t) == sizeof(char));
@@ -1585,12 +1590,12 @@ NAMESPACE_SOUP
 
 	std::string Socket::tls_alertToCloseReason(const std::string& data)
 	{
-		std::string msg = ObfusString("Remote closing connection with ").str();
+		std::string msg = ObfusString("Received ").str();
 		if (data.at(0) == 2)
 		{
 			msg.append(ObfusString("fatal ").str());
 		}
-		msg.append(ObfusString("alert: ").str());
+		msg.append(ObfusString("TLS alert: ").str());
 		msg.append(std::to_string((int)data.at(1)));
 		return msg;
 	}

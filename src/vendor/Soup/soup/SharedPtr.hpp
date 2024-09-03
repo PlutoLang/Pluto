@@ -18,10 +18,6 @@
 
 NAMESPACE_SOUP
 {
-	// Why not std::shared_ptr?
-	// - Stores a deleter despite being templated
-	// - Produces RTTI even with RTTI off
-	// - No release method
 	template <typename T>
 	class SharedPtr
 	{

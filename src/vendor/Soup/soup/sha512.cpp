@@ -41,11 +41,6 @@ NAMESPACE_SOUP
 		return sha.getDigest();
 	}
 
-	std::string sha512::hash(const std::string& str) SOUP_EXCAL
-	{
-		return hash(str.data(), str.size());
-	}
-
 	static const uint64_t k[80] = { 0x428a2f98d728ae22ULL, 0x7137449123ef65cdULL, 0xb5c0fbcfec4d3b2fULL, 0xe9b5dba58189dbbcULL, 0x3956c25bf348b538ULL,
 		  0x59f111f1b605d019ULL, 0x923f82a4af194f9bULL, 0xab1c5ed5da6d8118ULL, 0xd807aa98a3030242ULL, 0x12835b0145706fbeULL,
 		  0x243185be4ee4b28cULL, 0x550c7dc3d5ffb4e2ULL, 0x72be5d74f27b896fULL, 0x80deb1fe3b1696b1ULL, 0x9bdc06a725c71235ULL,

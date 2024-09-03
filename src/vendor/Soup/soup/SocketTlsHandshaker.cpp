@@ -121,21 +121,21 @@ NAMESPACE_SOUP
 		return getFinishVerifyData(ObfusString("server finished"));
 	}
 
-	std::string SocketTlsHandshaker::getFinishVerifyData(std::string label) SOUP_EXCAL
+	std::string SocketTlsHandshaker::getFinishVerifyData(const std::string& label) SOUP_EXCAL
 	{
-		return getPseudoRandomBytes(std::move(label), 12, getMasterSecret(), getLayerBytesHash());
+		return getPseudoRandomBytes(label, 12, getMasterSecret(), getLayerBytesHash());
 	}
 
-	std::string SocketTlsHandshaker::getPseudoRandomBytes(std::string label, const size_t bytes, const std::string& secret, const std::string& seed) const SOUP_EXCAL
+	std::string SocketTlsHandshaker::getPseudoRandomBytes(const std::string& label, const size_t bytes, const std::string& secret, const std::string& seed) const SOUP_EXCAL
 	{
 		switch (cipher_suite)
 		{
 		default:
-			return sha256::tls_prf(std::move(label), bytes, secret, seed);
+			return sha256::tls_prf(label, bytes, secret, seed);
 
 		case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
 		case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
-			return sha384::tls_prf(std::move(label), bytes, secret, seed);
+			return sha384::tls_prf(label, bytes, secret, seed);
 		}
 	}
 
