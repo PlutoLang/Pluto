@@ -127,6 +127,17 @@ static int http_request (lua_State *L) {
     if (lua_rawget(L, optionsidx) > LUA_TNIL) {
       lua_pushnil(L);
       while (lua_next(L, -2)) {
+        size_t valuelen;
+        const char *value = luaL_checklstring(L, -1, &valuelen);
+        if (strpbrk(value, "\n\r") != nullptr) {  /* header value contains forbidden characters? */
+          /* free memory */
+          decltype(hr.header_fields){}.swap(hr.header_fields);
+          hr.body.clear(); hr.body.shrink_to_fit();
+          hr.method.clear(); hr.method.shrink_to_fit();
+          hr.path.clear(); hr.path.shrink_to_fit();
+          /* raise error */
+          luaL_error(L, "header value can't contain CR or LF");
+        }
         hr.setHeader(pluto_checkstring(L, -2), pluto_checkstring(L, -1));
         lua_pop(L, 1);
       }
