@@ -164,7 +164,10 @@ NAMESPACE_SOUP
 	{
 		HttpRequest::recvResponse(*sock, [](Socket& s, Optional<HttpResponse>&& res, Capture&& cap) SOUP_EXCAL
 		{
-			cap.get<HttpRequestTask*>()->await_response_finish_reason = netStatusToString(NET_OK);
+			cap.get<HttpRequestTask*>()->await_response_finish_reason = res.has_value()
+				? std::string(netStatusToString(NET_OK))
+				: soup::ObfusString("Protocol Error Or Blocked By Security Solution").str() // could be better if HttpRequest::recvResponse provided a status, but whatever
+				;
 			cap.get<HttpRequestTask*>()->fulfil(std::move(res));
 			if (s.custom_data.isStructInMap(ReuseTag))
 			{
