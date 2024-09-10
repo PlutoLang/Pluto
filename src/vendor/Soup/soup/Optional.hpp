@@ -13,7 +13,7 @@ NAMESPACE_SOUP
 
 		using Base::Base;
 
-		[[nodiscard]] bool consume(T& outValue)
+		bool consume(T& outValue)
 		{
 			if (Base::has_value())
 			{
