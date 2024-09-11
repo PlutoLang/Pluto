@@ -25,6 +25,10 @@ function check_compiler()
 	}
 
 	$compiler = resolve_installed_program($argv[1]);
+	for($i = 2; $i != count($argv); ++$i)
+	{
+		$compiler .= " ".escapeshellarg($argv[$i]);
+	}
 	$compiler .= " -std=c++17 -O3 -fvisibility=hidden -fno-rtti";
 	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 	{
