@@ -1993,6 +1993,26 @@ do
     assert(range(10):max() == 10)
 end
 do
+    local mask = { 0xf0, 0x0f }
+    local data = { 0x11, 0x22, 0x33, 0x44 }
+    for i, v in data do
+        -- Old way: data[i] = data[i] ~ mask[((i - 1) % #mask) + 1]
+        data[i] = data[i] ~ mask:modget(i)
+    end
+    assert(data[1] == 0x11 ~ 0xf0)
+    assert(data[2] == 0x22 ~ 0x0f)
+    assert(data[3] == 0x33 ~ 0xf0)
+    assert(data[4] == 0x44 ~ 0x0f)
+end
+do
+    local test = { 1, 2, 3 }
+    test:modset(5, 5)
+    test:modset(6, 6)
+    assert(test[1] == 1)
+    assert(test[2] == 5)
+    assert(test[3] == 6)
+end
+do
     local cat = require"pluto:cat"
 
     local data = "List: With Value\n\tChild: With Value\n"
