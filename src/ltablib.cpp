@@ -782,6 +782,23 @@ static int tback (lua_State *L) {
 }
 
 
+static int modget (lua_State *L) {
+  const lua_Integer i = ((luaL_checkinteger(L, 2) - 1) % aux_getn(L, 1, TAB_R)) + 1;
+  lua_pushinteger(L, i);
+  lua_gettable(L, 1);
+  return 1;
+}
+
+
+static int modset (lua_State *L) {
+  const lua_Integer i = ((luaL_checkinteger(L, 2) - 1) % aux_getn(L, 1, TAB_W)) + 1;
+  lua_pushinteger(L, i);
+  lua_pushvalue(L, 3);
+  lua_settable(L, 1);
+  return 0;
+}
+
+
 static int tkeys (lua_State *L) {
   lua_newtable(L);
   lua_Integer i = 0;
@@ -808,6 +825,8 @@ static int tkeys (lua_State *L) {
 
 static const luaL_Reg tab_funcs[] = {
   {"keys", tkeys},
+  {"modget", modget},
+  {"modset", modset},
   {"back", tback},
   {"clear", tclear},
   {"checkall", checkall},
