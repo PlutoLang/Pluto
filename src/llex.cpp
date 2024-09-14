@@ -542,9 +542,6 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
   ls->appendLineBuff((char)del);
   next(ls);  /* skip delimiter */
   seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
-  if (ls->current == del) {  // Chained, implicit string literal concatenation.
-    read_string(ls, del, seminfo);
-  }
 }
 
 
