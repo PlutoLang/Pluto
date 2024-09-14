@@ -88,6 +88,10 @@ static int http_request (lua_State *L) {
     if (lua_type(L, 2) == LUA_TTABLE)
       optionsidx = 2;
   }
+  if (uri.find_first_of("\n\r") != std::string::npos) {  /* URL contains forbidden characters? */
+    uri.clear(); uri.shrink_to_fit();  /* free memory */
+    luaL_error(L, "URL can't contain CR or LF");  /* raise error */
+  }
 
 #ifdef PLUTO_DISABLE_HTTP_COMPLETELY
   luaL_error(L, "disallowed by content moderation policy");
