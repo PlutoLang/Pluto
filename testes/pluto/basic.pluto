@@ -3126,6 +3126,30 @@ do
     end
     assert(well_in_that("case") == "case")
 end
+do
+    local function tofs(t)
+        local f
+        f=|s|->do
+            t:insert(s)
+            return f
+        end
+        return f
+    end
+    do
+        local t = {}
+        tofs(t) "abc" "def"
+        assert(#t == 2)
+        assert(t[1] == "abc")
+        assert(t[2] == "def")
+    end
+    do
+        local t = {}
+        tofs(t) "abc""def"
+        assert(#t == 2)
+        assert(t[1] == "abc")
+        assert(t[2] == "def")
+    end
+end
 
 print "Testing universal functions."
 do
