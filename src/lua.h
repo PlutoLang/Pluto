@@ -15,8 +15,6 @@
 #include "luaconf.h"
 
 
-#define PLUTO_VERSION "Pluto 0.9.4"
-
 #define LUA_VERSION_MAJOR	"5"
 #define LUA_VERSION_MINOR	"4"
 #define LUA_VERSION_RELEASE	"7"
@@ -28,6 +26,11 @@
 #define LUA_RELEASE	LUA_VERSION "." LUA_VERSION_RELEASE
 #define LUA_COPYRIGHT	LUA_RELEASE "  Copyright (C) 1994-2024 Lua.org, PUC-Rio"
 #define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
+
+
+#define PLUTO_VERSION "Pluto 0.9.4"
+#define PLUTO_COPYRIGHT_NO_BASED PLUTO_VERSION ", Copyright (C) 2022-2024 PlutoLang.org, PlutoLang (https://github.com/PlutoLang)"
+#define PLUTO_COPYRIGHT PLUTO_COPYRIGHT_NO_BASED "\r\nBased on " LUA_COPYRIGHT
 
 
 /* mark for precompiled code ('<esc>Lua') */
