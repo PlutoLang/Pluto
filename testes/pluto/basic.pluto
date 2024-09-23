@@ -1953,6 +1953,60 @@ do
     assert(keys:contains("c"))
 end
 do
+    local test_table_1 = {1, 2, 2, 3, 1}
+    local counts_1 = test_table_1:countvalues()
+    assert(counts_1[1] == 2)
+    assert(counts_1[2] == 2)
+    assert(counts_1[3] == 1)
+
+    local test_table_2 = {1, 2, nil, 3, 1, nil}
+    local counts_2 = test_table_2:countvalues()
+    assert(counts_2[1] == 2)
+    assert(counts_2[2] == 1)
+    assert(counts_2[3] == 1)
+
+    local test_table_3 = {1, 2, 3, 4, 5}
+    local counts_3 = test_table_3:countvalues()
+    assert(counts_3[1] == 1)
+    assert(counts_3[2] == 1)
+    assert(counts_3[3] == 1)
+    assert(counts_3[4] == 1)
+    assert(counts_3[5] == 1)
+
+    local test_table_4 = {1, "hello", 1, "world", "hello"}
+    local counts_4 = test_table_4:countvalues()
+    assert(counts_4[1] == 2)
+    assert(counts_4["hello"] == 2)
+    assert(counts_4["world"] == 1)
+
+    local test_table_5 = {}
+    local counts_5 = test_table_5:countvalues()
+    assert(next(counts_5) == nil)
+
+    local test_table_6 = {1, {2}, 1, {2}, 3}
+    local counts_6 = test_table_6:countvalues()
+    for key, value in counts_6 do
+        if type(key) == "table" then
+            assert(value == 1)
+            continue
+        elseif key == 1 then
+            assert(value == 2)
+            continue
+        elseif key == 3 then
+            assert(value == 1)
+            continue
+        end
+        error()
+    end
+
+    local test_table_7 = { 1, 2, 3, 2, 3, 3, 4, test_table_6, nil, test_table_6 }:countvalues()
+    assert(test_table_7[1] == 1)
+    assert(test_table_7[2] == 2)
+    assert(test_table_7[3] == 3)
+    assert(test_table_7[4] == 1)
+    assert(test_table_7[test_table_6] == 2)
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
