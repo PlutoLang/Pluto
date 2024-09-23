@@ -842,10 +842,50 @@ static int tcountvalues (lua_State *L) {
 }
 
 
+static int tslice (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+
+  lua_Integer idx_start = luaL_checkinteger(L, 2);
+  lua_Integer idx_end = luaL_checkinteger(L, 3);
+  const lua_Integer l = luaL_len(L, 1);
+
+  if (idx_start < 0) {
+    idx_start = l + idx_start + 1;
+  }
+
+  if (idx_end < 0) {
+    idx_end = l + idx_end + 1;
+  }
+  else if (idx_end > l) {
+    idx_end = l;
+  }
+
+  lua_newtable(L);
+  lua_Integer idx_result = 1;
+  for (lua_Integer i = idx_start; i <= idx_end; ++i) {
+    lua_pushinteger(L, i);
+    lua_gettable(L, 1);
+    if (!lua_isnoneornil(L, -1)) {
+      lua_pushinteger(L, idx_result++);
+      lua_pushvalue(L, -2);
+      lua_settable(L, 4);
+    }
+    else {
+      lua_pop(L, 1);
+    }
+  }
+
+  lua_settop(L, 4);
+
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"slice", tslice},
   {"countvalues", tcountvalues},
   {"keys", tkeys},
   {"modget", modget},

@@ -2007,6 +2007,23 @@ do
     assert(test_table_7[test_table_6] == 2)
 end
 do
+    local t = {1, 2, 3, 4, 5}
+
+    assert(table.slice(t, 1, 3)[1] == 1)
+    assert(table.slice(t, 1, 3)[2] == 2)
+    assert(table.slice(t, 1, 3)[3] == 3)
+    assert(#table.slice(t, 1, 3) == 3)
+
+    assert(table.slice(t, -3, -1)[1] == 3)
+    assert(table.slice(t, -3, -1)[2] == 4)
+    assert(table.slice(t, -3, -1)[3] == 5)
+    assert(#table.slice(t, -3, -1) == 3)
+
+    assert(#table.slice(t, 6, 10) == 0)
+    assert(#table.slice(t, 2, 10) == 4)
+    assert(#table.slice(t, 0, 10) == #t)
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
