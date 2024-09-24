@@ -880,11 +880,54 @@ static int tslice (lua_State *L) {
   return 1;
 }
 
+static int tchunk (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+
+  const lua_Integer size = luaL_checkinteger(L, 2);
+
+  if (size <= 0) {
+    luaL_error(L, "argument 'size' to table.chunk must be greater than zero (got %d)", size);
+  }
+
+  lua_pop(L, 1);
+  
+  lua_Integer chunk_idx = 0;
+  lua_Integer subtable_len = 0;
+
+  lua_newtable(L);
+  lua_pushnil(L);
+  while (lua_next(L, 1)) {
+    if (!lua_isnoneornil(L, 4)) { /* stack: og, result, key, value */
+      /* push our table to the stack. either by creating a new one, or fetching the latest subtable */
+      if (subtable_len % size == 0) { /* if we've reached chunk size or should start creating a new chunk */
+        lua_newtable(L); /* create a new table */
+        lua_pushinteger(L, ++chunk_idx); /* create its index */
+        lua_pushvalue(L, -2); /* copy reference to table */
+        lua_settable(L, 2); /* result[chunk_idx] = subtable */
+        subtable_len = 0;
+      }
+      else { /* we should already have a subtable at result[chunk_idx] */
+        lua_pushinteger(L, chunk_idx);
+        lua_gettable(L, 2); /* push result[chunk_idx] */
+      }
+
+      lua_pushinteger(L, ++subtable_len); /* push key for use in chunk */
+      lua_pushvalue(L, 4); /* push value from lua_next */
+      lua_settable(L, 5); /* chunk[subtable_len] = value */
+    }
+
+    lua_settop(L, 3); /* reset stack: og, result, key */
+  }
+
+  return 1;
+}
+
 
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"chunk", tchunk},
   {"slice", tslice},
   {"countvalues", tcountvalues},
   {"keys", tkeys},
