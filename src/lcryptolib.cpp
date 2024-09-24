@@ -739,7 +739,7 @@ static int l_adler32 (lua_State *L) {
 }
 
 
-static int l_deflate (lua_State *L) {
+static int l_decompress (lua_State *L) {
   size_t size;
   const char *data = luaL_checklstring(L, 1, &size);
   soup::deflate::DecompressResult res;
@@ -794,7 +794,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"sign", l_sign},
   {"verify", l_verify},
   {"adler32", l_adler32},
-  {"deflate", l_deflate},
+  {"decompress", l_decompress},
   {NULL, NULL}
 };
 
