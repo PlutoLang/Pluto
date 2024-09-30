@@ -1084,8 +1084,8 @@
 ** {====================================================================
 ** Pluto Configuration: Performance
 **
-** We recommend not touching this section because the only options here are to disable Pluto features
-** and doing so will not affect performance as trivially as "less features = more performance."
+** We recommend not changing this section. The only options here disable Pluto features,
+** but disabling features will not necessarily improve performance simply because "fewer features = better performance."
 ** =====================================================================}
 */
 
