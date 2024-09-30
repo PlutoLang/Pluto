@@ -816,7 +816,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration
+** Pluto Configuration
 ** =====================================================================}
 */
 
@@ -838,7 +838,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration: Warnings
+** Pluto Configuration: Warnings
 ** =====================================================================}
 */
 
@@ -861,7 +861,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration: Compatibility
+** Pluto Configuration: Compatibility
 ** =====================================================================}
 */
 
@@ -888,7 +888,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration: Optional keywords
+** Pluto Configuration: Optional keywords
 ** =====================================================================}
 */
 
@@ -905,7 +905,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration: Infinite Loop Prevention (ILP)
+** Pluto Configuration: Infinite Loop Prevention (ILP)
 **
 ** This is only useful in game regions, where a long loop may block the main thread and crash the game.
 ** These places usually implement a yield (or wait) function, which can be detected and hooked to reset iterations.
@@ -943,7 +943,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration: Execution Time Limit (ETL)
+** Pluto Configuration: Execution Time Limit (ETL)
 **
 ** This is only useful in sandbox environments where stalling is absolutely unacceptable.
 ** =====================================================================}
@@ -970,7 +970,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration: Memory Limit
+** Pluto Configuration: Memory Limit
 **
 ** For sandbox environments. This changes the memory allocator in luaL_newstate.
 ** =====================================================================}
@@ -980,7 +980,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration: VM Dump
+** Pluto Configuration: VM Dump
 ** =====================================================================}
 */
 
@@ -1014,7 +1014,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration: Content Moderation
+** Pluto Configuration: Content Moderation
 ** =====================================================================}
 */
 
@@ -1082,7 +1082,7 @@
 
 /*
 ** {====================================================================
-** Pluto configuration: Performance
+** Pluto Configuration: Performance
 **
 ** We recommend not touching this section because the only options here are to disable Pluto features
 ** and doing so will not affect performance as trivially as "less features = more performance."
