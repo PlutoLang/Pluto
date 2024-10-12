@@ -1,6 +1,5 @@
 #include "IpAddr.hpp"
 
-#include "Endian.hpp"
 #include "IpGroups.hpp"
 #include "netConfig.hpp"
 #include "string.hpp"
@@ -49,11 +48,6 @@ NAMESPACE_SOUP
 	bool IpAddr::isLocalnet() const noexcept
 	{
 		return isLoopback() || isPrivate();
-	}
-
-	native_u32_t IpAddr::getV4NativeEndian() const noexcept
-	{
-		return Endianness::toNative(getV4());
 	}
 
 	std::string IpAddr::getArpaName() const

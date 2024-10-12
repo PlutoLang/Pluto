@@ -3,6 +3,7 @@
 #if !SOUP_WASM
 
 #include "DetachedScheduler.hpp"
+#include "ObfusString.hpp"
 #include "WeakRef.hpp"
 
 NAMESPACE_SOUP
@@ -46,6 +47,11 @@ NAMESPACE_SOUP
 				watched_task.reset();
 				setWorkDone();
 			}
+		}
+
+		std::string toString() const SOUP_EXCAL final
+		{
+			return ObfusString("dnsAsyncWatcherTask");
 		}
 	};
 

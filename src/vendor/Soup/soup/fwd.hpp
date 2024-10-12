@@ -189,6 +189,7 @@ NAMESPACE_SOUP
 	class Mixed;
 
 	// vis
+	struct BCanvas;
 	class Canvas;
 	struct FormattedText;
 	class QrCode;
