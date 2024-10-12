@@ -2,6 +2,7 @@
 #if !SOUP_WASM
 
 #include "log.hpp"
+#include "ObfusString.hpp"
 
 NAMESPACE_SOUP
 {
@@ -58,6 +59,11 @@ NAMESPACE_SOUP
 			cb(netConfig::get());
 			setWorkDone();
 		}
+
+		std::string toString() const SOUP_EXCAL final
+		{
+			return ObfusString("UpdateConfigTask").str();
+		}
 	};
 
 	void DetachedScheduler::updateConfig(void fp(netConfig&, Capture&&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
@@ -78,6 +84,11 @@ NAMESPACE_SOUP
 		{
 			Scheduler::get()->closeReusableSockets();
 			setWorkDone();
+		}
+
+		std::string toString() const SOUP_EXCAL final
+		{
+			return ObfusString("CloseReusableSocketsTask").str();
 		}
 	};
 

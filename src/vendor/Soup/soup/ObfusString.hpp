@@ -91,13 +91,13 @@ NAMESPACE_SOUP
 		}
 
 	public:
-		[[nodiscard]] std::string str() noexcept
+		[[nodiscard]] std::string str() SOUP_EXCAL
 		{
 			runtime_access();
 			return std::string(data, Len);
 		}
 
-		[[nodiscard]] operator std::string() noexcept
+		[[nodiscard]] operator std::string() SOUP_EXCAL
 		{
 			return str();
 		}

@@ -49,6 +49,8 @@ NAMESPACE_SOUP
 		[[nodiscard]] const JsonObject& asObj() const;
 		[[nodiscard]] const JsonString& asStr() const;
 
+		[[nodiscard]] double toFloat() const; // valid for int & float
+
 		// Type checks.
 		[[nodiscard]] bool isArr() const noexcept;
 		[[nodiscard]] bool isBool() const noexcept;
@@ -73,7 +75,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] const JsonString& reinterpretAsStr() const noexcept;
 
 	protected:
-		static void throwTypeError();
+		[[noreturn]] static void throwTypeError();
 	};
 
 	inline std::string JsonNode::encode() const SOUP_EXCAL

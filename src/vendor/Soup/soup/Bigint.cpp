@@ -198,14 +198,14 @@ NAMESPACE_SOUP
 	Bigint Bigint::randomProbablePrime(const size_t bits, const int miller_rabin_iterations) SOUP_EXCAL
 	{
 		Bigint i = random(bits);
-		for (; i.enableBitInbounds(0), !i.isProbablePrime(miller_rabin_iterations); i = random(bits));
+		for (; i.enableBit(0), !i.isProbablePrime(miller_rabin_iterations); i = random(bits));
 		return i;
 	}
 
 	Bigint Bigint::randomProbablePrime(RngInterface& rng, const size_t bits, const int miller_rabin_iterations) SOUP_EXCAL
 	{
 		Bigint i = random(rng, bits);
-		for (; i.enableBitInbounds(0), !i.isProbablePrime(miller_rabin_iterations); i = random(rng, bits));
+		for (; i.enableBit(0), !i.isProbablePrime(miller_rabin_iterations); i = random(rng, bits));
 		return i;
 	}
 

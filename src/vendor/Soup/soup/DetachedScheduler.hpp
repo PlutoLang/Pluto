@@ -19,7 +19,7 @@ NAMESPACE_SOUP
 		DetachedScheduler(netConfig&& conf = {}) noexcept;
 		~DetachedScheduler() SOUP_EXCAL;
 
-		void addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL final;
+		void addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL override;
 
 		[[nodiscard]] bool isActive() const noexcept { return thrd.isRunning(); }
 		void awaitCompletion() noexcept { return thrd.awaitCompletion(); }

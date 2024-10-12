@@ -316,6 +316,7 @@ NAMESPACE_SOUP
 		const auto t = (pm1 * qm1);
 		if (t < RsaPublicKey::E_PREF)
 		{
+			SOUP_ASSERT(p > 2_b && q > 2_b);
 			const auto bl = t.getBitLength();
 			do
 			{

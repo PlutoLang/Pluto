@@ -62,4 +62,17 @@ NAMESPACE_SOUP
 	{
 		SOUP_THROW(Exception("JsonNode has unexpected type"));
 	}
+
+	double JsonNode::toFloat() const
+	{
+		if (isFloat())
+		{
+			return static_cast<double>(asFloat());
+		}
+		if (isInt())
+		{
+			return static_cast<double>(asInt());
+		}
+		throwTypeError();
+	}
 }

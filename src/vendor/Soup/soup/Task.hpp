@@ -32,10 +32,7 @@ NAMESPACE_SOUP
 			return NEUTRAL;
 		}
 
-		[[nodiscard]] virtual std::string toString() const SOUP_EXCAL
-		{
-			return "Task";
-		}
+		[[nodiscard]] virtual std::string toString() const SOUP_EXCAL;
 	};
 
 	template <typename T>
