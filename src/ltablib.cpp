@@ -712,6 +712,7 @@ static int treduce (lua_State *L) {
 }
 
 
+template <bool findindex>
 static int tfind (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
@@ -728,7 +729,7 @@ static int tfind (lua_State *L) {
     lua_call(L, 1, 1);
     /* stack now: table, key, value, bool */
     if (lua_istrue(L, -1)) {
-      lua_pop(L, 1);
+      lua_pop(L, findindex ? 2 : 1);
       return 1;
     }
     lua_pop(L, 2);
@@ -774,13 +775,169 @@ static int tclear (lua_State *L) {
 }
 
 
+static int tback (lua_State *L) {
+  getn(L);
+  lua_gettable(L, 1);
+  return 1;
+}
+
+
+static int modget (lua_State *L) {
+  const lua_Integer i = ((luaL_checkinteger(L, 2) - 1) % aux_getn(L, 1, TAB_R)) + 1;
+  lua_pushinteger(L, i);
+  lua_gettable(L, 1);
+  return 1;
+}
+
+
+static int modset (lua_State *L) {
+  const lua_Integer i = ((luaL_checkinteger(L, 2) - 1) % aux_getn(L, 1, TAB_W)) + 1;
+  lua_pushinteger(L, i);
+  lua_pushvalue(L, 3);
+  lua_settable(L, 1);
+  return 0;
+}
+
+
+static int tkeys (lua_State *L) {
+  lua_newtable(L);
+  lua_Integer i = 0;
+  lua_pushnil(L);
+  /* stack now: tKeys, key */
+  while (lua_next(L, 1)) {
+    /* stack now: tKeys, key, value */
+    lua_pop(L, 1);
+    /* stack now: tKeys, key */
+    lua_pushinteger(L, ++i);
+    /* stack now: tKeys, key, index */
+    lua_pushvalue(L, -2);
+    /* stack now: tKeys, key, index, key */
+    lua_settable(L, -4);
+    /* stack now: tKeys, key */
+  }
+  /* stack now: tKeys */
+  return 1;
+}
+
+
+static int tcountvalues (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+
+  lua_newtable(L);
+  lua_pushnil(L);
+  while (lua_next(L, 1)) { /* og, result, key */
+    if (!lua_isnoneornil(L, 4)) { /* if the value isn't nil */
+      lua_pushvalue(L, 4); /* push the key, prepare for result[value] */
+      lua_gettable(L, 2); /* push result[value] */
+      const lua_Integer i = luaL_optinteger(L, -1, 0) + 1; /* start or update count */
+      lua_pushvalue(L, 4); /* push the key again */
+      lua_pushinteger(L, i); /* push updated count */
+      lua_settable(L, 2); /* update result */
+    }
+
+    lua_settop(L, 3); /* reset stack to og, result, key */
+  }
+
+  return 1;
+}
+
+
+static int tslice (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+
+  lua_Integer idx_start = luaL_checkinteger(L, 2);
+  lua_Integer idx_end = luaL_checkinteger(L, 3);
+  const lua_Integer l = luaL_len(L, 1);
+
+  if (idx_start < 0) {
+    idx_start = l + idx_start + 1;
+  }
+
+  if (idx_end < 0) {
+    idx_end = l + idx_end + 1;
+  }
+  else if (idx_end > l) {
+    idx_end = l;
+  }
+
+  lua_newtable(L);
+  lua_Integer idx_result = 1;
+  for (lua_Integer i = idx_start; i <= idx_end; ++i) {
+    lua_pushinteger(L, i);
+    lua_gettable(L, 1);
+    if (!lua_isnoneornil(L, -1)) {
+      lua_pushinteger(L, idx_result++);
+      lua_pushvalue(L, -2);
+      lua_settable(L, 4);
+    }
+    else {
+      lua_pop(L, 1);
+    }
+  }
+
+  lua_settop(L, 4);
+
+  return 1;
+}
+
+static int tchunk (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+
+  const lua_Integer size = luaL_checkinteger(L, 2);
+
+  if (size <= 0) {
+    luaL_error(L, "argument 'size' to table.chunk must be greater than zero (got %d)", size);
+  }
+
+  lua_pop(L, 1);
+  
+  lua_Integer chunk_idx = 0;
+  lua_Integer subtable_len = 0;
+
+  lua_newtable(L);
+  lua_pushnil(L);
+  while (lua_next(L, 1)) {
+    if (!lua_isnoneornil(L, 4)) { /* stack: og, result, key, value */
+      /* push our table to the stack. either by creating a new one, or fetching the latest subtable */
+      if (subtable_len % size == 0) { /* if we've reached chunk size or should start creating a new chunk */
+        lua_newtable(L); /* create a new table */
+        lua_pushinteger(L, ++chunk_idx); /* create its index */
+        lua_pushvalue(L, -2); /* copy reference to table */
+        lua_settable(L, 2); /* result[chunk_idx] = subtable */
+        subtable_len = 0;
+      }
+      else { /* we should already have a subtable at result[chunk_idx] */
+        lua_pushinteger(L, chunk_idx);
+        lua_gettable(L, 2); /* push result[chunk_idx] */
+      }
+
+      lua_pushinteger(L, ++subtable_len); /* push key for use in chunk */
+      lua_pushvalue(L, 4); /* push value from lua_next */
+      lua_settable(L, 5); /* chunk[subtable_len] = value */
+    }
+
+    lua_settop(L, 3); /* reset stack: og, result, key */
+  }
+
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"chunk", tchunk},
+  {"slice", tslice},
+  {"countvalues", tcountvalues},
+  {"keys", tkeys},
+  {"modget", modget},
+  {"modset", modset},
+  {"back", tback},
   {"clear", tclear},
   {"checkall", checkall},
-  {"find", tfind},
+  {"find", tfind<false>},
+  {"findindex", tfind<true>},
   {"reduce", treduce},
   {"size", tsize},
   {"reorder", treorder<false>},

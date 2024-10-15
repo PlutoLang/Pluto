@@ -1048,7 +1048,7 @@
 // Disables os.execute & io.popen.
 //#define PLUTO_NO_OS_EXECUTE
 
-// Eliminate any loading of any binaries. This removes package.loadlib and prevents 'require' from loading any C modules or shared libraries.
+// Eliminate any loading of any binaries. This removes package.loadlib & ffi.open and prevents 'require' from loading any C modules or shared libraries.
 //#define PLUTO_NO_BINARIES
 
 #ifdef PLUTO_NO_BINARIES
@@ -1072,13 +1072,18 @@
 
 // If defined, the provided function will be called as bool(lua_State* L, const char* path)
 // for any attempt to read a file's contents or metadata. The path will be UTF-8 encoded.
-// If the function hook returns false, a Lua error is raised.
+// If it returns false, a Lua error is raised.
 //#define PLUTO_READ_FILE_HOOK ContmodOnReadFile
 
 // If defined, the provided function will be called as bool(lua_State* L, const char* path)
 // for any attempt to write a file's contents or metadata. The path will be UTF-8 encoded.
-// If the function hook returns false, a Lua error is raised.
+// If it returns false, a Lua error is raised.
 //#define PLUTO_WRITE_FILE_HOOK ContmodOnWriteFile
+
+// If defined, the provided function will be called as bool(lua_State* L, void* addr)
+// for any attempt to call a foreign function.
+// If it returns false, a Lua error is raised.
+//#define PLUTO_FFI_CALL_HOOK ContmodOnFfiCall
 
 /*
 ** {====================================================================

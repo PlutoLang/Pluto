@@ -3,13 +3,14 @@
 #include <string>
 
 #include "llex.h"
+#include "vendor/Soup/soup/string.hpp"
 
 namespace Pluto {
 	class ErrorMessage {
 	private:
 		LexState* ls;
 		size_t src_len = 0; // The size of the source line itself.
-		size_t line_len = 0; // The buffer size needed to align a bar (|).
+		size_t line_len = 0; // The buffer size needed to align a bar (|) or note (+).
 
 	public:
 		std::string content{};
@@ -71,12 +72,32 @@ namespace Pluto {
 			return *this;
 		}
 
-		ErrorMessage& addNote(const char* msg) {
+		ErrorMessage& addNote(std::string&& msg) {
 #ifndef PLUTO_SHORT_ERRORS
 			this->content.push_back('\n');
 			this->content.append(this->line_len, ' ');
 			this->content.append(HCYN "+ note: " RESET);
-			this->content.append(msg);
+
+			if (msg.find("\n") != std::string::npos) { // Multi-line note?
+				std::vector<std::string> lines = soup::string::explode(msg, '\n');
+				
+				if (lines.empty()) {
+					this->content.append("There should be a note here, but something went wrong. Please report this at: https://github.com/PlutoLang/Pluto/issues");
+				}
+				else {
+					this->content.append(lines[0]);
+
+					for (auto i = lines.begin() + 1; i != lines.end(); ++i) {
+						this->content.push_back('\n');
+						this->content.append(this->line_len, ' ');
+						this->content.append(sizeof("+ note: ") - 1, ' ');
+						this->content.append(*i);
+					}
+				}
+			}
+			else {
+				this->content.append(msg);
+			}
 #endif
 			return *this;
 		}

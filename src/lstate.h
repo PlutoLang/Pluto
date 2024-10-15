@@ -304,15 +304,32 @@ typedef struct global_State {
   void *ud_warn;         /* auxiliary data to 'warnf' */
 #ifndef PLUTO_LUA_LINKABLE
   void* user_data;  /* a pointer to data you, the user, would like to specify */
-  bool compatible_switch : 1;
-  bool compatible_continue : 1;
-  bool compatible_enum : 1;
-  bool compatible_new : 1;
-  bool compatible_class : 1;
-  bool compatible_parent : 1;
-  bool compatible_export : 1;
-  bool compatible_try : 1;
-  bool compatible_catch : 1;
+
+  /*
+  ** Each non-compatible keyword has 2 bools here: "have_preference" and "preference".
+  ** "have_preference" declares that you would like to overwrite the default enable/disable state of a given keyword,
+  ** and "preference" declares if you would like it to be enabled or disabled.
+  ** For example: If have_preference_switch is true, and preference_switch is false, the 'switch' keyword will be disabled.
+  */
+  bool have_preference_switch : 1;
+  bool preference_switch : 1;
+  bool have_preference_continue : 1;
+  bool preference_continue : 1;
+  bool have_preference_enum : 1;
+  bool preference_enum : 1;
+  bool have_preference_new : 1;
+  bool preference_new : 1;
+  bool have_preference_class : 1;
+  bool preference_class : 1;
+  bool have_preference_parent : 1;
+  bool preference_parent : 1;
+  bool have_preference_export : 1;
+  bool preference_export : 1;
+  bool have_preference_try : 1;
+  bool preference_try : 1;
+  bool have_preference_catch : 1;
+  bool preference_catch : 1;
+
   void* scheduler;  /* internal use only; do not use this in your own code. */
 #endif
 #ifdef PLUTO_ETL_ENABLE
@@ -323,15 +340,24 @@ typedef struct global_State {
 #endif
 
   void setCompatibilityMode(bool b) noexcept {
-    compatible_switch = b;
-    compatible_continue = b;
-    compatible_enum = b;
-    compatible_new = b;
-    compatible_class = b;
-    compatible_parent = b;
-    compatible_export = b;
-    compatible_try = b;
-    compatible_catch = b;
+    have_preference_switch = true;
+    preference_switch = !b;
+    have_preference_continue = true;
+    preference_continue = !b;
+    have_preference_enum = true;
+    preference_enum = !b;
+    have_preference_new = true;
+    preference_new = !b;
+    have_preference_class = true;
+    preference_class = !b;
+    have_preference_parent = true;
+    preference_parent = !b;
+    have_preference_export = true;
+    preference_export = !b;
+    have_preference_try = true;
+    preference_try = !b;
+    have_preference_catch = true;
+    preference_catch = !b;
   }
 } global_State;
 

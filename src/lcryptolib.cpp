@@ -16,6 +16,7 @@
 #include "vendor/Soup/soup/adler32.hpp"
 #include "vendor/Soup/soup/aes.hpp"
 #include "vendor/Soup/soup/crc32.hpp"
+#include "vendor/Soup/soup/deflate.hpp"
 #include "vendor/Soup/soup/HardwareRng.hpp"
 #include "vendor/Soup/soup/rsa.hpp"
 #include "vendor/Soup/soup/sha1.hpp"
@@ -369,6 +370,39 @@ static int generatekeypair (lua_State *L) {
 }
 
 
+static int exportkey (lua_State *L) {
+  const char *format = luaL_checkstring(L, 2);
+  if (strcmp(format, "pem") == 0) {
+    luaL_checktype(L, 1, LUA_TTABLE);
+    soup::Bigint *p = lua_getfield(L, 1, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
+    soup::Bigint *q = lua_getfield(L, 1, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
+    if (p && q) {
+      pluto_pushstring(L, soup::RsaPrivateKey::fromPrimes(*p, *q).toPem());
+      return 1;
+    }
+    else luaL_error(L, "Invalid private key");
+  }
+  else luaL_error(L, "Unknown format");
+}
+
+
+static int importkey (lua_State *L) {
+  const char *format = luaL_checkstring(L, 2);
+  if (strcmp(format, "pem") == 0) {
+    auto priv = soup::RsaPrivateKey::fromPem(pluto_checkstring(L, 1));
+    lua_newtable(L);
+    lua_pushliteral(L, "p");
+    pushbigint(L, std::move(priv.p));
+    lua_settable(L, -3);
+    lua_pushliteral(L, "q");
+    pushbigint(L, std::move(priv.q));
+    lua_settable(L, -3);
+    return 1;
+  }
+  else luaL_error(L, "Unknown format");
+}
+
+
 static int l_encrypt (lua_State *L) {
   size_t mode_len;
   const char *mode = luaL_checklstring(L, 2, &mode_len);
@@ -699,9 +733,32 @@ static int l_verify (lua_State *L) {
 
 static int l_adler32 (lua_State *L) {
   size_t size;
-  const char* data = luaL_checklstring(L, 1, &size);
+  const char *data = luaL_checklstring(L, 1, &size);
   lua_pushinteger(L, soup::adler32::hash(data, size));
   return 1;
+}
+
+
+static int l_decompress (lua_State *L) {
+  size_t size;
+  const char *data = luaL_checklstring(L, 1, &size);
+  soup::deflate::DecompressResult res;
+  if (lua_gettop(L) >= 2)
+    res = soup::deflate::decompress(data, size, luaL_checkinteger(L, 2));
+  else
+    res = soup::deflate::decompress(data, size);
+  pluto_pushstring(L, res.decompressed);
+  lua_newtable(L);
+  lua_pushliteral(L, "compressed_size");
+  lua_pushinteger(L, res.compressed_size);
+  lua_settable(L, -3);
+  lua_pushliteral(L, "checksum_present");
+  lua_pushboolean(L, res.checksum_present);
+  lua_settable(L, -3);
+  lua_pushliteral(L, "checksum_mismatch");
+  lua_pushboolean(L, res.checksum_mismatch);
+  lua_settable(L, -3);
+  return 2;
 }
 
 
@@ -730,11 +787,14 @@ static const luaL_Reg funcs_crypto[] = {
   {"fnv1a", fnv1a},
   {"fnv1", fnv1},
   {"generatekeypair", generatekeypair},
+  {"exportkey", exportkey},
+  {"importkey", importkey},
   {"encrypt", l_encrypt},
   {"decrypt", l_decrypt},
   {"sign", l_sign},
   {"verify", l_verify},
   {"adler32", l_adler32},
+  {"decompress", l_decompress},
   {NULL, NULL}
 };
 
