@@ -7,12 +7,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Pluto", "Pluto.vcxproj", "{
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		dll (c abi)|ARM64 = dll (c abi)|ARM64
-		dll (c abi)|x64 = dll (c abi)|x64
-		dll (c abi)|x86 = dll (c abi)|x86
-		dll (c++ abi)|ARM64 = dll (c++ abi)|ARM64
-		dll (c++ abi)|x64 = dll (c++ abi)|x64
-		dll (c++ abi)|x86 = dll (c++ abi)|x86
+		dll|ARM64 = dll|ARM64
+		dll|x64 = dll|x64
+		dll|x86 = dll|x86
 		pluto|ARM64 = pluto|ARM64
 		pluto|x64 = pluto|x64
 		pluto|x86 = pluto|x86
@@ -24,18 +21,12 @@ Global
 		static lib|x86 = static lib|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c abi)|ARM64.ActiveCfg = dll (c abi)|ARM64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c abi)|ARM64.Build.0 = dll (c abi)|ARM64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c abi)|x64.ActiveCfg = dll (c abi)|x64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c abi)|x64.Build.0 = dll (c abi)|x64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c abi)|x86.ActiveCfg = dll (c abi)|Win32
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c abi)|x86.Build.0 = dll (c abi)|Win32
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c++ abi)|ARM64.ActiveCfg = dll (c++ abi)|ARM64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c++ abi)|ARM64.Build.0 = dll (c++ abi)|ARM64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c++ abi)|x64.ActiveCfg = dll (c++ abi)|x64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c++ abi)|x64.Build.0 = dll (c++ abi)|x64
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c++ abi)|x86.ActiveCfg = dll (c++ abi)|Win32
-		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll (c++ abi)|x86.Build.0 = dll (c++ abi)|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll|ARM64.ActiveCfg = dll|ARM64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll|ARM64.Build.0 = dll|ARM64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll|x64.ActiveCfg = dll|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll|x64.Build.0 = dll|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll|x86.ActiveCfg = dll|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.dll|x86.Build.0 = dll|Win32
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.pluto|ARM64.ActiveCfg = pluto|ARM64
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.pluto|ARM64.Build.0 = pluto|ARM64
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.pluto|x64.ActiveCfg = pluto|x64
