@@ -28,7 +28,9 @@ foreach(scandir(__DIR__."/soup") as $file)
 }
 if(is_dir(__DIR__."/Intrin"))
 {
-	if (php_uname("m") == "aarch64")
+	if (php_uname("m") == "aarch64"
+		|| php_uname("m") == "arm64" // For people who think different
+		)
 	{
 		$clang .= " -march=armv8+crypto+crc";
 	}
