@@ -8,6 +8,10 @@ if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 {
 	$cmd .= ".exe";
 }
+else if (PHP_OS_FAMILY != "Darwin")
+{
+	$cmd .= " -Wl,--export-dynamic";
+}
 for_each_obj(function($file)
 {
 	if($file != "luac")
