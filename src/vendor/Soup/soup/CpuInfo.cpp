@@ -12,7 +12,7 @@
 #elif SOUP_ARM
 	#if SOUP_WINDOWS
 		#include <windows.h>
-	#else
+	#elif !SOUP_MACOS
 		#include <sys/auxv.h>
 	#endif
 #endif
@@ -83,6 +83,12 @@ NAMESPACE_SOUP
 		armv8_sha1 = false;
 		armv8_sha2 = false;
 		armv8_crc32 = false;
+	#elif SOUP_MACOS
+		// Assume we are running on an M series chip, because we don't have getauxval.
+		armv8_aes = true;
+		armv8_sha1 = true;
+		armv8_sha2 = true;
+		armv8_crc32 = true;
 	#else
 		// These HWCAP_* are only defined on aarch64.
 		armv8_aes = getauxval(AT_HWCAP) & HWCAP_AES;
