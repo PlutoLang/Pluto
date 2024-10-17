@@ -72,7 +72,7 @@ $(LUA_SO): $(BASE_O) $(LUA_A)
 	$(CXX) -shared -Wl,-soname,$(LUA_SO) -o $@ $? ${LIBS}
 
 $(LUA_T): $(LUA_O) $(LUA_A)
-	$(CXX) -o $@ $(LDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
+	$(CXX) -o $@ $(LDFLAGS) -Wl,--export-dynamic $(LUA_O) $(LUA_A) $(LIBS)
 
 $(LUAC_T): $(LUAC_O) $(LUA_A)
 	$(CXX) -o $@ $(LDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS)
