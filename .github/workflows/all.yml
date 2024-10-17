@@ -88,7 +88,7 @@ jobs:
       - name: Ensure LLVM is up-to-date
         run: choco upgrade llvm
       - uses: actions/checkout@v4
-      - run: php scripts/make_dll_c.php clang
+      - run: php scripts/make_dll.php clang
       - name: Ensure files exist
         uses: andstor/file-existence-action@v3
         with:
