@@ -269,9 +269,10 @@ static int lua(lua_State *L)
 
 static int l_sha1(lua_State *L)
 {
-  const auto text = pluto_checkstring(L, 1);
+  size_t l;
+  const char* text = luaL_checklstring(L, 1, &l);
   const bool binary = lua_istrue(L, 2);
-  auto digest = soup::sha1::hash(text);
+  auto digest = soup::sha1::hash(text, l);
   if (!binary) {
     digest = soup::string::bin2hexLower(digest);
   }
