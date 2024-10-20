@@ -801,6 +801,7 @@
     <ClInclude Include="src\vendor\Soup\soup\macros.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\math.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memory.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\MemoryRefReader.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\MimeMessage.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\MimeType.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Mixed.hpp" />
@@ -892,7 +893,6 @@
     <ClInclude Include="src\vendor\Soup\soup\stringifyable.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\StringLiteral.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\StringReader.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\StringRefReader.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\StringRefWriter.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\StringWriter.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\StructMap.hpp" />

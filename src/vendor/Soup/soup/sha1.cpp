@@ -12,7 +12,7 @@
 #include "CpuInfo.hpp"
 #include "Endian.hpp"
 #endif
-#include "StringRefReader.hpp"
+#include "MemoryRefReader.hpp"
 
 NAMESPACE_SOUP
 {

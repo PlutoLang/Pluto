@@ -406,7 +406,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] int getSchedulingDisposition() const noexcept final
 		{
-			return HIGH_FRQUENCY;
+			return HIGH_FREQUENCY;
 		}
 	};
 }
