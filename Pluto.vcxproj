@@ -645,6 +645,7 @@
     <ClCompile Include="src\vendor\Soup\soup\RegexGroup.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\rflParser.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Rgb.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\ripemd160.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\rsa.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Scheduler.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SelfDeletingThread.cpp" />
@@ -863,6 +864,7 @@
     <ClInclude Include="src\vendor\Soup\soup\rflType.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rflVar.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Rgb.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\ripemd160.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\RngInterface.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rsa.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Scheduler.hpp" />

@@ -18,6 +18,7 @@
 #include "vendor/Soup/soup/crc32.hpp"
 #include "vendor/Soup/soup/deflate.hpp"
 #include "vendor/Soup/soup/HardwareRng.hpp"
+#include "vendor/Soup/soup/ripemd160.hpp"
 #include "vendor/Soup/soup/rsa.hpp"
 #include "vendor/Soup/soup/sha1.hpp"
 #include "vendor/Soup/soup/sha256.hpp"
@@ -763,6 +764,19 @@ static int l_decompress (lua_State *L) {
 }
 
 
+static int l_ripemd160 (lua_State *L) {
+  size_t size;
+  const char *data = luaL_checklstring(L, 1, &size);
+  const bool binary = lua_istrue(L, 2);
+  auto digest = soup::ripemd160(data, size);
+  if (!binary) {
+    digest = soup::string::bin2hexLower(digest);
+  }
+  pluto_pushstring(L, digest);
+  return 1;
+}
+
+
 static const luaL_Reg funcs_crypto[] = {
   {"hexdigest", hexdigest},  /* deprecated since 0.8.0 */
   {"random", random},
@@ -796,6 +810,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"verify", l_verify},
   {"adler32", l_adler32},
   {"decompress", l_decompress},
+  {"ripemd160", l_ripemd160},
   {NULL, NULL}
 };
 
