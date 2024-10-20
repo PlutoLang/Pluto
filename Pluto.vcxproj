@@ -516,6 +516,7 @@
     <ClCompile Include="src\lbase64.cpp" />
     <ClCompile Include="src\lbaselib.cpp" />
     <ClCompile Include="src\lbigint.cpp" />
+    <ClCompile Include="src\lcanvas.cpp" />
     <ClCompile Include="src\lcatlib.cpp" />
     <ClCompile Include="src\lcode.cpp" />
     <ClCompile Include="src\lcorolib.cpp" />
@@ -593,6 +594,7 @@
     <ClCompile Include="src\vendor\Soup\soup\base32.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base64.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Bigint.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\Canvas.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Capture.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\cat.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\CpuInfo.cpp" />
@@ -639,7 +641,9 @@
     <ClCompile Include="src\vendor\Soup\soup\parse_tree.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\pem.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Promise.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\QrCode.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\rand.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\RasterFont.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Reader.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Regex.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\RegexGroup.cpp" />
@@ -663,6 +667,7 @@
     <ClCompile Include="src\vendor\Soup\soup\Task.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Thread.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\time.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\TinyPngOut.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\TrustStore.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\unicode.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Uri.cpp" />
@@ -720,6 +725,7 @@
     <ClInclude Include="src\vendor\Soup\soup\base.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\base32.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\base64.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\BCanvas.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\BigBitset.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Bigint.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\bitmask.hpp" />
@@ -738,6 +744,7 @@
     <ClInclude Include="src\vendor\Soup\soup\CidrSubnet4.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CidrSubnet6.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CidrSupernet.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\console.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ConstString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CpuInfo.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\crc32.hpp" />
@@ -825,6 +832,7 @@
     <ClInclude Include="src\vendor\Soup\soup\PoppedNode.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\PrimitiveRaii.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Promise.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\QrCode.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rand.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Reader.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Regex.hpp" />
@@ -899,6 +907,7 @@
     <ClInclude Include="src\vendor\Soup\soup\Task.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Thread.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\time.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\TinyPngOut.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsAlertDescription.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsCertificate.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsCipherSuite.hpp" />
