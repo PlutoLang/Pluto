@@ -5,7 +5,7 @@
 
 #include "vendor/Soup/soup/cat.hpp"
 #include "vendor/Soup/soup/string.hpp"
-#include "vendor/Soup/soup/StringRefReader.hpp"
+#include "vendor/Soup/soup/MemoryRefReader.hpp"
 
 static void cat_encode_aux (lua_State *L, std::string& data, const std::string& prefix);
 
@@ -183,7 +183,7 @@ static int cat_decode (lua_State *L) {
   }
   size_t len;
   const char *data = luaL_checklstring(L, 1, &len);
-  soup::StringRefReader sr(data, len);
+  soup::MemoryRefReader sr(data, len);
   if (auto root = soup::cat::parse(sr)) {
     lua_newtable(L);
     if (flat)

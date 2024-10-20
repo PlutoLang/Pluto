@@ -85,7 +85,7 @@ NAMESPACE_SOUP
 		{
 #if REGEX_DEBUG_MATCH
 			std::cout << m.c->toString();
-			if (m.c->group)
+			if (m.c->group && !m.c->group->isNonCapturing())
 			{
 				std::cout << " (g " << m.c->group->index << ")";
 			}

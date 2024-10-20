@@ -7,7 +7,7 @@
 
 NAMESPACE_SOUP
 {
-	// Raised if args.size() > 20
+	// Raised if nargs > ffi::MAX_ARGS
 	struct BadCall : public Exception
 	{
 		BadCall()

@@ -57,6 +57,23 @@ NAMESPACE_SOUP
 			reset();
 		}
 
+		void operator=(const Buffer& b) SOUP_EXCAL
+		{
+			clear();
+			append(b);
+		}
+
+		void operator=(Buffer&& b) noexcept
+		{
+			reset();
+			this->m_data = b.m_data;
+			this->m_size = b.m_size;
+			this->m_capacity = b.m_capacity;
+			b.m_data = nullptr;
+			b.m_size = 0;
+			b.m_capacity = 0;
+		}
+
 		[[nodiscard]] uint8_t* data() noexcept
 		{
 			return m_data;

@@ -9,9 +9,9 @@
 
 #include "BufferWriter.hpp"
 #include "IstreamReader.hpp"
+#include "MemoryRefReader.hpp"
 #include "OstreamWriter.hpp"
 #include "StringReader.hpp"
-#include "StringRefReader.hpp"
 #include "StringWriter.hpp"
 
 NAMESPACE_SOUP
@@ -42,7 +42,7 @@ NAMESPACE_SOUP
 
 		bool fromBinary(const std::string& bin, Endian endian = ENDIAN_BIG) noexcept
 		{
-			StringRefReader r(bin, endian);
+			MemoryRefReader r(bin, endian);
 			return read(r);
 		}
 
@@ -54,7 +54,7 @@ NAMESPACE_SOUP
 
 		bool fromBinaryLE(const std::string& bin) noexcept
 		{
-			StringRefReader r(bin, ENDIAN_LITTLE);
+			MemoryRefReader r(bin, ENDIAN_LITTLE);
 			return read(r);
 		}
 

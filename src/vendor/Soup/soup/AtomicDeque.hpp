@@ -77,7 +77,8 @@ NAMESPACE_SOUP
 			} while (!head.compare_exchange_weak(next, node));
 		}
 
-		void emplace_back(Data&& data) SOUP_EXCAL
+		// This is not safe to be concurrently called with `pop_front`
+		[[deprecated]] void emplace_back(Data&& data) SOUP_EXCAL
 		{
 			Node* node = new Node(std::move(data));
 			while (true)
