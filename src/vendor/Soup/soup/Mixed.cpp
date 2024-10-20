@@ -36,7 +36,7 @@ NAMESPACE_SOUP
 			break;
 
 		case CANVAS:
-			val = reinterpret_cast<uint64_t>(new Canvas(*reinterpret_cast<Canvas*>(val)));
+			val = reinterpret_cast<uint64_t>(new Canvas(*reinterpret_cast<Canvas*>(b.val)));
 			break;
 		}
 	}

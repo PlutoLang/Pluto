@@ -55,6 +55,7 @@ NAMESPACE_SOUP
 		void ensureHeightIsEven();
 
 		void resizeNearestNeighbour(unsigned int desired_width, unsigned int desired_height); // Resizes the canvas and its contents, works for all changes.
+		void resizeAveraged(unsigned int desired_width, unsigned int desired_height); // Resizes the canvas and its contents, works for all changes.
 
 		[[nodiscard]] Rgb getAverageOfArea(unsigned int x, unsigned int y, unsigned int width, unsigned int height) const;
 
@@ -73,6 +74,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::string toPng() const;
 		void toPng(Writer& w) const;
 		[[nodiscard]] std::string toPpm() const; // Bit of a niche format, but dead simple to write. You can load images of this type with GIMP.
+		[[nodiscard]] std::string toBmp() const;
 		bool toBmp(Writer& w) const;
 	};
 }

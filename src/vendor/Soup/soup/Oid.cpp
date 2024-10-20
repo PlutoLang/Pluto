@@ -3,7 +3,7 @@
 #include <cstring> // memcmp
 #include <istream>
 
-#include "StringRefReader.hpp"
+#include "MemoryRefReader.hpp"
 #include "StringRefWriter.hpp"
 
 NAMESPACE_SOUP
@@ -25,7 +25,7 @@ NAMESPACE_SOUP
 
 	Oid Oid::fromBinary(const std::string& str)
 	{
-		StringRefReader s{ str };
+		MemoryRefReader s{ str };
 		return fromBinary(s);
 	}
 

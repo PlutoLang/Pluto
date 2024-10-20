@@ -1,6 +1,6 @@
 #include "dnsName.hpp"
 
-#include "StringRefReader.hpp"
+#include "MemoryRefReader.hpp"
 
 NAMESPACE_SOUP
 {
@@ -11,7 +11,7 @@ NAMESPACE_SOUP
 			&& max_recursions != 0
 			)
 		{
-			StringRefReader sr(data, false);
+			MemoryRefReader sr(data, false);
 			sr.offset = ptr;
 
 			dnsName cont;

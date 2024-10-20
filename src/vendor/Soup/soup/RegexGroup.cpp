@@ -887,7 +887,17 @@ NAMESPACE_SOUP
 			// Set up rollback transitions for the first constraint in each alternative to jump to next alternative
 			for (size_t i = 0; i + 1 != alternatives.size(); ++i)
 			{
-				alternatives.at(i).constraints.at(0)->rollback_transition = alternatives.at(i + 1).constraints.at(0)->getEntrypoint();
+				if (alternatives.at(i).constraints.at(0)->rollback_transition)
+				{
+					auto dummy = soup::make_unique<RegexDummyConstraint>();
+					dummy->success_transition = alternatives.at(i).constraints.at(0).get();
+					dummy->rollback_transition = alternatives.at(i + 1).constraints.at(0)->getEntrypoint();
+					alternatives.at(i).constraints.emplace(alternatives.at(i).constraints.begin(), std::move(dummy));
+				}
+				else
+				{
+					alternatives.at(i).constraints.at(0)->rollback_transition = alternatives.at(i + 1).constraints.at(0)->getEntrypoint();
+				}
 			}
 		}
 

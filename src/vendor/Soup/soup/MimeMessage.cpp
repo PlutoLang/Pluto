@@ -112,6 +112,19 @@ NAMESPACE_SOUP
 		return nullptr;
 	}
 
+	const std::string* MimeMessage::findHeader(std::string key) const noexcept
+	{
+		string::lower(key);
+		for (auto& e : header_fields)
+		{
+			if (string::lower(std::string(e.first)) == key)
+			{
+				return &e.second;
+			}
+		}
+		return nullptr;
+	}
+
 	void MimeMessage::addHeader(const std::string& line) SOUP_EXCAL
 	{
 		if (auto key_offset = line.find(": "); key_offset != std::string::npos)

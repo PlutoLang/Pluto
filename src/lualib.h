@@ -61,6 +61,7 @@ namespace Pluto {
   extern const PreloadedLibrary preloaded_xml;
   extern const PreloadedLibrary preloaded_regex;
   extern const PreloadedLibrary preloaded_ffi;
+  extern const PreloadedLibrary preloaded_canvas;
 
   inline const PreloadedLibrary* const all_preloaded[] = {
     &preloaded_crypto,
@@ -81,6 +82,7 @@ namespace Pluto {
     &preloaded_xml,
     &preloaded_regex,
     &preloaded_ffi,
+    &preloaded_canvas,
   };
 }
 
@@ -102,6 +104,7 @@ LUAMOD_API int (luaopen_bigint)    (lua_State *L);
 LUAMOD_API int (luaopen_xml)       (lua_State *L);
 LUAMOD_API int (luaopen_regex)     (lua_State *L);
 LUAMOD_API int (luaopen_ffi)       (lua_State *L);
+LUAMOD_API int (luaopen_canvas)    (lua_State *L);
 
 /* open all previous libraries */
 LUALIB_API void (luaL_openlibs) (lua_State *L);

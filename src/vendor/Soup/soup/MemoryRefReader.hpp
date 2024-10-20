@@ -4,26 +4,29 @@
 
 #include <cstring> // memcpy
 
+#include "type_traits.hpp"
+
 NAMESPACE_SOUP
 {
-	class StringRefReader final : public Reader
+	class MemoryRefReader final : public Reader
 	{
 	public:
-		const char* data;
+		const uint8_t* data;
 		size_t size;
 		size_t offset = 0;
 
-		StringRefReader(const std::string& str, bool little_endian = true)
-			: Reader(little_endian), data(str.data()), size(str.size())
+		MemoryRefReader(const void* _data, size_t size, bool little_endian = true)
+			: Reader(little_endian), data(reinterpret_cast<const uint8_t*>(_data)), size(size)
 		{
 		}
 
-		StringRefReader(const char* data, size_t size, bool little_endian = true)
-			: Reader(little_endian), data(data), size(size)
+		template <typename T, SOUP_RESTRICT(!std::is_pointer_v<T>)>
+		MemoryRefReader(const T& t, bool little_endian = true)
+			: MemoryRefReader(t.data(), t.size(), little_endian)
 		{
 		}
 
-		~StringRefReader() final = default;
+		~MemoryRefReader() final = default;
 
 		bool hasMore() noexcept final
 		{
@@ -32,7 +35,7 @@ NAMESPACE_SOUP
 
 		bool raw(void* data, size_t len) noexcept final
 		{
-			SOUP_IF_UNLIKELY ((offset + len) > this->size)
+			SOUP_IF_UNLIKELY((offset + len) > this->size)
 			{
 				return false;
 			}
