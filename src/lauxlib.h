@@ -145,6 +145,17 @@ LUALIB_API void (luaL_traceback) (lua_State *L, lua_State *L1,
 LUALIB_API void (luaL_requiref) (lua_State *L, const char *modname,
                                  lua_CFunction openf, int glb);
 
+#define pluto_newclassinst(L, T, ...) new (lua_newuserdata(L, sizeof(T))) T(__VA_ARGS__); \
+if (luaL_newmetatable(L, #T)) { \
+  lua_pushliteral(L, "__gc"); \
+  lua_pushcfunction(L, [](lua_State *L) { \
+    std::destroy_at<>((T*)luaL_checkudata(L, 1, #T)); \
+    return 0; \
+  }); \
+  lua_settable(L, -3); \
+} \
+lua_setmetatable(L, -2)
+
 /*
 ** ===============================================================
 ** some useful macros

@@ -1932,33 +1932,39 @@ static int str_partition (lua_State *L) {
 
 static int str_split (lua_State *L) {
   /*
+    This str_split function is based on the one found in LuaU, licensed under their terms.
     https://github.com/Roblox/luau/blob/master/VM/src/lstrlib.cpp
-    This str_split function is licensed to LuaU under their terms.
   */
   size_t haystackLen;
   const char* haystack = luaL_checklstring(L, 1, &haystackLen);
   size_t needleLen;
   const char* needle = luaL_optlstring(L, 2, ",", &needleLen);
+  lua_Integer limit = luaL_optinteger(L, 3, LUA_MAXINTEGER) - 1;
 
   const char* begin = haystack;
   const char* end = haystack + haystackLen;
   const char* spanStart = begin;
-  int numMatches = 0;
+  lua_Integer numMatches = 0;
 
   lua_createtable(L, 0, 0);
 
   if (needleLen == 0)
     begin++;
 
-  for (const char* iter = begin; iter <= end - needleLen; iter++) {
-    if (memcmp(iter, needle, needleLen) == 0) {
-      lua_pushinteger(L, ++numMatches);
-      lua_pushlstring(L, spanStart, iter - spanStart);
-      lua_settable(L, -3);
-
-      spanStart = iter + needleLen;
-      if (needleLen > 0)
-        iter += needleLen - 1;
+  if (l_likely(limit > 0)) {
+    for (const char* iter = begin; iter <= end - needleLen; iter++) {
+      if (memcmp(iter, needle, needleLen) == 0) {
+        lua_pushinteger(L, ++numMatches);
+        lua_pushlstring(L, spanStart, iter - spanStart);
+        lua_settable(L, -3);
+    
+        spanStart = iter + needleLen;
+        if (needleLen > 0)
+          iter += needleLen - 1;
+    
+        if (numMatches == limit)
+          break;
+      }
     }
   }
 

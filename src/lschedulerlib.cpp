@@ -53,6 +53,24 @@ return class
         end)
     end
 
+    function contains(needle)
+        for self.coros as t do
+            if t == needle then
+                return true
+            end
+        end
+        return false
+    end
+
+    function remove(needle)
+        for i, t in self.coros do
+            if t == needle then
+                table.remove(self.coros, i)
+                break
+            end
+        end
+    end
+
     function run()
         local all_dead
         repeat

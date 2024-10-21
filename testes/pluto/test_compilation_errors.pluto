@@ -1,0 +1,106 @@
+local assert = require("assert")
+
+local function check(intended_error, bad_code)
+	local _, fail = load(bad_code)
+	assert.contains(intended_error, fail)
+end
+
+-- Walrus
+do
+	$define disallowed = "':=' is only allowed in 'if' and 'while' statements"
+
+	check(disallowed, 
+	[[
+	local tab = {a:=1, (||->do tab=1 end)()}
+	]])
+
+	check(disallowed, 
+	[[
+	error(a:=1)
+	]])
+end
+
+do
+	$define missing_table_delimiter = "delimited"
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		a,
+		b
+		c,
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		a = 1,
+		b = 2
+		c = 3,
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		function a()
+
+		end,
+
+		function b()
+
+		end
+
+		function c()
+
+		end
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		["a"] = 1,
+		["b"] = 2
+		["c"] = 3,
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		[a] = 1,
+		[b] = 2
+		[c] = 3
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		[a] = 1,
+		[b] = 2,
+
+		function a()
+
+		end
+
+		[c] = 3
+	}
+	]])
+
+	check(missing_table_delimiter,
+	[[
+	local t = {
+		[a] = 1,
+		[b] = 2
+
+		function a()
+
+		end,
+
+		[c] = 3
+	}
+	]])
+end
