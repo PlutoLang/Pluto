@@ -3689,7 +3689,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   else {
     simpleexp(ls, v, flags, prop);
     if (ls->t.token == TK_IN) {
-      throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
+      throw_warn(ls, "non-portable operator usage", "this operator generates bytecode that is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
       inexpr(ls, v, flags);
       if (prop) prop->emplaceTypeDesc(VT_BOOL);
     }
