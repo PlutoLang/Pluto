@@ -93,6 +93,8 @@ typedef struct BlockCnt {
   BlockType type;  /* one of block types */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
   std::vector<TString*> export_symbols{};
+  ValType var_overide = VT_NONE;
+  unsigned short var_overide_vidx;
 } BlockCnt;
 
 
@@ -108,21 +110,26 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, int flags 
 ** Throws an exception into Lua, which will promptly close the program.
 ** This is only called for vital errors, like lexer and/or syntax problems.
 */
-static l_noret throwerr (LexState *ls, const char *err, const char *here, int line) {
+static l_noret throwerr (LexState *ls, const char *err, const char *here, int line, const char *note = nullptr) {
   err = luaG_addinfo(ls->L, err, ls->source, line);
   auto msg = new Pluto::ErrorMessage{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
   msg->addMsg(err);
   if (ls->t.token == TK_EOS && strstr(err, "near '<eof>'") == nullptr) {  /* for 'incomplete' in REPL */
     msg->addMsg(" near ")
-       .addMsg(luaX_token2str(ls, ls->t.token));
+       .addMsg(luaX_token2str(ls, ls->t));
   }
   msg->addSrcLine(line)
-     .addGenericHere(here)
-     .finalizeAndThrow();
+     .addGenericHere(here);
+
+  if (note != nullptr) {
+    msg->addNote(note);
+  }
+
+  msg->finalizeAndThrow();
 }
 
-static l_noret throwerr (LexState *ls, const char *err, const char *here) {
-  throwerr(ls, err, here, ls->getLineNumber());
+static l_noret throwerr (LexState *ls, const char *err, const char *here, const char *note = nullptr) {
+  throwerr(ls, err, here, ls->getLineNumber(), note);
 }
 
 
@@ -189,10 +196,14 @@ static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
 **   - Non-portable keyword usage. (class, switch, etc)
 */
 static void check_for_non_portable_code (LexState *ls) {
-  if (ls->t.IsNonCompatible() && !ls->t.IsOverridable() && ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_ENV) {
-    throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t.token)), WT_NON_PORTABLE_CODE);
-    ls->L->top.p--;
-    return;
+  if (ls->t.IsNonCompatible() && !ls->t.IsOverridable()) {
+    if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
+      ls->setKeywordState(ls->t.token, KS_ENABLED_BY_PLUTO_INFORMED);
+    }
+    if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_INFORMED || ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_ENV) {  /* enabled by a means other than 'pluto_use'? */
+      throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t)), WT_NON_PORTABLE_CODE);
+      ls->L->top.p--;
+    }
   }
 }
 
@@ -232,7 +243,7 @@ static l_noret error_expected (LexState *ls, int token) {
     }
     default: {
       _default:
-      throwerr(ls, luaO_fmt(ls->L, "%s expected", luaX_token2str(ls, token)), "this is invalid syntax.");
+      throwerr(ls, luaO_fmt(ls->L, "%s expected near %s", luaX_token2str(ls, token), luaX_token2str(ls, ls->t)), "this is invalid syntax.");
     }
   }
 }
@@ -307,7 +318,7 @@ static void checknext (LexState *ls, int c) {
 ** raise an error that the expected 'what' should match a 'who'
 ** in line 'where' (if that is not the current line).
 */
-static void check_match (LexState *ls, int what, int who, int where) {
+static void check_match (LexState *ls, int what, int who, int where, const char* note = nullptr) {
   if (l_unlikely(!testnext(ls, what))) {
     if (where == ls->getLineNumber())  /* all in the same line? */
       error_expected(ls, what);  /* do not need a complex message */
@@ -333,8 +344,13 @@ static void check_match (LexState *ls, int what, int who, int where) {
           .addMsg(luaO_fmt(ls->L, "%d", where))
           .addMsg(")")
           .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
-          .addGenericHere()
-          .finalizeAndThrow();
+          .addGenericHere();
+
+        if (note != nullptr) {
+          err->addNote(note);
+        }
+
+        err->finalizeAndThrow();
       }
     }
   }
@@ -347,7 +363,7 @@ enum NameFlags {
   N_OVERRIDABLE = (1 << 2),
 };
 
-[[nodiscard]] static bool isnametkn (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
+[[nodiscard]] static bool isnametkn (LexState *ls, int flags = 0) {
   return ls->t.token == TK_NAME || ls->t.IsNarrow()
       || ((flags & N_RESERVED_NON_VALUE) && ls->t.IsReservedNonValue())
       || ((flags & N_RESERVED) && ls->t.IsReserved())
@@ -364,8 +380,16 @@ enum NameFlags {
   return 0;
 }
 
-static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
-  TString *ts;
+static void disablekeyword (LexState *ls, int token) {
+  auto i = ls->tokens.begin();
+  if (ls->tidx != -1)
+    i += ls->tidx;  /* don't apply retroactively */
+  for (; i != ls->tokens.end(); ++i)
+    if (i->token == token)
+      i->token = TK_NAME;
+}
+
+static TString *str_checkname (LexState *ls, int flags = 0) {
 #ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
@@ -374,15 +398,22 @@ static TString *str_checkname (LexState *ls, int flags = N_RESERVED_NON_VALUE) {
 #endif
   if (!isnametkn(ls, flags)) {
     if (ls->t.IsNonCompatible()) {
-      throwerr(ls, luaO_fmt(ls->L, "expected a name, found %s", luaX_token2str(ls, ls->t.token)), luaO_fmt(ls->L, "%s has a different meaning in Pluto, but you can disable this: https://pluto.do/compat", luaX_token2str(ls, ls->t.token)));
+      if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
+        disablekeyword(ls, ls->t.token);
+        ls->uninformed_reserved.emplace(ls->t.token, ls->getLineNumber());
+        ls->setKeywordState(ls->t.token, KS_DISABLED_BY_PLUTO_INFORMED);
+        luaX_setpos(ls, luaX_getpos(ls));  /* update ls->t */
+        return str_checkname(ls, flags);  /* try again */
+      }
+      throwerr(ls, luaO_fmt(ls->L, "expected a name, found %s", luaX_token2str(ls, ls->t)), luaO_fmt(ls->L, "%s has a different meaning in Pluto, but you can disable this: https://pluto.do/compat", luaX_token2str(ls, ls->t)));
     }
     error_expected(ls, TK_NAME);
   }
-  ts = ls->t.seminfo.ts;
+  TString *ts = ls->t.seminfo.ts;
   lua_assert(ts != nullptr);
   if (!(flags & N_RESERVED) && !(flags & N_RESERVED_NON_VALUE)) {
     if (auto t = find_non_compat_tkn_by_name(ls, getstr(ts)); t != 0 && t != TK_PARENT) {
-      if (ls->getKeywordState(t) != KS_DISABLED_BY_USER) {
+      if (ls->getKeywordState(t) != KS_DISABLED_BY_SCRIPTER) {
         throw_warn(
           ls,
           luaO_fmt(ls->L, "'%s' is a non-portable name", getstr(ts)),
@@ -414,7 +445,7 @@ static void codestring (expdesc *e, TString *s) {
 }
 
 
-static void codename (LexState *ls, expdesc *e, int flags = N_RESERVED_NON_VALUE) {
+static void codename (LexState *ls, expdesc *e, int flags = 0) {
   codestring(e, str_checkname(ls, flags));
 }
 
@@ -454,7 +485,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
     if (testnext(ls, '?'))
       th.emplaceTypeDesc(VT_NIL);
     do {
-      TString *ts = str_checkname(ls);
+      TString *ts = str_checkname(ls, N_RESERVED);
       const char *tname = getstr(ts);
       if (strcmp(tname, "number") == 0)
         th.emplaceTypeDesc(VT_NUMBER);
@@ -503,7 +534,12 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
 */
 static void exp_propagate(LexState* ls, const expdesc& e, TypeHint& t) noexcept {
   if (e.k == VLOCAL) {
-    t.merge(*getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop);
+    if (ls->fs->bl->var_overide != VT_NONE && ls->fs->bl->var_overide_vidx == e.u.var.vidx) {
+      t.merge(ls->fs->bl->var_overide);
+    }
+    else {
+      t.merge(*getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop);
+    }
   }
   else if (e.k == VCONST) {
     TValue* val = &ls->dyd->actvar.arr[e.u.info].k;
@@ -520,7 +556,8 @@ static void exp_propagate(LexState* ls, const expdesc& e, TypeHint& t) noexcept 
 }
 
 
-static void process_assign(LexState* ls, Vardesc* var, const TypeHint& t, int line) {
+static void process_assign (LexState *ls, int vidx, const TypeHint& t, int line) {
+  Vardesc *var = getlocalvardesc(ls->fs, vidx);
   auto hinted = !var->vd.hint->empty();
   auto knownvalue = !t.empty();
   auto incompatible = !var->vd.hint->isCompatibleWith(t);
@@ -541,6 +578,9 @@ static void process_assign(LexState* ls, Vardesc* var, const TypeHint& t, int li
     }
   }
   var->vd.prop->merge(t); /* propagate type */
+  if (ls->fs->bl->var_overide != VT_NONE && ls->fs->bl->var_overide_vidx == vidx) {
+    ls->fs->bl->var_overide = t.toPrimitive();
+  }
 }
 
 
@@ -1460,10 +1500,8 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
         name = str_checkname(ls);
       }
       else if (strcmp(getstr(name), "private") == 0) {
-        std::string name_tmp = str_checkname(ls)->toCpp();
-        ls->classes.top().private_fields.emplace_back(name_tmp);
-        name_tmp.insert(0, "__restricted__");
-        name = luaX_newstring(ls, name_tmp.c_str());
+        const auto field_name = ls->classes.top().addPrefix(str_checkname(ls)->toCpp());
+        name = luaX_newstring(ls, field_name.c_str());
       }
     }
     codestring(&key, name);
@@ -1542,7 +1580,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 
 
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *funcdesc = nullptr);
-static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod) {
+static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool isprivate = false) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
   int reg = ls->fs->freereg;
@@ -1550,6 +1588,10 @@ static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod) {
   cc->nh++;
   luaX_next(ls); /* skip TK_FUNCTION */
   codename(ls, &key);
+  if (isprivate) {
+    const auto new_name = ls->classes.top().addPrefix(getstr(key.u.strval));
+    codestring(&key, luaX_newstring(ls, new_name.c_str()));
+  }
   if (ismethod)
     ismethod += (strcmp(getstr(key.u.strval), "__construct") == 0);
   tab = *cc->t;
@@ -1574,16 +1616,24 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
   }
   else switch(ls->t.token) {
     case TK_NAME: {  /* may be 'listfield', 'recfield' or static 'funcfield' */
-      if (strcmp(getstr(ls->t.seminfo.ts), "static") != 0) {
+      if (strcmp(getstr(ls->t.seminfo.ts), "static") == 0) {
+        luaX_next(ls);
+        check(ls, TK_FUNCTION);
+        funcfield(ls, cc, false);
+      }
+      else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "public") == 0) {
+        luaX_next(ls);
+        funcfield(ls, cc, true);
+      }
+      else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
+        luaX_next(ls);
+        funcfield(ls, cc, true, true);
+      }
+      else {
         if (!for_class && luaX_lookahead(ls) != '=')  /* expression? */
           listfield(ls, cc);
         else
           recfield(ls, cc, for_class);
-      }
-      else { /* static function */
-        luaX_next(ls);
-        check(ls, TK_FUNCTION);
-        funcfield(ls, cc, false);
       }
       break;
     }
@@ -1602,7 +1652,7 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
     }
     default: {
       if (for_class)
-        throwerr(ls, luaO_fmt(ls->L, "unexpected token: %s", luaX_token2str(ls, ls->t.token)), "expected a class member");
+        throwerr(ls, luaO_fmt(ls->L, "unexpected token: %s", luaX_token2str(ls, ls->t)), "expected a class member");
       listfield(ls, cc);
       break;
     }
@@ -1631,7 +1681,12 @@ static void constructor (LexState *ls, expdesc *t) {
     closelistfield(fs, &cc);
     field(ls, &cc);
   } while (testnext(ls, ',') || testnext(ls, ';'));
-  check_match(ls, '}', '{', line);
+  if (ls->t.token == TK_NAME || ls->t.token == TK_FUNCTION || ls->t.token == '[' || ls->t.isSimple()) {
+    check_match(ls, '}', '{', line, "Ensure that you've delimited the previous field with ',' or ';'.");
+  }
+  else {
+    check_match(ls, '}', '{', line);
+  }
   lastlistfield(fs, &cc);
   luaK_settablesize(fs, pc, t->u.reg, cc.na, cc.nh);
   ls->constructorfieldsets.pop();
@@ -1743,6 +1798,52 @@ static void applyextends (LexState *ls, size_t name_pos, size_t parent_pos, int 
   fs->freereg = base + 1;
 }
 
+static size_t preprocessclass (LexState *ls) {
+  int allowed_ends = 0;
+  const auto start = luaX_getpos(ls);
+
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.token == TK_END && allowed_ends-- <= 0) {
+      // printf("Preprocessed class body ending at line %d.\n", ls->getLineNumber());
+      break;
+    }
+
+    // This is only checking *inside* our current class body, the parser has already skipped the class declaration.
+    switch (ls->t.normalizedToken()) {
+    case TK_DO: // Covers many block openers, like TK_FOR, TK_ARROW, etc.
+    case TK_IF:
+    case TK_CLASS:
+    case TK_CATCH:
+    case TK_FUNCTION:
+      ++allowed_ends;
+      break;
+
+    case TK_ENUM:
+      if (luaX_lookahead(ls) != TK_CLASS) {
+        ++allowed_ends;
+      }
+    }
+
+    if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
+      if (luaX_lookahead(ls) == TK_FUNCTION) {
+        checknext(ls, TK_NAME);
+        checknext(ls, TK_FUNCTION);
+        ls->classes.top().addField(getstr(ls->t.seminfo.ts));
+        ++allowed_ends; // For TK_FUNCTION
+      }
+      else if (luaX_lookahead(ls) == TK_NAME) {
+        checknext(ls, TK_NAME);
+        ls->classes.top().addField(getstr(ls->t.seminfo.ts));
+      }
+    }
+
+    luaX_next(ls);
+  }
+
+  const auto finish = luaX_getpos(ls);
+  luaX_setpos(ls, start);
+  return finish;
+}
 
 static void classexpr (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
@@ -1757,11 +1858,19 @@ static void classexpr (LexState *ls, expdesc *t) {
   init_exp(t, VNONRELOC, fs->freereg);  /* table will be at stack top */
   luaK_reserveregs(fs, 1);
   init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
+  const auto finish = preprocessclass(ls);
   while (ls->t.token != TK_END) {
     lua_assert(cc.v.k == VVOID || cc.tostore > 0);
     closelistfield(fs, &cc);
     field(ls, &cc, true);
     (testnext(ls, ',') || testnext(ls, ';'));
+  }
+  if (finish != luaX_getpos(ls)) { // The preprocessor should've terminated at the same exact spot.
+    throwerr(ls,
+      "internal error: 'preprocessclass' failed to handle a block",
+      "",
+      "Report this at: https://github.com/PlutoLang/Pluto/issues"
+    );
   }
   check_match(ls, TK_END, TK_CLASS, line);
   lastlistfield(fs, &cc);
@@ -1819,9 +1928,6 @@ static void localclass (LexState *ls) {
   ls->classes.emplace();
 
   size_t name_pos = luaX_getpos(ls);
-  if (ls->t.token == '=') {
-    throwerr(ls, "expected a class name, found '='", "'class' has a different meaning in Pluto, but you can disable this: https://pluto.do/compat");
-  }
   TString *name = str_checkname(ls, 0);
   size_t parent_pos = checkextends(ls);
 
@@ -1943,46 +2049,6 @@ static void skip_over_simpleexp_within_lambdaparlist (LexState *ls) {
   }
 }
 
-/* keep advancing until we hit non-nested 'else' or 'end' */
-static void skip_block (LexState *ls) {
-  int ends = 0;
-  while (ls->t.token != TK_EOS) {
-    if (ls->t.token == TK_THEN || ls->t.token == TK_DO) {
-      ends++;
-    }
-    else if (ls->t.token == TK_ELSEIF) {
-      ends--; /* "elseif ... then" should offset `ends` by 0, but the 'then' would increment it by 1, so we countact this here. */
-    }
-    else if (ls->t.token == TK_ELSE) {
-      if (ends == 0) {
-        break;
-      }
-    }
-    else if (ls->t.token == TK_END) {
-      if (ends == 0) {
-        break;
-      }
-      ends--;
-    }
-    else if (ls->t.token == '$') {
-      if (luaX_lookahead(ls) == TK_ELSE) {
-        if (ends == 0) {
-          break;
-        }
-      }
-      else if (luaX_lookahead(ls) == TK_END) {
-        if (ends == 0) {
-          break;
-        }
-        ends--;
-      }
-      luaX_next(ls);
-    }
-    luaX_next(ls);
-  }
-}
-
-
 static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* promotions, std::vector<size_t>* fallbacks, TString** varargname, bool lambda) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
@@ -2003,9 +2069,7 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
           }
           else if (strcmp(getstr(parname), "private") == 0) {
             parname = str_checkname(ls, N_OVERRIDABLE);
-            std::string field_name = parname->toCpp();
-            ls->classes.top().private_fields.emplace_back(field_name);
-            field_name.insert(0, "__restricted__");
+            const auto field_name = ls->classes.top().addPrefix(parname->toCpp());
             promotions->emplace_back(parname, luaX_newstring(ls, field_name.c_str()));
           }
         }
@@ -2658,7 +2722,7 @@ static void const_expr (LexState *ls, expdesc *v) {
       return;
     }
     default: {
-      const char *token = luaX_token2str(ls, ls->t.token);
+      const char *token = luaX_token2str(ls, ls->t);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
   }
@@ -2766,7 +2830,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
       return;
     }
     default: {
-      const char *token = luaX_token2str(ls, ls->t.token);
+      const char *token = luaX_token2str(ls, ls->t);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
   }
@@ -2774,18 +2838,28 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
 
 
 static void selfexp (LexState *ls, expdesc *v) {
-  if (testnext(ls, '.')) {
-    luaK_exp2anyregup(ls->fs, v);
+  bool ismethod = testnext(ls, ':');
+  if (testnext(ls, '.') || ismethod) {
+    if (!ismethod) {
+      luaK_exp2anyregup(ls->fs, v);
+    }
     expdesc key;
     TString *keystr = str_checkname(ls, N_RESERVED);
-    if (ls->classes.top().isPrivate(getstr(keystr))) {
-      std::string realname = "__restricted__";
-      realname.append(getstr(keystr), tsslen(keystr));
-      codestring(&key, luaX_newstring(ls, realname.c_str()));
+
+    if (auto special = ls->classes.top().getSpecialName(keystr); special.has_value()) {
+      codestring(&key, luaX_newstring(ls, special.value().c_str()));
     }
-    else
+    else {
       codestring(&key, keystr);
-    luaK_indexed(ls->fs, v, &key);
+    }
+
+    if (!ismethod) {
+      luaK_indexed(ls->fs, v, &key);
+    }
+    else {
+      luaK_self(ls->fs, v, &key);
+      method_call_funcargs(ls, v);
+    }
   }
 }
 
@@ -2824,9 +2898,9 @@ static void parentexp (LexState *ls, expdesc *v) {
 
 static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
   /* primaryexp -> NAME | '(' expr ')' */
-  if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
+  if (isnametkn(ls, N_OVERRIDABLE)) {
     const bool is_overridable = ls->t.IsOverridable();
-    TString *varname = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
+    TString *varname = str_checkname(ls, N_OVERRIDABLE);
     if (gett(ls) == TK_WALRUS) {
       if (flags & E_OR_KILLED_WALRUS)
         throwerr(ls, "':=' is not allowed in this context", "due to the 'or', it is no longer guaranteed that the local will be initialized by the time it's in scope.");
@@ -2880,7 +2954,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
       if (ls->t.token == ')' && ls->getContext() == PARCTX_BODY) {
         throwerr(ls, "unexpected ')', expected 'end' to close function.", "missing 'end' before ')'.");
       }
-      const char *token = luaX_token2str(ls, ls->t.token);
+      const char *token = luaX_token2str(ls, ls->t);
       throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
   }
@@ -3051,21 +3125,22 @@ static int cond (LexState *ls, bool for_while_loop = false);
 static void ifexpr (LexState *ls, expdesc *v) {
   throw_warn(ls, "'if a then b else c' is deprecated", "use 'a ? b : c' instead", WT_DEPRECATED);
   /*
-  ** Patch published by Ryota Hirose.
+  ** 'if' expressions are based on a patch published by by Ryota Hirose.
   */
   FuncState *fs = ls->fs;
   int condition;
   int escape = NO_JUMP;
   int reg;
-  luaX_next(ls);			
+  luaX_next(ls);
   condition = cond(ls);
   checknext(ls, TK_THEN);
-  expr(ls, v);					
-  reg = luaK_exp2anyreg(fs, v);			
+  expr(ls, v);
+  reg = luaK_exp2anyreg(fs, v);
   luaK_concat(fs, &escape, luaK_jump(fs));
   luaK_patchtohere(fs, condition);
   checknext(ls, TK_ELSE);
   expr(ls, v);
+  checknext(ls, TK_END);
   luaK_exp2reg(fs, v, reg);
   luaK_patchtohere(fs, escape);
 }
@@ -3573,6 +3648,11 @@ static const struct {
 #define UNARY_PRIORITY	12  /* priority for unary operators */
 
 
+[[nodiscard]] static constexpr bool canchainopr (BinOpr opr) noexcept {
+  return opr == OPR_LT || opr == OPR_LE || opr == OPR_GT || opr == OPR_GE;
+}
+
+
 /*
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
@@ -3609,7 +3689,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   else {
     simpleexp(ls, v, flags, prop);
     if (ls->t.token == TK_IN) {
-      throw_warn(ls, "non-portable operator usage", "this operator generates bytecode which is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
+      throw_warn(ls, "non-portable operator usage", "this operator generates bytecode that is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
       inexpr(ls, v, flags);
       if (prop) prop->emplaceTypeDesc(VT_BOOL);
     }
@@ -3688,6 +3768,25 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       }
       nextop = subexpr(ls, &v2, priority[op].right, subexpr_prop, flags);
       luaK_posfix(ls->fs, op, v, &v2, line);
+      if (canchainopr(op) && canchainopr(nextop)) {
+        while (true) {
+          op = nextop;
+          if (v2.k == VNONRELOC && ls->fs->freereg == v2.u.reg) {
+            ls->fs->freereg++;
+          }
+          luaX_next(ls);  /* skip operator */
+          /* to generate 'a < b < c': 'a < b' is in `v`. 'b' is in `v2`. 'c' can be read from lexer state. */
+          luaK_infix(ls->fs, OPR_AND, v);
+          expdesc v3;
+          luaK_infix(ls->fs, op, &v2);
+          nextop = subexpr(ls, &v3, priority[op].right, subexpr_prop, flags);
+          luaK_posfix(ls->fs, op, &v2, &v3, line);
+          luaK_posfix(ls->fs, OPR_AND, v, &v2, line);
+          if (!canchainopr(nextop))
+            break;
+          v2 = v3;
+        }
+      }
     }
     op = nextop;
   }
@@ -3889,7 +3988,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       }
       if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
         exp_propagate(ls, e, prop);
-        process_assign(ls, getlocalvardesc(ls->fs, lh->v.u.var.vidx), prop, line);
+        process_assign(ls, lh->v.u.var.vidx, prop, line);
       }
       luaK_storevar(ls->fs, &lh->v, &e);
       return;  /* avoid default */
@@ -4219,16 +4318,63 @@ static void forstat (LexState *ls, int line, TypeHint *prop) {
 }
 
 
-static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop, bool& has_and) {
+static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   /* test_then_block -> [IF | ELSEIF] cond THEN block */
   BlockCnt bl;
   FuncState *fs = ls->fs;
   expdesc v;
   int jf;  /* instruction to skip 'then' code (if condition is false) */
   luaX_next(ls);  /* skip IF or ELSEIF */
+
+  if (ls->t.token == TK_NAME && eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "type"))) {
+    luaX_next(ls);
+    if (testnext(ls, '(')) {
+      if (isnametkn(ls)) {
+        expdesc var;
+        singlevar(ls, &var);
+        if (var.k == VLOCAL && testnext(ls, ')')) {
+          if (testnext(ls, TK_EQ)) {
+            if (ls->t.token == TK_STRING) {
+              bl.var_overide_vidx = var.u.var.vidx;
+              if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "nil"))) {
+                bl.var_overide = VT_NIL;
+              }
+              else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "boolean"))) {
+                bl.var_overide = VT_BOOL;
+              }
+              else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "number"))) {
+                bl.var_overide = VT_NUMBER;
+              }
+              else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "string"))) {
+                bl.var_overide = VT_STR;
+              }
+              else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "table"))) {
+                bl.var_overide = VT_TABLE;
+              }
+              else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "function"))) {
+                bl.var_overide = VT_FUNC;
+              }
+              else if (!eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "userdata"))
+                && !eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "thread"))
+                && !eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "no value"))
+              ) {
+                throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a possible return value of 'type'", getstr(ls->t.seminfo.ts)), WT_POSSIBLE_TYPO);
+                ls->L->top.p--;
+              }
+            }
+            luaX_prev(ls);  /* back to '==' */
+          }
+          luaX_prev(ls);  /* back to ')' */
+        }
+        luaX_prev(ls);  /* back to nametkn */
+      }
+      luaX_prev(ls);  /* back to '(' */
+    }
+    luaX_prev(ls);  /* back to "type" */
+  }
+
   ls->used_walrus = false;
   expr(ls, &v, nullptr, E_WALRUS);  /* read condition */
-  has_and = (v.f != NO_JUMP);
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);
   if (luaK_isalwaysfalse(ls, &v))
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
@@ -4278,20 +4424,15 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
   BlockCnt walrusbl;
   enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
   int escapelist = NO_JUMP;  /* exit list for finished parts */
-  bool has_and;
-  test_then_block(ls, &escapelist, prop, has_and);  /* IF cond THEN block */
+  test_then_block(ls, &escapelist, prop);  /* IF cond THEN block */
   while (ls->t.token == TK_ELSEIF) {
-    if (has_and) {
-      leaveblock(fs);
-      enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
-    }
-    test_then_block(ls, &escapelist, prop, has_and);  /* ELSEIF cond THEN block */
+    leaveblock(fs);
+    enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
+    test_then_block(ls, &escapelist, prop);  /* ELSEIF cond THEN block */
   }
   if (testnext(ls, TK_ELSE)) {
-    if (has_and) {
-      leaveblock(fs);
-      enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
-    }
+    leaveblock(fs);
+    enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
     if (ls->t.token == TK_IF && ls->t.line == luaX_lookbehind(ls).line)
       ls->else_if = ls->getLineNumber();
     block(ls, prop);  /* 'else' part */
@@ -4302,13 +4443,38 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
 }
 
 
+/* keep advancing until we hit non-nested '$else' or '$end' */
+static void skip_constexpr_block (LexState *ls) {
+  int depth = 0;
+  while (ls->t.token != TK_EOS) {
+    if (ls->t.token == '$') {
+      if (luaX_lookahead(ls) == TK_IF) {
+        ++depth;
+      }
+      else if (luaX_lookahead(ls) == TK_ELSE) {
+        if (depth == 0) {
+          break;
+        }
+      }
+      else if (luaX_lookahead(ls) == TK_END) {
+        if (depth == 0) {
+          break;
+        }
+        depth--;
+      }
+      luaX_next(ls);
+    }
+    luaX_next(ls);
+  }
+}
+
 static void constexprifstat (LexState *ls, int line) {
   expdesc c;
   expr(ls, &c);
   const bool disposition = luaK_isalwaystrue(ls, &c);
   if (disposition == false) {
     if (!luaK_isalwaysfalse(ls, &c)) {
-      luaX_syntaxerror(ls, "Compile-time 'if' must have a condition that can be evaluated at compile-time");
+      throwerr(ls, "this condition cannot be evaluated at compile-time", "");
     }
   }
   checknext(ls, TK_THEN);
@@ -4316,21 +4482,17 @@ static void constexprifstat (LexState *ls, int line) {
     block(ls);
   }
   else {
-    skip_block(ls);
+    skip_constexpr_block(ls);
   }
-  if (!testnext(ls, '$')) {
-    throw_warn(ls, "Compile-time control flow statement should be prefixed with a $", WT_DEPRECATED);
-  }
+  checknext(ls, '$');
   if (testnext(ls, TK_ELSE)) {
     if (disposition == false) {
       block(ls);
     }
     else {
-      skip_block(ls);
+      skip_constexpr_block(ls);
     }
-    if (!testnext(ls, '$')) {
-      throw_warn(ls, "Compile-time control flow statement should be prefixed with a $", WT_DEPRECATED);
-    }
+    checknext(ls, '$');
   }
   check_match(ls, TK_END, TK_IF, line);
 }
@@ -4345,13 +4507,11 @@ static void constexprdefinestat (LexState *ls, int line) {
   *var->vd.hint = hint;
 
   expdesc e;
-  init_exp(&e, VNIL, 0);
-  if (testnext(ls, '=')) {
-    ls->pushContext(PARCTX_CREATE_VAR);
-    TypeHint t;
-    expr_propagate(ls, &e, t);
-    ls->popContext(PARCTX_CREATE_VAR);
-  }
+  checknext(ls, '=');
+  ls->pushContext(PARCTX_CREATE_VAR);
+  TypeHint t;
+  expr_propagate(ls, &e, t);
+  ls->popContext(PARCTX_CREATE_VAR);
   if (!luaK_exp2const(fs, &e, &var->k))
     throwerr(ls, "variable was not assigned a compile-time constant value", "expression not constant", line);
 
@@ -4368,7 +4528,7 @@ static void constexprstat (LexState *ls, int line) {
     constexprdefinestat(ls, line);
   }
   else {
-    const char *token = luaX_token2str(ls, ls->t.token);
+    const char *token = luaX_token2str(ls, ls->t);
     throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
   }
 }
@@ -4578,7 +4738,7 @@ static void localstat (LexState *ls) {
   else {
     e.k = VVOID;
     nexps = 0;
-    process_assign(ls, var, TypeHint{ VT_NIL }, line);
+    process_assign(ls, vidx, TypeHint{ VT_NIL }, line);
     checkforshadowing(ls, fs, ls->localstat_variable_names, line);
   }
   if (is_constexpr) {
@@ -4600,7 +4760,7 @@ static void localstat (LexState *ls) {
     else {
       vidx = vidx - nvars + 1;
       for (void* t : ls->localstat_ts) {
-        process_assign(ls, getlocalvardesc(fs, vidx), *(TypeHint*)t, line);
+        process_assign(ls, vidx, *(TypeHint*)t, line);
         ++vidx;
       }
       adjust_assign(ls, nvars, nexps, &e);
@@ -4635,14 +4795,14 @@ static void conststat (LexState *ls) {
     }
     else {
       exp_propagate(ls, e, t);
-      process_assign(ls, var, t, line);
+      process_assign(ls, vidx, t, line);
       adjust_assign(ls, 1, 1, &e);
       adjustlocalvars(ls, 1);
     }
   }
   else {
     e.k = VVOID;
-    process_assign(ls, var, TypeHint{ VT_NIL }, line);
+    process_assign(ls, vidx, TypeHint{ VT_NIL }, line);
     adjust_assign(ls, 1, 0, &e);
     adjustlocalvars(ls, 1);
   }
@@ -4689,7 +4849,21 @@ static void exprstat (LexState *ls) {
   }
   else {  /* stat -> func */
     Instruction *inst;
-    check_condition(ls, v.v.k == VCALL || v.v.k == VSAFECALL, "syntax error");
+    if (l_unlikely(v.v.k != VCALL && v.v.k != VSAFECALL)) {
+      if (luaX_lookbehind(ls).token == TK_NAME) {
+        if (auto t = find_non_compat_tkn_by_name(ls, getstr(luaX_lookbehind(ls).seminfo.ts))) {
+          if (ls->getKeywordState(t) == KS_DISABLED_BY_PLUTO_INFORMED) {
+            const auto entry = ls->uninformed_reserved.find(t);
+            const auto line = entry == ls->uninformed_reserved.end() ? -1 : entry->second;
+            throwerr(ls,
+              luaO_fmt(ls->L, "syntax error near %s", luaX_token2str(ls, ls->t)),
+              luaO_fmt(ls->L, "%s was not recognized as a statement because it was used as an identifier on line %d", luaX_token2str(ls, t), line)
+            );
+          }
+        }
+      }
+      luaX_syntaxerror(ls, "syntax error");
+    }
     inst = &getinstruction(fs, &v.v);
     SETARG_C(*inst, 1);  /* call statement uses no results */
     if (ls->nodiscard) {
@@ -4710,7 +4884,7 @@ static void retstat (LexState *ls, TypeHint *prop) {
   int startpc = fs->pc;
   int endpc = -1;
   if (block_follow(ls, 1) || ls->t.token == ';'
-    || (!ls->switchstates.empty() && (ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT))
+    || (!ls->switchstates.empty() && (ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT || ls->t.token == TK_BREAK))
   ) {
     nret = 0;  /* return no values */
     if (prop) prop->emplaceTypeDesc(VT_VOID);
@@ -4791,17 +4965,6 @@ static int checkkeyword (LexState *ls) {
   return token;
 }
 
-static void disablekeyword (LexState *ls, int token, bool due_to_compat_mode = false) {
-  if (due_to_compat_mode)
-    ls->setKeywordState(token, KS_DISABLED_BY_ENV);
-  auto i = ls->tokens.begin();
-  if (ls->tidx != -1)
-    i += ls->tidx;  /* don't apply retroactively */
-  for (; i != ls->tokens.end(); ++i)
-    if (i->token == token)
-      i->token = TK_NAME;
-}
-
 static void enablekeyword (LexState *ls, int token) {
   const char* str = luaX_reserved2str(token);
   auto i = ls->tokens.begin() + ls->tidx;
@@ -4822,11 +4985,11 @@ static void enablekeyword (LexState *ls, int token) {
 
 static void togglekeyword (LexState *ls, int token, bool enable) {
   if (ls->isKeywordEnabled(token) != enable) {
-    ls->setKeywordState(token, enable ? KS_ENABLED_BY_USER : KS_DISABLED_BY_USER);
+    ls->setKeywordState(token, enable ? KS_ENABLED_BY_SCRIPTER : KS_DISABLED_BY_SCRIPTER);
     if (enable)
       enablekeyword(ls, token);
     else
-      disablekeyword(ls, token, false);
+      disablekeyword(ls, token);
   }
 }
 
@@ -4899,8 +5062,8 @@ static void usestat (LexState *ls) {
         /* disable all non-compatible keywords as of this Pluto version, then enable those from the elected Pluto version. */
         for (int i = FIRST_NON_COMPAT; i != END_OPTIONAL; ++i) {
           if (ls->isKeywordEnabled(i)) {
-            ls->setKeywordState(i, KS_DISABLED_BY_USER);
-            disablekeyword(ls, i, false);
+            ls->setKeywordState(i, KS_DISABLED_BY_SCRIPTER);
+            disablekeyword(ls, i);
           }
         }
       }
@@ -5323,8 +5486,23 @@ static void statement (LexState *ls, TypeHint *prop) {
 #endif
       if (testnext(ls, TK_FUNCTION))  /* local function? */
         localfunc(ls);
-      else if (testnext2(ls, TK_CLASS, TK_PCLASS))
-        localclass(ls);
+      else if (testnext2(ls, TK_CLASS, TK_PCLASS)) {
+        if (ls->t.token == '=') {
+          if (luaX_lookbehind(ls).token == TK_CLASS && ls->getKeywordState(TK_CLASS) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
+            luaX_prev(ls);
+            disablekeyword(ls, TK_CLASS);
+            ls->setKeywordState(TK_CLASS, KS_DISABLED_BY_PLUTO_INFORMED);
+            luaX_setpos(ls, luaX_getpos(ls));  /* update ls->t */
+            localstat(ls);
+          }
+          else {
+            throwerr(ls, "expected a class name, found '='", "'class' has a different meaning in Pluto, but you can disable this: https://pluto.do/compat");
+          }
+        }
+        else {
+          localclass(ls);
+        }
+      }
       else
         localstat(ls);
       break;
@@ -5347,6 +5525,7 @@ static void statement (LexState *ls, TypeHint *prop) {
         break;
       }
 #endif
+      throw_warn(ls, "'export' is deprecated. use a table instead.", WT_DEPRECATED);
       if (testnext(ls, TK_FUNCTION)) {
         ls->fs->bl->export_symbols.emplace_back(str_checkname(ls, 0));
         luaX_prev(ls);
@@ -5463,23 +5642,6 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(','));
       ls->tokens.emplace_back(Token(TK_DOTS));
       ls->tokens.emplace_back(Token(')'));
-
-      //   if type(mt) ~= "table" then
-      ls->tokens.emplace_back(Token(TK_IF));
-      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "type")));
-      ls->tokens.emplace_back(Token('('));
-      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
-      ls->tokens.emplace_back(Token(')'));
-      ls->tokens.emplace_back(Token(TK_NE));
-      ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "table")));
-      ls->tokens.emplace_back(Token(TK_THEN));
-
-      //     error "'new' used on non-table value"
-      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "error")));
-      ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "'new' used on non-table value")));
-
-      //   end
-      ls->tokens.emplace_back(Token(TK_END));
 
       //   if mt.new then
       ls->tokens.emplace_back(Token(TK_IF));
@@ -5849,6 +6011,17 @@ static void mainfunc (LexState *ls, FuncState *fs) {
 }
 
 
+static void applyenvkeywordpreference (LexState *ls, int t, bool b) {
+  if (b) {
+    ls->setKeywordState(t, KS_ENABLED_BY_ENV);
+  }
+  else {
+    disablekeyword(ls, t);
+    ls->setKeywordState(t, KS_DISABLED_BY_ENV);
+  }
+}
+
+
 LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
                        Dyndata *dyd, const char *name, int firstchar) {
   FuncState funcstate;
@@ -5866,24 +6039,24 @@ LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
   lexstate.dyd = dyd;
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
   luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
-  if (L->l_G->compatible_switch)
-    disablekeyword(&lexstate, TK_SWITCH, true);
-  if (L->l_G->compatible_continue)
-    disablekeyword(&lexstate, TK_CONTINUE, true);
-  if (L->l_G->compatible_enum)
-    disablekeyword(&lexstate, TK_ENUM, true);
-  if (L->l_G->compatible_new)
-    disablekeyword(&lexstate, TK_NEW, true);
-  if (L->l_G->compatible_class)
-    disablekeyword(&lexstate, TK_CLASS, true);
-  if (L->l_G->compatible_parent)
-    disablekeyword(&lexstate, TK_PARENT, true);
-  if (L->l_G->compatible_export)
-    disablekeyword(&lexstate, TK_EXPORT, true);
-  if (L->l_G->compatible_try)
-    disablekeyword(&lexstate, TK_TRY, true);
-  if (L->l_G->compatible_catch)
-    disablekeyword(&lexstate, TK_CATCH, true);
+  if (L->l_G->have_preference_switch)
+    applyenvkeywordpreference(&lexstate, TK_SWITCH, L->l_G->preference_switch);
+  if (L->l_G->have_preference_continue)
+    applyenvkeywordpreference(&lexstate, TK_CONTINUE, L->l_G->preference_continue);
+  if (L->l_G->have_preference_enum)
+    applyenvkeywordpreference(&lexstate, TK_ENUM, L->l_G->preference_enum);
+  if (L->l_G->have_preference_new)
+    applyenvkeywordpreference(&lexstate, TK_NEW, L->l_G->preference_new);
+  if (L->l_G->have_preference_class)
+    applyenvkeywordpreference(&lexstate, TK_CLASS, L->l_G->preference_class);
+  if (L->l_G->have_preference_parent)
+    applyenvkeywordpreference(&lexstate, TK_PARENT, L->l_G->preference_parent);
+  if (L->l_G->have_preference_export)
+    applyenvkeywordpreference(&lexstate, TK_EXPORT, L->l_G->preference_export);
+  if (L->l_G->have_preference_try)
+    applyenvkeywordpreference(&lexstate, TK_TRY, L->l_G->preference_try);
+  if (L->l_G->have_preference_catch)
+    applyenvkeywordpreference(&lexstate, TK_CATCH, L->l_G->preference_catch);
 #ifndef PLUTO_USE_LET
   disablekeyword(&lexstate, TK_LET);
 #endif

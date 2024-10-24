@@ -184,7 +184,9 @@ static int pmain(lua_State* L)
  int i;
  tmname=G(L)->tmname;
  if (!lua_checkstack(L,argc)) fatal("too many input files");
- L->l_G->setCompatibilityMode(compat);
+ if (compat) {
+   L->l_G->setCompatibilityMode(compat);
+ }
  for (i=0; i<argc; i++)
  {
   const char* filename=IS("-") ? NULL : argv[i];

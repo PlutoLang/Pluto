@@ -187,6 +187,26 @@ end]]
 else
 end]]
 end
+-- Propagate conditional in block
+do
+    assert_no_warn[[local function test(arg: string|number): void
+        if type(arg) == "string" then
+            local str: string = arg
+        end
+    end]]
+    assert_warn[[local function test(arg: string|number): void
+        if type(arg) == "string" then
+            arg = 69
+            local str: string = arg
+        end
+    end]]
+    assert_no_warn[[local function test(arg: string|number): void
+        if type(arg) == "string" then
+            arg = 69
+            local str: number = arg
+        end
+    end]]
+end
 
 print "Testing assertion library."
 do
@@ -273,6 +293,10 @@ do
     containserror("Absent", assert.searcherror, "hello world", error, "abc")
     assert.equal({}, {})
     assert.nequal({}, { 1 })
+    noerror(assert.contains, "hello world", "apple pie hello world yellow apple")
+    noerror(assert.contains, "my element", { 1, 2, 3, 4, "my element", 5 })
+    haserror(assert.contains, "hello world", "nothing to see here")
+    haserror(assert.contains, "my element", { 1, 2, 3, 4, "my not element", 5 })
 end
 
 print "Testing compound assignment."
@@ -754,6 +778,13 @@ do
     }
     assert(true ? (t:t()) : false)
 
+    -- Longhand: 'if' expression
+    assert(if a == 3 then
+        "yes"
+    else
+        "no"
+    end == "yes")
+
     -- @pluto_warnings: enable-unreachable-code
 end
 
@@ -1097,7 +1128,10 @@ do
             return
             case 2:
             return 2
-            case 3: -- return before defualt
+            case 3: -- return before case, with break
+            return
+            break
+            case 4: -- return before defualt
             return
             default:
             return
@@ -1107,6 +1141,7 @@ do
     assert(switchfunc(1) == nil)
     assert(switchfunc(2) == 2)
     assert(switchfunc(3) == nil)
+    assert(switchfunc(4) == nil)
 end
 do
     switch true do
@@ -1457,6 +1492,9 @@ do
     assert(crypto.sha256("Pluto", true) == "\x8d\xad\x5f\x6a\x7d\xd2\xdc\xd8\xc3\x5e\xc2\xfd\x7b\xab\xb4\x99\xbc\xad\x60\xd2\x7d\x73\xfe\x73\xec\xa2\xce\x02\x5d\xfd\x3b\x47")
     assert(crypto.sha384("Pluto", false) == "db890233a919b6745d632633c419e14540ff79f1a89bc4ac194b00e7f913f0f06d5d4d7d6cc2b4aaf9485d223afb8cf0")
     assert(crypto.sha512("Pluto", false) == "ee8410a8bf9511b94fd6669b5c3e0c4b86e8e4bf7baa8dbd2773d4d6381dd1aecebbe391bef4c6158620ab3f6b794907652d4432c2301d7e1a6caf520565cdf2")
+
+    assert(crypto.ripemd160("Pluto") == "c2072a85f4a691803b8942709036072086fd9550")
+    assert(crypto.ripemd160("Pluto", true) == "\xc2\x07\x2a\x85\xf4\xa6\x91\x80\x3b\x89\x42\x70\x90\x36\x07\x20\x86\xfd\x95\x50")
 end
 do
     local base64 = require("base64")
@@ -1686,7 +1724,24 @@ do
 
     assert(string.formatint("+3249230492345645324234234234234234234234234324242343243242342343423242344") == "+3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
     assert(string.formatint("-3249230492345645324234234234234234234234234324242343243242342343423242344") == "-3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
+end
+do
+    local arr = "a b c":split(" ")
+    assert(#arr == 3)
+    assert(arr[1] == "a")
+    assert(arr[2] == "b")
+    assert(arr[3] == "c")
 
+    arr = "a b c":split(" ", 2)
+    assert(#arr == 2)
+    assert(arr[1] == "a")
+    assert(arr[2] == "b c")
+
+    arr = "a b c":split(" ", 1)
+    assert(#arr == 1)
+    assert(arr[1] == "a b c")
+end
+do
     local str = "Hello, World! == %% 20 <> //\\"
     local url = require"pluto:url"
     assert(url.encode(str) == "Hello%2C%20World%21%20%3D%3D%20%25%25%2020%20%3C%3E%20%2F%2F%5C")
@@ -1872,6 +1927,9 @@ do
     assert(menu:find(|item| -> item.id == 1).name == "Apple")
     assert(menu:find(|item| -> item.id == 2).name == "Banana")
     assert(menu:find(|item| -> item.id == 3) == nil)
+    assert(menu:findindex(|item| -> item.id == 1) == 1)
+    assert(menu:findindex(|item| -> item.id == 2) == 2)
+    assert(menu:findindex(|item| -> item.id == 3) == nil)
 end
 do
     assert({ 1, 2, 3 }:checkall(|x| -> x % 2 == 0) == false)
@@ -1882,6 +1940,114 @@ do
     assert(t:size() == 5)
     t:clear()
     assert(t:size() == 0)
+end
+do
+    assert(table.back({ "a", "b", "c" }) == "c")
+end
+do
+    local keys = table.keys{
+        a = 1,
+        b = 2,
+        c = 3
+    }
+    assert(#keys == 3)
+    assert(keys:contains("a"))
+    assert(keys:contains("b"))
+    assert(keys:contains("c"))
+end
+do
+    local test_table_1 = {1, 2, 2, 3, 1}
+    local counts_1 = test_table_1:countvalues()
+    assert(counts_1[1] == 2)
+    assert(counts_1[2] == 2)
+    assert(counts_1[3] == 1)
+
+    local test_table_2 = {1, 2, nil, 3, 1, nil}
+    local counts_2 = test_table_2:countvalues()
+    assert(counts_2[1] == 2)
+    assert(counts_2[2] == 1)
+    assert(counts_2[3] == 1)
+
+    local test_table_3 = {1, 2, 3, 4, 5}
+    local counts_3 = test_table_3:countvalues()
+    assert(counts_3[1] == 1)
+    assert(counts_3[2] == 1)
+    assert(counts_3[3] == 1)
+    assert(counts_3[4] == 1)
+    assert(counts_3[5] == 1)
+
+    local test_table_4 = {1, "hello", 1, "world", "hello"}
+    local counts_4 = test_table_4:countvalues()
+    assert(counts_4[1] == 2)
+    assert(counts_4["hello"] == 2)
+    assert(counts_4["world"] == 1)
+
+    local test_table_5 = {}
+    local counts_5 = test_table_5:countvalues()
+    assert(next(counts_5) == nil)
+
+    local test_table_6 = {1, {2}, 1, {2}, 3}
+    local counts_6 = test_table_6:countvalues()
+    for key, value in counts_6 do
+        if type(key) == "table" then
+            assert(value == 1)
+            continue
+        elseif key == 1 then
+            assert(value == 2)
+            continue
+        elseif key == 3 then
+            assert(value == 1)
+            continue
+        end
+        error()
+    end
+
+    local test_table_7 = { 1, 2, 3, 2, 3, 3, 4, test_table_6, nil, test_table_6 }:countvalues()
+    assert(test_table_7[1] == 1)
+    assert(test_table_7[2] == 2)
+    assert(test_table_7[3] == 3)
+    assert(test_table_7[4] == 1)
+    assert(test_table_7[test_table_6] == 2)
+end
+do
+    local t = {1, 2, 3, 4, 5}
+
+    assert(table.slice(t, 1, 3)[1] == 1)
+    assert(table.slice(t, 1, 3)[2] == 2)
+    assert(table.slice(t, 1, 3)[3] == 3)
+    assert(#table.slice(t, 1, 3) == 3)
+
+    assert(table.slice(t, -3, -1)[1] == 3)
+    assert(table.slice(t, -3, -1)[2] == 4)
+    assert(table.slice(t, -3, -1)[3] == 5)
+    assert(#table.slice(t, -3, -1) == 3)
+
+    assert(#table.slice(t, 6, 10) == 0)
+    assert(#table.slice(t, 2, 10) == 4)
+    assert(#table.slice(t, 0, 10) == #t)
+end
+do
+    local t = {1, 2, 3, 4, 5}
+    local chunk
+    chunk = t:chunk(3)
+    assert(chunk[1][1] == 1)
+    assert(chunk[1][2] == 2)
+    assert(chunk[1][3] == 3)
+    assert(chunk[2][1] == 4)
+    assert(chunk[2][2] == 5)
+    assert(chunk[2][3] == nil)
+    chunk = t:chunk(1)
+    assert(chunk[1][1] == 1)
+    assert(chunk[1][2] == nil)
+    assert(chunk[2][1] == 2)
+    assert(chunk[2][2] == nil)
+    assert(chunk[3][1] == 3)
+    assert(chunk[3][2] == nil)
+    assert(chunk[4][1] == 4)
+    assert(chunk[4][2] == nil)
+    assert(chunk[5][1] == 5)
+    assert(chunk[5][2] == nil)
+    assert(#{}:chunk(5) == 0)
 end
 do
     assert(compareversions("0.1.0", "0.1.0") == 0)
@@ -1922,6 +2088,26 @@ end
 do
     assert(range(10):min() == 1)
     assert(range(10):max() == 10)
+end
+do
+    local mask = { 0xf0, 0x0f }
+    local data = { 0x11, 0x22, 0x33, 0x44 }
+    for i, v in data do
+        -- Old way: data[i] = data[i] ~ mask[((i - 1) % #mask) + 1]
+        data[i] = data[i] ~ mask:modget(i)
+    end
+    assert(data[1] == 0x11 ~ 0xf0)
+    assert(data[2] == 0x22 ~ 0x0f)
+    assert(data[3] == 0x33 ~ 0xf0)
+    assert(data[4] == 0x44 ~ 0x0f)
+end
+do
+    local test = { 1, 2, 3 }
+    test:modset(5, 5)
+    test:modset(6, 6)
+    assert(test[1] == 1)
+    assert(test[2] == 5)
+    assert(test[3] == 6)
 end
 do
     local cat = require"pluto:cat"
@@ -2016,6 +2202,11 @@ do
 
     local sig = crypto.sign("Pluto is certified cool", "rsa-sha1", priv)
     assert(crypto.verify("Pluto is certified cool", "rsa-sha1", pub, sig))
+
+    local pem = priv |> crypto.exportkey|"pem"|
+    local reimported = pem |> crypto.importkey|"pem"|
+    assert(reimported.p == priv.p)
+    assert(reimported.q == priv.q)
 end
 do
     local bigint = require "pluto:bigint"
@@ -2033,24 +2224,81 @@ do
     end
 end
 do
+    local { scheduler } = require "*"
+
+    -- Test contains
+    do
+        local sched = new scheduler()
+        local t = sched:add(function() end)
+        sched:add(function()
+            while sched:contains(t) do
+                coroutine.yield()
+            end
+        end)
+        sched:run()
+    end
+
+    -- Test remove
+    do
+        local sched = new scheduler()
+        local t = sched:add(function() end)
+        local ok = false
+        sched:add(function()
+            assert(sched:contains(t) == true)
+            sched:remove(t)
+            assert(sched:contains(t) == false)
+            coroutine.yield()
+            ok = true
+        end)
+        sched:run()
+        assert(ok)
+    end
+end
+do
     local { scheduler, socket } = require "*"
 
     local sched = new scheduler()
     sched:add(function()
         local l = socket.listen(30724)
         local s = l:accept()
+        assert(s:getside() == "server")
         while data := s:recv() do
             s:send(data)
         end
+        assert(s:isopen() == false)
     end)
     sched:add(function()
         local s = socket.connect("localhost", 30724)
         assert(s)
+        assert(s:isopen() == true)
+        assert(s:getside() == "client")
+        assert(select(2, s:getpeer()) == 30724)
+        assert(s:peek() == nil)
         s:send("Hello")
+        while s:peek() == nil do
+            coroutine.yield()
+        end
+        assert(s:peek() == "Hello")
         assert(s:recv() == "Hello")
+        assert(s:peek() == nil)
         s:close()
+        assert(s:isopen() == false)
     end)
     sched:run()
+end
+do
+    local regex = require "pluto:regex"
+
+    local pattern = new regex [[/^the (only )?one$/i]]
+    assert(pattern:match("THE ONE"))
+    assert(not pattern:match("NOT THE ONE"))
+
+    pattern = new regex [[/anywhere from (\d+) to (\d+)/]]
+    local match = pattern:match("anywhere from 3 to 5")
+    assert(match)
+    assert(match[0] == "anywhere from 3 to 5")
+    assert(match[1] == "3")
+    assert(match[2] == "5")
 end
 
 print "Testing default table metatable."
@@ -2133,11 +2381,6 @@ do
         error()
     end
 
-    if (walrusvar := 1) ~= 1 then
-    else
-        assert(walrusvar == 1)
-    end
-
     -- Complex Context: Walrus in function body of a lambda function that is passed an argument
     local function executeFunc(f)
         f()
@@ -2192,11 +2435,12 @@ do -- Local can be used for subsequent binary operators
         error()
     end
 
+    local reached = false
     if (a := initfunc(0)) ~= 0 then
-        error()
     else
-        assert(a == 0)
+        reached = true
     end
+    assert(reached)
 end
 do -- Method calls as well
     local class Obj
@@ -2224,8 +2468,9 @@ do -- Can be used in subexpressions
         assert(cur == 0)
     end
 end
-do -- But scope may be cut short by conditional subexpressions
-    if false and walrusvar := 1 then
+do -- Variable is scoped to its block
+    -- @pluto_warnings disable-next
+    if (walrusvar := 1) and false then
     else
         assert(walrusvar == nil)
     end
@@ -2694,6 +2939,59 @@ do
 
     GlobalClass = nil
 end
+-- Order independent private methods / fields / preprocessing
+do
+    local t = {}
+    local class MyClass
+        function __construct(private a)
+            self.var1 = "1"
+            self.var2 = "2"
+            self.var3 = "3"
+            assert(self["var1"] == nil)
+            assert(self["__restricted__var1"] == "1")
+        end
+
+        public function getPublic()
+            if a then else end
+            local a = || -> do end
+            enum A begin
+            end
+            class Foo begin end
+            class t.Foo begin end
+            local MuhClass = class end
+            local MuhClass2 = class begin end
+            local MuhClass3 = pluto_class end
+            local MuhClass4 = pluto_class begin end
+            local MuhClass5 = pluto_class private a; end
+            local MuhClass6 = pluto_class begin private a; end
+            enum class MyEnumClass begin
+
+            end
+            return self:getPrivate()
+        end
+
+        private function getPrivate()
+            return self.a
+        end
+
+        private var1
+        private var2,
+        private var3;
+    end
+
+    local var = new MyClass("a")
+
+    assert(var:getPublic() == "a")
+    assert(var.__restricted__getPrivate ~= nil)
+    assert(var.getPrivate == nil)
+    assert(t.Foo ~= nil)
+    assert(var.var1 == nil)
+    assert(var.var2 == nil)
+    assert(var.var3 == nil)
+    assert(var.__restricted__var1 == "1")
+    assert(var.__restricted__var2 == "2")
+    assert(var.__restricted__var3 == "3")
+end
 
 print "Testing named varargs."
 do
@@ -2710,38 +3008,6 @@ do
     assert(f() == 0)
     assert(f(1) == 1)
     assert(f(1, 2) == 2)
-end
-
-print "Testing export."
-do
-    local t = load [[export var = 1337
-
-    export function func()
-        return true
-    end
-
-    export class Clazz
-    end
-    ]] ()
-    assert(t.var == 1337)
-    assert(t.func() == true)
-    assert(type(t.Clazz) == "table")
-end
-do
-    local function export_in_non_main_function()
-        export var = 1337
-
-        export function func()
-            return true
-        end
-
-        export class Clazz
-        end
-    end
-    local t = export_in_non_main_function()
-    assert(t.var == 1337)
-    assert(t.func() == true)
-    assert(type(t.Clazz) == "table")
 end
 
 print "Testing optional parentheses."
@@ -3069,6 +3335,32 @@ do
         ::if_then_goto_test::
     end
 end
+do -- Reserved Identifiers
+    local t = {
+        class = "key",
+        while = "another key",
+    }
+    assert(t.class == "key")
+    assert(t.while == "another key")
+
+    for i = 1, 10 do
+        if i == 5 then
+            goto continue
+        end
+        ::continue::
+    end
+
+    for i = 1, 10 do
+        if i == 5 then
+            goto while
+        end
+        ::while::
+    end
+
+    -- This should still be an error
+    assert(load[[return break]] == nil)
+    assert(load[[return while]] == nil)
+end
 do
     local function compat_names(default, parent)
         assert(default == 1)
@@ -3194,6 +3486,39 @@ do
     -- predefine globals
     assert_no_warn [[pluto_use global; global a; a = 1]]
     assert_no_warn [[pluto_use global; global a, b; a = 1; b = 2]]
+end
+
+print "Testing chained comparisons."
+do
+    local function f(x)
+        return x
+    end
+
+    -- Normally, chaining the '<', '<=', '>' and '>=' operators is an error because they return a boolean (even with metatables) but error when a boolean is an operand.
+    -- Pluto generates code for it such that 'a < b < c' equals 'a < b and b < c'.
+    assert((0 < f(0) < 100) == false)
+    assert((0 < f(1) < 100) == true)
+    assert((0 < f(100) < 100) == false)
+    assert((100 > f(0) > 0) == false)
+    assert((100 > f(1) > 0) == true)
+    assert((100 > f(100) > 0) == false)
+
+    -- Any chain length is acceptable
+    assert(0 < 1 < 2 < 3)
+
+    -- '==' and '~=' are not changed
+    assert(1 ~= true)
+    assert(1 == 1 == true)
+    assert(1 == 1 ~= 1)
+end
+do
+    local { bigint } = require "*"
+
+    local a = new bigint("69")
+    local b = new bigint("420")
+    local c = new bigint("1337")
+
+    assert((a < b < c) == true)
 end
 
 print "Testing modified require semantics."

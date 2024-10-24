@@ -8,6 +8,7 @@
 #include <queue>
 #include <thread>
 
+#include "vendor/Soup/soup/CertStore.hpp"
 #include "vendor/Soup/soup/netConnectTask.hpp"
 #include "vendor/Soup/soup/Scheduler.hpp"
 #include "vendor/Soup/soup/Server.hpp"
@@ -116,14 +117,22 @@ static int recvcont (lua_State *L, int status, lua_KContext ctx) {
   return restrecv(L, ss);
 }
 
+static int l_peek (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  ss.sched.tick();
+  if (!ss.recvd.empty()) {
+    pluto_pushstring(L, ss.recvd.front());
+    return 1;
+  }
+  return 0;
+}
+
 static int l_recv (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
-  
-  if (lua_isyieldable(L))
-    return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(&ss), recvcont);
-
+  ss.sched.tick();
   if (ss.recvd.empty()) {
-    ss.sched.tick();
+    if (lua_isyieldable(L))
+      return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(&ss), recvcont);
     while (ss.recvd.empty() && !ss.sock->isWorkDone()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       ss.sched.tick();
@@ -146,18 +155,52 @@ static int starttlscont (lua_State *L, int status, lua_KContext ctx) {
   return 1;
 }
 
+static void starttlscallback (soup::Socket&, soup::Capture&& cap) SOUP_EXCAL {
+  StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
+  ss.did_tls_handshake = true;
+  ss.recvLoop();  /* re-add recv loop, now on crypto layer */
+}
+
 static int starttls (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
-  if (ss.from_listener) {
-    luaL_error(L, "starttls is currently only possible on client sockets");  /* TODO */
-  }
+
   if (ss.did_tls_handshake)
     return 0;
-  ss.sock->enableCryptoClient(luaL_checkstring(L, 2), [](soup::Socket&, soup::Capture&& cap) SOUP_EXCAL {
-    StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
-    ss.did_tls_handshake = true;
-    ss.recvLoop();  /* re-add recv loop, now on crypto layer */
-  }, &ss);
+
+  if (ss.from_listener) {
+    auto certstore = pluto_newclassinst(L, soup::SharedPtr<soup::CertStore>, new soup::CertStore());
+    lua_pushnil(L);
+    while (lua_next(L, 2)) {
+      lua_pushliteral(L, "chain");
+      lua_gettable(L, -2);
+      size_t chain_len;
+      const char *chain = luaL_checklstring(L, -1, &chain_len);
+      lua_pop(L, 1);
+      
+      lua_pushliteral(L, "private_key");
+      lua_gettable(L, -2);
+      size_t privkey_len;
+      const char *privkey = luaL_checklstring(L, -1, &privkey_len);
+      lua_pop(L, 1);
+
+      soup::X509Certchain chainstruct;
+      chainstruct.fromPem(std::string(chain, chain_len));
+      (*certstore)->add(std::move(chainstruct), soup::RsaPrivateKey::fromPem(std::string(privkey, privkey_len)));
+
+      lua_pop(L, 1);
+    }
+
+    /* We may have already consumed the client_hello, so we need to give it back to Soup. */
+    while (!ss.recvd.empty()) {
+      ss.sock->transport_unrecv(ss.recvd.back());
+      ss.recvd.pop_back();
+    }
+
+    ss.sock->enableCryptoServer(std::move(*certstore), starttlscallback, &ss);
+  }
+  else {
+    ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallback, &ss);
+  }
 
   if (lua_isyieldable(L))
     return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(&ss), starttlscont);
@@ -170,10 +213,43 @@ static int starttls (lua_State *L) {
   return 1;
 }
 
+static int socket_istls (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  lua_pushboolean(L, ss.did_tls_handshake);
+  return 1;
+}
+
 static int socket_close (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
   ss.sock->close();
   return 0;
+}
+
+static int socket_isopen (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  lua_pushboolean(L, !ss.sock->isWorkDoneOrClosed());
+  return 1;
+}
+
+static int socket_getside (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  if (ss.from_listener)
+    lua_pushliteral(L, "server");
+  else
+    lua_pushliteral(L, "client");
+  return 1;
+}
+
+static int socket_getpeer (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  auto ipstr = ss.sock->peer.ip.toString();
+  if (!ss.sock->peer.ip.isV4()) {
+    ipstr.insert(0, 1, '[');
+    ipstr.push_back(']');
+  }
+  pluto_pushstring(L, std::move(ipstr));
+  lua_pushinteger(L, ss.sock->peer.getPort());
+  return 2;
 }
 
 struct Listener {
@@ -267,10 +343,15 @@ static int l_listen (lua_State *L) {
 static const luaL_Reg funcs_socket[] = {
   {"connect", l_connect},
   {"send", l_send},
+  {"peek", l_peek},
   {"recv", l_recv},
   {"unrecv", unrecv},
   {"starttls", starttls},
+  {"istls", socket_istls},
   {"close", socket_close},
+  {"isopen", socket_isopen},
+  {"getside", socket_getside},
+  {"getpeer", socket_getpeer},
   {"listen", l_listen},
   {NULL, NULL}
 };

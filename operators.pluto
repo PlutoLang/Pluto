@@ -1,9 +1,6 @@
 -- lparser.cpp's builtinoperators
 
 local Pluto_operator_new <const> = function(mt, ...)
-  if type(mt) ~= "table" then
-    error "'new' used on non-table value"
-  end
   if mt.new then
     return mt.new(...)
   end

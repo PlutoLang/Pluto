@@ -26,6 +26,7 @@ NAMESPACE_SOUP
 		void loadMessage(const std::string& data);
 		[[nodiscard]] bool hasHeader(const std::string& key) const noexcept;
 		[[nodiscard]] std::string* findHeader(std::string key) noexcept;
+		[[nodiscard]] const std::string* findHeader(std::string key) const noexcept;
 		void addHeader(const std::string& line) SOUP_EXCAL;
 		void setHeader(const std::string& key, const std::string& value) SOUP_EXCAL;
 		[[nodiscard]] static std::string normaliseHeaderCasing(const std::string& key) SOUP_EXCAL;
