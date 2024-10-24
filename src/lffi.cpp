@@ -75,6 +75,9 @@ enum FfiType : uint8_t {
 
 static int push_ffi_value (lua_State *L, FfiType type, void *value) {
   switch (type) {
+    case FFI_UNKNOWN:
+      /* 'handling' this case makes the compiler happy */
+      break;
     case FFI_VOID:
       return 0;
     case FFI_I8:
@@ -119,6 +122,9 @@ static int push_ffi_value (lua_State *L, FfiType type, void *value) {
 
 static uintptr_t check_ffi_value (lua_State *L, int i, FfiType type) {
   switch (type) {
+    case FFI_UNKNOWN:
+      /* 'handling' this case makes the compiler happy */
+      break;
     case FFI_VOID:
       return 0;
     case FFI_I8:
