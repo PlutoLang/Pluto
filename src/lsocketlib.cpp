@@ -168,7 +168,7 @@ static int starttls (lua_State *L) {
     return 0;
 
   if (ss.from_listener) {
-    auto certstore = pluto_newclassinst(L, soup::SharedPtr<soup::CertStore>);
+    auto certstore = pluto_newclassinst(L, soup::SharedPtr<soup::CertStore>, new soup::CertStore());
     lua_pushnil(L);
     while (lua_next(L, 2)) {
       lua_pushliteral(L, "chain");
