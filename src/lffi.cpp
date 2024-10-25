@@ -48,6 +48,7 @@ enum FfiType : uint8_t {
 
 [[nodiscard]] static FfiType rfl_type_to_ffi_type (const soup::rflType& type) noexcept {
   if (type.at == soup::rflType::DIRECT) {
+    if (type.name == "void") { return FFI_VOID; }
     if (type.name == "bool") { return FFI_U8; }
     if (type.name == "char") { return FFI_I8; }
     if (type.name == "int8_t") { return FFI_I8; }
