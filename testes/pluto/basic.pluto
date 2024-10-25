@@ -207,6 +207,13 @@ do
         end
     end]]
 end
+-- Strings should not be able to disable warnings
+do
+    assert_warn[[assert("@pluto_warnings: disable-all")
+
+    local x
+    local x]]
+end
 
 print "Testing assertion library."
 do
