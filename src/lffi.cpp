@@ -152,6 +152,8 @@ static uintptr_t check_ffi_value (lua_State *L, int i, FfiType type) {
         luaL_checktype(L, i, LUA_TLIGHTUSERDATA);
       return reinterpret_cast<uintptr_t>(lua_touserdata(L, i));
     case FFI_STR:
+      if (lua_type(L, i) == LUA_TNIL)
+        return 0;
       return reinterpret_cast<uintptr_t>(luaL_checkstring(L, i));
   }
   SOUP_UNREACHABLE;
