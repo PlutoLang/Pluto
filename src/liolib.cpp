@@ -1189,6 +1189,8 @@ static const luaL_Reg iolib[] = {
   {"contents", contents},
   {"writetime", writetime},
   {"currentdir", currentdir},
+  {"chdir", currentdir},
+  {"cwd", currentdir},
   {"rename", l_rename},
   {"remove", l_remove},
   {"listdir", listdir},
