@@ -311,17 +311,17 @@ public:
       error += name;
 
       if (strstr(line, enable.c_str()) != nullptr) {
-        if (name != "all")
+        if (id != ALL_WARNINGS)
           states[id] = WS_ON;
         else
           setAllTo(WS_ON);
       } else if (strstr(line, disable.c_str()) != nullptr) {
-        if (name != "all")
+        if (id != ALL_WARNINGS)
           states[id] = WS_OFF;
         else
           setAllTo(WS_OFF);
       } else if (strstr(line, error.c_str()) != nullptr) {
-        if (name != "all")
+        if (id != ALL_WARNINGS)
           states[id] = WS_ERROR;
         else
           setAllTo(WS_ERROR);
