@@ -1428,6 +1428,7 @@ do
     assert(("69") |> tonumber|16| == 0x69)
 
     -- Try to avoid syntax ambiguity by not allowing function call with '(' in the chain after pipe operator was used.
+    -- @pluto_warnings disable-next
     ;(69) |> f (69) |> f
 
     -- Other types of function calls are still okay, tho, since string and table are not valid statements.
@@ -2190,7 +2191,7 @@ do
         e = bigint.new(0x10001),
     }
 
-    local enc = crypto.encrypt("Hi", "rsa", pub)
+    enc = crypto.encrypt("Hi", "rsa", pub)
     assert(base64.encode(enc) == "w1v3stxRHCs=")
     assert(crypto.decrypt(enc, "rsa", priv) == "Hi")
 
@@ -3316,6 +3317,7 @@ do
     -- Export in try body
     local function f()
         try
+            -- @pluto_warnings disable-next (export is deprecated)
             export function a() end
         catch e then
         end
