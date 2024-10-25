@@ -1442,6 +1442,9 @@ do
     }
     assert(_SERVER.REDIRECT_INVOKE_FILENAME |> io.part|"parent"| == "/deez")
 end
+do
+    assert(("Hello" |> string.upper) == "HELLO")
+end
 
 print "Testing standard library additions."
 do
