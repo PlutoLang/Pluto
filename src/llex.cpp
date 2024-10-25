@@ -241,10 +241,6 @@ static void inclinenumber (LexState *ls) {
   if (currIsNewline(ls) && ls->current != old)
     next(ls);  /* skip '\n\r' or '\r\n' */
 
-  const std::string& buff = ls->getLineBuff();
-  if (buff.find("@pluto_warnings") != std::string::npos)
-    ls->lexPushWarningOverride().processComment(buff);
-
   ls->lines.emplace_back(std::string{});
 }
 
@@ -423,9 +419,8 @@ static void read_long_string (LexState *ls, SemInfo *seminfo, size_t sep) {
       }
     }
   } endloop:
-  if (seminfo)
-    seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 1,
-                                     luaZ_bufflen(ls->buff) - sep - 1);
+  seminfo->ts = luaX_newstring(ls, luaZ_buffer(ls->buff) + 1,
+                                   luaZ_bufflen(ls->buff) - sep - 1);
 }
 
 
@@ -603,8 +598,11 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
             if (sep >= 2) {
               ls->appendLineBuff(sep - 2, '=');
               ls->appendLineBuff('[');
-              read_long_string(ls, nullptr, sep);  /* skip long comment */
+              SemInfo si;
+              read_long_string(ls, &si, sep);  /* skip long comment */
               luaZ_resetbuffer(ls->buff);  /* 'read_long_string' may dirty the buffer */
+              if (strstr(getstr(si.ts), "@pluto_warnings") != nullptr)
+                ls->lexPushWarningOverride().processComment(getstr(si.ts));
               ls->appendLineBuff(']');
               ls->appendLineBuff(sep - 2, '=');
               ls->appendLineBuff(']');
@@ -620,19 +618,21 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           }
           if (ls->current == '@') {  /* attribute? */
             ls->appendLineBuff('@');
-            next(ls);
+            save_and_next(ls);
             while (lislalnum(ls->current))
               save_and_next(ls);
             ls->appendLineBuff(luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
             if (strncmp(luaZ_buffer(ls->buff), "pluto_use", luaZ_bufflen(ls->buff)) == 0) {
               return TK_USEANN;
             }
-            luaZ_resetbuffer(ls->buff);
           }
           while (!currIsNewline(ls) && ls->current != EOZ) {
             ls->appendLineBuff(ls->current);
-            next(ls);  /* skip until end of line (or end of file) */
+            save_and_next(ls);  /* skip until end of line (or end of file) */
           }
+          if (strstr(luaZ_buffer(ls->buff), "@pluto_warnings") != nullptr)
+            ls->lexPushWarningOverride().processComment(luaZ_buffer(ls->buff));
+          luaZ_resetbuffer(ls->buff);
           if (ls->getLineBuff().find("@fallthrough") != std::string::npos)
             return TK_FALLTHROUGH;
           break;
