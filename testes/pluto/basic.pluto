@@ -3023,6 +3023,18 @@ do
         end
     }.test() == "hello")
 end
+do
+    local piped
+    local function consumer(x)
+        piped = x
+    end
+
+    ;"Hello" |> consumer
+    assert(piped == "Hello")
+
+    ;"Hello":upper() |> consumer
+    assert(piped == "HELLO")
+end
 
 print "Testing table destructuring."
 do
