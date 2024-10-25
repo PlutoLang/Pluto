@@ -940,6 +940,7 @@ static const luaL_Reg tab_funcs[] = {
   {"checkall", checkall},
   {"find", tfind<false>},
   {"findindex", tfind<true>},
+  {"findkey", tfind<true>},
   {"reduce", treduce},
   {"size", tsize},
   {"reorder", treorder<false>},
