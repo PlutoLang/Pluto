@@ -845,9 +845,10 @@ static int tcountvalues (lua_State *L) {
 static int tslice (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
 
-  lua_Integer idx_start = luaL_checkinteger(L, 2);
-  lua_Integer idx_end = luaL_checkinteger(L, 3);
   const lua_Integer l = luaL_len(L, 1);
+
+  lua_Integer idx_start = luaL_checkinteger(L, 2);
+  lua_Integer idx_end = luaL_optinteger(L, 3, l);
 
   if (idx_start < 0) {
     idx_start = l + idx_start + 1;
@@ -861,6 +862,7 @@ static int tslice (lua_State *L) {
   }
 
   lua_newtable(L);
+  int tabloc = lua_gettop(L);
   lua_Integer idx_result = 1;
   for (lua_Integer i = idx_start; i <= idx_end; ++i) {
     lua_pushinteger(L, i);
@@ -868,14 +870,14 @@ static int tslice (lua_State *L) {
     if (!lua_isnoneornil(L, -1)) {
       lua_pushinteger(L, idx_result++);
       lua_pushvalue(L, -2);
-      lua_settable(L, 4);
+      lua_settable(L, tabloc);
     }
     else {
       lua_pop(L, 1);
     }
   }
 
-  lua_settop(L, 4);
+  lua_settop(L, tabloc);
 
   return 1;
 }
