@@ -3123,7 +3123,6 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
 
 static int cond (LexState *ls, bool for_while_loop = false);
 static void ifexpr (LexState *ls, expdesc *v) {
-  throw_warn(ls, "'if a then b else c' is deprecated", "use 'a ? b : c' instead", WT_DEPRECATED);
   /*
   ** 'if' expressions are based on a patch published by by Ryota Hirose.
   */
