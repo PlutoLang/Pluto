@@ -2896,6 +2896,8 @@ static void parentexp (LexState *ls, expdesc *v) {
 }
 
 
+static void expsuffix (LexState* ls, expdesc* v, int line, int flags, TypeHint *prop);
+
 static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
   /* primaryexp -> NAME | '(' expr ')' */
   if (isnametkn(ls, N_OVERRIDABLE)) {
@@ -2947,6 +2949,12 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
       parentexp(ls, v);
       return;
     }
+    case TK_STRING: {
+      codestring(v, ls->t.seminfo.ts);
+      luaX_next(ls);
+      expsuffix(ls, v, ls->getLineNumber(), flags, nullptr);
+      return;
+    }
     case '{': {
       throwerr(ls, "unexpected symbol near '{'", "if you meant to begin this statement with a table, wrap it in parentheses.");
     }
@@ -2960,8 +2968,6 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
   }
 }
 
-
-static void expsuffix (LexState* ls, expdesc* v, int line, int flags, TypeHint *prop);
 
 static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr) {
   /* suffixedexp ->
