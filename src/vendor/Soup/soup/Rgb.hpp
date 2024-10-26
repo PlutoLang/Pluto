@@ -100,5 +100,10 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] double distance(const Rgb& e2) const noexcept;
 		[[nodiscard]] double similarity(const Rgb& e2) const noexcept;
+		
+		[[nodiscard]] Rgb invert() const noexcept
+		{
+			return Rgb(~r, ~g, ~b);
+		}
 	};
 }

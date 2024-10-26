@@ -366,14 +366,19 @@ NAMESPACE_SOUP
 		return str;
 	}
 
-	std::u16string Canvas::toStringDownsampledDoublewidth(bool explicit_nl, bool reset_on_nl)
+	std::string Canvas::toStringDownsampledUtf8(bool explicit_nl, bool reset_on_nl)
+	{
+		return unicode::utf16_to_utf8(toStringDownsampled(explicit_nl, reset_on_nl));
+	}
+
+	std::u16string Canvas::toStringDownsampledDoublewidth(bool explicit_nl, bool reset_on_nl, std::optional<Rgb> filter)
 	{
 		ensureHeightIsEven();
 
 		std::u16string str{};
 		str.reserve((unsigned int)width * height);
-		Rgb bg = pixels.at(0);
-		Rgb fg = bg;
+		Rgb bg = filter.has_value() ? filter->invert() : pixels.at(0);
+		Rgb fg = filter.has_value() ? *filter : bg;
 		bool commited_bg = false;
 		bool commited_fg = false;
 		for (unsigned int y = 0; y != height; y += 2)
@@ -392,7 +397,10 @@ NAMESPACE_SOUP
 						else
 						{
 							chunkset |= 0b1100;
-							fg = pxclr;
+							if (!filter.has_value())
+							{
+								fg = pxclr;
+							}
 							commited_fg = false;
 						}
 					}
@@ -408,7 +416,10 @@ NAMESPACE_SOUP
 						else if (commited_fg)
 						{
 							chunkset |= 0b0011;
-							fg = pxclr;
+							if (!filter.has_value())
+							{
+								fg = pxclr;
+							}
 							commited_fg = false;
 						}
 						else
@@ -418,15 +429,18 @@ NAMESPACE_SOUP
 						}
 					}
 				}
-				if (!commited_bg)
+				if (!filter.has_value())
 				{
-					commited_bg = true;
-					str.append(console.strSetBackgroundColour<std::u16string>(bg.r, bg.g, bg.b));
-				}
-				if (!commited_fg)
-				{
-					commited_fg = true;
-					str.append(console.strSetForegroundColour<std::u16string>(fg.r, fg.g, fg.b));
+					if (!commited_bg)
+					{
+						commited_bg = true;
+						str.append(console.strSetBackgroundColour<std::u16string>(bg.r, bg.g, bg.b));
+					}
+					if (!commited_fg)
+					{
+						commited_fg = true;
+						str.append(console.strSetForegroundColour<std::u16string>(fg.r, fg.g, fg.b));
+					}
 				}
 				str.push_back(downsampleChunkToChar(chunkset));
 			}
@@ -444,9 +458,9 @@ NAMESPACE_SOUP
 		return str;
 	}
 
-	std::string Canvas::toStringDownsampledDoublewidthUtf8(bool explicit_nl, bool reset_on_nl)
+	std::string Canvas::toStringDownsampledDoublewidthUtf8(bool explicit_nl, bool reset_on_nl, std::optional<Rgb> filter)
 	{
-		return unicode::utf16_to_utf8(toStringDownsampledDoublewidth(explicit_nl, reset_on_nl));
+		return unicode::utf16_to_utf8(toStringDownsampledDoublewidth(explicit_nl, reset_on_nl, filter));
 	}
 
 	char16_t Canvas::downsampleChunkToChar(uint8_t chunkset) noexcept
