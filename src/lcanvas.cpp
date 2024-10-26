@@ -131,6 +131,11 @@ static int canvas_topng (lua_State* L) {
   return 1;
 }
 
+static int canvas_tobwstring(lua_State* L) {
+  pluto_pushstring(L, checkcanvas(L, 1)->toStringDownsampledDoublewidthUtf8(true, false, soup::Rgb(static_cast<uint32_t>(luaL_checkinteger(L, 2)))));
+  return 1;
+}
+
 static const luaL_Reg funcs_canvas[] = {
   {"new", canvas_new},
   {"bmp", canvas_bmp},
@@ -142,6 +147,7 @@ static const luaL_Reg funcs_canvas[] = {
   {"mulsize", canvas_mulsize},
   {"tobmp", canvas_tobmp},
   {"topng", canvas_topng},
+  {"tobwstring", canvas_tobwstring},
   {nullptr, nullptr}
 };
 PLUTO_NEWLIB(canvas);
