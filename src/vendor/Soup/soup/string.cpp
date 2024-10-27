@@ -7,13 +7,14 @@
 
 NAMESPACE_SOUP
 {
-	std::string string::hex2bin(const std::string& hex) SOUP_EXCAL
+	std::string string::hex2bin(const char* data, size_t size) SOUP_EXCAL
 	{
 		std::string bin;
 		uint8_t val = 0;
 		bool first_nibble = true;
-		for (const auto& c : hex)
+		for (; size; ++data, --size)
 		{
+			const auto& c = *data;
 			if (isNumberChar(c))
 			{
 				val |= (c - '0');

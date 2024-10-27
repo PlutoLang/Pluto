@@ -287,22 +287,32 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] static std::string bin2hex(const std::string& str, bool spaces = false) SOUP_EXCAL
 		{
-			return bin2hexImpl(str, spaces, charset_hex);
+			return bin2hexImpl(str.data(), str.size(), spaces, charset_hex);
+		}
+
+		[[nodiscard]] static std::string bin2hex(const char* data, size_t size, bool spaces = false) SOUP_EXCAL
+		{
+			return bin2hexImpl(data, size, spaces, charset_hex);
 		}
 
 		[[nodiscard]] static std::string bin2hexLower(const std::string& str, bool spaces = false) SOUP_EXCAL
 		{
-			return bin2hexImpl(str, spaces, charset_hex_lower);
+			return bin2hexImpl(str.data(), str.size(), spaces, charset_hex_lower);
 		}
 
-		[[nodiscard]] static std::string bin2hexImpl(const std::string& str, bool spaces, const char* map) SOUP_EXCAL
+		[[nodiscard]] static std::string bin2hexLower(const char* data, size_t size, bool spaces = false) SOUP_EXCAL
+		{
+			return bin2hexImpl(data, size, spaces, charset_hex_lower);
+		}
+
+		[[nodiscard]] static std::string bin2hexImpl(const char* data, size_t size, bool spaces, const char* map) SOUP_EXCAL
 		{
 			std::string res{};
-			res.reserve(str.size() * 2);
-			for (const auto& c : str)
+			res.reserve(size * (2 + spaces));
+			for (; size; ++data, --size)
 			{
-				res.push_back(map[(unsigned char)c >> 4]);
-				res.push_back(map[c & 0b1111]);
+				res.push_back(map[(unsigned char)(*data) >> 4]);
+				res.push_back(map[(*data) & 0b1111]);
 				if (spaces)
 				{
 					res.push_back(' ');
@@ -342,7 +352,8 @@ NAMESPACE_SOUP
 			}
 		}
 
-		[[nodiscard]] static std::string hex2bin(const std::string& hex) SOUP_EXCAL;
+		[[nodiscard]] static std::string hex2bin(const std::string& hex) SOUP_EXCAL { return hex2bin(hex.data(), hex.size()); }
+		[[nodiscard]] static std::string hex2bin(const char* data, size_t size) SOUP_EXCAL;
 
 		enum ToIntFlags : uint8_t
 		{

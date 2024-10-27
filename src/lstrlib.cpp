@@ -24,6 +24,7 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "lstring.h"
 
 
 #include "vendor/Soup/soup/string.hpp"
@@ -2375,10 +2376,47 @@ static int str_formatint (lua_State *L) {
   return 1;
 }
 
+
+static int str_tohex (lua_State* L) {
+  size_t size;
+  const char *data = luaL_checklstring(L, 1, &size);
+  const bool spaces = lua_toboolean(L, 2);
+  const bool upper = lua_toboolean(L, 3);
+
+  const auto map = upper ? soup::string::charset_hex : soup::string::charset_hex_lower;
+
+  char shrtbuf[LUAI_MAXSHORTLEN];
+  if (spaces) {
+    size_t out_size = soup::string::bin2hexWithSpacesSize(size);
+    char *out = plutoS_prealloc(L, shrtbuf, out_size);
+    soup::string::bin2hexWithSpaces(out, data, size, map);
+    plutoS_commit(L, out, out_size);
+  }
+  else {
+    char *out = plutoS_prealloc(L, shrtbuf, size * 2);
+    soup::string::bin2hexAt(out, data, size, map);
+    plutoS_commit(L, out, size * 2);
+  }
+  return 1;
+}
+
+
+static int str_fromhex (lua_State* L) {
+  size_t size;
+  const char *data = luaL_checklstring(L, 1, &size);
+
+  auto res = soup::string::hex2bin(data, size);
+
+  pluto_pushstring(L, res);
+  return 1;
+}
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"tohex", str_tohex},
+  {"fromhex", str_fromhex},
   {"formatint", str_formatint},
   {"replace", str_replace},
   {"truncate", str_truncate},

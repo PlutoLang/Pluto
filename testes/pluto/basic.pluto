@@ -1741,6 +1741,17 @@ do
     assert(string.formatint("-3249230492345645324234234234234234234234234324242343243242342343423242344") == "-3,249,230,492,345,645,324,234,234,234,234,234,234,234,234,324,242,343,243,242,342,343,423,242,344")
 end
 do
+    assert("XYZ":tohex(false, false) == "58595a")
+    assert("XYZ":tohex(true,  false) == "58 59 5a")
+    assert("XYZ":tohex(false, true)  == "58595A")
+    assert("XYZ":tohex(true,  true)  == "58 59 5A")
+
+    assert("58595a":fromhex() == "XYZ")
+    assert("58 59 5a":fromhex() == "XYZ")
+    assert("58595A":fromhex() == "XYZ")
+    assert("58 59 5A":fromhex() == "XYZ")
+end
+do
     local arr = "a b c":split(" ")
     assert(#arr == 3)
     assert(arr[1] == "a")
