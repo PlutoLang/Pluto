@@ -268,58 +268,30 @@ static int lua(lua_State *L)
 }
 
 
-static int l_sha1(lua_State *L)
-{
+template <typename T>
+static int l_hashwithdigest (lua_State *L) {
   size_t l;
-  const char* text = luaL_checklstring(L, 1, &l);
+  const char *text = luaL_checklstring(L, 1, &l);
   const bool binary = lua_istrue(L, 2);
-  auto digest = soup::sha1::hash(text, l);
-  if (!binary) {
-    digest = soup::string::bin2hexLower(digest);
+
+  typename T::State st;
+  st.append(text, l);
+  st.finalise();
+
+  char shrtbuf[LUAI_MAXSHORTLEN];
+  if (binary) {
+    char *out = plutoS_prealloc(L, shrtbuf, T::DIGEST_BYTES);
+    st.getDigest(reinterpret_cast<uint8_t*>(out));
+    plutoS_commit(L, out, T::DIGEST_BYTES);
   }
-  pluto_pushstring(L, digest);
-  return 1;
-}
+  else {
+    uint8_t digest[T::DIGEST_BYTES];
+    st.getDigest(digest);
 
-
-static int l_sha256(lua_State *L)
-{
-  size_t l;
-  const char* text = luaL_checklstring(L, 1, &l);
-  const bool binary = lua_istrue(L, 2);
-  auto digest = soup::sha256::hash(text, l);
-  if (!binary) {
-    digest = soup::string::bin2hexLower(digest);
+    char *out = plutoS_prealloc(L, shrtbuf, T::DIGEST_BYTES * 2);
+    soup::string::bin2hexAt(out, (const char*)digest, sizeof(digest), soup::string::charset_hex_lower);
+    plutoS_commit(L, out, T::DIGEST_BYTES * 2);
   }
-  pluto_pushstring(L, digest);
-  return 1;
-}
-
-
-static int l_sha384(lua_State *L)
-{
-  size_t l;
-  const char* text = luaL_checklstring(L, 1, &l);
-  const bool binary = lua_istrue(L, 2);
-  auto digest = soup::sha384::hash(text, l);
-  if (!binary) {
-    digest = soup::string::bin2hexLower(digest);
-  }
-  pluto_pushstring(L, digest);
-  return 1;
-}
-
-
-static int l_sha512(lua_State *L)
-{
-  size_t l;
-  const char* text = luaL_checklstring(L, 1, &l);
-  const bool binary = lua_istrue(L, 2);
-  auto digest = soup::sha512::hash(text, l);
-  if (!binary) {
-    digest = soup::string::bin2hexLower(digest);
-  }
-  pluto_pushstring(L, digest);
   return 1;
 }
 
@@ -780,10 +752,10 @@ static int l_ripemd160 (lua_State *L) {
 static const luaL_Reg funcs_crypto[] = {
   {"hexdigest", hexdigest},  /* deprecated since 0.8.0 */
   {"random", random},
-  {"sha1", l_sha1},
-  {"sha256", l_sha256},
-  {"sha384", l_sha384},
-  {"sha512", l_sha512},
+  {"sha1", l_hashwithdigest<soup::sha1>},
+  {"sha256", l_hashwithdigest<soup::sha256>},
+  {"sha384", l_hashwithdigest<soup::sha384>},
+  {"sha512", l_hashwithdigest<soup::sha512>},
   {"lua", lua},
   {"crc32", crc32},
   {"lookup3", lookup3},

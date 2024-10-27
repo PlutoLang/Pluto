@@ -315,6 +315,33 @@ NAMESPACE_SOUP
 			return res;
 		}
 
+		static void bin2hexAt(char* out, const char* data, size_t size, const char* map) noexcept
+		{
+			for (; size; ++data, --size)
+			{
+				*out++ = map[(unsigned char)(*data) >> 4];
+				*out++ = map[(*data) & 0b1111];
+			}
+		}
+
+		[[nodiscard]] static constexpr size_t bin2hexWithSpacesSize(size_t size) noexcept
+		{
+			return size != 0 ? (size * 3) - 1 : 0;
+		}
+
+		static void bin2hexWithSpaces(char* out, const char* data, size_t size, const char* map) noexcept
+		{
+			for (; size; ++data)
+			{
+				*out++ = map[(unsigned char)(*data) >> 4];
+				*out++ = map[(*data) & 0b1111];
+				if (--size)
+				{
+					*out++ = ' ';
+				}
+			}
+		}
+
 		[[nodiscard]] static std::string hex2bin(const std::string& hex) SOUP_EXCAL;
 
 		enum ToIntFlags : uint8_t

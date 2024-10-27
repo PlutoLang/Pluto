@@ -9,20 +9,42 @@ local function bench(name, f)
     print($"{name}: {its / NUM_MS} iterations/ms")
 end
 
-local { base64 } = require "*"
+local { base64, crypto  } = require "*"
 
 bench("base64 encode, with padding, short string", function()
     base64.encode("abc", true)
 end)
-
 bench("base64 encode, without padding, short string", function()
     base64.encode("abc", false)
 end)
-
 bench("base64 encode, with padding, long string", function()
     base64.encode("The quick brown fox jumps over the lazy dog.", true)
 end)
-
 bench("base64 encode, without padding, long string", function()
     base64.encode("The quick brown fox jumps over the lazy dog.", false)
+end)
+
+bench("sha1, hex digest", function()
+    crypto.sha1("The quick brown fox jumps over the lazy dog.")
+end)
+bench("sha1, binary", function()
+    crypto.sha1("The quick brown fox jumps over the lazy dog.", true)
+end)
+bench("sha256, hex digest", function()
+    crypto.sha256("The quick brown fox jumps over the lazy dog.")
+end)
+bench("sha256, binary", function()
+    crypto.sha256("The quick brown fox jumps over the lazy dog.", true)
+end)
+bench("sha384, hex digest", function()
+    crypto.sha384("The quick brown fox jumps over the lazy dog.")
+end)
+bench("sha384, binary", function()
+    crypto.sha384("The quick brown fox jumps over the lazy dog.", true)
+end)
+bench("sha512, hex digest", function()
+    crypto.sha512("The quick brown fox jumps over the lazy dog.")
+end)
+bench("sha512, binary", function()
+    crypto.sha512("The quick brown fox jumps over the lazy dog.", true)
 end)
