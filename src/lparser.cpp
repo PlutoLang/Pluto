@@ -4383,7 +4383,16 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);
   if (luaK_isalwaysfalse(ls, &v))
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
-  checknext(ls, TK_THEN);
+  if (testnext(ls, TK_THEN)) {
+    /* standard block opener for ifstat */
+  }
+  else if (testnext(ls, TK_DO)) {
+    throw_warn(ls, "non-portable block opener", "using 'do' instead of 'then' is Pluto-specific", WT_NON_PORTABLE_CODE);
+  }
+  else {
+    const char* token = luaX_token2str(ls, ls->t);
+    throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "expected 'then' or 'do' to open the block");
+  }
   if (ls->t.token == TK_BREAK && luaX_lookahead(ls) != TK_INT) {  /* 'if x then break' and not 'if x then break int' ? */
     ls->laststat.token = TK_BREAK;
     int line = ls->getLineNumber();
