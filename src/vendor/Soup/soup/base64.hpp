@@ -42,6 +42,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] static std::string urlEncode(const char* data, const bool pad = false) SOUP_EXCAL;
 		[[nodiscard]] static std::string urlEncode(const std::string& data, const bool pad = false) SOUP_EXCAL;
 		[[nodiscard]] static std::string urlEncode(const char* const data, const size_t size, const bool pad = false) SOUP_EXCAL;
+		static void urlEncode(char* out, const char* const data, const size_t size, const bool pad) noexcept;
 
 		[[nodiscard]] static std::string encode(const char* const data, const size_t size, const bool pad, const char* table) SOUP_EXCAL;
 		static void encode(char* out, const char* data, const size_t size, const bool pad, const char* table) noexcept;

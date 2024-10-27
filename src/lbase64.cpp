@@ -26,8 +26,13 @@ static int decode(lua_State* L) {
 
 static int urlEncode(lua_State* L) {
 	size_t len;
-	auto str = luaL_checklstring(L, 1, &len);
-	pluto_pushstring(L, soup::base64::urlEncode(str, len, (bool)lua_toboolean(L, 2)));
+	const char *str = luaL_checklstring(L, 1, &len);
+	const bool pad = lua_toboolean(L, 2);
+	size_t out_len = soup::base64::getEncodedSize(len, pad);
+	char shrtbuf[LUAI_MAXSHORTLEN];
+	char *enc = plutoS_prealloc(L, shrtbuf, out_len);
+	soup::base64::urlEncode(enc, str, len, pad);
+	plutoS_commit(L, enc, out_len);
 	return 1;
 }
 
