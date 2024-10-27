@@ -4383,13 +4383,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);
   if (luaK_isalwaysfalse(ls, &v))
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
-  if (ls->t.token == TK_THEN)
-    luaX_next(ls);
-  else if (v.k == VINDEXUP && strcmp(getstr(tsvalue(&ls->fs->f->k[v.u.ind.idx])), "then") == 0) {
-    luaX_prev(ls);
-    luaX_syntaxerror(ls, "unexpected symbol");
-  }
-  else luaX_syntaxerror(ls, "'then' expected");
+  checknext(ls, TK_THEN);
   if (ls->t.token == TK_BREAK && luaX_lookahead(ls) != TK_INT) {  /* 'if x then break' and not 'if x then break int' ? */
     ls->laststat.token = TK_BREAK;
     int line = ls->getLineNumber();
