@@ -3212,6 +3212,16 @@ static void lgoto (LexState *ls, TString *name, int line) {
 }
 
 
+static BinOpr testcondtype (LexState *ls, BinOpr fallback) {
+  if (testnext(ls, TK_EQ)) return OPR_EQ;
+  if (testnext(ls, '<')) return OPR_LT;
+  if (testnext(ls, TK_LE)) return OPR_LE;
+  if (testnext(ls, TK_NE)) return OPR_NE;
+  if (testnext(ls, '>')) return OPR_GT;
+  if (testnext(ls, TK_GE)) return OPR_GE;
+  return fallback;
+}
+
 static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
   std::vector<int> jumps{};
   FuncState *fs = ls->fs;
@@ -3222,17 +3232,19 @@ static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
     expr_flags |= E_NO_CONSUME_COLON;
   }
 
+  BinOpr op = testcondtype(ls, OPR_EQ);
   expdesc e, cmpval;
   e = ctrl;
-  luaK_infix(fs, OPR_EQ, &e);
+  luaK_infix(fs, op, &e);
   expr(ls, &cmpval, nullptr, expr_flags);
-  luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
+  luaK_posfix(fs, op, &e, &cmpval, case_line);
   jumps.emplace_back(e.u.pc);
   while (testnext(ls, ',')) {
+    op = testcondtype(ls, op);
     e = ctrl;
-    luaK_infix(fs, OPR_EQ, &e);
+    luaK_infix(fs, op, &e);
     expr(ls, &cmpval, nullptr, expr_flags);
-    luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
+    luaK_posfix(fs, op, &e, &cmpval, case_line);
     jumps.emplace_back(e.u.pc);
   }
   checknext(ls, tk);
