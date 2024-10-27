@@ -1810,8 +1810,9 @@ static size_t preprocessclass (LexState *ls) {
 
     // This is only checking *inside* our current class body, the parser has already skipped the class declaration.
     switch (ls->t.normalizedToken()) {
-    case TK_DO: // Covers many block openers, like TK_FOR, TK_ARROW, etc.
     case TK_IF:
+    case TK_FOR:
+    case TK_WHILE:
     case TK_CLASS:
     case TK_CATCH:
     case TK_FUNCTION:
@@ -1822,6 +1823,13 @@ static size_t preprocessclass (LexState *ls) {
       if (luaX_lookahead(ls) != TK_CLASS) {
         ++allowed_ends;
       }
+      break;
+
+    case TK_ARROW:
+      if (luaX_lookahead(ls) == TK_DO) {
+        ++allowed_ends;
+      }
+      break;
     }
 
     if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
@@ -1848,7 +1856,7 @@ static size_t preprocessclass (LexState *ls) {
 static void classexpr (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
-  testnext(ls, TK_BEGIN);
+  testnext2(ls, TK_BEGIN, TK_DO);
   int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
   ls->constructorfieldsets.emplace();
   ConsControl cc;
@@ -4027,7 +4035,7 @@ static void enumstat (LexState *ls) {
 
   EnumDesc *ed = nullptr;
   bool is_enum_class = false;
-  if (gett(ls) != TK_BEGIN) { /* enum has name (and possibly modifier)? */
+  if (gett(ls) != TK_BEGIN && gett(ls) != TK_DO) { /* enum has name (and possibly modifier)? */
     if (ls->t.token == TK_CLASS
       || (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "class") == 0)
       ) {
@@ -4043,7 +4051,8 @@ static void enumstat (LexState *ls) {
   }
 
   const auto line_begin = ls->getLineNumber();
-  checknext(ls, TK_BEGIN); /* ensure we have 'begin' */
+  if (!testnext(ls, TK_DO))
+    checknext(ls, TK_BEGIN);
 
   lua_Integer i = 1;
   while (gett(ls) != TK_END) {
