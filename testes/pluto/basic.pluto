@@ -1518,6 +1518,8 @@ do
 
     assert(base64.urlencode("Hello") == "SGVsbG8")
     assert(base64.urldecode("SGVsbG8") == "Hello")
+    assert(base64.urlencode("The quick brown fox jumps over the lazy dog.", true) == "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4=")
+    assert(base64.urlencode("The quick brown fox jumps over the lazy dog.", false) == "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4")
 
     -- Binary safe
     assert(base64.encode("") == "")

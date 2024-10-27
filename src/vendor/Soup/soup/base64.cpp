@@ -87,6 +87,11 @@ NAMESPACE_SOUP
 		return encode(data, size, pad, table_encode_base64url);
 	}
 
+	void base64::urlEncode(char* out, const char* const data, const size_t size, const bool pad) noexcept
+	{
+		return encode(out, data, size, pad, table_encode_base64url);
+	}
+
 	std::string base64::encode(const char* const data, const size_t size, const bool pad, const char* table) SOUP_EXCAL
 	{
 		std::string enc(getEncodedSize(size, pad), '\0');
