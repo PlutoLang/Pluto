@@ -11,6 +11,7 @@ jobs:
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: src/pluto testes/_driver.pluto
+      - run: src/pluto testes/bench/_stdlib.pluto
   ubuntu-20-04:
     runs-on: ubuntu-20.04
     steps:
@@ -18,6 +19,7 @@ jobs:
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: src/pluto testes/_driver.pluto
+      - run: src/pluto testes/bench/_stdlib.pluto
   debian-10:
     runs-on: [debian-10]
     steps:
@@ -36,6 +38,7 @@ jobs:
             src/libpluto.so
             src/libpluto.a
       - run: src/pluto testes/_driver.pluto
+      - run: src/pluto testes/bench/_stdlib.pluto
       - run: php scripts/bundle_deb.php
       - uses: actions/upload-artifact@v4
         with:
@@ -59,6 +62,7 @@ jobs:
             src/libpluto.so
             src/libpluto.a
       - run: src/pluto testes/_driver.pluto
+      - run: src/pluto testes/bench/_stdlib.pluto
   windows:
     runs-on: windows-latest
     steps:
@@ -77,6 +81,7 @@ jobs:
             src/plutoc.exe
             src/libpluto.a
       - run: src/pluto.exe testes/_driver.pluto
+      - run: src/pluto testes/bench/_stdlib.pluto
       - run: php scripts/bundle_nupkg.php
       - uses: actions/upload-artifact@v4
         with:

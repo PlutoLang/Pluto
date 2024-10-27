@@ -1,0 +1,28 @@
+local function bench(name, f)
+    $define NUM_MS = 100
+    local deadline = os.millis() + NUM_MS
+    local its = 0
+    while os.millis() < deadline do
+        f()
+        ++its
+    end
+    print($"{name}: {its / NUM_MS} iterations/ms")
+end
+
+local { base64 } = require "*"
+
+bench("base64 encode, with padding, short string", function()
+    base64.encode("abc", true)
+end)
+
+bench("base64 encode, without padding, short string", function()
+    base64.encode("abc", false)
+end)
+
+bench("base64 encode, with padding, long string", function()
+    base64.encode("The quick brown fox jumps over the lazy dog.", true)
+end)
+
+bench("base64 encode, without padding, long string", function()
+    base64.encode("The quick brown fox jumps over the lazy dog.", false)
+end)
