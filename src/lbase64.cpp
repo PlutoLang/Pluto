@@ -2,14 +2,20 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "lstring.h"
 
 #include <string>
 #include "vendor/Soup/soup/base64.hpp"
 
 static int encode(lua_State* L) {
 	size_t len;
-	auto str = luaL_checklstring(L, 1, &len);
-	pluto_pushstring(L, soup::base64::encode(str, len, (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true)));
+	const char *str = luaL_checklstring(L, 1, &len);
+	const bool pad = (lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true);
+	size_t out_len = soup::base64::getEncodedSize(len, pad);
+	char shrtbuf[LUAI_MAXSHORTLEN];
+	char *enc = plutoS_prealloc(L, shrtbuf, out_len);
+	soup::base64::encode(enc, str, len, pad);
+	plutoS_commit(L, enc, out_len);
 	return 1;
 }
 

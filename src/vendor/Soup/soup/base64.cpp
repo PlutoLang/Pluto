@@ -56,6 +56,11 @@ NAMESPACE_SOUP
 		return encode(data, size, pad, table_encode_base64);
 	}
 
+	void base64::encode(char* out, const char* const data, const size_t size, const bool pad) noexcept
+	{
+		return encode(out, data, size, pad, table_encode_base64);
+	}
+
 	static constexpr char table_encode_base64url[] = {
 		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 		'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -84,48 +89,47 @@ NAMESPACE_SOUP
 
 	std::string base64::encode(const char* const data, const size_t size, const bool pad, const char* table) SOUP_EXCAL
 	{
-		size_t out_len = 4 * ((size + 2) / 3);
-		std::string enc(out_len, '\0');
+		std::string enc(getEncodedSize(size, pad), '\0');
+		encode(enc.data(), data, size, pad, table);
+		return enc;
+	}
+
+	void base64::encode(char* out, const char* data, const size_t size, const bool pad, const char* table) noexcept
+	{
 		size_t i = 0;
-		char* p = enc.data();
 
 		if (size > 2)
 		{
 			for (; i < size - 2; i += 3)
 			{
-				*p++ = table[(data[i] >> 2) & 0x3F];
-				*p++ = table[((data[i] & 0x3) << 4) | ((int)(data[i + 1] & 0xF0) >> 4)];
-				*p++ = table[((data[i + 1] & 0xF) << 2) | ((int)(data[i + 2] & 0xC0) >> 6)];
-				*p++ = table[data[i + 2] & 0x3F];
+				*out++ = table[(data[i] >> 2) & 0x3F];
+				*out++ = table[((data[i] & 0x3) << 4) | ((int)(data[i + 1] & 0xF0) >> 4)];
+				*out++ = table[((data[i + 1] & 0xF) << 2) | ((int)(data[i + 2] & 0xC0) >> 6)];
+				*out++ = table[data[i + 2] & 0x3F];
 			}
 		}
+
 		if (i < size)
 		{
-			*p++ = table[(data[i] >> 2) & 0x3F];
+			*out++ = table[(data[i] >> 2) & 0x3F];
 			if (i == (size - 1))
 			{
-				*p++ = table[((data[i] & 0x3) << 4)];
+				*out++ = table[((data[i] & 0x3) << 4)];
 				if (pad)
 				{
-					*p++ = '=';
+					*out++ = '=';
 				}
 			}
 			else
 			{
-				*p++ = table[((data[i] & 0x3) << 4) | ((int)(data[i + 1] & 0xF0) >> 4)];
-				*p++ = table[((data[i + 1] & 0xF) << 2)];
+				*out++ = table[((data[i] & 0x3) << 4) | ((int)(data[i + 1] & 0xF0) >> 4)];
+				*out++ = table[((data[i + 1] & 0xF) << 2)];
 			}
 			if (pad)
 			{
-				*p++ = '=';
+				*out++ = '=';
 			}
 		}
-		if (!pad)
-		{
-			enc.erase(strlen(enc.c_str()));
-		}
-
-		return enc;
 	}
 
 	static constexpr unsigned char table_decode_base64[] = {

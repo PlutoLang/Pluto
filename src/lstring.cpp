@@ -14,6 +14,7 @@
 
 #include "lua.h"
 
+#include "lapi.h" // api_incr_top
 #include "ldebug.h"
 #include "ldo.h"
 #include "lmem.h"
@@ -272,3 +273,33 @@ Udata *luaS_newudata (lua_State *L, size_t s, int nuvalue) {
   return u;
 }
 
+
+char *plutoS_prealloc (lua_State *L, char shrtbuf[LUAI_MAXSHORTLEN], size_t l) {
+  if (l <= LUAI_MAXSHORTLEN)
+    return shrtbuf;
+  else {
+    if (l_unlikely(l * sizeof(char) >= (MAX_SIZE - sizeof(TString))))
+      luaM_toobig(L);
+    TString *ts;
+    lua_lock(L);
+    ts = luaS_createlngstrobj(L, l);
+    setsvalue2s(L, L->top.p, ts);
+    api_incr_top(L);
+    luaC_checkGC(L);
+    lua_unlock(L);
+    return getstr(ts);
+  }
+}
+
+
+void plutoS_commit (lua_State *L, char *prealloc, size_t l) {
+  if (l <= LUAI_MAXSHORTLEN) {
+    TString *ts;
+    lua_lock(L);
+    ts = internshrstr(L, prealloc, l);
+    setsvalue2s(L, L->top.p, ts);
+    api_incr_top(L);
+    luaC_checkGC(L);
+    lua_unlock(L);
+  }
+}
