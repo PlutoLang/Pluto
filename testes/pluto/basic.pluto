@@ -2534,6 +2534,13 @@ do
     assert(UTE_ONE == 1)
     assert(UTE_TWO == 2)
 
+    enum do
+        UTE2_ONE,
+        UTE2_TWO,
+    end
+    assert(UTE2_ONE == 1)
+    assert(UTE2_TWO == 2)
+
     enum NamedTestEnum begin
         NTE_ONE,
         NTE_TWO
@@ -2541,7 +2548,7 @@ do
     assert(NTE_ONE == 1)
     assert(NTE_TWO == 2)
 
-    enum CStyleEnum begin
+    enum CStyleEnum do
         CSE_INIT = 0,
         CSE_CONTINUED
     end
@@ -2975,7 +2982,7 @@ do
             local a = || -> do end
             enum A begin
             end
-            class Foo begin end
+            class Foo do end
             class t.Foo begin end
             local MuhClass = class end
             local MuhClass2 = class begin end
