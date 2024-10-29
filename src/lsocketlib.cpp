@@ -26,8 +26,7 @@ struct StandaloneSocket {
     sock->recv([](soup::Socket&, std::string&& data, soup::Capture&& cap) SOUP_EXCAL {
       StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
       ss.recvd.push_back(std::move(data));
-      if (!ss.sock->remote_closed)
-        ss.recvLoop();
+      ss.recvLoop();
     }, this);
   }
 };
