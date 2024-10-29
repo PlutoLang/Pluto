@@ -389,6 +389,17 @@ static void disablekeyword (LexState *ls, int token) {
       i->token = TK_NAME;
 }
 
+static bool trydisablekeyword (LexState *ls) {
+  if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
+    disablekeyword(ls, ls->t.token);
+    ls->uninformed_reserved.emplace(ls->t.token, ls->getLineNumber());
+    ls->setKeywordState(ls->t.token, KS_DISABLED_BY_PLUTO_INFORMED);
+    luaX_setpos(ls, luaX_getpos(ls));  /* update ls->t */
+    return true;
+  }
+  return false;
+}
+
 static TString *str_checkname (LexState *ls, int flags = 0) {
 #ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
@@ -398,13 +409,8 @@ static TString *str_checkname (LexState *ls, int flags = 0) {
 #endif
   if (!isnametkn(ls, flags)) {
     if (ls->t.IsNonCompatible()) {
-      if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
-        disablekeyword(ls, ls->t.token);
-        ls->uninformed_reserved.emplace(ls->t.token, ls->getLineNumber());
-        ls->setKeywordState(ls->t.token, KS_DISABLED_BY_PLUTO_INFORMED);
-        luaX_setpos(ls, luaX_getpos(ls));  /* update ls->t */
-        return str_checkname(ls, flags);  /* try again */
-      }
+      if (trydisablekeyword(ls))  /* see if we can fix it */
+        return str_checkname(ls, flags);  /* then try again */
       throwerr(ls, luaO_fmt(ls->L, "expected a name, found %s", luaX_token2str(ls, ls->t)), luaO_fmt(ls->L, "%s has a different meaning in Pluto, but you can disable this: https://pluto.do/compat", luaX_token2str(ls, ls->t)));
     }
     error_expected(ls, TK_NAME);
@@ -2065,7 +2071,7 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
   int isvararg = 0;
   if (ls->t.token != ')' && ls->t.token != '|') {  /* is 'parlist' not empty? */
     do {
-      if (isnametkn(ls, N_OVERRIDABLE)) {
+      if (isnametkn(ls, N_OVERRIDABLE) || (ls->t.IsNonCompatible() && trydisablekeyword(ls) && isnametkn(ls, N_OVERRIDABLE))) {
         auto parname = str_checkname(ls, N_OVERRIDABLE);
         if (promotions) {
           if (strcmp(getstr(parname), "public") == 0) {
