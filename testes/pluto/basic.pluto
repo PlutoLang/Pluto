@@ -3494,6 +3494,11 @@ do
         assert(t[2] == "def")
     end
 end
+do
+    -- We can infer that a keyword should be disabled
+    assert(load[[local new = true]])
+    assert(load[[function update_value(new) end]])
+end
 
 print "Testing universal functions."
 do
