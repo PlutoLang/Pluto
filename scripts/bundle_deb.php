@@ -26,7 +26,7 @@ Section: custom
 Priority: optional
 Architecture: $arch
 Essential: no
-Maintainer: Sainan <sainan@calamity.gg>
+Maintainer: Sainan <sainan@calamity.inc>
 Description: A superset of Lua 5.4 with a focus on general-purpose programming.
 
 EOC);
