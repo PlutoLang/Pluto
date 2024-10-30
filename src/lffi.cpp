@@ -51,17 +51,21 @@ enum FfiType : uint8_t {
     if (type.name == "void") { return FFI_VOID; }
     if (type.name == "bool") { return FFI_U8; }
     if (type.name == "char") { return FFI_I8; }
+    if (type.name == "unsigned char") { return FFI_U8; }
     if (type.name == "int8_t") { return FFI_I8; }
     if (type.name == "uint8_t") { return FFI_U8; }
     if (type.name == "short") { return FFI_I16; }
+    if (type.name == "unsigned short") { return FFI_U16; }
     if (type.name == "int16_t") { return FFI_I16; }
     if (type.name == "uint16_t") { return FFI_U16; }
     if (type.name == "int") { return FFI_I32; }
+    if (type.name == "unsigned int") { return FFI_U32; }
     if (type.name == "int32_t") { return FFI_I32; }
     if (type.name == "uint32_t") { return FFI_U32; }
     if (type.name == "int64_t") { return FFI_I64; }
     if (type.name == "uint64_t") { return FFI_U64; }
     if (type.name == "long long") { return FFI_I64; }
+    if (type.name == "unsigned long long") { return FFI_U64; }
     if (type.name == "size_t") { return SOUP_BITS == 64 ? FFI_U64 : FFI_U32; }
     if (type.name == "float") { return FFI_F32; }
     if (type.name == "double") { return FFI_F64; }
