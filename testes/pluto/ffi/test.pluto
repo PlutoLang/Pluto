@@ -107,3 +107,17 @@ try
 catch e then
     assert("could not find" in e)
 end
+
+ffi.cdef[[
+struct Result {
+    int sum;
+    int product;
+};
+]]
+lib:cdef[[
+void quick_maffs(Result *out, int a, int b);
+]]
+local res = ffi.new("Result")
+lib.quick_maffs(res, 3, 3)
+assert(res.sum == 6)
+assert(res.product == 9)

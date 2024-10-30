@@ -6,3 +6,15 @@ SOUP_CEXPORT int add(int a, int b)
 {
 	return a + b;
 }
+
+struct Result
+{
+    int sum;
+    int product;
+};
+
+SOUP_CEXPORT void quick_maffs(Result *out, int a, int b)
+{
+    out->sum = a + b;
+    out->product = a * b;
+}
