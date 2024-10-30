@@ -102,6 +102,10 @@ NAMESPACE_SOUP
 				}
 			}
 		}
+		else
+		{
+			advance();
+		}
 		if (hasMore())
 		{
 			align();
