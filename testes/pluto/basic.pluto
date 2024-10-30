@@ -3221,7 +3221,7 @@ do
     local function f()
         try
             return nil
-        catch e then
+        catch e do
         end
     end
     assert(table.pack(f()).n == 1)
