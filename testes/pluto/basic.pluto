@@ -3154,7 +3154,7 @@ do
     ]], ""))
     local release_bytecode = string.dump(load([[
         $define DEBUG = false
-        $if DEBUG then
+        $if DEBUG do
             print("Script running in debug mode")
         $else
             print("Script running in release mode")

@@ -4500,7 +4500,8 @@ static void constexprifstat (LexState *ls, int line) {
       throwerr(ls, "this condition cannot be evaluated at compile-time", "");
     }
   }
-  checknext(ls, TK_THEN);
+  if (!testnext(ls, TK_DO))
+    checknext(ls, TK_THEN);
   if (disposition == true) {
     block(ls);
   }
