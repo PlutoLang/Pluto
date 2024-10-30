@@ -287,28 +287,28 @@ static int ffi_lib_cdef (lua_State *L) {
     if (par->align(), par->i->isLiteral() && par->i->val.getString() == "(") {
       par->i = i;
       try {
-        *func = par->readFunc();
-        pluto_pushstring(L, func->name);
-        auto fw = newfuncwrapper(L);
-        fw->ret = rfl_type_to_ffi_type(func->return_type);
-        SOUP_ASSERT(fw->ret != FFI_UNKNOWN);
-        fw->addr = lib->getAddress(func->name.c_str());
-        if (l_unlikely(fw->addr == nullptr)) {
-          luaL_error(L, "could not find '%s' in library", func->name.c_str());
-        }
-        if (func->parameters.size() > soup::ffi::MAX_ARGS) {
-          luaL_error(L, "'%s' has too many parameters", func->name.c_str());
-        }
-        fw->args.reserve(func->parameters.size());
-        for (const auto& param : func->parameters) {
-          fw->args.emplace_back(rfl_type_to_ffi_type(param.type));
-          SOUP_ASSERT(fw->args.back() != FFI_UNKNOWN);
-        }
-        lua_settable(L, 1);
+          *func = par->readFunc();
       }
       catch (...) {
         luaL_error(L, "malformed function");
       }
+      pluto_pushstring(L, func->name);
+      auto fw = newfuncwrapper(L);
+      fw->ret = rfl_type_to_ffi_type(func->return_type);
+      SOUP_ASSERT(fw->ret != FFI_UNKNOWN);
+      fw->addr = lib->getAddress(func->name.c_str());
+      if (l_unlikely(fw->addr == nullptr)) {
+        luaL_error(L, "could not find '%s' in library", func->name.c_str());
+      }
+      if (func->parameters.size() > soup::ffi::MAX_ARGS) {
+        luaL_error(L, "'%s' has too many parameters", func->name.c_str());
+      }
+      fw->args.reserve(func->parameters.size());
+      for (const auto& param : func->parameters) {
+        fw->args.emplace_back(rfl_type_to_ffi_type(param.type));
+        SOUP_ASSERT(fw->args.back() != FFI_UNKNOWN);
+      }
+      lua_settable(L, 1);
     }
     else {
       void *addr = lib->getAddress(var->name.c_str());

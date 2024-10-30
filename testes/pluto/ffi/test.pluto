@@ -100,3 +100,10 @@ struct PointsAt {
 local pointed_at = ffi.new("PointedAt")
 local points_at = ffi.new("PointsAt")
 points_at.target = pointed_at
+
+try
+    lib:cdef[[void non_existent();]]
+    assert(false) -- unreachable, cdef should throw
+catch e then
+    assert("could not find" in e)
+end
