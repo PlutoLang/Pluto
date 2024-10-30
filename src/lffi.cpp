@@ -295,7 +295,8 @@ static int ffi_lib_cdef (lua_State *L) {
       pluto_pushstring(L, func->name);
       auto fw = newfuncwrapper(L);
       fw->ret = rfl_type_to_ffi_type(func->return_type);
-      SOUP_ASSERT(fw->ret != FFI_UNKNOWN);
+      if (l_unlikely(fw->ret == FFI_UNKNOWN))
+        luaL_error(L, "malformed function");
       fw->addr = lib->getAddress(func->name.c_str());
       if (l_unlikely(fw->addr == nullptr)) {
         luaL_error(L, "could not find '%s' in library", func->name.c_str());
@@ -306,7 +307,8 @@ static int ffi_lib_cdef (lua_State *L) {
       fw->args.reserve(func->parameters.size());
       for (const auto& param : func->parameters) {
         fw->args.emplace_back(rfl_type_to_ffi_type(param.type));
-        SOUP_ASSERT(fw->args.back() != FFI_UNKNOWN);
+        if (l_unlikely(fw->args.back() == FFI_UNKNOWN))
+          luaL_error(L, "malformed function");
       }
       lua_settable(L, 1);
     }
