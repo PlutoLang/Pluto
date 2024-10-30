@@ -5347,7 +5347,8 @@ static void trystat (LexState *ls) {
   new_localvar(ls, str_checkname(ls, N_OVERRIDABLE));
 
   const auto then_line = ls->getLineNumber();
-  checknext(ls, TK_THEN);
+  if (!testnext(ls, TK_DO))
+    checknext(ls, TK_THEN);
 
   /* local (e) = (try result) */
   init_exp(&ex, VNONRELOC, result_reg);
