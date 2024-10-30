@@ -35,6 +35,11 @@ NAMESPACE_SOUP
 			str.push_back(' ');
 			str.append(readLiteral());
 		}
+		if ((i - 1)->val.getString() == "long" && peekLiteral() == "long")
+		{
+			str.push_back(' ');
+			str.append(readLiteral());
+		}
 		return str;
 	}
 
