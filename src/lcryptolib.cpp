@@ -8,8 +8,6 @@
 #include "lstring.h"
 #include "lcryptolib.hpp"
 
-#include <string>
-
 #include "vendor/Soup/soup/adler32.hpp"
 #include "vendor/Soup/soup/aes.hpp"
 #include "vendor/Soup/soup/crc32.hpp"
@@ -28,13 +26,13 @@ static int fnv1(lua_State *L)
 {
   const auto FNV_offset_basis = 0xcbf29ce484222325ull;
   const auto FNV_prime = 0x100000001b3ull;
-  const std::string s  = luaL_checkstring(L, 1);
   uint64_t hash     = FNV_offset_basis;
   
-  for (auto& c : s)
-  {
+  size_t l;
+  const char* s = luaL_checklstring(L, 1, &l);
+  for (; l--; ++s) {
     hash *= FNV_prime;
-    hash ^= (uint8_t)c;
+    hash ^= (uint8_t)*s;
   }
 
   lua_pushinteger(L, hash);
@@ -46,12 +44,12 @@ static int fnv1a(lua_State *L)
 {
   const auto FNV_offset_basis = 0xcbf29ce484222325ull;
   const auto FNV_prime = 0x100000001b3ull;
-  const std::string s  = luaL_checkstring(L, 1);
   uint64_t hash     = FNV_offset_basis;
   
-  for (auto& c : s)
-  {
-    hash ^= (uint8_t)c;
+  size_t l;
+  const char *s = luaL_checklstring(L, 1, &l);
+  for (; l--; ++s) {
+    hash ^= (uint8_t)*s;
     hash *= FNV_prime;
   }
 
@@ -86,12 +84,12 @@ static int joaat(lua_State *L)
 // Times33, a.k.a DJBX33A is the hashing algorithm used in PHP's hash table.
 static int times33(lua_State *L)
 {
-  const std::string str = luaL_checkstring(L, 1);
   unsigned long hash = 0;
  
-  for (auto c : str)
-  {
-    hash = (hash * 33) ^ (unsigned long)c;
+  size_t l;
+  const char *s = luaL_checklstring(L, 1, &l);
+  for (; l--; ++s) {
+    hash = (hash * 33) ^ (unsigned long)*s;
   }
   
   lua_pushinteger(L, hash);
