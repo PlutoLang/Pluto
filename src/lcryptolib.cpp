@@ -8,10 +8,7 @@
 #include "lstring.h"
 #include "lcryptolib.hpp"
 
-#include <ios>
 #include <string>
-#include <sstream>
-#include <iomanip>
 
 #include "vendor/Soup/soup/adler32.hpp"
 #include "vendor/Soup/soup/aes.hpp"
@@ -221,17 +218,13 @@ static int sdbm(lua_State *L)
 static int md5(lua_State *L)
 {
   size_t len;
-  unsigned char buffer[16] = {};
+  unsigned char buffer[16];
   const auto str = luaL_checklstring(L, 1, &len);
   md5_fn((unsigned char*)str, (int)len, buffer);
   
-  std::stringstream res {};
-  for (int i = 0; i < 16; i++)
-  {
-    res << std::hex << (int)buffer[i];
-  }
-
-  lua_pushstring(L, res.str().c_str());
+  char hexbuff[32];
+  soup::string::bin2hexAt(hexbuff, (const char*)buffer, sizeof(buffer), soup::string::charset_hex_lower);
+  lua_pushlstring(L, hexbuff, sizeof(hexbuff));
   return 1;
 }
 
