@@ -59,7 +59,7 @@ jobs:
           path: |
             src/pluto
             src/plutoc
-            src/libpluto.so
+            src/pluto.dylib
             src/libpluto.a
       - run: src/pluto testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
