@@ -2091,6 +2091,14 @@ do
     assert(#{}:chunk(5) == 0)
 end
 do
+    local t = { "a", "b" }
+    local i = t:invert()
+    assert(i["a"] == 1)
+    assert(i["b"] == 2)
+    assert(i[1] == nil)
+    assert(i[2] == nil)
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
