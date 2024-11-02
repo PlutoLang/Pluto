@@ -1898,7 +1898,7 @@ static void check_assignment (LexState *ls, const expdesc *v) {
     luaX_prev(ls);
     TString *name = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
     if (ls->explicit_globals.count(name) == 0) {
-      throw_warn(ls, "implicit global creation", "prefix this with 'global' if creating a global was intended", WT_IMPLICIT_GLOBAL);
+      throw_warn(ls, "implicit global creation", "prefix this with 'global' to be explicit", WT_IMPLICIT_GLOBAL);
     }
   }
 }
