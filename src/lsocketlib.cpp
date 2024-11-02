@@ -190,6 +190,9 @@ static void starttlscallback (soup::Socket&, soup::Capture&& cap) SOUP_EXCAL {
 static int starttls (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
 
+  if (l_unlikely(ss.udp))
+    luaL_error(L, "TLS is only available on TCP sockets");
+
   if (ss.did_tls_handshake)
     return 0;
 
