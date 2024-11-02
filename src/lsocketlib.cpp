@@ -19,6 +19,7 @@ struct StandaloneSocket {
   soup::Scheduler sched;
   soup::SharedPtr<soup::Socket> sock;
   std::deque<std::string> recvd;
+  bool udp = false;
   bool did_tls_handshake = false;
   bool from_listener = false;
 
@@ -27,6 +28,14 @@ struct StandaloneSocket {
       StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
       ss.recvd.push_back(std::move(data));
       ss.recvLoop();
+    }, this);
+  }
+
+  void recvLoopUdp() {
+    sock->udpRecv([](soup::Socket&, soup::SocketAddr&&, std::string&& data, soup::Capture&& cap) SOUP_EXCAL {
+      StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
+      ss.recvd.push_back(std::move(data));
+      ss.recvLoopUdp();
     }, this);
   }
 };
@@ -72,8 +81,22 @@ static int connectcont (lua_State *L, int status, lua_KContext ctx) {
 static int l_connect (lua_State *L) {
   const char *host = luaL_checkstring(L, 1);
   auto port = static_cast<uint16_t>(luaL_checkinteger(L, 2));
+  const char *const opts[] = { "tcp", "udp" };
+  bool udp = luaL_checkoption(L, 3, "tcp", opts);
 
   StandaloneSocket& ss = pushsocket(L);
+
+  if (udp) {
+    ss.sock = ss.sched.addSocket();
+    if (!ss.sock->peer.ip.fromString(host)) {
+      luaL_error(L, "invalid ip address");  // TODO: Handle DNS name resolution
+    }
+    ss.sock->peer.port = soup::Endianness::toNetwork(soup::native_u16_t(port));
+    ss.sock->init(ss.sock->peer.ip.isV4() ? AF_INET : AF_INET6, SOCK_DGRAM);  /* init socket right away so we can use udpServerSend as client */
+    ss.udp = true;
+    ss.recvLoopUdp();
+    return 1;
+  }
 
   if (!lua_isyieldable(L)) {
     ss.sock = ss.sched.addSocket();
@@ -92,7 +115,11 @@ static int l_connect (lua_State *L) {
 static int l_send (lua_State *L) {
   size_t len;
   const char *str = luaL_checklstring(L, 2, &len);
-  checksocket(L, 1)->sock->send(str, len);
+  StandaloneSocket& ss = *checksocket(L, 1);
+  if (ss.udp)
+    ss.sock->udpServerSend(ss.sock->peer, str, len);
+  else
+    ss.sock->send(str, len);
   return 0;
 }
 
