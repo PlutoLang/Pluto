@@ -245,6 +245,12 @@ static int socket_istls (lua_State *L) {
   return 1;
 }
 
+static int socket_isudp (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  lua_pushboolean(L, ss.udp);
+  return 1;
+}
+
 static int socket_close (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
   ss.sock->close();
@@ -374,6 +380,7 @@ static const luaL_Reg funcs_socket[] = {
   {"unrecv", unrecv},
   {"starttls", starttls},
   {"istls", socket_istls},
+  {"isudp", socket_isudp},
   {"close", socket_close},
   {"isopen", socket_isopen},
   {"getside", socket_getside},
