@@ -925,10 +925,26 @@ static int tchunk (lua_State *L) {
 }
 
 
+static int tinvert (lua_State *L) {
+  lua_newtable(L);
+  lua_pushnil(L);
+  while (lua_next(L, 1)) {
+    /* stack now: res, key, value */
+    lua_pushvalue(L, -2);
+    /* stack now: res, key, value, key */
+    lua_settable(L, -4);
+    /* stack now: res, key */
+  }
+  /* stack now: res */
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"invert", tinvert},
   {"chunk", tchunk},
   {"slice", tslice},
   {"countvalues", tcountvalues},
