@@ -31,11 +31,20 @@ struct StandaloneSocket {
     }, this);
   }
 
-  void recvLoopUdp() {
-    sock->udpRecv([](soup::Socket&, soup::SocketAddr&&, std::string&& data, soup::Capture&& cap) SOUP_EXCAL {
+  void recvLoopUdp(soup::Socket& s) {
+    s.udpRecv([](soup::Socket& s, soup::SocketAddr&& addr, std::string&& data, soup::Capture&& cap) SOUP_EXCAL {
+#if !SOUP_WINDOWS
+      s.peer = std::move(addr);
+#endif
       StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
+#if SOUP_WINDOWS
+      if (ss.from_listener) {
+        s.peer = std::move(addr);
+        ss.sock = ss.sched.getShared(s);  /* we may need to switch from IPv6 to IPv4 or vice-versa */
+      }
+#endif
       ss.recvd.push_back(std::move(data));
-      ss.recvLoopUdp();
+      ss.recvLoopUdp(s);
     }, this);
   }
 };
@@ -94,7 +103,7 @@ static int l_connect (lua_State *L) {
     ss.sock->peer.port = soup::Endianness::toNetwork(soup::native_u16_t(port));
     ss.sock->init(ss.sock->peer.ip.isV4() ? AF_INET : AF_INET6, SOCK_DGRAM);  /* init socket right away so we can use udpServerSend as client */
     ss.udp = true;
-    ss.recvLoopUdp();
+    ss.recvLoopUdp(*ss.sock);
     return 1;
   }
 
@@ -375,6 +384,24 @@ static int l_listen (lua_State *L) {
   return l.serv.bind(port, &l.srv) ? 1 : 0;
 }
 
+static int l_udpserver (lua_State *L) {
+  auto port = static_cast<uint16_t>(luaL_checkinteger(L, 1));
+
+  StandaloneSocket& ss = pushsocket(L);
+  ss.sock = ss.sched.addSocket();
+  ss.udp = true;
+  ss.from_listener = true;
+  if (l_unlikely(!ss.sock->udpBind6(port)))
+    return 0;
+  ss.recvLoopUdp(*ss.sock);
+#if SOUP_WINDOWS
+  auto ipv4_sock = ss.sched.addSocket();
+  if (l_likely(ipv4_sock->udpBind4(port)))
+    ss.recvLoopUdp(*ipv4_sock);
+#endif
+  return 1;
+}
+
 static const luaL_Reg funcs_socket[] = {
   {"connect", l_connect},
   {"send", l_send},
@@ -389,6 +416,7 @@ static const luaL_Reg funcs_socket[] = {
   {"getside", socket_getside},
   {"getpeer", socket_getpeer},
   {"listen", l_listen},
+  {"udpserver", l_udpserver},
   {NULL, NULL}
 };
 
