@@ -2417,6 +2417,42 @@ do
     sched:run()
 end
 do
+    local { scheduler, socket } = require "*"
+
+    local sched = new scheduler()
+    sched:add(function()
+        local serv = socket.udpserver(30725)
+        local data = serv:recv()
+        assert(data == "ping")
+        serv:send("pong")
+    end)
+    sched:add(function()
+        local sock = socket.connect("127.0.0.1", 30725, "udp")
+        sock:send("ping")
+        local data = sock:recv()
+        assert(data == "pong")
+    end)
+    sched:run()
+end
+do
+    local { scheduler, socket } = require "*"
+
+    local sched = new scheduler()
+    sched:add(function()
+        local serv = socket.udpserver(30726)
+        local data = serv:recv()
+        assert(data == "ping")
+        serv:send("pong")
+    end)
+    sched:add(function()
+        local sock = socket.connect("::1", 30726, "udp")
+        sock:send("ping")
+        local data = sock:recv()
+        assert(data == "pong")
+    end)
+    sched:run()
+end
+do
     local regex = require "pluto:regex"
 
     local pattern = new regex [[/^the (only )?one$/i]]
