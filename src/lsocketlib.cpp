@@ -101,7 +101,11 @@ static int l_connect (lua_State *L) {
       luaL_error(L, "invalid ip address");  // TODO: Handle DNS name resolution
     }
     ss.sock->peer.port = soup::Endianness::toNetwork(soup::native_u16_t(port));
+#if SOUP_WINDOWS
     ss.sock->init(ss.sock->peer.ip.isV4() ? AF_INET : AF_INET6, SOCK_DGRAM);  /* init socket right away so we can use udpServerSend as client */
+#else
+    ss.sock->init(AF_INET6, SOCK_DGRAM);  /* init socket right away so we can use udpServerSend as client */
+#endif
     ss.udp = true;
     ss.recvLoopUdp(*ss.sock);
     return 1;

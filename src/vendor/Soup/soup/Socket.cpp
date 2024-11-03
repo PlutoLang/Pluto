@@ -1130,7 +1130,11 @@ NAMESPACE_SOUP
 	bool Socket::udpClientSend(const SocketAddr& addr, const char* data, size_t size) noexcept
 	{
 		peer = addr;
+#if SOUP_WINDOWS
 		return init(addr.ip.isV4() ? AF_INET : AF_INET6, SOCK_DGRAM)
+#else
+		return init(AF_INET6, SOCK_DGRAM)
+#endif
 			&& udpServerSend(addr, data, size)
 			;
 	}
@@ -1142,6 +1146,7 @@ NAMESPACE_SOUP
 
 	bool Socket::udpServerSend(const SocketAddr& addr, const char* data, size_t size) noexcept
 	{
+#if SOUP_WINDOWS
 		if (addr.ip.isV4())
 		{
 			sockaddr_in sa{};
@@ -1154,6 +1159,7 @@ NAMESPACE_SOUP
 			}
 		}
 		else
+#endif
 		{
 			sockaddr_in6 sa{};
 			sa.sin6_family = AF_INET6;
