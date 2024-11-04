@@ -3019,6 +3019,15 @@ do
         private var1
         private var2,
         private var3;
+
+        function doSwitch(x)
+            switch x do
+                case 1:
+                    return "One"
+                case 2:
+                    return "Two"
+            end
+        end
     end
 
     local var = new MyClass("a")
@@ -3033,6 +3042,8 @@ do
     assert(var.__restricted__var1 == "1")
     assert(var.__restricted__var2 == "2")
     assert(var.__restricted__var3 == "3")
+    assert(var:doSwitch(1) == "One")
+    assert(var:doSwitch(2) == "Two")
 end
 
 print "Testing named varargs."
