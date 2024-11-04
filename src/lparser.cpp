@@ -1822,6 +1822,7 @@ static size_t preprocessclass (LexState *ls) {
     case TK_CLASS:
     case TK_CATCH:
     case TK_FUNCTION:
+    case TK_SWITCH:
       ++allowed_ends;
       break;
 
