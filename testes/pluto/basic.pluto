@@ -2303,7 +2303,7 @@ do
         assert(s:isopen() == false)
     end)
     sched:add(function()
-        local s = socket.connect("localhost", 30724)
+        local s = socket.connect("127.0.0.1", 30724)
         assert(s)
         assert(s:isopen() == true)
         assert(s:getside() == "client")
