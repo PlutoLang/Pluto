@@ -1,8 +1,5 @@
 #pragma once
 
-#include "base.hpp"
-#if !SOUP_WASM
-
 #include "dnsRawResolver.hpp"
 
 NAMESPACE_SOUP
@@ -16,5 +13,3 @@ NAMESPACE_SOUP
 		[[nodiscard]] UniquePtr<dnsLookupTask> makeLookupTask(dnsType qtype, const std::string& name) const final;
 	};
 }
-
-#endif
