@@ -647,6 +647,7 @@
     <ClCompile Include="src\vendor\Soup\soup\Reader.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Regex.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\RegexGroup.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\ResolveIpAddrTask.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\rflParser.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Rgb.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ripemd160.cpp" />
@@ -864,6 +865,7 @@
     <ClInclude Include="src\vendor\Soup\soup\RegexTransitionsVector.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\RegexWordBoundaryConstraint.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\RegexWordCharConstraint.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\ResolveIpAddrTask.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ReuseTag.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rflFunc.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rflMember.hpp" />
