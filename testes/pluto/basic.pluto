@@ -2995,6 +2995,7 @@ do
 
         public function getPublic()
             if a then else end
+            if a do else end
             local a = || -> do end
             enum A begin
             end
@@ -3006,9 +3007,8 @@ do
             local MuhClass4 = pluto_class begin end
             local MuhClass5 = pluto_class private a; end
             local MuhClass6 = pluto_class begin private a; end
-            enum class MyEnumClass begin
-
-            end
+            enum class MyEnumClass begin end
+            do end
             return self:getPrivate()
         end
 
