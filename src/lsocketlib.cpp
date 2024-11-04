@@ -10,6 +10,8 @@
 
 #include "vendor/Soup/soup/CertStore.hpp"
 #include "vendor/Soup/soup/netConnectTask.hpp"
+#include "vendor/Soup/soup/os.hpp"
+#include "vendor/Soup/soup/ResolveIpAddrTask.hpp"
 #include "vendor/Soup/soup/Scheduler.hpp"
 #include "vendor/Soup/soup/Server.hpp"
 #include "vendor/Soup/soup/ServerService.hpp"
@@ -87,6 +89,25 @@ static int connectcont (lua_State *L, int status, lua_KContext ctx) {
   return lua_yieldk(L, 0, ctx, connectcont);
 }
 
+static int restconnectudp (lua_State *L, soup::ResolveIpAddrTask *pTask) {
+  if (l_unlikely(!pTask->result.has_value())) {
+    return 0;
+  }
+  StandaloneSocket& ss = *checksocket(L, -1);
+  ss.sock->peer.ip = std::move(*pTask->result);
+  ss.sched.tick();  /* get rid of ResolveIpAddrTask */
+  return 1;
+}
+
+static int connectudpcont (lua_State *L, int status, lua_KContext ctx) {
+  auto pTask = reinterpret_cast<soup::ResolveIpAddrTask*>(ctx);
+  if (pTask->isWorkDone())
+    return restconnectudp(L, pTask);
+  StandaloneSocket& ss = *checksocket(L, -1);
+  ss.sched.tick();
+  return lua_yieldk(L, 0, ctx, connectudpcont);
+}
+
 static int l_connect (lua_State *L) {
   const char *host = luaL_checkstring(L, 1);
   auto port = static_cast<uint16_t>(luaL_checkinteger(L, 2));
@@ -97,9 +118,7 @@ static int l_connect (lua_State *L) {
 
   if (udp) {
     ss.sock = ss.sched.addSocket();
-    if (!ss.sock->peer.ip.fromString(host)) {
-      luaL_error(L, "invalid ip address");  // TODO: Handle DNS name resolution
-    }
+    const bool host_is_ip_addr = ss.sock->peer.ip.fromString(host);
     ss.sock->peer.port = soup::Endianness::toNetwork(soup::native_u16_t(port));
 #if SOUP_WINDOWS
     ss.sock->init(ss.sock->peer.ip.isV4() ? AF_INET : AF_INET6, SOCK_DGRAM);  /* init socket right away so we can use udpServerSend as client */
@@ -108,13 +127,23 @@ static int l_connect (lua_State *L) {
 #endif
     ss.udp = true;
     ss.recvLoopUdp(*ss.sock);
+    if (!host_is_ip_addr) {
+      auto spTask = ss.sched.add<soup::ResolveIpAddrTask>(host);
+      ss.sched.tick();
+      if (lua_isyieldable(L))
+        return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(spTask.get()), connectudpcont);
+      do {
+        soup::os::sleep(1);
+        ss.sched.tick();
+      } while (!spTask->isWorkDone());
+      return restconnectudp(L, spTask.get());
+    }
     return 1;
   }
 
   if (!lua_isyieldable(L)) {
     ss.sock = ss.sched.addSocket();
-    bool connected = ss.sock->connect(host, port);
-    if (!connected)
+    if (l_unlikely(!ss.sock->connect(host, port)))
       return 0;
     ss.recvLoop();
     return 1;
