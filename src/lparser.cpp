@@ -1806,6 +1806,7 @@ static void applyextends (LexState *ls, size_t name_pos, size_t parent_pos, int 
 
 static size_t preprocessclass (LexState *ls) {
   int allowed_ends = 0;
+  bool expect_block_opener = false;
   const auto start = luaX_getpos(ls);
 
   while (ls->t.token != TK_EOS) {
@@ -1816,24 +1817,33 @@ static size_t preprocessclass (LexState *ls) {
 
     // This is only checking *inside* our current class body, the parser has already skipped the class declaration.
     switch (ls->t.normalizedToken()) {
+    case TK_CLASS:  /* 'class' or 'enum class' */
     case TK_IF:
-    case TK_FOR:
-    case TK_WHILE:
-    case TK_CLASS:
     case TK_CATCH:
-    case TK_FUNCTION:
-    case TK_SWITCH:
+      expect_block_opener = true;
       ++allowed_ends;
       break;
 
-    case TK_ENUM:
-      if (luaX_lookahead(ls) != TK_CLASS) {
-        ++allowed_ends;
-      }
+    case TK_FUNCTION:
+      expect_block_opener = false;
+      ++allowed_ends;
       break;
 
-    case TK_ARROW:
-      if (luaX_lookahead(ls) == TK_DO) {
+    case TK_THEN:
+    case TK_BEGIN:
+      expect_block_opener = false;
+      break;
+
+    case TK_DO:
+      if (expect_block_opener)
+        expect_block_opener = false;
+      else
+        ++allowed_ends;  /* forstat, whilestat, switchstat, dostat, '-> do' */
+      break;
+
+    case TK_ENUM:
+      expect_block_opener = true;
+      if (luaX_lookahead(ls) != TK_CLASS) {  /* 'enum class' would already be counted */
         ++allowed_ends;
       }
       break;
