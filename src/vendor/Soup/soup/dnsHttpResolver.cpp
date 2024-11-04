@@ -1,7 +1,5 @@
 #include "dnsHttpResolver.hpp"
 
-#if !SOUP_WASM
-
 #include "base64.hpp"
 #include "DelayedCtor.hpp"
 #include "HttpRequest.hpp"
@@ -12,6 +10,9 @@ NAMESPACE_SOUP
 {
 	Optional<std::vector<UniquePtr<dnsRecord>>> dnsHttpResolver::lookup(dnsType qtype, const std::string& name) const
 	{
+#if SOUP_WASM
+		SOUP_ASSERT(false, "Blocking lookup is not supported under WASM");
+#else
 		std::vector<UniquePtr<dnsRecord>> res;
 		if (checkBuiltinResult(res, qtype, name))
 		{
@@ -25,6 +26,7 @@ NAMESPACE_SOUP
 		auto hres = hr.execute(keep_alive_sched);
 
 		return parseResponse(std::move(hres->body));
+#endif
 	}
 
 	struct dnsHttpLookupTask : public dnsLookupTask
@@ -75,5 +77,3 @@ NAMESPACE_SOUP
 		return soup::make_unique<dnsHttpLookupTask>(std::move(server), qtype, name);
 	}
 }
-
-#endif
