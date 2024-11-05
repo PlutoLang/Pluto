@@ -40,7 +40,7 @@ local function deepCompare(t1, t2)
     end
   end
 
-  for k, v in t2 do
+  for k in t2 do
     if t1[k] == nil then
       return false
     end
@@ -267,7 +267,7 @@ function module.noerror(callback, ...)
 end
 
 function module.haserror(callback, ...)
-  local status, err = pcall(callback, ...)
+  local status = pcall(callback, ...)
   if status == true then
     return new AssertionError("haserror", nil, nil):setSimple("Expected an error, but there was none."):raise()
   end

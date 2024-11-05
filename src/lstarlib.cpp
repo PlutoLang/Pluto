@@ -12,7 +12,7 @@ LUAMOD_API int luaopen_star (lua_State *L) {
   return 0;
 #else
   const auto code = R"EOC(local t = {}
-for k, v in package.preload do
+for k in package.preload do
   if k ~= "*" then
     t[k] = require $"pluto:{k}"
   end
