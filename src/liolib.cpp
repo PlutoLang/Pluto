@@ -27,6 +27,10 @@
 #include "vendor/Soup/soup/filesystem.hpp"
 #include "vendor/Soup/soup/string.hpp"
 
+#if SOUP_WINDOWS
+#include <windows.h>
+#endif
+
 
 // As a "last stand" measure to ensure that Pluto, when compiled as a DLL, can itself not be loaded via package.loadlib to provide functions that the integrator wanted disabled.
 // This should be reasonably effective on Windows where the DLL is expected to be shipped with the program, if static linking is not used.
@@ -995,10 +999,24 @@ static int io_part (lua_State *L) {
 
 
 static int makedir (lua_State *L) {
+  auto path = getStringStreamPathForWrite(L, 1);
+#if SOUP_WINDOWS
   Protect(
-    const auto path = getStringStreamPathForWrite(L, 1);
-    lua_pushboolean(L, std::filesystem::create_directory(path))
+    if (std::filesystem::create_directory(path)) {
+      if (path.filename().empty())
+        path = path.parent_path();
+      if (path.filename().c_str()[0] == '.') {
+        SetFileAttributesW(path.c_str(), FILE_ATTRIBUTE_HIDDEN);
+      }
+      lua_pushboolean(L, true);
+    }
+    else {
+      lua_pushboolean(L, false);
+    }
   );
+#else
+  Protect(lua_pushboolean(L, std::filesystem::create_directory(path)));
+#endif
 
   return 1;
 }
