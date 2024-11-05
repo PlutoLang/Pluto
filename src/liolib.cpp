@@ -985,13 +985,18 @@ static int relative (lua_State *L) {
 static int io_part (lua_State *L) {
   Protect(
     std::filesystem::path path = getStringStreamPathRaw(L, 1);
+    if (lua_gettop(L) == 1) {
+      pluto_pushstring(L, soup::string::fixType(path.parent_path().u8string()));
+      pluto_pushstring(L, soup::string::fixType(path.filename().u8string()));
+      return 2;
+    }
     static const char *const parts[] = {"parent", "name", nullptr};
     int part = luaL_checkoption(L, 2, nullptr, parts);
     if (part == 0)
       path = path.parent_path();
     else
       path = path.filename();
-    lua_pushstring(L, (const char*)path.u8string().c_str());
+    pluto_pushstring(L, soup::string::fixType(path.u8string()));
   );
 
   return 1;
