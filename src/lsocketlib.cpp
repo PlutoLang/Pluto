@@ -111,7 +111,7 @@ static int connectudpcont (lua_State *L, int status, lua_KContext ctx) {
 static int l_connect (lua_State *L) {
   const char *host = luaL_checkstring(L, 1);
   auto port = static_cast<uint16_t>(luaL_checkinteger(L, 2));
-  const char *const opts[] = { "tcp", "udp" };
+  const char *const opts[] = { "tcp", "udp", nullptr };
   bool udp = luaL_checkoption(L, 3, "tcp", opts);
 
   StandaloneSocket& ss = pushsocket(L);
