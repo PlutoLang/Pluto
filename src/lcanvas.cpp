@@ -53,7 +53,7 @@ static int canvas_qrcode (lua_State *L) {
 
     lua_pushliteral(L, "ecl");
     if (lua_gettable(L, 2) > LUA_TNIL) {
-      const char* const options[] = { "low", "medium", "quartile", "high" };
+      const char* const options[] = { "low", "medium", "quartile", "high", nullptr };
       ecl = static_cast<soup::QrCode::ecc>(luaL_checkoption(L, -1, "low", options));
     }
 
