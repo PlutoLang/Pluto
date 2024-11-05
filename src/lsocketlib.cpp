@@ -358,6 +358,7 @@ static const luaL_Reg funcs_socket[] = {
 LUAMOD_API int luaopen_socket (lua_State *L) {
   luaL_newlib(L, funcs_socket);
 
+#ifndef PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO
   lua_pushliteral(L, "bind");
   luaL_loadstring(L, R"EOC(
 return function(sched, port, callback)
@@ -373,6 +374,7 @@ return function(sched, port, callback)
 end)EOC");
   lua_call(L, 0, 1);
   lua_settable(L, -3);
+#endif
 
   return 1;
 }

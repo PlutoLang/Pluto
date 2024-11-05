@@ -76,6 +76,7 @@ LUALIB_API void luaL_openlibs (lua_State *L) {
   }
   lua_pop(L, 1);
 
+#ifndef PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO
   const auto startup_code = R"EOC(
 pluto_use "0.6.0"
 
@@ -111,5 +112,6 @@ end
 )EOC";
   luaL_loadbuffer(L, startup_code, strlen(startup_code), "Pluto Standard Library");
   lua_call(L, 0, 0);
+#endif
 }
 

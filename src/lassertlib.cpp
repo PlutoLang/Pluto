@@ -8,6 +8,9 @@ static const luaL_Reg funcs[] = {
 };
 
 LUAMOD_API int luaopen_assert(lua_State *L) {
+#ifdef PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO
+  return 0;
+#else
   const auto code = R"EOC(pluto_use "0.6.0"
 
 local module = {}
@@ -311,6 +314,7 @@ return module)EOC";
   luaL_loadbuffer(L, code, strlen(code), "pluto:assert");
   lua_call(L, 0, 1);
   return 1;
+#endif
 }
 
 const Pluto::PreloadedLibrary Pluto::preloaded_assert{ "assert", funcs, &luaopen_assert };
