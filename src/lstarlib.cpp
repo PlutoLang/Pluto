@@ -18,7 +18,7 @@ for k, v in package.preload do
   end
 end
 return t)EOC";
-  luaL_loadbuffer(L, code, strlen(code), "pluto:assert");
+  luaL_loadbuffer(L, code, strlen(code), "pluto:*");
   lua_call(L, 0, 1);
   return 1;
 #endif
