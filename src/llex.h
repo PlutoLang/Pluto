@@ -210,6 +210,7 @@ enum WarningType : int {
   WT_UNANNOTATED_FALLTHROUGH,
   WT_DISCARDED_RETURN,
   WT_FIELD_SHADOW,
+  WT_UNUSED,
 
   NUM_WARNING_TYPES
 };
@@ -232,6 +233,7 @@ inline const char* const luaX_warnNames[] = {
   "unannotated-fallthrough",
   "discarded-return",
   "field-shadow",
+  "unused",
 };
 static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
@@ -263,6 +265,9 @@ private:
 #endif
 #ifndef PLUTO_WARN_NON_PORTABLE_NAME
     case WT_NON_PORTABLE_NAME:
+#endif
+#ifndef PLUTO_WARN_UNSUED
+    case WT_UNUSED:  /* it kills me that I can't enable this by default but our test suite is horrible right now */
 #endif
     case NUM_WARNING_TYPES:  /* dummy case so compiler doesn't cry when all macros are set */
       return WS_OFF;
