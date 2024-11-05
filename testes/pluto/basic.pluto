@@ -2385,6 +2385,13 @@ do
     assert(match[1] == "3")
     assert(match[2] == "5")
 end
+do
+    assert(io.part("/deez/nuts", "parent") == "/deez")
+    assert(io.part("/deez/nuts", "name") == "nuts")
+    local parent, name = io.part("/deez/nuts")
+    assert(parent == "/deez")
+    assert(name == "nuts")
+end
 
 print "Testing default table metatable."
 do
