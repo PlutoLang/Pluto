@@ -8,6 +8,9 @@ static const luaL_Reg funcs_vector3[] = {
 };
 
 LUAMOD_API int luaopen_vector3(lua_State* L) {
+#ifdef PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO
+    return 0;
+#else
     const auto code = R"EOC(pluto_use "0.6.0"
 
 local vector3
@@ -201,6 +204,7 @@ return vector3)EOC";
     luaL_loadbuffer(L, code, strlen(code), "pluto:vector3");
     lua_call(L, 0, 1);
     return 1;
+#endif
 }
 
 const Pluto::PreloadedLibrary Pluto::preloaded_vector3{ "vector3", funcs_vector3, &luaopen_vector3 };

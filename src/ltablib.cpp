@@ -989,6 +989,7 @@ static const luaL_Reg tab_funcs[] = {
 LUAMOD_API int luaopen_table (lua_State *L) {
   luaL_newlib(L, tab_funcs);
 
+#ifndef PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO
   lua_pushliteral(L, "min");
   luaL_loadstring(L, "return |t| -> table.reduce(t, math.min, math.maxinteger)");
   lua_call(L, 0, 1);
@@ -998,6 +999,7 @@ LUAMOD_API int luaopen_table (lua_State *L) {
   luaL_loadstring(L, "return |t| -> table.reduce(t, math.max, math.mininteger)");
   lua_call(L, 0, 1);
   lua_settable(L, -3);
+#endif
 
   return 1;
 }
