@@ -2,11 +2,14 @@
 
 // === Namespace
 
-namespace soup
-{
-	namespace pluto_vendored {};
-	using namespace pluto_vendored;
-};
+// When vendoring Soup, it is advisable to assign a unique namespace, like so:
+//
+// namespace soup { namespace PROJECTNAME_vendored {}; using namespace PROJECTNAME_vendored; };
+// #define NAMESPACE_SOUP namespace soup::PROJECTNAME_vendored
+//
+// Note that this does not change the way you use Soup.
+
+namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 #define NAMESPACE_SOUP namespace soup::pluto_vendored
 
 // === Platform/ABI macros
@@ -186,7 +189,7 @@ namespace soup
 	// Because of this, we declare that 'excal' functions are 'noexcept' to avoid superfluous unwind information.
 	//
 	// For visual distinction with IDE hover features, we use `throw()`, but it's functionally identical to `noexcept`.
-	#define SOUP_EXCAL throw()
+	#define SOUP_EXCAL
 #endif
 
 // === Development helpers

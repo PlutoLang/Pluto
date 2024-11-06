@@ -17,8 +17,21 @@ while (!is_dir("$dir/Soup"))
 $dir .= "/Soup/soup";
 foreach (scandir(".") as $f)
 {
-	if ($f != "base.hpp" && (substr($f, -4) == ".cpp" || substr($f, -4) == ".hpp"))
+	if (substr($f, -4) == ".cpp" || substr($f, -4) == ".hpp")
 	{
-		copy("$dir/$f", $f);
+		if ($f == "base.hpp")
+		{
+			file_put_contents($f,
+				str_replace("\r\n#define NAMESPACE_SOUP namespace soup", "\r\nnamespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };\r\n#define NAMESPACE_SOUP namespace soup::pluto_vendored",
+					str_replace("#define SOUP_EXCAL throw()", "#define SOUP_EXCAL",
+						file_get_contents("$dir/$f")
+					)
+				)
+			);
+		}
+		else
+		{
+			copy("$dir/$f", $f);
+		}
 	}
 }
