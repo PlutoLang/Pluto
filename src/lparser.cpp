@@ -2591,7 +2591,7 @@ static void safe_navigation (LexState *ls, expdesc *v) {
       }
       case ':': {
         luaX_next(ls);
-        codename(ls, &key);
+        codename(ls, &key, N_RESERVED);
         luaK_self(fs, v, &key);
         method_call_funcargs(ls, v);
         break;
@@ -3048,7 +3048,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         else if (l_unlikely(ls->t.column != (colon_column + 1) && ls->getContext() == PARCTX_TERNARY_C)) {
           throw_warn(ls, "possible confusion with colons", "the second colon is interpreted as a method call instead of the first colon", "wrap the method call in parentheses", ls->t.line, WT_POSSIBLE_TYPO);
         }
-        codename(ls, &key);
+        codename(ls, &key, N_RESERVED);
         luaK_self(fs, v, &key);
         method_call_funcargs(ls, v);
         break;
