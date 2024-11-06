@@ -1127,39 +1127,45 @@ NAMESPACE_SOUP
 		return ::bind(fd, (sockaddr*)&bindto, sizeof(bindto)) != -1;
 	}
 
-	bool Socket::udpClientSend(const SocketAddr& addr, const std::string& data) noexcept
+	bool Socket::udpClientSend(const SocketAddr& addr, const char* data, size_t size) noexcept
 	{
 		peer = addr;
+#if SOUP_WINDOWS
 		return init(addr.ip.isV4() ? AF_INET : AF_INET6, SOCK_DGRAM)
-			&& udpServerSend(addr, data)
+#else
+		return init(AF_INET6, SOCK_DGRAM)
+#endif
+			&& udpServerSend(addr, data, size)
 			;
 	}
 
-	bool Socket::udpClientSend(const IpAddr& ip, uint16_t port, const std::string& data) noexcept
+	bool Socket::udpClientSend(const IpAddr& ip, uint16_t port, const char* data, size_t size) noexcept
 	{
-		return udpClientSend(SocketAddr(ip, native_u16_t(port)), data);
+		return udpClientSend(SocketAddr(ip, native_u16_t(port)), data, size);
 	}
 
-	bool Socket::udpServerSend(const SocketAddr& addr, const std::string& data) noexcept
+	bool Socket::udpServerSend(const SocketAddr& addr, const char* data, size_t size) noexcept
 	{
+#if SOUP_WINDOWS
 		if (addr.ip.isV4())
 		{
 			sockaddr_in sa{};
 			sa.sin_family = AF_INET;
 			sa.sin_port = addr.port;
 			sa.sin_addr.s_addr = addr.ip.getV4();
-			if (::sendto(fd, data.data(), static_cast<int>(data.size()), 0, (sockaddr*)&sa, sizeof(sa)) != data.size())
+			if (::sendto(fd, data, static_cast<int>(size), 0, (sockaddr*)&sa, sizeof(sa)) != size)
 			{
 				return false;
 			}
 		}
 		else
+#endif
 		{
 			sockaddr_in6 sa{};
 			sa.sin6_family = AF_INET6;
 			memcpy(&sa.sin6_addr, &addr.ip.data, sizeof(in6_addr));
 			sa.sin6_port = addr.port;
-			if (::sendto(fd, data.data(), static_cast<int>(data.size()), 0, (sockaddr*)&sa, sizeof(sa)) != data.size())
+			if (::sendto(fd, data, static_cast<int>(size), 0, (sockaddr*)&sa, sizeof(sa)) != size)
 			{
 				return false;
 			}
@@ -1167,9 +1173,9 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	bool Socket::udpServerSend(const IpAddr& ip, uint16_t port, const std::string& data) noexcept
+	bool Socket::udpServerSend(const IpAddr& ip, uint16_t port, const char* data, size_t size) noexcept
 	{
-		return udpServerSend(SocketAddr(ip, native_u16_t(port)), data);
+		return udpServerSend(SocketAddr(ip, native_u16_t(port)), data, size);
 	}
 
 	struct CaptureSocketRecv
@@ -1218,7 +1224,12 @@ NAMESPACE_SOUP
 
 			sockaddr_in6 sa;
 			socklen_t sal = sizeof(sa);
-			data.resize(::recvfrom(static_cast<Socket&>(w).fd, data.data(), 0x1000, 0, (sockaddr*)&sa, &sal));
+			int res = ::recvfrom(static_cast<Socket&>(w).fd, data.data(), 0x1000, 0, (sockaddr*)&sa, &sal);
+			SOUP_IF_UNLIKELY (res < 0)
+			{
+				return;
+			}
+			data.resize(res);
 
 			SocketAddr sender;
 			if (sal == sizeof(sa))

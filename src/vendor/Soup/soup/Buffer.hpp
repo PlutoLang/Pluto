@@ -121,12 +121,12 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] uint8_t& back() noexcept
 		{
-			return m_data[size()];
+			return m_data[size() - 1];
 		}
 
 		[[nodiscard]] const uint8_t& back() const noexcept
 		{
-			return m_data[size()];
+			return m_data[size() - 1];
 		}
 
 		void resize(size_t desired_size) SOUP_EXCAL

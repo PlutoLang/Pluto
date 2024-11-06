@@ -752,7 +752,6 @@
     <ClInclude Include="src\vendor\Soup\soup\Curve25519.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\DefaultRngInterface.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\deflate.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\DelayedCtor.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\deleter.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\DetachedScheduler.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\dnsClass.hpp" />
@@ -936,6 +935,7 @@
     <ClInclude Include="src\vendor\Soup\soup\UniquePtr.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Uri.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\urlenc.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\utility.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\version_compare.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\WeakRef.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Worker.hpp" />

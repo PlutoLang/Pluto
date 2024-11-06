@@ -7,6 +7,7 @@
 #include "RegexConstraint.hpp"
 #include "RegexMatcher.hpp"
 #include "string.hpp"
+#include "utility.hpp" // SOUP_MOVE_RETURN
 
 #define REGEX_DEBUG_MATCH false
 

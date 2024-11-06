@@ -13,6 +13,7 @@
 #include "OstreamWriter.hpp"
 #include "StringReader.hpp"
 #include "StringWriter.hpp"
+#include "utility.hpp" // SOUP_MOVE_RETURN
 
 NAMESPACE_SOUP
 {

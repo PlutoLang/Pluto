@@ -4,6 +4,7 @@
 #include "string.hpp"
 #include "StringBuilder.hpp"
 #include "UniquePtr.hpp"
+#include "utility.hpp" // SOUP_MOVE_RETURN
 
 #define DEBUG_PARSE false
 

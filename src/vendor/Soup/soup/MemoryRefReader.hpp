@@ -35,7 +35,7 @@ NAMESPACE_SOUP
 
 		bool raw(void* data, size_t len) noexcept final
 		{
-			SOUP_IF_UNLIKELY((offset + len) > this->size)
+			SOUP_IF_UNLIKELY ((offset + len) > this->size)
 			{
 				return false;
 			}

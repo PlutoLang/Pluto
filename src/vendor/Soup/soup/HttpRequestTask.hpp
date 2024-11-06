@@ -7,8 +7,8 @@
 #include "HttpResponse.hpp"
 #include "Uri.hpp"
 #if !SOUP_WASM
-#include "DelayedCtor.hpp"
 #include "netConnectTask.hpp"
+#include "Optional.hpp"
 #include "SharedPtr.hpp"
 #endif
 
@@ -35,7 +35,7 @@ NAMESPACE_SOUP
 #endif
 		HttpRequest hr;
 #if !SOUP_WASM
-		DelayedCtor<netConnectTask> connector;
+		Optional<netConnectTask> connector;
 		SharedPtr<Socket> sock;
 		time_t awaiting_response_since;
 #else

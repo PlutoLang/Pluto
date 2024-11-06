@@ -903,7 +903,7 @@ NAMESPACE_SOUP
 #endif
 	}
 
-	void aes::xorBlocks(uint8_t a[16], const uint8_t b[16], unsigned int len) noexcept
+	void aes::xorBlocks(uint8_t a[], const uint8_t b[], unsigned int len) noexcept
 	{
 		for (unsigned int i = 0; i != len; ++i)
 		{

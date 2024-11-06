@@ -51,7 +51,7 @@ NAMESPACE_SOUP
 		static void encryptBlock(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240], const int Nr) noexcept;
 		static void decryptBlock(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240], const int Nr) noexcept;
 		static SOUP_FORCEINLINE void xorBlocks(uint8_t a[16], const uint8_t b[16]) noexcept;
-		static void xorBlocks(uint8_t a[16], const uint8_t b[16], unsigned int len) noexcept;
+		static void xorBlocks(uint8_t a[], const uint8_t b[], unsigned int len) noexcept;
 
 		static void ghash(uint8_t res[16], const uint8_t h[16], const std::vector<uint8_t>& x) noexcept;
 		static void calcH(uint8_t h[16], uint8_t roundKeys[240], const int Nr) noexcept;

@@ -2,10 +2,6 @@
 
 #include "base.hpp"
 
-#if SOUP_CPP20
-#include <bit>
-#endif
-
 #include "IntStruct.hpp"
 
 NAMESPACE_SOUP
@@ -14,10 +10,10 @@ NAMESPACE_SOUP
 	{
 		ENDIAN_LITTLE = true,
 		ENDIAN_BIG = false,
-#if SOUP_CPP20
-		ENDIAN_NATIVE = (std::endian::native == std::endian::little),
+#ifdef SOUP_LITTLE_ENDIAN
+		ENDIAN_NATIVE = ENDIAN_LITTLE,
 #else
-		ENDIAN_NATIVE = true,
+		ENDIAN_NATIVE = ENDIAN_BIG,
 #endif
 		ENDIAN_NETWORK = ENDIAN_BIG,
 	};

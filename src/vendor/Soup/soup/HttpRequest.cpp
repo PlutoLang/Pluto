@@ -9,6 +9,7 @@
 #include "UniquePtr.hpp"
 #include "Uri.hpp"
 #include "urlenc.hpp"
+#include "utility.hpp" // SOUP_MOVE_RETURN
 
 #define LOGGING false
 

@@ -77,7 +77,7 @@ NAMESPACE_SOUP
 					return;
 				}
 				sock = connector->getSocket();
-				connector.destroy();
+				connector.reset();
 				if (dont_make_reusable_sockets == false
 					&& Scheduler::get()->dont_make_reusable_sockets == false
 					)
@@ -157,7 +157,7 @@ NAMESPACE_SOUP
 	void HttpRequestTask::cannotRecycle()
 	{
 		state = CONNECTING;
-		connector.construct(hr.getHost(), hr.port, prefer_ipv6);
+		connector.emplace(hr.getHost(), hr.port, prefer_ipv6);
 	}
 
 	void HttpRequestTask::recvResponse() SOUP_EXCAL
