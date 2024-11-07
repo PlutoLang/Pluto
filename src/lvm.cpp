@@ -860,6 +860,27 @@ static void pushclosure (lua_State *L, Proto *p, UpVal **encup, StkId base,
 }
 
 
+static void inopr (lua_State *L, StkId ra, TValue *a, TValue *b) {
+  if (ttisstring(a) && ttisstring(b)) {
+    if (strstr(getstr(tsvalue(b)), getstr(tsvalue(a))) != nullptr) {
+      setbtvalue(s2v(ra));
+    } else {
+      setbfvalue(s2v(ra));
+    }
+  } else {
+    if (l_unlikely(!ttistable(b))) {
+      luaG_runerror(L, "expected second 'in' operand to be table, got %s", ttypename(ttype(b)));
+    } else {
+      if (luaV_searchelement(L, hvalue(b), a)) {
+        setbtvalue(s2v(ra));
+      } else {
+        setbfvalue(s2v(ra));
+      }
+    }
+  }
+}
+
+
 /*
 ** finish execution of an opcode interrupted by a yield
 */
@@ -2653,23 +2674,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
 #ifdef PLUTO_VMDUMP
         std::string old = stringify_tvalue(a);  /* RA will be changed below. */
 #endif
-        if (ttisstring(a) && ttisstring(b)) {
-          if (strstr(getstr(tsvalue(b)), getstr(tsvalue(a))) != nullptr) {
-            setbtvalue(s2v(ra));
-          } else {
-            setbfvalue(s2v(ra));
-          }
-        } else {
-          if (!ttistable(b)) {
-            luaG_runerror(L, "expected second 'in' operand to be table, got %s", ttypename(ttype(b)));
-          } else {
-            if (luaV_searchelement(L, hvalue(b), a)) {
-              setbtvalue(s2v(ra));
-            } else {
-              setbfvalue(s2v(ra));
-            }
-          }
-        }
+        inopr(L, ra, a, b);
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
