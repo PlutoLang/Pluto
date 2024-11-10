@@ -41,7 +41,7 @@ PLATS= guess aix bsd freebsd generic linux linux-readline macosx posix solaris
 # What to install.
 TO_BIN= pluto plutoc
 TO_INC= lua.h luaconf.h lualib.h lauxlib.h lua.hpp
-TO_LIB= libpluto.a
+TO_LIB= libplutostatic.a
 TO_MAN= lua.1 luac.1
 
 # Lua version and release.
