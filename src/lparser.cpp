@@ -1956,7 +1956,7 @@ static void localclass (LexState *ls) {
   TString *name = str_checkname(ls, 0);
   size_t parent_pos = checkextends(ls);
 
-  new_localvar(ls, name, ls->getLineNumber());
+  new_localvar(ls, name, line);
 
   expdesc t;
   classexpr(ls, &t);
