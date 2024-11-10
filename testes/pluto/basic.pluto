@@ -146,7 +146,7 @@ end]]
 
     -- forstat propragates its return type too
     assert_no_warn[[local function _whatever(): ?bool
-    for { 1 } as v do
+    for { 1 } as _v do
         return true
     end
     return nil
@@ -2659,8 +2659,8 @@ do
     end
 
     local function choose(_) return { "for", "as" } end
-    for choose(function() for a as i_should_not_exist do end end) as x do
-        assert(i_should_not_exist == nil, i_should_not_exist)
+    for choose(function() for a as _i_should_not_exist do end end) as x do
+        assert(_i_should_not_exist == nil, _i_should_not_exist)
         assert(x == "for" or x == "as", x)
     end
 end
