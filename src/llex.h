@@ -266,9 +266,6 @@ private:
 #ifndef PLUTO_WARN_NON_PORTABLE_NAME
     case WT_NON_PORTABLE_NAME:
 #endif
-#ifndef PLUTO_WARN_UNSUED
-    case WT_UNUSED:  /* it kills me that I can't enable this by default but our test suite is horrible right now */
-#endif
     case NUM_WARNING_TYPES:  /* dummy case so compiler doesn't cry when all macros are set */
       return WS_OFF;
     default:
