@@ -4371,7 +4371,7 @@ static void forvlist (LexState *ls, TypeHint *prop) {
   /* create variable for key */
   new_localvar(ls, luaS_newliteral(ls->L, "(for state)"), {}, true);
   /* create variable for value */
-  int vidx = new_localvar(ls, luaS_newliteral(ls->L, "(for state)"), {}, true);
+  int vidx = new_localvar(ls, luaS_newliteral(ls->L, "(for state)"));
   nvars++;
 
   line = ls->getLineNumber();
