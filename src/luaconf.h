@@ -852,9 +852,6 @@
 // If defined, the "non-portable-name" warning is enabled by default.
 //#define PLUTO_WARN_NON_PORTABLE_NAME
 
-// If defined, the "unused" warning is enabled by default.
-//#define PLUTO_WARN_UNUSED
-
 /*
 ** {====================================================================
 ** Pluto Configuration: Compatibility
