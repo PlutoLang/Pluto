@@ -9,7 +9,7 @@ local function bench(name, f)
     print($"{name}: {its / NUM_MS} iterations/ms")
 end
 
-local { base64, crypto  } = require "*"
+local { base64, crypto } = require "*"
 
 bench("base64.encode, with padding, short string", function()
     base64.encode("abc", true)
