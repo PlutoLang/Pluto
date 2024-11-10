@@ -1,14 +1,14 @@
 print "Welcome to the test suite."
 
 local function assert_warn(code)
-    assert(wcall(function(msg)
+    assert(wcall(function(_msg)
         local chunk, err = load(code)
         if chunk then chunk() else error(err) end
     end) ~= "")
 end
 
 local function assert_no_warn(code)
-    assert(wcall(function(msg)
+    assert(wcall(function(_msg)
         local chunk, err = load(code)
         if chunk then chunk() else error(err) end
     end) == "")
@@ -19,21 +19,21 @@ do
     assert_warn([[local a; local a]]) -- var-shadow
 
     assert_no_warn[[
-    local function takesInt(a: int) end
+    local function takesInt(_a: int) end
     takesInt(1)
     ]]
     assert_no_warn[[
-    local function takesFloat(a: float) end
+    local function takesFloat(_a: float) end
     takesFloat(1.0)
     ]]
     assert_no_warn[[
-    local function takesNumber(a: number) end
+    local function takesNumber(_a: number) end
     takesNumber(1)
     takesNumber(1.0)
     ]]
     -- void|string
     assert_no_warn[[
-    local function f(): ?string
+    local function _f(): ?string
         if true then
             return
         end
@@ -41,7 +41,7 @@ do
     end
     ]]
     assert_no_warn[[
-    local function f(): ?string
+    local function _f(): ?string
         if true then
             return ""
         end
@@ -49,7 +49,7 @@ do
     ]]
     -- possible void|string false-positve
     assert_no_warn[[
-    local function f(): string
+    local function _f(): string
         if true then
         end
         return ""
@@ -57,7 +57,7 @@ do
     ]]
     -- nil|string
     assert_no_warn[[
-    local function f(): ?string
+    local function _f(): ?string
         if true then
             return ""
         end
@@ -65,7 +65,7 @@ do
     end
     ]]
     assert_no_warn[[
-    local function f(): ?string
+    local function _f(): ?string
         if true then
             return nil
         end
@@ -75,34 +75,34 @@ do
 
     -- TypeHint::merge should copy over function info
     do
-        local f = function(a) end
+        local f = function(_a) end
         f(1)
     end
 
     -- Possible exception here
-    local function dummy(f: function)
-        local a = f()
+    local function _dummy(f: function)
+        local _a = f()
     end
 
     -- Another possible exception here
     assert_warn([[
-    local function delegator(f: function) end
+    local function delegator(_f: function) end
     delegator()
     ]])
 
-    assert_warn([[local a = 69; local b: string = a]]) -- type mismatch in local-to-local assignment
-    assert_warn([[g = 69; local l: string = g]]) -- type mismatch in global-to-local assignment
+    assert_warn([[local a = 69; local _b: string = a]]) -- type mismatch in local-to-local assignment
+    assert_warn([[g = 69; local _l: string = g]]) -- type mismatch in global-to-local assignment
 
     -- type mismatch when assigning function parameter to local
     assert_warn [[
-    local function f(a: int)
+    local function _f(a: int)
         local b: string = a
         print(b)
     end
     ]]
 
     -- 'boolean' is a valid type hint for 'boolean|dunno' function
-    assert_no_warn [[local function f(): boolean
+    assert_no_warn [[local function _f(): boolean
     if s then
         return true
     end
@@ -111,7 +111,7 @@ end
 ]]
 
     -- 'string' is not a valid type hint for 'boolean|dunno' function
-    assert_warn [[local function f(): string
+    assert_warn [[local function _f(): string
     if s then
         return true
     end
@@ -133,10 +133,10 @@ local a: string = f() ?? true]]
     end
     return true
 end
-local a: bool|int = f() ?? 0]]
+local _a: bool|int = f() ?? 0]]
 
     -- 'else' propagates its return type too
-    assert_no_warn[[function foo(x: number): ?string
+    assert_no_warn[[function _foo(x: number): ?string
     if x == 2 then
         return nil
     else
@@ -145,7 +145,7 @@ local a: bool|int = f() ?? 0]]
 end]]
 
     -- forstat propragates its return type too
-    assert_no_warn[[local function whatever(): ?bool
+    assert_no_warn[[local function _whatever(): ?bool
     for { 1 } as v do
         return true
     end
@@ -189,21 +189,21 @@ end]]
 end
 -- Propagate conditional in block
 do
-    assert_no_warn[[local function test(arg: string|number): void
+    assert_no_warn[[local function _test(arg: string|number): void
         if type(arg) == "string" then
-            local str: string = arg
+            local _str: string = arg
         end
     end]]
-    assert_warn[[local function test(arg: string|number): void
+    assert_warn[[local function _test(arg: string|number): void
         if type(arg) == "string" then
             arg = 69
-            local str: string = arg
+            local _str: string = arg
         end
     end]]
-    assert_no_warn[[local function test(arg: string|number): void
+    assert_no_warn[[local function _test(arg: string|number): void
         if type(arg) == "string" then
             arg = 69
-            local str: number = arg
+            local _str: number = arg
         end
     end]]
 end
@@ -220,11 +220,11 @@ do
     local assert = require("assert")
 
     local function noerror(callback, ...)
-        local status, msg = pcall(callback, ...)
+        local status = pcall(callback, ...)
         assert(status == true)
     end
     local function haserror(callback, ...)
-        local status, msg = pcall(callback, ...)
+        local status = pcall(callback, ...)
         assert(status == false)
     end
     local function containserror(sub, callback, ...)
@@ -413,7 +413,7 @@ print "Testing continue statement."
 do
     local t = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
     local sum = 0
-    for index, value in ipairs(t) do
+    for _index, value in ipairs(t) do
         if value == 5 then
             continue
         end
@@ -476,13 +476,13 @@ do
         local t
         repeat
             do
-                local u1, u2, u3, u4
+                local _u1, _u2, _u3, u4
                 t = ||->u4
                 continue
             end
         until true
         do
-            for k in pairs({}) do end
+            for _ in pairs({}) do end
         end
         assert(t() == nil)
     end
@@ -490,7 +490,7 @@ do
     do
         local t
         do
-            for i = 1, 1 do
+            for _i = 1, 1 do
                 do
                     local u1
                     t = ||->u1
@@ -499,8 +499,8 @@ do
             end
         end
         do
-            local x
-            for k in pairs({}) do end
+            local _x
+            for _ in pairs({}) do end
         end
         assert(t() == nil)
     end
@@ -615,7 +615,7 @@ do
     assert(#metatest == 5, #metatest)
 
     t = {}
-    for i = 1, 1000 do
+    for _i = 1, 1000 do
         table.insert(t, "Hello")
         table.insert(t, "World")
     end
@@ -749,14 +749,14 @@ do
 end
 do
     do
-        for k in pairs({}) do end
+        for _ in pairs({}) do end
     end
     local x, y, z, w = _G:m?()
     assert(x == nil and y == nil and z == nil and w == nil)
 end
 do
     do
-        for k in pairs({}) do end
+        for _ in pairs({}) do end
     end
     local x, y, z, w = optinst?:m?()
     assert(x == nil and y == nil and z == nil and w == nil)
@@ -1195,7 +1195,7 @@ do
     switch 1 do
         case 0:
             do
-                local tbl = {}
+                local _tbl = {}
             end
             break
         case 1:
@@ -1230,7 +1230,7 @@ end
 do
     -- Test variable scoping
     do
-        for k in pairs({}) do end
+        for _ in pairs({}) do end
     end
     local function helper(a, b, c, d, e)
         assert(a == nil and b == nil and c == nil and d == nil and e == nil)
@@ -1239,7 +1239,7 @@ do
         case 1:
             break
         case helper(switch_a, switch_b, switch_c, switch_d, switch_e):
-            local switch_a, switch_b, switch_c, switch_d, switch_e
+            local _switch_a, _switch_b, _switch_c, _switch_d, _switch_e
             break
     end
 end
@@ -1799,7 +1799,7 @@ do
 end
 do
     local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
-    table.filter(t, |k, v| -> v % 2 ~= 0, true)
+    table.filter(t, |_k, v| -> v % 2 ~= 0, true)
     assert(t[1] == 5)
     assert(t[2] == nil)
     assert(t[3] == 3)
@@ -1810,7 +1810,7 @@ do
 end
 do
     local t = { 5, 4, 3, 2, 1, even = 8, odd = 9 }
-    table.filter(t, |k, v| -> type(k) == "string", true)
+    table.filter(t, |k| -> type(k) == "string", true)
     assert(t[1] == nil)
     assert(t[2] == nil)
     assert(t[3] == nil)
@@ -1857,7 +1857,7 @@ do
 end
 do
     local t = { 1, 2, 3, key = 4 }
-    t = table.map(t, |k, v| -> v * 2, true)
+    t = table.map(t, |_k, v| -> v * 2, true)
     assert(t[1] == 2)
     assert(t[2] == 4)
     assert(t[3] == 6)
@@ -1865,7 +1865,7 @@ do
 end
 do
     local t = { 1, 2, 3, key = 4 }
-    t = table.map(t, |k, v| -> type(k) == "string" ? 0 : k * 2, true)
+    t = table.map(t, |k| -> type(k) == "string" ? 0 : k * 2, true)
     assert(t[1] == 2)
     assert(t[2] == 4)
     assert(t[3] == 6)
@@ -2127,7 +2127,7 @@ end
 do
     local mask = { 0xf0, 0x0f }
     local data = { 0x11, 0x22, 0x33, 0x44 }
-    for i, v in data do
+    for i in data do
         -- Old way: data[i] = data[i] ~ mask[((i - 1) % #mask) + 1]
         data[i] = data[i] ~ mask:modget(i)
     end
@@ -2412,7 +2412,7 @@ do
         error()
     end
 
-    if b := nil then
+    if _b := nil then
         error()
     end
 
@@ -2471,7 +2471,7 @@ do -- Local can be used for subsequent binary operators
     end
 
     local reached = false
-    if (a := initfunc(0)) ~= 0 then
+    if (_a := initfunc(0)) ~= 0 then
     else
         reached = true
     end
@@ -2730,7 +2730,7 @@ do
         end
     end
 
-    local inst = new ClassWithAnExceptionallySpecificAndLongName()
+    local _inst = new ClassWithAnExceptionallySpecificAndLongName()
     assert(a == true and b == true)
 end
 do
@@ -2739,6 +2739,7 @@ do
         end
         local class localclass
         end
+        assert(localclass ~= nil)
     end
     assert(globalclass ~= nil)
     assert(localclass == nil)
@@ -2872,7 +2873,7 @@ do
     assert(c() == "You called?")
 end
 do
-    local class ClassParsingTest
+    local class _ClassParsingTest
         property_no_value
         property_type_hint: string
 
@@ -2996,17 +2997,17 @@ do
         public function getPublic()
             if a then else end
             if a do else end
-            local a = || -> do end
+            local _a = || -> do end
             enum A begin
             end
             class Foo do end
             class t.Foo begin end
-            local MuhClass = class end
-            local MuhClass2 = class begin end
-            local MuhClass3 = pluto_class end
-            local MuhClass4 = pluto_class begin end
-            local MuhClass5 = pluto_class private a; end
-            local MuhClass6 = pluto_class begin private a; end
+            local _MuhClass = class end
+            local _MuhClass2 = class begin end
+            local _MuhClass3 = pluto_class end
+            local _MuhClass4 = pluto_class begin end
+            local _MuhClass5 = pluto_class private a; end
+            local _MuhClass6 = pluto_class begin private a; end
             enum class MyEnumClass begin end
             do end
             return self:getPrivate()
@@ -3191,7 +3192,7 @@ do
                 error("error", 0)
             end
             ret = true
-        catch e then
+        catch _ then
             ret = false
         end
         return ret
@@ -3235,7 +3236,7 @@ do
     local function f()
         try
             return nil
-        catch e do
+        catch _ do
         end
     end
     assert(table.pack(f()).n == 1)
@@ -3245,7 +3246,7 @@ do
     local function f()
         try
             return error("deez")
-        catch e then
+        catch _ then
         end
         return true
     end
@@ -3376,7 +3377,7 @@ do
         try
             -- @pluto_warnings disable-next (export is deprecated)
             export function a() end
-        catch e then
+        catch _ then
         end
     end
 
@@ -3390,7 +3391,7 @@ do
     assert(t[1] == "Hi")
     t = {a, nil}
     assert(t[1] == "Hi")
-    t = {["func"]=function(p1,p2)end}
+    t = {["func"]=function(_p1,_p2)end}
     assert(t["func"] ~= nil)
 
     local myconst <const> = "consty"
@@ -3461,7 +3462,7 @@ do
     assert(a == "hello")
 end
 do
-    local t = {}
+    local _t = {}
     ("test string"):len()
 end
 do
@@ -3473,7 +3474,7 @@ do
             called_mm = true
         end
     })
-    for v in t do
+    for _ in t do
         iterated = true
     end
     assert(called_mm)
@@ -3516,8 +3517,12 @@ do
 end
 do
     -- We can infer that a keyword should be disabled
-    assert(load[[local new = true]])
-    assert(load[[function update_value(new) end]])
+    assert(load[[-- @pluto_warnings disable-unused
+        local new = true
+    ]])
+    assert(load[[-- @pluto_warnings disable-unused
+        function update_value(new) end
+    ]])
 end
 
 print "Testing universal functions."
