@@ -1362,6 +1362,25 @@ static void statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implie
       return true;
     });
     ls->fs->seenrets = 1<<1;
+
+    /* if table.freze then table.freeze(t) end */
+    expdesc tablib;
+    singlevar(ls, &tablib, luaX_newliteral(ls, "table"));
+    luaK_exp2anyregup(ls->fs, &tablib);
+    expdesc key;
+    codestring(&key, luaX_newliteral(ls, "freeze"));
+    luaK_indexed(ls->fs, &tablib, &key);
+    luaK_exp2nextreg(ls->fs, &tablib);
+    expdesc cond = tablib;
+    luaK_goiftrue(ls->fs, &cond);
+    lua_assert(tablib.k == VNONRELOC);
+    lua_assert(t.k == VNONRELOC);
+    int base = tablib.u.reg;  /* base register for call */
+    luaK_codeABC(ls->fs, OP_MOVE, base + 1, t.u.reg, 0);
+    luaK_codeABC(ls->fs, OP_CALL, base, 2, 1);
+    luaK_fixline(ls->fs, ls->getLineNumber());
+    luaK_patchtohere(ls->fs, cond.f);
+
     luaK_ret(ls->fs, luaK_exp2anyreg(ls->fs, &t)-ls->fs->istrybody, 1+ls->fs->istrybody);
     leavelevel(ls);
     ls->fs->bl->export_symbols.clear();
