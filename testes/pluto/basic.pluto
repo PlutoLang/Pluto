@@ -3125,6 +3125,7 @@ do
     export class Clazz
     end
     ]] ()
+    assert(table.isfrozen(t))
     assert(t.var == 1337)
     assert(t.func() == true)
     assert(type(t.Clazz) == "table")
@@ -3141,6 +3142,7 @@ do
         end
     end
     local t = export_in_non_main_function()
+    assert(table.isfrozen(t))
     assert(t.var == 1337)
     assert(t.func() == true)
     assert(type(t.Clazz) == "table")
