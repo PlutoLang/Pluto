@@ -133,10 +133,7 @@ NAMESPACE_SOUP
 
 	bool Socket::connect(const SocketAddr& addr) noexcept
 	{
-		SOUP_IF_UNLIKELY (!kickOffConnect(addr))
-		{
-			return false;
-		}
+		SOUP_RETHROW_FALSE(kickOffConnect(addr));
 		pollfd pfd;
 		pfd.fd = fd;
 		pfd.events = POLLOUT;
@@ -243,7 +240,7 @@ NAMESPACE_SOUP
 			return false;
 		}
 
-		const auto port_ne = Endianness::toNetwork(native_u16_t(port));
+		const auto port_ne = Endianness::toNetwork(port);
 
 		peer.ip.reset();
 		peer.port = port_ne;
@@ -266,7 +263,7 @@ NAMESPACE_SOUP
 			return false;
 		}
 
-		const auto port_ne = Endianness::toNetwork(native_u16_t(port));
+		const auto port_ne = Endianness::toNetwork(port);
 
 		peer.ip.reset();
 		peer.port = port_ne;
@@ -526,16 +523,26 @@ NAMESPACE_SOUP
 					}
 					handshaker->certchain.cleanup();
 
-#if SOUP_EXCEPTIONS
-					try
-#endif
+					SOUP_TRY
 					{
 						// Validating an ECC cert on my i9-13900K takes around 61 ms, which is time the scheduler could be spending doing more useful things.
 						handshaker->promise.fulfilOffThread([](Capture&& _cap)
 						{
 							auto& cap = _cap.get<CaptureValidateCertchain>();
-							if (!cap.certchain_validator(cap.handshaker->certchain, cap.handshaker->server_name, cap.s.custom_data))
+							bool res;
+							SOUP_TRY
 							{
+								res = cap.certchain_validator(cap.handshaker->certchain, cap.handshaker->server_name, cap.s.custom_data);
+							}
+							SOUP_CATCH (std::bad_alloc, _)
+							{
+								cap.s.transport_close(); // If we're out of memory, we might not even be able to allocate a TLS alert, so just drop it.
+								SOUP_UNUSED(_); // keep the compiler happy
+								return;
+							}
+							if (!res)
+							{
+								// Validation failed without running out of memory.
 								cap.s.tls_close(TlsAlertDescription::bad_certificate);
 							}
 						}, CaptureValidateCertchain{
@@ -544,13 +551,11 @@ NAMESPACE_SOUP
 							netConfig::get().certchain_validator
 						});
 					}
-#if SOUP_EXCEPTIONS
-					catch (...)
+					SOUP_CATCH_ANY
 					{
 						s.tls_close(TlsAlertDescription::internal_error);
 						return;
 					}
-#endif
 
 					auto* p = &handshaker->promise;
 					s.awaitPromiseCompletion(p, [](Worker& w, Capture&& cap) SOUP_EXCAL
@@ -757,9 +762,7 @@ NAMESPACE_SOUP
 	void Socket::enableCryptoClientProcessServerHelloDone(UniquePtr<SocketTlsHandshaker>&& handshaker) SOUP_EXCAL
 	{
 		std::string cke{};
-#if SOUP_EXCEPTIONS
-		try
-#endif
+		SOUP_TRY
 		{
 			if (handshaker->ecdhe_curve == 0)
 			{
@@ -844,13 +847,11 @@ NAMESPACE_SOUP
 				SOUP_DEBUG_ASSERT_UNREACHABLE; // This would be a logic error on our end since we (should) reject other curves earlier
 			}
 		}
-#if SOUP_EXCEPTIONS
-		catch (...)
+		SOUP_CATCH_ANY
 		{
 			tls_close(TlsAlertDescription::internal_error);
 			return;
 		}
-#endif
 		if (tls_sendHandshake(handshaker, TlsHandshake::client_key_exchange, std::move(cke))
 			&& tls_sendRecord(TlsContentType::change_cipher_spec, "\1")
 			)
@@ -1123,7 +1124,7 @@ NAMESPACE_SOUP
 		sockaddr_in bindto{};
 		bindto.sin_family = AF_INET;
 		bindto.sin_addr.s_addr = INADDR_ANY;
-		bindto.sin_port = Endianness::toNetwork(native_u16_t(port));
+		bindto.sin_port = Endianness::toNetwork(port);
 		return ::bind(fd, (sockaddr*)&bindto, sizeof(bindto)) != -1;
 	}
 
