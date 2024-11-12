@@ -100,11 +100,9 @@ NAMESPACE_SOUP
 		bool udpBind6(uint16_t port) noexcept;
 		bool udpBind4(uint16_t port) noexcept;
 		bool udpBind(const IpAddr& addr, uint16_t port) noexcept;
-	protected:
 		bool bind6(int type, uint16_t port, const IpAddr& addr = {}) noexcept;
 		bool bind4(int type, uint16_t port, const IpAddr& addr = {}) noexcept;
 
-	public:
 		[[nodiscard]] Socket accept6() noexcept;
 		[[nodiscard]] Socket accept4() noexcept;
 

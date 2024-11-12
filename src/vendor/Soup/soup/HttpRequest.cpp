@@ -40,7 +40,7 @@ NAMESPACE_SOUP
 	{
 		path_is_encoded = true;
 
-		if (joaat::hash(uri.scheme) == joaat::hash("http"))
+		if (joaat::hash(uri.scheme) == joaat::compileTimeHash("http"))
 		{
 			use_tls = false;
 			port = 80;

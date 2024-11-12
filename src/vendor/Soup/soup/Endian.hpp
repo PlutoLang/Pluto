@@ -72,31 +72,31 @@ NAMESPACE_SOUP
 #endif
 		}
 
-		[[nodiscard]] static constexpr network_u16_t toNetwork(native_u16_t val) noexcept
+		[[nodiscard]] static constexpr network_u16_t toNetwork(uint16_t val) noexcept
 		{
 			if constexpr (ENDIAN_NATIVE != ENDIAN_NETWORK)
 			{
-				return invert(val.data);
+				return invert(val);
 			}
-			return network_u16_t(val.data);
+			return network_u16_t(val);
 		}
 
-		[[nodiscard]] static constexpr network_u32_t toNetwork(native_u32_t val) noexcept
+		[[nodiscard]] static constexpr network_u32_t toNetwork(uint32_t val) noexcept
 		{
 			if constexpr (ENDIAN_NATIVE != ENDIAN_NETWORK)
 			{
-				return invert(val.data);
+				return invert(val);
 			}
-			return network_u32_t(val.data);
+			return network_u32_t(val);
 		}
 
-		[[nodiscard]] static constexpr network_u64_t toNetwork(native_u64_t val) noexcept
+		[[nodiscard]] static constexpr network_u64_t toNetwork(uint64_t val) noexcept
 		{
 			if constexpr (ENDIAN_NATIVE != ENDIAN_NETWORK)
 			{
-				return invert(val.data);
+				return invert(val);
 			}
-			return network_u64_t(val.data);
+			return network_u64_t(val);
 		}
 
 		[[nodiscard]] static constexpr native_u16_t toNative(network_u16_t val) noexcept

@@ -52,7 +52,7 @@ NAMESPACE_SOUP
 		}
 	};
 
-	bool Server::bind(uint16_t port, ServerService* service) noexcept
+	bool Server::bind(uint16_t port, ServerService* service) SOUP_EXCAL
 	{
 		Socket sock6{};
 		if (!sock6.bind6(port))
@@ -77,7 +77,29 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	bool Server::bindCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_on_client_hello_t on_client_hello) noexcept
+	bool Server::bind(const IpAddr& ip, uint16_t port, ServerService* service) SOUP_EXCAL
+	{
+		Socket sock{};
+#if SOUP_WINDOWS
+		if (!ip.isV4())
+#endif
+		{
+			SOUP_RETHROW_FALSE(sock.bind6(SOCK_STREAM, port, ip));
+			setDataAvailableHandler6(sock);
+		}
+#if SOUP_WINDOWS
+		else
+		{
+			SOUP_RETHROW_FALSE(sock.bind4(SOCK_STREAM, port, ip));
+			setDataAvailableHandler4(sock);
+		}
+#endif
+		sock.holdup_callback.cap = CaptureServerPort{ this, service };
+		addSocket(std::move(sock));
+		return true;
+	}
+
+	bool Server::bindCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_on_client_hello_t on_client_hello) SOUP_EXCAL
 	{
 		Socket sock6{};
 		if (!sock6.bind6(port))
@@ -102,7 +124,7 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	bool Server::bindUdp(uint16_t port, udp_callback_t callback) noexcept
+	bool Server::bindUdp(uint16_t port, udp_callback_t callback) SOUP_EXCAL
 	{
 		Socket sock6{};
 		if (!sock6.udpBind6(port))
@@ -125,7 +147,7 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	bool Server::bindUdp(const IpAddr& addr, uint16_t port, udp_callback_t callback) noexcept
+	bool Server::bindUdp(const IpAddr& addr, uint16_t port, udp_callback_t callback) SOUP_EXCAL
 	{
 		Socket sock{};
 		if (!sock.udpBind(addr, port))
@@ -137,7 +159,7 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	bool Server::bindUdp(uint16_t port, ServerServiceUdp* service) noexcept
+	bool Server::bindUdp(uint16_t port, ServerServiceUdp* service) SOUP_EXCAL
 	{
 		Socket sock6{};
 		if (!sock6.udpBind6(port))
@@ -160,7 +182,7 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	bool Server::bindUdp(const IpAddr& addr, uint16_t port, ServerServiceUdp* service) noexcept
+	bool Server::bindUdp(const IpAddr& addr, uint16_t port, ServerServiceUdp* service) SOUP_EXCAL
 	{
 		Socket sock{};
 		if (!sock.udpBind(addr, port))

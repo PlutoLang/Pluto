@@ -149,10 +149,7 @@ NAMESPACE_SOUP
 			while (true)
 			{
 				char c;
-				SOUP_IF_UNLIKELY (!ioBase::c(c))
-				{
-					return false;
-				}
+				SOUP_RETHROW_FALSE(ioBase::c(c));
 				if (c == 0)
 				{
 					break;
@@ -225,10 +222,7 @@ NAMESPACE_SOUP
 		bool vec_u8_u8(std::vector<uint8_t>& v) SOUP_EXCAL
 		{
 			uint8_t len;
-			SOUP_IF_UNLIKELY (!u8(len))
-			{
-				return false;
-			}
+			SOUP_RETHROW_FALSE(u8(len));
 			v.clear();
 			v.reserve(len);
 			while (len--)
@@ -247,10 +241,7 @@ NAMESPACE_SOUP
 		bool vec_u16_u16(std::vector<uint16_t>& v) SOUP_EXCAL
 		{
 			uint16_t len;
-			SOUP_IF_UNLIKELY (!ioBase::u16(len))
-			{
-				return false;
-			}
+			SOUP_RETHROW_FALSE(ioBase::u16(len));
 			v.clear();
 			v.reserve(len / 2);
 			while (len--)
@@ -269,10 +260,7 @@ NAMESPACE_SOUP
 		bool vec_u16_bl_u16(std::vector<uint16_t>& v) SOUP_EXCAL
 		{
 			uint16_t len;
-			SOUP_IF_UNLIKELY (!ioBase::u16(len))
-			{
-				return false;
-			}
+			SOUP_RETHROW_FALSE(ioBase::u16(len));
 			v.clear();
 			v.reserve(len / 2);
 			for (; len >= sizeof(uint16_t); len -= sizeof(uint16_t))
@@ -291,10 +279,7 @@ NAMESPACE_SOUP
 		bool vec_str_nt_u64_dyn(std::vector<std::string>& v) SOUP_EXCAL
 		{
 			uint64_t len;
-			SOUP_IF_UNLIKELY (!u64_dyn(len))
-			{
-				return false;
-			}
+			SOUP_RETHROW_FALSE(u64_dyn(len));
 			v.clear();
 			v.reserve((size_t)len);
 			for (; len != 0; --len)
@@ -313,10 +298,7 @@ NAMESPACE_SOUP
 		bool vec_str_lp_u24_bl_u24(std::vector<std::string>& v) SOUP_EXCAL
 		{
 			uint32_t len;
-			SOUP_IF_UNLIKELY (!ioBase::u24(len))
-			{
-				return false;
-			}
+			SOUP_RETHROW_FALSE(ioBase::u24(len));
 			v.clear();
 			v.reserve(len / 3);
 			while (len >= 3)
@@ -339,10 +321,7 @@ NAMESPACE_SOUP
 			while (true)
 			{
 				std::string entry;
-				SOUP_IF_UNLIKELY (!str_lp<u8_t>(entry))
-				{
-					return false;
-				}
+				SOUP_RETHROW_FALSE(str_lp<u8_t>(entry));
 				if (entry.empty())
 				{
 					break;

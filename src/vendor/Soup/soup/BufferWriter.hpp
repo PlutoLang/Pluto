@@ -25,18 +25,14 @@ NAMESPACE_SOUP
 
 		bool raw(void* data, size_t size) noexcept final
 		{
-#if SOUP_EXCEPTIONS
-			try
-#endif
+			SOUP_TRY
 			{
 				buf.append(data, size);
 			}
-#if SOUP_EXCEPTIONS
-			catch (...)
+			SOUP_CATCH_ANY
 			{
 				return false;
 			}
-#endif
 			return true;
 		}
 	};

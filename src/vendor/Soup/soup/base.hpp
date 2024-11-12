@@ -122,11 +122,13 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 
 // === C++ conditional feature macros
 
-#if __cplusplus == 1997'11L
-	#error Please set the /Zc:__cplusplus compiler flag or manually adjust __cplusplus when using Soup.
+#ifdef _MSVC_LANG
+	#define SOUP_CPP_VERSION _MSVC_LANG
+#else
+	#define SOUP_CPP_VERSION __cplusplus
 #endif
 
-#if __cplusplus < 2020'00L
+#if SOUP_CPP_VERSION < 2020'00L
 	#define SOUP_CPP20 false
 #else
 	#define SOUP_CPP20 true
@@ -148,7 +150,7 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 	#define SOUP_IF_UNLIKELY(cond) if (cond)
 #endif
 
-#if __cplusplus < 2023'00L
+#if SOUP_CPP_VERSION < 2023'00L
 	#define SOUP_CPP23 false
 #else
 	#define SOUP_CPP23 true
@@ -169,6 +171,9 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 
 #if (__cpp_exceptions < 1997'11L) && (!defined(_MSC_VER) || defined(__clang__))
 	#define SOUP_EXCEPTIONS false
+	#define SOUP_TRY if (true)
+	#define SOUP_CATCH(T, name) if (const T& name = *(T*)nullptr; false)
+	#define SOUP_CATCH_ANY if (false)
 	#define SOUP_THROW(x) ::soup::throwImpl(x);
 
 	#include <stdexcept>
@@ -179,6 +184,9 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 	}
 #else
 	#define SOUP_EXCEPTIONS true
+	#define SOUP_TRY try
+	#define SOUP_CATCH(T, name) catch (const T& name)
+	#define SOUP_CATCH_ANY catch (...)
 	#define SOUP_THROW(x) throw x;
 #endif
 
@@ -211,6 +219,8 @@ NAMESPACE_SOUP
 #endif
 
 template <typename T> SOUP_FORCEINLINE void SOUP_UNUSED(T&&) {}
+
+#define SOUP_RETHROW_FALSE(x) SOUP_IF_UNLIKELY (!(x)) { return false; }
 
 // Enable compiler warning for unannotated fallthroughs
 #if defined(__clang__)
