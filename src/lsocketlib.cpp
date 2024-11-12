@@ -391,8 +391,20 @@ static int listener_hasconnection (lua_State *L) {
   return 1;
 }
 
+[[nodiscard]] static soup::SocketAddr checkaddr (lua_State *L, int i) {
+  soup::SocketAddr addr;
+  if (lua_type(L, i) == LUA_TSTRING) {
+    if (l_unlikely(!addr.fromString(luaL_checkstring(L, i))))
+      luaL_error(L, "Invalid bind address");
+  }
+  else
+    addr.port = soup::Endianness::toNetwork(static_cast<uint16_t>(luaL_checkinteger(L, i)));
+  return addr;
+}
+
 static int l_listen (lua_State *L) {
-  auto port = static_cast<uint16_t>(luaL_checkinteger(L, 1));
+  soup::SocketAddr addr = checkaddr(L, 1);
+  const auto port = addr.getPort();
 
   Listener& l = *new (lua_newuserdata(L, sizeof(Listener))) Listener{};
   if (luaL_newmetatable(L, "pluto:socket-listener")) {
@@ -414,24 +426,31 @@ static int l_listen (lua_State *L) {
   }
   lua_setmetatable(L, -2);
 
-  return l.serv.bind(port, &l.srv) ? 1 : 0;
+  return (addr.ip.isZero() ? l.serv.bind(port, &l.srv) : l.serv.bind(addr.ip, port, &l.srv)) ? 1 : 0;
 }
 
 static int l_udpserver (lua_State *L) {
-  auto port = static_cast<uint16_t>(luaL_checkinteger(L, 1));
+  soup::SocketAddr addr = checkaddr(L, 1);
+  const auto port = addr.getPort();
 
   StandaloneSocket& ss = pushsocket(L);
   ss.sock = ss.sched.addSocket();
   ss.udp = true;
   ss.from_listener = true;
-  if (l_unlikely(!ss.sock->udpBind6(port)))
-    return 0;
-  ss.recvLoopUdp(*ss.sock);
+  if (addr.ip.isZero()) {
+    if (l_unlikely(!ss.sock->udpBind6(port)))
+      return 0;
+    ss.recvLoopUdp(*ss.sock);
 #if SOUP_WINDOWS
-  auto ipv4_sock = ss.sched.addSocket();
-  if (l_likely(ipv4_sock->udpBind4(port)))
-    ss.recvLoopUdp(*ipv4_sock);
+    auto ipv4_sock = ss.sched.addSocket();
+    if (l_likely(ipv4_sock->udpBind4(port)))
+      ss.recvLoopUdp(*ipv4_sock);
 #endif
+  }
+  else {
+    if (l_unlikely(!ss.sock->udpBind(addr.ip, addr.port)))
+      return 0;
+  }
   return 1;
 }
 
