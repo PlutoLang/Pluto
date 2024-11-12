@@ -195,7 +195,7 @@ NAMESPACE_SOUP
 			if (m_capacity != 0)
 			{
 				m_capacity = 0;
-				::free(m_data);
+				soup::free(m_data);
 				m_data = nullptr;
 			}
 		}*/
@@ -205,7 +205,7 @@ NAMESPACE_SOUP
 		{
 			if (m_capacity != 0)
 			{
-				::free(m_data);
+				soup::free(m_data);
 			}
 		}
 	};
