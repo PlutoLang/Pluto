@@ -1957,7 +1957,7 @@ static void classstat (LexState *ls, int line, const bool global) {
 }
 
 
-static void localclass (LexState *ls) {
+static void localclass (LexState *ls, bool isexport = false) {
   luaX_prev(ls);
   check_for_non_portable_code(ls);
   luaX_next(ls);
@@ -1969,7 +1969,9 @@ static void localclass (LexState *ls) {
   TString *name = str_checkname(ls, 0);
   size_t parent_pos = checkextends(ls);
 
-  new_localvar(ls, name, line);
+  int vidx = new_localvar(ls, name, line);
+  if (isexport)
+    getlocalvardesc(ls->fs, vidx)->vd.kind = RDKCONST;
 
   expdesc t;
   classexpr(ls, &t);
@@ -4582,7 +4584,7 @@ static void constexprstat (LexState *ls, int line) {
 }
 
 
-static void localfunc (LexState *ls) {
+static void localfunc (LexState *ls, bool isexport = false) {
   expdesc b;
   FuncState *fs = ls->fs;
   int fvar = fs->nactvar;  /* function's variable index */
@@ -4590,7 +4592,10 @@ static void localfunc (LexState *ls) {
   adjustlocalvars(ls, 1);  /* enter its scope */
   TypeDesc funcdesc;
   body(ls, &b, 0, ls->getLineNumber(), &funcdesc);  /* function created in next register */
-  getlocalvardesc(fs, fvar)->vd.prop->emplaceTypeDesc(std::move(funcdesc));
+  Vardesc *vd = getlocalvardesc(fs, fvar);
+  vd->vd.prop->emplaceTypeDesc(std::move(funcdesc));
+  if (isexport)
+    vd->vd.kind = RDKCONST;
   /* debug information will only see the variable after this point! */
   localdebuginfo(fs, fvar)->startpc = fs->pc;
 }
@@ -4710,7 +4715,7 @@ static void arraydestructuring (LexState *ls) {
 }
 
 
-static void localstat (LexState *ls) {
+static void localstat (LexState *ls, bool isexport = false) {
   if (ls->t.token == '{') {
     destructuring(ls);
     return;
@@ -4738,7 +4743,7 @@ static void localstat (LexState *ls) {
     TString* name = str_checkname(ls, N_OVERRIDABLE);
     vidx = new_localvar(ls, name, line, gettypehint(ls), false);
     ls->localstat_variable_names.emplace(name);
-    kind = getlocalattribute(ls);
+    kind = isexport ? RDKCONST : getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
@@ -5577,17 +5582,17 @@ static void statement (LexState *ls, TypeHint *prop) {
       if (testnext(ls, TK_FUNCTION)) {
         ls->fs->bl->export_symbols.emplace_back(str_checkname(ls, 0));
         luaX_prev(ls);
-        localfunc(ls);
+        localfunc(ls, true);
       }
       else if (testnext2(ls, TK_CLASS, TK_PCLASS)) {
         ls->fs->bl->export_symbols.emplace_back(str_checkname(ls, 0));
         luaX_prev(ls);
-        localclass(ls);
+        localclass(ls, true);
       }
       else {
         ls->fs->bl->export_symbols.emplace_back(str_checkname(ls, 0));
         luaX_prev(ls);
-        localstat(ls);
+        localstat(ls, true);
       }
       break;
     }
