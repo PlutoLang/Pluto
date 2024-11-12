@@ -661,6 +661,7 @@
     <ClCompile Include="src\vendor\Soup\soup\sha512.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SharedLibrary.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Socket.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\SocketAddr.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SocketTlsEncrypter.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SocketTlsHandshaker.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\spaceship.cpp" />
