@@ -266,20 +266,16 @@ NAMESPACE_SOUP
 
 		void* const b = ::operator new(sizeof(Combined));
 		typename SharedPtr<T>::Data* data;
-#if SOUP_EXCEPTIONS
-		try
-#endif
+		SOUP_TRY
 		{
 			auto inst = soup::construct_at<>(reinterpret_cast<T*>(b), std::forward<Args>(args)...);
 			data = soup::construct_at<>(reinterpret_cast<typename SharedPtr<T>::Data*>(reinterpret_cast<uintptr_t>(b) + offsetof(Combined, data)), inst);
 		}
-#if SOUP_EXCEPTIONS
-		catch (...)
+		SOUP_CATCH_ANY
 		{
 			::operator delete(b);
 			std::rethrow_exception(std::current_exception());
 		}
-#endif
 		data->was_created_with_make_shared = true;
 		return SharedPtr<T>(data);
 	}
