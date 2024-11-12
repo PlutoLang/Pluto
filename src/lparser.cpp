@@ -5574,7 +5574,6 @@ static void statement (LexState *ls, TypeHint *prop) {
         break;
       }
 #endif
-      throw_warn(ls, "'export' is deprecated. use a table instead.", WT_DEPRECATED);
       if (testnext(ls, TK_FUNCTION)) {
         ls->fs->bl->export_symbols.emplace_back(str_checkname(ls, 0));
         luaX_prev(ls);
