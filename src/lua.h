@@ -28,7 +28,7 @@
 #define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
 
 
-#define PLUTO_VERSION "Pluto 0.10.1"
+#define PLUTO_VERSION "Pluto 0.10.2"
 #define PLUTO_COPYRIGHT_NO_BASED PLUTO_VERSION ", Copyright (C) 2022-2024 PlutoLang.org, PlutoLang (https://github.com/PlutoLang)"
 #define PLUTO_COPYRIGHT PLUTO_COPYRIGHT_NO_BASED "\r\nBased on " LUA_COPYRIGHT
 
