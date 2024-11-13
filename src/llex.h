@@ -254,6 +254,7 @@ public:
 private:
   [[nodiscard]] static WarningState getDefaultState(WarningType type) noexcept {
     switch (type) {
+    /* off by default*/
 #ifndef PLUTO_WARN_GLOBAL_SHADOW
     case WT_GLOBAL_SHADOW:
 #endif
@@ -265,6 +266,43 @@ private:
 #endif
 #ifndef PLUTO_WARN_NON_PORTABLE_NAME
     case WT_NON_PORTABLE_NAME:
+#endif
+    /* on by default */
+#ifdef PLUTO_NO_WARN_VAR_SHADOW
+    case WT_VAR_SHADOW:
+#endif
+#ifdef PLUTO_NO_WARN_TYPE_MISMATCH
+    case WT_TYPE_MISMATCH:
+#endif
+#ifdef PLUTO_NO_WARN_UNREACHABLE_CODE
+    case WT_UNREACHABLE_CODE:
+#endif
+#ifdef PLUTO_NO_WARN_EXCESSIVE_ARGUMENTS
+    case WT_EXCESSIVE_ARGUMENTS:
+#endif
+#ifdef PLUTO_NO_WARN_DEPRECATED
+    case WT_DEPRECATED:
+#endif
+#ifdef PLUTO_NO_WARN_BAD_PRACTICE
+    case WT_BAD_PRACTICE:
+#endif
+#ifdef PLUTO_NO_WARN_POSSIBLE_TYPO
+    case WT_POSSIBLE_TYPO:
+#endif
+#ifdef PLUTO_NO_WARN_IMPLICIT_GLOBAL
+    case WT_IMPLICIT_GLOBAL:
+#endif
+#ifdef PLUTO_NO_WARN_UNANNOTATED_FALLTHROUGH
+    case WT_UNANNOTATED_FALLTHROUGH:
+#endif
+#ifdef PLUTO_NO_WARN_DISCARDED_RETURN
+    case WT_DISCARDED_RETURN:
+#endif
+#ifdef PLUTO_NO_WARN_FIELD_SHADOW
+    case WT_FIELD_SHADOW:
+#endif
+#ifdef PLUTO_NO_WARN_UNUSED
+    case WT_UNUSED:
 #endif
     case NUM_WARNING_TYPES:  /* dummy case so compiler doesn't cry when all macros are set */
       return WS_OFF;
