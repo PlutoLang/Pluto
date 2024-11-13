@@ -516,6 +516,7 @@
     <ClCompile Include="src\lbase64.cpp" />
     <ClCompile Include="src\lbaselib.cpp" />
     <ClCompile Include="src\lbigint.cpp" />
+    <ClCompile Include="src\lbufferlib.cpp" />
     <ClCompile Include="src\lcanvas.cpp" />
     <ClCompile Include="src\lcatlib.cpp" />
     <ClCompile Include="src\lcode.cpp" />
