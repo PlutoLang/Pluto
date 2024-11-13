@@ -268,32 +268,35 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
 
   /* preprocessor */
   for (auto i = ls->tokens.begin(); i != ls->tokens.end(); ) {
-    if (i->token == '$' && (i + 1)->token == TK_NAME && strcmp(getstr((i + 1)->seminfo.ts), "insteadof") == 0) {
+    if (i->token == '$' && (i + 1)->token == TK_NAME && strcmp(getstr((i + 1)->seminfo.ts), "alias") == 0) {
       const auto directive_begin = i;
-      i += 2;  /* skip '$insteadof' */
+      i += 2;  /* skip '$alias' */
       if (l_unlikely(i->token != TK_NAME)) {
         ls->tidx = std::distance(ls->tokens.begin(), i);
-        luaX_syntaxerror(ls, "expected name after $insteadof");
+        luaX_syntaxerror(ls, "expected name after $alias");
       }
       TString *name = i->seminfo.ts;
       ++i;  /* skip name */
-      if (l_unlikely(i->token != TK_DO)) {
+      if (l_unlikely(i->token != '=')) {
         ls->tidx = std::distance(ls->tokens.begin(), i);
-        luaX_syntaxerror(ls, "expected 'do' after $insteadof <name>");
+        luaX_syntaxerror(ls, "expected '=' after $alias <name>");
       }
-      ++i;  /* skip 'do' */
-      const auto sub_begin = i;  /* the token after 'do' */
-      while (i->token != TK_END) {
-        ++i;
-        if (l_unlikely(i->token == TK_EOS)) {
-          ls->tidx = std::distance(ls->tokens.begin(), sub_begin);
-          luaX_syntaxerror(ls, "could not find 'end' matching the 'do' to close this $insteadof directive");
+      ++i;  /* skip '=' */
+      std::vector<Token> sub;
+      while (true) {
+        if (i->token == TK_EOS)
+          break;
+        if (i->token == '\\' && (i + 1)->line != i->line) {
+          ++i;
+          continue;
         }
+        sub.emplace_back(*i);
+        ++i;
+        if (i->line != (i - 1)->line)
+          break;
       }
-      const auto sub_end = i;  /* the 'end' token */
-      std::vector<Token> sub(sub_begin, sub_end);  /* copy substitution part */
       ls->macros.emplace(name, Macro{ std::move(sub) });  /* save macro for next pass */
-      i = ls->tokens.erase(directive_begin, sub_end + 1);  /* erase directive */
+      i = ls->tokens.erase(directive_begin, i);  /* erase directive */
       continue;
     }
     ++i;
