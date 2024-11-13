@@ -16,7 +16,7 @@ NAMESPACE_SOUP
 		}
 
 	protected:
-		static void* allocateImpl(size_t size, void*) /* SOUP_EXCAL */
+		static void* allocateImpl(memAllocator*, size_t size) /* SOUP_EXCAL */
 		{
 			void* ptr = ::malloc(size);
 			SOUP_IF_LIKELY (ptr)
@@ -26,7 +26,7 @@ NAMESPACE_SOUP
 			SOUP_THROW(std::bad_alloc{});
 		}
 
-		static void* reallocateImpl(void* addr, size_t new_size, void*) /* SOUP_EXCAL */
+		static void* reallocateImpl(memAllocator*, void* addr, size_t new_size) /* SOUP_EXCAL */
 		{
 			addr = ::realloc(addr, new_size);
 			SOUP_IF_LIKELY (addr)
@@ -36,7 +36,7 @@ NAMESPACE_SOUP
 			SOUP_THROW(std::bad_alloc{});
 		}
 
-		static void deallocateImpl(void* addr, void*) noexcept
+		static void deallocateImpl(memAllocator*, void* addr) noexcept
 		{
 			::free(addr);
 		}
