@@ -423,6 +423,8 @@ struct SwitchState {
 };
 
 struct Macro {
+  bool functionlike = false;
+  std::vector<const TString*> params{};
   std::vector<Token> sub;
 };
 
@@ -468,6 +470,7 @@ struct LexState {
   bool used_walrus = false;
   std::unordered_map<int, int> uninformed_reserved{}; // When a reserved word is intelligently disabled for compatibility, it is added to this map. (token, line)
   std::unordered_map<const TString*, Macro> macros{};  /* used during preprocessor pass */
+  std::unordered_map<const TString*, Token> macro_args{};  /* used during preprocessor pass */
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
