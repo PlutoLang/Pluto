@@ -848,6 +848,43 @@
 // If defined, the "non-portable-name" warning is enabled by default.
 //#define PLUTO_WARN_NON_PORTABLE_NAME
 
+// If defined, the "var-shadow" warning is disabled by default.
+//#define PLUTO_NO_WARN_VAR_SHADOW
+
+// If defined, the "type-mismatch" warning is disabled by default.
+//#define PLUTO_NO_WARN_TYPE_MISMATCH
+
+// If defined, the "unreachable-code" warning is disabled by default.
+//#define PLUTO_NO_WARN_UNREACHABLE_CODE
+
+// If defined, the "excessive-arguments" warning is disabled by default.
+//#define PLUTO_NO_WARN_EXCESSIVE_ARGUMENTS
+
+// If defined, the "deprecated"," warning is disabled by default.
+//#define PLUTO_NO_WARN_DEPRECATED
+
+// If defined, the "bad-practice" warning is disabled by default.
+//#define PLUTO_NO_WARN_BAD_PRACTICE
+
+// If defined, the "possible-typo" warning is disabled by default.
+//#define PLUTO_NO_WARN_POSSIBLE_TYPO
+
+// If defined, the "implicit-global" warning is disabled by default.
+//#define PLUTO_NO_WARN_IMPLICIT_GLOBAL
+
+// If defined, the "unannotated-fallthrough" warning is disabled by default.
+//#define PLUTO_NO_WARN_UNANNOTATED_FALLTHROUGH
+
+// If defined, the "discarded-return" warning is disabled by default.
+//#define PLUTO_NO_WARN_DISCARDED_RETURN
+
+// If defined, the "field-shadow" warning is disabled by default.
+//#define PLUTO_NO_WARN_FIELD_SHADOW
+
+// If defined, the "unused" warning is disabled by default.
+//#define PLUTO_NO_WARN_UNUSED
+
+
 /*
 ** {====================================================================
 ** Pluto Configuration: Compatibility
