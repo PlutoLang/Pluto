@@ -1,12 +1,12 @@
 #pragma once
 
-#include "memAllocator.hpp"
+#include "base.hpp"
+
+#include <cstdlib> // free
 
 NAMESPACE_SOUP
 {
-	extern memAllocator g_allocator;
-
-	[[nodiscard]] inline void* malloc(size_t size) SOUP_EXCAL { return g_allocator.allocate(size); }
-	[[nodiscard]] inline void* realloc(void* addr, size_t new_size) SOUP_EXCAL { return g_allocator.reallocate(addr, new_size); }
-	inline void free(void* addr) noexcept { g_allocator.deallocate(addr); }
+	[[nodiscard]] void* malloc(size_t size) /* SOUP_EXCAL */;
+	[[nodiscard]] void* realloc(void* ptr, size_t new_size) /* SOUP_EXCAL */;
+	inline void free(void* ptr) noexcept { ::free(ptr); }
 }

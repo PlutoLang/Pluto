@@ -8,11 +8,11 @@
 #define SOUP_BUFFER_NO_RESIZE false
 #endif
 
-#include "alloc.hpp"
 #include "base.hpp"
 #if SOUP_BUFFER_NO_RESIZE
 #include "Exception.hpp"
 #endif
+#include "memAllocator.hpp"
 
 NAMESPACE_SOUP
 {
@@ -23,6 +23,7 @@ NAMESPACE_SOUP
 		uint8_t* m_data = nullptr;
 		size_t m_size = 0;
 		size_t m_capacity = 0;
+		memAllocator& m_allocator = g_default_allocator;
 	public:
 #if SOUP_BUFFER_NO_RESIZE
 		bool no_resize = false;
@@ -30,8 +31,13 @@ NAMESPACE_SOUP
 
 		Buffer() noexcept = default;
 
-		Buffer(size_t capacity) SOUP_EXCAL
-			: m_data(reinterpret_cast<uint8_t*>(soup::malloc(capacity))), m_capacity(capacity)
+		Buffer(memAllocator& allocator) noexcept
+			: m_allocator(allocator)
+		{
+		}
+
+		Buffer(size_t capacity, memAllocator& allocator = g_default_allocator) SOUP_EXCAL
+			: m_data(reinterpret_cast<uint8_t*>(allocator.allocate(capacity))), m_capacity(capacity), m_allocator(allocator)
 		{
 #if SOUP_BUFFER_NO_RESIZE
 			no_resize = true;
@@ -159,7 +165,7 @@ NAMESPACE_SOUP
 
 		void resizeInner(size_t new_capacity) SOUP_EXCAL
 		{
-			m_data = reinterpret_cast<uint8_t*>(soup::realloc(m_data, new_capacity));
+			m_data = reinterpret_cast<uint8_t*>(m_allocator.reallocate(m_data, new_capacity));
 			m_capacity = new_capacity;
 		}
 
@@ -246,7 +252,7 @@ NAMESPACE_SOUP
 		{
 			if (m_data != nullptr)
 			{
-				soup::free(m_data);
+				m_allocator.deallocate(m_data);
 				m_data = nullptr;
 			}
 		}
