@@ -422,6 +422,10 @@ struct SwitchState {
   std::vector<SwitchCase> cases{};
 };
 
+struct Macro {
+  std::vector<Token> sub;
+};
+
 struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
@@ -463,6 +467,7 @@ struct LexState {
   bool nodiscard = false;
   bool used_walrus = false;
   std::unordered_map<int, int> uninformed_reserved{}; // When a reserved word is intelligently disabled for compatibility, it is added to this map. (token, line)
+  std::unordered_map<const TString*, Macro> macros{};  /* used during preprocessor pass */
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};
