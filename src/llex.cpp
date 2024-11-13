@@ -275,14 +275,30 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
         ls->tidx = std::distance(ls->tokens.begin(), i);
         luaX_syntaxerror(ls, "expected name after $alias");
       }
-      TString *name = i->seminfo.ts;
+      Macro& macro = ls->macros.emplace(i->seminfo.ts, Macro{}).first->second;
       ++i;  /* skip name */
+      if (i->token == '(') {
+        macro.functionlike = true;
+        do {
+          ++i;  /* skip '(' or ',' */
+          if (l_unlikely(i->token != TK_NAME)) {
+            ls->tidx = std::distance(ls->tokens.begin(), i);
+            luaX_syntaxerror(ls, "expected parameter name for function-like alias");
+          }
+          macro.params.emplace_back(i->seminfo.ts);
+          ++i;  /* skip name */
+        } while (i->token == ',');
+        if (l_unlikely(i->token != ')')) {
+          ls->tidx = std::distance(ls->tokens.begin(), i);
+          luaX_syntaxerror(ls, "expected ')' after parameter list for function-like alias");
+        }
+        ++i;  /* skip ')' */
+      }
       if (l_unlikely(i->token != '=')) {
         ls->tidx = std::distance(ls->tokens.begin(), i);
         luaX_syntaxerror(ls, "expected '=' after $alias <name>");
       }
       ++i;  /* skip '=' */
-      std::vector<Token> sub;
       while (true) {
         if (i->token == TK_EOS)
           break;
@@ -290,12 +306,11 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
           ++i;
           continue;
         }
-        sub.emplace_back(*i);
+        macro.sub.emplace_back(*i);
         ++i;
         if (i->line != (i - 1)->line)
           break;
       }
-      ls->macros.emplace(name, Macro{ std::move(sub) });  /* save macro for next pass */
       i = ls->tokens.erase(directive_begin, i);  /* erase directive */
       continue;
     }
@@ -306,13 +321,41 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
       if (i->token == TK_NAME) {
         if (auto e = ls->macros.find(i->seminfo.ts); e != ls->macros.end()) {
           i = ls->tokens.erase(i);
-          i = ls->tokens.insert(i, e->second.sub.begin(), e->second.sub.end());
+          if (e->second.functionlike) {
+            ls->macro_args.clear();
+            if (l_unlikely(i->token != '(')) {
+              ls->tidx = std::distance(ls->tokens.begin(), i);
+              luaX_syntaxerror(ls, "expected '(' to invoke function-like alias");
+            }
+            for (auto& param : e->second.params) {
+              i = ls->tokens.erase(i);  /* remove '(' or ',' */
+              ls->macro_args.emplace(param, *i);
+              i = ls->tokens.erase(i);  /* remove argument */
+            }
+            if (l_unlikely(i->token != ')')) {
+              ls->tidx = std::distance(ls->tokens.begin(), i);
+              luaX_syntaxerror(ls, "expected ')' after argument list for function-like alias");
+            }
+            i = ls->tokens.erase(i);  /* remove ')' */
+            for (auto& t : e->second.sub) {
+              if (t.token == TK_NAME) {
+                if (auto arg = ls->macro_args.find(t.seminfo.ts); arg != ls->macro_args.end()) {
+                  i = ls->tokens.insert(i, arg->second);
+                  continue;
+                }
+              }
+              i = ls->tokens.insert(i, t);
+            }
+          }
+          else
+            i = ls->tokens.insert(i, e->second.sub.begin(), e->second.sub.end());
           continue;
         }
       }
       ++i;
     }
-    decltype(ls->macros) bin; std::swap(ls->macros, bin);  /* free memory for macros map */
+    { decltype(ls->macros) bin; std::swap(ls->macros, bin); }  /* free memory for macros map */
+    { decltype(ls->macro_args) bin; std::swap(ls->macro_args, bin); }
   }
 
 #if TOKENDUMP
