@@ -1109,7 +1109,7 @@ static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
   else {
 #ifdef PLUTO_MEMORY_LIMIT
     if (ud  /* state has finished opening? */
-      && (!ptr || osize > nsize)  /* new allocation or increasing existing allocation? */
+      && (!ptr || nsize > osize)  /* new allocation or increasing existing allocation? */
       && gettotalbytes(reinterpret_cast<global_State*>(ud)) >= PLUTO_MEMORY_LIMIT  /* limit reached? */
       ) {
       return NULL;
