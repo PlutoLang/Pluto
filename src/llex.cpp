@@ -266,6 +266,52 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
     if (t.token == TK_EOS) break;
   }
 
+  /* preprocessor */
+  for (auto i = ls->tokens.begin(); i != ls->tokens.end(); ) {
+    if (i->token == '$' && (i + 1)->token == TK_NAME && strcmp(getstr((i + 1)->seminfo.ts), "insteadof") == 0) {
+      const auto directive_begin = i;
+      i += 2;  /* skip '$insteadof' */
+      if (l_unlikely(i->token != TK_NAME)) {
+        ls->tidx = std::distance(ls->tokens.begin(), i);
+        luaX_syntaxerror(ls, "expected name after $insteadof");
+      }
+      TString *name = i->seminfo.ts;
+      ++i;  /* skip name */
+      if (l_unlikely(i->token != TK_DO)) {
+        ls->tidx = std::distance(ls->tokens.begin(), i);
+        luaX_syntaxerror(ls, "expected 'do' after $insteadof <name>");
+      }
+      ++i;  /* skip 'do' */
+      const auto sub_begin = i;  /* the token after 'do' */
+      while (i->token != TK_END) {
+        ++i;
+        if (l_unlikely(i->token == TK_EOS)) {
+          ls->tidx = std::distance(ls->tokens.begin(), sub_begin);
+          luaX_syntaxerror(ls, "could not find 'end' matching the 'do' to close this $insteadof directive");
+        }
+      }
+      const auto sub_end = i;  /* the 'end' token */
+      std::vector<Token> sub(sub_begin, sub_end);  /* copy substitution part */
+      ls->macros.emplace(name, Macro{ std::move(sub) });  /* save macro for next pass */
+      i = ls->tokens.erase(directive_begin, sub_end + 1);  /* erase directive */
+      continue;
+    }
+    ++i;
+  }
+  if (!ls->macros.empty()) {  /* need second preprocessor pass to expand macros? */
+    for (auto i = ls->tokens.begin(); i != ls->tokens.end(); ) {
+      if (i->token == TK_NAME) {
+        if (auto e = ls->macros.find(i->seminfo.ts); e != ls->macros.end()) {
+          i = ls->tokens.erase(i);
+          i = ls->tokens.insert(i, e->second.sub.begin(), e->second.sub.end());
+          continue;
+        }
+      }
+      ++i;
+    }
+    decltype(ls->macros) bin; std::swap(ls->macros, bin);  /* free memory for macros map */
+  }
+
 #if TOKENDUMP
   luaX_setpos(ls, 0);
   int line = 0;
