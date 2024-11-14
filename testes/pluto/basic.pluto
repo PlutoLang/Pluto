@@ -3523,6 +3523,9 @@ do
     assert(load[[-- @pluto_warnings disable-unused
         function update_value(new) end
     ]])
+    assert(load[[-- @pluto_warnings disable-unused
+        class = {}
+    ]])
 end
 
 print "Testing universal functions."

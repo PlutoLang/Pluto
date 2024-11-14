@@ -191,6 +191,15 @@ static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
 }
 
 
+static void disablekeyword (LexState *ls, int token) {
+  auto i = ls->tokens.begin();
+  if (ls->tidx != -1)
+    i += ls->tidx;  /* don't apply retroactively */
+  for (; i != ls->tokens.end(); ++i)
+    if (i->token == token)
+      i->token = TK_NAME;
+}
+
 /*
 ** Responsible for the following:
 **   - Non-portable keyword usage. (class, switch, etc)
@@ -198,7 +207,14 @@ static void throw_warn(LexState* ls, const char* err, WarningType warningType) {
 static void check_for_non_portable_code (LexState *ls) {
   if (ls->t.IsNonCompatible() && !ls->t.IsOverridable()) {
     if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
-      ls->setKeywordState(ls->t.token, KS_ENABLED_BY_PLUTO_INFORMED);
+      if (luaX_lookahead(ls) == '=') {  /* attempting a global assignment? */
+        disablekeyword(ls, ls->t.token);
+        ls->uninformed_reserved.emplace(ls->t.token, ls->getLineNumber());
+        ls->setKeywordState(ls->t.token, KS_DISABLED_BY_PLUTO_INFORMED);
+        luaX_setpos(ls, luaX_getpos(ls));  /* update ls->t */
+      }
+      else
+        ls->setKeywordState(ls->t.token, KS_ENABLED_BY_PLUTO_INFORMED);
     }
     if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_INFORMED || ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_ENV) {  /* enabled by a means other than 'pluto_use'? */
       throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t)), WT_NON_PORTABLE_CODE);
@@ -378,15 +394,6 @@ enum NameFlags {
     }
   }
   return 0;
-}
-
-static void disablekeyword (LexState *ls, int token) {
-  auto i = ls->tokens.begin();
-  if (ls->tidx != -1)
-    i += ls->tidx;  /* don't apply retroactively */
-  for (; i != ls->tokens.end(); ++i)
-    if (i->token == token)
-      i->token = TK_NAME;
 }
 
 static bool trydisablekeyword (LexState *ls) {
