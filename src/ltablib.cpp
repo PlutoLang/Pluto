@@ -827,15 +827,12 @@ static int tcountvalues (lua_State *L) {
   lua_newtable(L);
   lua_pushnil(L);
   while (lua_next(L, 1)) { /* og, result, key */
-    if (!lua_isnoneornil(L, 4)) { /* if the value isn't nil */
-      lua_pushvalue(L, 4); /* push the key, prepare for result[value] */
-      lua_gettable(L, 2); /* push result[value] */
-      const lua_Integer i = luaL_optinteger(L, -1, 0) + 1; /* start or update count */
-      lua_pushvalue(L, 4); /* push the key again */
-      lua_pushinteger(L, i); /* push updated count */
-      lua_settable(L, 2); /* update result */
-    }
-
+    lua_pushvalue(L, 4); /* push the key, prepare for result[value] */
+    lua_gettable(L, 2); /* push result[value] */
+    const lua_Integer i = luaL_optinteger(L, -1, 0) + 1; /* start or update count */
+    lua_pushvalue(L, 4); /* push the key again */
+    lua_pushinteger(L, i); /* push updated count */
+    lua_settable(L, 2); /* update result */
     lua_settop(L, 3); /* reset stack to og, result, key */
   }
 
