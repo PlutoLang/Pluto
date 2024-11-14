@@ -3526,6 +3526,15 @@ do
     assert(load[[-- @pluto_warnings disable-unused
         class = {}
     ]])
+    assert(load[[-- @pluto_warnings disable-unused
+        class.mem = 1
+    ]])
+    assert(load[[-- @pluto_warnings disable-unused
+        class[1] = 1
+    ]])
+    assert(load[[-- @pluto_warnings disable-unused
+        class:mem()
+    ]])
 end
 
 print "Testing universal functions."
