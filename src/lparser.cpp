@@ -207,7 +207,8 @@ static void disablekeyword (LexState *ls, int token) {
 static void check_for_non_portable_code (LexState *ls) {
   if (ls->t.IsNonCompatible() && !ls->t.IsOverridable()) {
     if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
-      if (luaX_lookahead(ls) == '=') {  /* attempting a global assignment? */
+      const auto next = luaX_lookahead(ls);
+      if (next == '=' || next == '.' || next == ':' || next == '[') {  /* attempting to create or use a global? */
         disablekeyword(ls, ls->t.token);
         ls->uninformed_reserved.emplace(ls->t.token, ls->getLineNumber());
         ls->setKeywordState(ls->t.token, KS_DISABLED_BY_PLUTO_INFORMED);
