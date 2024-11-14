@@ -840,6 +840,60 @@ static int tcountvalues (lua_State *L) {
 }
 
 
+static int tdeduplicate (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  lua_settop(L, 1);
+
+  lua_newtable(L);  /* set of seen values */
+  lua_pushnil(L);
+  while (lua_next(L, 1)) {
+    lua_pushvalue(L, 4);
+    if (lua_gettable(L, 2) > LUA_TNIL) {  /* seen this value before? */
+      lua_pushvalue(L, 3);
+      lua_pushnil(L);
+      lua_settable(L, 1);
+    }
+
+    lua_pushvalue(L, 4);
+    lua_pushboolean(L, true);
+    lua_settable(L, 2);
+
+    lua_settop(L, 3);
+  }
+
+  lua_settop(L, 1);
+  return 1;
+}
+
+
+static int tdeduplicated (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  lua_settop(L, 1);
+
+  lua_Integer i = 1;
+  lua_newtable(L);  /* result */
+  lua_newtable(L);  /* set of seen values */
+  lua_pushnil(L);
+  while (lua_next(L, 1)) {
+    lua_pushvalue(L, 5);
+    if (lua_gettable(L, 3) <= LUA_TNIL) {  /* value not seen before? */
+      lua_pushinteger(L, i++);
+      lua_pushvalue(L, 5);
+      lua_settable(L, 2);
+    }
+
+    lua_pushvalue(L, 5);
+    lua_pushboolean(L, true);
+    lua_settable(L, 3);
+
+    lua_settop(L, 4);
+  }
+
+  lua_settop(L, 2);
+  return 1;
+}
+
+
 static int tslice (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
 
@@ -946,6 +1000,10 @@ static const luaL_Reg tab_funcs[] = {
   {"chunk", tchunk},
   {"slice", tslice},
   {"countvalues", tcountvalues},
+  {"dedup", tdeduplicate},
+  {"deduplicate", tdeduplicate},
+  {"deduped", tdeduplicate},
+  {"deduplicated", tdeduplicated},
   {"keys", tkeys},
   {"modget", modget},
   {"modset", modset},
