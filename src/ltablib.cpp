@@ -822,6 +822,7 @@ static int tkeys (lua_State *L) {
 
 static int tcountvalues (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
+  lua_settop(L, 1);
 
   lua_newtable(L);
   lua_pushnil(L);

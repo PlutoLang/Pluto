@@ -1992,7 +1992,7 @@ do
     assert(counts_1[3] == 1)
 
     local test_table_2 = {1, 2, nil, 3, 1, nil}
-    local counts_2 = test_table_2:countvalues()
+    local counts_2 = test_table_2:countvalues(1)
     assert(counts_2[1] == 2)
     assert(counts_2[2] == 1)
     assert(counts_2[3] == 1)
