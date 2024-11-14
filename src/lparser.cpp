@@ -5527,6 +5527,7 @@ static void statement (LexState *ls, TypeHint *prop) {
           if (luaX_lookbehind(ls).token == TK_CLASS && ls->getKeywordState(TK_CLASS) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
             luaX_prev(ls);
             disablekeyword(ls, TK_CLASS);
+            ls->uninformed_reserved.emplace(TK_CLASS, ls->getLineNumber());
             ls->setKeywordState(TK_CLASS, KS_DISABLED_BY_PLUTO_INFORMED);
             luaX_setpos(ls, luaX_getpos(ls));  /* update ls->t */
             localstat(ls);
