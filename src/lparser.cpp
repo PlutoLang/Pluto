@@ -3119,7 +3119,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         }
         luaX_next(ls);
         int nparams = 1;
-        if (!(flags & E_NO_METHOD_CALL) && !(flags & E_NO_CONSUME_COLON) && luaX_lookahead(ls) == ':') {
+        if (!(flags & E_NO_METHOD_CALL) && !(flags & E_NO_CONSUME_COLON) && ls->t.token != TK_EOS && luaX_lookahead(ls) == ':') {
           luaK_reserveregs(fs, 2);
           luaK_exp2nextreg(fs, v);
           fs->freereg -= 3;
