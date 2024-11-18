@@ -42,13 +42,20 @@ typedef struct luaL_Reg {
 
 
 namespace Pluto {
-  struct PreloadedLibrary {
+  struct ConstexprLibrary {
     const char* name;
     const luaL_Reg* funcs;
+
+    ConstexprLibrary(const char* name, const luaL_Reg* funcs)
+      : name(name), funcs(funcs)
+    {}
+  };
+
+  struct PreloadedLibrary : public ConstexprLibrary {
     const lua_CFunction init;
 
     PreloadedLibrary(const char* name, const luaL_Reg* funcs, lua_CFunction init)
-      : name(name), funcs(funcs), init(init)
+      : ConstexprLibrary(name, funcs), init(init)
     {}
   };
 }

@@ -2718,11 +2718,19 @@ int luaB_utostring (lua_State *L);
 static void const_expr (LexState *ls, expdesc *v) {
   switch (ls->t.token) {
     case TK_NAME: {
-      const Pluto::PreloadedLibrary* lib = nullptr;
+      const Pluto::ConstexprLibrary* lib = nullptr;
       for (const auto& library : Pluto::all_preloaded) {
         if (strcmp(library->name, getstr(ls->t.seminfo.ts)) == 0) {
           lib = library;
           break;
+        }
+      }
+      if (lib == nullptr) {
+        for (const auto& library : Pluto::all_constexpr) {
+          if (strcmp(library->name, getstr(ls->t.seminfo.ts)) == 0) {
+            lib = library;
+            break;
+          }
         }
       }
       if (lib != nullptr) {
