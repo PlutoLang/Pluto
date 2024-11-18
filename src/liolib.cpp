@@ -1313,3 +1313,10 @@ LUAMOD_API int luaopen_io (lua_State *L) {
   return 1;
 }
 
+
+static const luaL_Reg constexpr_iolib[] = {
+  {"contents", contents},
+  {NULL, NULL}
+};
+
+const Pluto::ConstexprLibrary Pluto::constexpr_io{ "io", constexpr_iolib };

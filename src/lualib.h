@@ -84,6 +84,12 @@ namespace Pluto {
     &preloaded_ffi,
     &preloaded_canvas,
   };
+
+  extern const ConstexprLibrary constexpr_io;
+
+  inline const ConstexprLibrary* const all_constexpr[] = {
+    &constexpr_io,
+  };
 }
 
 LUAMOD_API int (luaopen_crypto)    (lua_State *L);
