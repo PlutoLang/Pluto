@@ -2695,6 +2695,11 @@ do
     -- They accept compile-time constants as argument
     local str <const> = "Pluto"
     assert($crypto.joaat(str) == 32037948)
+
+    -- Can handle table return value
+    local t = $url.parse("https://google.com")
+    assert(t.scheme == "https")
+    assert(t.host == "google.com")
 end
 
 print "Testing named arguments."
