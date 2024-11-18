@@ -2627,6 +2627,44 @@ static void safe_navigation (LexState *ls, expdesc *v) {
 }
 
 
+static void top_to_expdesc (LexState *ls, expdesc *v) {
+  lua_State *L = ls->L;
+  switch (lua_type(L, -1)) {
+    case LUA_TNUMBER: {
+      if (lua_isinteger(L, -1)) {
+        init_exp(v, VKINT, 0);
+        v->u.ival = lua_tointeger(L, -1);
+      }
+      else {
+        init_exp(v, VKFLT, 0);
+        v->u.nval = lua_tonumber(L, -1);
+      }
+      break;
+    }
+    case LUA_TSTRING: {
+      size_t len;
+      const char* str = lua_tolstring(L, -1, &len);
+      codestring(v, luaS_newlstr(L, str, len));
+      break;
+    }
+    case LUA_TTABLE: {
+      lua_pushnil(L);
+      newtable(ls, v, [ls](expdesc *key, expdesc *val) {
+        if (lua_next(ls->L, -2)) {
+          top_to_expdesc(ls, val);
+          lua_pop(ls->L, 1);
+          top_to_expdesc(ls, key);
+          return true;
+        }
+        return false;
+      });
+      break;
+    }
+    default: {
+      luaX_syntaxerror(ls, "unexpected return value in constexpr_call");
+    }
+  }
+}
 
 static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
   auto line = ls->getLineNumber();
@@ -2675,28 +2713,7 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
   if (status != LUA_OK) {
     throwerr(ls, lua_tostring(L, -1), "error in constexpr_call", line);
   }
-  switch (lua_type(L, -1)) {
-    case LUA_TNUMBER: {
-      if (lua_isinteger(L, -1)) {
-        init_exp(v, VKINT, 0);
-        v->u.ival = lua_tointeger(L, -1);
-      }
-      else {
-        init_exp(v, VKFLT, 0);
-        v->u.nval = lua_tonumber(L, -1);
-      }
-      break;
-    }
-    case LUA_TSTRING: {
-      size_t len;
-      const char* str = lua_tolstring(L, -1, &len);
-      codestring(v, luaS_newlstr(L, str, len));
-      break;
-    }
-    default: {
-      luaX_syntaxerror(ls, "unexpected return value in constexpr_call");
-    }
-  }
+  top_to_expdesc(ls, v);
   lua_pop(L, 1);
 }
 
