@@ -3292,7 +3292,9 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   expdesc ctrl;
   expr(ls, &ctrl);
   checknext(ls, TK_DO);
-  if (!vkhasregister(ctrl.k)) {
+  if (!vkhasregister(ctrl.k)
+    || ctrl.t != ctrl.f  /* has jumps? */
+  ) {
     luaK_exp2nextreg(ls->fs, &ctrl);
     if (tk == TK_ARROW) {
       prevpinnedreg = fs->pinnedreg;

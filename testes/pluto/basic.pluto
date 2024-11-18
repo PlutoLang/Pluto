@@ -1268,6 +1268,12 @@ switch 1 do
         --[[@fallthrough]]
     case 2:
 end
+-- Possible infinite loop
+do
+    local a, b = false, true
+    switch a and b do default: end
+    switch b or a do default: end
+end
 
 print "Testing switch expression."
 do
