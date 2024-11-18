@@ -3402,6 +3402,12 @@ end
 
 print "Testing compile-time conditionals."
 do
+    $if "abc" == "abc" then $end
+    $if 69 == 69 then $end
+    $if true == true then $end
+    $if false == false then $end
+    $if nil == nil then $end
+
     local debug_bytecode = string.dump(load([[
         $define DEBUG = true
         $if DEBUG then
