@@ -760,7 +760,7 @@ NAMESPACE_SOUP
 		return res;
 	}
 
-	void Bigint::divide(const Bigint& divisor, Bigint& outQuotient, Bigint& outRemainder) const SOUP_EXCAL
+	void Bigint::divide(const Bigint& divisor, Bigint& SOUP_UNIQADDR outQuotient, Bigint& SOUP_UNIQADDR outRemainder) const SOUP_EXCAL
 	{
 		outQuotient.reset();
 		outRemainder.reset();
@@ -800,7 +800,7 @@ NAMESPACE_SOUP
 		return res;
 	}
 
-	void Bigint::divideUnsigned(const Bigint& divisor, Bigint& remainder) SOUP_EXCAL
+	void Bigint::divideUnsigned(const Bigint& divisor, Bigint& SOUP_UNIQADDR remainder) SOUP_EXCAL
 	{
 		remainder.reset();
 		SOUP_IF_LIKELY (!divisor.isZero())
@@ -1727,9 +1727,9 @@ NAMESPACE_SOUP
 
 		const Bigint two = (chunk_t)2u;
 		Bigint y = (*this / two);
-		Bigint x_over_y;
+		Bigint x_over_y, remainder;
 
-		while (x_over_y = (*this / y), y > x_over_y)
+		while (this->divide(y, x_over_y, remainder), y > x_over_y)
 		{
 			y = (x_over_y + y) / two;
 		}
