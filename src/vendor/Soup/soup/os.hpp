@@ -60,6 +60,11 @@ NAMESPACE_SOUP
 	};
 
 #if SOUP_WINDOWS
+	inline pid_t os::getProcessId() noexcept
+	{
+		return GetCurrentProcessId();
+	}
+
 	inline void os::sleep(unsigned int ms) noexcept
 	{
 		::Sleep(ms);

@@ -917,7 +917,7 @@ NAMESPACE_SOUP
 		Bigint data;
 	};
 
-	void Socket::enableCryptoServer(SharedPtr<CertStore> certstore, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap, tls_server_on_client_hello_t on_client_hello) SOUP_EXCAL
+	void Socket::enableCryptoServer(SharedPtr<CertStore> certstore, void(*callback)(Socket&, Capture&&), Capture&& cap, tls_server_on_client_hello_t on_client_hello)
 	{
 		auto handshaker = make_unique<SocketTlsHandshaker>(
 			callback,
@@ -925,7 +925,7 @@ NAMESPACE_SOUP
 		);
 		handshaker->certstore = std::move(certstore);
 		handshaker->on_client_hello = on_client_hello;
-		tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
+		tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
 		{
 			if (handshake_type != TlsHandshake::client_hello)
 			{
@@ -1021,7 +1021,7 @@ NAMESPACE_SOUP
 
 			handshaker->private_key = &rsa_data->private_key;
 
-			s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
+			s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
 			{
 				if (handshake_type != TlsHandshake::client_key_exchange)
 				{
@@ -1045,7 +1045,7 @@ NAMESPACE_SOUP
 					Bigint::fromBinary(data)
 				});
 
-				s.tls_recvRecord(TlsContentType::change_cipher_spec, [](Socket& s, std::string&& data, Capture&& cap) SOUP_EXCAL
+				s.tls_recvRecord(TlsContentType::change_cipher_spec, [](Socket& s, std::string&& data, Capture&& cap)
 				{
 					if (!s.tls_sendRecord(TlsContentType::change_cipher_spec, "\1"))
 					{
@@ -1055,7 +1055,7 @@ NAMESPACE_SOUP
 					UniquePtr<SocketTlsHandshaker> handshaker = std::move(cap.get<UniquePtr<SocketTlsHandshaker>>());
 
 					auto* p = &handshaker->promise;
-					s.awaitPromiseCompletion(p, [](Worker& w, Capture&& cap) SOUP_EXCAL
+					s.awaitPromiseCompletion(p, [](Worker& w, Capture&& cap)
 					{
 						w.holdup_type = Worker::NONE;
 
@@ -1073,7 +1073,7 @@ NAMESPACE_SOUP
 
 						handshaker->expected_finished_verify_data = handshaker->getClientFinishVerifyData();
 
-						s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
+						s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
 						{
 							if (handshake_type != TlsHandshake::finished)
 							{
@@ -1202,7 +1202,7 @@ NAMESPACE_SOUP
 		}
 		else
 		{
-			transport_recv(0x1000, callback, std::move(cap));
+			transport_recv(callback, std::move(cap));
 		}
 	}
 
@@ -1306,11 +1306,11 @@ NAMESPACE_SOUP
 	struct CaptureSocketTlsRecvHandshake
 	{
 		UniquePtr<SocketTlsHandshaker> handshaker;
-		void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&) SOUP_EXCAL;
+		void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&);
 		std::string pre;
 	};
 
-	void Socket::tls_recvHandshake(UniquePtr<SocketTlsHandshaker>&& handshaker, void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&) SOUP_EXCAL, std::string&& pre) SOUP_EXCAL
+	void Socket::tls_recvHandshake(UniquePtr<SocketTlsHandshaker>&& handshaker, void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&), std::string&& pre) // 'excal' if callback is
 	{
 		CaptureSocketTlsRecvHandshake cap{
 			std::move(handshaker),
@@ -1318,7 +1318,7 @@ NAMESPACE_SOUP
 			std::move(pre)
 		};
 
-		auto record_callback = [](Socket& s, TlsContentType_t content_type, std::string&& data, Capture&& _cap) SOUP_EXCAL
+		auto record_callback = [](Socket& s, TlsContentType_t content_type, std::string&& data, Capture&& _cap) // 'excal' if callback is
 		{
 			if (content_type != TlsContentType::handshake)
 			{
@@ -1663,6 +1663,11 @@ NAMESPACE_SOUP
 		}
 #endif
 		return {};
+	}
+
+	void Socket::transport_recv(transport_recv_callback_t callback, Capture&& cap)
+	{
+		return transport_recv(0x1000, callback, std::move(cap));
 	}
 
 	struct CaptureSocketTransportRecv
