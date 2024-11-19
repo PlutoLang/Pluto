@@ -9,7 +9,12 @@ NAMESPACE_SOUP
 	public:
 		std::string& str;
 
-		StringRefWriter(std::string& str, bool little_endian = true)
+		StringRefWriter(std::string& str)
+			: Writer(true), str(str)
+		{
+		}
+
+		[[deprecated]] StringRefWriter(std::string& str, bool little_endian)
 			: Writer(little_endian), str(str)
 		{
 		}
@@ -27,6 +32,11 @@ NAMESPACE_SOUP
 				return false;
 			}
 			return true;
+		}
+
+		[[nodiscard]] size_t getPosition() final
+		{
+			return str.size();
 		}
 	};
 }

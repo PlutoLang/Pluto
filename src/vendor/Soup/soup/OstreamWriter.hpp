@@ -9,7 +9,12 @@ NAMESPACE_SOUP
 	public:
 		std::ostream& os;
 
-		OstreamWriter(std::ostream& os, Endian endian = ENDIAN_LITTLE)
+		OstreamWriter(std::ostream& os)
+			: Writer(ENDIAN_LITTLE), os(os)
+		{
+		}
+
+		[[deprecated]] OstreamWriter(std::ostream& os, Endian endian)
 			: Writer(endian), os(os)
 		{
 		}
@@ -27,6 +32,11 @@ NAMESPACE_SOUP
 				return false;
 			}
 			return true;
+		}
+
+		[[nodiscard]] size_t getPosition() final
+		{
+			return os.tellp();
 		}
 	};
 }

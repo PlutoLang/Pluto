@@ -122,22 +122,7 @@ NAMESPACE_SOUP
 		return {};
 	}
 
-	void json::decode(UniquePtr<JsonNode>& out, const std::string& data)
-	{
-		out = decode(data);
-	}
-
-	UniquePtr<JsonNode> json::decodeForDedicatedVariable(const std::string& data)
-	{
-		return decode(data);
-	}
-
-	void json::binaryDecode(UniquePtr<JsonNode>& out, Reader& r)
-	{
-		out = binaryDecodeForDedicatedVariable(r);
-	}
-
-	UniquePtr<JsonNode> json::binaryDecodeForDedicatedVariable(Reader& r)
+	UniquePtr<JsonNode> json::binaryDecode(Reader& r)
 	{
 		uint8_t b;
 		if (r.u8(b))
@@ -158,7 +143,7 @@ NAMESPACE_SOUP
 			else if (type == JSON_FLOAT)
 			{
 				uint64_t val;
-				if (r.u64(val))
+				if (r.u64le(val))
 				{
 					return soup::make_unique<JsonFloat>(*reinterpret_cast<double*>(&val));
 				}
@@ -190,7 +175,7 @@ NAMESPACE_SOUP
 				{
 					UniquePtr<JsonNode> node;
 
-					if (binaryDecode(node, r), !node)
+					if (node = binaryDecode(r), !node)
 					{
 						break;
 					}
@@ -207,11 +192,11 @@ NAMESPACE_SOUP
 					UniquePtr<JsonNode> key;
 					UniquePtr<JsonNode> val;
 
-					if (binaryDecode(key, r), !key)
+					if (key = binaryDecode(r), !key)
 					{
 						break;
 					}
-					if (binaryDecode(val, r), !val)
+					if (val = binaryDecode(r), !val)
 					{
 						break;
 					}

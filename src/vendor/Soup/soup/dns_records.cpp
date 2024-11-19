@@ -76,7 +76,7 @@ NAMESPACE_SOUP
 		dnsName value;
 		value.name = string::explode(data, '.');
 
-		StringWriter sw(false);
+		StringWriter sw;
 		value.write(sw);
 		return sw.data;
 	}

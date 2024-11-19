@@ -497,23 +497,23 @@ NAMESPACE_SOUP
 		Canvas c;
 
 		uint16_t sig;
-		SOUP_IF_LIKELY (r.u16(sig) && sig == 0x4D42)
+		SOUP_IF_LIKELY (r.u16le(sig) && sig == 0x4D42)
 		{
 			uint32_t data_start, header_size, palette_size;
 			int32_t width, height;
 			int16_t bits_per_pixel;
-			SOUP_IF_LIKELY ((r.seek(0x0A), r.u32(data_start))
-				&& r.u32(header_size)
+			SOUP_IF_LIKELY ((r.seek(0x0A), r.u32le(data_start))
+				&& r.u32le(header_size)
 				&& header_size == 40 // BITMAPINFOHEADER
-				&& r.i32(width)
-				&& r.i32(height)
+				&& r.i32le(width)
+				&& r.i32le(height)
 				&& r.skip(2) // planes
-				&& r.i16(bits_per_pixel)
+				&& r.i16le(bits_per_pixel)
 				&& r.skip(4) // compression method
 				&& r.skip(4) // image size
 				&& r.skip(4) // horizontal resolution
 				&& r.skip(4) // vertical resolution
-				&& r.u32(palette_size)
+				&& r.u32le(palette_size)
 				&& r.skip(4) // important colours
 				)
 			{
@@ -547,7 +547,7 @@ NAMESPACE_SOUP
 					for (size_t i = 0; i != c.pixels.size(); )
 					{
 						uint32_t dw;
-						SOUP_IF_UNLIKELY (!r.u32(dw))
+						SOUP_IF_UNLIKELY (!r.u32le(dw))
 						{
 							break;
 						}
@@ -672,17 +672,17 @@ NAMESPACE_SOUP
 	{
 		uint16_t s;
 		uint32_t i;
-		SOUP_IF_UNLIKELY (!(s = 0x4D42, w.u16(s))
-			|| !(i = static_cast<uint32_t>(40 + (3 * pixels.size())), w.u32(i))
+		SOUP_IF_UNLIKELY (!(s = 0x4D42, w.u16le(s))
+			|| !(i = static_cast<uint32_t>(40 + (3 * pixels.size())), w.u32le(i))
 			|| !w.skip(4)
-			|| !(i = (14 + 40), w.u32(i))
-			|| !(i = 40, w.u32(i))
-			|| !(i = width, w.u32(i))
-			|| !(i = height * -1, w.u32(i))
-			|| !(s = 1, w.u16(s))
-			|| !(s = 24, w.u16(s))
-			|| !(i = 0, w.u32(i))
-			|| !(i = static_cast<uint32_t>(3 * pixels.size()), w.u32(i))
+			|| !(i = (14 + 40), w.u32le(i))
+			|| !(i = 40, w.u32le(i))
+			|| !(i = width, w.u32le(i))
+			|| !(i = height * -1, w.u32le(i))
+			|| !(s = 1, w.u16le(s))
+			|| !(s = 24, w.u16le(s))
+			|| !(i = 0, w.u32le(i))
+			|| !(i = static_cast<uint32_t>(3 * pixels.size()), w.u32le(i))
 			|| !w.skip(4 + 4 + 4 + 4)
 			)
 		{

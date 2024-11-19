@@ -9,7 +9,7 @@
 
 NAMESPACE_SOUP
 {
-	SocketTlsHandshaker::SocketTlsHandshaker(void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& callback_capture) noexcept
+	SocketTlsHandshaker::SocketTlsHandshaker(void(*callback)(Socket&, Capture&&), Capture&& callback_capture) noexcept
 		: callback(callback), callback_capture(std::move(callback_capture))
 	{
 		layer_bytes.reserve(2800); // When we receive "finished" from Cloudflare, this is 2689~2696 bytes.

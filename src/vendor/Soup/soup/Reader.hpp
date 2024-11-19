@@ -12,7 +12,6 @@ NAMESPACE_SOUP
 		using ioBase::ioBase;
 
 		[[nodiscard]] virtual bool hasMore() noexcept = 0;
-		[[nodiscard]] virtual size_t getPosition() = 0;
 		virtual void seek(size_t pos) = 0;
 		void seekBegin() { seek(0); }
 		virtual void seekEnd() = 0;
@@ -38,6 +37,12 @@ NAMESPACE_SOUP
 
 		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn.)
 		bool i64_dyn(int64_t& v) noexcept;
+
+		// An unsigned 64-bit integer encoded in 1..9 bytes. This is a slightly more efficient version of u64_dyn, e.g. 0x4000..0x407f are encoded in 2 bytes instead of 3.
+		bool u64_dyn_v2(uint64_t& v) noexcept;
+
+		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn_v2. This revision also simplifies how negative integers are handled.)
+		bool i64_dyn_v2(int64_t& v) noexcept;
 
 		// An integer where every byte's most significant bit is used to indicate if another byte follows, most significant byte first.
 		template <typename Int>
@@ -113,7 +118,7 @@ NAMESPACE_SOUP
 				if (first == 0xFC)
 				{
 					uint16_t val;
-					if (u16_le(val))
+					if (u16le(val))
 					{
 						v = val;
 						return true;
@@ -122,7 +127,7 @@ NAMESPACE_SOUP
 				if (first == 0xFD)
 				{
 					uint32_t val;
-					if (u24_le(val))
+					if (u24le(val))
 					{
 						v = val;
 						return true;
@@ -131,7 +136,7 @@ NAMESPACE_SOUP
 				if (first == 0xFE)
 				{
 					uint64_t val;
-					if (u64_le(val))
+					if (u64le(val))
 					{
 						v = val;
 						return true;
@@ -181,36 +186,6 @@ NAMESPACE_SOUP
 			return mysql_lenenc(len) && str((size_t)len, v);
 		}
 
-		// Length-prefixed string, using u8 for the length prefix.
-		[[deprecated]] bool str_lp_u8(std::string& v, const uint8_t max_len = 0xFF) SOUP_EXCAL
-		{
-			return str_lp<u8_t>(v, max_len);
-		}
-
-		// Length-prefixed string, using u16 for the length prefix.
-		[[deprecated]] bool str_lp_u16(std::string& v, const uint16_t max_len = 0xFFFF) SOUP_EXCAL
-		{
-			return str_lp<u16_t>(v, max_len);
-		}
-
-		// Length-prefixed string, using u24 for the length prefix.
-		[[deprecated]] bool str_lp_u24(std::string& v, const uint32_t max_len = 0xFFFFFF) SOUP_EXCAL
-		{
-			return str_lp<u24_t>(v, max_len);
-		}
-
-		// Length-prefixed string, using u32 for the length prefix.
-		[[deprecated]] bool str_lp_u32(std::string& v, const uint32_t max_len = 0xFFFFFFFF) SOUP_EXCAL
-		{
-			return str_lp<u32_t>(v, max_len);
-		}
-
-		// Length-prefixed string, using u64 for the length prefix.
-		[[deprecated]] bool str_lp_u64(std::string& v) SOUP_EXCAL
-		{
-			return str_lp<u64_t>(v);
-		}
-
 		// String with known length.
 		bool str(size_t len, std::string& v) SOUP_EXCAL
 		{
@@ -237,36 +212,17 @@ NAMESPACE_SOUP
 			return true;
 		}
 
-		// std::vector<uint16_t> with u16 size prefix.
-		bool vec_u16_u16(std::vector<uint16_t>& v) SOUP_EXCAL
+		// vector of u16be with u16be byte length prefix.
+		bool vec_u16be_bl_u16be(std::vector<uint16_t>& v) SOUP_EXCAL
 		{
 			uint16_t len;
-			SOUP_RETHROW_FALSE(ioBase::u16(len));
-			v.clear();
-			v.reserve(len / 2);
-			while (len--)
-			{
-				uint16_t entry;
-				SOUP_IF_UNLIKELY (!ioBase::u16(entry))
-				{
-					return false;
-				}
-				v.emplace_back(std::move(entry));
-			}
-			return true;
-		}
-
-		// std::vector<uint16_t> with u16 byte length prefix.
-		bool vec_u16_bl_u16(std::vector<uint16_t>& v) SOUP_EXCAL
-		{
-			uint16_t len;
-			SOUP_RETHROW_FALSE(ioBase::u16(len));
+			SOUP_RETHROW_FALSE(ioBase::u16be(len));
 			v.clear();
 			v.reserve(len / 2);
 			for (; len >= sizeof(uint16_t); len -= sizeof(uint16_t))
 			{
 				uint16_t entry;
-				SOUP_IF_UNLIKELY (!ioBase::u16(entry))
+				SOUP_IF_UNLIKELY (!ioBase::u16be(entry))
 				{
 					return false;
 				}
@@ -294,17 +250,17 @@ NAMESPACE_SOUP
 			return true;
 		}
 
-		// vector of str_lp<u24_t> with u24 byte length prefix.
-		bool vec_str_lp_u24_bl_u24(std::vector<std::string>& v) SOUP_EXCAL
+		// vector of str_lp<u24be_t> with u24be byte length prefix.
+		bool vec_str_lp_u24be_bl_u24be(std::vector<std::string>& v) SOUP_EXCAL
 		{
 			uint32_t len;
-			SOUP_RETHROW_FALSE(ioBase::u24(len));
+			SOUP_RETHROW_FALSE(ioBase::u24be(len));
 			v.clear();
 			v.reserve(len / 3);
 			while (len >= 3)
 			{
 				std::string entry;
-				SOUP_IF_UNLIKELY (!str_lp<u24_t>(entry))
+				SOUP_IF_UNLIKELY (!str_lp<u24be_t>(entry))
 				{
 					return false;
 				}
