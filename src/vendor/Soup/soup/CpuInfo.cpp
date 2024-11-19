@@ -163,12 +163,11 @@ NAMESPACE_SOUP
 
 	void CpuInfo::invokeCpuid(void* out, uint32_t eax, uint32_t ecx) noexcept
 	{
-	#if defined(__GNUC__)
-		((uint32_t*)out)[3] = ecx;
-		__get_cpuid(eax, &((uint32_t*)out)[0], &((uint32_t*)out)[1], &((uint32_t*)out)[3], &((uint32_t*)out)[2]);
-	#else
+	#if defined(_MSC_VER) && !defined(__clang__)
 		__cpuidex(((int*)out), eax, ecx);
 		std::swap(((int*)out)[2], ((int*)out)[3]);
+	#else
+		__cpuid_count(eax, ecx, ((int*)out)[0], ((int*)out)[1], ((int*)out)[3], ((int*)out)[2]);
 	#endif
 	}
 #endif

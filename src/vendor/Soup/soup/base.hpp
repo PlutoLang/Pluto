@@ -79,11 +79,13 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 #if defined(_MSC_VER) && !defined(__clang__)
 	#define SOUP_FORCEINLINE __forceinline
 	#define SOUP_NOINLINE __declspec(noinline)
-	#define SOUP_PURE
+	#define SOUP_PURE __declspec(noalias)
+	#define SOUP_UNIQADDR __restrict
 #else
 	#define SOUP_FORCEINLINE __attribute__((always_inline)) inline
 	#define SOUP_NOINLINE __attribute__((noinline))
 	#define SOUP_PURE __attribute__((pure))
+	#define SOUP_UNIQADDR __restrict__
 #endif
 
 // === CPU macros

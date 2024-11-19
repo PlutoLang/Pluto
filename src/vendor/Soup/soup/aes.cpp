@@ -4,14 +4,15 @@
 
 #include "base.hpp"
 
-#if defined(SOUP_USE_INTRIN) && SOUP_BITS == 64 && (SOUP_X86 || SOUP_ARM)
-#define AES_USE_INTRIN true
+#if SOUP_BITS == 64 && (SOUP_X86 || SOUP_ARM)
+	#define AES_USE_INTRIN true
 #else
-#define AES_USE_INTRIN false
+	#define AES_USE_INTRIN false
 #endif
 
 #if AES_USE_INTRIN
-#include "CpuInfo.hpp"
+	#include "aes_intrin.hpp"
+	#include "CpuInfo.hpp"
 #endif
 
 #include "Endian.hpp"
@@ -50,24 +51,6 @@ SOFTWARE.
 
 NAMESPACE_SOUP
 {
-#if AES_USE_INTRIN
-	namespace intrin
-	{
-		extern void aes_expand_key_128(uint8_t w[176], const uint8_t key[16]) noexcept;
-		extern void aes_expand_key_192(uint8_t w[208], const uint8_t key[24]) noexcept;
-		extern void aes_expand_key_256(uint8_t w[240], const uint8_t key[32]) noexcept;
-		extern void aes_encrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
-		extern void aes_encrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
-		extern void aes_encrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
-		extern void aes_prepare_decryption_128(uint8_t w[176]) noexcept;
-		extern void aes_prepare_decryption_192(uint8_t w[208]) noexcept;
-		extern void aes_prepare_decryption_256(uint8_t w[240]) noexcept;
-		extern void aes_decrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
-		extern void aes_decrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
-		extern void aes_decrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
-	}
-#endif
-
 	static constexpr int Nb = 4;
 	static constexpr unsigned int blockBytesLen = 4 * Nb * sizeof(uint8_t);
 
