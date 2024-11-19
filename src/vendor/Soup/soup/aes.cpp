@@ -1,21 +1,22 @@
 #include "aes.hpp"
 
+#include <cmath> // ceil
 #include <cstring> // memcpy
 
 #include "base.hpp"
 
-#if defined(SOUP_USE_INTRIN) && SOUP_BITS == 64 && (SOUP_X86 || SOUP_ARM)
-#define AES_USE_INTRIN true
+#if SOUP_BITS == 64 && (SOUP_X86 || SOUP_ARM)
+	#define AES_USE_INTRIN true
 #else
-#define AES_USE_INTRIN false
+	#define AES_USE_INTRIN false
 #endif
 
 #if AES_USE_INTRIN
-#include "CpuInfo.hpp"
+	#include "aes_intrin.hpp"
+	#include "CpuInfo.hpp"
 #endif
 
 #include "Endian.hpp"
-#include "plusaes.hpp"
 
 /*
 Original source: https://github.com/SergeyBel/AES
@@ -42,6 +43,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+// https://github.com/kkAyataka/plusaes was also used a reference for AES-GCM
+
 #if SOUP_X86
 	#define IS_AES_INTRIN_AVAILBLE CpuInfo::get().supportsAESNI()
 #else
@@ -50,24 +53,6 @@ SOFTWARE.
 
 NAMESPACE_SOUP
 {
-#if AES_USE_INTRIN
-	namespace intrin
-	{
-		extern void aes_expand_key_128(uint8_t w[176], const uint8_t key[16]) noexcept;
-		extern void aes_expand_key_192(uint8_t w[208], const uint8_t key[24]) noexcept;
-		extern void aes_expand_key_256(uint8_t w[240], const uint8_t key[32]) noexcept;
-		extern void aes_encrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
-		extern void aes_encrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
-		extern void aes_encrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
-		extern void aes_prepare_decryption_128(uint8_t w[176]) noexcept;
-		extern void aes_prepare_decryption_192(uint8_t w[208]) noexcept;
-		extern void aes_prepare_decryption_256(uint8_t w[240]) noexcept;
-		extern void aes_decrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept;
-		extern void aes_decrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept;
-		extern void aes_decrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept;
-	}
-#endif
-
 	static constexpr int Nb = 4;
 	static constexpr unsigned int blockBytesLen = 4 * Nb * sizeof(uint8_t);
 
@@ -451,7 +436,7 @@ NAMESPACE_SOUP
 		}
 	}
 
-	void aes::gcmEncrypt(uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t* key, size_t key_len, const uint8_t* iv, size_t iv_len, uint8_t tag[16]) SOUP_EXCAL
+	void aes::gcmEncrypt(uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t* key, size_t key_len, const uint8_t* iv, size_t iv_len, uint8_t tag[16]) noexcept
 	{
 		const auto Nr = getNrFromKeyLen(key_len);
 		alignas(16) uint8_t roundKeys[240];
@@ -475,7 +460,7 @@ NAMESPACE_SOUP
 		calcGcmTag(tag, data, data_len, aadata, aadata_len, roundKeys, Nr, h, j0);
 	}
 
-	bool aes::gcmDecrypt(uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t* key, size_t key_len, const uint8_t* iv, size_t iv_len, const uint8_t tag[16]) SOUP_EXCAL
+	bool aes::gcmDecrypt(uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t* key, size_t key_len, const uint8_t* iv, size_t iv_len, const uint8_t tag[16]) noexcept
 	{
 		const auto Nr = getNrFromKeyLen(key_len);
 		alignas(16) uint8_t roundKeys[240];
@@ -892,9 +877,15 @@ NAMESPACE_SOUP
 
 	void aes::xorBlocks(uint8_t a[16], const uint8_t b[16]) noexcept
 	{
-#if SOUP_BITS == 64
+#if SOUP_BITS >= 64
+		// Could use _mm_xor_si128 if target supports SSE2
 		reinterpret_cast<uint64_t*>(a)[0] ^= reinterpret_cast<const uint64_t*>(b)[0];
 		reinterpret_cast<uint64_t*>(a)[1] ^= reinterpret_cast<const uint64_t*>(b)[1];
+#elif SOUP_BITS >= 32
+		reinterpret_cast<uint32_t*>(a)[0] ^= reinterpret_cast<const uint32_t*>(b)[0];
+		reinterpret_cast<uint32_t*>(a)[1] ^= reinterpret_cast<const uint32_t*>(b)[1];
+		reinterpret_cast<uint32_t*>(a)[2] ^= reinterpret_cast<const uint32_t*>(b)[2];
+		reinterpret_cast<uint32_t*>(a)[3] ^= reinterpret_cast<const uint32_t*>(b)[3];
 #else
 		for (unsigned int i = 0; i != 16; ++i)
 		{
@@ -911,11 +902,34 @@ NAMESPACE_SOUP
 		}
 	}
 
-	void aes::ghash(uint8_t res[16], const uint8_t h[16], const std::vector<uint8_t>& x) noexcept
+	void aes::rshiftBlock(uint8_t block[16]) noexcept
 	{
-		plusaes::detail::gcm::Block bH(h, 16);
-		auto bRes = plusaes::detail::gcm::ghash(bH, x);
-		memcpy(res, bRes.data(), 16);
+		for (int i = 15; i > 0; --i)
+		{
+			block[i] = (block[i] >> 1) | (block[i - 1] << 7);
+		}
+		block[0] >>= 1;
+	}
+
+	void aes::mulBlocks(uint8_t res[16], const uint8_t x[16], const uint8_t y[16]) noexcept
+	{
+		memset(res, 0, 16);
+		uint8_t v[16];
+		memcpy(v, y, 16);
+		for (uint8_t i = 0; i != 128; ++i)
+		{
+			if ((x[i / 8] >> (7 - (i % 8))) & 1)
+			{
+				xorBlocks(res, v);
+			}
+
+			const bool lsb_set = v[15] & 1;
+			rshiftBlock(v);
+			if (lsb_set)
+			{
+				v[0] ^= 0xe1;
+			}
+		}
 	}
 
 	void aes::calcH(uint8_t h[16], uint8_t roundKeys[240], const int Nr) noexcept
@@ -924,7 +938,7 @@ NAMESPACE_SOUP
 		aes::encryptBlock(h, h, roundKeys, Nr);
 	}
 
-	void aes::calcJ0(uint8_t j0[16], const uint8_t h[16], const uint8_t* iv, size_t iv_len) SOUP_EXCAL
+	void aes::calcJ0(uint8_t j0[16], const uint8_t h[16], const uint8_t* iv, size_t iv_len) noexcept
 	{
 		if (iv_len == 12)
 		{
@@ -936,15 +950,21 @@ NAMESPACE_SOUP
 		}
 		else
 		{
-			const auto len_iv = iv_len * 8;
-			const auto s = 128 * plusaes::detail::gcm::ceil(len_iv / 128.0) - len_iv;
-			std::vector<uint8_t> ghash_in;
-			ghash_in.reserve(32);
-			plusaes::detail::gcm::push_back(ghash_in, iv, iv_len);
-			plusaes::detail::gcm::push_back_zero_bits(ghash_in, s + 64);
-			plusaes::detail::gcm::push_back(ghash_in, std::bitset<64>(len_iv));
+			GhashState state(j0, h);
+			state.append(iv, iv_len);
 
-			return ghash(j0, h, ghash_in);
+			const uint64_t iv_bits = iv_len * 8;
+			auto padding = (128 * static_cast<unsigned long>(std::ceil(iv_bits / 128.0) + 0.5) - iv_bits) / 8;
+			while (padding--)
+			{
+				state.appendByte(0);
+			}
+
+			memset(state.buffer, 0, 16);
+			reinterpret_cast<uint64_t*>(state.buffer)[1] = Endianness::invert(iv_bits); static_assert(ENDIAN_NATIVE == ENDIAN_LITTLE);
+			state.transform();
+
+			SOUP_DEBUG_ASSERT(state.buffer_counter == 0);
 		}
 	}
 
@@ -985,22 +1005,38 @@ NAMESPACE_SOUP
 		}
 	}
 
-	void aes::calcGcmTag(uint8_t tag[16], uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t roundKeys[16], const int Nr, const uint8_t h[16], const uint8_t j0[16]) SOUP_EXCAL
+	void aes::calcGcmTag(uint8_t tag[16], uint8_t* data, size_t data_len, const uint8_t* aadata, size_t aadata_len, const uint8_t roundKeys[16], const int Nr, const uint8_t h[16], const uint8_t j0[16]) noexcept
 	{
-		const auto lenC = data_len * 8;
-		const auto lenA = aadata_len * 8;
-		const std::size_t u = 128 * plusaes::detail::gcm::ceil(lenC / 128.0) - lenC;
-		const std::size_t v = 128 * plusaes::detail::gcm::ceil(lenA / 128.0) - lenA;
+		const uint64_t lenC = data_len * 8;
+		const uint64_t lenA = aadata_len * 8;
+		auto u = (128 * static_cast<unsigned long>(std::ceil(lenC / 128.0) + 0.5) - lenC) / 8;
+		auto v = (128 * static_cast<unsigned long>(std::ceil(lenA / 128.0) + 0.5) - lenA) / 8;
+		uint8_t z[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-		std::vector<unsigned char> ghash_in;
-		ghash_in.reserve((aadata_len + v / 8) + (data_len + u / 8) + 8 + 8);
-		plusaes::detail::gcm::push_back(ghash_in, aadata, aadata_len);
-		plusaes::detail::gcm::push_back_zero_bits(ghash_in, v);
-		plusaes::detail::gcm::push_back(ghash_in, data, data_len);
-		plusaes::detail::gcm::push_back_zero_bits(ghash_in, u);
-		plusaes::detail::gcm::push_back(ghash_in, std::bitset<64>(lenA));
-		plusaes::detail::gcm::push_back(ghash_in, std::bitset<64>(lenC));
-		ghash(tag, h, ghash_in);
+		GhashState state(tag, h);
+		state.append(aadata, aadata_len);
+		while (v--) { state.appendByte(0); }
+		state.append(data, data_len);
+		while (u--) { state.appendByte(0); }
+		*reinterpret_cast<uint64_t*>(z) = Endianness::invert(lenA); state.append(z, 8); static_assert(ENDIAN_NATIVE == ENDIAN_LITTLE);
+		*reinterpret_cast<uint64_t*>(z) = Endianness::invert(lenC); state.append(z, 8); static_assert(ENDIAN_NATIVE == ENDIAN_LITTLE);
+		SOUP_DEBUG_ASSERT(state.buffer_counter == 0);
+
 		gctr(tag, 16, roundKeys, Nr, j0);
+	}
+
+	aes::GhashState::GhashState(uint8_t res[16], const uint8_t h[16]) noexcept
+		: res(res), h(h), buffer_counter(0)
+	{
+		memset(res, 0, 16);
+	}
+
+	void aes::GhashState::transform() noexcept
+	{
+		xorBlocks(res, buffer);
+
+		uint8_t tmp[16];
+		memcpy(tmp, res, 16);
+		mulBlocks(res, tmp, h);
 	}
 }
