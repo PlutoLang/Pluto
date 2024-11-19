@@ -1,5 +1,5 @@
 CXX=g++ -std=c++17 -O3 -flto -fvisibility=hidden -fPIC
-CFLAGS=-c -Wall -DSOUP_USE_INTRIN
+CFLAGS=-c -Wall
 
 LIBNAME=libsoup.a
 # echo $(ls *.cpp | sed 's/.cpp/.o/g')

@@ -10,7 +10,7 @@ NAMESPACE_SOUP
 
 		SOUP_PACKET_IO(s)
 		{
-			return s.vec_u16_bl_u16(named_curves);
+			return s.vec_u16be_bl_u16be(named_curves);
 		}
 	};
 }

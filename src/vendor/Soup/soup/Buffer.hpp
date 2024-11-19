@@ -50,6 +50,12 @@ NAMESPACE_SOUP
 			append(b);
 		}
 
+		Buffer(const std::string& b) SOUP_EXCAL
+			: Buffer(b.size())
+		{
+			append(b);
+		}
+
 		Buffer(Buffer&& b) noexcept
 			: m_data(b.m_data), m_size(b.m_size), m_capacity(b.m_capacity)
 		{
@@ -222,6 +228,11 @@ NAMESPACE_SOUP
 		void append(const Buffer& src) SOUP_EXCAL
 		{
 			append(src.m_data, src.m_size);
+		}
+
+		void append(const std::string& src) SOUP_EXCAL
+		{
+			append(src.data(), src.size());
 		}
 
 		void erase(size_t pos, size_t len) SOUP_EXCAL

@@ -11,7 +11,12 @@ NAMESPACE_SOUP
 	public:
 		std::istream& is;
 
-		IstreamReader(std::istream& is, Endian endian = ENDIAN_LITTLE)
+		IstreamReader(std::istream& is)
+			: Reader(ENDIAN_LITTLE), is(is)
+		{
+		}
+
+		[[deprecated]] IstreamReader(std::istream& is, Endian endian)
 			: Reader(endian), is(is)
 		{
 		}

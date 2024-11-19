@@ -11,7 +11,12 @@ NAMESPACE_SOUP
 	public:
 		Buffer& buf;
 
-		BufferRefWriter(Buffer& buf, Endian endian = ENDIAN_LITTLE)
+		BufferRefWriter(Buffer& buf)
+			: Writer(ENDIAN_LITTLE), buf(buf)
+		{
+		}
+
+		[[deprecated]] BufferRefWriter(Buffer& buf, Endian endian)
 			: Writer(endian), buf(buf)
 		{
 		}
@@ -29,6 +34,11 @@ NAMESPACE_SOUP
 				return false;
 			}
 			return true;
+		}
+
+		[[nodiscard]] size_t getPosition() final
+		{
+			return buf.size();
 		}
 	};
 }
