@@ -2267,6 +2267,12 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   BodyState& bs = ls->bodystates.emplace();
   TString *varargname = nullptr;
   parlist(ls, (ismethod == 2 ? &bs.promotions : nullptr), &bs.fallbacks, &varargname, false);
+  if (ls->t.token != ')' && ismethod != 2 && luaX_lookbehind(ls).token == TK_NAME) {
+    const char *str = getstr(luaX_lookbehind(ls).seminfo.ts);
+    if (strcmp(str, "private") == 0 || strcmp(str, "protected") == 0 || strcmp(str, "public") == 0) {
+      throwerr(ls, luaO_fmt(ls->L, "attempt to use constructor promotion outside of '__construct' near %s", luaX_token2str(ls, ls->t)), "this is invalid syntax.");
+    }
+  }
   checknext(ls, ')');
   defaultarguments(ls, ismethod, bs.fallbacks);
   for (const auto& e : bs.promotions) {
