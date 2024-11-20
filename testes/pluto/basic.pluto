@@ -2903,6 +2903,11 @@ do
     local p = new Point(3)
     assert(p.x == 3)
     assert(p.y == 0)
+
+    assert(select(2, load[[class Item
+    function __constructor(private name: string, private type: string)
+    end
+end]]):find("attempt to use constructor promotion outside of '__construct'"))
 end
 -- 'new' as a statement
 do
