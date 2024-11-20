@@ -70,8 +70,13 @@ static int canvas_qrcode (lua_State *L) {
       bg = soup::Rgb(static_cast<uint32_t>(luaL_checkinteger(L, -1)));
   }
 
-  std::string content(data, size);
-  pushcanvas(L, soup::QrCode::encodeText(content, ecl).toCanvas(border, fg, bg));
+  try {
+    std::string content(data, size);
+    pushcanvas(L, soup::QrCode::encodeText(content, ecl).toCanvas(border, fg, bg));
+  }
+  catch (...) {
+    luaL_error(L, "failed to encode qrcode");
+  }
   return 1;
 }
 
