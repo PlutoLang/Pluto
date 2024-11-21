@@ -123,7 +123,7 @@ NAMESPACE_SOUP
 	#if SOUP_X86
 		const CpuInfo& cpu_info = CpuInfo::get();
 		if (cpu_info.supportsPCLMULQDQ()
-			&& cpu_info.supportsSSE4_1()
+			&& cpu_info.supportsSSE4_1() // _mm_extract_epi32
 			)
 		{
 			return crc32_sse41_simd(data, size, init);

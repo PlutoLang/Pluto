@@ -228,7 +228,7 @@ NAMESPACE_SOUP
 	{
 	#if SOUP_X86
 		const CpuInfo& cpu_info = CpuInfo::get();
-		return cpu_info.supportsSSSE3()
+		return cpu_info.supportsSSE4_1() // _mm_extract_epi32
 			&& cpu_info.supportsSHA()
 			;
 	#elif SOUP_ARM
