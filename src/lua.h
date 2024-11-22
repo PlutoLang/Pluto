@@ -8,8 +8,10 @@
 
 #include <stdarg.h>
 #include <stddef.h>
+#ifdef __cplusplus
 #include <string>
 #include <string_view>
+#endif
 
 
 #include "luaconf.h"
@@ -251,8 +253,10 @@ LUA_API void        (lua_pushnumber) (lua_State *L, lua_Number n);
 LUA_API void        (lua_pushinteger) (lua_State *L, lua_Integer n);
 LUA_API const char *(lua_pushlstring) (lua_State *L, const char *s, size_t len);
 LUA_API const char *(lua_pushstring) (lua_State *L, const char *s);
+#ifdef __cplusplus
 PLUTO_API const char *(pluto_pushstring) (lua_State* L, const std::string& str);
 PLUTO_API const char *(pluto_pushstring) (lua_State* L, const std::string_view&& str);
+#endif
 LUA_API const char *(lua_pushvfstring) (lua_State *L, const char *fmt,
                                                       va_list argp);
 LUA_API const char *(lua_pushfstring) (lua_State *L, const char *fmt, ...);

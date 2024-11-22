@@ -312,8 +312,13 @@
 // Additions by Pluto that are not compatible with `extern "C"` use PLUTO_API instead of LUA_API.
 #define PLUTO_API	PLUTO_DLLSPEC
 
-#define LUA_API			    extern "C" PLUTO_API
-#define LUA_API_NORETURN	extern "C" [[noreturn]] PLUTO_API
+#ifdef __cplusplus
+  #define LUA_API          extern "C" PLUTO_API
+  #define LUA_API_NORETURN extern "C" [[noreturn]] PLUTO_API
+#else
+  #define LUA_API          PLUTO_API
+  #define LUA_API_NORETURN PLUTO_API
+#endif
 
 /*
 ** More often than not the libs go together with the core.
