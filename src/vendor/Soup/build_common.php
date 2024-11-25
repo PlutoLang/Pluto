@@ -1,7 +1,7 @@
 <?php
 // Config
 $clang = $argv[1] ?? "clang";
-$clang .= " -std=c++17 -fno-rtti -DSOUP_USE_INTRIN -O3";
+$clang .= " -std=c++17 -fno-rtti -DSOUP_USE_INTRIN -O3 -flto";
 if (defined("PHP_WINDOWS_VERSION_MAJOR"))
 {
 	$clang .= " -D_CRT_SECURE_NO_WARNINGS";
@@ -21,12 +21,15 @@ if (!defined("PHP_WINDOWS_VERSION_MAJOR"))
 	}
 	if (PHP_OS_FAMILY != "Darwin")
 	{
-		$clanglink .= " -fuse-ld=lld";
 		if (!getenv("ANDROID_ROOT"))
 		{
 			$clanglink .= " -lstdc++fs";
 		}
 	}
+}
+if (PHP_OS_FAMILY != "Darwin")
+{
+	$clanglink .= " -fuse-ld=lld";
 }
 
 // Utilities

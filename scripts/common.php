@@ -29,7 +29,7 @@ function check_compiler()
 	{
 		$compiler .= " ".escapeshellarg($argv[$i]);
 	}
-	$compiler .= " -std=c++17 -O3 -fvisibility=hidden -fno-rtti";
+	$compiler .= " -std=c++17 -O3 -flto -fvisibility=hidden -fno-rtti";
 	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 	{
 		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
@@ -43,12 +43,16 @@ function check_compiler()
 		}
 		if (PHP_OS_FAMILY != "Darwin")
 		{
-			$compiler .= " -fPIC -fuse-ld=lld";
+			$compiler .= " -fPIC";
 			if (!getenv("ANDROID_ROOT"))
 			{
 				$compiler .= " -lstdc++fs";
 			}
 		}
+	}
+	if (PHP_OS_FAMILY != "Darwin")
+	{
+		$compiler .= " -fuse-ld=lld";
 	}
 }
 
