@@ -2908,6 +2908,7 @@ do
     function __constructor(private name: string, private type: string)
     end
 end]]):find("attempt to use constructor promotion outside of '__construct'"))
+    -- @pluto_warnings disable-next ('public' is unused)
     local function _valid_syntax(public) end
 end
 -- 'new' as a statement
