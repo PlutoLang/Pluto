@@ -3553,6 +3553,8 @@ do
     assert(load[[-- @pluto_warnings disable-unused
         class:mem()
     ]])
+    assert(load[[catch()]])
+    assert(load[[do catch() end]])
 end
 
 print "Testing universal functions."

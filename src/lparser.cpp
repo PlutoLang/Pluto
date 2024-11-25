@@ -1289,8 +1289,9 @@ static int block_follow (LexState *ls, int withuntil) {
     }
     case TK_ELSE: case TK_ELSEIF:
     case TK_END: case TK_EOS:
-    case TK_CATCH: case TK_PCATCH:
       return 1;
+    case TK_CATCH: case TK_PCATCH:
+      return ls->used_try;
     case TK_UNTIL: return withuntil;
     default: return 0;
   }
@@ -5188,6 +5189,8 @@ static void trystat (LexState *ls) {
   int exitjump = NO_JUMP;
 
   enterblock(ls->fs, &trybl, BlockType::BT_DEFAULT);
+
+  ls->used_try = true;
 
   const auto line = ls->getLineNumber();
   luaX_next(ls);
