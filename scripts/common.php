@@ -43,7 +43,7 @@ function check_compiler()
 		}
 		if (PHP_OS_FAMILY != "Darwin")
 		{
-			$compiler .= " -fPIC -fuse-ld=lld";
+			$compiler .= " -fPIC -fuse-ld=lld -Wl,--gc-sections,--icf=safe";
 			if (!getenv("ANDROID_ROOT"))
 			{
 				$compiler .= " -lstdc++fs";
