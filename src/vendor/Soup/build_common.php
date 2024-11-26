@@ -21,7 +21,7 @@ if (!defined("PHP_WINDOWS_VERSION_MAJOR"))
 	}
 	if (PHP_OS_FAMILY != "Darwin")
 	{
-		$clanglink .= " -fuse-ld=lld";
+		$clanglink .= " -fuse-ld=lld -Wl,--gc-sections,--icf=safe";
 		if (!getenv("ANDROID_ROOT"))
 		{
 			$clanglink .= " -lstdc++fs";
