@@ -29,7 +29,7 @@ function check_compiler()
 	{
 		$compiler .= " ".escapeshellarg($argv[$i]);
 	}
-	$compiler .= " -std=c++17 -O3 -fvisibility=hidden -fno-rtti";
+	$compiler .= " -std=c++17 -O3 -fvisibility=hidden -fno-rtti -ffunction-sections -fdata-sections";
 	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
 	{
 		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
