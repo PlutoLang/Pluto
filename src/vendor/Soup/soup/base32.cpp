@@ -54,7 +54,7 @@ NAMESPACE_SOUP
 		return (8 - 5 - (5 * block) % 8);
 	}
 
-	static unsigned char shift_left(unsigned char byte, char offset)
+	static unsigned char shift_left(unsigned char byte, signed char offset)
 	{
 		if (offset < 0)
 		{
@@ -63,15 +63,20 @@ NAMESPACE_SOUP
 		return byte << offset;
 	}
 
-	static bool decode_sequence(const uint8_t* coded, size_t octet_base, std::string& out)
+	static bool decode_sequence(const uint8_t* coded, size_t coded_size, size_t octet_base, std::string& out)
 	{
 		for (int block = 0; block != 8; ++block)
 		{
 			int offset = get_offset(block);
 			size_t octet = octet_base + get_octet(block);
 
+			SOUP_IF_UNLIKELY (block >= coded_size)
+			{
+				return false;
+			}
+
 			int c = decode_char(coded[block]);
-			if (c == -1)
+			SOUP_IF_UNLIKELY (c == -1)
 			{
 				return false;
 			}
@@ -106,11 +111,11 @@ NAMESPACE_SOUP
 		std::string out{};
 		if (!in.empty())
 		{
-			auto arr = (const uint8_t*)&in.at(0);
+			auto arr = (const uint8_t*)in.data();
 			out.reserve(getDecodedLength(in.size()));
 			for (size_t i = 0, j = 0; ; i += 8, j += 5)
 			{
-				if (!decode_sequence(&arr[i], j, out))
+				if (!decode_sequence(&arr[i], in.size() - i, j, out))
 				{
 					break;
 				}
