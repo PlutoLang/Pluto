@@ -3461,6 +3461,14 @@ do
     }
     assert(compat_parent_shorthand_syntaxes.parent == true)
 end
+-- 'parent' may also defer to global, raising a warning when it does
+load([[
+    -- @pluto_warnings disable-bad-practice
+    assert(parent)
+    assert(parent.f() == "hello")
+    assert(parent:f() == "hello")
+]], "", "t", { assert = assert, parent = { f = || -> "hello" } })()
+
 do
     local t = {
         new = function() return 69 end

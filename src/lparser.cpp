@@ -2936,33 +2936,36 @@ static void selfexp (LexState *ls, expdesc *v) {
 
 
 static void parentexp (LexState *ls, expdesc *v) {
-  if (testnext(ls, ':')) {
-    if (!ls->getParentClassPos())
-      luaX_syntaxerror(ls, "attempt to use 'parent' outside of a class that inherits from another class");
+  if (const auto parent_pos = ls->getParentClassPos()) {
+    if (testnext(ls, ':')) {
+      auto pos = luaX_getpos(ls);
+      luaX_setpos(ls, parent_pos);
+      classname(ls, v);
+      luaX_setpos(ls, pos);
+      luaK_exp2nextreg(ls->fs, v);
 
-    auto pos = luaX_getpos(ls);
-    luaX_setpos(ls, ls->getParentClassPos());
-    classname(ls, v);
-    luaX_setpos(ls, pos);
-    luaK_exp2nextreg(ls->fs, v);
+      expdesc key;
+      codename(ls, &key);
+      luaK_indexed(ls->fs, v, &key);
+      luaK_exp2nextreg(ls->fs, v);
 
-    expdesc key;
-    codename(ls, &key);
-    luaK_indexed(ls->fs, v, &key);
-    luaK_exp2nextreg(ls->fs, v);
+      expdesc first_arg;
+      singlevar(ls, &first_arg, luaS_newliteral(ls->L, "self"));
+      luaK_exp2nextreg(ls->fs, &first_arg);
 
-    expdesc first_arg;
-    singlevar(ls, &first_arg, luaS_newliteral(ls->L, "self"));
-    luaK_exp2nextreg(ls->fs, &first_arg);
-
-    funcargs(ls, v);
+      funcargs(ls, v);
+    }
+    else {
+      singlevar(ls, v, luaS_newliteral(ls->L, "self"));
+      luaK_exp2anyregup(ls->fs, v);
+      expdesc key;
+      codestring(&key, luaS_newliteral(ls->L, "__parent"));
+      luaK_indexed(ls->fs, v, &key);
+    }
   }
   else {
-    singlevar(ls, v, luaS_newliteral(ls->L, "self"));
-    luaK_exp2anyregup(ls->fs, v);
-    expdesc key;
-    codestring(&key, luaS_newliteral(ls->L, "__parent"));
-    luaK_indexed(ls->fs, v, &key);
+    throw_warn(ls, "'parent' used outside of a child class, defering to global called 'parent'", WT_BAD_PRACTICE);
+    singlevar(ls, v, luaS_newliteral(ls->L, "parent"), false);  /* defer to global 'parent' */
   }
 }
 
