@@ -229,7 +229,16 @@ static int ffi_funcwrapper_call (lua_State *L) {
     args[i] = check_ffi_value(L, 1 + i, arg_type);
     ++i;
   }
-  uintptr_t retval = soup::ffi::call(fw->addr, args, i);
+  uintptr_t retval;
+  try {
+    retval = soup::ffi::call(fw->addr, args, i);
+  }
+  catch (std::exception& e) {
+    luaL_error(L, "C++ exception: %s", e.what());
+  }
+  catch (...) {
+    luaL_error(L, "C++ exception");
+  }
   return push_ffi_value(L, fw->ret, &retval);
 }
 

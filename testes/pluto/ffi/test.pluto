@@ -121,3 +121,10 @@ local res = ffi.new("Result")
 lib.quick_maffs(res, 3, 3)
 assert(res.sum == 6)
 assert(res.product == 9)
+
+lib:cdef[[
+void throw_exception(const char* msg);
+void throw_int(int value);
+]]
+assert("C++ exception: oh no" in select(2, pcall(|| -> lib.throw_exception("oh no"))))
+assert("C++ exception" in select(2, pcall(|| -> lib.throw_int(69))))
