@@ -36,7 +36,7 @@ jobs:
             src/pluto
             src/plutoc
             src/libpluto.so
-            src/libpluto.a
+            src/libplutostatic.a
       - run: src/pluto testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
       - run: php scripts/bundle_deb.php
@@ -60,7 +60,7 @@ jobs:
             src/pluto
             src/plutoc
             src/pluto.dylib
-            src/libpluto.a
+            src/libplutostatic.a
       - run: src/pluto testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
   windows:
@@ -79,7 +79,7 @@ jobs:
           path: |
             src/pluto.exe
             src/plutoc.exe
-            src/libpluto.a
+            src/libplutostatic.a
       - run: src/pluto.exe testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
       - run: php scripts/bundle_nupkg.php
