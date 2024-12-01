@@ -1,5 +1,7 @@
 #define LUA_LIB
 
+#include <sstream>
+
 #include "lua.h"
 #include "lualib.h"
 #include "lprefix.h"
