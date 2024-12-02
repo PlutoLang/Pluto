@@ -3170,9 +3170,20 @@ do
 
     class Human end
 
+    load[[pluto_use "0.9.0+"
+    try
+        error("deez")
+    catch _ do
+    end
+
+    pluto_use * = false
+    local catch = "bass"
+    assert(catch == "bass")
+    ]]()
+
     -- Superfluous tokens after pluto_use annotation are ignored
     assert(load[[--@pluto_use * = false   Some comment here
-return true]]() == true)
+    return true]]() == true)
 end
 
 print "Testing compile-time conditionals."
