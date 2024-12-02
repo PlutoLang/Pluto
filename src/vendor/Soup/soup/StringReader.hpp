@@ -12,17 +12,27 @@ NAMESPACE_SOUP
 		std::string data;
 		size_t offset = 0;
 
-		StringReader(Endian endian = ENDIAN_LITTLE) noexcept
+		StringReader() noexcept
+			: Reader(ENDIAN_LITTLE)
+		{
+		}
+
+		[[deprecated]] StringReader(Endian endian) noexcept
 			: Reader(endian)
 		{
 		}
 
-		StringReader(std::string&& data, Endian endian = ENDIAN_LITTLE) noexcept
+		StringReader(std::string&& data) noexcept
+			: Reader(ENDIAN_LITTLE), data(std::move(data))
+		{
+		}
+
+		[[deprecated]] StringReader(std::string&& data, Endian endian) noexcept
 			: Reader(endian), data(std::move(data))
 		{
 		}
 
-		StringReader(std::string&& data, bool little_endian) noexcept
+		[[deprecated]] StringReader(std::string&& data, bool little_endian) noexcept
 			: Reader(little_endian), data(std::move(data))
 		{
 		}

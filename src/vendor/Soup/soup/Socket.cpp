@@ -468,8 +468,8 @@ NAMESPACE_SOUP
 				//TlsSignatureScheme::ecdsa_secp384r1_sha384,
 			};
 
-			StringWriter sw(ENDIAN_BIG);
-			sw.vec_u16_bl_u16(supported_signature_schemes);
+			StringWriter sw;
+			sw.vec_u16be_bl_u16be(supported_signature_schemes);
 
 			hello.extensions.add(TlsExtensionType::signature_algorithms, std::move(sw.data));
 		}
@@ -1296,7 +1296,7 @@ NAMESPACE_SOUP
 		record.length = static_cast<uint16_t>(body.size());
 
 		Buffer header(5);
-		BufferRefWriter bw(header, ENDIAN_BIG);
+		BufferRefWriter bw(header);
 		record.write(bw);
 
 		body.prepend(header.data(), header.size());

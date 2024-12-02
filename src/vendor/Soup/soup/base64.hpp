@@ -44,12 +44,16 @@ NAMESPACE_SOUP
 		[[nodiscard]] static std::string urlEncode(const char* const data, const size_t size, const bool pad = false) SOUP_EXCAL;
 		static void urlEncode(char* out, const char* const data, const size_t size, const bool pad) noexcept;
 
-		[[nodiscard]] static std::string encode(const char* const data, const size_t size, const bool pad, const char* table) SOUP_EXCAL;
-		static void encode(char* out, const char* data, const size_t size, const bool pad, const char* table) noexcept;
+		[[nodiscard]] static std::string encode(const char* const data, const size_t size, const bool pad, const char table[64]) SOUP_EXCAL;
+		static void encode(char* out, const char* data, const size_t size, const bool pad, const char table[64]) noexcept;
 
-		[[nodiscard]] static std::string decode(std::string enc) SOUP_EXCAL;
-		[[nodiscard]] static std::string urlDecode(std::string enc) SOUP_EXCAL;
-		[[nodiscard]] static std::string decode(std::string&& enc, const unsigned char* table) SOUP_EXCAL;
+		[[nodiscard]] static size_t getDecodedSize(const char* data, size_t size) noexcept;
+		[[nodiscard]] static std::string decode(const std::string& enc) SOUP_EXCAL;
+		static void decode(char* out, const char* data, size_t size) noexcept;
+		[[nodiscard]] static std::string urlDecode(const std::string& enc) SOUP_EXCAL;
+		static void urlDecode(char* out, const char* data, size_t size) noexcept;
+		[[nodiscard]] static std::string decode(const std::string& enc, const unsigned char table[256]) SOUP_EXCAL;
+		static void decode(char* out, const char* data, size_t size, const unsigned char table[256]) noexcept;
 
 		template <typename T>
 		static bool decode(T& out, std::string enc) SOUP_EXCAL

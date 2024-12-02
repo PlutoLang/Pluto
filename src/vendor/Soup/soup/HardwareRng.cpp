@@ -69,7 +69,7 @@ NAMESPACE_SOUP
 		while (_rdseed64_step(&res) == 0);
 		return res;
 	#else
-		return (static_cast<uint64_t>(intrin::hardware_rng_generate32()) << 32) | intrin::hardware_rng_generate32();
+		return (static_cast<uint64_t>(generate32()) << 32) | generate32();
 	#endif
 #else
 		SOUP_ASSERT_UNREACHABLE;

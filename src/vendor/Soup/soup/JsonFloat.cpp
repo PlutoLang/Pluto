@@ -21,7 +21,7 @@ NAMESPACE_SOUP
 		uint64_t val;
 		*reinterpret_cast<double*>(&val) = value;
 		return w.u8(b)
-			&& w.u64(val)
+			&& w.u64le(val)
 			;
 	}
 }

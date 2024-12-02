@@ -104,14 +104,11 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 
 #if defined(__arm__) || defined(__aarch64__) || defined(_M_ARM) || defined(_M_ARM64)
 	#define SOUP_ARM true
+	#if defined(__clang_major__) && __clang_major__ <= 14 && !defined(__ARM_FEATURE_CRYPTO)
+		#error Your version of Clang predates some important fixes for ARM codegen. Provide -march=armv8+crypto+crc to compile Soup. Note that the resulting binary may be incorrect.
+	#endif
 #else
 	#define SOUP_ARM false
-#endif
-
-#if 'ABCD' == 0x41424344ul
-	#define SOUP_LITTLE_ENDIAN
-#else
-	static_assert('ABCD' == 0x44434241ul); // If it's not little endian, it has to be big endian.
 #endif
 
 // === Determine if code inspector
@@ -193,12 +190,9 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 #endif
 
 #ifndef SOUP_EXCAL
-	// An 'excal' function is 'noexcept' except it may throw std::bad_alloc.
+	// An 'excal' function may not throw any exception other than std::bad_alloc (in case of an allocation failure).
 	//
-	// We generally don't attempt to handle allocation failures, not least because it's basically impossible on modern systems.
-	// Because of this, we declare that 'excal' functions are 'noexcept' to avoid superfluous unwind information.
-	//
-	// For visual distinction with IDE hover features, we use `throw()`, but it's functionally identical to `noexcept`.
+	// If you don't handle allocate failures, you can slightly reduce your binary size by setting this macro to `noexcept` or `throw()`.
 	#define SOUP_EXCAL
 #endif
 
