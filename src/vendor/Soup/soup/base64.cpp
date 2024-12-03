@@ -92,14 +92,14 @@ NAMESPACE_SOUP
 		return encode(out, data, size, pad, table_encode_base64url);
 	}
 
-	std::string base64::encode(const char* const data, const size_t size, const bool pad, const char* table) SOUP_EXCAL
+	std::string base64::encode(const char* const data, const size_t size, const bool pad, const char table[64]) SOUP_EXCAL
 	{
 		std::string enc(getEncodedSize(size, pad), '\0');
 		encode(enc.data(), data, size, pad, table);
 		return enc;
 	}
 
-	void base64::encode(char* out, const char* data, const size_t size, const bool pad, const char* table) noexcept
+	void base64::encode(char* out, const char* data, const size_t size, const bool pad, const char table[64]) noexcept
 	{
 		size_t i = 0;
 
@@ -156,9 +156,30 @@ NAMESPACE_SOUP
 		64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
 	};
 
-	std::string base64::decode(std::string enc) SOUP_EXCAL
+	size_t base64::getDecodedSize(const char* data, size_t size) noexcept
 	{
-		return decode(std::move(enc), table_decode_base64);
+		// Ignore pad bytes
+		while (size != 0 && data[size - 1] == '=')
+		{
+			size--;
+		}
+
+		size_t out_len = size / 4 * 3;
+		if (auto remainder = (size % 4))
+		{
+			out_len += (remainder - 1) + (remainder == 1);
+		}
+		return out_len;
+	}
+
+	std::string base64::decode(const std::string& enc) SOUP_EXCAL
+	{
+		return decode(enc, table_decode_base64);
+	}
+
+	void base64::decode(char* out, const char* data, size_t size) noexcept
+	{
+		return decode(out, data, size, table_decode_base64);
 	}
 
 	static constexpr unsigned char table_decode_base64url[] = {
@@ -180,42 +201,56 @@ NAMESPACE_SOUP
 		64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
 	};
 
-	std::string base64::urlDecode(std::string enc) SOUP_EXCAL
+	std::string base64::urlDecode(const std::string& enc) SOUP_EXCAL
 	{
-		return decode(std::move(enc), table_decode_base64url);
+		return decode(enc, table_decode_base64url);
 	}
 
-	std::string base64::decode(std::string&& enc, const unsigned char* table) SOUP_EXCAL
+	void base64::urlDecode(char* out, const char* data, size_t size) noexcept
 	{
-		std::string out{};
-		if (!enc.empty())
-		{
-			size_t in_len;
-			while (in_len = enc.size(), in_len % 4 != 0)
-			{
-				enc.push_back('=');
-			}
+		return decode(out, data, size, table_decode_base64url);
+	}
 
-			size_t out_len = in_len / 4 * 3;
-			if (enc[in_len - 1] == '=') out_len--;
-			if (enc[in_len - 2] == '=') out_len--;
-
-			out.resize(out_len);
-
-			for (size_t i = 0, j = 0; i < in_len; )
-			{
-				uint32_t a = enc[i] == '=' ? 0 & i++ : table[static_cast<uint8_t>(enc[i++])];
-				uint32_t b = enc[i] == '=' ? 0 & i++ : table[static_cast<uint8_t>(enc[i++])];
-				uint32_t c = enc[i] == '=' ? 0 & i++ : table[static_cast<uint8_t>(enc[i++])];
-				uint32_t d = enc[i] == '=' ? 0 & i++ : table[static_cast<uint8_t>(enc[i++])];
-
-				uint32_t triple = (a << 3 * 6) + (b << 2 * 6) + (c << 1 * 6) + (d << 0 * 6);
-
-				if (j < out_len) out[j++] = (triple >> 2 * 8) & 0xFF;
-				if (j < out_len) out[j++] = (triple >> 1 * 8) & 0xFF;
-				if (j < out_len) out[j++] = (triple >> 0 * 8) & 0xFF;
-			}
-		}
+	std::string base64::decode(const std::string& enc, const unsigned char table[256]) SOUP_EXCAL
+	{
+		std::string out(getDecodedSize(enc.data(), enc.size()), '\0');
+		decode(out.data(), enc.data(), enc.size(), table);
 		return out;
+	}
+
+	void base64::decode(char* out, const char* data, size_t size, const unsigned char table[256]) noexcept
+	{
+		// Ignore pad bytes
+		while (size != 0 && data[size - 1] == '=')
+		{
+			size--;
+		}
+
+		size_t i = 0;
+		size_t j = 0;
+		const size_t aligned_size = (size / 4) * 4;
+		while (i != aligned_size)
+		{
+			uint32_t a = table[static_cast<uint8_t>(data[i++])];
+			uint32_t b = table[static_cast<uint8_t>(data[i++])];
+			uint32_t c = table[static_cast<uint8_t>(data[i++])];
+			uint32_t d = table[static_cast<uint8_t>(data[i++])];
+			uint32_t triple = (a << 3 * 6) + (b << 2 * 6) + (c << 1 * 6) + (d << 0 * 6);
+			out[j++] = (triple >> 2 * 8) & 0xFF;
+			out[j++] = (triple >> 1 * 8) & 0xFF;
+			out[j++] = (triple >> 0 * 8) & 0xFF;
+		}
+
+		if (auto remainder = (size % 4))
+		{
+			auto extra = (remainder - 1) + (remainder == 1);
+
+			uint32_t a = i != size ? table[static_cast<uint8_t>(data[i++])] : 0;
+			uint32_t b = i != size ? table[static_cast<uint8_t>(data[i++])] : 0;
+			uint32_t c = i != size ? table[static_cast<uint8_t>(data[i++])] : 0;
+			uint32_t triple = (a << 3 * 6) + (b << 2 * 6) + (c << 1 * 6);
+			if (extra--) out[j++] = (triple >> 2 * 8) & 0xFF;
+			if (extra--) out[j++] = (triple >> 1 * 8) & 0xFF;
+		}
 	}
 }

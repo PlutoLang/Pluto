@@ -20,7 +20,13 @@ static int encode(lua_State* L) {
 }
 
 static int decode(lua_State* L) {
-	pluto_pushstring(L, soup::base64::decode(pluto_checkstring(L, 1)));
+	size_t len;
+	const char* str = luaL_checklstring(L, 1, &len);
+	size_t out_len = soup::base64::getDecodedSize(str, len);
+	char shrtbuf[LUAI_MAXSHORTLEN];
+	char* dec = plutoS_prealloc(L, shrtbuf, out_len);
+	soup::base64::decode(dec, str, len);
+	plutoS_commit(L, dec, out_len);
 	return 1;
 }
 
@@ -37,7 +43,13 @@ static int urlEncode(lua_State* L) {
 }
 
 static int urlDecode(lua_State* L) {
-	pluto_pushstring(L, soup::base64::urlDecode(pluto_checkstring(L, 1)));
+	size_t len;
+	const char* str = luaL_checklstring(L, 1, &len);
+	size_t out_len = soup::base64::getDecodedSize(str, len);
+	char shrtbuf[LUAI_MAXSHORTLEN];
+	char* dec = plutoS_prealloc(L, shrtbuf, out_len);
+	soup::base64::urlDecode(dec, str, len);
+	plutoS_commit(L, dec, out_len);
 	return 1;
 }
 

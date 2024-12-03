@@ -37,6 +37,13 @@ bench("base64.urlencode, without padding, long string", function()
     base64.urlencode("The quick brown fox jumps over the lazy dog.", false)
 end)
 
+bench("base64.decode, short string", function()
+    assert(base64.decode("YWJj") == "abc")
+end)
+bench("base64.decode, long string", function()
+    assert(base64.decode("VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4") == "The quick brown fox jumps over the lazy dog.")
+end)
+
 bench("sha1, hex digest", function()
     crypto.sha1("The quick brown fox jumps over the lazy dog.")
 end)
