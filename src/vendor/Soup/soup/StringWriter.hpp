@@ -9,12 +9,17 @@ NAMESPACE_SOUP
 	public:
 		std::string data{};
 
-		StringWriter(Endian endian = ENDIAN_LITTLE)
+		StringWriter()
+			: Writer(ENDIAN_LITTLE)
+		{
+		}
+
+		[[deprecated]] StringWriter(Endian endian)
 			: Writer(endian)
 		{
 		}
 
-		StringWriter(bool little_endian)
+		[[deprecated]] StringWriter(bool little_endian)
 			: Writer(little_endian)
 		{
 		}
@@ -23,19 +28,20 @@ NAMESPACE_SOUP
 
 		bool raw(void* data, size_t size) noexcept final
 		{
-#if SOUP_EXCEPTIONS
-			try
-#endif
+			SOUP_TRY
 			{
 				this->data.append(reinterpret_cast<char*>(data), size);
 			}
-#if SOUP_EXCEPTIONS
-			catch (...)
+			SOUP_CATCH_ANY
 			{
 				return false;
 			}
-#endif
 			return true;
+		}
+
+		[[nodiscard]] size_t getPosition() final
+		{
+			return data.size();
 		}
 	};
 }

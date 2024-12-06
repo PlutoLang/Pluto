@@ -125,16 +125,12 @@ NAMESPACE_SOUP
 		return result;
 	}
 
+#if !SOUP_WINDOWS
 	pid_t os::getProcessId() noexcept
 	{
-#if SOUP_WINDOWS
-		return GetCurrentProcessId();
-#else
 		return ::getpid();
-#endif
 	}
 
-#if !SOUP_WINDOWS
 	void os::sleep(unsigned int ms) noexcept
 	{
 #if _POSIX_C_SOURCE >= 199309L

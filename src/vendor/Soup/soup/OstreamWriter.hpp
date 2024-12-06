@@ -9,7 +9,12 @@ NAMESPACE_SOUP
 	public:
 		std::ostream& os;
 
-		OstreamWriter(std::ostream& os, Endian endian = ENDIAN_LITTLE)
+		OstreamWriter(std::ostream& os)
+			: Writer(ENDIAN_LITTLE), os(os)
+		{
+		}
+
+		[[deprecated]] OstreamWriter(std::ostream& os, Endian endian)
 			: Writer(endian), os(os)
 		{
 		}
@@ -18,19 +23,20 @@ NAMESPACE_SOUP
 
 		bool raw(void* data, size_t size) noexcept final
 		{
-#if SOUP_EXCEPTIONS
-			try
-#endif
+			SOUP_TRY
 			{
 				os.write(reinterpret_cast<char*>(data), size);
 			}
-#if SOUP_EXCEPTIONS
-			catch (...)
+			SOUP_CATCH_ANY
 			{
 				return false;
 			}
-#endif
 			return true;
+		}
+
+		[[nodiscard]] size_t getPosition() final
+		{
+			return os.tellp();
 		}
 	};
 }

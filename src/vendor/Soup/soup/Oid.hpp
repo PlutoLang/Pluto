@@ -11,20 +11,20 @@ NAMESPACE_SOUP
 	{
 		std::vector<uint32_t> path{};
 
-		static Oid COMMON_NAME;
-		static Oid RSA_ENCRYPTION;
-		static Oid SHA1_WITH_RSA_ENCRYPTION;
-		static Oid SHA256_WITH_RSA_ENCRYPTION;
-		static Oid SHA384_WITH_RSA_ENCRYPTION;
-		static Oid SHA512_WITH_RSA_ENCRYPTION;
-		static Oid ECDSA_WITH_SHA256;
-		static Oid ECDSA_WITH_SHA384;
-		static Oid CE_KEYUSAGE;
-		static Oid CE_SUBJECTALTNAME;
-		static Oid CE_BASICCONSTRAINTS;
-		static Oid EC_PUBLIC_KEY;
-		static Oid PRIME256V1; // aka. secp256r1
-		static Oid ANSIP384R1; // aka. secp384r1
+		static const Oid COMMON_NAME;
+		static const Oid RSA_ENCRYPTION;
+		static const Oid SHA1_WITH_RSA_ENCRYPTION;
+		static const Oid SHA256_WITH_RSA_ENCRYPTION;
+		static const Oid SHA384_WITH_RSA_ENCRYPTION;
+		static const Oid SHA512_WITH_RSA_ENCRYPTION;
+		static const Oid ECDSA_WITH_SHA256;
+		static const Oid ECDSA_WITH_SHA384;
+		static const Oid CE_KEYUSAGE;
+		static const Oid CE_SUBJECTALTNAME;
+		static const Oid CE_BASICCONSTRAINTS;
+		static const Oid EC_PUBLIC_KEY;
+		static const Oid PRIME256V1; // aka. secp256r1
+		static const Oid ANSIP384R1; // aka. secp384r1
 
 		constexpr Oid() = default;
 

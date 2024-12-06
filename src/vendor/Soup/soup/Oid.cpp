@@ -8,20 +8,20 @@
 
 NAMESPACE_SOUP
 {
-	Oid Oid::COMMON_NAME = { 2, 5, 4, 3 };
-	Oid Oid::RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 1 };
-	Oid Oid::SHA1_WITH_RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 5 };
-	Oid Oid::SHA256_WITH_RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 11 };
-	Oid Oid::SHA384_WITH_RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 12 };
-	Oid Oid::SHA512_WITH_RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 13 };
-	Oid Oid::ECDSA_WITH_SHA256 = { 1, 2, 840, 10045, 4, 3, 2 };
-	Oid Oid::ECDSA_WITH_SHA384 = { 1, 2, 840, 10045, 4, 3, 3 };
-	Oid Oid::CE_KEYUSAGE = { 2, 5, 29, 15 };
-	Oid Oid::CE_SUBJECTALTNAME = { 2, 5, 29, 17 };
-	Oid Oid::CE_BASICCONSTRAINTS = { 2, 5, 29, 19 };
-	Oid Oid::EC_PUBLIC_KEY = { 1, 2, 840, 10045, 2, 1 };
-	Oid Oid::PRIME256V1 = { 1, 2, 840, 10045, 3, 1, 7 };
-	Oid Oid::ANSIP384R1 = { 1, 3, 132, 0, 34 };
+	const Oid Oid::COMMON_NAME = { 2, 5, 4, 3 };
+	const Oid Oid::RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 1 };
+	const Oid Oid::SHA1_WITH_RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 5 };
+	const Oid Oid::SHA256_WITH_RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 11 };
+	const Oid Oid::SHA384_WITH_RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 12 };
+	const Oid Oid::SHA512_WITH_RSA_ENCRYPTION = { 1, 2, 840, 113549, 1, 1, 13 };
+	const Oid Oid::ECDSA_WITH_SHA256 = { 1, 2, 840, 10045, 4, 3, 2 };
+	const Oid Oid::ECDSA_WITH_SHA384 = { 1, 2, 840, 10045, 4, 3, 3 };
+	const Oid Oid::CE_KEYUSAGE = { 2, 5, 29, 15 };
+	const Oid Oid::CE_SUBJECTALTNAME = { 2, 5, 29, 17 };
+	const Oid Oid::CE_BASICCONSTRAINTS = { 2, 5, 29, 19 };
+	const Oid Oid::EC_PUBLIC_KEY = { 1, 2, 840, 10045, 2, 1 };
+	const Oid Oid::PRIME256V1 = { 1, 2, 840, 10045, 3, 1, 7 };
+	const Oid Oid::ANSIP384R1 = { 1, 3, 132, 0, 34 };
 
 	Oid Oid::fromBinary(const std::string& str)
 	{

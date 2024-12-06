@@ -21,8 +21,9 @@
 
 NAMESPACE_SOUP
 {
-	void Scheduler::addWorker(SharedPtr<Worker>&& w) SOUP_EXCAL
+	void Scheduler::addWorker(SharedPtr<Worker>&& w)
 	{
+		SOUP_ASSERT(w); // SharedPtr must hold a pointer
 		pending_workers.emplace_front(std::move(w));
 	}
 

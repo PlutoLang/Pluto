@@ -27,10 +27,10 @@ NAMESPACE_SOUP
 		[[nodiscard]] static constexpr IpAddr toIpAddr(const std::array<uint32_t, 4>& arr) noexcept
 		{
 			IpAddr addr;
-			addr.ints[0] = Endianness::toNetwork(native_u32_t(arr.at(0)));
-			addr.ints[1] = Endianness::toNetwork(native_u32_t(arr.at(1)));
-			addr.ints[2] = Endianness::toNetwork(native_u32_t(arr.at(2)));
-			addr.ints[3] = Endianness::toNetwork(native_u32_t(arr.at(3)));
+			addr.ints[0] = Endianness::toNetwork(arr.at(0));
+			addr.ints[1] = Endianness::toNetwork(arr.at(1));
+			addr.ints[2] = Endianness::toNetwork(arr.at(2));
+			addr.ints[3] = Endianness::toNetwork(arr.at(3));
 			return addr;
 		}
 

@@ -16,13 +16,13 @@ NAMESPACE_SOUP
 
 		SOUP_PACKET_IO(s)
 		{
-			return s.u16_be(id)
+			return s.u16be(id)
 				&& s.u8(bitfield1)
 				&& s.u8(bitfield2)
-				&& s.u16_be(qdcount)
-				&& s.u16_be(ancount)
-				&& s.u16_be(nscount)
-				&& s.u16_be(arcount)
+				&& s.u16be(qdcount)
+				&& s.u16be(ancount)
+				&& s.u16be(nscount)
+				&& s.u16be(arcount)
 				;
 		}
 

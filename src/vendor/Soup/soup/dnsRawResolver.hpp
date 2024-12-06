@@ -10,6 +10,6 @@ NAMESPACE_SOUP
 		[[nodiscard]] static UniquePtr<dnsLookupTask> checkBuiltinResultTask(dnsType qtype, const std::string& name) SOUP_EXCAL;
 
 		[[nodiscard]] static std::string getQuery(dnsType qtype, const std::string& name, uint16_t id = 0) SOUP_EXCAL;
-		[[nodiscard]] static std::vector<UniquePtr<dnsRecord>> parseResponse(std::string&& data) SOUP_EXCAL;
+		[[nodiscard]] static std::vector<UniquePtr<dnsRecord>> parseResponse(const std::string& data) SOUP_EXCAL;
 	};
 }

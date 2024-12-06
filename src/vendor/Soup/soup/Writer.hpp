@@ -28,6 +28,12 @@ NAMESPACE_SOUP
 		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn.)
 		bool i64_dyn(const int64_t& v) noexcept;
 
+		// An unsigned 64-bit integer encoded in 1..9 bytes. This is a slightly more efficient version of u64_dyn, e.g. 0x4000..0x407f are encoded in 2 bytes instead of 3.
+		bool u64_dyn_v2(const uint64_t& v) noexcept;
+
+		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn_v2. This revision also simplifies how negative integers are handled.)
+		bool i64_dyn_v2(const int64_t& v) noexcept;
+
 		// An integer where every byte's most significant bit is used to indicate if another byte follows, most significant byte first.
 		template <typename Int>
 		bool om(const Int& v) noexcept
@@ -149,36 +155,6 @@ NAMESPACE_SOUP
 			return ret;
 		}
 
-		// Length-prefixed string, using u8 for the length prefix.
-		[[deprecated]] bool str_lp_u8(const std::string& v, const uint8_t max_len = 0xFF) noexcept
-		{
-			return str_lp<u8_t>(v, max_len);
-		}
-
-		// Length-prefixed string, using u16 for the length prefix.
-		[[deprecated]] bool str_lp_u16(const std::string& v, const uint16_t max_len = 0xFFFF) noexcept
-		{
-			return str_lp<u16_t>(v, max_len);
-		}
-
-		// Length-prefixed string, using u24 for the length prefix.
-		[[deprecated]] bool str_lp_u24(const std::string& v, const uint32_t max_len = 0xFFFFFF) noexcept
-		{
-			return str_lp<u24_t>(v, max_len);
-		}
-
-		// Length-prefixed string, using u32 for the length prefix.
-		[[deprecated]] bool str_lp_u32(const std::string& v, const uint32_t max_len = 0xFFFFFFFF) noexcept
-		{
-			return str_lp<u32_t>(v, max_len);
-		}
-
-		// Length-prefixed string, using u64 for the length prefix.
-		[[deprecated]] bool str_lp_u64(const std::string& v) noexcept
-		{
-			return str_lp<u64_t>(v);
-		}
-
 		// String with known length.
 		bool str(size_t len, const std::string& v) noexcept
 		{
@@ -211,25 +187,8 @@ NAMESPACE_SOUP
 			return ret;
 		}
 
-		// std::vector<uint16_t> with u16 size prefix.
-		bool vec_u16_u16(std::vector<uint16_t>& v) noexcept
-		{
-			SOUP_IF_UNLIKELY (v.size() > 0xFFFF)
-			{
-				return false;
-			}
-			bool ret = true;
-			auto len = (uint16_t)v.size();
-			ret &= ioBase::u16(len);
-			for (auto& entry : v)
-			{
-				ret &= ioBase::u16(entry);
-			}
-			return ret;
-		}
-
-		// std::vector<uint16_t> with u16 byte length prefix.
-		bool vec_u16_bl_u16(std::vector<uint16_t>& v) noexcept
+		// vector of u16be with u16be byte length prefix.
+		bool vec_u16be_bl_u16be(std::vector<uint16_t>& v) noexcept
 		{
 			size_t bl = (v.size() * sizeof(uint16_t));
 			SOUP_IF_UNLIKELY (bl > 0xFFFF)
@@ -238,10 +197,10 @@ NAMESPACE_SOUP
 			}
 			bool ret = true;
 			auto bl_u16 = (uint16_t)bl;
-			ret &= ioBase::u16(bl_u16);
+			ret &= ioBase::u16be(bl_u16);
 			for (auto& entry : v)
 			{
-				ret &= ioBase::u16(entry);
+				ret &= ioBase::u16be(entry);
 			}
 			return ret;
 		}
@@ -259,8 +218,8 @@ NAMESPACE_SOUP
 			return ret;
 		}
 
-		// vector of str_lp<u24_t> with u24 byte length prefix.
-		bool vec_str_lp_u24_bl_u24(std::vector<std::string>& v) noexcept
+		// vector of str_lp<u24be_t> with u24be byte length prefix.
+		bool vec_str_lp_u24be_bl_u24be(std::vector<std::string>& v) noexcept
 		{
 			size_t bl = (v.size() * 3);
 			for (const auto& entry : v)
@@ -273,10 +232,10 @@ NAMESPACE_SOUP
 			}
 			bool ret = true;
 			auto bl_u32 = (uint32_t)bl;
-			ret &= ioBase::u24(bl_u32);
+			ret &= ioBase::u24be(bl_u32);
 			for (auto& entry : v)
 			{
-				ret &= str_lp<u24_t>(entry);
+				ret &= str_lp<u24be_t>(entry);
 			}
 			return ret;
 		}

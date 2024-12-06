@@ -11,12 +11,17 @@ NAMESPACE_SOUP
 	public:
 		Buffer buf{};
 
-		BufferWriter(Endian endian = ENDIAN_LITTLE)
+		BufferWriter()
+			: Writer(ENDIAN_LITTLE)
+		{
+		}
+
+		[[deprecated]] BufferWriter(Endian endian)
 			: Writer(endian)
 		{
 		}
 
-		BufferWriter(bool little_endian)
+		[[deprecated]] BufferWriter(bool little_endian)
 			: Writer(little_endian)
 		{
 		}
@@ -25,19 +30,20 @@ NAMESPACE_SOUP
 
 		bool raw(void* data, size_t size) noexcept final
 		{
-#if SOUP_EXCEPTIONS
-			try
-#endif
+			SOUP_TRY
 			{
 				buf.append(data, size);
 			}
-#if SOUP_EXCEPTIONS
-			catch (...)
+			SOUP_CATCH_ANY
 			{
 				return false;
 			}
-#endif
 			return true;
+		}
+
+		[[nodiscard]] size_t getPosition() final
+		{
+			return buf.size();
 		}
 	};
 }
