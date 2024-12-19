@@ -1573,6 +1573,17 @@ do
     assert(json.encode({}) == "[]")
     assert(json.encode({ __order = {} }) == "{}")
     assert(json.encode(json.decode("[{},[]]", json.withorder)) == "[{},[]]")
+
+    local function recursive_enc()
+        local t = {}
+        t.t = t
+        try
+            return require"json".encode(t)
+        catch e then
+            return e
+        end
+    end
+    assert(recursive_enc() == "C stack overflow")
 end
 do
     local xml = require "pluto:xml"
