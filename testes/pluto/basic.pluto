@@ -3220,6 +3220,17 @@ do
     assert(debug_bytecode:find("Script running in release mode") == nil)
     assert(release_bytecode:find("Script running in debug mode") == nil)
     assert(release_bytecode:find("Script running in release mode") ~= nil)
+
+    local function elseif_test()
+        $if false then
+            return "branch 1"
+        $elseif true then
+            return "branch 2"
+        $else
+            return "branch 3"
+        $end
+    end
+    assert(elseif_test() == "branch 2")
 end
 
 print "Testing try/catch."
