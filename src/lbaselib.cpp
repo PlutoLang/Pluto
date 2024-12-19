@@ -680,6 +680,7 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Tab
   }
   parents.emplace(h);
   std::string dump(1, '{');
+  lua_checkstack(L, 5);
   lua_pushnil(L);
   bool empty = true;
   while (lua_next(L, -2)) {
