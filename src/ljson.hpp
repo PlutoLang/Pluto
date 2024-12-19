@@ -65,6 +65,7 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 	}
 	else if (type == LUA_TTABLE)
 	{
+		lua_checkstack(L, 5);
 		if (isIndexBasedTable(L, i))
 		{
 			auto arr = soup::make_unique<soup::JsonArray>();
