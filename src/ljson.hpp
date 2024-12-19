@@ -12,6 +12,8 @@
 #include "vendor/Soup/soup/JsonString.hpp"
 #include "vendor/Soup/soup/UniquePtr.hpp"
 
+#include "lstate.h" // luaE_incCstack
+
 static bool isIndexBasedTable(lua_State* L, int i)
 {
 	lua_pushvalue(L, i);
@@ -98,7 +100,9 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 					if (lua_rawget(L, -5) > LUA_TNIL)
 					{
 						// table, __order, idx, key, value
+						luaE_incCstack(L);
 						obj->children.emplace_back(soup::make_unique<soup::JsonString>(pluto_checkstring(L, -2)), checkJson(L, -1));
+						L->nCcalls--;
 					}
 					// table, __order, idx, key, value
 					lua_pop(L, 2);
@@ -113,7 +117,9 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 				while (lua_next(L, -2))
 				{
 					lua_pushvalue(L, -2);
+					luaE_incCstack(L);
 					obj->children.emplace_back(checkJson(L, -1), checkJson(L, -2));
+					L->nCcalls--;
 					lua_pop(L, 2);
 				}
 			}
