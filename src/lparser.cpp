@@ -4528,20 +4528,21 @@ static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
 }
 
 
-/* keep advancing until we hit non-nested '$else' or '$end' */
+/* keep advancing until we hit non-nested '$else', '$elseif' or '$end' */
 static void skip_constexpr_block (LexState *ls) {
   int depth = 0;
   while (ls->t.token != TK_EOS) {
     if (ls->t.token == '$') {
-      if (luaX_lookahead(ls) == TK_IF) {
+      const auto la_tk = luaX_lookahead(ls);
+      if (la_tk == TK_IF) {
         ++depth;
       }
-      else if (luaX_lookahead(ls) == TK_ELSE) {
+      else if (la_tk == TK_ELSE || la_tk == TK_ELSEIF) {
         if (depth == 0) {
           break;
         }
       }
-      else if (luaX_lookahead(ls) == TK_END) {
+      else if (la_tk == TK_END) {
         if (depth == 0) {
           break;
         }
@@ -4554,25 +4555,44 @@ static void skip_constexpr_block (LexState *ls) {
 }
 
 static void constexprifstat (LexState *ls, int line) {
+  bool hit = false;
+
   expdesc c;
   expr(ls, &c);
-  const bool disposition = luaK_isalwaystrue(ls, &c);
-  if (disposition == false) {
-    if (!luaK_isalwaysfalse(ls, &c)) {
-      throwerr(ls, "this condition cannot be evaluated at compile-time", "");
-    }
-  }
   if (!testnext(ls, TK_DO))
     checknext(ls, TK_THEN);
-  if (disposition == true) {
+  if (luaK_isalwaystrue(ls, &c)) {
+    hit = true;
     block(ls);
   }
   else {
+    if (!luaK_isalwaysfalse(ls, &c))
+      throwerr(ls, "this condition cannot be evaluated at compile-time", "");
     skip_constexpr_block(ls);
   }
-  checknext(ls, '$');
+
+  while (checknext(ls, '$'), testnext(ls, TK_ELSEIF)) {
+    expr(ls, &c);
+    if (!testnext(ls, TK_DO))
+      checknext(ls, TK_THEN);
+    if (luaK_isalwaystrue(ls, &c)) {
+      if (hit) {
+        skip_constexpr_block(ls);
+      }
+      else {
+        hit = true;
+        block(ls);
+      }
+    }
+    else {
+      if (!luaK_isalwaysfalse(ls, &c))
+        throwerr(ls, "this condition cannot be evaluated at compile-time", "");
+      skip_constexpr_block(ls);
+    }
+  }
+
   if (testnext(ls, TK_ELSE)) {
-    if (disposition == false) {
+    if (!hit) {
       block(ls);
     }
     else {
@@ -4580,6 +4600,7 @@ static void constexprifstat (LexState *ls, int line) {
     }
     checknext(ls, '$');
   }
+
   check_match(ls, TK_END, TK_IF, line);
 }
 
