@@ -49,7 +49,7 @@ NAMESPACE_SOUP
 			{
 				free();
 				m_capacity = b.m_size;
-				m_data = (T*)malloc(m_capacity * sizeof(T));
+				m_data = (T*)soup::malloc(m_capacity * sizeof(T));
 			}
 
 			m_size = b.m_size;
@@ -123,7 +123,7 @@ NAMESPACE_SOUP
 			SOUP_IF_UNLIKELY (m_size + elms > m_capacity)
 			{
 				m_capacity = m_size + elms;
-				auto data = reinterpret_cast<T*>(malloc(m_capacity * sizeof(T)));
+				auto data = reinterpret_cast<T*>(soup::malloc(m_capacity * sizeof(T)));
 				memcpy(&data[elms], &m_data[0], m_size * sizeof(T));
 				memset(&data[0], 0, elms * sizeof(T));
 				m_data = data;
@@ -195,7 +195,7 @@ NAMESPACE_SOUP
 			if (m_capacity != 0)
 			{
 				m_capacity = 0;
-				::free(m_data);
+				soup::free(m_data);
 				m_data = nullptr;
 			}
 		}*/
@@ -205,7 +205,7 @@ NAMESPACE_SOUP
 		{
 			if (m_capacity != 0)
 			{
-				::free(m_data);
+				soup::free(m_data);
 			}
 		}
 	};

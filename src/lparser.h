@@ -345,6 +345,7 @@ typedef union Vardesc {
     short pidx;  /* index of the variable in the Proto's 'locvars' array */
     TString *name;  /* variable name */
     int line;
+    bool used;
   } vd;
   TValue k;  /* constant value (if any) */
 } Vardesc;

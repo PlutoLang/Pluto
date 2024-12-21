@@ -5,12 +5,8 @@
 #define SOUP_IF_ISREAD if constexpr (T::isRead())
 #define SOUP_ELSEIF_ISWRITE else
 
-#include <sstream>
-
 #include "BufferWriter.hpp"
-#include "IstreamReader.hpp"
 #include "MemoryRefReader.hpp"
-#include "OstreamWriter.hpp"
 #include "StringReader.hpp"
 #include "StringWriter.hpp"
 #include "utility.hpp" // SOUP_MOVE_RETURN
@@ -35,39 +31,16 @@ NAMESPACE_SOUP
 		using u56 = u64;
 
 	public:
-		bool fromBinary(std::string&& bin, Endian endian = ENDIAN_BIG) noexcept
+		bool fromBinary(std::string&& bin) noexcept
 		{
-			StringReader r(std::move(bin), endian);
+			StringReader r(std::move(bin));
 			return read(r);
 		}
 
-		bool fromBinary(const std::string& bin, Endian endian = ENDIAN_BIG) noexcept
+		bool fromBinary(const std::string& bin) noexcept
 		{
-			MemoryRefReader r(bin, endian);
+			MemoryRefReader r(bin);
 			return read(r);
-		}
-
-		bool fromBinaryLE(std::string&& bin) noexcept
-		{
-			StringReader r(std::move(bin), ENDIAN_LITTLE);
-			return read(r);
-		}
-
-		bool fromBinaryLE(const std::string& bin) noexcept
-		{
-			MemoryRefReader r(bin, ENDIAN_LITTLE);
-			return read(r);
-		}
-
-		bool read(std::istream& is, Endian endian = ENDIAN_BIG)
-		{
-			IstreamReader r(is, endian);
-			return read(r);
-		}
-
-		bool readLE(std::istream& is)
-		{
-			return read(is, ENDIAN_LITTLE);
 		}
 
 		template <typename Reader = Reader>
@@ -76,34 +49,18 @@ NAMESPACE_SOUP
 			return static_cast<T*>(this)->template io<Reader>(r);
 		}
 
-		[[nodiscard]] Buffer toBinary(Endian endian = ENDIAN_BIG) SOUP_EXCAL
+		[[nodiscard]] Buffer toBinary() SOUP_EXCAL
 		{
-			BufferWriter w(endian);
+			BufferWriter w;
 			write(w);
 			SOUP_MOVE_RETURN(w.buf);
 		}
 
-		[[nodiscard]] std::string toBinaryString(Endian endian = ENDIAN_BIG) SOUP_EXCAL
+		[[nodiscard]] std::string toBinaryString() SOUP_EXCAL
 		{
-			StringWriter w(endian);
+			StringWriter w;
 			write(w);
 			SOUP_MOVE_RETURN(w.data);
-		}
-
-		[[nodiscard]] std::string toBinaryStringLE()
-		{
-			return toBinaryString(ENDIAN_LITTLE);
-		}
-
-		bool write(std::ostream& os, Endian endian = ENDIAN_BIG)
-		{
-			OstreamWriter w(os, endian);
-			return write(w);
-		}
-
-		bool writeLE(std::ostream& os)
-		{
-			return write(os, ENDIAN_LITTLE);
 		}
 
 		template <typename Writer = Writer>

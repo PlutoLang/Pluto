@@ -102,6 +102,7 @@ NAMESPACE_SOUP
 #endif
 		}
 
+#if SOUP_BITS >= 64
 		[[nodiscard]] static unsigned long getLeastSignificantSetBit(uint64_t mask) noexcept
 		{
 			SOUP_DEBUG_ASSERT(mask != 0); // UB!
@@ -115,6 +116,7 @@ NAMESPACE_SOUP
 			return __builtin_ctz(mask);
 #endif
 		}
+#endif
 
 		template <typename T>
 		static constexpr void unsetLeastSignificantSetBit(T& val)

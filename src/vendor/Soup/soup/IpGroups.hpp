@@ -15,6 +15,7 @@ NAMESPACE_SOUP
 		static constexpr CidrSupernet v4_private_network = {
 			std::array {
 				CidrSubnet4(SOUP_IPV4(192, 168, 0, 0), 16),
+				CidrSubnet4(SOUP_IPV4(172, 16, 0, 0), 12),
 				CidrSubnet4(SOUP_IPV4(10, 0, 0, 0), 8),
 			}
 		};

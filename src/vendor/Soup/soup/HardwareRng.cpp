@@ -13,53 +13,63 @@
 #include <unistd.h> // read, close
 #endif
 
-NAMESPACE_SOUP
-{
-#if SOUP_X86 && defined(SOUP_USE_INTRIN)
-	namespace intrin
-	{
-		extern uint16_t hardware_rng_generate16() noexcept;
-		extern uint32_t hardware_rng_generate32() noexcept;
-		extern uint64_t hardware_rng_generate64() noexcept;
-	}
+#if SOUP_X86
+#include <immintrin.h>
 #endif
 
+NAMESPACE_SOUP
+{
 	// HardwareRng
 
 	bool HardwareRng::isAvailable() noexcept
 	{
-#if SOUP_X86 && defined(SOUP_USE_INTRIN)
+#if SOUP_X86
 		return CpuInfo::get().supportsRDSEED();
 #else
 		return false;
 #endif
 	}
 
+	#if SOUP_X86 && (defined(__GNUC__) || defined(__clang__))
+		__attribute__((target("rdseed")))
+	#endif
 	uint16_t HardwareRng::generate16() noexcept
 	{
-#if SOUP_X86 && defined(SOUP_USE_INTRIN)
-		return intrin::hardware_rng_generate16();
+#if SOUP_X86
+		uint16_t res;
+		while (_rdseed16_step(&res) == 0);
+		return res;
 #else
 		SOUP_ASSERT_UNREACHABLE;
 #endif
 	}
 
+	#if SOUP_X86 && (defined(__GNUC__) || defined(__clang__))
+		__attribute__((target("rdseed")))
+	#endif
 	uint32_t HardwareRng::generate32() noexcept
 	{
-#if SOUP_X86 && defined(SOUP_USE_INTRIN)
-		return intrin::hardware_rng_generate32();
+#if SOUP_X86
+		uint32_t res;
+		while (_rdseed32_step(&res) == 0);
+		return res;
 #else
 		SOUP_ASSERT_UNREACHABLE;
 #endif
 	}
 
+	#if SOUP_X86 && SOUP_BITS >= 64 && (defined(__GNUC__) || defined(__clang__))
+		__attribute__((target("rdseed")))
+	#endif
 	uint64_t HardwareRng::generate64() noexcept
 	{
-#if SOUP_X86 && defined(SOUP_USE_INTRIN)
+#if SOUP_X86
 	#if SOUP_BITS >= 64
-		return intrin::hardware_rng_generate64();
+		unsigned long long res;
+		while (_rdseed64_step(&res) == 0);
+		return res;
 	#else
-		return (static_cast<uint64_t>(intrin::hardware_rng_generate32()) << 32) | intrin::hardware_rng_generate32();
+		return (static_cast<uint64_t>(generate32()) << 32) | generate32();
 	#endif
 #else
 		SOUP_ASSERT_UNREACHABLE;
