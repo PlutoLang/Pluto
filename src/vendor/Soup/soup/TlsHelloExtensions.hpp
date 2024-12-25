@@ -11,8 +11,8 @@ NAMESPACE_SOUP
 
 		SOUP_PACKET_IO(s)
 		{
-			return s.u16_be(id)
-				&& s.template str_lp<u16_t>(data)
+			return s.u16be(id)
+				&& s.template str_lp<u16be_t>(data)
 				;
 		}
 	};
@@ -29,7 +29,7 @@ NAMESPACE_SOUP
 				if (s.hasMore())
 				{
 					uint16_t extension_bytes;
-					if (!s.u16(extension_bytes))
+					if (!s.u16be(extension_bytes))
 					{
 						return false;
 					}
@@ -54,7 +54,7 @@ NAMESPACE_SOUP
 					{
 						ext_data.append(ext.toBinaryString());
 					}
-					s.template str_lp<u16_t>(ext_data);
+					s.template str_lp<u16be_t>(ext_data);
 				}
 			}
 			return true;

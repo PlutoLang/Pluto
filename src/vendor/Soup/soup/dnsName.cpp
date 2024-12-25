@@ -11,7 +11,7 @@ NAMESPACE_SOUP
 			&& max_recursions != 0
 			)
 		{
-			MemoryRefReader sr(data, false);
+			MemoryRefReader sr(data);
 			sr.offset = ptr;
 
 			dnsName cont;

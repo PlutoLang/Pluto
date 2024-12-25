@@ -172,9 +172,9 @@ NAMESPACE_SOUP
 		void operator/=(const Bigint& divisor) SOUP_EXCAL;
 		void operator%=(const Bigint& divisor) SOUP_EXCAL;
 		[[nodiscard]] std::pair<Bigint, Bigint> divide(const Bigint& divisor) const SOUP_EXCAL; // (Quotient, Remainder)
-		void divide(const Bigint& divisor, Bigint& outQuotient, Bigint& outRemainder) const SOUP_EXCAL;
+		void divide(const Bigint& divisor, Bigint& SOUP_UNIQADDR outQuotient, Bigint& SOUP_UNIQADDR outRemainder) const SOUP_EXCAL;
 		[[nodiscard]] std::pair<Bigint, Bigint> divideUnsigned(const Bigint& divisor) const SOUP_EXCAL; // (Quotient, Remainder)
-		void divideUnsigned(const Bigint& divisor, Bigint& remainder) SOUP_EXCAL;
+		void divideUnsigned(const Bigint& divisor, Bigint& SOUP_UNIQADDR remainder) SOUP_EXCAL;
 		[[nodiscard]] chunk_t divideUnsignedSmall(chunk_t divisor) noexcept;
 		[[nodiscard]] Bigint mod(const Bigint& m) const SOUP_EXCAL;
 		[[nodiscard]] Bigint modUnsigned(const Bigint& m) const SOUP_EXCAL;

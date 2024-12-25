@@ -47,7 +47,14 @@ NAMESPACE_SOUP
 			if (cpuid_max_eax >= 0x07)
 			{
 				invokeCpuid(arr, 0x07, 0);
+				extended_features_max_ecx = EAX;
 				extended_features_0_ebx = EBX;
+
+				if (extended_features_max_ecx >= 1)
+				{
+					invokeCpuid(arr, 0x07, 1);
+					extended_features_1_eax = EAX;
+				}
 
 				if (cpuid_max_eax >= 0x16)
 				{
@@ -65,7 +72,7 @@ NAMESPACE_SOUP
 		if (cpuid_extended_max_eax >= 0x80000001)
 		{
 			invokeCpuid(arr, 0x80000001);
-			extended_features_1_ecx = ECX;
+			extended_flags_1_ecx = ECX;
 		}
 
 	#undef EAX
@@ -114,30 +121,43 @@ NAMESPACE_SOUP
 			str.append("\nStepping ID: ").append(std::to_string(stepping_id));
 			str.append("\nModel: ").append(std::to_string(model));
 			str.append("\nFamily: ").append(std::to_string(family));
-			str.append("\nFeature Flags 1: ").append(string::hex(feature_flags_ecx));
-			str.append("\nFeature Flags 2: ").append(string::hex(feature_flags_edx));
 
-			if (cpuid_max_eax >= 0x07)
+			if (base_frequency || max_frequency || bus_frequency)
 			{
-				str.append("\nFeature Flags 3: ").append(string::hex(extended_features_0_ebx));
-
-				if (cpuid_max_eax >= 0x16)
-				{
-					str.append("\nBase Frequency: ").append(std::to_string(base_frequency)).append(
-						" MHz\n"
-						"Max. Frequency: "
-					).append(std::to_string(max_frequency)).append(
-						" MHz\n"
-						"Bus (Reference) Frequency: "
-					).append(std::to_string(bus_frequency)).append(" MHz");
-				}
+				str.append("\nBase Frequency: ").append(std::to_string(base_frequency)).append(
+					" MHz\n"
+					"Max. Frequency: "
+				).append(std::to_string(max_frequency)).append(
+					" MHz\n"
+					"Bus (Reference) Frequency: "
+				).append(std::to_string(bus_frequency)).append(" MHz");
 			}
 		}
 
-		if (cpuid_extended_max_eax >= 0x80000001)
-		{
-			str.append("\nExtended Feature Flags: ").append(string::hex(extended_features_1_ecx));
-		}
+		str.append("\nSSE Support: ");
+		if (supportsSSE4_2()) { str.append("SSE4.2"); }
+		else if (supportsSSE4_1()) { str.append("SSE4.1"); }
+		else if (supportsSSSE3()) { str.append("SSSE3"); }
+		else if (supportsSSE3()) { str.append("SSE3"); }
+		else if (supportsSSE2()) { str.append("SSE2"); }
+		else if (supportsSSE()) { str.append("SSE"); }
+		else { str.append("None"); }
+
+		str.append("\nAVX Support: ");
+		if (supportsAVX512F()) { str.append("AVX512F"); }
+		else if (supportsAVX2()) { str.append("AVX2"); }
+		else if (supportsAVX()) { str.append("AVX"); }
+		else { str.append("None"); }
+
+		std::string misc_features{};
+		if (supportsPCLMULQDQ()) { string::listAppend(misc_features, "PCLMULQDQ"); }
+		if (supportsAESNI()) { string::listAppend(misc_features, "AESNI"); }
+		if (supportsRDRAND()) { string::listAppend(misc_features, "RDRAND"); }
+		if (supportsRDSEED()) { string::listAppend(misc_features, "RDSEED"); }
+		if (supportsSHA()) { string::listAppend(misc_features, "SHA"); }
+		if (supportsSHA512()) { string::listAppend(misc_features, "SHA512"); }
+		if (supportsXOP()) { string::listAppend(misc_features, "supportsXOP"); }
+		str.append("\nOther Known Features: ").append(misc_features);
 
 		return str;
 #elif SOUP_ARM
@@ -163,12 +183,11 @@ NAMESPACE_SOUP
 
 	void CpuInfo::invokeCpuid(void* out, uint32_t eax, uint32_t ecx) noexcept
 	{
-	#if defined(__GNUC__)
-		((uint32_t*)out)[3] = ecx;
-		__get_cpuid(eax, &((uint32_t*)out)[0], &((uint32_t*)out)[1], &((uint32_t*)out)[3], &((uint32_t*)out)[2]);
-	#else
+	#if defined(_MSC_VER) && !defined(__clang__)
 		__cpuidex(((int*)out), eax, ecx);
 		std::swap(((int*)out)[2], ((int*)out)[3]);
+	#else
+		__cpuid_count(eax, ecx, ((int*)out)[0], ((int*)out)[1], ((int*)out)[3], ((int*)out)[2]);
 	#endif
 	}
 #endif

@@ -1939,7 +1939,7 @@ static int str_split (lua_State *L) {
   size_t haystackLen;
   const char* haystack = luaL_checklstring(L, 1, &haystackLen);
   size_t needleLen;
-  const char* needle = luaL_optlstring(L, 2, ",", &needleLen);
+  const char* needle = luaL_optlstring(L, 2, "", &needleLen);
   lua_Integer limit = luaL_optinteger(L, 3, LUA_MAXINTEGER) - 1;
 
   const char* begin = haystack;

@@ -6,10 +6,15 @@
 
 NAMESPACE_SOUP
 {
-	bool IpAddr::fromString(const char* str) noexcept
+	bool IpAddr::fromString(const char* str) SOUP_EXCAL
 	{
 		if (strstr(str, ":") != nullptr)
 		{
+			if (*str == '[')
+			{
+				// We're not gonna do this C-style.
+				return fromString(std::string(str));
+			}
 			return inet_pton(AF_INET6, str, &data) == 1;
 		}
 		else
@@ -19,10 +24,15 @@ NAMESPACE_SOUP
 		}
 	}
 
-	bool IpAddr::fromString(const std::string& str) noexcept
+	bool IpAddr::fromString(const std::string& str) SOUP_EXCAL
 	{
 		if (str.find(':') != std::string::npos)
 		{
+			if (str.front() == '[' && str.back() == ']')
+			{
+				auto ipstr = str.substr(1, str.size() - 2);
+				return inet_pton(AF_INET6, ipstr.data(), &data) == 1;
+			}
 			return inet_pton(AF_INET6, str.data(), &data) == 1;
 		}
 		else

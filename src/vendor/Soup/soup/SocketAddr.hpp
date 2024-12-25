@@ -21,6 +21,8 @@ NAMESPACE_SOUP
 		{
 		}
 
+		bool fromString(const std::string& str) SOUP_EXCAL;
+
 		[[nodiscard]] native_u16_t getPort() const noexcept
 		{
 			return Endianness::toNative(port);

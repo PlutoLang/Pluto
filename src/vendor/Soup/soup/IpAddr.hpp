@@ -122,8 +122,8 @@ NAMESPACE_SOUP
 			operator =(ipv4);
 		}
 
-		bool fromString(const char* str) noexcept;
-		bool fromString(const std::string& str) noexcept;
+		bool fromString(const char* str) SOUP_EXCAL;
+		bool fromString(const std::string& str) SOUP_EXCAL;
 
 		constexpr void operator = (const network_u32_t ipv4) noexcept
 		{

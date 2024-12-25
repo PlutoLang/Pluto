@@ -647,7 +647,7 @@ int luaV_equalobj (lua_State *L, const TValue *t1, const TValue *t2) {
 
 /* macro used by 'luaV_concat' to ensure that element at 'o' is a string */
 #define tostring(L,o)  \
-    (ttisstring(o) || (cvt2str(o) && (luaO_tostring(L, o), 1)))
+    (ttisstring(o) || ((cvt2str(o) || ttisboolean(o)) && (luaO_tostring(L, o), 1)))
 
 #define isemptystr(o)	(ttisshrstring(o) && tsvalue(o)->shrlen == 0)
 
@@ -673,7 +673,7 @@ void luaV_concat (lua_State *L, int total) {
   do {
     StkId top = L->top.p;
     int n = 2;  /* number of elements handled in this pass (at least 2) */
-    if (!(ttisstring(s2v(top - 2)) || cvt2str(s2v(top - 2))) ||
+    if (!(ttisstring(s2v(top - 2)) || cvt2str(s2v(top - 2)) || ttisboolean(s2v(top - 2))) ||
         !tostring(L, s2v(top - 1)))
       luaT_tryconcatTM(L);  /* may invalidate 'top' */
     else if (isemptystr(s2v(top - 1)))  /* second operand is empty? */
