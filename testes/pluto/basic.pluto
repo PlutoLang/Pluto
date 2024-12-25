@@ -3450,6 +3450,36 @@ do
 
         return add(1, 2)
     ]]() == 3)
+
+    assert(load[[
+        $alias please = 
+
+        if true please do
+            return "hello"
+        end
+    ]]() == "hello")
+
+    assert(load[[
+        $alias in_the_case_that = \
+            if
+
+        in_the_case_that true then
+            return "hello"
+        end
+    ]]() == "hello")
+
+    assert(select("#", load[[
+        $alias add(a, b) = 
+
+        return add(1, 2)
+    ]]()) == 0)
+
+    assert(load[[
+        $alias add(a, b) = \
+            a + b
+
+        return a + b
+    ]])
 end
 
 print "Testing try/catch."
