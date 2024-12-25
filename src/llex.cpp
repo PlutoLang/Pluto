@@ -299,7 +299,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
         luaX_syntaxerror(ls, "expected '=' after $alias <name>");
       }
       ++i;  /* skip '=' */
-      while (true) {
+      while (i->line == (i - 1)->line || (i - 1)->token == '\\') {
         if (i->token == TK_EOS)
           break;
         if (i->token == '\\' && (i + 1)->line != i->line) {
@@ -308,8 +308,6 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
         }
         macro.sub.emplace_back(*i);
         ++i;
-        if (i->line != (i - 1)->line)
-          break;
       }
       i = ls->tokens.erase(directive_begin, i);  /* erase directive */
       continue;
@@ -347,8 +345,9 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
               i = ls->tokens.insert(i, t);
             }
           }
-          else
+          else {
             i = ls->tokens.insert(i, e->second.sub.begin(), e->second.sub.end());
+          }
           continue;
         }
       }
