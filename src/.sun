@@ -1,7 +1,5 @@
 static
 
-cpp 17
-
 require vendor/Soup/soup include_dir=.
 
 +*.cpp

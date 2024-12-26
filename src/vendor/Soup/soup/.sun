@@ -1,8 +1,6 @@
 +*.cpp
 static
 
-cpp 17
-
 arg -O3
 
 require ../Intrin
