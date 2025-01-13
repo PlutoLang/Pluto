@@ -5788,16 +5788,15 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
       ls->tokens.emplace_back(Token(')'));
 
-      //   if not mt.__index or mt.__parent then
+      //   if not rawget(mt, "__index") then
       ls->tokens.emplace_back(Token(TK_IF));
       ls->tokens.emplace_back(Token(TK_NOT));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "rawget")));
+      ls->tokens.emplace_back(Token('('));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
-      ls->tokens.emplace_back(Token('.'));
-      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "__index")));
-      ls->tokens.emplace_back(Token(TK_OR));
-      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
-      ls->tokens.emplace_back(Token('.'));
-      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "__parent")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "__index")));
+      ls->tokens.emplace_back(Token(')'));
       ls->tokens.emplace_back(Token(TK_THEN));
 
       //     mt.__index = mt
