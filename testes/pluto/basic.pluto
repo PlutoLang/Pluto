@@ -2840,7 +2840,7 @@ do
     local p = new Player("John")
     assert(p.name == "John")
 end
--- Class overriding '__index'
+-- Overriding '__index'
 do
     $define extraOffset = 10
 
@@ -2866,6 +2866,32 @@ do
     assert(c.num == 1 + extraOffset)
     c.num = 42
     assert(c.num == 42)
+end
+do
+    local class Base
+        base_member = 1
+    end
+
+    local Derived
+    class Derived extends Base
+        derived_member = 2
+
+        function __index(key)
+            if key == "magic" then
+                return 3
+            end
+            return Derived[key]
+        end
+    end
+
+    local inst = new Derived()
+    assert(inst.base_member == 1)
+    assert(inst.derived_member == 2)
+    assert(inst.magic == 3)
+    inst.derived_member += 10
+    inst.user_defined = 4
+    assert(inst.derived_member == 12)
+    assert(inst.user_defined == 4)
 end
 -- Metamethod inheritance
 do

@@ -6,7 +6,7 @@ local Pluto_operator_new <const> = function(mt, ...)
   end
   local t = {}
   setmetatable(t, mt)
-  if not mt.__index or mt.__parent then
+  if not rawget(mt, "__index") then
     mt.__index = mt
   end
   if mt.__construct then
