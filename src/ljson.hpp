@@ -76,7 +76,9 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 			while (lua_next(L, -2))
 			{
 				lua_pushvalue(L, -2);
+				luaE_incCstack(L);
 				arr->children.emplace_back(checkJson(L, -2));
+				L->nCcalls--;
 				lua_pop(L, 2);
 			}
 			lua_pop(L, 1);

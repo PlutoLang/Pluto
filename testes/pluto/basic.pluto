@@ -1577,13 +1577,23 @@ do
     local function recursive_enc()
         local t = {}
         t.t = t
-        try
-            return require"json".encode(t)
-        catch e then
-            return e
-        end
+        return require"json".encode(t)
     end
-    assert(recursive_enc() == "C stack overflow")
+    assert(select(2, pcall(recursive_enc)) == "C stack overflow")
+
+    local function overflow_enc()
+        local root = {}
+        do
+            local prev_t = root
+            for i = 1, 10000 do
+                local t = {}
+                prev_t:insert(t)
+                prev_t = t
+            end
+        end
+        return require"json".encode(root)
+    end
+    assert(select(2, pcall(overflow_enc)) == "C stack overflow")
 end
 do
     local xml = require "pluto:xml"
