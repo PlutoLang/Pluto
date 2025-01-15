@@ -18,7 +18,7 @@ NAMESPACE_SOUP
 	{
 	}
 
-	JsonObject::JsonObject(const char*& c) noexcept
+	JsonObject::JsonObject(const char*& c, int max_depth) noexcept
 		: JsonObject()
 	{
 		while (true)
@@ -28,12 +28,12 @@ NAMESPACE_SOUP
 			{
 				break;
 			}
-			auto key = json::decode(c);
+			auto key = json::decode(c, max_depth);
 			while (string::isSpace(*c) || *c == ':')
 			{
 				++c;
 			}
-			auto val = json::decode(c);
+			auto val = json::decode(c, max_depth);
 			if (!key || !val)
 			{
 				break;
