@@ -1551,6 +1551,9 @@ do
     assert(json.decode([[{"a":null]]).a == nil)
     assert(json.decode([[{"a":null}]], json.withnull).a == json.null)
 
+    -- Don't want a C stack overflow here
+    assert(not pcall(|| -> require"json".decode("[":rep(10000).."]":rep(10000))))
+
     do
         local t = {
             __order = { "a", "b", "c" },

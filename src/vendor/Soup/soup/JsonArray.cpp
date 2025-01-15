@@ -16,13 +16,13 @@ NAMESPACE_SOUP
 	{
 	}
 
-	JsonArray::JsonArray(const char*& c)
+	JsonArray::JsonArray(const char*& c, int max_depth)
 		: JsonArray()
 	{
 		while (true)
 		{
 			json::handleLeadingSpace(c);
-			auto val = json::decode(c);
+			auto val = json::decode(c, max_depth);
 			if (!val)
 			{
 				break;

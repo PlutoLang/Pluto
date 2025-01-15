@@ -21,7 +21,16 @@ static int encode(lua_State* L) {
 static int decode(lua_State* L)
 {
 	int flags = (int)luaL_optinteger(L, 2, 0);
-	if (auto root = soup::json::decode(pluto_checkstring(L, 1)))
+	soup::UniquePtr<soup::JsonNode> root;
+	try
+	{
+		root = soup::json::decode(pluto_checkstring(L, 1));
+	}
+	catch (const std::exception& e)
+	{
+		luaL_error(L, e.what());
+	}
+	if (root)
 	{
 		pushFromJson(L, *root, flags);
 		return 1;
