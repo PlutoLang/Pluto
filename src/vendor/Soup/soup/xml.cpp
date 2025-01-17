@@ -68,7 +68,7 @@ NAMESPACE_SOUP
 		auto i = begin;
 		do
 		{
-			if (auto node = parseImpl(i, end, mode))
+			if (auto node = parseImpl(i, end, mode, 1000))
 			{
 				res.emplace_back(std::move(node));
 			}
@@ -77,8 +77,10 @@ NAMESPACE_SOUP
 		return res;
 	}
 
-	UniquePtr<XmlNode> xml::parseImpl(const char*& i, const char* end, const XmlMode& mode)
+	UniquePtr<XmlNode> xml::parseImpl(const char*& i, const char* end, const XmlMode& mode, int max_depth)
 	{
+		SOUP_ASSERT(max_depth != 0, "Depth limit exceeded");
+
 		while (i != end && string::isSpace(*i))
 		{
 			++i;
@@ -393,11 +395,11 @@ NAMESPACE_SOUP
 					text.clear();
 				}
 #if DEBUG_PARSE
-				auto child = parseImpl(i, end, mode);
+				auto child = parseImpl(i, end, mode, max_depth - 1);
 				std::cout << "Recursed for " << child->encode() << std::endl;
 				tag->children.emplace_back(std::move(child));
 #else
-				tag->children.emplace_back(parseImpl(i, end, mode));
+				tag->children.emplace_back(parseImpl(i, end, mode, max_depth - 1));
 #endif
 				if (i == end)
 				{

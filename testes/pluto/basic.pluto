@@ -1618,6 +1618,8 @@ do
 
     -- Decode: No Lua stack overflow please
     assert(xml.decode("<p>":rep(99).."</p>":rep(99)))
+    -- No C stack overflows, either
+    assert(not pcall(|| -> xml.decode("<p>":rep(10000).."</p>":rep(10000))))
 
     -- Encode
     assert(xml.encode{
