@@ -1616,6 +1616,9 @@ do
     assert(root.node.children[1] == "text")
     assert(root.node.deez == nil)
 
+    -- Decode: No Lua stack overflow please
+    assert(xml.decode("<p>":rep(99).."</p>":rep(99)))
+
     -- Encode
     assert(xml.encode{
         tag = "root",

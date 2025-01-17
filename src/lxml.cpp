@@ -59,6 +59,7 @@ static int xml_encode (lua_State *L) {
 }
 
 static void pushxmltag (lua_State *L, const soup::XmlTag& tag) {
+  lua_checkstack(L, 4);
   lua_newtable(L);
   lua_pushliteral(L, "tag");
   pluto_pushstring(L, tag.name);
