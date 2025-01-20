@@ -133,3 +133,16 @@ else
     assert("C++ exception: oh no" in select(2, pcall(|| -> lib.throw_exception("oh no"))))
 end
 assert("C++ exception" in select(2, pcall(|| -> lib.throw_int(69))))
+
+-- Float tests
+local FloatTestStruct = require"ffi".struct([[
+    struct FloatTestStruct {
+        float f;
+        double d;
+    };
+]])
+local float_test_inst = new FloatTestStruct()
+float_test_inst.f = 69
+float_test_inst.d = 420
+assert(float_test_inst.f == 69)
+assert(float_test_inst.d == 420)
