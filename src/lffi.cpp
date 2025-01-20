@@ -126,7 +126,7 @@ static int push_ffi_value (lua_State *L, FfiType type, void *value) {
   SOUP_UNREACHABLE;
 }
 
-static uintptr_t check_ffi_value (lua_State *L, int i, FfiType type) {
+static uint64_t check_ffi_value (lua_State *L, int i, FfiType type) {
   switch (type) {
     case FFI_UNKNOWN:
       /* 'handling' this case makes the compiler happy */
@@ -134,39 +134,39 @@ static uintptr_t check_ffi_value (lua_State *L, int i, FfiType type) {
     case FFI_VOID:
       return 0;
     case FFI_I8:
-      return static_cast<uintptr_t>(static_cast<int8_t>(luaL_checkinteger(L, i)));
+      return static_cast<uint64_t>(static_cast<int8_t>(luaL_checkinteger(L, i)));
     case FFI_I16:
-      return static_cast<uintptr_t>(static_cast<int16_t>(luaL_checkinteger(L, i)));
+      return static_cast<uint64_t>(static_cast<int16_t>(luaL_checkinteger(L, i)));
     case FFI_I32:
-      return static_cast<uintptr_t>(static_cast<int32_t>(luaL_checkinteger(L, i)));
+      return static_cast<uint64_t>(static_cast<int32_t>(luaL_checkinteger(L, i)));
     case FFI_I64:
-      return static_cast<uintptr_t>(static_cast<int64_t>(luaL_checkinteger(L, i)));
+      return static_cast<uint64_t>(static_cast<int64_t>(luaL_checkinteger(L, i)));
     case FFI_U8:
-      return static_cast<uintptr_t>(static_cast<uint8_t>(luaL_checkinteger(L, i)));
+      return static_cast<uint64_t>(static_cast<uint8_t>(luaL_checkinteger(L, i)));
     case FFI_U16:
-      return static_cast<uintptr_t>(static_cast<uint16_t>(luaL_checkinteger(L, i)));
+      return static_cast<uint64_t>(static_cast<uint16_t>(luaL_checkinteger(L, i)));
     case FFI_U32:
-      return static_cast<uintptr_t>(static_cast<uint32_t>(luaL_checkinteger(L, i)));
+      return static_cast<uint64_t>(static_cast<uint32_t>(luaL_checkinteger(L, i)));
     case FFI_U64:
-      return static_cast<uintptr_t>(static_cast<uint64_t>(luaL_checkinteger(L, i)));
+      return static_cast<uint64_t>(luaL_checkinteger(L, i));
     case FFI_F32: {
       auto val = static_cast<float>(luaL_checknumber(L, i));
-      return static_cast<uintptr_t>(*reinterpret_cast<uint32_t*>(&val));
+      return static_cast<uint64_t>(*reinterpret_cast<uint32_t*>(&val));
       static_assert(sizeof(float) == sizeof(uint32_t));
     }
     case FFI_F64: {
       auto val = static_cast<double>(luaL_checknumber(L, i));
-      return *reinterpret_cast<uintptr_t*>(&val);
-      static_assert(sizeof(double) == sizeof(uintptr_t));
+      return *reinterpret_cast<uint64_t*>(&val);
+      static_assert(sizeof(double) == sizeof(uint64_t));
     }
     case FFI_PTR:
       if (lua_type(L, i) != LUA_TUSERDATA)
         luaL_checktype(L, i, LUA_TLIGHTUSERDATA);
-      return reinterpret_cast<uintptr_t>(lua_touserdata(L, i));
+      return reinterpret_cast<uint64_t>(lua_touserdata(L, i));
     case FFI_STR:
       if (lua_type(L, i) == LUA_TNIL)
         return 0;
-      return reinterpret_cast<uintptr_t>(luaL_checkstring(L, i));
+      return reinterpret_cast<uint64_t>(luaL_checkstring(L, i));
   }
   SOUP_UNREACHABLE;
 }
@@ -439,8 +439,8 @@ static int ffi_push_new (lua_State *L, int i) {
         luaL_error(L, "no member with name '%s'", memname.c_str());
       }
       const soup::rflType& type = strct->getMemberType(memname);
-      uintptr_t data = *reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(udata) + offset);
-      uintptr_t new_data = check_ffi_value(L, 3, rfl_type_to_ffi_type(type));
+      auto data = *reinterpret_cast<uint64_t*>(reinterpret_cast<uintptr_t>(udata) + offset);
+      auto new_data = check_ffi_value(L, 3, rfl_type_to_ffi_type(type));
       memcpy(&data, &new_data, type.getSize());
       *reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(udata) + offset) = data;
     }
