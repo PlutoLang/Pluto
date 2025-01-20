@@ -149,10 +149,16 @@ static uintptr_t check_ffi_value (lua_State *L, int i, FfiType type) {
       return static_cast<uintptr_t>(static_cast<uint32_t>(luaL_checkinteger(L, i)));
     case FFI_U64:
       return static_cast<uintptr_t>(static_cast<uint64_t>(luaL_checkinteger(L, i)));
-    case FFI_F32:
-      return static_cast<uintptr_t>(static_cast<float>(luaL_checknumber(L, i)));
-    case FFI_F64:
-      return static_cast<uintptr_t>(static_cast<double>(luaL_checknumber(L, i)));
+    case FFI_F32: {
+      auto val = static_cast<float>(luaL_checknumber(L, i));
+      return static_cast<uintptr_t>(*reinterpret_cast<uint32_t*>(&val));
+      static_assert(sizeof(float) == sizeof(uint32_t));
+    }
+    case FFI_F64: {
+      auto val = static_cast<double>(luaL_checknumber(L, i));
+      return *reinterpret_cast<uintptr_t*>(&val);
+      static_assert(sizeof(double) == sizeof(uintptr_t));
+    }
     case FFI_PTR:
       if (lua_type(L, i) != LUA_TUSERDATA)
         luaL_checktype(L, i, LUA_TLIGHTUSERDATA);
