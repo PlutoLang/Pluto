@@ -439,10 +439,8 @@ static int ffi_push_new (lua_State *L, int i) {
         luaL_error(L, "no member with name '%s'", memname.c_str());
       }
       const soup::rflType& type = strct->getMemberType(memname);
-      uint64_t data = *reinterpret_cast<uint64_t*>(reinterpret_cast<uintptr_t>(udata) + offset);
       uint64_t new_data = check_ffi_value(L, 3, rfl_type_to_ffi_type(type));
-      memcpy(&data, &new_data, type.getSize());
-      *reinterpret_cast<uint64_t*>(reinterpret_cast<uintptr_t>(udata) + offset) = data;
+      memcpy(reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(udata) + offset), &new_data, type.getSize());
     }
     return 0;
   });
