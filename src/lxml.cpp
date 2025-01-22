@@ -2,6 +2,7 @@
 
 #define LUA_LIB
 #include "lualib.h"
+#include "lstate.h" // luaE_incCstack
 
 #include "vendor/Soup/soup/xml.hpp"
 
@@ -10,9 +11,10 @@ static soup::UniquePtr<soup::XmlNode> check_xml (lua_State *L, int i) {
   if (type == LUA_TTABLE) {
     lua_checkstack(L, 3);
     lua_pushvalue(L, i);
-    auto tag = soup::make_unique<soup::XmlTag>();
     lua_pushliteral(L, "tag");
     if (lua_rawget(L, -2) == LUA_TSTRING) {
+      luaE_incCstack(L);
+      auto tag = soup::make_unique<soup::XmlTag>();
       tag->name = pluto_checkstring(L, -1);
       lua_pop(L, 1);  /* pop result of lua_rawget */
       lua_pushliteral(L, "attributes");
@@ -39,6 +41,7 @@ static soup::UniquePtr<soup::XmlNode> check_xml (lua_State *L, int i) {
         lua_pop(L, 1);  /* pop result of lua_rawget */
       }
       lua_pop(L, 1);  /* pop table from lua_pushvalue */
+      L->nCcalls--;
       return tag;
     }
   }

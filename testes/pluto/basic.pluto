@@ -1641,6 +1641,19 @@ do
     } == [[<root><entry type="primary">Text node</entry><entry></entry></root>]])
 end
 do
+    -- No C Stack overflow on xml.encode either please
+    local root = { tag = "root", children = {} }
+    do
+        local prev_t = root
+        for i = 1, 1000 do
+            local t = { tag = "node", children = {} }
+            prev_t.children:insert(t)
+            prev_t = t
+        end
+    end
+    assert(select(2, pcall(|| -> require"xml".encode(root))) == "C stack overflow")
+end
+do
     local t = { key = "value" }
     table.insert(t, 0)
     table.insert(t, "Hello")
