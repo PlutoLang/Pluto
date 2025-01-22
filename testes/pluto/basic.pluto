@@ -1599,6 +1599,18 @@ do
     assert(select(2, pcall(overflow_enc)) == "C stack overflow")
 end
 do
+    local root = {}
+    do
+        local prev_t = root
+        for i = 1, 1000 do
+            local t = {}
+            prev_t:insert(t)
+            prev_t = t
+        end
+    end
+    assert(select(2, pcall(|| -> dumpvar(root))) == "C stack overflow")
+end
+do
     local xml = require "pluto:xml"
 
     -- Decode

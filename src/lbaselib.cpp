@@ -692,13 +692,17 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Tab
     dump.append(indents, '\t');
     dump.push_back('[');
     lua_pushvalue(L, -2);
+    luaE_incCstack(L);
     luaB_dumpvar_impl(L, indents + 1, parents, is_export, true);
+    L->nCcalls--;
     dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append("] = ");
 
     lua_pushvalue(L, -1);
+    luaE_incCstack(L);
     luaB_dumpvar_impl(L, indents + 1, parents, is_export);
+    L->nCcalls--;
     dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append(",\n");
