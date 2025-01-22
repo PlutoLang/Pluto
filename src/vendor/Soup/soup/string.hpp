@@ -360,281 +360,188 @@ NAMESPACE_SOUP
 			TI_FULL = 1 << 0, // The entire string must be processed. If the string is too long or contains invalid characters, nullopt or fallback will be returned.
 		};
 
-		template <typename IntT, typename CharT>
-		[[nodiscard]] static IntT toIntImpl(const CharT*& it) noexcept
-		{
-			IntT val = 0;
-			IntT max = 0;
-			IntT prev_max = 0;
-			while (true)
-			{
-				if constexpr (std::is_unsigned_v<IntT>)
-				{
-					max *= 10;
-					max += 9;
-					SOUP_IF_UNLIKELY (!(max > prev_max))
-					{
-						break;
-					}
-					prev_max = max;
-				}
-
-				const CharT c = *it++;
-				SOUP_IF_UNLIKELY (!isNumberChar(c))
-				{
-					--it;
-					break;
-				}
-				val *= 10;
-				val += (c - '0');
-
-				if constexpr (std::is_signed_v<IntT>)
-				{
-					max *= 10;
-					max += 9;
-					SOUP_IF_UNLIKELY (max < prev_max)
-					{
-						break;
-					}
-					prev_max = max;
-				}
-			}
-			return val;
-		}
-
-		template <typename IntT, typename CharT>
-		[[nodiscard]] static Optional<IntT> toIntOpt(const CharT*& it) noexcept
-		{
-			bool had_number_char = false;
-			IntT val = 0;
-			IntT max = 0;
-			IntT prev_max = 0;
-			while (true)
-			{
-				if constexpr (std::is_unsigned_v<IntT>)
-				{
-					max *= 10;
-					max += 9;
-					SOUP_IF_UNLIKELY (!(max > prev_max))
-					{
-						break;
-					}
-					prev_max = max;
-				}
-
-				const CharT c = *it++;
-				SOUP_IF_UNLIKELY (!isNumberChar(c))
-				{
-					--it;
-					break;
-				}
-				had_number_char = true;
-				val *= 10;
-				val += (c - '0');
-
-				if constexpr (std::is_signed_v<IntT>)
-				{
-					max *= 10;
-					max += 9;
-					SOUP_IF_UNLIKELY (max < prev_max)
-					{
-						break;
-					}
-					prev_max = max;
-				}
-			}
-			if (!had_number_char)
-			{
-				return std::nullopt;
-			}
-			return val;
-		}
-
-		template <typename IntT, uint8_t Flags = 0, typename CharT>
-		[[nodiscard]] static Optional<IntT> toInt(const CharT* it) noexcept
+		template <typename IntT, uint8_t Base = 10, typename CharT>
+		[[nodiscard]] static Optional<IntT> toIntEx(const CharT* it, uint8_t flags = 0, const CharT** end = nullptr) noexcept
 		{
 			bool neg = false;
 			if (*it == '\0')
 			{
+			_fail:
+				if (end)
+				{
+					*end = it;
+				}
 				return std::nullopt;
 			}
 			switch (*it)
 			{
 			case '-':
+				if constexpr (std::is_unsigned_v<IntT>)
+				{
+					goto _fail;
+				}
 				neg = true;
 				[[fallthrough]];
 			case '+':
 				if (*++it == '\0')
 				{
-					return std::nullopt;
+					goto _fail;
 				}
 			}
-			if (!isNumberChar(*it))
-			{
-				return std::nullopt;
-			}
-			IntT val = toIntImpl<IntT, CharT>(it);
-			if constexpr (Flags & TI_FULL)
-			{
-				if (*it != '\0')
-				{
-					return std::nullopt;
-				}
-			}
-			if (neg)
-			{
-				val *= -1;
-			}
-			return Optional<IntT>(std::move(val));
-		}
-
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static Optional<IntT> toInt(const std::string& str) noexcept
-		{
-			return toInt<IntT, Flags>(str.c_str());
-		}
-
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static Optional<IntT> toInt(const std::wstring& str) noexcept
-		{
-			return toInt<IntT, Flags>(str.c_str());
-		}
-
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static IntT toInt(const char* str, IntT fallback) noexcept
-		{
-			return toInt<IntT, Flags>(str).value_or(fallback);
-		}
-
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static IntT toInt(const std::string& str, IntT fallback) noexcept
-		{
-			return toInt<IntT, Flags>(str.c_str(), fallback);
-		}
-
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static IntT toInt(const wchar_t* str, IntT fallback) noexcept
-		{
-			return toInt<IntT, Flags>(str).value_or(fallback);
-		}
-
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static IntT toInt(const std::wstring& str, IntT fallback) noexcept
-		{
-			return toInt<IntT, Flags>(str.c_str(), fallback);
-		}
-
-		template <typename IntT, typename CharT>
-		[[nodiscard]] static IntT hexToIntImpl(const CharT*& it)
-		{
 			IntT val = 0;
-			IntT max = 0;
-			IntT prev_max = 0;
-			while (true)
 			{
-				if constexpr (std::is_unsigned_v<IntT>)
+				bool had_number_char = false;
+				IntT max = 0;
+				IntT prev_max = 0;
+				while (true)
 				{
-					max *= 0x10;
-					max += 0xf;
-					SOUP_IF_UNLIKELY (!(max > prev_max))
+					if constexpr (std::is_unsigned_v<IntT>)
+					{
+						max *= Base;
+						max += (Base - 1);
+						SOUP_IF_UNLIKELY (!(max > prev_max))
+						{
+							break;
+						}
+						prev_max = max;
+					}
+
+					const CharT c = *it;
+					if (isNumberChar(c))
+					{
+						val *= Base;
+						val += (c - '0');
+					}
+					else if (Base > 10 && c >= 'a' && c <= ('a' + Base - 11))
+					{
+						val *= Base;
+						val += 0xA + (c - 'a');
+					}
+					else if (Base > 10 && c >= 'A' && c <= ('A' + Base - 11))
+					{
+						val *= Base;
+						val += 0xA + (c - 'A');
+					}
+					else
 					{
 						break;
 					}
-					prev_max = max;
-				}
+					++it;
+					had_number_char = true;
 
-				const CharT c = *it++;
-				if (isNumberChar(c))
-				{
-					val *= 0x10;
-					val += (c - '0');
-				}
-				else if (c >= 'a' && c <= 'f')
-				{
-					val *= 0x10;
-					val += 0xA + (c - 'a');
-				}
-				else if (c >= 'A' && c <= 'F')
-				{
-					val *= 0x10;
-					val += 0xA + (c - 'A');
-				}
-				else
-				{
-					--it;
-					break;
-				}
-
-				if constexpr (std::is_signed_v<IntT>)
-				{
-					max *= 0x10;
-					max += 0xf;
-					SOUP_IF_UNLIKELY (max < prev_max)
+					if constexpr (std::is_signed_v<IntT>)
 					{
-						break;
+						max *= Base;
+						max += (Base - 1);
+						SOUP_IF_UNLIKELY (max < prev_max)
+						{
+							break;
+						}
+						prev_max = max;
 					}
-					prev_max = max;
+				}
+				if (!had_number_char)
+				{
+					goto _fail;
 				}
 			}
-			return val;
-		}
-
-		template <typename IntT, uint8_t Flags = 0, typename CharT>
-		[[nodiscard]] static Optional<IntT> hexToInt(const CharT* it) noexcept
-		{
-			if (*it == '\0')
-			{
-				return std::nullopt;
-			}
-			if (!isHexDigitChar(*it))
-			{
-				return std::nullopt;
-			}
-			IntT val = hexToIntImpl<IntT, CharT>(it);
-			if constexpr (Flags & TI_FULL)
+			if (flags & TI_FULL)
 			{
 				if (*it != '\0')
 				{
-					return std::nullopt;
+					goto _fail;
 				}
 			}
-			return Optional<IntT>(std::move(val));
+			if constexpr (std::is_signed_v<IntT>)
+			{
+				if (neg)
+				{
+					val *= -1;
+				}
+			}
+			if (end)
+			{
+				*end = it;
+			}
+			return Optional<IntT>(val);
 		}
 
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static Optional<IntT> hexToInt(const std::string& str) noexcept
+		template <typename IntT>
+		[[nodiscard]] static Optional<IntT> toIntOpt(const std::string& str, uint8_t flags = 0) noexcept
 		{
-			return hexToInt<IntT, Flags>(str.c_str());
+			return toIntEx<IntT>(str.c_str(), flags);
 		}
 
-		template <typename IntT, uint8_t Flags>
-		[[nodiscard]] static Optional<IntT> hexToInt(const std::wstring& str) noexcept
+		template <typename IntT>
+		[[nodiscard]] static Optional<IntT> toIntOpt(const std::wstring& str, uint8_t flags = 0) noexcept
 		{
-			return hexToInt<IntT, Flags>(str.c_str());
+			return toIntEx<IntT>(str.c_str(), flags);
 		}
 
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static IntT hexToInt(const char* str, IntT fallback) noexcept
+		template <typename IntT>
+		[[nodiscard]] static IntT toInt(const char* str, IntT fallback, uint8_t flags = 0) noexcept
 		{
-			return hexToInt<IntT, Flags>(str).value_or(fallback);
+			return toIntEx<IntT>(str, flags).value_or(fallback);
 		}
 
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static IntT hexToInt(const std::string& str, IntT fallback) noexcept
+		template <typename IntT>
+		[[nodiscard]] static IntT toInt(const std::string& str, IntT fallback, uint8_t flags = 0) noexcept
 		{
-			return hexToInt<IntT, Flags>(str.c_str(), fallback);
+			return toIntEx<IntT>(str.c_str(), flags).value_or(fallback);
 		}
 
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static IntT hexToInt(const wchar_t* str, IntT fallback) noexcept
+		template <typename IntT>
+		[[nodiscard]] static IntT toInt(const wchar_t* str, IntT fallback, uint8_t flags = 0) noexcept
 		{
-			return hexToInt<IntT, Flags>(str).value_or(fallback);
+			return toIntEx<IntT>(str, flags).value_or(fallback);
 		}
 
-		template <typename IntT, uint8_t Flags = 0>
-		[[nodiscard]] static IntT hexToInt(const std::wstring& str, IntT fallback) noexcept
+		template <typename IntT>
+		[[nodiscard]] static IntT toInt(const std::wstring& str, IntT fallback, uint8_t flags = 0) noexcept
 		{
-			return hexToInt<IntT, Flags>(str.c_str(), fallback);
+			return toIntEx<IntT>(str.c_str(), flags).value_or(fallback);
+		}
+
+		template <typename IntT>
+		[[nodiscard]] static Optional<IntT> hexToIntOpt(const char* str, uint8_t flags = 0) noexcept
+		{
+			return toIntEx<IntT, 0x10>(str, flags);
+		}
+
+		template <typename IntT>
+		[[nodiscard]] static Optional<IntT> hexToIntOpt(const std::string& str, uint8_t flags = 0) noexcept
+		{
+			return toIntEx<IntT, 0x10>(str.c_str(), flags);
+		}
+
+		template <typename IntT>
+		[[nodiscard]] static Optional<IntT> hexToIntOpt(const std::wstring& str, uint8_t flags = 0) noexcept
+		{
+			return toIntEx<IntT, 0x10>(str.c_str(), flags);
+		}
+
+		template <typename IntT>
+		[[nodiscard]] static IntT hexToInt(const char* str, IntT fallback, uint8_t flags = 0) noexcept
+		{
+			return toIntEx<IntT, 0x10>(str, flags).value_or(fallback);
+		}
+
+		template <typename IntT>
+		[[nodiscard]] static IntT hexToInt(const std::string& str, IntT fallback, uint8_t flags = 0) noexcept
+		{
+			return toIntEx<IntT, 0x10>(str.c_str(), flags).value_or(fallback);
+		}
+
+		template <typename IntT>
+		[[nodiscard]] static IntT hexToInt(const wchar_t* str, IntT fallback, uint8_t flags = 0) noexcept
+		{
+			return toIntEx<IntT, 0x10>(str, flags).value_or(fallback);
+		}
+
+		template <typename IntT>
+		[[nodiscard]] static IntT hexToInt(const std::wstring& str, IntT fallback, uint8_t flags = 0) noexcept
+		{
+			return toIntEx<IntT, 0x10>(str.c_str(), flags).value_or(fallback);
 		}
 
 		// string mutation

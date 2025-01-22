@@ -19,7 +19,7 @@ NAMESPACE_SOUP
 	class SocketTlsHandshaker
 	{
 	public:
-		void(*callback)(Socket&, Capture&&) SOUP_EXCAL;
+		void(*callback)(Socket&, Capture&&);
 		Capture callback_capture;
 
 		TlsCipherSuite_t cipher_suite = TLS_RSA_WITH_AES_128_CBC_SHA;
@@ -45,7 +45,7 @@ NAMESPACE_SOUP
 		void(*on_client_hello)(Socket&, TlsClientHello&&);
 		const RsaPrivateKey* private_key{};
 
-		explicit SocketTlsHandshaker(void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& callback_capture) noexcept;
+		explicit SocketTlsHandshaker(void(*callback)(Socket&, Capture&&), Capture&& callback_capture) noexcept;
 
 		[[nodiscard]] std::string pack(TlsHandshakeType_t handshake_type, const std::string& content) SOUP_EXCAL;
 

@@ -125,16 +125,12 @@ NAMESPACE_SOUP
 		return result;
 	}
 
+#if !SOUP_WINDOWS
 	pid_t os::getProcessId() noexcept
 	{
-#if SOUP_WINDOWS
-		return GetCurrentProcessId();
-#else
 		return ::getpid();
-#endif
 	}
 
-#if !SOUP_WINDOWS
 	void os::sleep(unsigned int ms) noexcept
 	{
 #if _POSIX_C_SOURCE >= 199309L
@@ -183,6 +179,31 @@ NAMESPACE_SOUP
 	bool os::copyToClipboard(const std::string& text)
 	{
 		return copy_to_clipboard_utf16(unicode::utf8_to_utf16(text));
+	}
+
+	std::string os::getClipboardTextUtf8()
+	{
+		return unicode::utf16_to_utf8(getClipboardTextUtf16());
+	}
+
+	UTF16_STRING_TYPE os::getClipboardTextUtf16()
+	{
+		std::wstring text;
+		if (OpenClipboard(nullptr))
+		{
+			HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+			if (hData != nullptr)
+			{
+				auto pszText = static_cast<wchar_t*>(GlobalLock(hData));
+				if (pszText != nullptr)
+				{
+					text = pszText;
+					GlobalUnlock(hData);
+				}
+			}
+			CloseClipboard();
+		}
+		return text;
 	}
 
 	#if !SOUP_CROSS_COMPILE

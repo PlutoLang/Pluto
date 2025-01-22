@@ -66,7 +66,7 @@ NAMESPACE_SOUP
 			host = uri.substr(0, port_sep);
 			const char* pPort = &uri.at(port_sep + 1);
 			const char* i = pPort;
-			port = string::toIntImpl<uint16_t>(i);
+			port = string::toIntEx<uint16_t>(i, 0, &i).value_or(0);
 			++i;
 
 			uri.erase(0, port_sep + (i - pPort));

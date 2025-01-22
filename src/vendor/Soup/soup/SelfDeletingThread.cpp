@@ -14,21 +14,18 @@ NAMESPACE_SOUP
 	void SelfDeletingThread::run(Capture&& cap)
 	{
 		auto t = cap.get<SelfDeletingThread*>();
-#if SOUP_EXCEPTIONS
-		try
-#endif
+		SOUP_TRY
 		{
 			t->f(std::move(t->cap));
 		}
-#if SOUP_EXCEPTIONS
-		catch (const std::exception& e)
+		SOUP_CATCH (std::exception, e)
 		{
 			std::string msg = "Exception in SelfDeletingThread: ";
 			msg.append(e.what());
 			logWriteLine(std::move(msg));
 		}
-#endif
-		t->is_self_deleting = true;
+		t->detach();
+		delete t;
 	}
 }
 

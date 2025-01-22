@@ -34,6 +34,8 @@ NAMESPACE_SOUP
 
 #if SOUP_WINDOWS
 		static bool copyToClipboard(const std::string& text);
+		[[nodiscard]] static std::string getClipboardTextUtf8();
+		[[nodiscard]] static std::wstring getClipboardTextUtf16();
 
 	#if !SOUP_CROSS_COMPILE
 		[[nodiscard]] static size_t getMemoryUsage();
@@ -60,6 +62,11 @@ NAMESPACE_SOUP
 	};
 
 #if SOUP_WINDOWS
+	inline pid_t os::getProcessId() noexcept
+	{
+		return GetCurrentProcessId();
+	}
+
 	inline void os::sleep(unsigned int ms) noexcept
 	{
 		::Sleep(ms);

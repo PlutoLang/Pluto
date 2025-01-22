@@ -6,33 +6,49 @@ NAMESPACE_SOUP
 {
 	class TransientTokenBase
 	{
-	private:
+	public:
 		SharedPtr<bool> sp;
 
-	public:
-		TransientTokenBase() SOUP_EXCAL
-			: sp(soup::make_shared<bool>(true))
-		{
-		}
-
 		TransientTokenBase(bool valid) SOUP_EXCAL
-			: sp(soup::make_shared<bool>(valid))
+			: TransientTokenBase(soup::make_shared<bool>(valid))
 		{
 		}
 
+	protected:
+		TransientTokenBase(SharedPtr<bool>&& sp) noexcept
+			: sp(std::move(sp))
+		{
+		}
+
+		TransientTokenBase(const SharedPtr<bool>& sp) noexcept
+			: sp(sp)
+		{
+		}
+
+	public:
 		[[nodiscard]] bool isValid() const noexcept
 		{
 			return *sp;
+		}
+	};
+
+	struct TransientToken : public TransientTokenBase
+	{
+		using TransientTokenBase::TransientTokenBase;
+
+		TransientToken() SOUP_EXCAL
+			: TransientTokenBase(soup::make_shared<bool>(true))
+		{
+		}
+
+		~TransientToken() noexcept
+		{
+			invalidate();
 		}
 
 		void invalidate() const noexcept
 		{
 			*sp = false;
-		}
-
-		void reset() noexcept
-		{
-			sp.reset();
 		}
 
 		void refresh() SOUP_EXCAL
@@ -42,15 +58,23 @@ NAMESPACE_SOUP
 		}
 	};
 
-	struct TransientToken : public TransientTokenBase
+	struct TransientTokenRef : public TransientTokenBase
 	{
 		using TransientTokenBase::TransientTokenBase;
 
-		~TransientToken() noexcept
+		TransientTokenRef() SOUP_EXCAL
+			: TransientTokenBase(soup::make_shared<bool>(false))
 		{
-			invalidate();
+		}
+
+		TransientTokenRef(const TransientTokenBase& tt) noexcept
+			: TransientTokenBase(tt.sp)
+		{
+		}
+
+		void reset() SOUP_EXCAL
+		{
+			sp = soup::make_shared<bool>(false);
 		}
 	};
-
-	using TransientTokenRef = TransientTokenBase;
 }

@@ -265,9 +265,6 @@
     <ClCompile Include="src\vendor\Soup\soup\DefaultRngInterface.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\Soup\Intrin\hardware_rng.cpp">
-      <Filter>vendor\Soup\Intrin</Filter>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\sha384.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
@@ -459,9 +456,6 @@
     <ClInclude Include="src\vendor\Soup\soup\string.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
-    <ClInclude Include="src\vendor\Soup\soup\StringRefReader.hpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\TreeNode.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
@@ -559,9 +553,6 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\deflate.hpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClInclude>
-    <ClInclude Include="src\vendor\Soup\soup\DelayedCtor.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\deleter.hpp">
@@ -1074,6 +1065,8 @@
     <ClInclude Include="src\vendor\Soup\soup\BCanvas.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\MemoryRefReader.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\utility.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="vendor">

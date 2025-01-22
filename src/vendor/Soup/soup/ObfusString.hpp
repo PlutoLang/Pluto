@@ -22,7 +22,7 @@ NAMESPACE_SOUP
 
 	private:
 		// seed serves as null-terminator as it's set to 0 after deobfuscation
-		char data[Len];
+		char m_data[Len];
 		uint32_t seed;
 
 	public:
@@ -43,22 +43,30 @@ NAMESPACE_SOUP
 			seed = rand.getConstexprSeed(Len);
 			LcgRng rng(seed);
 
-			// rot13
+			// copy input & apply rot13
 			for (size_t i = 0; i != Len; ++i)
 			{
-				data[i] = string::rot13(in[i]);
+				m_data[i] = string::rot13(in[i]);
+			}
+
+			if (Len < 40'000)
+			{
+				// mirror
+				for (size_t i = 0, j = Len - 1; i != Len / 2; ++i, --j)
+				{
+					std::swap(m_data[i], m_data[j]);
+				}
 			}
 
 			// flip bits
 			for (size_t i = 0; i != Len; ++i)
 			{
-				data[i] ^= rng.generateByte();
-			}
-
-			// mirror
-			for (size_t i = 0, j = Len - 1; i != Len / 2; ++i, --j)
-			{
-				std::swap(data[i], data[j]);
+				const auto m = i % 8;
+				if (m == 0)
+				{
+					rng.skip();
+				}
+				m_data[i] ^= rng.state >> (m * 8);
 			}
 		}
 
@@ -71,22 +79,30 @@ NAMESPACE_SOUP
 			LcgRng rng(seed);
 			seed = 0;
 
-			// mirror
-			for (size_t i = 0, j = Len - 1; i != Len / 2; ++i, --j)
-			{
-				std::swap(data[i], data[j]);
-			}
-
 			// flip bits
 			for (size_t i = 0; i != Len; ++i)
 			{
-				data[i] ^= rng.generateByte();
+				const auto m = i % 8;
+				if (m == 0)
+				{
+					rng.skip();
+				}
+				m_data[i] ^= rng.state >> (m * 8);
+			}
+
+			if constexpr (Len < 40'000)
+			{
+				// mirror
+				for (size_t i = 0, j = Len - 1; i != Len / 2; ++i, --j)
+				{
+					std::swap(m_data[i], m_data[j]);
+				}
 			}
 
 			// rot13
 			for (size_t i = 0; i != Len; ++i)
 			{
-				data[i] = string::rot13(data[i]);
+				m_data[i] = string::rot13(m_data[i]);
 			}
 		}
 
@@ -94,7 +110,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::string str() SOUP_EXCAL
 		{
 			runtime_access();
-			return std::string(data, Len);
+			return std::string(m_data, Len);
 		}
 
 		[[nodiscard]] operator std::string() SOUP_EXCAL
@@ -105,7 +121,13 @@ NAMESPACE_SOUP
 		[[nodiscard]] const char* c_str() noexcept
 		{
 			runtime_access();
-			return data;
+			return m_data;
+		}
+
+		[[nodiscard]] const char* data() noexcept
+		{
+			runtime_access();
+			return m_data;
 		}
 
 		[[nodiscard]] operator const char* () noexcept
@@ -149,6 +171,16 @@ NAMESPACE_SOUP
 		{
 			os << str.str();
 			return os;
+		}
+
+		[[nodiscard]] constexpr size_t size() const noexcept
+		{
+			return Len;
+		}
+
+		[[nodiscard]] constexpr size_t length() const noexcept
+		{
+			return Len;
 		}
 	};
 	static_assert(sizeof(ObfusString<3>) == 2 + 4);

@@ -11,6 +11,7 @@ NAMESPACE_SOUP
 		std::string value{};
 
 		explicit JsonString() noexcept;
+		explicit JsonString(const std::string& value) noexcept;
 		explicit JsonString(std::string&& value) noexcept;
 		explicit JsonString(const char*& c) SOUP_EXCAL;
 

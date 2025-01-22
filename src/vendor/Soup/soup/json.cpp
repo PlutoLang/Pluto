@@ -89,7 +89,7 @@ NAMESPACE_SOUP
 		{
 			if (is_int)
 			{
-				auto opt = string::toInt<int64_t>(buf);
+				auto opt = string::toIntOpt<int64_t>(buf);
 				if (opt.has_value())
 				{
 					return soup::make_unique<JsonInt>(opt.value());
@@ -145,7 +145,7 @@ NAMESPACE_SOUP
 			else if (type == JSON_FLOAT)
 			{
 				uint64_t val;
-				if (r.u64(val))
+				if (r.u64le(val))
 				{
 					return soup::make_unique<JsonFloat>(*reinterpret_cast<double*>(&val));
 				}

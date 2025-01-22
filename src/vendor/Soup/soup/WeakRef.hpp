@@ -61,7 +61,7 @@ NAMESPACE_SOUP
 			return ptr != nullptr;
 		}
 
-		void reset() noexcept
+		void reset() SOUP_EXCAL
 		{
 			tt.reset();
 			ptr = nullptr;
