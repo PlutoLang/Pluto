@@ -11,8 +11,8 @@ NAMESPACE_SOUP
 	public:
 		std::istream& is;
 
-		IstreamReader(std::istream& is, Endian endian = ENDIAN_LITTLE)
-			: Reader(endian), is(is)
+		IstreamReader(std::istream& is)
+			: Reader(), is(is)
 		{
 		}
 
@@ -20,34 +20,26 @@ NAMESPACE_SOUP
 
 		bool hasMore() noexcept final
 		{
-#if SOUP_EXCEPTIONS
-			try
-#endif
+			SOUP_TRY
 			{
 				return is.peek() != EOF;
 			}
-#if SOUP_EXCEPTIONS
-			catch (...)
+			SOUP_CATCH_ANY
 			{
 			}
 			return false;
-#endif
 		}
 
 		bool raw(void* data, size_t len) noexcept final
 		{
-#if SOUP_EXCEPTIONS
-			try
-#endif
+			SOUP_TRY
 			{
 				is.read(reinterpret_cast<char*>(data), len);
 			}
-#if SOUP_EXCEPTIONS
-			catch (...)
+			SOUP_CATCH_ANY
 			{
 				return false;
 			}
-#endif
 			return is.rdstate() == 0;
 		}
 

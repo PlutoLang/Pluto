@@ -81,7 +81,7 @@ NAMESPACE_SOUP
 				hex.push_back(*(++i));
 				hex.push_back(*(++i));
 				++i;
-				if (unsigned char c; string::hexToInt<unsigned char>(hex).consume(c))
+				if (unsigned char c; string::hexToIntOpt<unsigned char>(hex).consume(c))
 				{
 					res.push_back(static_cast<char>(c));
 				}

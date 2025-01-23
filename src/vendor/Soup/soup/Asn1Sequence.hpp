@@ -16,6 +16,7 @@ NAMESPACE_SOUP
 		explicit Asn1Sequence(const std::string& data) SOUP_EXCAL; // expects DER-encoded data without prefix
 
 		[[nodiscard]] static Asn1Sequence fromDer(const std::string& str) SOUP_EXCAL; // expects DER-encoded data with prefix
+		[[nodiscard]] static Asn1Sequence fromDer(const char* data, size_t size) SOUP_EXCAL; // expects DER-encoded data with prefix
 		[[nodiscard]] static Asn1Sequence fromDer(Reader& r) SOUP_EXCAL; // expects DER-encoded data with prefix
 
 		[[nodiscard]] size_t countChildren() const;

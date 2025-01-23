@@ -28,24 +28,30 @@ NAMESPACE_SOUP
 
 #if SOUP_X86
 		uint32_t cpuid_max_eax;
-		uint64_t cpuid_extended_max_eax;
+		uint32_t cpuid_extended_max_eax;
 		ShortString<16> vendor_id;
 
-		uint8_t stepping_id;
-		uint8_t model;
-		uint8_t family;
-		uint32_t feature_flags_ecx;
-		uint32_t feature_flags_edx;
+		// EAX=1
+		uint8_t stepping_id = 0;
+		uint8_t model = 0;
+		uint8_t family = 0;
+		uint32_t feature_flags_ecx = 0;
+		uint32_t feature_flags_edx = 0;
 
 		// EAX=7, ECX=0
-		uint32_t extended_features_0_ebx;
+		uint32_t extended_features_max_ecx = 0;
+		uint32_t extended_features_0_ebx = 0;
+
+		// EAX=7, ECX=1
+		uint32_t extended_features_1_eax = 0;
+
+		// EAX=16h
+		uint16_t base_frequency = 0;
+		uint16_t max_frequency = 0;
+		uint16_t bus_frequency = 0;
 
 		// EAX=80000001h
-		uint64_t extended_features_1_ecx;
-
-		uint16_t base_frequency;
-		uint16_t max_frequency;
-		uint16_t bus_frequency;
+		uint32_t extended_flags_1_ecx = 0;
 
 		[[nodiscard]] bool supportsSSE() const noexcept
 		{
@@ -87,6 +93,11 @@ NAMESPACE_SOUP
 			return (feature_flags_ecx >> 25) & 1;
 		}
 
+		[[nodiscard]] bool supportsAVX() const noexcept
+		{
+			return (feature_flags_ecx >> 28) & 1;
+		}
+
 		[[nodiscard]] bool supportsRDRAND() const noexcept
 		{
 			return (feature_flags_ecx >> 30) & 1;
@@ -112,9 +123,14 @@ NAMESPACE_SOUP
 			return (extended_features_0_ebx >> 29) & 1;
 		}
 
+		[[nodiscard]] bool supportsSHA512() const noexcept
+		{
+			return (extended_features_1_eax >> 0) & 1;
+		}
+
 		[[nodiscard]] bool supportsXOP() const noexcept
 		{
-			return (extended_features_1_ecx >> 11) & 1;
+			return (extended_flags_1_ecx >> 11) & 1;
 		}
 
 		static void invokeCpuid(void* out, uint32_t eax) noexcept;

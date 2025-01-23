@@ -41,6 +41,12 @@ NAMESPACE_SOUP
 		return fromDer(r);
 	}
 
+	Asn1Sequence Asn1Sequence::fromDer(const char* data, size_t size)
+	{
+		MemoryRefReader r(data, size);
+		return fromDer(r);
+	}
+
 	Asn1Sequence Asn1Sequence::fromDer(Reader& r) SOUP_EXCAL
 	{
 		SOUP_IF_UNLIKELY (readIdentifier(r).type != ASN1_SEQUENCE)

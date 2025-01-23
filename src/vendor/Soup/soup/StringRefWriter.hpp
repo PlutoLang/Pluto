@@ -9,8 +9,8 @@ NAMESPACE_SOUP
 	public:
 		std::string& str;
 
-		StringRefWriter(std::string& str, bool little_endian = true)
-			: Writer(little_endian), str(str)
+		StringRefWriter(std::string& str)
+			: Writer(), str(str)
 		{
 		}
 
@@ -18,19 +18,20 @@ NAMESPACE_SOUP
 
 		bool raw(void* data, size_t size) noexcept final
 		{
-#if SOUP_EXCEPTIONS
-			try
-#endif
+			SOUP_TRY
 			{
 				str.append(reinterpret_cast<char*>(data), size);
 			}
-#if SOUP_EXCEPTIONS
-			catch (...)
+			SOUP_CATCH_ANY
 			{
 				return false;
 			}
-#endif
 			return true;
+		}
+
+		[[nodiscard]] size_t getPosition() final
+		{
+			return str.size();
 		}
 	};
 }

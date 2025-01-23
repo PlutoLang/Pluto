@@ -79,11 +79,13 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 #if defined(_MSC_VER) && !defined(__clang__)
 	#define SOUP_FORCEINLINE __forceinline
 	#define SOUP_NOINLINE __declspec(noinline)
-	#define SOUP_PURE
+	#define SOUP_PURE __declspec(noalias)
+	#define SOUP_UNIQADDR __restrict
 #else
 	#define SOUP_FORCEINLINE __attribute__((always_inline)) inline
 	#define SOUP_NOINLINE __attribute__((noinline))
 	#define SOUP_PURE __attribute__((pure))
+	#define SOUP_UNIQADDR __restrict__
 #endif
 
 // === CPU macros
@@ -102,14 +104,11 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 
 #if defined(__arm__) || defined(__aarch64__) || defined(_M_ARM) || defined(_M_ARM64)
 	#define SOUP_ARM true
+	#if defined(__clang_major__) && __clang_major__ <= 14 && !defined(__ARM_FEATURE_CRYPTO)
+		#error Your version of Clang predates some important fixes for ARM codegen. Provide -march=armv8+crypto+crc to compile Soup. Note that the resulting binary may be incorrect.
+	#endif
 #else
 	#define SOUP_ARM false
-#endif
-
-#if 'ABCD' == 0x41424344ul
-	#define SOUP_LITTLE_ENDIAN
-#else
-	static_assert('ABCD' == 0x44434241ul); // If it's not little endian, it has to be big endian.
 #endif
 
 // === Determine if code inspector
@@ -122,11 +121,13 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 
 // === C++ conditional feature macros
 
-#if __cplusplus == 1997'11L
-	#error Please set the /Zc:__cplusplus compiler flag or manually adjust __cplusplus when using Soup.
+#ifdef _MSVC_LANG
+	#define SOUP_CPP_VERSION _MSVC_LANG
+#else
+	#define SOUP_CPP_VERSION __cplusplus
 #endif
 
-#if __cplusplus < 2020'00L
+#if SOUP_CPP_VERSION < 2020'00L
 	#define SOUP_CPP20 false
 #else
 	#define SOUP_CPP20 true
@@ -141,34 +142,37 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 #endif
 
 #if SOUP_CPP20
-	#define SOUP_IF_LIKELY(cond) if (cond) [[likely]]
-	#define SOUP_IF_UNLIKELY(cond) if (cond) [[unlikely]]
+	#define SOUP_IF_LIKELY(...) if (__VA_ARGS__) [[likely]]
+	#define SOUP_IF_UNLIKELY(...) if (__VA_ARGS__) [[unlikely]]
 #else
-	#define SOUP_IF_LIKELY(cond) if (cond)
-	#define SOUP_IF_UNLIKELY(cond) if (cond)
+	#define SOUP_IF_LIKELY(...) if (__VA_ARGS__)
+	#define SOUP_IF_UNLIKELY(...) if (__VA_ARGS__)
 #endif
 
-#if __cplusplus < 2023'00L
+#if SOUP_CPP_VERSION < 2023'00L
 	#define SOUP_CPP23 false
 #else
 	#define SOUP_CPP23 true
 #endif
 
 #if SOUP_CPP23
-	#define SOUP_ASSUME(x) [[assume(x)]];
+	#define SOUP_ASSUME(...) [[assume(__VA_ARGS__)]];
 	#define SOUP_UNREACHABLE std::unreachable();
 #else
 	#if defined(_MSC_VER) && !defined(__clang__)
-		#define SOUP_ASSUME(x) __assume(x);
+		#define SOUP_ASSUME(...) __assume(__VA_ARGS__);
 		#define SOUP_UNREACHABLE SOUP_ASSUME(false);
 	#else
-		#define SOUP_ASSUME(x) ;
+		#define SOUP_ASSUME(...) ;
 		#define SOUP_UNREACHABLE __builtin_unreachable();
 	#endif
 #endif
 
 #if (__cpp_exceptions < 1997'11L) && (!defined(_MSC_VER) || defined(__clang__))
 	#define SOUP_EXCEPTIONS false
+	#define SOUP_TRY if (true)
+	#define SOUP_CATCH(T, name) if (const T& name = *(T*)nullptr; false)
+	#define SOUP_CATCH_ANY if (false)
 	#define SOUP_THROW(x) ::soup::throwImpl(x);
 
 	#include <stdexcept>
@@ -179,16 +183,16 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 	}
 #else
 	#define SOUP_EXCEPTIONS true
+	#define SOUP_TRY try
+	#define SOUP_CATCH(T, name) catch (const T& name)
+	#define SOUP_CATCH_ANY catch (...)
 	#define SOUP_THROW(x) throw x;
 #endif
 
 #ifndef SOUP_EXCAL
-	// An 'excal' function is 'noexcept' except it may throw std::bad_alloc.
+	// An 'excal' function may not throw any exception other than std::bad_alloc (in case of an allocation failure).
 	//
-	// We generally don't attempt to handle allocation failures, not least because it's basically impossible on modern systems.
-	// Because of this, we declare that 'excal' functions are 'noexcept' to avoid superfluous unwind information.
-	//
-	// For visual distinction with IDE hover features, we use `throw()`, but it's functionally identical to `noexcept`.
+	// If you don't handle allocate failures, you can slightly reduce your binary size by setting this macro to `noexcept` or `throw()`.
 	#define SOUP_EXCAL
 #endif
 
@@ -211,6 +215,8 @@ NAMESPACE_SOUP
 #endif
 
 template <typename T> SOUP_FORCEINLINE void SOUP_UNUSED(T&&) {}
+
+#define SOUP_RETHROW_FALSE(x) SOUP_IF_UNLIKELY (!(x)) { return false; }
 
 // Enable compiler warning for unannotated fallthroughs
 #if defined(__clang__)

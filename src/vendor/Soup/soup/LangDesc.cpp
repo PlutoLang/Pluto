@@ -60,7 +60,7 @@ NAMESPACE_SOUP
 			{
 				lexemes.emplace_back(Lexeme{ tk->keyword });
 			}
-			else if (c = lb.c_str(), opt = string::toIntOpt<int64_t>(c); opt.has_value() && *c == 0)
+			else if (c = lb.c_str(), opt = string::toIntEx<int64_t>(c, 0, &c); opt.has_value() && *c == 0)
 			{
 				lexemes.emplace_back(Lexeme{ Lexeme::VAL, opt.value() });
 			}

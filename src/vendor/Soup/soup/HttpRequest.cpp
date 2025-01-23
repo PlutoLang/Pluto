@@ -40,7 +40,7 @@ NAMESPACE_SOUP
 	{
 		path_is_encoded = true;
 
-		if (joaat::hash(uri.scheme) == joaat::hash("http"))
+		if (joaat::hash(uri.scheme) == joaat::compileTimeHash("http"))
 		{
 			use_tls = false;
 			port = 80;
@@ -349,7 +349,7 @@ NAMESPACE_SOUP
 								if (auto len = self.resp.header_fields.find(ObfusString("Content-Length")); len != self.resp.header_fields.end())
 								{
 									self.status = BODY_LEN;
-									if (auto opt = string::toInt<uint64_t, string::TI_FULL>(len->second); opt.has_value())
+									if (auto opt = string::toIntOpt<uint64_t>(len->second, string::TI_FULL); opt.has_value())
 									{
 										self.bytes_remain = opt.value();
 									}
@@ -394,7 +394,7 @@ NAMESPACE_SOUP
 							{
 								break;
 							}
-							if (auto opt = string::hexToInt<uint64_t>(self.buf.substr(0, i)); opt.has_value())
+							if (auto opt = string::hexToIntOpt<uint64_t>(self.buf.substr(0, i)); opt.has_value())
 							{
 								self.bytes_remain = opt.value();
 							}

@@ -40,6 +40,7 @@ NAMESPACE_SOUP
 		std::time_t valid_to;
 
 		bool fromDer(const std::string& str) noexcept;
+		bool fromDer(const char* data, size_t size) noexcept;
 		bool load(const Asn1Sequence& cert) noexcept;
 
 		[[nodiscard]] bool isRsa() const noexcept { return !is_ec; }

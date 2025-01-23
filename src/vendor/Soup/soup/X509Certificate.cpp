@@ -16,11 +16,14 @@ NAMESPACE_SOUP
 		return load(Asn1Sequence::fromDer(str));
 	}
 
+	bool X509Certificate::fromDer(const char* data, size_t size) noexcept
+	{
+		return load(Asn1Sequence::fromDer(data, size));
+	}
+
 	bool X509Certificate::load(const Asn1Sequence& cert) noexcept
 	{
-#if SOUP_EXCEPTIONS
-		try
-#endif
+		SOUP_TRY
 		{
 			auto tbsCert = cert.getSeq(0);
 			auto oid = cert.getSeq(1).getOid(0);
@@ -138,11 +141,9 @@ NAMESPACE_SOUP
 
 			return true;
 		}
-#if SOUP_EXCEPTIONS
-		catch (...)
+		SOUP_CATCH_ANY
 		{
 		}
-#endif
 		return false;
 	}
 
