@@ -2678,6 +2678,13 @@ static void safe_navigation (LexState *ls, expdesc *v) {
 static void top_to_expdesc (LexState *ls, expdesc *v) {
   lua_State *L = ls->L;
   switch (lua_type(L, -1)) {
+    case LUA_TNONE:
+    case LUA_TNIL:
+      init_exp(v, VNIL, 0);
+      break;
+    case LUA_TBOOLEAN:
+      init_exp(v, lua_istrue(L, -1) ? VTRUE : VFALSE, 0);
+      break;
     case LUA_TNUMBER: {
       if (lua_isinteger(L, -1)) {
         init_exp(v, VKINT, 0);
@@ -2780,26 +2787,37 @@ int luaB_utonumber (lua_State *L);
 int luaB_tostring (lua_State *L);
 int luaB_utostring (lua_State *L);
 int luaB_type (lua_State *L);
+int luaB_assert (lua_State *L);
 
 static void const_expr (LexState *ls, expdesc *v) {
   switch (ls->t.token) {
     case TK_NAME: {
-      const Pluto::ConstexprLibrary* lib = nullptr;
-      for (const auto& library : Pluto::all_preloaded) {
-        if (strcmp(library->name, getstr(ls->t.seminfo.ts)) == 0) {
-          lib = library;
-          break;
-        }
-      }
-      if (lib == nullptr) {
-        for (const auto& library : Pluto::all_constexpr) {
+      if (!check_constexpr_call(ls, v, "tonumber", luaB_tonumber)
+          && !check_constexpr_call(ls, v, "utonumber", luaB_utonumber)
+          && !check_constexpr_call(ls, v, "tostring", luaB_tostring)
+          && !check_constexpr_call(ls, v, "utostring", luaB_utostring)
+          && !check_constexpr_call(ls, v, "type", luaB_type)
+          && !check_constexpr_call(ls, v, "assert", luaB_assert)
+        )
+      {
+        const Pluto::ConstexprLibrary* lib = nullptr;
+        for (const auto& library : Pluto::all_preloaded) {
           if (strcmp(library->name, getstr(ls->t.seminfo.ts)) == 0) {
             lib = library;
             break;
           }
         }
-      }
-      if (lib != nullptr) {
+        if (lib == nullptr) {
+          for (const auto& library : Pluto::all_constexpr) {
+            if (strcmp(library->name, getstr(ls->t.seminfo.ts)) == 0) {
+              lib = library;
+              break;
+            }
+          }
+          if (lib == nullptr) {
+            throwerr(ls, luaO_fmt(ls->L, "%s is not available in constant expression", getstr(ls->t.seminfo.ts)), "unrecognized name.");
+          }
+        }
         luaX_next(ls); /* skip TK_NAME */
         checknext(ls, '.');
         check(ls, TK_NAME);
@@ -2817,15 +2835,6 @@ static void const_expr (LexState *ls, expdesc *v) {
           luaX_next(ls); /* skip TK_NAME */
           constexpr_call(ls, v, f);
         }
-      }
-      else if (!check_constexpr_call(ls, v, "tonumber", luaB_tonumber)
-          && !check_constexpr_call(ls, v, "utonumber", luaB_utonumber)
-          && !check_constexpr_call(ls, v, "tostring", luaB_tostring)
-          && !check_constexpr_call(ls, v, "utostring", luaB_utostring)
-          && !check_constexpr_call(ls, v, "type", luaB_type)
-        )
-      {
-        throwerr(ls, luaO_fmt(ls->L, "%s is not available in constant expression", getstr(ls->t.seminfo.ts)), "unrecognized name.");
       }
       return;
     }
@@ -4673,8 +4682,8 @@ static void constexprstat (LexState *ls, int line) {
     constexprdefinestat(ls, line);
   }
   else {
-    const char *token = luaX_token2str(ls, ls->t);
-    throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+    expdesc v;
+    const_expr(ls, &v);
   }
 }
 
