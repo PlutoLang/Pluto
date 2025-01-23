@@ -3436,6 +3436,11 @@ do
         $end
     end
     assert(elseif_test() == "branch 2")
+
+    $assert(true)
+    $define COND = true
+    $assert(COND)
+    assert(not load[[$assert(false)]])
 end
 
 print "Testing preprocessor."
