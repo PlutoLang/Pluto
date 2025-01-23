@@ -498,7 +498,7 @@ static int luaB_dofile (lua_State *L) {
 }
 
 
-static int luaB_assert (lua_State *L) {
+int luaB_assert (lua_State *L) {
   if (l_likely(lua_toboolean(L, 1)))  /* condition is true? */
     return lua_gettop(L);  /* return all arguments */
   else {  /* error */
