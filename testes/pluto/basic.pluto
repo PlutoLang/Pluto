@@ -2045,6 +2045,11 @@ do
     assert(keys:contains("c"))
 end
 do
+    local t = { a = 1, b = 2, c = 3 }
+    assert(#t == 0)
+    assert(#t:values() == 3)
+end
+do
     local test_table_1 = {1, 2, 2, 3, 1}
     local counts_1 = test_table_1:countvalues()
     assert(counts_1[1] == 2)
