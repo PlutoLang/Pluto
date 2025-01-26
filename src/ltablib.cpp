@@ -803,19 +803,40 @@ static int tkeys (lua_State *L) {
   lua_newtable(L);
   lua_Integer i = 0;
   lua_pushnil(L);
-  /* stack now: tKeys, key */
+  /* stack now: res, key */
   while (lua_next(L, 1)) {
-    /* stack now: tKeys, key, value */
+    /* stack now: res, key, value */
     lua_pop(L, 1);
-    /* stack now: tKeys, key */
+    /* stack now: res, key */
     lua_pushinteger(L, ++i);
-    /* stack now: tKeys, key, index */
+    /* stack now: res, key, index */
     lua_pushvalue(L, -2);
-    /* stack now: tKeys, key, index, key */
+    /* stack now: res, key, index, key */
     lua_settable(L, -4);
-    /* stack now: tKeys, key */
+    /* stack now: res, key */
   }
-  /* stack now: tKeys */
+  /* stack now: res */
+  return 1;
+}
+
+
+static int tvalues (lua_State *L) {
+  lua_newtable(L);
+  lua_Integer i = 0;
+  lua_pushnil(L);
+  /* stack now: res, key */
+  while (lua_next(L, 1)) {
+    /* stack now: res, key, value */
+    lua_pushinteger(L, ++i);
+    /* stack now: res, key, value, index */
+    lua_pushvalue(L, -2);
+    /* stack now: res, key, value, index, value */
+    lua_settable(L, -5);
+    /* stack now: res, key, value */
+    lua_pop(L, 1);
+    /* stack now: res, key */
+  }
+  /* stack now: res */
   return 1;
 }
 
@@ -1005,6 +1026,7 @@ static const luaL_Reg tab_funcs[] = {
   {"deduped", tdeduplicate},
   {"deduplicated", tdeduplicated},
   {"keys", tkeys},
+  {"values", tvalues},
   {"modget", modget},
   {"modset", modset},
   {"back", tback},
