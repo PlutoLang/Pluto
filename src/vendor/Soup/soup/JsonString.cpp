@@ -129,24 +129,45 @@ NAMESPACE_SOUP
 				str.push_back(c);
 				break;
 
+			case 0x00: str.append("\\u0000"); break;
+			case 0x01: str.append("\\u0001"); break;
+			case 0x02: str.append("\\u0002"); break;
+			case 0x03: str.append("\\u0003"); break;
+			case 0x04: str.append("\\u0004"); break;
+			case 0x05: str.append("\\u0005"); break;
+			case 0x06: str.append("\\u0006"); break;
+			case 0x07: str.append("\\u0007"); break;
+			case 0x08: str.append("\\u0008"); break;
+			case 0x09: str.append("\\t"); static_assert('\t' == 0x09); break;
+			case 0x0A: str.append("\\n"); static_assert('\n' == 0x0A); break;
+			case 0x0B: str.append("\\u000B"); break;
+			case 0x0C: str.append("\\u000C"); break;
+			case 0x0D: str.append("\\r"); static_assert('\r' == 0x0D); break;
+			case 0x0E: str.append("\\u000E"); break;
+			case 0x0F: str.append("\\u000F"); break;
+			case 0x10: str.append("\\u0010"); break;
+			case 0x11: str.append("\\u0011"); break;
+			case 0x12: str.append("\\u0012"); break;
+			case 0x13: str.append("\\u0013"); break;
+			case 0x14: str.append("\\u0014"); break;
+			case 0x15: str.append("\\u0015"); break;
+			case 0x16: str.append("\\u0016"); break;
+			case 0x17: str.append("\\u0017"); break;
+			case 0x18: str.append("\\u0018"); break;
+			case 0x19: str.append("\\u0019"); break;
+			case 0x1A: str.append("\\u001A"); break;
+			case 0x1B: str.append("\\u001B"); break;
+			case 0x1C: str.append("\\u001C"); break;
+			case 0x1D: str.append("\\u001D"); break;
+			case 0x1E: str.append("\\u001E"); break;
+			case 0x1F: str.append("\\u001F"); break;
+
 			case '\\':
 				str.append("\\\\");
 				break;
 
 			case '\"':
 				str.append("\\\"");
-				break;
-
-			case '\r':
-				str.append("\\r");
-				break;
-
-			case '\n':
-				str.append("\\n");
-				break;
-
-			case '\t':
-				str.append("\\t");
 				break;
 			}
 		}
