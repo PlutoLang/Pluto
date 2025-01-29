@@ -2154,13 +2154,16 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
         if (fallbacks) {
           if (testnext(ls, '=')) {
             if (ls->t.token == TK_NIL) {
-              throwerr(ls, "default argument expected", "nil is not a valid default argument");
+              throw_warn(ls, "default arguments substitute nil values, not absent ones", "'= nil' is a no-op", WT_BAD_PRACTICE);
+              luaX_next(ls);
             }
-            fallbacks->emplace_back(luaX_getpos(ls));
-            if (lambda)
-              skip_over_simpleexp_within_lambdaparlist(ls);
-            else
-              skip_over_simpleexp_within_parenlist(ls);
+            else {
+              fallbacks->emplace_back(luaX_getpos(ls));
+              if (lambda)
+                skip_over_simpleexp_within_lambdaparlist(ls);
+              else
+                skip_over_simpleexp_within_parenlist(ls);
+            }
           }
           else {
             fallbacks->emplace_back(0);
