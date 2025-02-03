@@ -41,7 +41,17 @@ return class
 
     function add(t)
         if type(t) ~= "thread" then
-            t = coroutine.create(t)
+            if self.errorfunc then
+                local f = t
+                t = coroutine.create(function()
+                    local r = table.pack(xpcall(f, self.errorfunc))
+                    if r[1] and r.n ~= 1 then
+                        warn("Coroutine yielded values to scheduler. Discarding them.")
+                    end
+                end)
+            else
+                t = coroutine.create(t)
+            end
         end
         table.insert(self.coros, t)
         self:internalresume(t)
