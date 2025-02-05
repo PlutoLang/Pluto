@@ -197,13 +197,14 @@ struct FfiFuncWrapper {
   void* addr;
   std::vector<FfiType> args;
   FfiType ret;
+  soup::SharedPtr<soup::SharedLibrary> owner;
 };
 
-[[nodiscard]] static soup::SharedLibrary* checkffilib (lua_State *L, int i) {
-  return (soup::SharedLibrary*)luaL_checkudata(L, i, "pluto:ffi-library");
+[[nodiscard]] static soup::SharedPtr<soup::SharedLibrary>* checkffilib (lua_State *L, int i) {
+  return (soup::SharedPtr<soup::SharedLibrary>*)luaL_checkudata(L, i, "pluto:ffi-library");
 }
 
-[[nodiscard]] static soup::SharedLibrary* checkffilibfromtable (lua_State *L, int i) {
+[[nodiscard]] static soup::SharedPtr<soup::SharedLibrary>* checkffilibfromtable (lua_State *L, int i) {
   lua_pushliteral(L, "__object");
   if (!lua_gettable(L, i)) {
     luaL_typeerror(L, i, "pluto:ffi-library");
@@ -267,7 +268,8 @@ static int ffi_lib_wrap (lua_State *L) {
   auto fw = newfuncwrapper(L);
   fw->ret = check_ffi_type(L, 2);
   const char *name = luaL_checkstring(L, 3);
-  fw->addr = checkffilibfromtable(L, 1)->getAddress(name);
+  auto pSpLib = checkffilibfromtable(L, 1);
+  fw->addr = (*pSpLib)->getAddress(name);
   if (l_unlikely(fw->addr == nullptr)) {
     luaL_error(L, "could not find '%s' in library", name);
   }
@@ -279,12 +281,13 @@ static int ffi_lib_wrap (lua_State *L) {
   for (int i = 4; i != 4 + nargtypes; ++i) {
     fw->args.emplace_back(check_ffi_type(L, i));
   }
+  fw->owner = *pSpLib;
   return 1;
 }
 
 static int ffi_lib_value (lua_State *L) {
   const char *name = luaL_checkstring(L, 3);
-  void *addr = checkffilibfromtable(L, 1)->getAddress(luaL_checkstring(L, 3));
+  void *addr = checkffilibfromtable(L, 1)->get()->getAddress(luaL_checkstring(L, 3));
   if (l_unlikely(addr == nullptr)) {
     luaL_error(L, "could not find '%s' in library", name);
   }
@@ -292,7 +295,8 @@ static int ffi_lib_value (lua_State *L) {
 }
 
 static int ffi_lib_cdef (lua_State *L) {
-  const auto lib = checkffilibfromtable(L, 1);
+  const auto pSpLib = checkffilibfromtable(L, 1);
+  const auto lib = pSpLib->get();
   auto par = pluto_newclassinst(L, soup::rflParser, pluto_checkstring(L, 2));
   auto var = pluto_newclassinst(L, soup::rflVar);
   auto func = pluto_newclassinst(L, soup::rflFunc);
@@ -330,6 +334,7 @@ static int ffi_lib_cdef (lua_State *L) {
         if (l_unlikely(fw->args.back() == FFI_UNKNOWN))
           luaL_error(L, "malformed function");
       }
+      fw->owner = *pSpLib;
       lua_settable(L, 1);
     }
     else {
@@ -355,7 +360,8 @@ static int ffi_open (lua_State *L) {
   lua_newtable(L);
   lua_pushliteral(L, "__object");
   {
-    auto lib = new (lua_newuserdata(L, sizeof(soup::SharedLibrary))) soup::SharedLibrary(libname);
+    auto spLib = soup::make_shared<soup::SharedLibrary>(libname);
+    auto lib = new (lua_newuserdata(L, sizeof(soup::SharedPtr<soup::SharedLibrary>))) soup::SharedPtr<soup::SharedLibrary>(std::move(spLib));
     if (luaL_newmetatable(L, "pluto:ffi-library")) {
       lua_pushliteral(L, "__gc");
       lua_pushcfunction(L, [](lua_State *L) {
@@ -365,7 +371,7 @@ static int ffi_open (lua_State *L) {
       lua_settable(L, -3);
     }
     lua_setmetatable(L, -2);
-    if (!lib->isLoaded()) {
+    if (!(*lib)->isLoaded()) {
       luaL_error(L, "failed to load library '%s'", libname);
     }
   }

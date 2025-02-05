@@ -146,3 +146,9 @@ float_test_inst.f = 69
 float_test_inst.d = 420
 assert(float_test_inst.f == 69)
 assert(float_test_inst.d == 420)
+
+-- Finally, remove the library from scope and ensure that it's not unloaded while its functions are still accessible
+local add = lib.add
+lib = nil
+collectgarbage()
+assert(add(32, 10) == 42)
