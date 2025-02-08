@@ -1511,10 +1511,14 @@ do
     assert(crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
     assert(crypto.fnv1a("hello world") == 8618312879776256743)
     assert(crypto.joaat("hello world") == 1045060183)
+    assert(crypto.crc32("hello world") == 222957957)
+    assert(crypto.crc32c("hello world") == 3381945770)
     -- Constexpr
     assert($crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
     assert($crypto.fnv1a("hello world") == 8618312879776256743)
     assert($crypto.joaat("hello world") == 1045060183)
+    assert($crypto.crc32("hello world") == 222957957)
+    assert($crypto.crc32c("hello world") == 3381945770)
 
     assert(crypto.sha1("Pluto") == "bce8c9aca4120776fad6b517874aa09c46405454")
     assert(crypto.sha1("Pluto", true) == "\xbc\xe8\xc9\xac\xa4\x12\x07\x76\xfa\xd6\xb5\x17\x87\x4a\xa0\x9c\x46\x40\x54\x54")
