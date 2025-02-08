@@ -13,6 +13,7 @@
 #include "vendor/Soup/soup/adler32.hpp"
 #include "vendor/Soup/soup/aes.hpp"
 #include "vendor/Soup/soup/crc32.hpp"
+#include "vendor/Soup/soup/crc32c.hpp"
 #include "vendor/Soup/soup/deflate.hpp"
 #include "vendor/Soup/soup/HardwareRng.hpp"
 #include "vendor/Soup/soup/ripemd160.hpp"
@@ -244,6 +245,16 @@ static int crc32(lua_State *L)
   size_t len;
   const auto text = luaL_checklstring(L, 1, &len);
   const auto hash = soup::crc32::hash((const uint8_t*)text, len, (uint32_t)luaL_optinteger(L, 2, 0));
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
+static int crc32c(lua_State *L)
+{
+  size_t len;
+  const auto text = luaL_checklstring(L, 1, &len);
+  const auto hash = soup::crc32c::hash((const uint8_t*)text, len, (uint32_t)luaL_optinteger(L, 2, 0));
   lua_pushinteger(L, hash);
   return 1;
 }
@@ -751,6 +762,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"sha512", l_hashwithdigest<soup::sha512>},
   {"lua", lua},
   {"crc32", crc32},
+  {"crc32c", crc32c},
   {"lookup3", lookup3},
   {"md5", md5},
   {"sdbm", sdbm},

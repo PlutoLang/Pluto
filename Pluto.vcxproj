@@ -595,6 +595,7 @@
     <ClCompile Include="src\vendor\Soup\soup\cat.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\CpuInfo.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\crc32.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\crc32c.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Curve25519.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\DefaultRngInterface.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\deflate.cpp" />
@@ -748,6 +749,7 @@
     <ClInclude Include="src\vendor\Soup\soup\ConstString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CpuInfo.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\crc32.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\crc32c.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\crc32_intrin.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CryptoHashAlgo.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Curve25519.hpp" />
