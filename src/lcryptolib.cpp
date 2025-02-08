@@ -218,13 +218,20 @@ static int sdbm(lua_State *L)
 static int md5(lua_State *L)
 {
   size_t len;
-  unsigned char buffer[16];
   const auto str = luaL_checklstring(L, 1, &len);
+  const bool binary = lua_istrue(L, 2);
+
+  unsigned char buffer[16];
   md5_fn((unsigned char*)str, (int)len, buffer);
-  
-  char hexbuff[32];
-  soup::string::bin2hexAt(hexbuff, (const char*)buffer, sizeof(buffer), soup::string::charset_hex_lower);
-  lua_pushlstring(L, hexbuff, sizeof(hexbuff));
+
+  if (binary) {
+    lua_pushlstring(L, (const char*)buffer, sizeof(buffer));
+  }
+  else {
+    char hexbuff[32];
+    soup::string::bin2hexAt(hexbuff, (const char*)buffer, sizeof(buffer), soup::string::charset_hex_lower);
+    lua_pushlstring(L, hexbuff, sizeof(hexbuff));
+  }
   return 1;
 }
 
