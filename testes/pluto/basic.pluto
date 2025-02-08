@@ -1588,7 +1588,7 @@ do
         local root = {}
         do
             local prev_t = root
-            for i = 1, 10000 do
+            for _ = 1, 10000 do
                 local t = {}
                 prev_t:insert(t)
                 prev_t = t
@@ -1602,7 +1602,7 @@ do
     local root = {}
     do
         local prev_t = root
-        for i = 1, 1000 do
+        for _ = 1, 1000 do
             local t = {}
             prev_t:insert(t)
             prev_t = t
@@ -1657,7 +1657,7 @@ do
     local root = { tag = "root", children = {} }
     do
         local prev_t = root
-        for i = 1, 1000 do
+        for _ = 1, 1000 do
             local t = { tag = "node", children = {} }
             prev_t.children:insert(t)
             prev_t = t
