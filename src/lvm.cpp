@@ -869,7 +869,10 @@ static void inopr (lua_State *L, StkId ra, TValue *a, TValue *b) {
     }
   } else {
     if (l_unlikely(!ttistable(b))) {
-      luaG_runerror(L, "expected second 'in' operand to be table, got %s", ttypename(ttype(b)));
+      if (ttisstring(a))
+        luaG_runerror(L, "expected second 'in' operand to be table or string, got %s", ttypename(ttype(b)));
+      else
+        luaG_runerror(L, "expected second 'in' operand to be table, got %s", ttypename(ttype(b)));
     } else {
       if (luaV_searchelement(L, hvalue(b), a)) {
         setbtvalue(s2v(ra));
