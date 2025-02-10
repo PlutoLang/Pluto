@@ -117,7 +117,7 @@ static int push_ffi_value (lua_State *L, FfiType type, void *value) {
       lua_pushnumber(L, *reinterpret_cast<double*>(value));
       return 1;
     case FFI_PTR:
-      lua_pushinteger(L, *reinterpret_cast<uintptr_t*>(value));
+      lua_pushlightuserdata(L, *reinterpret_cast<void**>(value));
       return 1;
     case FFI_STR:
       lua_pushstring(L, *reinterpret_cast<const char**>(value));
