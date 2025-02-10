@@ -1580,7 +1580,7 @@ do
     local function recursive_enc()
         local t = {}
         t.t = t
-        return require"json".encode(t)
+        return json.encode(t)
     end
     assert(select(2, pcall(recursive_enc)) == "C stack overflow")
 
@@ -1594,7 +1594,7 @@ do
                 prev_t = t
             end
         end
-        return require"json".encode(root)
+        return json.encode(root)
     end
     assert(select(2, pcall(overflow_enc)) == "C stack overflow")
 end
