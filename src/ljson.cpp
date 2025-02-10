@@ -5,31 +5,186 @@
 
 #include "ljson.hpp"
 
-static int encode(lua_State* L)
+#include "vendor/Soup/soup/string.hpp"
+
+static void encodeaux (lua_State *L, int i, bool pretty, std::string& str, unsigned depth = 0)
 {
-	auto up = new (lua_newuserdata(L, sizeof(soup::UniquePtr<soup::JsonNode>))) soup::UniquePtr<soup::JsonNode>{};
+	switch (lua_type(L, i))
+	{
+	case LUA_TBOOLEAN:
+		if (lua_toboolean(L, i))
+		{
+			str.append("true");
+		}
+		else
+		{
+			str.append("false");
+		}
+		break;
+
+	case LUA_TNUMBER:
+		if (lua_isinteger(L, i))
+		{
+			str.append(std::to_string(lua_tointeger(L, i)));
+		}
+		else
+		{
+			lua_Number n = lua_tonumber(L, i);
+			if (std::isfinite(n))
+			{
+				str.append(soup::string::fdecimal(n));
+				return;
+			}
+			luaL_error(L, "%f has no JSON representation", n);
+		}
+		break;
+
+	case LUA_TSTRING: {
+		size_t size;
+		const char* data = luaL_checklstring(L, i, &size);
+		soup::JsonString::encodeValue(str, data, size);
+	} break;
+
+	case LUA_TTABLE: {
+		lua_checkstack(L, 5);
+		lua_pushvalue(L, i);
+		const auto child_depth = (depth + 1);
+		if (isIndexBasedTable(L, -1))
+		{
+			str.push_back('[');
+			lua_pushnil(L);
+			while (lua_next(L, -2))
+			{
+				lua_pushvalue(L, -2);
+				if (pretty)
+				{
+					str.push_back('\n');
+					str.append(child_depth * 4, ' ');
+				}
+				{
+					luaE_incCstack(L);
+					encodeaux(L, -2, pretty, str, child_depth);
+					L->nCcalls--;
+				}
+				str.push_back(',');
+				lua_pop(L, 2);
+			}
+			if (str.back() == ',')
+			{
+				str.pop_back();
+				if (pretty)
+				{
+					str.push_back('\n');
+					str.append(depth * 4, ' ');
+				}
+			}
+			str.push_back(']');
+		}
+		else
+		{
+			str.push_back('{');
+			lua_pushliteral(L, "__order");
+			if (lua_rawget(L, -2) == LUA_TTABLE)
+			{
+				// table, __order
+				lua_pushnil(L);
+				// table, __order, idx
+				while (lua_next(L, -2))
+				{
+					// table, __order, idx, key
+					lua_pushvalue(L, -1);
+					// table, __order, idx, key, key
+					if (lua_rawget(L, -5) > LUA_TNIL)
+					{
+						// table, __order, idx, key, value
+						if (pretty)
+						{
+							str.push_back('\n');
+							str.append(child_depth * 4, ' ');
+						}
+						luaE_incCstack(L);
+						encodeaux(L, -2, pretty, str, child_depth);
+						str.push_back(':');
+						if (pretty)
+						{
+							str.push_back(' ');
+						}
+						encodeaux(L, -1, pretty, str, child_depth);
+						L->nCcalls--;
+						str.push_back(',');
+					}
+					// table, __order, idx, key, value
+					lua_pop(L, 2);
+					// table, __order, idx
+				}
+				lua_pop(L, 1);  /* pop __order */
+			}
+			else
+			{
+				lua_pop(L, 1);  /* pop __order (nil)*/
+				lua_pushnil(L);
+				while (lua_next(L, -2))
+				{
+					lua_pushvalue(L, -2);
+					if (pretty)
+					{
+						str.push_back('\n');
+						str.append(child_depth * 4, ' ');
+					}
+					luaE_incCstack(L);
+					encodeaux(L, -1, pretty, str, child_depth);
+					str.push_back(':');
+					if (pretty)
+					{
+						str.push_back(' ');
+					}
+					encodeaux(L, -2, pretty, str, child_depth);
+					L->nCcalls--;
+					str.push_back(',');
+					lua_pop(L, 2);
+				}
+			}
+			if (str.back() == ',')
+			{
+				str.pop_back();
+				if (pretty)
+				{
+					str.push_back('\n');
+					str.append(depth * 4, ' ');
+				}
+			}
+			str.push_back('}');
+		}
+		lua_pop(L, 1);
+	} break;
+
+	case LUA_TLIGHTUSERDATA:
+		if (reinterpret_cast<uintptr_t>(lua_touserdata(L, i)) == 0xF01D)
+		{
+			str.append("null");
+			break;
+		}
+		[[fallthrough]];
+	default:
+		luaL_typeerror(L, i, "JSON-castable type");
+	}
+}
+
+static int encode(lua_State* L) {
+	auto str = new (lua_newuserdata(L, sizeof(std::string))) std::string{};
 	lua_newtable(L);
 	{
 		lua_pushliteral(L, "__gc");
 		lua_pushcfunction(L, [](lua_State* L) -> int
 		{
-			std::destroy_at((soup::UniquePtr<soup::JsonNode>*)lua_touserdata(L, 1));
+			std::destroy_at((std::string*)lua_touserdata(L, 1));
 			return 0;
 		});
 		lua_settable(L, -3);
 	}
 	lua_setmetatable(L, -2);
-
-	checkJson(L, 1, *up);
-
-	if (lua_istrue(L, 2))
-	{
-		pluto_pushstring(L, (*up)->encodePretty());
-	}
-	else
-	{
-		pluto_pushstring(L, (*up)->encode());
-	}
+	encodeaux(L, 1, lua_istrue(L, 2), *str);
+	pluto_pushstring(L, *str);
 	return 1;
 }
 
