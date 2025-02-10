@@ -1601,6 +1601,15 @@ do
         return require"json".encode(root)
     end
     assert(select(2, pcall(overflow_enc)) == "C stack overflow")
+
+    -- Might never finish on Linux?
+    do
+        local t = {}
+        for _ = 1, 100_000 do
+            t[tostring(math.random())] = math.random()
+        end
+        json.encode(t)
+    end
 end
 do
     local root = {}
