@@ -119,7 +119,9 @@ NAMESPACE_SOUP
 
 	void JsonString::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
+#if !SOUP_LINUX // std::string::reserve is seemingly misimplemented (relative instead of absolute)
 		str.reserve(str.size() + value.size() + 2);
+#endif
 		str.push_back('"');
 		for (const auto& c : value)
 		{
