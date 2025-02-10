@@ -139,14 +139,20 @@ NAMESPACE_SOUP
 			;
 	}
 
-	void JsonString::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
+	void JsonString::encodeAndAppendTo(std::string& str) const
+	{
+		encodeValue(str, this->value.data(), this->value.size());
+	}
+
+	void JsonString::encodeValue(std::string& str, const char* data, size_t size) SOUP_EXCAL
 	{
 #if !SOUP_LINUX // std::string::reserve is seemingly misimplemented (relative instead of absolute)
-		str.reserve(str.size() + value.size() + 2);
+		str.reserve(str.size() + size + 2);
 #endif
 		str.push_back('"');
-		for (const auto& c : value)
+		for (size_t i = 0; i != size; ++i)
 		{
+			const char c = data[i];
 			switch (c)
 			{
 			default:
