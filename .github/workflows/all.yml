@@ -4,16 +4,16 @@ on:
     branches: [ "main" ]
   pull_request: {}
 jobs:
-  ubuntu-22-04:
-    runs-on: ubuntu-22.04
+  ubuntu-24-04:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: src/pluto testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
-  ubuntu-20-04:
-    runs-on: ubuntu-20.04
+  ubuntu-22-04:
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: php scripts/compile.php clang
