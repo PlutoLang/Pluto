@@ -26,28 +26,6 @@ foreach(scandir(__DIR__."/soup") as $file)
 		array_push($objects, escapeshellarg("bin/int/$file.o"));
 	}
 }
-if(is_dir(__DIR__."/Intrin"))
-{
-	if (php_uname("m") == "aarch64"
-		|| php_uname("m") == "arm64" // For people who think different
-		)
-	{
-		$clang .= " -march=armv8+crypto+crc";
-	}
-	else
-	{
-		$clang .= " -maes -mpclmul -mrdrnd -mrdseed -msha -msse4.1";
-	}
-	foreach(scandir(__DIR__."/Intrin") as $file)
-	{
-		if(substr($file, -4) == ".cpp")
-		{
-			$file = substr($file, 0, -4);
-			run_command_async("$clang -c ".__DIR__."/Intrin/$file.cpp -o ".__DIR__."/bin/int/$file.o");
-			array_push($objects, escapeshellarg("bin/int/$file.o"));
-		}
-	}
-}
 await_commands();
 
 echo "Bundling static lib...\n";

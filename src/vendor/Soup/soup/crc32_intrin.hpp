@@ -1,4 +1,6 @@
-#include "../soup/base.hpp"
+// THIS FILE IS FOR INTERNAL USE ONLY. DO NOT INCLUDE THIS IN YOUR OWN CODE.
+
+#include "base.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -7,7 +9,7 @@
 	#include <smmintrin.h> // _mm_extract_epi32
 	#include <wmmintrin.h> // _mm_clmulepi64_si128
 #elif SOUP_ARM
-	#if SOUP_WINDOWS
+	#if defined(_MSC_VER) && !defined(__clang__)
 		#include <intrin.h>
 	#else
 		#include <arm_acle.h>
@@ -19,6 +21,9 @@ NAMESPACE_SOUP
 	namespace intrin
 	{
 #if SOUP_X86
+	#if defined(__GNUC__) || defined(__clang__)
+		__attribute__((target("sse4.1,pclmul")))
+	#endif
 		uint32_t crc32_pclmul(const uint8_t* p, size_t size, uint32_t crc) noexcept
 		{
 			// Original source: https://github.com/richgel999/fpng/blob/main/src/fpng.cpp
@@ -48,6 +53,9 @@ NAMESPACE_SOUP
 			return ~_mm_extract_epi32(_mm_xor_si128(b, _mm_clmulepi64_si128(_mm_and_si128(_mm_clmulepi64_si128(_mm_and_si128(b, z), u, 16), z), u, 0)), 1);
 		}
 #elif SOUP_ARM
+	#if defined(__GNUC__) || defined(__clang__)
+		__attribute__((target("crc")))
+	#endif
 		uint32_t crc32_armv8(const uint8_t* p, size_t size, uint32_t crc) noexcept
 		{
 			crc = ~crc;
