@@ -147,6 +147,19 @@ float_test_inst.d = 420
 assert(float_test_inst.f == 69)
 assert(float_test_inst.d == 420)
 
+-- Allocations
+local pIn = ffi.alloc(13)
+local pOut = ffi.alloc(13)
+assert(ffi.read(pIn) == "\0":rep(13))
+assert(ffi.read(pOut) == "\0":rep(13))
+ffi.write(pIn, "Hello, world!")
+assert(ffi.read(pIn) == "Hello, world!")
+lib:cdef[[
+void buffer_test(uint8_t* in, size_t inlen, uint8_t* out, size_t outlen);
+]]
+lib.buffer_test(pIn, 13, pOut, 13)
+assert(ffi.read(pOut) == "Hello, world!")
+
 -- Finally, remove the library from scope and ensure that it's not unloaded while its functions are still accessible
 local add = lib.add
 lib = nil

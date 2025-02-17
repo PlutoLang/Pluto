@@ -1,3 +1,4 @@
+#include <cstring> // memcpy
 #include <stdexcept>
 #include "../../../src/vendor/Soup/soup/base.hpp"
 
@@ -28,4 +29,13 @@ SOUP_CEXPORT void throw_exception(const char* msg)
 SOUP_CEXPORT void throw_int(int value)
 {
     throw value;
+}
+
+SOUP_CEXPORT void buffer_test(uint8_t* in, size_t inlen, uint8_t* out, size_t outlen)
+{
+    if (inlen > outlen)
+    {
+        inlen = outlen;
+    }
+    memcpy(out, in, inlen);
 }

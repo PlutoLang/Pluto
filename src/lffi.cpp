@@ -117,7 +117,7 @@ static int push_ffi_value (lua_State *L, FfiType type, void *value) {
       lua_pushnumber(L, *reinterpret_cast<double*>(value));
       return 1;
     case FFI_PTR:
-      lua_pushinteger(L, *reinterpret_cast<uintptr_t*>(value));
+      lua_pushlightuserdata(L, *reinterpret_cast<void**>(value));
       return 1;
     case FFI_STR:
       lua_pushstring(L, *reinterpret_cast<const char**>(value));
@@ -587,9 +587,40 @@ static int ffi_offsetof (lua_State *L) {
   return 1;
 }
 
+static int ffi_alloc (lua_State *L) {
+  const auto size = luaL_checkinteger(L, 1);
+  auto ud = lua_newuserdata(L, size);
+  memset(ud, 0, size);
+  return 1;
+}
+
+static int ffi_write (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TUSERDATA);
+  auto dst_len = lua_rawlen(L, 1);
+  auto dst = lua_touserdata(L, 1);
+  size_t src_len;
+  auto src = luaL_checklstring(L, 2, &src_len);
+  if (src_len > dst_len) {
+    src_len = dst_len;
+  }
+  memcpy(dst, src, src_len);
+  return 0;
+}
+
+static int ffi_read (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TUSERDATA);
+  auto size = lua_rawlen(L, 1);
+  auto data = lua_touserdata(L, 1);
+  lua_pushlstring(L, static_cast<char*>(data), size);
+  return 1;
+}
+
 static const luaL_Reg funcs_ffi[] = {
   {"open", ffi_open},
   {"struct", ffi_struct},
+  {"alloc", ffi_alloc},
+  {"write", ffi_write},
+  {"read", ffi_read},
   {nullptr, nullptr}
 };
 
