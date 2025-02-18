@@ -1491,7 +1491,10 @@ do
     assert(_SERVER.REDIRECT_INVOKE_FILENAME |> io.part|"parent"| == "/deez")
 end
 do
-    assert(("Hello" |> string.upper) == "HELLO")
+    local function test_util(str)
+        assert(str == "hellogoodbye")
+    end
+    ;("hello") |> |str| -> str .. "goodbye" |> test_util
 end
 
 print "Testing standard library additions."
