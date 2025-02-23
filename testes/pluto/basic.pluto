@@ -3669,6 +3669,9 @@ do
     assert(load[[-- @pluto_warnings disable-unused
         local class, foo = true, false
     ]])
+    assert(load[[-- @pluto_warnings disable-unused
+        local x = switch;
+    ]])
 end
 
 print "Testing universal functions."
