@@ -1,3 +1,4 @@
+#include <cstdint> // uint8_t
 #include <cstring> // memcpy
 #include <stdexcept>
 #include "../../../src/vendor/Soup/soup/base.hpp"
