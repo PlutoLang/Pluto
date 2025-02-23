@@ -5597,7 +5597,7 @@ static void statement (LexState *ls, TypeHint *prop) {
       if (testnext(ls, TK_FUNCTION))  /* local function? */
         localfunc(ls);
       else if (testnext2(ls, TK_CLASS, TK_PCLASS)) {
-        if (ls->t.token == '=') {
+        if (ls->t.token == '=' || ls->t.token == ',') {
           if (luaX_lookbehind(ls).token == TK_CLASS && ls->getKeywordState(TK_CLASS) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
             luaX_prev(ls);
             disablekeyword(ls, TK_CLASS);
