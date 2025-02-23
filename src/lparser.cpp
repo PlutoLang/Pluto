@@ -208,9 +208,14 @@ static void check_for_non_portable_code (LexState *ls) {
   if (ls->t.IsNonCompatible() && !ls->t.IsOverridable()) {
     if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
       const auto next = luaX_lookahead(ls);
+      const auto prev = luaX_lookbehind(ls).token;
       if (next == '=' || next == '.' || next == ':' || next == '['  /* attempting to create or use a global? */
 #ifdef PLUTO_PARANOID_KEYWORD_DETECTION
-          || next == '(' || next == '{' || next == TK_STRING
+#define CONTINUE_TRY_OR_CATCH(token) ((token) == TK_CONTINUE || (token) == TK_TRY || (token) == TK_CATCH)
+      /* FezzedOne: Need to paranoiacally check for commas, in case of comma-separated declarations, table entries, or returns. */
+          || next == '(' || next == '{' || next == ',' || next == TK_STRING
+          || (!CONTINUE_TRY_OR_CATCH(ls->t.token) && next == ';') /* FezzedOne: Fixed `switch;` getting parsed as a `switch` keyword / invalid switch expression. */
+          || (CONTINUE_TRY_OR_CATCH(ls->t.token) && (prev == '=' || prev == ',')) /* FezzedOne: Fixed compatibility issues around `x = continue` and `x = y, continue`. */
 #endif
         ) {
         disablekeyword(ls, ls->t.token);
