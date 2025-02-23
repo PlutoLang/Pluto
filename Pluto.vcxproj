@@ -262,12 +262,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -283,12 +283,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -304,12 +304,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -325,12 +325,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -346,12 +346,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -367,12 +367,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -388,12 +388,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -409,12 +409,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LUA_BUILD_AS_DLL;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -430,12 +430,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -451,12 +451,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -472,12 +472,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -493,12 +493,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>SOUP_USE_INTRIN;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /wd4646 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
@@ -516,6 +516,7 @@
     <ClCompile Include="src\lbase64.cpp" />
     <ClCompile Include="src\lbaselib.cpp" />
     <ClCompile Include="src\lbigint.cpp" />
+    <ClCompile Include="src\lbufferlib.cpp" />
     <ClCompile Include="src\lcanvas.cpp" />
     <ClCompile Include="src\lcatlib.cpp" />
     <ClCompile Include="src\lcode.cpp" />
@@ -580,76 +581,6 @@
     <ClCompile Include="src\lvm.cpp" />
     <ClCompile Include="src\lxml.cpp" />
     <ClCompile Include="src\lzio.cpp" />
-    <ClCompile Include="src\vendor\Soup\Intrin\aes_helper.cpp">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <ClCompile Include="src\vendor\Soup\Intrin\crc32_intrin.cpp">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <ClCompile Include="src\vendor\Soup\Intrin\hardware_rng.cpp">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <ClCompile Include="src\vendor\Soup\Intrin\sha1_transform.cpp">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <ClCompile Include="src\vendor\Soup\Intrin\sha256_transform.cpp">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|Win32'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|ARM64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='static lib|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='pluto|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='dll|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='plutoc|x64'">-maes -mavx -mavx2 -mpclmul -mrdrnd -mrdseed -msha -msse4.1 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\adler32.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\aes.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\alloc.cpp" />
@@ -664,6 +595,7 @@
     <ClCompile Include="src\vendor\Soup\soup\cat.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\CpuInfo.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\crc32.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\crc32c.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Curve25519.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\DefaultRngInterface.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\deflate.cpp" />
@@ -695,6 +627,7 @@
     <ClCompile Include="src\vendor\Soup\soup\LangDesc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\LexemeParser.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\log.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\memAllocator.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\MimeMessage.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Mixed.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\netConfig.cpp" />
@@ -712,6 +645,7 @@
     <ClCompile Include="src\vendor\Soup\soup\Reader.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Regex.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\RegexGroup.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\ResolveIpAddrTask.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\rflParser.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Rgb.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ripemd160.cpp" />
@@ -725,6 +659,7 @@
     <ClCompile Include="src\vendor\Soup\soup\sha512.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SharedLibrary.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Socket.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\SocketAddr.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SocketTlsEncrypter.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\SocketTlsHandshaker.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\spaceship.cpp" />
@@ -781,6 +716,7 @@
     <ClInclude Include="src\lzio.h" />
     <ClInclude Include="src\vendor\Soup\soup\adler32.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\aes.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\aes_intrin.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\alloc.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Asn1Element.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Asn1Identifier.hpp" />
@@ -813,6 +749,8 @@
     <ClInclude Include="src\vendor\Soup\soup\ConstString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CpuInfo.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\crc32.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\crc32c.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\crc32_intrin.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CryptoHashAlgo.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Curve25519.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\DefaultRngInterface.hpp" />
@@ -871,6 +809,8 @@
     <ClInclude Include="src\vendor\Soup\soup\logStdSink.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\macros.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\math.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\memAllocator.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\memCAllocator.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memory.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\MemoryRefReader.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\MimeMessage.hpp" />
@@ -929,6 +869,7 @@
     <ClInclude Include="src\vendor\Soup\soup\RegexTransitionsVector.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\RegexWordBoundaryConstraint.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\RegexWordCharConstraint.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\ResolveIpAddrTask.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ReuseTag.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rflFunc.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rflMember.hpp" />
@@ -947,7 +888,9 @@
     <ClInclude Include="src\vendor\Soup\soup\ServerService.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ServerServiceUdp.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\sha1.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\sha1_intrin.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\sha256.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\sha256_intrin.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\sha384.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\sha512.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\SharedLibrary.hpp" />
