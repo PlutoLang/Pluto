@@ -208,7 +208,7 @@ static void check_for_non_portable_code (LexState *ls) {
   if (ls->t.IsNonCompatible() && !ls->t.IsOverridable()) {
     if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
       const auto next = luaX_lookahead(ls);
-      const auto prev = luaX_lookbehind(ls).token;
+      const int prev = ls->tidx == 0 ? -1 : luaX_lookbehind(ls).token;
       if (next == '=' || next == '.' || next == ':' || next == '['  /* attempting to create or use a global? */
 #ifdef PLUTO_PARANOID_KEYWORD_DETECTION
 #define CONTINUE_TRY_OR_CATCH(token) ((token) == TK_CONTINUE || (token) == TK_TRY || (token) == TK_CATCH)
