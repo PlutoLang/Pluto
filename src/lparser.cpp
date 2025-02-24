@@ -3322,11 +3322,22 @@ static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
 static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), void *ud = nullptr) {
   const auto line = ls->getLineNumber();
   const auto switchToken = gett(ls);
+#ifdef PLUTO_PARANOID_KEYWORD_DETECTION
+  const auto switchPos = luaX_getpos(ls);
+#endif
   luaX_next(ls); // Skip switch statement.
 
   ls->switchstates.emplace();
   FuncState *fs = ls->fs;
   BlockCnt sbl;
+
+#ifdef PLUTO_PARANOID_KEYWORD_DETECTION
+  /* FezzedOne: Create a jump instruction ahead of time, just in case we need to skip evaluating
+    a `switch` condition because `switch` turned out not to be a keyword. */
+  int badSwitchJump = luaK_jump(fs);
+  /* FezzedOne: The Lua PC right after the jump instruction. */
+  int goodSwitchPc = luaK_getlabel(fs);
+#endif
 
   lu_byte freereg = fs->freereg;
   if (tk == TK_ARROW)
@@ -3337,7 +3348,23 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
   int prevpinnedreg = -1;
   expdesc ctrl;
   expr(ls, &ctrl);
+
+  bool missingDo = false;
+
+#ifdef PLUTO_PARANOID_KEYWORD_DETECTION
+  /* FezzedOne: If `do` is missing, create bytecode for a switch with no cases, 
+     effectively making it do nothing. */
+  missingDo = gett(ls) != TK_DO;
+  if (missingDo) {
+    disablekeyword(ls, TK_SWITCH);
+  } else {
+    /* FezzedOne: If the `switch` is good, patch the jump into an effective no-op. */
+    luaK_patchlist(fs, badSwitchJump, goodSwitchPc);
+    luaX_next(ls);
+  }
+#else
   checknext(ls, TK_DO);
+#endif
   if (!vkhasregister(ctrl.k)
     || ctrl.t != ctrl.f  /* has jumps? */
   ) {
@@ -3370,6 +3397,9 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
 
   std::vector<SwitchCase>& cases = ls->switchstates.top().cases;
 
+#ifdef PLUTO_PARANOID_KEYWORD_DETECTION
+  if (!missingDo) {
+#endif
   while (gett(ls) != TK_END) {
     auto case_line = ls->getLineNumber();
     if (fs->nactvar != nactvar) {
@@ -3394,6 +3424,9 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     ls->laststat.token = TK_EOS;  /* We don't want warnings for trailing control flow statements. */
     caselist(ls, ud);
   }
+#ifdef PLUTO_PARANOID_KEYWORD_DETECTION
+  }
+#endif
 
   if (ls->laststat.token != TK_BREAK) {  /* last block did not have 'break'? */
     if (tk == ':') {  /* switch statement? */
@@ -3457,11 +3490,24 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     luaK_freeexp(fs, &ctrl);
   }
 
+#ifdef PLUTO_PARANOID_KEYWORD_DETECTION
+  if (!missingDo) /* FezzedOne: Ignore checking for an `end` if `do` is missing. */
+#endif
   check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
   if (tk == TK_ARROW)
     fs->freereg = freereg;
   ls->switchstates.pop();
+
+#ifdef PLUTO_PARANOID_KEYWORD_DETECTION
+  if (missingDo) {
+    /* FezzedOne: Turns out this `switch` is bad (a variable name). Patch the jump to skip the switch
+       condition instructions and move back to before the now-disabled `switch` keyword, then reparse. */
+    luaK_patchtohere(fs, badSwitchJump);
+    luaX_setpos(ls, switchPos);
+    luaX_next(ls);
+  }
+#endif
 }
 
 static void switchstat (LexState *ls) {
@@ -5602,7 +5648,7 @@ static void statement (LexState *ls, TypeHint *prop) {
       if (testnext(ls, TK_FUNCTION))  /* local function? */
         localfunc(ls);
       else if (testnext2(ls, TK_CLASS, TK_PCLASS)) {
-        if (ls->t.token == '=' || ls->t.token == ',') {
+        if (ls->t.token == '=' || ls->t.token == ',') { /* Commit b78765fb from Sainan/Pluto. */
           if (luaX_lookbehind(ls).token == TK_CLASS && ls->getKeywordState(TK_CLASS) == KS_ENABLED_BY_PLUTO_UNINFORMED) {
             luaX_prev(ls);
             disablekeyword(ls, TK_CLASS);
