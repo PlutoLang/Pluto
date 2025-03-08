@@ -794,6 +794,19 @@ do
 
     -- @pluto_warnings: enable-unreachable-code
 end
+do
+    local t = {}
+    local count = 3
+    local final = "tock"
+    for i = 1, count do
+        local x = i == count ? final : "tick"
+        t:insert(x)
+    end
+    assert(#t == 3)
+    assert(t[1] == "tick")
+    assert(t[2] == "tick")
+    assert(t[3] == "tock")
+end
 
 print "Testing 'in' expressions."
 if ("hel" in "hello") != true then error() end
