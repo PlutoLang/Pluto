@@ -3897,7 +3897,8 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
     int condition = v->f;
     expr(ls, v, prop, E_NO_METHOD_CALL);
     auto fs = ls->fs;
-    auto reg = luaK_exp2anyreg(fs, v);
+    luaK_exp2nextreg(fs, v);
+    auto reg = v->u.reg;
     luaK_concat(fs, &escape, luaK_jump(fs));
     luaK_patchtohere(fs, condition);
     checknext(ls, ':');
