@@ -701,7 +701,7 @@ int main (int argc, char **argv) {
   if (auto hSTDOUT = GetStdHandle(STD_OUTPUT_HANDLE); hSTDOUT != INVALID_HANDLE_VALUE) {
     DWORD mode;
     if (GetConsoleMode(hSTDOUT, &mode))
-      SetConsoleMode(hSTDOUT, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_WINDOW_INPUT);
+      SetConsoleMode(hSTDOUT, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
   }
 #endif
   int status, result;
