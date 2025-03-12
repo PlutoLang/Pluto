@@ -495,6 +495,18 @@ LUAMOD_API int luaopen_os (lua_State *L) {
 #endif
   lua_settable(L, -3);
 
+  /* define os.arch constant */
+  lua_pushliteral(L, "arch");
+#if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
+  lua_pushliteral(L, "x86, 64-bit");
+#elif defined(_M_IX86) || defined(__i386__)
+  lua_pushliteral(L, "x86, 32-bit");
+#else
+  lua_pushliteral(L, "arm, 64-bit");
+#endif
+
+  lua_settable(L, -3);
+
   return 1;
 }
 
