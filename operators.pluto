@@ -1,6 +1,9 @@
 -- lparser.cpp's builtinoperators
 
 local Pluto_operator_new <const> = function(mt, ...)
+  if not mt then
+    error("attempt to construct a nil value")
+  end
   if mt.new then
     return mt.new(...)
   end

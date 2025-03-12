@@ -5755,6 +5755,21 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_DOTS));
       ls->tokens.emplace_back(Token(')'));
 
+      //   if not mt then
+      ls->tokens.emplace_back(Token(TK_IF));
+      ls->tokens.emplace_back(Token(TK_NOT));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
+      ls->tokens.emplace_back(Token(TK_THEN));
+
+      //     error("attempt to construct a nil value")
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "error")));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "attempt to construct a nil value")));
+      ls->tokens.emplace_back(Token(')'));
+
+      //   end
+      ls->tokens.emplace_back(Token(TK_END));
+
       //   if mt.new then
       ls->tokens.emplace_back(Token(TK_IF));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mt")));
