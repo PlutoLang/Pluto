@@ -126,7 +126,7 @@ lib:cdef[[
 void throw_exception(const char* msg);
 void throw_int(int value);
 ]]
-if os.platform == "macos" then
+if os.platform == "macos" and os.arch == "arm, 64-bit" then
     -- Apparently, on ARM64, MacOS is not able to catch the exception here correctly.
     assert("C++ exception" in select(2, pcall(|| -> lib.throw_exception("oh no"))))
 else
