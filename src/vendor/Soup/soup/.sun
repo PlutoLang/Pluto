@@ -3,9 +3,6 @@ static
 
 arg -O3
 
-require ../Intrin
-arg -DSOUP_USE_INTRIN
-
 if not windows
 	arg -fPIC
 endif
