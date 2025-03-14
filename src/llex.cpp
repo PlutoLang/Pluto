@@ -601,7 +601,8 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
               SemInfo si;
               read_long_string(ls, &si, sep);  /* skip long comment */
               luaZ_resetbuffer(ls->buff);  /* 'read_long_string' may dirty the buffer */
-              if (strstr(getstr(si.ts), "@pluto_warnings") != nullptr)
+              std::string_view si_view(getstr(si.ts), tsslen(si.ts));
+              if (si_view.find("@pluto_warnings") != std::string_view::npos)
                 ls->lexPushWarningOverride().processComment(getstr(si.ts));
               ls->appendLineBuff(']');
               ls->appendLineBuff(sep - 2, '=');
@@ -630,8 +631,8 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
             ls->appendLineBuff(ls->current);
             save_and_next(ls);  /* skip until end of line (or end of file) */
           }
-          std::string buff(luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
-          if (buff.find("@pluto_warnings") != std::string::npos)
+          std::string_view buff(luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
+          if (buff.find("@pluto_warnings") != std::string_view::npos)
             ls->lexPushWarningOverride().processComment(luaZ_buffer(ls->buff));
           luaZ_resetbuffer(ls->buff);
           if (ls->getLineBuff().find("@fallthrough") != std::string::npos)
@@ -844,13 +845,13 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
         if (luaZ_bufflen(ls->buff) != 0) {
           if (need_concat) {
             need_concat = false;
-          
+
             Token& t = ls->tokens.emplace_back(Token{});
             t.token = TK_CONCAT;
             t.line = (int)ls->lines.size();
             t.column = (int)ls->getLineBuff().size();
           }
-          
+
           Token& t = ls->tokens.emplace_back(Token{});
           t.token = TK_STRING;
           t.line = (int)ls->lines.size();
@@ -982,7 +983,7 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           seminfo->i = '*';
           return '=';  /* '*=' */
         }
-        else if (check_next1(ls, '*')) { /*  got '**' */  
+        else if (check_next1(ls, '*')) { /*  got '**' */
           if (check_next1(ls, '=')) {  /* compound support; **= */
             ls->appendLineBuff("**=");
             seminfo->i = TK_POW;
