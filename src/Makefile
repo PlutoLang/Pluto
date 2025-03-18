@@ -27,7 +27,7 @@ SYSLIBS=
 
 MYCFLAGS=
 MYLDFLAGS=
-MYLIBS=-Lvendor/Soup/soup -lsoup -Lvendor/Soup/Intrin -lsoupintrin
+MYLIBS=-Lvendor/Soup/soup -lsoup
 MYOBJS=
 
 # Special flags for compiler modules; -Os reduces code size.
@@ -40,7 +40,7 @@ PLATS= guess aix bsd freebsd generic linux linux-readline macosx posix solaris
 LUA_A=	libplutostatic.a
 LUA_SO= libpluto.so
 CORE_O=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o
-LIB_O=	lauxlib.o lbaselib.o lcorolib.o ldblib.o liolib.o lmathlib.o loadlib.o loslib.o lstrlib.o lcryptolib.o ltablib.o lutf8lib.o lassertlib.o lvector3lib.o lbase32.o lbase64.o ljson.o lurllib.o linit.o lstarlib.o lcatlib.o lhttplib.o lschedulerlib.o lsocketlib.o lbigint.o lxml.o lregex.o lffi.o lcanvas.o
+LIB_O=	lauxlib.o lbaselib.o lcorolib.o ldblib.o liolib.o lmathlib.o loadlib.o loslib.o lstrlib.o lcryptolib.o ltablib.o lutf8lib.o lassertlib.o lvector3lib.o lbase32.o lbase64.o ljson.o lurllib.o linit.o lstarlib.o lcatlib.o lhttplib.o lschedulerlib.o lsocketlib.o lbigint.o lxml.o lregex.o lffi.o lcanvas.o lbufferlib.o
 BASE_O= $(CORE_O) $(LIB_O) $(MYOBJS)
 
 LUA_T=	pluto
@@ -63,9 +63,8 @@ o:	$(ALL_O)
 a:	$(ALL_A)
 
 $(LUA_A): $(BASE_O)
-	cd vendor/Soup/Intrin && $(MAKE) && cd ../..
 	cd vendor/Soup/soup && $(MAKE) && cd ../..
-	$(AR) $@ $(BASE_O) vendor/Soup/Intrin/*.o vendor/Soup/soup/*.o
+	$(AR) $@ $(BASE_O) vendor/Soup/soup/*.o
 	$(RANLIB) $@
 
 $(LUA_SO): $(BASE_O) $(LUA_A)
@@ -81,7 +80,6 @@ test:
 	./$(LUA_T) -v
 
 clean:
-	cd vendor/Soup/Intrin && $(MAKE) clean && cd ../..
 	cd vendor/Soup/soup && $(MAKE) clean && cd ../..
 	$(RM) $(ALL_T) $(ALL_O)
 

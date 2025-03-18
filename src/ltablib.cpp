@@ -803,19 +803,40 @@ static int tkeys (lua_State *L) {
   lua_newtable(L);
   lua_Integer i = 0;
   lua_pushnil(L);
-  /* stack now: tKeys, key */
+  /* stack now: res, key */
   while (lua_next(L, 1)) {
-    /* stack now: tKeys, key, value */
+    /* stack now: res, key, value */
     lua_pop(L, 1);
-    /* stack now: tKeys, key */
+    /* stack now: res, key */
     lua_pushinteger(L, ++i);
-    /* stack now: tKeys, key, index */
+    /* stack now: res, key, index */
     lua_pushvalue(L, -2);
-    /* stack now: tKeys, key, index, key */
+    /* stack now: res, key, index, key */
     lua_settable(L, -4);
-    /* stack now: tKeys, key */
+    /* stack now: res, key */
   }
-  /* stack now: tKeys */
+  /* stack now: res */
+  return 1;
+}
+
+
+static int tvalues (lua_State *L) {
+  lua_newtable(L);
+  lua_Integer i = 0;
+  lua_pushnil(L);
+  /* stack now: res, key */
+  while (lua_next(L, 1)) {
+    /* stack now: res, key, value */
+    lua_pushinteger(L, ++i);
+    /* stack now: res, key, value, index */
+    lua_pushvalue(L, -2);
+    /* stack now: res, key, value, index, value */
+    lua_settable(L, -5);
+    /* stack now: res, key, value */
+    lua_pop(L, 1);
+    /* stack now: res, key */
+  }
+  /* stack now: res */
   return 1;
 }
 
@@ -836,6 +857,60 @@ static int tcountvalues (lua_State *L) {
     lua_settop(L, 3); /* reset stack to og, result, key */
   }
 
+  return 1;
+}
+
+
+static int tdeduplicate (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  lua_settop(L, 1);
+
+  lua_newtable(L);  /* set of seen values */
+  lua_pushnil(L);
+  while (lua_next(L, 1)) {
+    lua_pushvalue(L, 4);
+    if (lua_gettable(L, 2) > LUA_TNIL) {  /* seen this value before? */
+      lua_pushvalue(L, 3);
+      lua_pushnil(L);
+      lua_settable(L, 1);
+    }
+
+    lua_pushvalue(L, 4);
+    lua_pushboolean(L, true);
+    lua_settable(L, 2);
+
+    lua_settop(L, 3);
+  }
+
+  lua_settop(L, 1);
+  return 1;
+}
+
+
+static int tdeduplicated (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  lua_settop(L, 1);
+
+  lua_Integer i = 1;
+  lua_newtable(L);  /* result */
+  lua_newtable(L);  /* set of seen values */
+  lua_pushnil(L);
+  while (lua_next(L, 1)) {
+    lua_pushvalue(L, 5);
+    if (lua_gettable(L, 3) <= LUA_TNIL) {  /* value not seen before? */
+      lua_pushinteger(L, i++);
+      lua_pushvalue(L, 5);
+      lua_settable(L, 2);
+    }
+
+    lua_pushvalue(L, 5);
+    lua_pushboolean(L, true);
+    lua_settable(L, 3);
+
+    lua_settop(L, 4);
+  }
+
+  lua_settop(L, 2);
   return 1;
 }
 
@@ -923,14 +998,35 @@ static int tchunk (lua_State *L) {
 }
 
 
+static int tinvert (lua_State *L) {
+  lua_newtable(L);
+  lua_pushnil(L);
+  while (lua_next(L, 1)) {
+    /* stack now: res, key, value */
+    lua_pushvalue(L, -2);
+    /* stack now: res, key, value, key */
+    lua_settable(L, -4);
+    /* stack now: res, key */
+  }
+  /* stack now: res */
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"invert", tinvert},
   {"chunk", tchunk},
   {"slice", tslice},
   {"countvalues", tcountvalues},
+  {"dedup", tdeduplicate},
+  {"deduplicate", tdeduplicate},
+  {"deduped", tdeduplicate},
+  {"deduplicated", tdeduplicated},
   {"keys", tkeys},
+  {"values", tvalues},
   {"modget", modget},
   {"modset", modset},
   {"back", tback},
