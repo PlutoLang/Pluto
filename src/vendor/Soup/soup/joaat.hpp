@@ -12,8 +12,12 @@ NAMESPACE_SOUP
 	{
 		static constexpr uint32_t INITIAL = 0;
 
-		[[nodiscard]] static uint32_t hash(const std::string& str, uint32_t initial = 0) noexcept;
-		[[nodiscard]] static uint32_t concat(uint32_t val, const std::string& str) noexcept;
+		[[nodiscard]] static uint32_t hash(const std::string& str, uint32_t initial = 0) noexcept
+		{
+			uint32_t val = partialRange(str.data(), str.size(), initial);
+			finalise(val);
+			return val;
+		}
 
 		[[nodiscard]] static constexpr uint32_t hash(const char* str) noexcept
 		{
@@ -52,17 +56,46 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] static constexpr uint32_t hashRange(const char* data, size_t size, uint32_t initial = 0) noexcept
 		{
-			uint32_t val = partial(data, size, initial);
+			uint32_t val = partialRange(data, size, initial);
 			finalise(val);
 			return val;
 		}
 
-		[[nodiscard]] static constexpr uint32_t partial(const char* data, size_t size, uint32_t initial = 0) noexcept
+		[[nodiscard]] static uint32_t concat(uint32_t val, const std::string& str) noexcept
+		{
+			undo_finalise(val);
+			return hash(str, val);
+		}
+
+		[[nodiscard]] static uint32_t concat(uint32_t val, const char* str) noexcept
+		{
+			undo_finalise(val);
+			return hash(str, val);
+		}
+
+		[[deprecated]] static constexpr uint32_t partial(const char* data, size_t size, uint32_t initial = 0) noexcept
+		{
+			return partialRange(data, size, initial);
+		}
+
+		[[nodiscard]] static constexpr uint32_t partialRange(const char* data, size_t size, uint32_t initial = 0) noexcept
 		{
 			uint32_t val = initial;
 			while (size-- != 0)
 			{
 				val += *(uint8_t*)(data++);
+				val += (val << 10);
+				val ^= (val >> 6);
+			}
+			return val;
+		}
+
+		[[nodiscard]] static constexpr uint32_t partialStr(const char* str, uint32_t initial = 0) noexcept
+		{
+			uint32_t val = initial;
+			while (*str)
+			{
+				val += (uint8_t)*(str++);
 				val += (val << 10);
 				val ^= (val >> 6);
 			}

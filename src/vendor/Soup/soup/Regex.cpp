@@ -222,13 +222,75 @@ NAMESPACE_SOUP
 
 	void Regex::replaceAll(std::string& str, const std::string& replacement) const
 	{
-		RegexMatchResult match;
-		while (match = search(str), match.isSuccess())
+		RegexMatchResult m;
+		while (m = search(str), m.isSuccess())
 		{
-			const size_t offset = (match.groups.at(0).value().begin - str.data());
-			str.erase(offset, match.length());
+			const size_t offset = (m.groups.at(0).value().begin - str.data());
+			str.erase(offset, m.length());
 			str.insert(offset, replacement);
 		}
+	}
+
+	std::string Regex::substituteAll(const std::string& str, const std::string& substitution) const
+	{
+		std::string res;
+		size_t i = 0;
+		RegexMatchResult m;
+		while (m = search(&str.data()[i], &str.data()[str.size()]), m.isSuccess())
+		{
+			const size_t offset = (m.groups.at(0).value().begin - str.data());
+			res.append(str.data() + i, offset - i);
+			i = offset + m.groups.at(0).value().length();
+
+			bool dollar = false;
+			for (const auto& c : substitution)
+			{
+				if (dollar)
+				{
+					dollar = false;
+					switch (c)
+					{
+					case '$':
+						res.push_back('$');
+						break;
+
+					case '0':
+					case '1':
+					case '2':
+					case '3':
+					case '4':
+					case '5':
+					case '6':
+					case '7':
+					case '8':
+					case '9':
+						if (auto group = m.findGroupByIndex(c - '0'))
+						{
+							res.append(group->toString());
+						}
+						else
+						{
+							res.push_back('$');
+							res.push_back(c);
+						}
+						break;
+					}
+				}
+				else
+				{
+					if (c == '$')
+					{
+						dollar = true;
+					}
+					else
+					{
+						res.push_back(c);
+					}
+				}
+			}
+		}
+		res.append(str.data() + i, str.size() - i);
+		return res;
 	}
 
 	std::string Regex::unparseFlags(uint16_t flags)

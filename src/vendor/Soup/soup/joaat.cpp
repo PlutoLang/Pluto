@@ -6,19 +6,6 @@
 
 NAMESPACE_SOUP
 {
-	uint32_t joaat::hash(const std::string& str, uint32_t initial) noexcept
-	{
-		uint32_t val = partial(str.data(), str.size(), initial);
-		finalise(val);
-		return val;
-	}
-
-	uint32_t joaat::concat(uint32_t val, const std::string& str) noexcept
-	{
-		undo_finalise(val);
-		return hash(str, val);
-	}
-
 	[[nodiscard]] static char joaat_find_last_char(uint32_t val)
 	{
 		char best_c = 0;
@@ -114,7 +101,7 @@ NAMESPACE_SOUP
 		size_t len = idx;
 		strncpy_s(buf, prefix, len);
 
-		while (joaat::partial(&buf[0], len) != val)
+		while (joaat::partialRange(&buf[0], len) != val)
 		{
 			collide_inc(buf, idx, len);
 		}

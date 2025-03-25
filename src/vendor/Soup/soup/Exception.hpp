@@ -10,12 +10,12 @@ NAMESPACE_SOUP
 	{
 		using std::runtime_error::runtime_error;
 
-		[[noreturn]] static SOUP_FORCEINLINE void purecall()
+		[[noreturn]] static void purecall()
 		{
 			SOUP_THROW(Exception("Call to virtual function that was not implemented by specialisation"));
 		}
 
-		[[noreturn]] static SOUP_FORCEINLINE void raiseLogicError()
+		[[noreturn]] static void raiseLogicError()
 		{
 			SOUP_THROW(Exception("Logic error"));
 		}

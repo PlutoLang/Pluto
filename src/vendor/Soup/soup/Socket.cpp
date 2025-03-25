@@ -1147,7 +1147,7 @@ NAMESPACE_SOUP
 
 	bool Socket::udpServerSend(const SocketAddr& addr, const char* data, size_t size) noexcept
 	{
-#if SOUP_WINDOWS
+#if !SOUP_MACOS
 		if (addr.ip.isV4())
 		{
 			sockaddr_in sa{};

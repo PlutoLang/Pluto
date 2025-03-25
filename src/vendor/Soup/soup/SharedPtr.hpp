@@ -228,7 +228,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] size_t getRefCount() const noexcept
 		{
-			return data->refcount.load();
+			return data.load()->refcount.load();
 		}
 
 		[[nodiscard]] T* release()

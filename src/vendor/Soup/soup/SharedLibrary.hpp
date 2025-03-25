@@ -8,8 +8,6 @@
 #include <dlfcn.h>
 #endif
 
-#include <string>
-
 #include "type_traits.hpp"
 
 NAMESPACE_SOUP
@@ -24,19 +22,17 @@ NAMESPACE_SOUP
 
 		handle_t handle = nullptr;
 
-		explicit SharedLibrary() = default;
-		explicit SharedLibrary(const std::string& path);
-		explicit SharedLibrary(const char* path);
-		explicit SharedLibrary(SharedLibrary&& b);
-		~SharedLibrary();
+		explicit SharedLibrary() noexcept = default;
+		explicit SharedLibrary(const char* path) noexcept;
+		explicit SharedLibrary(SharedLibrary&& b) noexcept;
+		~SharedLibrary() noexcept;
 
-		void operator=(SharedLibrary&& b);
+		void operator=(SharedLibrary&& b) noexcept;
 
 		[[nodiscard]] bool isLoaded() const noexcept;
-		bool load(const std::string& path);
-		bool load(const char* path);
-		void unload();
-		void forget();
+		bool load(const char* path) noexcept;
+		void unload() noexcept;
+		void forget() noexcept;
 
 		template <typename T, SOUP_RESTRICT(std::is_pointer_v<T>)>
 		[[nodiscard]] T getAddress(const char* name) const noexcept

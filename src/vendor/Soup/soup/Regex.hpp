@@ -31,7 +31,6 @@ NAMESPACE_SOUP
 		}
 
 		Regex() = default;
-		Regex(Regex&&) = default;
 
 		[[nodiscard]] static Regex fromFullString(const std::string& str);
 
@@ -50,6 +49,8 @@ NAMESPACE_SOUP
 		[[nodiscard]] RegexMatchResult search(const char* it, const char* end) const noexcept;
 
 		void replaceAll(std::string& str, const std::string& replacement) const;
+
+		[[nodiscard]] std::string substituteAll(const std::string& str, const std::string& substitution) const;
 
 		[[nodiscard]] std::string toString() const SOUP_EXCAL
 		{
