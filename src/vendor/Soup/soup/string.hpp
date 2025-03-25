@@ -549,13 +549,15 @@ NAMESPACE_SOUP
 		template <class S>
 		static void replaceAll(S& str, const S& from, const S& to) SOUP_EXCAL
 		{
-			size_t start_pos = 0;
-			while ((start_pos = str.find(from, start_pos)) != S::npos)
+			size_t pos = 0;
+			while ((pos = str.find(from, pos)) != S::npos)
 			{
-				str.replace(start_pos, from.length(), to);
-				start_pos += to.length();
+				str.replace(pos, from.length(), to);
+				pos += to.length();
 			}
 		}
+
+		static void replaceAll(std::string& str, char from, char to) SOUP_EXCAL;
 
 		static void replaceAll(std::string& str, const std::string& from, const std::string& to) SOUP_EXCAL
 		{
@@ -703,7 +705,7 @@ NAMESPACE_SOUP
 			}
 		}
 
-		static void listAppend(std::string& str, std::string&& add);
+		static void listAppend(std::string& str, std::string add);
 
 		template <typename T>
 		static void trim(T& str)

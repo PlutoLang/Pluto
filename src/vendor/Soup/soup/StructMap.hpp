@@ -36,7 +36,7 @@ NAMESPACE_SOUP
 		}
 
 #define isStructInMap(T) containsImpl(::soup::joaat::compileTimeHash(#T))
-#define addStructToMap(T, inst) emplace(::soup::joaat::compileTimeHash(#T), inst); static_assert(std::is_same_v<T, decltype(inst)>)
+#define addStructToMap(T, inst) emplace(::soup::joaat::compileTimeHash(#T), inst); static_assert(std::is_same_v<T, std::remove_reference_t<decltype(inst)>>)
 #define getStructFromMap(T) getImpl<T, ::soup::joaat::compileTimeHash(#T)>()
 #define getStructFromMapConst(T) at(::soup::joaat::compileTimeHash(#T)).get<T>()
 #define removeStructFromMap(T) removeImpl(::soup::joaat::compileTimeHash(#T))

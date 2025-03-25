@@ -49,6 +49,8 @@ NAMESPACE_SOUP
 
 		RegexGroup(const ConstructorState& s, bool non_capturing = false);
 
+		RegexGroup(RegexGroup&&) = delete; // Move would invalidate parent pointers
+
 		[[nodiscard]] bool isNonCapturing() const noexcept
 		{
 			return index == -1;

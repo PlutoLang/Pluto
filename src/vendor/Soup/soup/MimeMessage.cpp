@@ -135,8 +135,9 @@ NAMESPACE_SOUP
 		}
 	}
 
-	void MimeMessage::setHeader(const std::string& key, const std::string& value) SOUP_EXCAL
+	void MimeMessage::setHeader(const std::string& _key, const std::string& value) SOUP_EXCAL
 	{
+		const auto key = normaliseHeaderCasing(_key);
 		if (auto e = header_fields.find(key); e != header_fields.end())
 		{
 			e->second = value;

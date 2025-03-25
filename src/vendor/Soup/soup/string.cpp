@@ -46,6 +46,16 @@ NAMESPACE_SOUP
 		return bin;
 	}
 
+	void string::replaceAll(std::string& str, char from, char to) SOUP_EXCAL
+	{
+		size_t pos = 0;
+		while ((pos = str.find(from, pos)) != std::string::npos)
+		{
+			str.data()[pos] = to;
+			pos += 1;
+		}
+	}
+
 	std::string string::escape(const std::string& str)
 	{
 		std::string res;
@@ -93,7 +103,7 @@ NAMESPACE_SOUP
 		return res;
 	}
 
-	void string::listAppend(std::string& str, std::string&& add)
+	void string::listAppend(std::string& str, std::string add)
 	{
 		if (str.empty())
 		{
