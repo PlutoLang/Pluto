@@ -1728,6 +1728,22 @@ static void codeeq (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2) {
     lua_assert(e1->k == VK || e1->k == VKINT || e1->k == VKFLT);
     swapexps(e1, e2);
   }
+  if (vkisconst(e1->k) && vkisconst(e2->k) && !hasjumps(e1) && !hasjumps(e2)
+      && (e1->k != VKINT || e2->k != VKFLT) && (e1->k != VKFLT || e2->k != VKINT)  /* don't optimize comparisons between VKINT and VKFLT */
+  ) {
+    bool eq = false;
+    if (e1->k == e2->k) {
+      switch (e1->k) {
+      default: eq = true; break;
+      case VKFLT: eq = (e1->u.nval == e2->u.nval); break;
+      case VKINT: eq = (e1->u.ival == e2->u.ival); break;
+      case VKSTR: eq = (e1->u.strval == e2->u.strval); break;
+      case VCONST: eq = (e1->u.info == e2->u.info); break;
+      }
+    }
+    e1->k = ((eq ^ (opr != OPR_EQ)) ? VTRUE : VFALSE);
+    return;
+  }
   r1 = luaK_exp2anyreg(fs, e1);  /* 1st expression must be in register */
   if (isSCnumber(e2, &im, &isfloat)) {
     op = OP_EQI;
@@ -1816,9 +1832,8 @@ void luaK_infix (FuncState *fs, BinOpr op, expdesc *v) {
       break;
     }
     case OPR_EQ: case OPR_NE: {
-      if (!tonumeral(v, NULL))
+      if (!vkisconst(v->k) || hasjumps(v))
         exp2RK(fs, v);
-      /* else keep numeral, which may be an immediate operand */
       break;
     }
     case OPR_LT: case OPR_LE:

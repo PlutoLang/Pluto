@@ -495,6 +495,27 @@ LUAMOD_API int luaopen_os (lua_State *L) {
 #endif
   lua_settable(L, -3);
 
+  /* define os.arch constant */
+  lua_pushliteral(L, "arch");
+#if SOUP_X86
+#define ARCH_STR "x86"
+#elif SOUP_ARM
+#define ARCH_STR "arm"
+#elif SOUP_WASM
+#define ARCH_STR "wasm"
+#else
+#define ARCH_STR "unknown"
+#endif
+#if SOUP_BITS == 64
+#define BITS_STR "64"
+#elif SOUP_BITS == 32
+#define BITS_STR "32"
+#else
+#define BITS_STR "00"
+#endif
+  lua_pushstring(L, ARCH_STR ", " BITS_STR "-bit");
+  lua_settable(L, -3);
+
   return 1;
 }
 
