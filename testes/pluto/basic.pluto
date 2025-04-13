@@ -1613,6 +1613,10 @@ do
         return json.encode(root)
     end
     assert(select(2, pcall(overflow_enc)) == "C stack overflow")
+
+    -- Cannot encode non-finite numbers
+    assert(not pcall(|| -> json.encode(1/0)))
+    assert(not pcall(|| -> json.encode(0/0)))
 end
 do
     local root = {}

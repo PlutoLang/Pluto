@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath> // isfinite
 
 #include "vendor/Soup/soup/json.hpp"
 #include "vendor/Soup/soup/JsonInt.hpp"
@@ -60,8 +61,13 @@ static void checkJson(lua_State* L, int i, soup::UniquePtr<soup::JsonNode>& out)
 		}
 		else
 		{
-			out = soup::make_unique<soup::JsonFloat>(lua_tonumber(L, i));
-			return;
+			lua_Number n = lua_tonumber(L, i);
+			if (std::isfinite(n))
+			{
+				out = soup::make_unique<soup::JsonFloat>(n);
+				return;
+			}
+			luaL_error(L, "%f has no JSON representation", n);
 		}
 	}
 	else if (type == LUA_TSTRING)
