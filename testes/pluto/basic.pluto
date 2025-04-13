@@ -1499,6 +1499,41 @@ end
 
 print "Testing standard library additions."
 do
+    local function one_time_getter(value)
+        local callcount = 0
+        return function()
+            ++callcount
+            assert(callcount == 1)
+            return value
+        end
+    end
+
+    do
+        local getter_nil = one_time_getter(nil)
+        local getter_1 = one_time_getter(1)
+        for _ = 1, 2 do
+            assert(nil == callonce(getter_nil))
+            assert(1 == callonce(getter_1))
+        end
+    end
+
+    do
+        local getter_nil = one_time_getter(nil)
+        local getter_2 = one_time_getter(2)
+        local function func_with_callonce()
+            return callonce(getter_nil), callonce(getter_2)
+        end
+        local function test_func_with_callonce()
+            local t = { func_with_callonce() }
+            assert(#t == 2)
+            assert(t[1] == nil)
+            assert(t[2] == 2)
+        end
+        test_func_with_callonce()
+        test_func_with_callonce()
+    end
+end
+do
     local v3 = require"pluto:vector3"
     -- Left-handed Z-up: Thumb points left, index finger points forward, middle finger points up.
     assert(v3(1, 0, 0):torot("zl") == v3(0, 0, -90))

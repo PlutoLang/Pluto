@@ -794,7 +794,39 @@ static int luaB_umod (lua_State *L) {
 }
 
 
+static int luaB_callonce (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TFUNCTION);
+
+  const auto caller_ci = L->ci->previous;
+  const auto call_pc = caller_ci->u.l.savedpc;
+  const auto call_id = static_cast<lua_Integer>(reinterpret_cast<uintptr_t>(call_pc));
+
+  lua_pushinteger(L, call_id);
+  if (lua_gettable(L, LUA_REGISTRYINDEX) <= LUA_TNIL) {
+    lua_pushinteger(L, call_id + 1);
+    if (lua_gettable(L, LUA_REGISTRYINDEX) <= LUA_TNIL) {
+      lua_pushvalue(L, 1);
+      lua_call(L, 0, 1);
+      if (lua_type(L, -1) <= LUA_TNIL) {
+        lua_pushinteger(L, call_id + 1);
+        lua_pushvalue(L, true);
+      }
+      else {
+        lua_pushinteger(L, call_id);
+        lua_pushvalue(L, -2);
+      }
+      lua_settable(L, LUA_REGISTRYINDEX);
+    }
+    else {
+      lua_pushnil(L);
+    }
+  }
+  return 1;
+}
+
+
 static const luaL_Reg base_funcs[] = {
+  {"callonce", luaB_callonce},
   {"sdiv", luaB_sdiv},
   {"udiv", luaB_udiv},
   {"smod", luaB_smod},
