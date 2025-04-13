@@ -5,15 +5,30 @@
 
 #include "ljson.hpp"
 
-static int encode(lua_State* L) {
-	auto root = checkJson(L, 1);
+static int encode(lua_State* L)
+{
+	auto up = new (lua_newuserdata(L, sizeof(soup::UniquePtr<soup::JsonNode>))) soup::UniquePtr<soup::JsonNode>{};
+	lua_newtable(L);
+	{
+		lua_pushliteral(L, "__gc");
+		lua_pushcfunction(L, [](lua_State* L) -> int
+		{
+			std::destroy_at((soup::UniquePtr<soup::JsonNode>*)lua_touserdata(L, 1));
+			return 0;
+		});
+		lua_settable(L, -3);
+	}
+	lua_setmetatable(L, -2);
+
+	checkJson(L, 1, *up);
+
 	if (lua_istrue(L, 2))
 	{
-		pluto_pushstring(L, root->encodePretty());
+		pluto_pushstring(L, (*up)->encodePretty());
 	}
 	else
 	{
-		pluto_pushstring(L, root->encode());
+		pluto_pushstring(L, (*up)->encode());
 	}
 	return 1;
 }

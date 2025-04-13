@@ -43,50 +43,57 @@ static bool isIndexBasedTable(lua_State* L, int i)
 	return true;
 }
 
-static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
+static void checkJson(lua_State* L, int i, soup::UniquePtr<soup::JsonNode>& out)
 {
 	const auto type = lua_type(L, i);
 	if (type == LUA_TBOOLEAN)
 	{
-		return soup::make_unique<soup::JsonBool>(lua_toboolean(L, i));
+		out = soup::make_unique<soup::JsonBool>(lua_toboolean(L, i));
+		return;
 	}
 	else if (type == LUA_TNUMBER)
 	{
 		if (lua_isinteger(L, i))
 		{
-			return soup::make_unique<soup::JsonInt>(lua_tointeger(L, i));
+			out = soup::make_unique<soup::JsonInt>(lua_tointeger(L, i));
+			return;
 		}
 		else
 		{
-			return soup::make_unique<soup::JsonFloat>(lua_tonumber(L, i));
+			out = soup::make_unique<soup::JsonFloat>(lua_tonumber(L, i));
+			return;
 		}
 	}
 	else if (type == LUA_TSTRING)
 	{
-		return soup::make_unique<soup::JsonString>(pluto_checkstring(L, i));
+		out = soup::make_unique<soup::JsonString>(pluto_checkstring(L, i));
+		return;
 	}
 	else if (type == LUA_TTABLE)
 	{
 		lua_checkstack(L, 5);
 		if (isIndexBasedTable(L, i))
 		{
-			auto arr = soup::make_unique<soup::JsonArray>();
+			out = soup::make_unique<soup::JsonArray>();
+			auto& arr = out->reinterpretAsArr();
 			lua_pushvalue(L, i);
 			lua_pushnil(L);
 			while (lua_next(L, -2))
 			{
 				lua_pushvalue(L, -2);
 				luaE_incCstack(L);
-				arr->children.emplace_back(checkJson(L, -2));
+				auto& entry = arr.children.emplace_back();
+				checkJson(L, -2, entry);
 				L->nCcalls--;
 				lua_pop(L, 2);
 			}
 			lua_pop(L, 1);
-			return arr;
+			return;
 		}
 		else
 		{
-			auto obj = soup::make_unique<soup::JsonObject>();
+			out = soup::make_unique<soup::JsonObject>();
+			auto& obj = out->reinterpretAsObj();
 			lua_pushvalue(L, i);
 			lua_pushliteral(L, "__order");
 			if (lua_rawget(L, -2) == LUA_TTABLE)
@@ -103,7 +110,9 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 					{
 						// table, __order, idx, key, value
 						luaE_incCstack(L);
-						obj->children.emplace_back(soup::make_unique<soup::JsonString>(pluto_checkstring(L, -2)), checkJson(L, -1));
+						auto& entry = obj.children.emplace_back();
+						entry.first = soup::make_unique<soup::JsonString>(pluto_checkstring(L, -2));
+						checkJson(L, -1, entry.second);
 						L->nCcalls--;
 					}
 					// table, __order, idx, key, value
@@ -120,20 +129,23 @@ static soup::UniquePtr<soup::JsonNode> checkJson(lua_State* L, int i)
 				{
 					lua_pushvalue(L, -2);
 					luaE_incCstack(L);
-					obj->children.emplace_back(checkJson(L, -1), checkJson(L, -2));
+					auto& entry = obj.children.emplace_back();
+					checkJson(L, -1, entry.first);
+					checkJson(L, -2, entry.second);
 					L->nCcalls--;
 					lua_pop(L, 2);
 				}
 			}
 			lua_pop(L, 1);
-			return obj;
+			return;
 		}
 	}
 	else if (type == LUA_TLIGHTUSERDATA)
 	{
 		if (reinterpret_cast<uintptr_t>(lua_touserdata(L, i)) == 0xF01D)
 		{
-			return soup::make_unique<soup::JsonNull>();
+			out = soup::make_unique<soup::JsonNull>();
+			return;
 		}
 	}
 	luaL_typeerror(L, i, "JSON-castable type");
