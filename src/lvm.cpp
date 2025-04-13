@@ -354,6 +354,8 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
       lua_assert(isempty(slot));  /* slot must be empty */
       tm = fasttm(L, h->metatable, TM_NEWINDEX);  /* get metamethod */
       if (tm == NULL) {  /* no metamethod? */
+        sethvalue2s(L, L->top.p, h);  /* anchor 't' */
+        L->top.p++;  /* assume EXTRA_STACK */
 #ifndef PLUTO_DISABLE_LENGTH_CACHE
         h->length = 0; // Reset length cache.
 #endif
@@ -361,6 +363,7 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
         if (l_unlikely(h->isfrozen)) luaG_runerror(L, "attempt to modify frozen table.");
 #endif
         luaH_finishset(L, h, key, slot, val);  /* set new value */
+        L->top.p--;
         invalidateTMcache(h);
         luaC_barrierback(L, obj2gco(h), val);
         return;
