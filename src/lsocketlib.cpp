@@ -10,6 +10,8 @@
 
 #include "vendor/Soup/soup/CertStore.hpp"
 #include "vendor/Soup/soup/netConnectTask.hpp"
+#include "vendor/Soup/soup/os.hpp"
+#include "vendor/Soup/soup/ResolveIpAddrTask.hpp"
 #include "vendor/Soup/soup/Scheduler.hpp"
 #include "vendor/Soup/soup/Server.hpp"
 #include "vendor/Soup/soup/ServerService.hpp"
@@ -19,6 +21,7 @@ struct StandaloneSocket {
   soup::Scheduler sched;
   soup::SharedPtr<soup::Socket> sock;
   std::deque<std::string> recvd;
+  bool udp = false;
   bool did_tls_handshake = false;
   bool from_listener = false;
 
@@ -27,6 +30,23 @@ struct StandaloneSocket {
       StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
       ss.recvd.push_back(std::move(data));
       ss.recvLoop();
+    }, this);
+  }
+
+  void recvLoopUdp(soup::Socket& s) {
+    s.udpRecv([](soup::Socket& s, soup::SocketAddr&& addr, std::string&& data, soup::Capture&& cap) SOUP_EXCAL {
+#if !SOUP_WINDOWS
+      s.peer = std::move(addr);
+#endif
+      StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
+#if SOUP_WINDOWS
+      if (ss.from_listener) {
+        s.peer = std::move(addr);
+        ss.sock = ss.sched.getShared(s);  /* we may need to switch from IPv6 to IPv4 or vice-versa */
+      }
+#endif
+      ss.recvd.push_back(std::move(data));
+      ss.recvLoopUdp(s);
     }, this);
   }
 };
@@ -69,16 +89,61 @@ static int connectcont (lua_State *L, int status, lua_KContext ctx) {
   return lua_yieldk(L, 0, ctx, connectcont);
 }
 
+static int restconnectudp (lua_State *L, soup::ResolveIpAddrTask *pTask) {
+  if (l_unlikely(!pTask->result.has_value())) {
+    return 0;
+  }
+  StandaloneSocket& ss = *checksocket(L, -1);
+  ss.sock->peer.ip = std::move(*pTask->result);
+  ss.sched.tick();  /* get rid of ResolveIpAddrTask */
+  return 1;
+}
+
+static int connectudpcont (lua_State *L, int status, lua_KContext ctx) {
+  auto pTask = reinterpret_cast<soup::ResolveIpAddrTask*>(ctx);
+  if (pTask->isWorkDone())
+    return restconnectudp(L, pTask);
+  StandaloneSocket& ss = *checksocket(L, -1);
+  ss.sched.tick();
+  return lua_yieldk(L, 0, ctx, connectudpcont);
+}
+
 static int l_connect (lua_State *L) {
   const char *host = luaL_checkstring(L, 1);
   auto port = static_cast<uint16_t>(luaL_checkinteger(L, 2));
+  const char *const opts[] = { "tcp", "udp", nullptr };
+  bool udp = luaL_checkoption(L, 3, "tcp", opts);
 
   StandaloneSocket& ss = pushsocket(L);
 
+  if (udp) {
+    ss.sock = ss.sched.addSocket();
+    const bool host_is_ip_addr = ss.sock->peer.ip.fromString(host);
+    ss.sock->peer.port = soup::Endianness::toNetwork(soup::native_u16_t(port));
+#if SOUP_WINDOWS
+    ss.sock->init(ss.sock->peer.ip.isV4() ? AF_INET : AF_INET6, SOCK_DGRAM);  /* init socket right away so we can use udpServerSend as client */
+#else
+    ss.sock->init(AF_INET6, SOCK_DGRAM);  /* init socket right away so we can use udpServerSend as client */
+#endif
+    ss.udp = true;
+    ss.recvLoopUdp(*ss.sock);
+    if (!host_is_ip_addr) {
+      auto spTask = ss.sched.add<soup::ResolveIpAddrTask>(host);
+      ss.sched.tick();
+      if (lua_isyieldable(L))
+        return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(spTask.get()), connectudpcont);
+      do {
+        soup::os::sleep(1);
+        ss.sched.tick();
+      } while (!spTask->isWorkDone());
+      return restconnectudp(L, spTask.get());
+    }
+    return 1;
+  }
+
   if (!lua_isyieldable(L)) {
     ss.sock = ss.sched.addSocket();
-    bool connected = ss.sock->connect(host, port);
-    if (!connected)
+    if (l_unlikely(!ss.sock->connect(host, port)))
       return 0;
     ss.recvLoop();
     return 1;
@@ -92,7 +157,11 @@ static int l_connect (lua_State *L) {
 static int l_send (lua_State *L) {
   size_t len;
   const char *str = luaL_checklstring(L, 2, &len);
-  checksocket(L, 1)->sock->send(str, len);
+  StandaloneSocket& ss = *checksocket(L, 1);
+  if (ss.udp)
+    ss.sock->udpServerSend(ss.sock->peer, str, len);
+  else
+    ss.sock->send(str, len);
   return 0;
 }
 
@@ -163,6 +232,9 @@ static void starttlscallback (soup::Socket&, soup::Capture&& cap) SOUP_EXCAL {
 static int starttls (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
 
+  if (l_unlikely(ss.udp))
+    luaL_error(L, "TLS is only available on TCP sockets");
+
   if (ss.did_tls_handshake)
     return 0;
 
@@ -215,6 +287,12 @@ static int starttls (lua_State *L) {
 static int socket_istls (lua_State *L) {
   StandaloneSocket& ss = *checksocket(L, 1);
   lua_pushboolean(L, ss.did_tls_handshake);
+  return 1;
+}
+
+static int socket_isudp (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  lua_pushboolean(L, ss.udp);
   return 1;
 }
 
@@ -313,8 +391,20 @@ static int listener_hasconnection (lua_State *L) {
   return 1;
 }
 
+[[nodiscard]] static soup::SocketAddr checkaddr (lua_State *L, int i) {
+  soup::SocketAddr addr;
+  if (lua_type(L, i) == LUA_TSTRING) {
+    if (l_unlikely(!addr.fromString(luaL_checkstring(L, i))))
+      luaL_error(L, "Invalid bind address");
+  }
+  else
+    addr.port = soup::Endianness::toNetwork(static_cast<uint16_t>(luaL_checkinteger(L, i)));
+  return addr;
+}
+
 static int l_listen (lua_State *L) {
-  auto port = static_cast<uint16_t>(luaL_checkinteger(L, 1));
+  soup::SocketAddr addr = checkaddr(L, 1);
+  const auto port = addr.getPort();
 
   Listener& l = *new (lua_newuserdata(L, sizeof(Listener))) Listener{};
   if (luaL_newmetatable(L, "pluto:socket-listener")) {
@@ -336,7 +426,32 @@ static int l_listen (lua_State *L) {
   }
   lua_setmetatable(L, -2);
 
-  return l.serv.bind(port, &l.srv) ? 1 : 0;
+  return (addr.ip.isZero() ? l.serv.bind(port, &l.srv) : l.serv.bind(addr.ip, port, &l.srv)) ? 1 : 0;
+}
+
+static int l_udpserver (lua_State *L) {
+  soup::SocketAddr addr = checkaddr(L, 1);
+  const auto port = addr.getPort();
+
+  StandaloneSocket& ss = pushsocket(L);
+  ss.sock = ss.sched.addSocket();
+  ss.udp = true;
+  ss.from_listener = true;
+  if (addr.ip.isZero()) {
+    if (l_unlikely(!ss.sock->udpBind6(port)))
+      return 0;
+    ss.recvLoopUdp(*ss.sock);
+#if SOUP_WINDOWS
+    auto ipv4_sock = ss.sched.addSocket();
+    if (l_likely(ipv4_sock->udpBind4(port)))
+      ss.recvLoopUdp(*ipv4_sock);
+#endif
+  }
+  else {
+    if (l_unlikely(!ss.sock->udpBind(addr.ip, addr.port)))
+      return 0;
+  }
+  return 1;
 }
 
 static const luaL_Reg funcs_socket[] = {
@@ -347,11 +462,13 @@ static const luaL_Reg funcs_socket[] = {
   {"unrecv", unrecv},
   {"starttls", starttls},
   {"istls", socket_istls},
+  {"isudp", socket_isudp},
   {"close", socket_close},
   {"isopen", socket_isopen},
   {"getside", socket_getside},
   {"getpeer", socket_getpeer},
   {"listen", l_listen},
+  {"udpserver", l_udpserver},
   {NULL, NULL}
 };
 

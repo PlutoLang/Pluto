@@ -2,16 +2,18 @@
 
 #include "base.hpp"
 
-#if defined(SOUP_USE_INTRIN) && SOUP_BITS == 64 && (SOUP_X86 || SOUP_ARM)
-#define SHA256_USE_INTRIN true
+#if SOUP_BITS == 64 && (SOUP_X86 || SOUP_ARM)
+	#define SHA256_USE_INTRIN true
 #else
-#define SHA256_USE_INTRIN false
+	#define SHA256_USE_INTRIN false
 #endif
 
-#if SHA256_USE_INTRIN
-#include "CpuInfo.hpp"
-#endif
 #include "Reader.hpp"
+
+#if SHA256_USE_INTRIN
+	#include "CpuInfo.hpp"
+	#include "sha256_intrin.hpp"
+#endif
 
 /*
 Original source: https://github.com/983/SHA-256
@@ -20,13 +22,6 @@ Original licence: Dedicated to the public domain.
 
 NAMESPACE_SOUP
 {
-#if SHA256_USE_INTRIN
-	namespace intrin
-	{
-		extern void sha256_transform(uint32_t state[8], const uint8_t data[64]) noexcept;
-	}
-#endif
-
 	struct sha256_state
 	{
 		uint32_t state[8];
