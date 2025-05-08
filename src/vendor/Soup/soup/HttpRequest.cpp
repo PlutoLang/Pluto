@@ -19,19 +19,19 @@
 
 NAMESPACE_SOUP
 {
-	HttpRequest::HttpRequest(std::string method, std::string host, std::string path)
+	HttpRequest::HttpRequest(std::string method, const std::string& host, std::string path)
 		: MimeMessage({
-			{ObfusString("Host"), std::move(host)},
-			{ObfusString("User-Agent"), ObfusString("Mozilla/5.0 (compatible; calamity-inc/Soup)")},
-			{ObfusString("Connection"), ObfusString("close")},
-			{ObfusString("Accept-Encoding"), ObfusString("deflate, gzip")},
+			{ObfusString("Host: ").str() + host},
+			{ObfusString("User-Agent: Mozilla/5.0 (compatible; calamity-inc/Soup)").str()},
+			{ObfusString("Connection: close").str()},
+			{ObfusString("Accept-Encoding: deflate, gzip").str()},
 		}), method(std::move(method)), path(std::move(path))
 	{
 		fixPath();
 	}
 
-	HttpRequest::HttpRequest(std::string host, std::string path)
-		: HttpRequest(ObfusString("GET"), std::move(host), std::move(path))
+	HttpRequest::HttpRequest(const std::string& host, std::string path)
+		: HttpRequest(ObfusString("GET"), host, std::move(path))
 	{
 	}
 
@@ -52,9 +52,9 @@ NAMESPACE_SOUP
 		}
 	}
 
-	const std::string& HttpRequest::getHost() const
+	std::string HttpRequest::getHost() const
 	{
-		return header_fields.at(ObfusString("Host"));
+		return findHeader(ObfusString("Host")).value();
 	}
 
 	std::string HttpRequest::getUrl() const
@@ -130,7 +130,7 @@ NAMESPACE_SOUP
 
 		HttpRequestExecuteData data{ this };
 		auto sock = make_shared<Socket>();
-		const auto& host = getHost();
+		const auto host = getHost();
 		if (sock->connect(host, port))
 		{
 			Scheduler sched{};
@@ -165,7 +165,7 @@ NAMESPACE_SOUP
 	{
 		HttpRequestExecuteEventStreamData data{ this, on_event, std::move(cap) };
 		auto sock = make_shared<Socket>();
-		const auto& host = getHost();
+		const auto host = getHost();
 		if (sock->connect(host, port))
 		{
 			Scheduler sched{};
@@ -230,12 +230,12 @@ NAMESPACE_SOUP
 
 	void HttpRequest::setClose() noexcept
 	{
-		header_fields.at(ObfusString("Connection")) = ObfusString("close").str();
+		setHeader(ObfusString("Connection"), ObfusString("close"));
 	}
 
 	void HttpRequest::setKeepAlive() noexcept
 	{
-		header_fields.at(ObfusString("Connection")) = ObfusString("keep-alive").str();
+		setHeader(ObfusString("Connection"), ObfusString("keep-alive"));
 	}
 
 	struct HttpResponseReceiver
@@ -337,19 +337,19 @@ NAMESPACE_SOUP
 						}
 						else
 						{
-							if (auto enc = self.resp.header_fields.find(ObfusString("Transfer-Encoding")); enc != self.resp.header_fields.end())
+							if (auto enc = self.resp.findHeader(ObfusString("Transfer-Encoding")))
 							{
-								if (joaat::hash(enc->second) == joaat::hash("chunked"))
+								if (joaat::hash(*enc) == joaat::hash("chunked"))
 								{
 									self.status = BODY_CHUNKED;
 								}
 							}
 							if (self.status == HEADER)
 							{
-								if (auto len = self.resp.header_fields.find(ObfusString("Content-Length")); len != self.resp.header_fields.end())
+								if (auto len = self.resp.findHeader(ObfusString("Content-Length")))
 								{
 									self.status = BODY_LEN;
-									if (auto opt = string::toIntOpt<uint64_t>(len->second, string::TI_FULL); opt.has_value())
+									if (auto opt = string::toIntOpt<uint64_t>(*len, string::TI_FULL); opt.has_value())
 									{
 										self.bytes_remain = opt.value();
 									}
@@ -367,9 +367,9 @@ NAMESPACE_SOUP
 								}
 								else
 								{
-									if (auto con = self.resp.header_fields.find(ObfusString("Connection")); con != self.resp.header_fields.end())
+									if (auto con = self.resp.findHeader(ObfusString("Connection")))
 									{
-										if (joaat::hash(con->second) == joaat::hash("close"))
+										if (joaat::hash(*con) == joaat::hash("close"))
 										{
 											self.status = BODY_CLOSE;
 											s.callback_recv_on_close = true;
