@@ -78,7 +78,7 @@ NAMESPACE_SOUP
 
 		StringWriter sw;
 		value.write(sw);
-		return sw.data;
+		SOUP_MOVE_RETURN(sw.data);
 	}
 
 	std::string dnsMxRecord::toString() const
@@ -91,7 +91,17 @@ NAMESPACE_SOUP
 
 	std::string dnsMxRecord::toRdata() const
 	{
-		Exception::purecall();
+		StringWriter sw;
+		{
+			uint16_t priority = this->priority;
+			sw.u16be(priority);
+		}
+		{
+			dnsName target;
+			target.name = string::explode(this->target, '.');
+			target.write(sw);
+		}
+		SOUP_MOVE_RETURN(sw.data);
 	}
 
 	std::string dnsSrvRecord::toString() const
