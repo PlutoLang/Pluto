@@ -8,8 +8,8 @@
 
 NAMESPACE_SOUP
 {
-	MimeMessage::MimeMessage(std::unordered_map<std::string, std::string>&& header_fields, std::string&& body)
-		: header_fields(std::move(header_fields)), body(std::move(body))
+	MimeMessage::MimeMessage(std::vector<std::string>&& headers, std::string&& body)
+		: headers(std::move(headers)), body(std::move(body))
 	{
 	}
 
@@ -26,9 +26,9 @@ NAMESPACE_SOUP
 
 	std::string MimeMessage::getBody() const
 	{
-		if (auto enc = header_fields.find(ObfusString("Content-Encoding")); enc != header_fields.end())
+		if (auto enc = findHeader(ObfusString("Content-Encoding")))
 		{
-			auto enc_joaat = joaat::hash(enc->second);
+			auto enc_joaat = joaat::hash(*enc);
 			switch (enc_joaat)
 			{
 			case joaat::hash("gzip"):
@@ -41,7 +41,7 @@ NAMESPACE_SOUP
 
 	void MimeMessage::setContentLength()
 	{
-		header_fields.emplace(ObfusString("Content-Length"), std::to_string(body.size()));
+		setHeader(ObfusString("Content-Length"), std::to_string(body.size()));
 	}
 
 	void MimeMessage::setContentType()
@@ -50,17 +50,17 @@ NAMESPACE_SOUP
 			&& body.substr(0, 4) == "\x89PNG"
 			)
 		{
-			header_fields.emplace("Content-Type", MimeType::IMAGE_PNG);
+			setHeader("Content-Type", MimeType::IMAGE_PNG);
 			return;
 		}
 
 		if (body.find("<body>") != std::string::npos)
 		{
-			header_fields.emplace("Content-Type", MimeType::TEXT_HTML);
+			setHeader("Content-Type", MimeType::TEXT_HTML);
 			return;
 		}
 
-		header_fields.emplace("Content-Type", MimeType::TEXT_PLAIN);
+		setHeader("Content-Type", MimeType::TEXT_PLAIN);
 	}
 
 	void MimeMessage::loadMessage(const std::string& data)
@@ -90,103 +90,145 @@ NAMESPACE_SOUP
 		}
 	}
 
-	bool MimeMessage::hasHeader(const std::string& key) const noexcept
+	Optional<std::string> MimeMessage::findHeader(std::string key) const SOUP_EXCAL
 	{
-#if SOUP_CPP20
-		return header_fields.contains(key);
-#else
-		return header_fields.find(key) != header_fields.end();
-#endif
-	}
-
-	std::string* MimeMessage::findHeader(std::string key) noexcept
-	{
-		string::lower(key);
-		for (auto& e : header_fields)
+		normaliseHeaderCasingInplace(key.data(), key.size());
+		for (const auto& header : headers)
 		{
-			if (string::lower(std::string(e.first)) == key)
+			if (header.size() > key.size()
+				&& header[key.size()] == ':'
+				&& memcmp(header.data(), key.data(), key.size()) == 0
+				)
 			{
-				return &e.second;
+				const auto value_off = key.size() + 2;
+				return std::string(header.data() + value_off, header.size() - value_off);
 			}
 		}
-		return nullptr;
+		return Optional<std::string>();
 	}
 
-	const std::string* MimeMessage::findHeader(std::string key) const noexcept
-	{
-		string::lower(key);
-		for (auto& e : header_fields)
-		{
-			if (string::lower(std::string(e.first)) == key)
-			{
-				return &e.second;
-			}
-		}
-		return nullptr;
-	}
-
-	void MimeMessage::addHeader(const std::string& line) SOUP_EXCAL
+	void MimeMessage::addHeader(std::string line) SOUP_EXCAL
 	{
 		if (auto key_offset = line.find(": "); key_offset != std::string::npos)
 		{
-			auto value = line.substr(key_offset + 2);
-			string::trim(value);
-			header_fields.emplace(normaliseHeaderCasing(line.substr(0, key_offset)), std::move(value));
+			normaliseHeaderCasingInplace(line.data(), key_offset);
+			headers.emplace_back(std::move(line));
 		}
 	}
 
-	void MimeMessage::setHeader(const std::string& _key, const std::string& value) SOUP_EXCAL
+	void MimeMessage::addHeader(std::string key, const std::string& value) SOUP_EXCAL
 	{
-		const auto key = normaliseHeaderCasing(_key);
-		if (auto e = header_fields.find(key); e != header_fields.end())
-		{
-			e->second = value;
-		}
-		else
-		{
-			header_fields.emplace(key, value);
-		}
+		normaliseHeaderCasingInplace(key.data(), key.size());
+		std::string line;
+		line.reserve(key.size() + 2 + value.size());
+		line.append(key);
+		line.append(": ");
+		line.append(value);
+		headers.emplace_back(std::move(line));
 	}
 
-	std::string MimeMessage::normaliseHeaderCasing(const std::string& key) SOUP_EXCAL
+	void MimeMessage::setHeader(std::string key, const std::string& value) SOUP_EXCAL
 	{
-		std::string out;
-		auto parts = string::explode(key, '-');
-		for (auto i = parts.begin(); i != parts.end(); ++i)
+		normaliseHeaderCasingInplace(key.data(), key.size());
+		for (auto& header : headers)
 		{
-			out.reserve(i->size() + 1);
-			out.push_back(string::upper_char(i->at(0)));
-			out.append(string::lower(i->substr(1)));
-			if ((i + 1) != parts.end())
+			if (header.size() > key.size()
+				&& header[key.size()] == ':'
+				&& memcmp(header.data(), key.data(), key.size()) == 0
+				)
 			{
-				out.push_back('-');
+				const auto value_off = key.size() + 2;
+				header = header.substr(0, value_off) + value;
+				return;
 			}
 		}
-		return out;
+		std::string line;
+		line.reserve(key.size() + 2 + value.size());
+		line.append(key);
+		line.append(": ");
+		line.append(value);
+		headers.emplace_back(std::move(line));
 	}
 
-	void MimeMessage::decode()
+	void MimeMessage::removeHeader(std::string key) noexcept
 	{
-		if (auto enc = header_fields.find(ObfusString("Content-Encoding")); enc != header_fields.end())
+		normaliseHeaderCasingInplace(key.data(), key.size());
+		for (auto i = headers.begin(); i != headers.end(); ++i)
 		{
-			auto enc_joaat = joaat::hash(enc->second);
+			const std::string& header = *i;
+			if (header.size() > key.size()
+				&& header[key.size()] == ':'
+				&& memcmp(header.data(), key.data(), key.size()) == 0
+				)
+			{
+				headers.erase(i);
+				break;
+			}
+		}
+	}
+
+	void MimeMessage::normaliseHeaderCasingInplace(char* data, size_t size) noexcept
+	{
+		bool first = true;
+		for (size_t i = 0; i != size; ++i)
+		{
+			if (first)
+			{
+				data[i] = string::upper_char(data[i]);
+			}
+			else
+			{
+				data[i] = string::lower_char(data[i]);
+			}
+			first = (data[i] == '-');
+		}
+	}
+
+	void MimeMessage::decode() SOUP_EXCAL
+	{
+		ObfusString enc_header_name("Content-Encoding");
+		if (auto enc = findHeader(enc_header_name))
+		{
+			auto enc_joaat = joaat::hash(*enc);
 			switch (enc_joaat)
 			{
 			case joaat::hash("gzip"):
 			case joaat::hash("deflate"):
-				header_fields.erase(enc);
+				removeHeader(enc_header_name);
 				body = deflate::decompress(body).decompressed;
 				break;
 			}
 		}
 	}
 
-	std::string MimeMessage::toString() const
+	std::unordered_map<std::string, std::string> MimeMessage::getHeaderFields() const SOUP_EXCAL
+	{
+		std::unordered_map<std::string, std::string> map{};
+		for (const auto& header : headers)
+		{
+			const auto sep = header.find(": ");
+			SOUP_DEBUG_ASSERT(sep != std::string::npos);
+			auto key = header.substr(0, sep);
+			auto value = header.substr(sep + 2);
+			if (auto e = map.find(key); e != map.end())
+			{
+				e->second.append(", ");
+				e->second.append(value);
+			}
+			else
+			{
+				map.emplace(std::move(key), std::move(value));
+			}
+		}
+		return map;
+	}
+
+	std::string MimeMessage::toString() const SOUP_EXCAL
 	{
 		std::string res{};
-		for (const auto& field : header_fields)
+		for (const auto& header : headers)
 		{
-			res.append(field.first).append(": ").append(field.second).append("\r\n");
+			res.append(header).append("\r\n");
 		}
 		res.append("\r\n");
 		res.append(body);
