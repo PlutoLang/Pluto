@@ -56,6 +56,10 @@ NAMESPACE_SOUP
 	{
 	public:
 		Promise() = default;
+		Promise(const Promise<T>&) = delete;
+		Promise(Promise<T>&&) = delete;
+		void operator=(const Promise<T>&) = delete;
+		void operator=(Promise<T>&&) = delete;
 
 		// Creates a fulfilled promise
 		Promise(T&& res)
@@ -109,6 +113,10 @@ NAMESPACE_SOUP
 
 	public:
 		Promise() = default;
+		Promise(const Promise<void>&) = delete;
+		Promise(Promise<void>&&) = delete;
+		void operator=(const Promise<void>&) = delete;
+		void operator=(Promise<void>&&) = delete;
 
 		operator bool() const noexcept
 		{
