@@ -244,6 +244,7 @@ int luaU_dump(lua_State *L, const Proto *f, lua_Writer w, void *data,
   D.strip = strip;
   D.status = 0;
   D.lua_vm_compatible = true;
+  D.min_required_version = 0;
   check_vm_compatibility(f, D.lua_vm_compatible, D.min_required_version);
   dumpHeader(&D);
   dumpByte(&D, f->sizeupvalues);
