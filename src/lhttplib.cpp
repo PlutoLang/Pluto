@@ -17,7 +17,8 @@ static int push_http_response (lua_State *L, soup::HttpRequestTask& task) {
     pluto_pushstring(L, task.result->body);
     lua_pushinteger(L, task.result->status_code);
     lua_newtable(L);
-    for (auto& e : task.result->header_fields) {
+    const auto header_fields = task.result->getHeaderFields();
+    for (auto& e : header_fields) {
       pluto_pushstring(L, e.first);
       pluto_pushstring(L, e.second);
       lua_settable(L, -3);
@@ -135,7 +136,7 @@ static int http_request (lua_State *L) {
         const char *value = luaL_checklstring(L, -1, &valuelen);
         if (strpbrk(value, "\n\r") != nullptr) {  /* header value contains forbidden characters? */
           /* free memory */
-          decltype(hr.header_fields){}.swap(hr.header_fields);
+          hr.headers.clear(); hr.headers.shrink_to_fit();
           hr.body.clear(); hr.body.shrink_to_fit();
           hr.method.clear(); hr.method.shrink_to_fit();
           hr.path.clear(); hr.path.shrink_to_fit();

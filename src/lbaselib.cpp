@@ -498,7 +498,7 @@ static int luaB_dofile (lua_State *L) {
 }
 
 
-static int luaB_assert (lua_State *L) {
+int luaB_assert (lua_State *L) {
   if (l_likely(lua_toboolean(L, 1)))  /* condition is true? */
     return lua_gettop(L);  /* return all arguments */
   else {  /* error */
@@ -770,7 +770,35 @@ static int luaB_range (lua_State *L) {
 }
 
 
+static int luaB_sdiv (lua_State *L) {
+  lua_pushinteger(L, luaL_checkinteger(L, 1) / luaL_checkinteger(L, 2));
+  return 1;
+}
+
+
+static int luaB_udiv (lua_State *L) {
+  lua_pushinteger(L, static_cast<lua_Unsigned>(luaL_checkinteger(L, 1)) / static_cast<lua_Unsigned>(luaL_checkinteger(L, 2)));
+  return 1;
+}
+
+
+static int luaB_smod (lua_State *L) {
+  lua_pushinteger(L, luaL_checkinteger(L, 1) % luaL_checkinteger(L, 2));
+  return 1;
+}
+
+
+static int luaB_umod (lua_State *L) {
+  lua_pushinteger(L, static_cast<lua_Unsigned>(luaL_checkinteger(L, 1)) % static_cast<lua_Unsigned>(luaL_checkinteger(L, 2)));
+  return 1;
+}
+
+
 static const luaL_Reg base_funcs[] = {
+  {"sdiv", luaB_sdiv},
+  {"udiv", luaB_udiv},
+  {"smod", luaB_smod},
+  {"umod", luaB_umod},
   {"range", luaB_range},
   {"compareversions", luaB_compareversions},
   {"exportvar", luaB_exportvar},

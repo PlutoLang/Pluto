@@ -247,7 +247,8 @@ NAMESPACE_SOUP
 			((HttpRequestTask*)fetch->userData)->setWorkDone();
 			emscripten_fetch_close(fetch);
 		};
-		for (const auto& field : hr.header_fields)
+		header_fields = hr.getHeaderFields();
+		for (const auto& field : header_fields)
 		{
 			if (field.first != "Host"
 				&& field.first != "User-Agent"

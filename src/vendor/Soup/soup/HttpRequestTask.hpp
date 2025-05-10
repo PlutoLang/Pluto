@@ -39,6 +39,7 @@ NAMESPACE_SOUP
 		SharedPtr<Socket> sock;
 		time_t awaiting_response_since;
 #else
+		std::unordered_map<std::string, std::string> header_fields;
 		std::vector<const char*> headers;
 #endif
 

@@ -20,11 +20,11 @@ NAMESPACE_SOUP
 		bool path_is_encoded = false;
 
 		HttpRequest() = default;
-		HttpRequest(std::string method, std::string host, std::string path);
-		HttpRequest(std::string host, std::string path);
+		HttpRequest(std::string method, const std::string& host, std::string path);
+		HttpRequest(const std::string& host, std::string path);
 		HttpRequest(const Uri& uri);
 
-		[[nodiscard]] const std::string& getHost() const;
+		[[nodiscard]] std::string getHost() const;
 		[[nodiscard]] std::string getUrl() const;
 
 		void setPath(std::string&& path);
