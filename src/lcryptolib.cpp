@@ -1,5 +1,6 @@
 #define LUA_LIB
 
+#include <random> // uniform_int_distribution
 #include <sstream>
 
 #include "lua.h"
@@ -307,9 +308,34 @@ static int l_hashwithdigest (lua_State *L) {
 }
 
 
-static int random(lua_State *L)
-{
-  lua_pushinteger(L, static_cast<lua_Integer>(soup::FastHardwareRng::generate64()));
+static int random(lua_State *L) {
+  lua_Integer low;
+  lua_Integer up = 0;
+  switch (lua_gettop(L)) {
+    case 0: {
+      break;
+    }
+    case 1: {
+      low = 1;
+      up = luaL_checkinteger(L, 1);
+      break;
+    }
+    case 2: {
+      low = luaL_checkinteger(L, 1);
+      up = luaL_checkinteger(L, 2);
+      break;
+    }
+    default: luaL_error(L, "wrong number of arguments");
+  }
+  if (up == 0) {
+	lua_pushinteger(L, static_cast<lua_Integer>(soup::FastHardwareRng::generate64()));
+  }
+  else {
+    luaL_argcheck(L, low <= up, 1, "interval is empty");
+    soup::FastHardwareRng rng;
+    std::uniform_int_distribution<lua_Integer> dist(low, up);
+    lua_pushinteger(L, dist(rng));
+  }
   return 1;
 }
 
