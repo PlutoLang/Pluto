@@ -1128,7 +1128,6 @@
 ** =====================================================================}
 */
 
-//#define PLUTO_DISABLE_LENGTH_CACHE
 //#define PLUTO_DISABLE_TABLE_FREEZING
 
 /*
