@@ -285,7 +285,7 @@ static int floatforloop (StkId ra) {
 ** t[k] entry (which must be empty).
 */
 void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
-                      const TValue *slot) {
+                      const TValue *slot, bool mindex) {
   int loop;  /* counter to avoid infinite loops */
   const TValue *tm;  /* metamethod */
   int isValueString = ttisstring(t) && ttisinteger(key);
@@ -308,6 +308,8 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
       }
       else {
         tm = luaT_gettmbyobj(L, t, TM_INDEX);
+        if (notm(tm) && mindex)
+          tm = luaT_gettmbyobj(L, t, TM_MINDEX);
         if (l_unlikely(notm(tm)))
           luaG_typeerror(L, t, "index");  /* no metamethod */
         /* else will try the metamethod */
@@ -316,6 +318,8 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
     else {  /* 't' is a table */
       lua_assert(isempty(slot));
       tm = fasttm(L, hvalue(t)->metatable, TM_INDEX);  /* table's metamethod */
+      if (tm == NULL && mindex)
+        tm = fasttm(L, hvalue(t)->metatable, TM_MINDEX);
       if (tm == NULL) {  /* no metamethod? */
         setnilvalue(s2v(val));  /* result is nil */
         return;
@@ -1691,7 +1695,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           setobj2s(L, ra, slot);
         }
         else
-          Protect(luaV_finishget(L, rb, rc, ra, slot));
+          Protect(luaV_finishget(L, rb, rc, ra, slot, true));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
