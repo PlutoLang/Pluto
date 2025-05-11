@@ -23,7 +23,7 @@ struct PlutoSingleBlockAllocator : public soup::memAllocator
 
     static void* allocateImpl(memAllocator* inst, size_t size) /* SOUP_EXCAL */
     {
-        printf("allocate %zu\n", size);
+        //printf("allocate %zu\n", size);
         void* ptr = luaM_realloc_(static_cast<PlutoSingleBlockAllocator*>(inst)->L, nullptr, 0, size);
         SOUP_IF_LIKELY (ptr)
         {
@@ -35,7 +35,7 @@ struct PlutoSingleBlockAllocator : public soup::memAllocator
 
     static void* reallocateImpl(memAllocator* inst, void* addr, size_t new_size) /* SOUP_EXCAL */
     {
-        printf("resize %zu to %zu\n", static_cast<PlutoSingleBlockAllocator*>(inst)->size, new_size);
+        //printf("resize %zu to %zu\n", static_cast<PlutoSingleBlockAllocator*>(inst)->size, new_size);
         addr = luaM_realloc_(static_cast<PlutoSingleBlockAllocator*>(inst)->L, addr, static_cast<PlutoSingleBlockAllocator*>(inst)->size, new_size);
         SOUP_IF_LIKELY (addr)
         {
