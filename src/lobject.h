@@ -755,9 +755,6 @@ typedef struct Table {
 #ifndef PLUTO_DISABLE_TABLE_FREEZING
   bool isfrozen;
 #endif
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-  lua_Unsigned length;  /* cached length of this table, as returned by luaH_getn */
-#endif
 } Table;
 
 
