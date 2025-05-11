@@ -88,6 +88,10 @@ static int buffer_new (lua_State *L) {
       return 0;
     });
     lua_settable(L, -3);
+	lua_pushliteral(L, "__tostring");
+	luaL_loadbuffer(L, "return require\"pluto:buffer\".tostring", 37, 0);
+	lua_call(L, 0, 1);
+	lua_settable(L, -3);
   }
   lua_setmetatable(L, -2);
   return 1;
