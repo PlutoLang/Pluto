@@ -882,9 +882,6 @@ LUAMOD_API int luaopen_base (lua_State *L) {
   /* set global _PVERSION */
   lua_pushliteral(L, PLUTO_VERSION);
   lua_setfield(L, -2, "_PVERSION");
-  /* set global _PSOUP (always true as of 0.8.0) */
-  lua_pushboolean(L, true);
-  lua_setfield(L, -2, "_PSOUP");
   return 1;
 }
 
