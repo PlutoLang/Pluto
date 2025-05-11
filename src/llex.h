@@ -45,7 +45,7 @@ enum RESERVED {
   TK_PUSE, // New compatibility keywords.
   TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, TK_PTRY, TK_PCATCH,
   TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, TK_TRY, TK_CATCH, // New non-compatible keywords.
-  TK_LET, TK_CONST, TK_GLOBAL, // New optional keywords.
+  TK_GLOBAL, // New optional keywords.
 #ifdef PLUTO_PARSER_SUGGESTIONS
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
 #endif
@@ -66,7 +66,7 @@ enum RESERVED {
 
 #define FIRST_COMPAT TK_PUSE
 #define FIRST_NON_COMPAT TK_SWITCH
-#define FIRST_OPTIONAL TK_LET
+#define FIRST_OPTIONAL TK_GLOBAL
 #define FIRST_SPECIAL TK_SUGGEST_0
 #define LAST_RESERVED TK_WHILE
 

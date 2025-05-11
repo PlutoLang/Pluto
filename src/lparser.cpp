@@ -4934,40 +4934,6 @@ static void localstat (LexState *ls, bool isexport = false) {
   checktoclose(fs, toclose);
 }
 
-static void conststat (LexState *ls) {
-  FuncState *fs = ls->fs;
-  auto line = ls->getLineNumber(); /* in case we need to emit a warning */
-  int vidx = new_localvar(ls, str_checkname(ls, N_OVERRIDABLE), line);
-  TypeHint hint = gettypehint(ls);
-  Vardesc *var = getlocalvardesc(fs, vidx);
-  var->vd.kind = RDKCONST;
-  *var->vd.hint = hint;
-
-  expdesc e;
-  if (testnext(ls, '=')) {
-    ls->pushContext(PARCTX_CREATE_VAR);
-    TypeHint t;
-    expr_propagate(ls, &e, t);
-    ls->popContext(PARCTX_CREATE_VAR);
-    if (luaK_exp2const(fs, &e, &var->k)) {  /* compile-time constant? */
-      var->vd.kind = RDKCTC;  /* variable is a compile-time constant */
-      fs->nactvar++;  /* don't adjustlocalvars, but count it */
-    }
-    else {
-      exp_propagate(ls, e, t);
-      process_assign(ls, vidx, t, line);
-      adjust_assign(ls, 1, 1, &e);
-      adjustlocalvars(ls, 1);
-    }
-  }
-  else {
-    e.k = VVOID;
-    process_assign(ls, vidx, TypeHint{ VT_NIL }, line);
-    adjust_assign(ls, 1, 0, &e);
-    adjustlocalvars(ls, 1);
-  }
-}
-
 
 static int funcname (LexState *ls, expdesc *v) {
   /* funcname -> NAME {fieldsel} [':' NAME] */
@@ -5186,14 +5152,7 @@ static void usestat (LexState *ls) {
       else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", getstr(ls->t.seminfo.ts)), "did you mean \"0.8.0\", \"0.6.0\", \"0.5.0\" or \"0.2.0\"?");
       if (getstr(ls->t.seminfo.ts)[ls->t.seminfo.ts->size() - 1] == '+') {
         if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.9.0") >= 0) {
-          tokens.emplace_back(TK_GLOBAL);
-          /* 'let' and 'const' are deprecated as of 0.9.0, so we don't wanna enable them with `pluto_use "0.9.0+"` */
-        }
-        else if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.7.0") >= 0) {
-          tokens.emplace_back(TK_LET);
-          if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.8.0") >= 0) {
-            tokens.emplace_back(TK_CONST);
-          }
+            tokens.emplace_back(TK_GLOBAL);
         }
       }
       luaX_next(ls);
@@ -5633,9 +5592,6 @@ static void statement (LexState *ls, TypeHint *prop) {
       classstat(ls, line, false);
       break;
     }
-    case TK_LET:
-      throw_warn(ls, "'let' will be removed in future versions of Pluto. use 'local' instead.", WT_DEPRECATED);
-      [[fallthrough]];
     case TK_LOCAL: {  /* stat -> localstat */
       luaX_next(ls);  /* skip LOCAL */
 #ifdef PLUTO_PARSER_SUGGESTIONS
@@ -5669,12 +5625,6 @@ static void statement (LexState *ls, TypeHint *prop) {
       }
       else
         localstat(ls);
-      break;
-    }
-    case TK_CONST: {
-      throw_warn(ls, "'const' will be removed in future versions of Pluto. use 'local' instead.", WT_DEPRECATED);
-      luaX_next(ls);  /* skip CONST */
-      conststat(ls);
       break;
     }
     case TK_EXPORT:
@@ -6234,12 +6184,6 @@ LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
     applyenvkeywordpreference(&lexstate, TK_TRY, L->l_G->preference_try);
   if (L->l_G->have_preference_catch)
     applyenvkeywordpreference(&lexstate, TK_CATCH, L->l_G->preference_catch);
-#ifndef PLUTO_USE_LET
-  disablekeyword(&lexstate, TK_LET);
-#endif
-#ifndef PLUTO_USE_CONST
-  disablekeyword(&lexstate, TK_CONST);
-#endif
 #ifndef PLUTO_USE_GLOBAL
   disablekeyword(&lexstate, TK_GLOBAL);
 #endif
