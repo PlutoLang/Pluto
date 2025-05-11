@@ -42,7 +42,7 @@ typedef enum {
 } TMS;
 
 
-static const char *const luaT_eventname[] = {  /* ORDER TM */
+inline const char *const luaT_eventname[] = {  /* ORDER TM */
   "__index", "__newindex",
   "__gc", "__mode", "__len", "__eq",
   "__add", "__sub", "__mul", "__mod", "__pow",
