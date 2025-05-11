@@ -2507,6 +2507,7 @@ do
         buf:append("abc")
     end
     assert(buf:tostring() == "abc":rep(10))
+    assert(tostring(buf) == "abc":rep(10))
 end
 
 print "Testing default table metatable."
