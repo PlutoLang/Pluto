@@ -2540,17 +2540,18 @@ do
     assert(t:contains("apple") == 1)
     assert(t:contains("banana") == 2)
     assert(t:contains("orange") == nil)
-end
-do
-    -- os.time in Lua may use __index to find fields, which is problematic as it will find the non-number field 'min'
-    -- So, we patch it to rawget, instead.
-    assert(os.time{year=2000, month=1, day=1})
-end
 
--- 'thread' type is given a metatable by Pluto
-do
+    -- 'thread' type is also given a metatable by Pluto
     local coro = coroutine.create(function() end)
     assert(coro:status() == "suspended")
+
+    -- We set __mindex, not __index, so only method calls are affected.
+    assert(t.contains == nil)
+    assert(os.time{year=2000, month=1, day=1})
+    t = setmetatable({}, { __index = { a = 1 } })
+    assert(t.a == 1)
+    assert(t.min == nil)
+    assert(t:min())
 end
 
 print "Testing default arguments."
