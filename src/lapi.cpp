@@ -920,6 +920,16 @@ LUA_API void lua_settable (lua_State *L, int idx) {
   api_checknelems(L, 2);
   t = index2value(L, idx);
   if (luaV_fastget(L, t, s2v(L->top.p - 2), slot, luaH_get)) {
+#if !defined(PLUTO_DISABLE_LENGTH_CACHE) || !defined(PLUTO_DISABLE_TABLE_FREEZING)
+    lua_assert(ttistable(t));
+    Table *tab = hvalue(t);
+  #ifndef PLUTO_DISABLE_TABLE_FREEZING
+    if (tab->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
+  #endif
+  #ifndef PLUTO_DISABLE_LENGTH_CACHE
+    tab->length = 0;
+  #endif
+#endif
     luaV_finishfastset(L, t, slot, s2v(L->top.p - 1));
   }
   else

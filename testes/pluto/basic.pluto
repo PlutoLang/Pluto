@@ -1900,6 +1900,13 @@ do
     assert(t.odd == 9)
 end
 do
+    -- Check congruence of # with length cache
+    local t = {1,2,3}
+    assert(#t == 3)
+    t:filter(||->false)
+    assert(#t == 0)
+end
+do
     do
         local t = { 1, nil, 2, nil, nil, 3, nil, nil, nil, 4, nil }
         t:reorder()
