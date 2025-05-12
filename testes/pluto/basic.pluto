@@ -2864,8 +2864,9 @@ do
     assert(😉 == "Hello")
 end
 
-print "Testing binary & octal numerals."
+print "Testing numeral parsing."
 do
+    assert(1_234 == 1234)
     assert(0b11 == 3)
     assert(0o777 == 0x1ff)
 end
