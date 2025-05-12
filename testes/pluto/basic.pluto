@@ -2586,6 +2586,38 @@ do
         error()
     end
 
+    do
+        local function producer()
+            return 4, 5
+        end
+        if a, b := producer() then
+            assert(a == 4)
+            assert(b == 5)
+        else
+            error()
+        end
+    end
+
+    do
+        local function producer()
+            return 8, nil
+        end
+        if a, b := producer() then
+            assert(a == 8)
+            assert(b == nil)
+        else
+            error()
+        end
+    end
+
+    do
+        local t = { { 6, 7 } }
+        while a, b := table.unpack(t:remove() or {}) do
+            assert(a == 6)
+            assert(b == 7)
+        end
+    end
+
     if _b := nil then
         error()
     end
