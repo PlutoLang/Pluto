@@ -3016,6 +3016,27 @@ static void parentexp (LexState *ls, expdesc *v) {
 }
 
 
+static bool iswalrusassign (LexState *ls) {
+  if (gett(ls) == TK_WALRUS)
+    return true;
+  if (gett(ls) == ',') {
+    const auto tidx = luaX_getpos(ls);
+    while (gett(ls) == ',') {
+      luaX_next(ls);
+      if (!isnametkn(ls, N_OVERRIDABLE))
+        break;
+      luaX_next(ls);
+      if (gett(ls) == TK_WALRUS) {
+        luaX_setpos(ls, tidx);
+        return true;
+      }
+    }
+    luaX_setpos(ls, tidx);
+  }
+  return false;
+}
+
+
 static void expsuffix (LexState* ls, expdesc* v, int line, int flags, TypeHint *prop);
 
 static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
@@ -3023,16 +3044,22 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
   if (isnametkn(ls, N_OVERRIDABLE)) {
     const bool is_overridable = ls->t.IsOverridable();
     TString *varname = str_checkname(ls, N_OVERRIDABLE);
-    if (gett(ls) == TK_WALRUS) {
+    if (iswalrusassign(ls)) {
       if (flags & E_OR_KILLED_WALRUS)
         throwerr(ls, "':=' is not allowed in this context", "due to the 'or', it is no longer guaranteed that the local will be initialized by the time it's in scope.");
       if (!(flags & E_WALRUS) || ls->fs->freereg != luaY_nvarstack(ls->fs))
         throwerr(ls, "':=' is only allowed in 'if' and 'while' statements", "unexpected ':='");
-      luaX_next(ls);
-      new_localvar(ls, varname);
+      new_localvar(ls, varname);  /* first local */
+      int nvars = 1;
+      while (gett(ls) == ',') {
+        luaX_next(ls);  /* skip ',' */
+        new_localvar(ls, str_checkname(ls, N_OVERRIDABLE));
+        ++nvars;
+      }
+      luaX_next(ls);  /* skip TK_WALRUS */
       expr(ls, v);
-      adjust_assign(ls, 1, 1, v);
-      adjustlocalvars(ls, 1);
+      adjust_assign(ls, nvars, 1, v);
+      adjustlocalvars(ls, nvars);
       ls->used_walrus = true;
     }
     else
