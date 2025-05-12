@@ -465,7 +465,7 @@ static int getn (lua_State *L) {
 }
 
 
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
 static int tfreeze(lua_State* L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   if (lua_gettop(L) > 1) {
@@ -1044,7 +1044,7 @@ static const luaL_Reg tab_funcs[] = {
   {"filtered", tfilter<true>},
   {"foreach", foreach},
   {"contains", tcontains},
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
   {"isfrozen", tisfrozen},
   {"freeze", tfreeze},
 #endif

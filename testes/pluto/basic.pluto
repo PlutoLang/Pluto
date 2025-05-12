@@ -1343,8 +1343,9 @@ assert(
     end
 )
 
-print "Testing table freezing."
-do
+if table.freeze then
+    print "Testing table freezing."
+
     local t = table.freeze({ 1, 2, 3, "hello", "world" })
     local status, _ = pcall(function () t.key = "abc" end)
     assert(status == false, "expected error")
@@ -3290,7 +3291,9 @@ do
     export class Clazz
     end
     ]] ()
-    assert(table.isfrozen(t))
+    if table.isfrozen then
+        assert(table.isfrozen(t))
+    end
     assert(t.var == 1337)
     assert(t.func() == true)
     assert(type(t.Clazz) == "table")
@@ -3307,7 +3310,9 @@ do
         end
     end
     local t = export_in_non_main_function()
-    assert(table.isfrozen(t))
+    if table.isfrozen then
+        assert(table.isfrozen(t))
+    end
     assert(t.var == 1337)
     assert(t.func() == true)
     assert(type(t.Clazz) == "table")
