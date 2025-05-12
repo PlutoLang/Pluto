@@ -430,12 +430,10 @@ static int read_numeral (LexState *ls, SemInfo *seminfo) {
   for (;;) {
     if (check_next2(ls, expo))  /* exponent mark? */
       check_next2(ls, "-+");  /* optional exponent sign */
-    else if (lisxdigit(ls->current) || ls->current == '.' || ls->current == '_') { /* '%x|%.' */
-      if (ls->current != '_')
-        save_and_next(ls);
-      else
-        next(ls);
-    }
+    else if (lisxdigit(ls->current) || ls->current == '.' || ls->current == 'o') /* '%x|%.' */
+      save_and_next(ls);
+    else if (ls->current == '_')
+      next(ls);
     else break;
   }
   if (lislalpha(ls->current))  /* is numeral touching a letter? */
