@@ -920,7 +920,7 @@ LUA_API void lua_settable (lua_State *L, int idx) {
   api_checknelems(L, 2);
   t = index2value(L, idx);
   if (luaV_fastget(L, t, s2v(L->top.p - 2), slot, luaH_get)) {
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
     lua_assert(ttistable(t));
     Table *tab = hvalue(t);
     if (tab->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
@@ -946,7 +946,7 @@ LUA_API void lua_seti (lua_State *L, int idx, lua_Integer n) {
   lua_lock(L);
   api_checknelems(L, 1);
   t = index2value(L, idx);
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
   if (ttistable(t)) {
     Table *tab = hvalue(t);
     if (tab->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
@@ -1002,7 +1002,7 @@ LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {
 }
 
 
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
 LUA_API void lua_freezetable(lua_State* L, int idx) {
   Table *t;
   lua_lock(L);
