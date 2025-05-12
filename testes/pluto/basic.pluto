@@ -2843,9 +2843,10 @@ do
     assert(😉 == "Hello")
 end
 
-print "Testing binary numerals."
+print "Testing binary & octal numerals."
 do
     assert(0b11 == 3)
+    assert(0o777 == 0x1ff)
 end
 
 print "Testing boolean concatenation."
