@@ -228,7 +228,7 @@ static int luaB_rawget (lua_State *L) {
 
 static int luaB_rawset (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
   lua_erriffrozen(L, 1);
 #endif
   luaL_checkany(L, 2);
