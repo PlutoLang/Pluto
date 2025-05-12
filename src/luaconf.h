@@ -829,6 +829,11 @@
 // If defined, Pluto won't imbue tables with a metatable by default.
 //#define PLUTO_NO_DEFAULT_TABLE_METATABLE
 
+// If defined, Pluto will add table.isfrozen & table.freeze to the standard library,
+// lua_freezetable, lua_istablefrozen, & lua_erriffrozen to the C API,
+// and all the hooks required to make it work. Note that coverage may not be perfect.
+//#define PLUTO_ENABLE_TABLE_FREEZING
+
 /*
 ** {====================================================================
 ** Pluto Configuration: Warnings
@@ -1110,17 +1115,6 @@
 // for any attempt to call a foreign function.
 // If it returns false, a Lua error is raised.
 //#define PLUTO_FFI_CALL_HOOK ContmodOnFfiCall
-
-/*
-** {====================================================================
-** Pluto Configuration: Performance
-**
-** We recommend not changing this section. The only options here disable Pluto features,
-** but disabling features will not necessarily improve performance simply because "fewer features = better performance."
-** =====================================================================}
-*/
-
-//#define PLUTO_DISABLE_TABLE_FREEZING
 
 /*
 ** {====================================================================
