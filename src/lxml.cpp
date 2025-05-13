@@ -9,7 +9,7 @@
 static soup::UniquePtr<soup::XmlNode> check_xml (lua_State *L, int i) {
   const auto type = lua_type(L, i);
   if (type == LUA_TTABLE) {
-    lua_checkstack(L, 3);
+    lua_checkstack(L, 4);
     lua_pushvalue(L, i);
     lua_pushliteral(L, "tag");
     if (lua_rawget(L, -2) == LUA_TSTRING) {

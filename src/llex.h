@@ -398,6 +398,8 @@ enum KeywordState : lu_byte {
   /* 'pluto_use' overwrites environment and Pluto. */
   KS_ENABLED_BY_SCRIPTER,
   KS_DISABLED_BY_SCRIPTER,
+
+  KS_INVALID = 0xff
 };
 
 struct FuncArgsState {
@@ -602,8 +604,7 @@ struct LexState {
   }
 
   [[nodiscard]] KeywordState getKeywordState(int t) const noexcept {
-    lua_assert(t >= FIRST_NON_COMPAT && t < END_OPTIONAL);
-    return keyword_states[t - FIRST_NON_COMPAT];
+    return t >= FIRST_NON_COMPAT && t < END_OPTIONAL ? keyword_states[t - FIRST_NON_COMPAT] : KS_INVALID;
   }
 
   void setKeywordState(int t, KeywordState ks) noexcept {
