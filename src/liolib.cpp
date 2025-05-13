@@ -29,6 +29,8 @@
 
 #if SOUP_WINDOWS
 #include <windows.h>
+#else
+#include <sys/stat.h>
 #endif
 
 
@@ -1205,10 +1207,34 @@ static int contents (lua_State *L) {
 }
 
 
+#if !SOUP_WINDOWS
+static int io_chmod (lua_State *L) {
+if (lua_gettop(L) == 1) {
+    /* getter */
+    std::filesystem::path file = getStringStreamPathForRead(L, 1);
+    struct stat st;
+    if (stat(file.c_str(), &st) == 0) {
+      lua_pushinteger(L, st.st_mode & 0777);
+      return 1;
+    }
+  }
+  else {
+    /* setter */
+    std::filesystem::path file = getStringStreamPathForWrite(L, 1);
+    chmod(file.c_str(), (mode_t)luaL_checkinteger(L, 2));
+  }
+  return 0;
+}
+#endif
+
+
 /*
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
+#if !SOUP_WINDOWS
+  {"chmod", io_chmod},
+#endif
   {"contents", contents},
   {"writetime", writetime},
   {"currentdir", currentdir},
