@@ -3680,7 +3680,7 @@ static void prefixplusplus (LexState *ls, expdesc *v, bool as_statement) {
   FuncState *fs = ls->fs;
   expdesc e = *v, v2;
   if (v->k != VLOCAL) {  /* complex lvalue, use a temporary register. linear perf incr. with complexity of lvalue */
-    const auto regs_to_reserve = fs->freereg-fs->nactvar;
+    const auto regs_to_reserve = fs->freereg-luaY_nvarstack(fs);
     luaK_dischargevars(fs, &e);
     luaK_reserveregs(fs, regs_to_reserve);
     enterlevel(ls);
@@ -3997,7 +3997,7 @@ static void compoundassign (LexState *ls, expdesc *v, BinOpr op) {
   FuncState *fs = ls->fs;
   expdesc e = *v, v2;
   if (v->k != VLOCAL) {  /* complex lvalue, use a temporary register. linear perf incr. with complexity of lvalue */
-    const auto regs_to_reserve = fs->freereg-fs->nactvar;
+    const auto regs_to_reserve = fs->freereg-luaY_nvarstack(fs);
     luaK_dischargevars(fs, &e);
     luaK_reserveregs(fs, regs_to_reserve);
     enterlevel(ls);
