@@ -4004,6 +4004,16 @@ do
     assert(io.contents("file_that_doesnt_exist") == nil)
     assert(io.contents("example_module.pluto") == "")
 
+    if io.chmod then
+        io.chmod("example_module.pluto", 0o644)
+        local mode = io.chmod("example_module.pluto")
+        assert(mode == 0o644)
+        mode |= 0o111 -- +x
+        assert(mode == 0o755)
+        io.chmod("example_module.pluto", mode)
+        assert(io.chmod("example_module.pluto") == mode)
+    end
+
     io.currentdir(currentdir)
     -- check cwd if this fails.
 end
