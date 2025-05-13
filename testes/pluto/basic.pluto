@@ -682,6 +682,27 @@ do
     assert(y == nil)
     assert(x == 10)
 end
+do
+    local c <const> = "a"
+    local tracker = {}
+    tracker["b"] ??= true
+    assert(tracker["b"] == true)
+end
+do
+    local c <const> = "a"
+    local tracker = {}
+    local item = { key = "b" }
+    tracker[item.key] ??= true
+    assert(tracker[item.key] == true)
+end
+do
+    local c <const> = "a"
+    local tracker = {}
+    local item = { key = "b" }
+    tracker[item.key] = false
+    tracker[item.key] ??= true
+    assert(tracker[item.key] == false)
+end
 
 print "Testing safe navigation."
 do

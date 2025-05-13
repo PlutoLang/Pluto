@@ -476,6 +476,7 @@ void luaK_checkstack (FuncState *fs, int n) {
 ** Reserve 'n' registers in register stack
 */
 void luaK_reserveregs (FuncState *fs, int n) {
+  lua_assert(n >= 0);
   luaK_checkstack(fs, n);
   fs->freereg += n;
 }
