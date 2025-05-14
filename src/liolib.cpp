@@ -1207,34 +1207,40 @@ static int contents (lua_State *L) {
 }
 
 
-#if !SOUP_WINDOWS
 static int io_chmod (lua_State *L) {
-if (lua_gettop(L) == 1) {
-    /* getter */
-    std::filesystem::path file = getStringStreamPathForRead(L, 1);
-    struct stat st;
-    if (stat(file.c_str(), &st) == 0) {
-      lua_pushinteger(L, st.st_mode & 0777);
+  switch (lua_gettop(L)) {
+    case 0: {  /* availability check */
+      lua_pushboolean(L, !SOUP_WINDOWS);
       return 1;
     }
-  }
-  else {
-    /* setter */
-    std::filesystem::path file = getStringStreamPathForWrite(L, 1);
-    chmod(file.c_str(), (mode_t)luaL_checkinteger(L, 2));
-  }
-  return 0;
-}
+    case 1: {  /* getter */
+#if !SOUP_WINDOWS
+      std::filesystem::path file = getStringStreamPathForRead(L, 1);
+      struct stat st;
+      if (stat(file.c_str(), &st) == 0) {
+        lua_pushinteger(L, st.st_mode & 0777);
+        return 1;
+      }
 #endif
+      return 0;
+    }
+    case 2: {  /* setter */
+#if !SOUP_WINDOWS
+      std::filesystem::path file = getStringStreamPathForWrite(L, 1);
+      chmod(file.c_str(), (mode_t)luaL_checkinteger(L, 2));
+#endif
+      return 0;
+    }
+    default: luaL_error(L, "wrong number of arguments");
+  }
+}
 
 
 /*
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
-#if !SOUP_WINDOWS
   {"chmod", io_chmod},
-#endif
   {"contents", contents},
   {"writetime", writetime},
   {"currentdir", currentdir},

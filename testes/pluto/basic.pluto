@@ -4006,7 +4006,7 @@ do
     assert(io.contents("file_that_doesnt_exist") == nil)
     assert(io.contents("example_module.pluto") == "")
 
-    if io.chmod then
+    if io.chmod() then
         io.chmod("example_module.pluto", 0o644)
         local mode = io.chmod("example_module.pluto")
         assert(mode == 0o644)
@@ -4014,6 +4014,10 @@ do
         assert(mode == 0o755)
         io.chmod("example_module.pluto", mode)
         assert(io.chmod("example_module.pluto") == mode)
+    else
+        -- chmod not available on this platform
+        assert(io.chmod("example_module.pluto") == nil)
+        io.chmod("example_module.pluto", 1)
     end
 
     io.currentdir(currentdir)
