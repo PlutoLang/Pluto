@@ -1,5 +1,6 @@
 #define LUA_LIB
 
+#include <random> // uniform_int_distribution
 #include <sstream>
 
 #include "lua.h"
@@ -13,6 +14,7 @@
 #include "vendor/Soup/soup/adler32.hpp"
 #include "vendor/Soup/soup/aes.hpp"
 #include "vendor/Soup/soup/crc32.hpp"
+#include "vendor/Soup/soup/crc32c.hpp"
 #include "vendor/Soup/soup/deflate.hpp"
 #include "vendor/Soup/soup/HardwareRng.hpp"
 #include "vendor/Soup/soup/ripemd160.hpp"
@@ -218,13 +220,20 @@ static int sdbm(lua_State *L)
 static int md5(lua_State *L)
 {
   size_t len;
-  unsigned char buffer[16];
   const auto str = luaL_checklstring(L, 1, &len);
+  const bool binary = lua_istrue(L, 2);
+
+  unsigned char buffer[16];
   md5_fn((unsigned char*)str, (int)len, buffer);
-  
-  char hexbuff[32];
-  soup::string::bin2hexAt(hexbuff, (const char*)buffer, sizeof(buffer), soup::string::charset_hex_lower);
-  lua_pushlstring(L, hexbuff, sizeof(hexbuff));
+
+  if (binary) {
+    lua_pushlstring(L, (const char*)buffer, sizeof(buffer));
+  }
+  else {
+    char hexbuff[32];
+    soup::string::bin2hexAt(hexbuff, (const char*)buffer, sizeof(buffer), soup::string::charset_hex_lower);
+    lua_pushlstring(L, hexbuff, sizeof(hexbuff));
+  }
   return 1;
 }
 
@@ -244,6 +253,16 @@ static int crc32(lua_State *L)
   size_t len;
   const auto text = luaL_checklstring(L, 1, &len);
   const auto hash = soup::crc32::hash((const uint8_t*)text, len, (uint32_t)luaL_optinteger(L, 2, 0));
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
+static int crc32c(lua_State *L)
+{
+  size_t len;
+  const auto text = luaL_checklstring(L, 1, &len);
+  const auto hash = soup::crc32c::hash((const uint8_t*)text, len, (uint32_t)luaL_optinteger(L, 2, 0));
   lua_pushinteger(L, hash);
   return 1;
 }
@@ -289,9 +308,34 @@ static int l_hashwithdigest (lua_State *L) {
 }
 
 
-static int random(lua_State *L)
-{
-  lua_pushinteger(L, static_cast<lua_Integer>(soup::FastHardwareRng::generate64()));
+static int random(lua_State *L) {
+  lua_Integer low;
+  lua_Integer up = 0;
+  switch (lua_gettop(L)) {
+    case 0: {
+      break;
+    }
+    case 1: {
+      low = 1;
+      up = luaL_checkinteger(L, 1);
+      break;
+    }
+    case 2: {
+      low = luaL_checkinteger(L, 1);
+      up = luaL_checkinteger(L, 2);
+      break;
+    }
+    default: luaL_error(L, "wrong number of arguments");
+  }
+  if (up == 0) {
+	lua_pushinteger(L, static_cast<lua_Integer>(soup::FastHardwareRng::generate64()));
+  }
+  else {
+    luaL_argcheck(L, low <= up, 1, "interval is empty");
+    soup::FastHardwareRng rng;
+    std::uniform_int_distribution<lua_Integer> dist(low, up);
+    lua_pushinteger(L, dist(rng));
+  }
   return 1;
 }
 
@@ -751,6 +795,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"sha512", l_hashwithdigest<soup::sha512>},
   {"lua", lua},
   {"crc32", crc32},
+  {"crc32c", crc32c},
   {"lookup3", lookup3},
   {"md5", md5},
   {"sdbm", sdbm},

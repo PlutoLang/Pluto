@@ -228,7 +228,7 @@ static int luaB_rawget (lua_State *L) {
 
 static int luaB_rawset (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
   lua_erriffrozen(L, 1);
 #endif
   luaL_checkany(L, 2);
@@ -498,7 +498,7 @@ static int luaB_dofile (lua_State *L) {
 }
 
 
-static int luaB_assert (lua_State *L) {
+int luaB_assert (lua_State *L) {
   if (l_likely(lua_toboolean(L, 1)))  /* condition is true? */
     return lua_gettop(L);  /* return all arguments */
   else {  /* error */
@@ -770,7 +770,67 @@ static int luaB_range (lua_State *L) {
 }
 
 
+static int luaB_sdiv (lua_State *L) {
+  lua_pushinteger(L, luaL_checkinteger(L, 1) / luaL_checkinteger(L, 2));
+  return 1;
+}
+
+
+static int luaB_udiv (lua_State *L) {
+  lua_pushinteger(L, static_cast<lua_Unsigned>(luaL_checkinteger(L, 1)) / static_cast<lua_Unsigned>(luaL_checkinteger(L, 2)));
+  return 1;
+}
+
+
+static int luaB_smod (lua_State *L) {
+  lua_pushinteger(L, luaL_checkinteger(L, 1) % luaL_checkinteger(L, 2));
+  return 1;
+}
+
+
+static int luaB_umod (lua_State *L) {
+  lua_pushinteger(L, static_cast<lua_Unsigned>(luaL_checkinteger(L, 1)) % static_cast<lua_Unsigned>(luaL_checkinteger(L, 2)));
+  return 1;
+}
+
+
+static int luaB_callonce (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TFUNCTION);
+
+  const auto caller_ci = L->ci->previous;
+  const auto call_pc = caller_ci->u.l.savedpc;
+  const auto call_id = static_cast<lua_Integer>(reinterpret_cast<uintptr_t>(call_pc));
+
+  lua_pushinteger(L, call_id);
+  if (lua_gettable(L, LUA_REGISTRYINDEX) <= LUA_TNIL) {
+    lua_pushinteger(L, call_id + 1);
+    if (lua_gettable(L, LUA_REGISTRYINDEX) <= LUA_TNIL) {
+      lua_pushvalue(L, 1);
+      lua_call(L, 0, 1);
+      if (lua_type(L, -1) <= LUA_TNIL) {
+        lua_pushinteger(L, call_id + 1);
+        lua_pushvalue(L, true);
+      }
+      else {
+        lua_pushinteger(L, call_id);
+        lua_pushvalue(L, -2);
+      }
+      lua_settable(L, LUA_REGISTRYINDEX);
+    }
+    else {
+      lua_pushnil(L);
+    }
+  }
+  return 1;
+}
+
+
 static const luaL_Reg base_funcs[] = {
+  {"callonce", luaB_callonce},
+  {"sdiv", luaB_sdiv},
+  {"udiv", luaB_udiv},
+  {"smod", luaB_smod},
+  {"umod", luaB_umod},
   {"range", luaB_range},
   {"compareversions", luaB_compareversions},
   {"exportvar", luaB_exportvar},
@@ -822,9 +882,6 @@ LUAMOD_API int luaopen_base (lua_State *L) {
   /* set global _PVERSION */
   lua_pushliteral(L, PLUTO_VERSION);
   lua_setfield(L, -2, "_PVERSION");
-  /* set global _PSOUP (always true as of 0.8.0) */
-  lua_pushboolean(L, true);
-  lua_setfield(L, -2, "_PSOUP");
   return 1;
 }
 

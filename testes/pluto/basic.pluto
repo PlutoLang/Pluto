@@ -146,7 +146,7 @@ end]]
 
     -- forstat propragates its return type too
     assert_no_warn[[local function _whatever(): ?bool
-    for { 1 } as v do
+    for { 1 } as _v do
         return true
     end
     return nil
@@ -596,41 +596,6 @@ do
             local a = 1
         until a > 0
     until true
-end
-
-print "Testing table length cache."
-do
-    local t = {}
-    for i = 1, 1000 do
-        t[i] = "abc"
-    end
-    assert(#t == 1000, #t)
-
-    for i = 1, 100 do
-        table.remove(t, i + math.random(1, 5))
-    end
-    assert(#t == 900, #t)
-
-    local metatest = setmetatable({}, { __len = function () return 5 end })
-    assert(#metatest == 5, #metatest)
-
-    t = {}
-    for _i = 1, 1000 do
-        table.insert(t, "Hello")
-        table.insert(t, "World")
-    end
-    assert(#t == 2000)
-
-    t = {}
-    for i = 1, 1000 do
-        rawset(t, i, "Hello")
-    end
-    assert(#t == 1000)
-
-    t = {1}
-    assert(#t == 1)
-    table.clear(t)
-    assert(#t == 0)
 end
 
 print "Testing null coalescing operator."
@@ -1399,8 +1364,9 @@ assert(
     end
 )
 
-print "Testing table freezing."
-do
+if table.freeze then
+    print "Testing table freezing."
+
     local t = table.freeze({ 1, 2, 3, "hello", "world" })
     local status, _ = pcall(function () t.key = "abc" end)
     assert(status == false, "expected error")
@@ -1491,10 +1457,48 @@ do
     assert(_SERVER.REDIRECT_INVOKE_FILENAME |> io.part|"parent"| == "/deez")
 end
 do
-    assert(("Hello" |> string.upper) == "HELLO")
+    local function test_util(str)
+        assert(str == "hellogoodbye")
+    end
+    ;("hello") |> |str| -> str .. "goodbye" |> test_util
 end
 
 print "Testing standard library additions."
+do
+    local function one_time_getter(value)
+        local callcount = 0
+        return function()
+            ++callcount
+            assert(callcount == 1)
+            return value
+        end
+    end
+
+    do
+        local getter_nil = one_time_getter(nil)
+        local getter_1 = one_time_getter(1)
+        for _ = 1, 2 do
+            assert(nil == callonce(getter_nil))
+            assert(1 == callonce(getter_1))
+        end
+    end
+
+    do
+        local getter_nil = one_time_getter(nil)
+        local getter_2 = one_time_getter(2)
+        local function func_with_callonce()
+            return callonce(getter_nil), callonce(getter_2)
+        end
+        local function test_func_with_callonce()
+            local t = { func_with_callonce() }
+            assert(#t == 2)
+            assert(t[1] == nil)
+            assert(t[2] == 2)
+        end
+        test_func_with_callonce()
+        test_func_with_callonce()
+    end
+end
 do
     local v3 = require"pluto:vector3"
     -- Left-handed Z-up: Thumb points left, index finger points forward, middle finger points up.
@@ -1532,10 +1536,14 @@ do
     assert(crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
     assert(crypto.fnv1a("hello world") == 8618312879776256743)
     assert(crypto.joaat("hello world") == 1045060183)
+    assert(crypto.crc32("hello world") == 222957957)
+    assert(crypto.crc32c("hello world") == 3381945770)
     -- Constexpr
     assert($crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
     assert($crypto.fnv1a("hello world") == 8618312879776256743)
     assert($crypto.joaat("hello world") == 1045060183)
+    assert($crypto.crc32("hello world") == 222957957)
+    assert($crypto.crc32c("hello world") == 3381945770)
 
     assert(crypto.sha1("Pluto") == "bce8c9aca4120776fad6b517874aa09c46405454")
     assert(crypto.sha1("Pluto", true) == "\xbc\xe8\xc9\xac\xa4\x12\x07\x76\xfa\xd6\xb5\x17\x87\x4a\xa0\x9c\x46\x40\x54\x54")
@@ -1921,13 +1929,6 @@ do
     assert(t.odd == 9)
 end
 do
-    -- Check congruence of # with length cache
-    local t = {1,2,3}
-    assert(#t == 3)
-    t:filter(||->false)
-    assert(#t == 0)
-end
-do
     do
         local t = { 1, nil, 2, nil, nil, 3, nil, nil, nil, 4, nil }
         t:reorder()
@@ -2093,6 +2094,11 @@ do
     assert(keys:contains("c"))
 end
 do
+    local t = { a = 1, b = 2, c = 3 }
+    assert(#t == 0)
+    assert(#t:values() == 3)
+end
+do
     local test_table_1 = {1, 2, 2, 3, 1}
     local counts_1 = test_table_1:countvalues()
     assert(counts_1[1] == 2)
@@ -2147,6 +2153,19 @@ do
     assert(test_table_7[test_table_6] == 2)
 end
 do
+    local t = {1, 2, 2, 3, 1}
+    assert(t == t:deduplicate())
+    assert(t[1] == 1)
+    assert(t[2] == 2)
+    assert(t[4] == 3) -- values set to nil, not reindexed
+end
+do
+    local t = {1, 2, 2, 3, 1}:deduplicated()
+    assert(t[1] == 1)
+    assert(t[2] == 2)
+    assert(t[3] == 3)
+end
+do
     local t = {1, 2, 3, 4, 5}
 
     assert(table.slice(t, 1, 3)[1] == 1)
@@ -2193,6 +2212,14 @@ do
     assert(#{}:chunk(5) == 0)
 end
 do
+    local t = { "a", "b" }
+    local i = t:invert()
+    assert(i["a"] == 1)
+    assert(i["b"] == 2)
+    assert(i[1] == nil)
+    assert(i[2] == nil)
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
@@ -2231,6 +2258,14 @@ end
 do
     assert(range(10):min() == 1)
     assert(range(10):max() == 10)
+end
+do
+    assert(0xefffffffffffffff // 12 == -96076792050570582)
+    assert(sdiv(0xefffffffffffffff, 12) == -96076792050570581)
+    assert(udiv(0xefffffffffffffff, 12) == 1441151880758558719)
+    assert(0xefffffffffffffff % 12 == 7)
+    assert(smod(0xefffffffffffffff, 12) == -5)
+    assert(umod(0xefffffffffffffff, 12) == 11)
 end
 do
     local mask = { 0xf0, 0x0f }
@@ -2430,6 +2465,42 @@ do
     sched:run()
 end
 do
+    local { scheduler, socket } = require "*"
+
+    local sched = new scheduler()
+    sched:add(function()
+        local serv = socket.udpserver(30725)
+        local data = serv:recv()
+        assert(data == "ping")
+        serv:send("pong")
+    end)
+    sched:add(function()
+        local sock = socket.connect("127.0.0.1", 30725, "udp")
+        sock:send("ping")
+        local data = sock:recv()
+        assert(data == "pong")
+    end)
+    sched:run()
+end
+do
+    local { scheduler, socket } = require "*"
+
+    local sched = new scheduler()
+    sched:add(function()
+        local serv = socket.udpserver(30726)
+        local data = serv:recv()
+        assert(data == "ping")
+        serv:send("pong")
+    end)
+    sched:add(function()
+        local sock = socket.connect("::1", 30726, "udp")
+        sock:send("ping")
+        local data = sock:recv()
+        assert(data == "pong")
+    end)
+    sched:run()
+end
+do
     local regex = require "pluto:regex"
 
     local pattern = new regex [[/^the (only )?one$/i]]
@@ -2443,6 +2514,23 @@ do
     assert(match[1] == "3")
     assert(match[2] == "5")
 end
+do
+    assert(io.part("/deez/nuts", "parent") == "/deez")
+    assert(io.part("/deez/nuts", "name") == "nuts")
+    local parent, name = io.part("/deez/nuts")
+    assert(parent == "/deez")
+    assert(name == "nuts")
+end
+do
+    local buffer = require "buffer"
+
+    local buf = new buffer()
+    for _ = 1, 10 do
+        buf:append("abc")
+    end
+    assert(buf:tostring() == "abc":rep(10))
+    assert(tostring(buf) == "abc":rep(10))
+end
 
 print "Testing default table metatable."
 do
@@ -2452,17 +2540,18 @@ do
     assert(t:contains("apple") == 1)
     assert(t:contains("banana") == 2)
     assert(t:contains("orange") == nil)
-end
-do
-    -- os.time in Lua may use __index to find fields, which is problematic as it will find the non-number field 'min'
-    -- So, we patch it to rawget, instead.
-    assert(os.time{year=2000, month=1, day=1})
-end
 
--- 'thread' type is given a metatable by Pluto
-do
+    -- 'thread' type is also given a metatable by Pluto
     local coro = coroutine.create(function() end)
     assert(coro:status() == "suspended")
+
+    -- We set __mindex, not __index, so only method calls are affected.
+    assert(t.contains == nil)
+    assert(os.time{year=2000, month=1, day=1})
+    t = setmetatable({}, { __index = { a = 1 } })
+    assert(t.a == 1)
+    assert(t.min == nil)
+    assert(t:min())
 end
 
 print "Testing default arguments."
@@ -2518,6 +2607,38 @@ do
         assert(a == 3)
     else
         error()
+    end
+
+    do
+        local function producer()
+            return 4, 5
+        end
+        if a, b := producer() then
+            assert(a == 4)
+            assert(b == 5)
+        else
+            error()
+        end
+    end
+
+    do
+        local function producer()
+            return 8, nil
+        end
+        if a, b := producer() then
+            assert(a == 8)
+            assert(b == nil)
+        else
+            error()
+        end
+    end
+
+    do
+        local t = { { 6, 7 } }
+        while a, b := table.unpack(t:remove() or {}) do
+            assert(a == 6)
+            assert(b == 7)
+        end
     end
 
     if _b := nil then
@@ -2643,8 +2764,8 @@ do
     end
 
     local function choose(_) return { "for", "as" } end
-    for choose(function() for a as i_should_not_exist do end end) as x do
-        assert(i_should_not_exist == nil, i_should_not_exist)
+    for choose(function() for a as _i_should_not_exist do end end) as x do
+        assert(_i_should_not_exist == nil, _i_should_not_exist)
         assert(x == "for" or x == "as", x)
     end
 end
@@ -2776,15 +2897,20 @@ do
     assert(😉 == "Hello")
 end
 
-print "Testing binary numerals."
+print "Testing numeral parsing."
 do
+    assert(1_234 == 1234)
     assert(0b11 == 3)
+    assert(0o777 == 0x1ff)
 end
 
 print "Testing boolean concatenation."
 do
     assert(("aussie version is " .. true) == "aussie version is true")
     assert((true .. false) == "truefalse")
+
+    -- despite this, functions taking a string as an argument should not implicitly stringify a bool
+    assert(not pcall(|| -> require"base64".encode(true)))
 end
 
 print "Testing constant expressions."
@@ -3210,6 +3336,44 @@ do
     assert(f(1, 2) == 2)
 end
 
+print "Testing export."
+do
+    local t = load [[export var = 1337
+
+    export function func()
+        return true
+    end
+
+    export class Clazz
+    end
+    ]] ()
+    if table.isfrozen then
+        assert(table.isfrozen(t))
+    end
+    assert(t.var == 1337)
+    assert(t.func() == true)
+    assert(type(t.Clazz) == "table")
+end
+do
+    local function export_in_non_main_function()
+        export var = 1337
+
+        export function func()
+            return true
+        end
+
+        export class Clazz
+        end
+    end
+    local t = export_in_non_main_function()
+    if table.isfrozen then
+        assert(table.isfrozen(t))
+    end
+    assert(t.var == 1337)
+    assert(t.func() == true)
+    assert(type(t.Clazz) == "table")
+end
+
 print "Testing optional parentheses."
 do
     assert("a.b.c":split(".")[1] == "a")
@@ -3316,6 +3480,12 @@ end
 
 print "Testing compile-time conditionals."
 do
+    $if "abc" == "abc" then $end
+    $if 69 == 69 then $end
+    $if true == true then $end
+    $if false == false then $end
+    $if nil == nil then $end
+
     local debug_bytecode = string.dump(load([[
         $define DEBUG = true
         $if DEBUG then
@@ -3348,6 +3518,11 @@ do
         $end
     end
     assert(elseif_test() == "branch 2")
+
+    $assert(true)
+    $define COND = true
+    $assert(COND)
+    assert(not load[[$assert(false)]])
 end
 
 print "Testing try/catch."
@@ -3831,6 +4006,20 @@ do
 
     assert(io.contents("file_that_doesnt_exist") == nil)
     assert(io.contents("example_module.pluto") == "")
+
+    if io.chmod() then
+        io.chmod("example_module.pluto", 0o644)
+        local mode = io.chmod("example_module.pluto")
+        assert(mode == 0o644)
+        mode |= 0o111 -- +x
+        assert(mode == 0o755)
+        io.chmod("example_module.pluto", mode)
+        assert(io.chmod("example_module.pluto") == mode)
+    else
+        -- chmod not available on this platform
+        assert(io.chmod("example_module.pluto") == nil)
+        io.chmod("example_module.pluto", 1)
+    end
 
     io.currentdir(currentdir)
     -- check cwd if this fails.

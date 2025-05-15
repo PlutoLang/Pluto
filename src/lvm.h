@@ -11,7 +11,7 @@
 
 
 #if !defined(LUA_NOCVTN2S)
-#define cvt2str(o)	(ttisnumber(o) || ttisboolean(o))
+#define cvt2str(o)	(ttisnumber(o))
 #else
 #define cvt2str(o)	0	/* no conversion from numbers to strings */
 #endif
@@ -123,7 +123,7 @@ LUAI_FUNC int luaV_tointegerns (const TValue *obj, lua_Integer *p,
                                 F2Imod mode);
 LUAI_FUNC int luaV_flttointeger (lua_Number n, lua_Integer *p, F2Imod mode);
 LUAI_FUNC void luaV_finishget (lua_State *L, const TValue *t, TValue *key,
-                               StkId val, const TValue *slot);
+                               StkId val, const TValue *slot, bool mindex = false);
 LUAI_FUNC void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
                                TValue *val, const TValue *slot);
 LUAI_FUNC void luaV_finishOp (lua_State *L);

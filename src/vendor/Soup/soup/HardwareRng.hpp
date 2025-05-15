@@ -15,6 +15,12 @@ NAMESPACE_SOUP
 		[[nodiscard]] static uint16_t generate16() noexcept;
 		[[nodiscard]] static uint32_t generate32() noexcept;
 		[[nodiscard]] static uint64_t generate64() noexcept;
+
+		// To satisfy the named requirement UniformRandomBitGenerator:
+		using result_type = uint64_t;
+		[[nodiscard]] static constexpr uint64_t min() noexcept { return 0; }
+		[[nodiscard]] static constexpr uint64_t max() noexcept { return -1; }
+		[[nodiscard]] uint64_t operator()() const noexcept { return generate64(); }
 	};
 
 	// For the purposes of this class, "fast hardware RNG" is backed by a hardware entropy source, but uses processing (a DRBG) to extrapolate more bits.
@@ -24,6 +30,12 @@ NAMESPACE_SOUP
 		[[nodiscard]] static uint16_t generate16() noexcept;
 		[[nodiscard]] static uint32_t generate32() noexcept;
 		[[nodiscard]] static uint64_t generate64() noexcept;
+
+		// To satisfy the named requirement UniformRandomBitGenerator:
+		using result_type = uint64_t;
+		[[nodiscard]] static constexpr uint64_t min() noexcept { return 0; }
+		[[nodiscard]] static constexpr uint64_t max() noexcept { return -1; }
+		[[nodiscard]] uint64_t operator()() const noexcept { return generate64(); }
 	};
 
 	template <typename T>

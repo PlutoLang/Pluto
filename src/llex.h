@@ -45,7 +45,7 @@ enum RESERVED {
   TK_PUSE, // New compatibility keywords.
   TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, TK_PTRY, TK_PCATCH,
   TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, TK_TRY, TK_CATCH, // New non-compatible keywords.
-  TK_LET, TK_CONST, TK_GLOBAL, // New optional keywords.
+  TK_GLOBAL, // New optional keywords.
 #ifdef PLUTO_PARSER_SUGGESTIONS
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
 #endif
@@ -66,7 +66,7 @@ enum RESERVED {
 
 #define FIRST_COMPAT TK_PUSE
 #define FIRST_NON_COMPAT TK_SWITCH
-#define FIRST_OPTIONAL TK_LET
+#define FIRST_OPTIONAL TK_GLOBAL
 #define FIRST_SPECIAL TK_SUGGEST_0
 #define LAST_RESERVED TK_WHILE
 
@@ -210,6 +210,7 @@ enum WarningType : int {
   WT_UNANNOTATED_FALLTHROUGH,
   WT_DISCARDED_RETURN,
   WT_FIELD_SHADOW,
+  WT_UNUSED,
 
   NUM_WARNING_TYPES
 };
@@ -232,6 +233,7 @@ inline const char* const luaX_warnNames[] = {
   "unannotated-fallthrough",
   "discarded-return",
   "field-shadow",
+  "unused",
 };
 static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
@@ -252,6 +254,7 @@ public:
 private:
   [[nodiscard]] static WarningState getDefaultState(WarningType type) noexcept {
     switch (type) {
+    /* off by default*/
 #ifndef PLUTO_WARN_GLOBAL_SHADOW
     case WT_GLOBAL_SHADOW:
 #endif
@@ -263,6 +266,43 @@ private:
 #endif
 #ifndef PLUTO_WARN_NON_PORTABLE_NAME
     case WT_NON_PORTABLE_NAME:
+#endif
+    /* on by default */
+#ifdef PLUTO_NO_WARN_VAR_SHADOW
+    case WT_VAR_SHADOW:
+#endif
+#ifdef PLUTO_NO_WARN_TYPE_MISMATCH
+    case WT_TYPE_MISMATCH:
+#endif
+#ifdef PLUTO_NO_WARN_UNREACHABLE_CODE
+    case WT_UNREACHABLE_CODE:
+#endif
+#ifdef PLUTO_NO_WARN_EXCESSIVE_ARGUMENTS
+    case WT_EXCESSIVE_ARGUMENTS:
+#endif
+#ifdef PLUTO_NO_WARN_DEPRECATED
+    case WT_DEPRECATED:
+#endif
+#ifdef PLUTO_NO_WARN_BAD_PRACTICE
+    case WT_BAD_PRACTICE:
+#endif
+#ifdef PLUTO_NO_WARN_POSSIBLE_TYPO
+    case WT_POSSIBLE_TYPO:
+#endif
+#ifdef PLUTO_NO_WARN_IMPLICIT_GLOBAL
+    case WT_IMPLICIT_GLOBAL:
+#endif
+#ifdef PLUTO_NO_WARN_UNANNOTATED_FALLTHROUGH
+    case WT_UNANNOTATED_FALLTHROUGH:
+#endif
+#ifdef PLUTO_NO_WARN_DISCARDED_RETURN
+    case WT_DISCARDED_RETURN:
+#endif
+#ifdef PLUTO_NO_WARN_FIELD_SHADOW
+    case WT_FIELD_SHADOW:
+#endif
+#ifdef PLUTO_NO_WARN_UNUSED
+    case WT_UNUSED:
 #endif
     case NUM_WARNING_TYPES:  /* dummy case so compiler doesn't cry when all macros are set */
       return WS_OFF;
@@ -422,6 +462,12 @@ struct SwitchState {
   std::vector<SwitchCase> cases{};
 };
 
+struct Macro {
+  bool functionlike = false;
+  std::vector<const TString*> params{};
+  std::vector<Token> sub;
+};
+
 struct LexState {
   int current;  /* current character (charint) */
   std::vector<std::string> lines;  /* A vector of all the lines processed by the lexer. */
@@ -464,6 +510,8 @@ struct LexState {
   bool used_walrus = false;
   bool used_try = false;
   std::unordered_map<int, int> uninformed_reserved{}; // When a reserved word is intelligently disabled for compatibility, it is added to this map. (token, line)
+  std::unordered_map<const TString*, Macro> macros{};  /* used during preprocessor pass */
+  std::unordered_map<const TString*, Token> macro_args{};  /* used during preprocessor pass */
 
   LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
     laststat = Token {};

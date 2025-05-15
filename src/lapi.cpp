@@ -920,15 +920,10 @@ LUA_API void lua_settable (lua_State *L, int idx) {
   api_checknelems(L, 2);
   t = index2value(L, idx);
   if (luaV_fastget(L, t, s2v(L->top.p - 2), slot, luaH_get)) {
-#if !defined(PLUTO_DISABLE_LENGTH_CACHE) || !defined(PLUTO_DISABLE_TABLE_FREEZING)
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
     lua_assert(ttistable(t));
     Table *tab = hvalue(t);
-  #ifndef PLUTO_DISABLE_TABLE_FREEZING
     if (tab->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
-  #endif
-  #ifndef PLUTO_DISABLE_LENGTH_CACHE
-    tab->length = 0;
-  #endif
 #endif
     luaV_finishfastset(L, t, slot, s2v(L->top.p - 1));
   }
@@ -951,16 +946,11 @@ LUA_API void lua_seti (lua_State *L, int idx, lua_Integer n) {
   lua_lock(L);
   api_checknelems(L, 1);
   t = index2value(L, idx);
-#if !defined(PLUTO_DISABLE_LENGTH_CACHE) || !defined(PLUTO_DISABLE_TABLE_FREEZING)
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
   if (ttistable(t)) {
     Table *tab = hvalue(t);
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
     if (tab->isfrozen) luaG_runerror(L, "attempt to modify frozen table.");
-#endif
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-    tab->length = 0;
-#endif
-  } 
+  }
 #endif
   if (luaV_fastgeti(L, t, n, slot)) {
     luaV_finishfastset(L, t, slot, s2v(L->top.p - 1));
@@ -981,9 +971,6 @@ static void aux_rawset (lua_State *L, int idx, TValue *key, int n) {
   api_checknelems(L, n);
   t = gettable(L, idx);
   luaH_set(L, t, key, s2v(L->top.p - 1));
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-  t->length = 0; // Reset length cache.
-#endif
   invalidateTMcache(t);
   luaC_barrierback(L, obj2gco(t), s2v(L->top.p - 1));
   L->top.p -= n;
@@ -1008,9 +995,6 @@ LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {
   lua_lock(L);
   api_checknelems(L, 1);
   t = gettable(L, idx);
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-  t->length = 0; // Reset length cache.
-#endif
   luaH_setint(L, t, n, s2v(L->top.p - 1));
   luaC_barrierback(L, obj2gco(t), s2v(L->top.p - 1));
   L->top.p--;
@@ -1018,28 +1002,13 @@ LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {
 }
 
 
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-LUA_API void lua_setcachelen (lua_State *L, lua_Unsigned len, int idx) {
-  Table *t;
-  lua_lock(L);
-  api_checknelems(L, 1);
-  t = gettable(L, idx);
-  t->length = len;
-  lua_unlock(L);
-}
-#endif
-
-
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
 LUA_API void lua_freezetable(lua_State* L, int idx) {
   Table *t;
   lua_lock(L);
   t = gettable(L, idx);
   if (t) {
     t->isfrozen = true;
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-    if (!t->length) t->length = luaH_getn(t); // May as well if modification is no longer permitted.
-#endif
   }
   lua_unlock(L);
 }

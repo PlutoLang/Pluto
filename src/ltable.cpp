@@ -630,10 +630,7 @@ Table *luaH_new (lua_State *L) {
   t->flags = cast_byte(maskflags);  /* table has no metamethod fields */
   t->array = NULL;
   t->alimit = 0;
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-  t->length = 0;
-#endif
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
   t->isfrozen = false;
 #endif
   setnodevector(L, t, 0);
@@ -653,7 +650,7 @@ void luaH_initmetatable (lua_State *L, Table *t) {
     sethvalue(L, s2v(L->top.p - 1), table_mt);
     /* set __index */
     L->ci->top.p++;
-    lua_pushliteral(L, "__index");
+    lua_pushliteral(L, "__mindex");
     lua_getglobal(L, "table");
     lua_settable(L, -3);
     L->ci->top.p--;
@@ -1035,10 +1032,6 @@ LUAI_FUNC void luaH_clear (lua_State *L, Table *t) {
   /* clear hash part */
   freehash(L, t);
   setnodevector(L, t, 0);
-  /* clear cached length */
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-  t->length = 0;
-#endif
 }
 
 

@@ -829,6 +829,11 @@
 // If defined, Pluto won't imbue tables with a metatable by default.
 //#define PLUTO_NO_DEFAULT_TABLE_METATABLE
 
+// If defined, Pluto will add table.isfrozen & table.freeze to the standard library,
+// lua_freezetable, lua_istablefrozen, & lua_erriffrozen to the C API,
+// and all the hooks required to make it work. Note that coverage may not be perfect.
+//#define PLUTO_ENABLE_TABLE_FREEZING
+
 /*
 ** {====================================================================
 ** Pluto Configuration: Warnings
@@ -851,6 +856,43 @@
 
 // If defined, the "non-portable-name" warning is enabled by default.
 //#define PLUTO_WARN_NON_PORTABLE_NAME
+
+// If defined, the "var-shadow" warning is disabled by default.
+//#define PLUTO_NO_WARN_VAR_SHADOW
+
+// If defined, the "type-mismatch" warning is disabled by default.
+//#define PLUTO_NO_WARN_TYPE_MISMATCH
+
+// If defined, the "unreachable-code" warning is disabled by default.
+//#define PLUTO_NO_WARN_UNREACHABLE_CODE
+
+// If defined, the "excessive-arguments" warning is disabled by default.
+//#define PLUTO_NO_WARN_EXCESSIVE_ARGUMENTS
+
+// If defined, the "deprecated"," warning is disabled by default.
+//#define PLUTO_NO_WARN_DEPRECATED
+
+// If defined, the "bad-practice" warning is disabled by default.
+//#define PLUTO_NO_WARN_BAD_PRACTICE
+
+// If defined, the "possible-typo" warning is disabled by default.
+//#define PLUTO_NO_WARN_POSSIBLE_TYPO
+
+// If defined, the "implicit-global" warning is disabled by default.
+//#define PLUTO_NO_WARN_IMPLICIT_GLOBAL
+
+// If defined, the "unannotated-fallthrough" warning is disabled by default.
+//#define PLUTO_NO_WARN_UNANNOTATED_FALLTHROUGH
+
+// If defined, the "discarded-return" warning is disabled by default.
+//#define PLUTO_NO_WARN_DISCARDED_RETURN
+
+// If defined, the "field-shadow" warning is disabled by default.
+//#define PLUTO_NO_WARN_FIELD_SHADOW
+
+// If defined, the "unused" warning is disabled by default.
+//#define PLUTO_NO_WARN_UNUSED
+
 
 /*
 ** {====================================================================
@@ -888,14 +930,6 @@
 ** Pluto Configuration: Optional keywords
 ** =====================================================================}
 */
-
-// If defined, Pluto will imply 'pluto_use let' at the beginning of every script.
-// Note that this keyword is deprecated as of 0.9.0.
-//#define PLUTO_USE_LET
-
-// If defined, Pluto will imply 'pluto_use const' at the beginning of every script.
-// Note that this keyword is deprecated as of 0.9.0.
-//#define PLUTO_USE_CONST
 
 // If defined, Pluto will imply 'pluto_use global' at the beginning of every script.
 //#define PLUTO_USE_GLOBAL
@@ -1081,18 +1115,6 @@
 // for any attempt to call a foreign function.
 // If it returns false, a Lua error is raised.
 //#define PLUTO_FFI_CALL_HOOK ContmodOnFfiCall
-
-/*
-** {====================================================================
-** Pluto Configuration: Performance
-**
-** We recommend not changing this section. The only options here disable Pluto features,
-** but disabling features will not necessarily improve performance simply because "fewer features = better performance."
-** =====================================================================}
-*/
-
-//#define PLUTO_DISABLE_LENGTH_CACHE
-//#define PLUTO_DISABLE_TABLE_FREEZING
 
 /*
 ** {====================================================================

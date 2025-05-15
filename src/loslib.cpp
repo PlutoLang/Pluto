@@ -247,8 +247,7 @@ static int getboolfield (lua_State *L, const char *key) {
 
 static int getfield (lua_State *L, const char *key, int d, int delta) {
   int isnum;
-  lua_pushstring(L, key);
-  int t = lua_rawget(L, -2);  /* get field and its type */
+  int t = lua_getfield(L, -1, key);  /* get field and its type */
   lua_Integer res = lua_tointegerx(L, -1, &isnum);
   if (!isnum) {  /* field is not an integer? */
     if (l_unlikely(t != LUA_TNIL))  /* some other value? */
@@ -493,6 +492,27 @@ LUAMOD_API int luaopen_os (lua_State *L) {
 #else
   lua_pushliteral(L, "unknown");
 #endif
+  lua_settable(L, -3);
+
+  /* define os.arch constant */
+  lua_pushliteral(L, "arch");
+#if SOUP_X86
+#define ARCH_STR "x86"
+#elif SOUP_ARM
+#define ARCH_STR "arm"
+#elif SOUP_WASM
+#define ARCH_STR "wasm"
+#else
+#define ARCH_STR "unknown"
+#endif
+#if SOUP_BITS == 64
+#define BITS_STR "64"
+#elif SOUP_BITS == 32
+#define BITS_STR "32"
+#else
+#define BITS_STR "00"
+#endif
+  lua_pushstring(L, ARCH_STR ", " BITS_STR "-bit");
   lua_settable(L, -3);
 
   return 1;

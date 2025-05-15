@@ -30,7 +30,7 @@
 #define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
 
 
-#define PLUTO_VERSION "Pluto 0.10.5"
+#define PLUTO_VERSION "Pluto 0.11.0"
 #define PLUTO_COPYRIGHT_NO_BASED PLUTO_VERSION ", Copyright (C) 2022-2024 PlutoLang.org, PlutoLang (https://github.com/PlutoLang)"
 #define PLUTO_COPYRIGHT PLUTO_COPYRIGHT_NO_BASED "\r\nBased on " LUA_COPYRIGHT
 
@@ -295,10 +295,7 @@ LUA_API void  (lua_rawseti) (lua_State *L, int idx, lua_Integer n);
 LUA_API void  (lua_rawsetp) (lua_State *L, int idx, const void *p);
 LUA_API int   (lua_setmetatable) (lua_State *L, int objindex);
 LUA_API int   (lua_setiuservalue) (lua_State *L, int idx, int n);
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-LUA_API void  (lua_setcachelen) (lua_State *L, lua_Unsigned len, int idx);
-#endif
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
 LUA_API void  (lua_freezetable) (lua_State *L, int idx);
 LUA_API int   (lua_istablefrozen) (lua_State *L, int idx);
 LUA_API void  (lua_erriffrozen) (lua_State *L, int idx);

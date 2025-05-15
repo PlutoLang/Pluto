@@ -249,7 +249,7 @@ LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
   name = luaG_findlocal(L, ar->i_ci, n, &pos);
   if (name) {
     StkId to = pos + 4;
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
     if (ttistable(s2v(pos))) {
       if (hvalue(s2v(pos))->isfrozen) {
         luaG_runerror(L, "attempt to modify local variable with a frozen table.");

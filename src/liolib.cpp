@@ -29,6 +29,8 @@
 
 #if SOUP_WINDOWS
 #include <windows.h>
+#else
+#include <sys/stat.h>
 #endif
 
 
@@ -985,13 +987,18 @@ static int relative (lua_State *L) {
 static int io_part (lua_State *L) {
   Protect(
     std::filesystem::path path = getStringStreamPathRaw(L, 1);
+    if (lua_gettop(L) == 1) {
+      pluto_pushstring(L, soup::string::fixType(path.parent_path().u8string()));
+      pluto_pushstring(L, soup::string::fixType(path.filename().u8string()));
+      return 2;
+    }
     static const char *const parts[] = {"parent", "name", nullptr};
     int part = luaL_checkoption(L, 2, nullptr, parts);
     if (part == 0)
       path = path.parent_path();
     else
       path = path.filename();
-    lua_pushstring(L, (const char*)path.u8string().c_str());
+    pluto_pushstring(L, soup::string::fixType(path.u8string()));
   );
 
   return 1;
@@ -1200,10 +1207,40 @@ static int contents (lua_State *L) {
 }
 
 
+static int io_chmod (lua_State *L) {
+  switch (lua_gettop(L)) {
+    case 0: {  /* availability check */
+      lua_pushboolean(L, !SOUP_WINDOWS);
+      return 1;
+    }
+    case 1: {  /* getter */
+#if !SOUP_WINDOWS
+      std::filesystem::path file = getStringStreamPathForRead(L, 1);
+      struct stat st;
+      if (stat(file.c_str(), &st) == 0) {
+        lua_pushinteger(L, st.st_mode & 0777);
+        return 1;
+      }
+#endif
+      return 0;
+    }
+    case 2: {  /* setter */
+#if !SOUP_WINDOWS
+      std::filesystem::path file = getStringStreamPathForWrite(L, 1);
+      chmod(file.c_str(), (mode_t)luaL_checkinteger(L, 2));
+#endif
+      return 0;
+    }
+    default: luaL_error(L, "wrong number of arguments");
+  }
+}
+
+
 /*
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
+  {"chmod", io_chmod},
   {"contents", contents},
   {"writetime", writetime},
   {"currentdir", currentdir},

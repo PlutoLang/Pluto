@@ -285,7 +285,7 @@ static int floatforloop (StkId ra) {
 ** t[k] entry (which must be empty).
 */
 void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
-                      const TValue *slot) {
+                      const TValue *slot, bool mindex) {
   int loop;  /* counter to avoid infinite loops */
   const TValue *tm;  /* metamethod */
   int isValueString = ttisstring(t) && ttisinteger(key);
@@ -308,6 +308,8 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
       }
       else {
         tm = luaT_gettmbyobj(L, t, TM_INDEX);
+        if (notm(tm) && mindex)
+          tm = luaT_gettmbyobj(L, t, TM_MINDEX);
         if (l_unlikely(notm(tm)))
           luaG_typeerror(L, t, "index");  /* no metamethod */
         /* else will try the metamethod */
@@ -316,6 +318,8 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
     else {  /* 't' is a table */
       lua_assert(isempty(slot));
       tm = fasttm(L, hvalue(t)->metatable, TM_INDEX);  /* table's metamethod */
+      if (tm == NULL && mindex)
+        tm = fasttm(L, hvalue(t)->metatable, TM_MINDEX);
       if (tm == NULL) {  /* no metamethod? */
         setnilvalue(s2v(val));  /* result is nil */
         return;
@@ -356,11 +360,8 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
       if (tm == NULL) {  /* no metamethod? */
         sethvalue2s(L, L->top.p, h);  /* anchor 't' */
         L->top.p++;  /* assume EXTRA_STACK */
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
         if (l_unlikely(h->isfrozen)) luaG_runerror(L, "attempt to modify frozen table.");
-#endif
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-		h->length = 0; // Reset length cache.
 #endif
         luaH_finishset(L, h, key, slot, val);  /* set new value */
         L->top.p--;
@@ -382,11 +383,8 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
     }
     t = tm;  /* else repeat assignment over 'tm' */
     if (luaV_fastget(L, t, key, slot, luaH_get)) {
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
       if (l_unlikely(hvalue(t)->isfrozen)) luaG_runerror(L, "attempt to modify frozen table.");
-#endif
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-	  hvalue(t)->length = 0; // Reset length cache.
 #endif
       luaV_finishfastset(L, t, slot, val);
       return;  /* done */
@@ -650,7 +648,7 @@ int luaV_equalobj (lua_State *L, const TValue *t1, const TValue *t2) {
 
 /* macro used by 'luaV_concat' to ensure that element at 'o' is a string */
 #define tostring(L,o)  \
-    (ttisstring(o) || (cvt2str(o) && (luaO_tostring(L, o), 1)))
+    (ttisstring(o) || ((cvt2str(o) || ttisboolean(o)) && (luaO_tostring(L, o), 1)))
 
 #define isemptystr(o)	(ttisshrstring(o) && tsvalue(o)->shrlen == 0)
 
@@ -676,7 +674,7 @@ void luaV_concat (lua_State *L, int total) {
   do {
     StkId top = L->top.p;
     int n = 2;  /* number of elements handled in this pass (at least 2) */
-    if (!(ttisstring(s2v(top - 2)) || cvt2str(s2v(top - 2))) ||
+    if (!(ttisstring(s2v(top - 2)) || cvt2str(s2v(top - 2)) || ttisboolean(s2v(top - 2))) ||
         !tostring(L, s2v(top - 1)))
       luaT_tryconcatTM(L);  /* may invalidate 'top' */
     else if (isemptystr(s2v(top - 1)))  /* second operand is empty? */
@@ -724,12 +722,7 @@ void luaV_objlen (lua_State *L, StkId ra, const TValue *rb) {
       Table *h = hvalue(rb);
       tm = fasttm(L, h->metatable, TM_LEN);
       if (tm) break;  /* metamethod? break switch to call it */
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-      if (!h->length) h->length = luaH_getn(h);  /* cache length */
-      setivalue(s2v(ra), h->length);
-#else
       setivalue(s2v(ra), luaH_getn(h));
-#endif
       return;
     }
     case LUA_VSHRSTR: {
@@ -1576,10 +1569,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TString *key = tsvalue(rb);  /* key must be a short string */
         if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
           Table *t = hvalue(upval);
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-          t->length = 0;
-#endif
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
           if (l_unlikely(t->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
@@ -1605,12 +1595,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
             ? (cast_void(n = ivalue(rb)), luaV_fastgeti(L, s2v(ra), n, slot))
             : luaV_fastget(L, s2v(ra), rb, slot, luaH_get)) {
           Table *t = hvalue(s2v(ra));
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
           if (l_unlikely(t->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
-#endif
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-          t->length = 0; // Reset length cache.
 #endif
           luaV_finishfastset(L, s2v(ra), slot, rc);
         }
@@ -1630,12 +1617,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rc = RKC(i);
         if (luaV_fastgeti(L, s2v(ra), c, slot)) {
           Table *t = hvalue(s2v(ra));
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
           if (l_unlikely(t->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
-#endif
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-          t->length = 0; // Reset length cache.
 #endif
           luaV_finishfastset(L, s2v(ra), slot, rc);
         }
@@ -1658,7 +1642,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rc = RKC(i);
         TString *key = tsvalue(rb);  /* key must be a short string */
         if (luaV_fastget(L, s2v(ra), key, slot, luaH_getshortstr)) {
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
           if (l_unlikely(hvalue(s2v(ra))->isfrozen))
             halfProtect(luaG_runerror(L, "attempt to modify frozen table."));
 #endif
@@ -1711,7 +1695,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           setobj2s(L, ra, slot);
         }
         else
-          Protect(luaV_finishget(L, rb, rc, ra, slot));
+          Protect(luaV_finishget(L, rb, rc, ra, slot, true));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();

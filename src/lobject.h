@@ -752,11 +752,8 @@ typedef struct Table {
   Node *lastfree;  /* any free position is before this position */
   struct Table *metatable;
   GCObject *gclist;
-#ifndef PLUTO_DISABLE_TABLE_FREEZING
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
   bool isfrozen;
-#endif
-#ifndef PLUTO_DISABLE_LENGTH_CACHE
-  lua_Unsigned length;  /* cached length of this table, as returned by luaH_getn */
 #endif
 } Table;
 

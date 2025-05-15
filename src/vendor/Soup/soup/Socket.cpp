@@ -291,7 +291,7 @@ NAMESPACE_SOUP
 		res.fd = ::accept(fd, (sockaddr*)&addr, &addrlen);
 		if (res.hasConnection())
 		{
-			memcpy(&res.peer.ip, &addr.sin6_addr, sizeof(addr.sin6_addr));
+			memcpy(&res.peer.ip.data, &addr.sin6_addr, sizeof(addr.sin6_addr));
 			res.peer.port = addr.sin6_port;
 		}
 		return res;

@@ -308,6 +308,17 @@ static const char *l_str2int (const char *s, lua_Integer *result) {
       empty = 0;
     }
   }
+  else if (s[0] == '0' &&
+      (s[1] == 'o' || s[1] == 'O')) { /* octal? */
+    s += 2;  /* skip '0o' */
+    for (; lisdigit(cast_uchar(*s)); s++) {
+      int d = *s - '0';
+      if (d >= 8)
+        return NULL;
+      a = a * 8 + d;
+      empty = 0;
+    }
+  }
   else {  /* decimal */
     for (; lisdigit(cast_uchar(*s)); s++) {
       int d = *s - '0';
