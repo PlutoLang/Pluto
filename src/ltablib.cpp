@@ -1020,7 +1020,7 @@ static const luaL_Reg tab_funcs[] = {
   {"countvalues", tcountvalues},
   {"dedup", tdeduplicate},
   {"deduplicate", tdeduplicate},
-  {"deduped", tdeduplicate},
+  {"deduped", tdeduplicated},
   {"deduplicated", tdeduplicated},
   {"keys", tkeys},
   {"values", tvalues},
