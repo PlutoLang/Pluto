@@ -26,8 +26,17 @@
 #include "lua.h"
 #include "lprefix.h"
 #include "lauxlib.h"
-#ifdef PLUTO_MEMORY_LIMIT
+#if defined(PLUTO_MEMORY_LIMIT) || defined(PLUTO_PARSER_CACHE)
 #include "lstate.h"
+#endif
+#ifdef PLUTO_PARSER_CACHE
+#include "lundump.h"
+
+#include <filesystem>
+
+#include "vendor/Soup/soup/filesystem.hpp"
+#include "vendor/Soup/soup/sha256.hpp"
+#include "vendor/Soup/soup/string.hpp"
 #endif
 
 
@@ -843,6 +852,17 @@ static int skipcomment (FILE *f, int *cp) {
 extern bool PLUTO_LOADFILE_HOOK(lua_State* L, const char* filename);
 #endif
 
+#ifdef PLUTO_PARSER_CACHE
+#define toproto(L,i) getproto(s2v(L->top.p+(i)))
+
+static int writer(lua_State* L, const void* p, size_t size, void* u) {
+ UNUSED(L);
+ return (fwrite(p,size,1,(FILE*)u)!=1) && (size!=0);
+}
+
+inline thread_local bool parser_emitted_warnings;
+#endif
+
 LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
                                              const char *mode) {
 #ifdef PLUTO_LOADFILE_HOOK
@@ -864,10 +884,13 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
     lua_pushfstring(L, "@%s", filename);
     filename_len = strlen(filename);
     errno = 0;
-    lf.f = luaL_fopen(filename, filename_len, "r", sizeof("r") - sizeof(char));
+    lf.f = luaL_fopen(filename, filename_len, "r", sizeof("r") - sizeof(""));
     if (lf.f == NULL) return errfile(L, "open", fnameindex);
   }
   lf.n = 0;
+#ifdef PLUTO_PARSER_CACHE
+  std::string cache_file_path;
+#endif
   if (skipcomment(lf.f, &c))  /* read initial portion */
     lf.buff[lf.n++] = '\n';  /* add newline to correct line numbers */
   if (c == LUA_SIGNATURE[0]) {  /* binary file? */
@@ -884,9 +907,36 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
       skipcomment(lf.f, &c);  /* re-read initial portion */
     }
   }
+#ifdef PLUTO_PARSER_CACHE
+  else {  /* text file? */
+    if (filename) {  /* "real" file? */
+      char hexdigest[soup::sha256::DIGEST_BYTES * 2 + 10] = { 'p', 'l', 'u', 't', 'o', 'c', 'a', 'c', 'h', 'e' };
+      size_t size;
+      if (auto data = soup::filesystem::createFileMapping(std::string_view(filename, filename_len), size)) {
+        soup::sha256::State st;
+        st.append(data, size);
+        st.finalise();
+        uint8_t digest[soup::sha256::DIGEST_BYTES];
+        st.getDigest(digest);
+        soup::string::bin2hexAt(hexdigest + 10, (const char*)digest, sizeof(digest), soup::string::charset_hex_lower);
+        soup::filesystem::destroyFileMapping(data, size);
+        cache_file_path = soup::string::fixType((std::filesystem::temp_directory_path() / std::string_view(hexdigest, sizeof(hexdigest))).u8string());
+        if (auto fh = luaL_fopen(cache_file_path.data(), cache_file_path.size(), "rb", sizeof("rb") - sizeof(""))) {
+          fclose(lf.f);
+          lf.f = fh;
+          skipcomment(lf.f, &c);
+          cache_file_path.clear();  /* no need to write to the cache, it already exists */
+        }
+      }
+    }
+  }
+#endif
   if (c != EOF)
     lf.buff[lf.n++] = c;  /* 'c' is the first character of the stream */
   errno = 0;
+#ifdef PLUTO_PARSER_CACHE
+  parser_emitted_warnings = false;
+#endif
   status = lua_load(L, getF, &lf, lua_tostring(L, -1), mode);
   readstatus = ferror(lf.f);
   if (filename) fclose(lf.f);  /* close file (even in case of errors) */
@@ -895,6 +945,17 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
     return errfile(L, "read", fnameindex);
   }
   lua_remove(L, fnameindex);
+#ifdef PLUTO_PARSER_CACHE
+  if (status == LUA_OK && !cache_file_path.empty() && !parser_emitted_warnings) {
+    errno = 0;
+    if (FILE* D = luaL_fopen(cache_file_path.data(), cache_file_path.size(), "wb", sizeof("wb") - sizeof(""))) {
+      lua_lock(L);
+      luaU_dump(L, toproto(L, -1), writer, D, false);
+      lua_unlock(L);
+      fclose(D);
+    }
+  }
+#endif
   return status;
 }
 

@@ -133,6 +133,10 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here, const 
 }
 
 
+#ifdef PLUTO_PARSER_CACHE
+inline thread_local bool parser_emitted_warnings;
+#endif
+
 // No note.
 static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
   if (ls->shouldEmitWarning(line, warningType)) {
@@ -148,6 +152,9 @@ static void throw_warn (LexState *ls, const char *err, const char *here, int lin
       delete msg;
       luaD_throw(ls->L, LUA_ERRSYNTAX);
     }
+#ifdef PLUTO_PARSER_CACHE
+    parser_emitted_warnings = true;
+#endif
     lua_warning(ls->L, msg->content.c_str(), 0);
     delete msg;
     ls->L->top.p -= 2; // Pluto::ErrorMessage::finalize & luaG_addinfo
@@ -170,6 +177,9 @@ static void throw_warn(LexState* ls, const char* err, const char* here, const ch
       delete msg;
       luaD_throw(ls->L, LUA_ERRSYNTAX);
     }
+#ifdef PLUTO_PARSER_CACHE
+    parser_emitted_warnings = true;
+#endif
     lua_warning(ls->L, msg->content.c_str(), 0);
     delete msg;
     ls->L->top.p -= 2; // Pluto::ErrorMessage::finalize & luaG_addinfo
