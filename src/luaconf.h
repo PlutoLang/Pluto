@@ -834,6 +834,12 @@
 // and all the hooks required to make it work. Note that coverage may not be perfect.
 //#define PLUTO_ENABLE_TABLE_FREEZING
 
+// If defined, Pluto will cache the bytecode of text files that parsed without warnings or errors,
+// and if the contents remained unchanged, it'll load the bytecode instead of reparsing the file.
+// The worst-case scenario for this optimization is small files and files that change often,
+// but even then, the overhead should be at most 1ms on modern systems.
+//#define PLUTO_PARSER_CACHE
+
 /*
 ** {====================================================================
 ** Pluto Configuration: Warnings
