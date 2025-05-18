@@ -42,6 +42,7 @@ NAMESPACE_SOUP
 	struct JsonInt;
 	struct JsonObject;
 	struct JsonString;
+	struct JsonTreeWriter;
 
 	// data.reflection
 	class drData;
