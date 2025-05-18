@@ -38,6 +38,7 @@ NAMESPACE_SOUP
 		void* (*allocArray)(void* user_data);
 		void* (*allocObject)(void* user_data);
 		void* (*allocString)(void* user_data, std::string&& value);
+		void* (*allocUnescapedString)(void* user_data, const char* data, size_t size) = nullptr;
 		void* (*allocInt)(void* user_data, int64_t value);
 		void* (*allocFloat)(void* user_data, double value);
 		void* (*allocBool)(void* user_data, bool value);

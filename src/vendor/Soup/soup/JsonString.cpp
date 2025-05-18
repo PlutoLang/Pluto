@@ -21,6 +21,11 @@ NAMESPACE_SOUP
 	{
 	}
 
+	JsonString::JsonString(const char* data, size_t size) noexcept
+		: JsonNode(JSON_STRING), value(data, size)
+	{
+	}
+
 	size_t JsonString::getEncodedSize(const char* data, size_t size) noexcept
 	{
 		std::string_view sw(data, size);
@@ -39,10 +44,8 @@ NAMESPACE_SOUP
 		return 0;
 	}
 
-	std::string JsonString::decodeValue(const char*& c, size_t& s)
+	void JsonString::decodeValue(std::string& value, const char*& c, size_t& s)
 	{
-		std::string value;
-		value.reserve(getEncodedSize(c, s));
 		for (bool escaped = false; s != 0; ++c, --s)
 		{
 			if (escaped)
@@ -127,8 +130,6 @@ NAMESPACE_SOUP
 			}
 			value.push_back(*c);
 		}
-		value.shrink_to_fit();
-		return value;
 	}
 
 	bool JsonString::operator==(const JsonNode& b) const noexcept
