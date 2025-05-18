@@ -12,41 +12,116 @@
 
 NAMESPACE_SOUP
 {
-	UniquePtr<JsonNode> json::decode(const std::string& data, int max_depth)
+	UniquePtr<JsonNode> json::decode(const char* data, size_t size, int max_depth)
 	{
-		if (data.empty())
-		{
-			return {};
-		}
-		const char* c = data.c_str();
-		return decode(c, max_depth);
+		JsonTreeWriter jtw;
+		jtw.allocArray = [](void*) -> void* { return new JsonArray(); };
+		jtw.allocObject = [](void*) -> void* { return new JsonObject(); };
+		jtw.allocString = [](void*, std::string&& value) -> void* { return new JsonString(std::move(value)); };
+		jtw.allocInt = [](void*, int64_t value) -> void* { return new JsonInt(value); };
+		jtw.allocFloat = [](void*, double value) -> void* { return new JsonFloat(value); };
+		jtw.allocBool = [](void*, bool value) -> void* { return new JsonBool(value); };
+		jtw.allocNull = [](void*) -> void* { return new JsonNull(); };
+		jtw.addToArray = [](void*, void* arr, void* value) -> void { ((JsonArray*)arr)->children.emplace_back((JsonNode*)value); };
+		jtw.addToObject = [](void*, void* obj, void* key, void* value) -> void { ((JsonObject*)obj)->children.emplace_back((JsonNode*)key, (JsonNode*)value); };
+		jtw.free = [](void*, void* node) -> void { delete (JsonNode*)node; };
+		return (JsonNode*)decode(jtw, nullptr, data, size, max_depth);
 	}
 
-	UniquePtr<JsonNode> json::decode(const char*& c, int max_depth)
+	void* json::decode(const JsonTreeWriter& tw, void* user_data, const char*& c, size_t& s, int max_depth)
 	{
-		SOUP_ASSERT(max_depth != 0, "Depth limit exceeded");
+		SOUP_ASSERT(max_depth-- != 0, "Depth limit exceeded");
 
-		handleLeadingSpace(c);
+		handleLeadingSpace(c, s);
 
-		switch (*c)
+		switch (s != 0 ? *c : 0)
 		{
 		case '"':
-			++c;
-			return soup::make_unique<JsonString>(c);
+			++c; --s;
+			return tw.allocString(user_data, JsonString::decodeValue(c, s));
 
-		case '[':
-			++c;
-			return soup::make_unique<JsonArray>(c, max_depth - 1);
+		case '[': {
+			++c; --s;
+			auto arr = tw.allocArray(user_data);
+			while (true)
+			{
+				handleLeadingSpace(c, s);
+				auto val = decode(tw, user_data, c, s, max_depth);
+				SOUP_IF_UNLIKELY (!val)
+				{
+					break;
+				}
+				tw.addToArray(user_data, arr, val);
+				while (s != 0 && (*c == ',' || string::isSpace(*c)))
+				{
+					++c; --s;
+				}
+				if (s == 0 || *c == ']')
+				{
+					break;
+				}
+			}
+			if (tw.onArrayFinished)
+			{
+				tw.onArrayFinished(user_data, arr);
+			}
+			SOUP_IF_LIKELY (s != 0)
+			{
+				++c; --s;
+			}
+			return arr;
+		}
 
-		case '{':
-			++c;
-			return soup::make_unique<JsonObject>(c, max_depth - 1);
+		case '{': {
+			++c; --s;
+			auto obj = tw.allocObject(user_data);
+			while (true)
+			{
+				handleLeadingSpace(c, s);
+				if (s == 0 || *c == '}')
+				{
+					break;
+				}
+				auto key = decode(tw, user_data, c, s, max_depth);
+				while (s != 0 && (string::isSpace(*c) || *c == ':'))
+				{
+					++c; --s;
+				}
+				auto val = decode(tw, user_data, c, s, max_depth);
+				SOUP_IF_UNLIKELY (!key || !val)
+				{
+					if (val)
+					{
+						tw.free(user_data, val);
+					}
+					if (key)
+					{
+						tw.free(user_data, key);
+					}
+					break;
+				}
+				tw.addToObject(user_data, obj, key, val);
+				while (s != 0 && (*c == ',' || string::isSpace(*c)))
+				{
+					++c; --s;
+				}
+			}
+			if (tw.onObjectFinished)
+			{
+				tw.onObjectFinished(user_data, obj);
+			}
+			SOUP_IF_LIKELY (s != 0)
+			{
+				++c; --s;
+			}
+			return obj;
+		}
 		}
 
 		std::string buf{};
 		bool is_int = true;
 		bool is_float = false;
-		for (; *c != ',' && !string::isSpace(*c) && *c != '}' && *c != ']' && *c != ':' && *c != 0; ++c)
+		for (; s != 0 && *c != ',' && !string::isSpace(*c) && *c != '}' && *c != ']' && *c != ':'; ++c, --s)
 		{
 			if ((is_int || is_float) && (*c == 'e' || *c == 'E'))
 			{
@@ -64,7 +139,7 @@ NAMESPACE_SOUP
 		int exponent = 0;
 		if (*c == 'e' || *c == 'E')
 		{
-			++c;
+			++c; --s;
 			is_int = false;
 			is_float = true;
 
@@ -73,9 +148,9 @@ NAMESPACE_SOUP
 			{
 				return {};
 			}
-			++c;
+			++c; --s;
 
-			for (; *c != ',' && !string::isSpace(*c) && *c != '}' && *c != ']' && *c != ':' && *c != 0; ++c)
+			for (; s != 0 && *c != ',' && !string::isSpace(*c) && *c != '}' && *c != ']' && *c != ':'; ++c, --s)
 			{
 				exponent *= 10;
 				exponent += ((*c) - '0');
@@ -92,7 +167,7 @@ NAMESPACE_SOUP
 				auto opt = string::toIntOpt<int64_t>(buf);
 				if (opt.has_value())
 				{
-					return soup::make_unique<JsonInt>(opt.value());
+					return tw.allocInt(user_data, opt.value());
 				}
 			}
 			else if (is_float)
@@ -105,23 +180,23 @@ NAMESPACE_SOUP
 					{
 						val *= std::pow(10.0, exponent);
 					}
-					return soup::make_unique<JsonFloat>(val);
+					return tw.allocFloat(user_data, val);
 				}
 			}
 			else if (buf == "true")
 			{
-				return soup::make_unique<JsonBool>(true);
+				return tw.allocBool(user_data, true);
 			}
 			else if (buf == "false")
 			{
-				return soup::make_unique<JsonBool>(false);
+				return tw.allocBool(user_data, false);
 			}
 			else if (buf == "null")
 			{
-				return soup::make_unique<JsonNull>();
+				return tw.allocNull(user_data);
 			}
 		}
-		return {};
+		return nullptr;
 	}
 
 	UniquePtr<JsonNode> json::binaryDecode(Reader& r)
@@ -211,17 +286,17 @@ NAMESPACE_SOUP
 		return {};
 	}
 
-	void json::handleLeadingSpace(const char*& c)
+	void json::handleLeadingSpace(const char*& c, size_t& s)
 	{
-		while (*c != 0)
+		while (s != 0)
 		{
 			if (string::isSpace(*c))
 			{
-				++c;
+				++c; --s;
 			}
 			else if (*c == '/')
 			{
-				handleComment(c);
+				handleComment(c, s);
 			}
 			else
 			{
@@ -230,31 +305,32 @@ NAMESPACE_SOUP
 		}
 	}
 
-	void json::handleComment(const char*& c)
+	void json::handleComment(const char*& c, size_t& s)
 	{
-		++c;
+		++c; --s;
 		if (*c == '/')
 		{
 			do
 			{
-				++c;
+				++c; --s;
 			} while (*c != '\n' && *c != 0);
 		}
 		else if (*c == '*')
 		{
 			do
 			{
-				++c;
+				++c; --s;
 				if (*c == '*' && *(c + 1) == '/')
 				{
 					c += 2;
+					s -= 2;
 					break;
 				}
-			} while (*c != 0);
+			} while (s != 0);
 		}
 		else
 		{
-			--c;
+			--c; ++s;
 		}
 	}
 }
