@@ -107,6 +107,10 @@ static int decode(lua_State* L)
 		pluto_pushstring((lua_State*)L, value);
 		return L; // must not return nullptr
 	};
+	jtw.allocUnescapedString = [](void* L, const char* data, size_t size) -> void* {
+		lua_pushlstring((lua_State*)L, data, size);
+		return L; // must not return nullptr
+	};
 	jtw.allocInt = [](void* L, int64_t value) -> void* {
 		lua_pushinteger((lua_State*)L, value);
 		return L; // must not return nullptr
