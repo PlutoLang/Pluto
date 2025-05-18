@@ -36,9 +36,29 @@ NAMESPACE_SOUP
 
 		switch (s != 0 ? *c : 0)
 		{
-		case '"':
+		case '"': {
 			++c; --s;
-			return tw.allocString(user_data, JsonString::decodeValue(c, s));
+			const auto encoded_size = JsonString::getEncodedSize(c, s);
+			if (tw.allocUnescapedString && std::string_view(c, encoded_size).find('\\') == std::string::npos)
+			{
+				const auto str = tw.allocUnescapedString(user_data, c, encoded_size);
+				c += encoded_size;
+				s -= encoded_size;
+				SOUP_IF_LIKELY (s != 0)
+				{
+					++c; --s;
+				}
+				return str;
+			}
+			else
+			{
+				std::string value;
+				value.reserve(encoded_size);
+				JsonString::decodeValue(value, c, s);
+				value.shrink_to_fit();
+				return tw.allocString(user_data, std::move(value));
+			}
+		}
 
 		case '[': {
 			++c; --s;
