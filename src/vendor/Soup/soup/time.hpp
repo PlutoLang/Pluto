@@ -53,6 +53,11 @@ NAMESPACE_SOUP
 			return until - millis();
 		}
 
+		[[nodiscard]] static std::time_t micros() noexcept
+		{
+			return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+		}
+
 		[[nodiscard]] static std::time_t nanos() noexcept
 		{
 			return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();

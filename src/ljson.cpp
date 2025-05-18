@@ -35,11 +35,13 @@ static int encode(lua_State* L)
 
 static int decode(lua_State* L)
 {
+	size_t size;
+	const char* data = luaL_checklstring(L, 1, &size);
 	int flags = (int)luaL_optinteger(L, 2, 0);
 	soup::UniquePtr<soup::JsonNode> root;
 	try
 	{
-		root = soup::json::decode(pluto_checkstring(L, 1));
+		root = soup::json::decode(data, size);
 	}
 	catch (const std::exception& e)
 	{
