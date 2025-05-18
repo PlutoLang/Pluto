@@ -16,30 +16,6 @@ NAMESPACE_SOUP
 	{
 	}
 
-	JsonArray::JsonArray(const char*& c, int max_depth)
-		: JsonArray()
-	{
-		while (true)
-		{
-			json::handleLeadingSpace(c);
-			auto val = json::decode(c, max_depth);
-			if (!val)
-			{
-				break;
-			}
-			children.emplace_back(std::move(val));
-			while (*c == ',' || string::isSpace(*c))
-			{
-				++c;
-			}
-			if (*c == ']' || *c == 0)
-			{
-				break;
-			}
-		}
-		++c;
-	}
-
 	void JsonArray::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
 		str.push_back('[');
