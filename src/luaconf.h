@@ -878,9 +878,6 @@
 // If defined, the "possible-typo" warning is disabled by default.
 //#define PLUTO_NO_WARN_POSSIBLE_TYPO
 
-// If defined, the "implicit-global" warning is disabled by default.
-//#define PLUTO_NO_WARN_IMPLICIT_GLOBAL
-
 // If defined, the "unannotated-fallthrough" warning is disabled by default.
 //#define PLUTO_NO_WARN_UNANNOTATED_FALLTHROUGH
 
