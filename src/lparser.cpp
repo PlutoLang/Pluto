@@ -1950,12 +1950,15 @@ static void classexpr (LexState *ls, expdesc *t) {
 
 
 static void check_assignment (LexState *ls, const expdesc *v) {
-  if (v->k == VINDEXUP && ls->isKeywordEnabled(TK_GLOBAL)) {
+  const auto line = ls->getLineNumber();
+  if (v->k == VINDEXUP
+    && (ls->getWarningConfig().states[WT_IMPLICIT_GLOBAL] == WS_UNSPECIFIED ? ls->isKeywordEnabled(TK_GLOBAL) : ls->shouldEmitWarning(line, WT_IMPLICIT_GLOBAL))
+    ) {
     luaX_prev(ls);
     if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
       TString *name = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
       if (ls->explicit_globals.count(name) == 0) {
-        throw_warn(ls, "implicit global creation", "prefix this with 'global' to be explicit", WT_IMPLICIT_GLOBAL);
+        throw_warn(ls, "implicit global creation", "prefix this with 'global' to be explicit", line, WT_IMPLICIT_GLOBAL);
       }
     }
     else luaX_next(ls);
