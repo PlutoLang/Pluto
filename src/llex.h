@@ -242,6 +242,7 @@ enum WarningState : lu_byte {
   WS_OFF,
   WS_ON,
   WS_ERROR,
+  WS_UNSPECIFIED,
 };
 
 
@@ -303,6 +304,8 @@ private:
 #endif
     case NUM_WARNING_TYPES:  /* dummy case so compiler doesn't cry when all macros are set */
       return WS_OFF;
+    case WT_IMPLICIT_GLOBAL:
+      return WS_UNSPECIFIED;
     default:
       return WS_ON;
     }
