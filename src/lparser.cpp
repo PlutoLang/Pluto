@@ -1547,7 +1547,7 @@ static void preassignfield (LexState *ls, expdesc& key) {
 static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   /* recfield -> (NAME | '['exp']') = exp */
   FuncState *fs = ls->fs;
-  int reg = ls->fs->freereg;
+  auto reg = ls->fs->freereg;
   expdesc tab, key, val;
   if (ls->t.token == TK_NAME) {
     checklimit(fs, cc->nh, MAX_INT, "items in a constructor");
@@ -1591,7 +1591,7 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
 
 static void prenamedfield (LexState *ls, ConsControl *cc, const char *name) {
   FuncState* fs = ls->fs;
-  int reg = ls->fs->freereg;
+  auto reg = ls->fs->freereg;
   expdesc tab, key, val;
   codestring(&key, luaX_newstring(ls, name));
   cc->nh++;
@@ -1644,7 +1644,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
 static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool isprivate = false) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
-  int reg = ls->fs->freereg;
+  auto reg = ls->fs->freereg;
   expdesc tab, key, val;
   cc->nh++;
   luaX_next(ls); /* skip TK_FUNCTION */
@@ -1783,7 +1783,7 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
   init_exp(&cc.v, VVOID, 0);
   while (true) {
     closelistfield(fs, &cc);
-    int reg = ls->fs->freereg;
+    auto reg = ls->fs->freereg;
     expdesc tab, key, val;
     if (!gen(&key, &val))
       break;
