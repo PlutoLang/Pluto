@@ -1968,7 +1968,7 @@ static void check_assignment (LexState *ls, const expdesc *v) {
     if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
       TString *name = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
       if (ls->explicit_globals.count(name) == 0) {
-        throw_warn(ls, "implicit global creation", "prefix this with 'global' to be explicit", line, WT_IMPLICIT_GLOBAL);
+        throw_warn(ls, "implicit global creation", "prefix this with '_G.' or 'global' to be explicit", line, WT_IMPLICIT_GLOBAL);
       }
     }
     else luaX_next(ls);
@@ -5007,9 +5007,16 @@ static void exprstat (LexState *ls) {
   /* stat -> func | assignment */
   FuncState *fs = ls->fs;
   struct LHS_assign v;
+  const bool is_explicitly_global = (ls->t.token == TK_NAME && (strcmp(getstr(ls->t.seminfo.ts), "_G") == 0 || strcmp(getstr(ls->t.seminfo.ts), "_ENV") == 0));
   suffixedexp(ls, &v.v);
   if (ls->t.token == '=' || ls->t.token == ',' || ls->t.token == TK_NE) { /* stat -> assignment ? */
     v.prev = NULL;
+    if (is_explicitly_global) {
+      const auto& prev = luaX_lookbehind(ls);
+      if (prev.token == TK_NAME) {
+        ls->explicit_globals.emplace(prev.seminfo.ts);
+      }
+    }
     check_assignment(ls, &v.v);
     restassign(ls, &v, 1);
   }
