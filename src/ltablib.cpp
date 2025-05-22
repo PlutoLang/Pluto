@@ -725,7 +725,7 @@ static int tfind (lua_State *L) {
     /* stack now: table, key, value, func, value */
     lua_call(L, 1, 1);
     /* stack now: table, key, value, bool */
-    if (lua_istrue(L, -1)) {
+    if (lua_toboolean(L, -1)) {
       lua_pop(L, findindex ? 2 : 1);
       return 1;
     }
@@ -753,7 +753,7 @@ static int checkall (lua_State *L) {
     /* stack now: table, key, value, func, value */
     lua_call(L, 1, 1);
     /* stack now: table, key, value, bool */
-    if (!lua_istrue(L, -1)) {
+    if (!lua_toboolean(L, -1)) {
       return 1;
     }
     lua_pop(L, 2);
