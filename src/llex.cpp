@@ -129,7 +129,7 @@ const char *luaX_token2str_noq (LexState *ls, const Token& t) {
   }
   else switch (t.token) {
     case TK_NAME: case TK_STRING:
-      if (!ls->hasDoneLexerPass())
+      if (!ls->hasDoneLexerPass() || !t.seminfo.ts)
         return luaX_tokens[t.token - FIRST_RESERVED];
       ret = luaO_pushfstring(ls->L, "%s", getstr(t.seminfo.ts));
       ls->L->top.p--;
@@ -365,7 +365,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
       line = ls->t.line;
       std::cout << "\nLine " << line << ":";
     }
-    std::cout << " " << luaX_token2str_noq(ls, ls->t.token);
+    std::cout << " " << luaX_token2str_noq(ls, ls->t);
     luaX_next(ls);
   }
   std::cout << "\n";
