@@ -60,3 +60,9 @@ assert(load[[
 
     return a + b
 ]])
+
+assert(load[[
+    $alias def(name, val) = local name = val
+    def(FOO, 1)
+    return FOO
+]]() == 1)

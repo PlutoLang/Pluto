@@ -342,10 +342,12 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
               if (t.token == TK_NAME) {
                 if (auto arg = ls->macro_args.find(t.seminfo.ts); arg != ls->macro_args.end()) {
                   i = ls->tokens.insert(i, arg->second);
+                  ++i;
                   continue;
                 }
               }
               i = ls->tokens.insert(i, t);
+              ++i;
             }
           }
           else {
