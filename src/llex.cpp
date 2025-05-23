@@ -29,7 +29,7 @@
 #include "ltable.h"
 #include "lzio.h"
 
-// Note that this may sometimes break parsing.
+// Note that this may sometimes break parsing so should be used alongside PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO.
 #define TOKENDUMP false
 
 #if TOKENDUMP
