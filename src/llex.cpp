@@ -319,6 +319,9 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
       if (i->token == TK_NAME) {
         if (auto e = ls->macros.find(i->seminfo.ts); e != ls->macros.end()) {
           i = ls->tokens.erase(i);
+          for (auto& t : e->second.sub) {
+            t.line = i->line;
+          }
           if (e->second.functionlike) {
             ls->macro_args.clear();
             if (l_unlikely(i->token != '(')) {
