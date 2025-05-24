@@ -1550,7 +1550,6 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   auto reg = ls->fs->freereg;
   expdesc tab, key, val;
   if (ls->t.token == TK_NAME) {
-    checklimit(fs, cc->nh, MAX_INT, "items in a constructor");
     TString *name = str_checkname(ls, N_RESERVED);  /* we already know this is a TK_NAME, but don't wanna raise non-portable-name, so passing N_RESERVED */
     if (for_class) {
       if (strcmp(getstr(name), "public") == 0) {
@@ -1569,6 +1568,7 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   }
   else  /* ls->t.token == '[' */
     yindex(ls, &key);
+  checklimit(fs, cc->nh, MAX_INT, "items in a constructor");
   if (for_class)
     UNUSED(gettypehint(ls));
   cc->nh++;
