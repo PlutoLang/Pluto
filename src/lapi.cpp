@@ -1207,16 +1207,37 @@ LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
 }
 
 
+/*
+** Dump a function, calling 'writer' to write its parts. Because the
+** writer can use the stack in unkown ways, this function should not
+** push things on the stack, but it must anchor an auxiliary table
+** used by 'luaU_dump'. To do so, it creates the table, anchors the
+** function that is on the stack in the table, and substitutes the
+** table for the function in the stack.
+*/
+
 LUA_API int lua_dump (lua_State *L, lua_Writer writer, void *data, int strip) {
   int status;
+  StkId fstk;  /* pointer to function */
   TValue *o;
   lua_lock(L);
   api_checknelems(L, 1);
-  o = s2v(L->top.p - 1);
-  if (isLfunction(o))
-    status = luaU_dump(L, getproto(o), writer, data, strip);
-  else
+  fstk = L->top.p - 1;
+  o = s2v(fstk);
+  if (!isLfunction(o))
     status = 1;
+  else {
+    LClosure *f = clLvalue(o);
+    ptrdiff_t fidx = savestack(L, fstk);  /* function index */
+    Table *h = luaH_new(L);  /* auxiliary table used by 'luaU_dump' */
+    sethvalue2s(L, L->top.p, h);  /* anchor it (luaH_set may call GC) */
+    L->top.p++;  /* (assume extra slot) */
+    luaH_set(L, h, o, o);  /* anchor function into table */
+    setobjs2s(L, fstk, L->top.p - 1);  /* move table over function */
+    L->top.p--;  /* stack back to initial size */
+    status = luaU_dump(L, f->p, writer, data, strip, h);
+    setclLvalue2s(L, restorestack(L, fidx), f);  /* put function back */
+  }
   lua_unlock(L);
   return status;
 }
@@ -1245,7 +1266,7 @@ LUA_API int lua_gc (lua_State *L, int what, ...) {
     }
     case LUA_GCRESTART: {
       luaE_setdebt(g, 0);
-      g->gcstp = 0;  /* (GCSTPGC must be already zero here) */
+      g->gcstp = 0;  /* (bit GCSTPGC must be zero here) */
       break;
     }
     case LUA_GCCOLLECT: {
@@ -1254,42 +1275,46 @@ LUA_API int lua_gc (lua_State *L, int what, ...) {
     }
     case LUA_GCCOUNT: {
       /* GC values are expressed in Kbytes: #bytes/2^10 */
-      res = cast_int(gettotalbytes(g) >> 10);
+      res = cast_int(g->totalbytes >> 10);
       break;
     }
     case LUA_GCCOUNTB: {
-      res = cast_int(gettotalbytes(g) & 0x3ff);
+      res = cast_int(g->totalbytes & 0x3ff);
       break;
     }
     case LUA_GCSTEP: {
-      int data = va_arg(argp, int);
-      l_mem debt = 1;  /* =1 to signal that it did an actual step */
+      int todo = va_arg(argp, int);  /* work to be done */
+      int didsomething = 0;
       lu_byte oldstp = g->gcstp;
-      g->gcstp = 0;  /* allow GC to run (GCSTPGC must be zero here) */
-      if (data == 0) {
-        luaE_setdebt(g, 0);  /* do a basic step */
-        luaC_step(L);
+      g->gcstp = 0;  /* allow GC to run (bit GCSTPGC must be zero here) */
+      if (todo == 0)
+        todo = 1 << g->gcstepsize;  /* standard step size */
+      while (todo >= g->GCdebt) {  /* enough to run a step? */
+        todo -= g->GCdebt;  /* decrement 'todo' */
+        luaC_step(L);  /* run one basic step */
+        didsomething = 1;
+        if (g->gckind == KGC_GEN)  /* minor collections? */
+          todo = 0;  /* doesn't make sense to repeat in this case */
+        else if (g->gcstate == GCSpause)
+          break;  /* don't run more than one cycle */
       }
-      else {  /* add 'data' to total debt */
-        debt = cast(l_mem, data) * 1024 + g->GCdebt;
-        luaE_setdebt(g, debt);
-        luaC_checkGC(L);
-      }
+      /* remove remaining 'todo' from total debt */
+      luaE_setdebt(g, g->GCdebt - todo);
       g->gcstp = oldstp;  /* restore previous state */
-      if (debt > 0 && g->gcstate == GCSpause)  /* end of cycle? */
+      if (didsomething && g->gcstate == GCSpause)  /* end of cycle? */
         res = 1;  /* signal it */
       break;
     }
     case LUA_GCSETPAUSE: {
-      int data = va_arg(argp, int);
-      res = getgcparam(g->gcpause);
-      setgcparam(g->gcpause, data);
+      unsigned int data = va_arg(argp, unsigned int);
+      res = applygcparam(g, gcpause, 100);
+      setgcparam(g, gcpause, data);
       break;
     }
     case LUA_GCSETSTEPMUL: {
-      int data = va_arg(argp, int);
-      res = getgcparam(g->gcstepmul);
-      setgcparam(g->gcstepmul, data);
+      unsigned int data = va_arg(argp, unsigned int);
+      res = applygcparam(g, gcstepmul, 100);
+      setgcparam(g, gcstepmul, data);
       break;
     }
     case LUA_GCISRUNNING: {
@@ -1297,27 +1322,28 @@ LUA_API int lua_gc (lua_State *L, int what, ...) {
       break;
     }
     case LUA_GCGEN: {
-      int minormul = va_arg(argp, int);
-      int majormul = va_arg(argp, int);
-      res = isdecGCmodegen(g) ? LUA_GCGEN : LUA_GCINC;
+      unsigned int minormul = va_arg(argp, unsigned int);
+      unsigned int majormul = va_arg(argp, unsigned int);
+      res = (g->gckind == KGC_INC) ? LUA_GCINC : LUA_GCGEN;
       if (minormul != 0)
-        g->genminormul = minormul;
+        setgcparam(g, genminormul, minormul);
       if (majormul != 0)
-        setgcparam(g->genmajormul, majormul);
+        setgcparam(g, genmajormul, majormul);
       luaC_changemode(L, KGC_GEN);
       break;
     }
     case LUA_GCINC: {
-      int pause = va_arg(argp, int);
-      int stepmul = va_arg(argp, int);
-      int stepsize = va_arg(argp, int);
-      res = isdecGCmodegen(g) ? LUA_GCGEN : LUA_GCINC;
+      unsigned int pause = va_arg(argp, unsigned int);
+      unsigned int stepmul = va_arg(argp, unsigned int);
+      unsigned int stepsize = va_arg(argp, unsigned int);
+      res = (g->gckind == KGC_INC) ? LUA_GCINC : LUA_GCGEN;
       if (pause != 0)
-        setgcparam(g->gcpause, pause);
+        setgcparam(g, gcpause, pause);
       if (stepmul != 0)
-        setgcparam(g->gcstepmul, stepmul);
+        setgcparam(g, gcstepmul, stepmul);
       if (stepsize != 0)
-        g->gcstepsize = stepsize;
+        g->gcstepsize = (stepsize <= log2maxs(l_obj)) ? stepsize
+                                                      : log2maxs(l_obj);
       luaC_changemode(L, KGC_INC);
       break;
     }
@@ -1383,13 +1409,14 @@ LUA_API void lua_toclose (lua_State *L, int idx) {
 LUA_API void lua_concat (lua_State *L, int n) {
   lua_lock(L);
   api_checknelems(L, n);
-  if (n > 0)
+  if (n > 0) {
     luaV_concat(L, n);
+    luaC_checkGC(L);
+  }
   else {  /* nothing to concatenate */
     setsvalue2s(L, L->top.p, luaS_newlstr(L, "", 0));  /* push empty string */
     api_incr_top(L);
   }
-  luaC_checkGC(L);
   lua_unlock(L);
 }
 

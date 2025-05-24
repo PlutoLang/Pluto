@@ -152,12 +152,13 @@ struct lua_longjmp;  /* defined in ldo.c */
 /* kinds of Garbage Collection */
 #define KGC_INC		0	/* incremental gc */
 #define KGC_GEN		1	/* generational gc */
+#define KGC_GENMAJOR	2	/* generational in "major" mode */
 
 
 typedef struct stringtable {
-  TString **hash;
+  TString **hash;  /* array of buckets (linked lists of strings) */
   int nuse;  /* number of elements */
-  int size;
+  int size;  /* number of buckets */
 } stringtable;
 
 
@@ -256,10 +257,11 @@ struct CallInfo {
 typedef struct global_State {
   lua_Alloc frealloc;  /* function to reallocate memory */
   void *ud;         /* auxiliary data to 'frealloc' */
-  l_mem totalbytes;  /* number of bytes currently allocated - GCdebt */
-  l_mem GCdebt;  /* bytes allocated not yet compensated by the collector */
-  lu_mem GCestimate;  /* an estimate of the non-garbage memory in use */
-  lu_mem lastatomic;  /* see function 'genstep' in file 'lgc.c' */
+  lu_mem totalbytes;  /* number of bytes currently allocated */
+  l_obj totalobjs;  /* total number of objects allocated + GCdebt */
+  l_obj GCdebt;  /* objects counted but not yet allocated */
+  l_obj marked;  /* number of objects marked in a GC cycle */
+  l_obj GClastmajor;  /* objects at last major collection */
   stringtable strt;  /* hash table for strings */
   TValue l_registry;
   TValue nilvalue;  /* a nil value */
@@ -478,10 +480,11 @@ union GCUnion {
 #define obj2gco(v)	check_exp((v)->tt >= LUA_TSTRING, &(cast_u(v)->gc))
 
 
-/* actual number of total bytes allocated */
-#define gettotalbytes(g)	cast(lu_mem, (g)->totalbytes + (g)->GCdebt)
+/* actual number of total objects allocated */
+#define gettotalobjs(g)	((g)->totalobjs - (g)->GCdebt)
 
-LUAI_FUNC void luaE_setdebt (global_State *g, l_mem debt);
+
+LUAI_FUNC void luaE_setdebt (global_State *g, l_obj debt);
 LUAI_FUNC void luaE_freethread (lua_State *L, lua_State *L1);
 LUAI_FUNC CallInfo *luaE_extendCI (lua_State *L);
 LUAI_FUNC void luaE_shrinkCI (lua_State *L);

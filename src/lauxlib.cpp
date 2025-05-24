@@ -1171,7 +1171,7 @@ static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
 #ifdef PLUTO_MEMORY_LIMIT
     if (ud  /* state has finished opening? */
       && (!ptr || nsize > osize)  /* new allocation or increasing existing allocation? */
-      && gettotalbytes(reinterpret_cast<global_State*>(ud)) >= PLUTO_MEMORY_LIMIT  /* limit reached? */
+      && reinterpret_cast<global_State*>(ud)->totalbytes >= PLUTO_MEMORY_LIMIT  /* limit reached? */
       ) {
       return NULL;
     }
@@ -1252,8 +1252,54 @@ static void warnfon (void *ud, const char *message, int tocont) {
 }
 
 
+
+/*
+** A function to compute an unsigned int with some level of
+** randomness. Rely on Address Space Layout Randomization (if present)
+** and the current time.
+*/
+#if !defined(luai_makeseed)
+
+#include <time.h>
+
+
+/*
+** Size of 'e' measured in number of 'unsigned int's. (In the weird
+** case that the division truncates, we just lose some part of the
+** value, no big deal.)
+*/
+#define sof(e)          (sizeof(e) / sizeof(unsigned int))
+
+
+#define addbuff(b,v) \
+	(memcpy(b, &(v), sof(v) * sizeof(unsigned int)), b += sof(v))
+
+
+static unsigned int luai_makeseed (void) {
+  unsigned int buff[sof(void*) + sof(time_t)];
+  unsigned int res;
+  unsigned int *b = buff;
+  time_t t = time(NULL);
+  void *h = buff;
+  addbuff(b, h);  /* local variable's address */
+  addbuff(b, t);  /* time */
+  res = buff[0];
+  for (b = buff + 1; b < buff + sof(buff); b++)
+    res ^= (res >> 3) + (res << 7) + *b;
+  return res;
+}
+
+#endif
+
+
+LUALIB_API unsigned int luaL_makeseed (lua_State *L) {
+  (void)L;  /* unused */
+  return luai_makeseed();
+}
+
+
 LUALIB_API lua_State *luaL_newstate (void) {
-  lua_State *L = lua_newstate(l_alloc, NULL);
+  lua_State *L = lua_newstate(l_alloc, NULL, luai_makeseed());
   if (l_likely(L)) {
 #ifdef PLUTO_MEMORY_LIMIT
     G(L)->ud = G(L);

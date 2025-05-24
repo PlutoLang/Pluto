@@ -15,9 +15,10 @@
 
 #include "lua.h"
 
+#include "lgc.h"
 #include "lobject.h"
-#include "lopcodes.h"
 #include "lstate.h"
+#include "ltable.h"
 #include "lundump.h"
 
 
@@ -27,6 +28,8 @@ typedef struct {
   void *data;
   int strip;
   int status;
+  Table *h;  /* table to track saved strings */
+  lua_Integer nstr;  /* counter to number saved strings */
   bool lua_vm_compatible;
   lu_byte min_required_version;
 } DumpState;
@@ -92,14 +95,33 @@ static void dumpInteger (DumpState *D, lua_Integer x) {
 }
 
 
-static void dumpString (DumpState *D, const TString *s) {
+/*
+** Dump a String. First dump its "size": size==0 means NULL;
+** size==1 is followed by an index and means "reuse saved string with
+** that index"; size>=2 is followed by the string contents with real
+** size==size-2 and means that string, which will be saved with
+** the next available index.
+*/
+static void dumpString (DumpState *D, TString *s) {
   if (s == NULL)
     dumpSize(D, 0);
   else {
-    size_t size = tsslen(s);
-    const char *str = getstr(s);
-    dumpSize(D, size + 1);
-    dumpVector(D, str, size);
+    const TValue *idx = luaH_getstr(D->h, s);
+    if (ttisinteger(idx)) {  /* string already saved? */
+      dumpSize(D, 1);  /* reuse a saved string */
+      dumpInt(D, ivalue(idx));  /* index of saved string */
+    }
+    else {  /* must write and save the string */
+      TValue key, value;  /* to save the string in the hash */
+      size_t size = tsslen(s);
+      dumpSize(D, size + 2);
+      dumpVector(D, getstr(s), size);
+      D->nstr++;  /* one more saved string */
+      setsvalue(D->L, &key, s);  /* the string is the key */
+      setivalue(&value, D->nstr);  /* its index is the value */
+      luaH_finishset(D->L, D->h, &key, idx, &value);  /* h[s] = nstr */
+      /* integer value does not need barrier */
+    }
   }
 }
 
@@ -110,7 +132,7 @@ static void dumpCode (DumpState *D, const Proto *f) {
 }
 
 
-static void dumpFunction(DumpState *D, const Proto *f, TString *psource);
+static void dumpFunction(DumpState *D, const Proto *f);
 
 static void dumpConstants (DumpState *D, const Proto *f) {
   int i;
@@ -143,7 +165,7 @@ static void dumpProtos (DumpState *D, const Proto *f) {
   int n = f->sizep;
   dumpInt(D, n);
   for (i = 0; i < n; i++)
-    dumpFunction(D, f->p[i], f->source);
+    dumpFunction(D, f->p[i]);
 }
 
 
@@ -183,9 +205,9 @@ static void dumpDebug (DumpState *D, const Proto *f) {
 }
 
 
-static void dumpFunction (DumpState *D, const Proto *f, TString *psource) {
-  if (D->strip || f->source == psource)
-    dumpString(D, NULL);  /* no debug info or same source as its parent */
+static void dumpFunction (DumpState *D, const Proto *f) {
+  if (D->strip)
+    dumpString(D, NULL);  /* no debug info */
   else
     dumpString(D, f->source);
   dumpInt(D, f->linedefined);
@@ -236,19 +258,21 @@ static void check_vm_compatibility (const Proto *f, bool& lua_vm_compatible, lu_
 ** dump Lua function as precompiled chunk
 */
 int luaU_dump(lua_State *L, const Proto *f, lua_Writer w, void *data,
-              int strip) {
+              int strip, Table *h) {
   DumpState D;
   D.L = L;
   D.writer = w;
   D.data = data;
   D.strip = strip;
   D.status = 0;
+  D.h = h;
+  D.nstr = 0;
   D.lua_vm_compatible = true;
   D.min_required_version = 0;
   check_vm_compatibility(f, D.lua_vm_compatible, D.min_required_version);
   dumpHeader(&D);
   dumpByte(&D, f->sizeupvalues);
-  dumpFunction(&D, f, NULL);
+  dumpFunction(&D, f);
   return D.status;
 }
 

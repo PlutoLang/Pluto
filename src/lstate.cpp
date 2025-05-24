@@ -54,46 +54,15 @@ typedef struct LG {
 
 
 /*
-** A macro to create a "random" seed when a state is created;
-** the seed is used to randomize string hashes.
+** set GCdebt to a new value keeping the value (totalobjs + GCdebt)
+** invariant (and avoiding underflows in 'totalobjs')
 */
-#if !defined(luai_makeseed)
-
-#include <time.h>
-
-/*
-** Compute an initial seed with some level of randomness.
-** Rely on Address Space Layout Randomization (if present) and
-** current time.
-*/
-#define addbuff(b,p,e) \
-  { size_t t = cast_sizet(e); \
-    memcpy(b + p, &t, sizeof(t)); p += sizeof(t); }
-
-static unsigned int luai_makeseed (lua_State *L) {
-  char buff[3 * sizeof(size_t)];
-  unsigned int h = cast_uint(time(NULL));
-  int p = 0;
-  addbuff(buff, p, L);  /* heap variable */
-  addbuff(buff, p, &h);  /* local variable */
-  addbuff(buff, p, &lua_newstate);  /* public function */
-  lua_assert(p == sizeof(buff));
-  return luaS_hash(buff, p, h);
-}
-
-#endif
-
-
-/*
-** set GCdebt to a new value keeping the value (totalbytes + GCdebt)
-** invariant (and avoiding underflows in 'totalbytes')
-*/
-void luaE_setdebt (global_State *g, l_mem debt) {
-  l_mem tb = gettotalbytes(g);
+void luaE_setdebt (global_State *g, l_obj debt) {
+  l_obj tb = gettotalobjs(g);
   lua_assert(tb > 0);
-  if (debt < tb - MAX_LMEM)
-    debt = tb - MAX_LMEM;  /* will make 'totalbytes == MAX_LMEM' */
-  g->totalbytes = tb - debt;
+  if (debt > MAX_LOBJ - tb)
+    debt = MAX_LOBJ - tb;  /* will make 'totalobjs == MAX_LMEM' */
+  g->totalobjs = tb + debt;
   g->GCdebt = debt;
 }
 
@@ -290,7 +259,8 @@ static void close_state (lua_State *L) {
   }
   luaM_freearray(L, G(L)->strt.hash, G(L)->strt.size);
   freestack(L);
-  lua_assert(gettotalbytes(g) == sizeof(LG));
+  lua_assert(g->totalbytes == sizeof(LG));
+  lua_assert(gettotalobjs(g) == 1);
   (*g->frealloc)(g->ud, fromstate(L), sizeof(LG), 0);  /* free main block */
 }
 
@@ -370,7 +340,7 @@ LUA_API int lua_resetthread (lua_State *L) {
 }
 
 
-LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
+LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, unsigned int seed) {
   int i;
   lua_State *L;
   global_State *g;
@@ -390,7 +360,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->warnf = NULL;
   g->ud_warn = NULL;
   g->mainthread = L;
-  g->seed = luai_makeseed(L);
+  g->seed = seed;
   g->gcstp = GCSTPGC;  /* no GC while building state */
   g->strt.size = g->strt.nuse = 0;
   g->strt.hash = NULL;
@@ -408,14 +378,15 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->weak = g->ephemeron = g->allweak = NULL;
   g->twups = NULL;
   g->totalbytes = sizeof(LG);
+  g->totalobjs = 1;
+  g->marked = 0;
   g->GCdebt = 0;
-  g->lastatomic = 0;
   setivalue(&g->nilvalue, 0);  /* to signal that state is not yet built */
-  setgcparam(g->gcpause, LUAI_GCPAUSE);
-  setgcparam(g->gcstepmul, LUAI_GCMUL);
+  setgcparam(g, gcpause, LUAI_GCPAUSE);
+  setgcparam(g, gcstepmul, LUAI_GCMUL);
   g->gcstepsize = LUAI_GCSTEPSIZE;
-  setgcparam(g->genmajormul, LUAI_GENMAJORMUL);
-  g->genminormul = LUAI_GENMINORMUL;
+  setgcparam(g, genmajormul, LUAI_GENMAJORMUL);
+  setgcparam(g, genminormul, LUAI_GENMINORMUL);
   for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;
 
 #ifdef PLUTO_COMPATIBLE_SWITCH

@@ -5,6 +5,9 @@
 ** See Copyright Notice in lua.h
 */
 
+#include <stddef.h>
+
+
 #include "lobject.h"
 #include "lstate.h"
 
@@ -119,31 +122,21 @@
 
 
 /* Default Values for GC parameters */
-#define LUAI_GENMAJORMUL         100
-#define LUAI_GENMINORMUL         20
+
+/* generational */
+
+#define LUAI_GENMAJORMUL         100	/* major multiplier */
+#define LUAI_GENMINORMUL         20	/* minor multiplier */
+
+/* incremental */
 
 /* wait memory to double before starting new cycle */
 #define LUAI_GCPAUSE    200
 
-/*
-** some gc parameters are stored divided by 4 to allow a maximum value
-** up to 1023 in a 'lu_byte'.
-*/
-#define getgcparam(p)	((p) * 4)
-#define setgcparam(p,v)	((p) = (v) / 4)
+#define LUAI_GCMUL      300	/* step multiplier */
 
-#define LUAI_GCMUL      100
-
-/* how much to allocate before next GC step (log2) */
-#define LUAI_GCSTEPSIZE 13      /* 8 KB */
-
-
-/*
-** Check whether the declared GC mode is generational. While in
-** generational mode, the collector can go temporarily to incremental
-** mode to improve performance. This is signaled by 'g->lastatomic != 0'.
-*/
-#define isdecGCmodegen(g)	(g->gckind == KGC_GEN || g->lastatomic != 0)
+/* how many objects to allocate before next GC step (log2) */
+#define LUAI_GCSTEPSIZE 8      /* 256 objects */
 
 
 /*
@@ -154,15 +147,38 @@
 #define GCSTPCLS	4  /* bit true when closing Lua state */
 #define gcrunning(g)	((g)->gcstp == 0)
 
+/*
+** Macros to set and apply GC parameters. GC parameters are given in
+** percentage points, but are stored as lu_byte. To reduce their
+** values and avoid repeated divisions by 100, these macros store
+** the original parameter multiplied by 2^n and divided by 100.
+** To apply them, the value is divided by 2^n (a shift) and then
+** multiplied by the stored parameter, yielding
+** value / 2^n * (original parameter * 2^n / 100), or approximately
+** (value * original parameter / 100).
+**
+** For most parameters, which are typically larger than 100%, 2^n is
+** 16 (2^4), allowing maximum values up to 1599.  For the minor
+** multiplier, which is typically smaller, 2^n is 64 (2^6) to allow more
+** precision.
+*/
+#define gcparamshift(p)  \
+  (offsetof(global_State, p) == offsetof(global_State, genminormul) ? 6 : 4)
+
+#define setgcparam(g,p,v)  \
+	(g->p = (cast_uint(v) << gcparamshift(p)) / 100u)
+#define applygcparam(g,p,v)	(((v) >> gcparamshift(p)) * g->p)
+
+
 
 /*
-** Does one step of collection when debt becomes positive. 'pre'/'pos'
+** Does one step of collection when debt becomes zero. 'pre'/'pos'
 ** allows some adjustments to be done only when needed. macro
 ** 'condchangemem' is used only for heavy tests (forcing a full
 ** GC cycle on every opportunity)
 */
 #define luaC_condGC(L,pre,pos) \
-	{ if (G(L)->GCdebt > 0) { pre; luaC_step(L); pos;}; \
+	{ if (G(L)->GCdebt <= 0) { pre; luaC_step(L); pos;}; \
 	  condchangemem(L,pre,pos); }
 
 /* more often than not, 'pre'/'pos' are empty */
