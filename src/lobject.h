@@ -736,15 +736,15 @@ typedef union Node {
 ** is zero); 'alimit' is then used as a hint for #t.
 */
 
-#define BITRAS		(1 << 7)
+#define BITRAS		(1 << 15)
 #define isrealasize(t)		(!((t)->flags & BITRAS))
-#define setrealasize(t)		((t)->flags &= cast_byte(~BITRAS))
+#define setrealasize(t)		((t)->flags &= (short)(~BITRAS))
 #define setnorealasize(t)	((t)->flags |= BITRAS)
 
 
 typedef struct Table {
   CommonHeader;
-  lu_byte flags;  /* 1<<p means tagmethod(p) is not present */
+  short flags;  /* 1<<p means tagmethod(p) is not present [Pluto] had to extend this from byte to short to fit __mindex metamethod along with BITRAS and BITDUMMY */
   lu_byte lsizenode;  /* log2 of size of 'node' array */
   unsigned int alimit;  /* "limit" of 'array' array */
   TValue *array;  /* array part */
