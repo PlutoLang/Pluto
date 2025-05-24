@@ -26,8 +26,8 @@
 ** for its hash part.
 */
 
-#define BITDUMMY		(1 << 6)
-#define NOTBITDUMMY		cast_byte(~BITDUMMY)
+#define BITDUMMY		(1 << 14)
+#define NOTBITDUMMY		(short)(~BITDUMMY)
 #define isdummy(t)		((t)->flags & BITDUMMY)
 
 #define setnodummy(t)		((t)->flags &= NOTBITDUMMY)
