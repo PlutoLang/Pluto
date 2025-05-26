@@ -85,9 +85,8 @@ return class
     end
 
     function run()
-        local all_dead
-        repeat
-            all_dead = true
+        while true do
+            local all_dead = true
             for i, coro in self.coros do
                 if coroutine.status(coro) == "suspended" then
                     self:internalresume(coro)
@@ -96,8 +95,11 @@ return class
                     self.coros[i] = nil
                 end
             end
+            if all_dead then
+                break
+            end
             self.yieldfunc()
-        until all_dead
+        end
     end
 end)EOC";
     luaL_loadbuffer(L, code, strlen(code), "pluto:scheduler");
