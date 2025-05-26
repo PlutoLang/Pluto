@@ -36,6 +36,15 @@
 #include "lauxlib.h"
 
 
+#ifdef PLUTO_NO_COROLIB
+#error PLUTO_NO_COROLIB is no longer supported as of Pluto 0.12.0. Use luaL_openselectedlibs with appropriate bitflags, instead.
+#endif
+
+#ifdef PLUTO_NO_DEBUGLIB
+#error PLUTO_NO_DEBUGLIB is no longer supported as of Pluto 0.12.0. Use luaL_openselectedlibs with appropriate bitflags, instead.
+#endif
+
+
 /*
 ** Standard Libraries. (Must be listed in the same ORDER of their
 ** respective constants LUA_<libname>K.)
@@ -43,15 +52,9 @@
 static const luaL_Reg stdlibs[] = {
   {LUA_GNAME, luaopen_base},
   {LUA_LOADLIBNAME, luaopen_package},
-#ifndef PLUTO_NO_COROLIB
   {LUA_COLIBNAME, luaopen_coroutine},
-#endif
-#ifndef PLUTO_NO_DEBUGLIB
   {LUA_DBLIBNAME, luaopen_debug},
-#endif
-#ifndef PLUTO_NO_FILESYSTEM
   {LUA_IOLIBNAME, luaopen_io},
-#endif
   {LUA_MATHLIBNAME, luaopen_math},
   {LUA_OSLIBNAME, luaopen_os},
   {LUA_STRLIBNAME, luaopen_string},
