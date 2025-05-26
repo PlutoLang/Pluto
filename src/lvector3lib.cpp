@@ -207,4 +207,4 @@ return vector3)EOC";
 #endif
 }
 
-const Pluto::PreloadedLibrary Pluto::preloaded_vector3{ "vector3", funcs_vector3, &luaopen_vector3 };
+const Pluto::PreloadedLibrary Pluto::preloaded_vector3{ PLUTO_VECTOR3LIBNAME, funcs_vector3, &luaopen_vector3 };

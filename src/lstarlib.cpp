@@ -24,4 +24,4 @@ return t)EOC";
 #endif
 }
 
-const Pluto::PreloadedLibrary Pluto::preloaded_star{ "*", funcs, &luaopen_star };
+const Pluto::PreloadedLibrary Pluto::preloaded_star{ PLUTO_STARLIBNAME, funcs, &luaopen_star };
