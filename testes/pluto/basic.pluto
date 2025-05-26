@@ -1446,6 +1446,12 @@ if table.freeze then
     status, _ = pcall(function () _ENV[function () end] = "abc" end)
     assert(status == false, "expected error")
     --]] --> Doing this will break tests done with dofile(), since the environment is reused.
+
+    t = table.freeze({ 1, a = 1 })
+    pcall(|| -> do t[1] = 2 end)
+    pcall(|| -> do t.a = 2 end)
+    assert(t[1] == 1)
+    assert(t.a == 1)
 end
 
 print "Testing pipe operator."
