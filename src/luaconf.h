@@ -1089,12 +1089,6 @@
 #define PLUTO_NO_BINARIES_FAIL luaL_error(L, "binary modules cannot be loaded in this environment");
 #endif
 
-// If defined, luaL_openlibs will not include the 'debug' library.
-//#define PLUTO_NO_DEBUGLIB
-
-// If defined, luaL_openlibs will not include the 'coroutine' library.
-//#define PLUTO_NO_COROLIB
-
 // If defined, all HTTP requests will fail.
 // Note that the 'socket' library can still be used to the same effect (with more effort).
 //#define PLUTO_DISABLE_HTTP_COMPLETELY
