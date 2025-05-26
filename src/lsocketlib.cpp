@@ -501,6 +501,6 @@ end)EOC");
 
   return 1;
 }
-const Pluto::PreloadedLibrary Pluto::preloaded_socket{ "socket", funcs_socket, &luaopen_socket };
+const Pluto::PreloadedLibrary Pluto::preloaded_socket{ PLUTO_SOCKETLIBNAME, funcs_socket, &luaopen_socket };
 
 #endif
