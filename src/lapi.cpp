@@ -942,13 +942,12 @@ LUA_API void lua_settable (lua_State *L, int idx) {
   lua_lock(L);
   api_checknelems(L, 2);
   t = index2value(L, idx);
+#ifdef PLUTO_ENABLE_TABLE_FREEZING
+  if (ttistable(t) && l_unlikely(hvalue(t)->isfrozen))
+    luaG_runerror(L, "attempt to modify frozen table.");
+#endif
   luaV_fastset(t, s2v(L->top.p - 2), s2v(L->top.p - 1), hres, luaH_pset);
   if (hres == HOK) {
-#ifdef PLUTO_ENABLE_TABLE_FREEZING
-    lua_assert(ttistable(t));
-    if (l_unlikely(hvalue(t)->isfrozen))
-      luaG_runerror(L, "attempt to modify frozen table.");
-#endif
     luaV_finishfastset(L, t, s2v(L->top.p - 1));
   }
   else
@@ -971,9 +970,8 @@ LUA_API void lua_seti (lua_State *L, int idx, lua_Integer n) {
   api_checknelems(L, 1);
   t = index2value(L, idx);
 #ifdef PLUTO_ENABLE_TABLE_FREEZING
-  if (ttistable(t) && l_unlikely(hvalue(t)->isfrozen)) {
+  if (ttistable(t) && l_unlikely(hvalue(t)->isfrozen))
     luaG_runerror(L, "attempt to modify frozen table.");
-  }
 #endif
   luaV_fastseti(t, n, s2v(L->top.p - 1), hres);
   if (hres == HOK)
