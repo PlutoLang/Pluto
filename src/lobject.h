@@ -186,6 +186,8 @@ typedef union {
 /* macro to test for (any kind of) nil */
 #define ttisnil(v)		checktype((v), LUA_TNIL)
 
+#define tagisempty(tag)		(novariant(tag) == LUA_TNIL)
+
 
 /* macro to test for a standard nil */
 #define ttisstrictnil(o)	checktag((o), LUA_VNIL)
@@ -755,12 +757,15 @@ typedef union Node {
 #define setnorealasize(t)	((t)->flags |= BITRAS)
 
 
+typedef union ArrayCell ArrayCell;
+
+
 typedef struct Table {
   CommonHeader;
   short flags;  /* 1<<p means tagmethod(p) is not present [Pluto] had to extend this from byte to short to fit __mindex metamethod along with BITRAS and BITDUMMY */
   lu_byte lsizenode;  /* log2 of size of 'node' array */
   unsigned int alimit;  /* "limit" of 'array' array */
-  TValue *array;  /* array part */
+  ArrayCell *array;  /* array part */
   Node *node;
   struct Table *metatable;
   GCObject *gclist;
