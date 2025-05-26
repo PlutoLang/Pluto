@@ -60,6 +60,26 @@ static const luaL_Reg stdlibs[] = {
   {LUA_STRLIBNAME, luaopen_string},
   {LUA_TABLIBNAME, luaopen_table},
   {LUA_UTF8LIBNAME, luaopen_utf8},
+  {PLUTO_CRYPTOLIBNAME, luaopen_crypto},
+  {PLUTO_JSONLIBNAME, luaopen_json},
+  {PLUTO_BASE32LIBNAME, luaopen_base32},
+  {PLUTO_BASE64LIBNAME, luaopen_base64},
+  {PLUTO_ASSERTLIBNAME, luaopen_assert},
+  {PLUTO_VECTOR3LIBNAME, luaopen_vector3},
+  {PLUTO_URLLIBNAME, luaopen_url},
+  {PLUTO_STARLIBNAME, luaopen_star},
+  {PLUTO_CATLIBNAME, luaopen_cat},
+  {PLUTO_HTTPLIBNAME, luaopen_http},
+  {PLUTO_SCHEDULERLIBNAME, luaopen_scheduler},
+  {PLUTO_BIGINTLIBNAME, luaopen_bigint},
+  {PLUTO_XMLLIBNAME, luaopen_xml},
+  {PLUTO_REGEXLIBNAME, luaopen_regex},
+  {PLUTO_FFILIBNAME, luaopen_ffi},
+  {PLUTO_CANVASLIBNAME, luaopen_canvas},
+  {PLUTO_BUFFERLIBNAME, luaopen_buffer},
+#ifndef __EMSCRIPTEN__
+  {PLUTO_SOCKETLIBNAME, luaopen_socket},
+#endif
   {NULL, NULL}
 };
 
@@ -81,13 +101,7 @@ LUALIB_API void luaL_openselectedlibs (lua_State *L, int load, int preload) {
       lua_setfield(L, -2, lib->name);  /* add library to PRELOAD table */
     }
   }
-  lua_assert((mask >> 1) == LUA_UTF8LIBK);
-
-  for (const Pluto::PreloadedLibrary* lib : Pluto::all_preloaded) {
-    lua_pushcfunction(L, lib->init);
-    lua_setfield(L, -2, lib->name);
-  }
-
+  //lua_assert((mask >> 1) == LUA_UTF8LIBK);
   lua_pop(L, 1);  /* remove PRELOAD table */
 
 #ifndef PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO
