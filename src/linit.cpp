@@ -83,7 +83,6 @@ LUALIB_API void luaL_openselectedlibs (lua_State *L, int load, int preload) {
   }
   lua_assert((mask >> 1) == LUA_UTF8LIBK);
 
-  luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
   for (const Pluto::PreloadedLibrary* lib : Pluto::all_preloaded) {
     lua_pushcfunction(L, lib->init);
     lua_setfield(L, -2, lib->name);
