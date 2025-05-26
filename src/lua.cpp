@@ -630,7 +630,7 @@ static void doREPL (lua_State *L) {
 /* }================================================================== */
 
 #if !defined(luai_openlibs)
-#define luai_openlibs(L)	luaL_openselectedlibs(L, ~0, 0)
+#define luai_openlibs(L)	luaL_openselectedlibs(L, PLUTO_DEFAULTLOADLIBS, ~0)
 #endif
 
 /*
