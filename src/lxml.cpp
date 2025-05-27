@@ -6,7 +6,7 @@
 
 #include "vendor/Soup/soup/xml.hpp"
 
-static soup::UniquePtr<soup::XmlNode> check_xml (lua_State *L, int i) {
+static void check_xml (lua_State *L, int i, soup::UniquePtr<soup::XmlNode>& out) {
   const auto type = lua_type(L, i);
   if (type == LUA_TTABLE) {
     lua_checkstack(L, 4);
@@ -14,8 +14,9 @@ static soup::UniquePtr<soup::XmlNode> check_xml (lua_State *L, int i) {
     lua_pushliteral(L, "tag");
     if (lua_rawget(L, -2) == LUA_TSTRING) {
       luaE_incCstack(L);
-      auto tag = soup::make_unique<soup::XmlTag>();
-      tag->name = pluto_checkstring(L, -1);
+      out = soup::make_unique<soup::XmlTag>();
+      auto& tag = static_cast<soup::XmlTag&>(*out);
+      tag.name = pluto_checkstring(L, -1);
       lua_pop(L, 1);  /* pop result of lua_rawget */
       lua_pushliteral(L, "attributes");
       if (lua_rawget(L, -2) != LUA_TNONE) {
@@ -23,7 +24,7 @@ static soup::UniquePtr<soup::XmlNode> check_xml (lua_State *L, int i) {
           lua_pushnil(L);
           while (lua_next(L, -2)) {
             lua_pushvalue(L, -2);
-            tag->attributes.emplace_back(pluto_checkstring(L, -1), pluto_checkstring(L, -2));
+            tag.attributes.emplace_back(pluto_checkstring(L, -1), pluto_checkstring(L, -2));
             lua_pop(L, 2);
           }
         }
@@ -34,7 +35,7 @@ static soup::UniquePtr<soup::XmlNode> check_xml (lua_State *L, int i) {
         if (lua_type(L, -1) == LUA_TTABLE) {
           lua_pushnil(L);
           while (lua_next(L, -2)) {
-            tag->children.emplace_back(check_xml(L, -1));
+            check_xml(L, -1, tag.children.emplace_back());
             lua_pop(L, 1);
           }
         }
@@ -42,17 +43,19 @@ static soup::UniquePtr<soup::XmlNode> check_xml (lua_State *L, int i) {
       }
       lua_pop(L, 1);  /* pop table from lua_pushvalue */
       L->nCcalls--;
-      return tag;
+      return;
     }
   }
   else if (type == LUA_TSTRING) {
-    return soup::make_unique<soup::XmlText>(pluto_checkstring(L, i));
+    out = soup::make_unique<soup::XmlText>(pluto_checkstring(L, i));
+    return;
   }
   luaL_typeerror(L, i, "XML-castable type");
 }
 
 static int xml_encode (lua_State *L) {
-  auto root = check_xml(L, 1);
+  auto& root = *pluto_newclassinst(L, soup::UniquePtr<soup::XmlNode>);
+  check_xml(L, 1, root);
   if (lua_istrue(L, 2)) {
     pluto_pushstring(L, root->encodePretty());
   }
