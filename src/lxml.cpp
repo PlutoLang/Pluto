@@ -139,7 +139,7 @@ static int xml_decode (lua_State *L) {
     root = soup::xml::parseAndDiscardMetadata(data, data + len, *mode);
   }
   catch (const std::exception& e) {
-	luaL_error(L, e.what());
+    luaL_error(L, e.what());
   }
   pushxmltag(L, *root);
   return 1;
