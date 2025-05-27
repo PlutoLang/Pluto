@@ -5998,6 +5998,8 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "__close")));
       ls->tokens.emplace_back(Token(','));
       ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "__tostring")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "__pairs")));
       ls->tokens.emplace_back(Token('}'));
       ls->tokens.emplace_back(Token(TK_AS));
       ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "mm")));

@@ -31,7 +31,7 @@ local Pluto_operator_extends <const> = function(c, p)
     "__unm", "__bnot", "__lt", "__le",
     "__concat", "__call", "__close",
     -- misc
-    "__tostring"
+    "__tostring", "__pairs"
   } as mm do
     if p[mm] and not c[mm] then
       c[mm] = p[mm]
