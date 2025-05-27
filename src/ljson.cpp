@@ -171,18 +171,7 @@ static void encodeaux (lua_State *L, int i, bool pretty, std::string& str, unsig
 }
 
 static int encode(lua_State* L) {
-	auto str = new (lua_newuserdata(L, sizeof(std::string))) std::string{};
-	lua_newtable(L);
-	{
-		lua_pushliteral(L, "__gc");
-		lua_pushcfunction(L, [](lua_State* L) -> int
-		{
-			std::destroy_at((std::string*)lua_touserdata(L, 1));
-			return 0;
-		});
-		lua_settable(L, -3);
-	}
-	lua_setmetatable(L, -2);
+	auto str = pluto_newclassinst(L, std::string);
 	encodeaux(L, 1, lua_istrue(L, 2), *str);
 	pluto_pushstring(L, *str);
 	return 1;

@@ -72,15 +72,7 @@ static int luaB_wcall (lua_State *L) {
   const auto og_warnf = G(L)->warnf;
 
   /* allocate buffer */
-  auto str = new (lua_newuserdata(L, sizeof(std::string))) std::string{};
-  lua_newtable(L);
-  lua_pushliteral(L, "__gc");
-  lua_pushcfunction(L, [](lua_State *L) -> int {
-    std::destroy_at<>(reinterpret_cast<std::string*>(lua_touserdata(L, -1)));
-    return 0;
-  });
-  lua_settable(L, -3);
-  lua_setmetatable(L, -2);
+  auto str = pluto_newclassinst(L, std::string);
 
   /* write all warnings to buffer */
   lua_setwarnf(L, [](void *ud, const char *message, int tocont) {
