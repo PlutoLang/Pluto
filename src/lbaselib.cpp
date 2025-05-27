@@ -602,7 +602,7 @@ struct FuncDumpWriter {
   }
 };
 
-static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, std::unordered_set<Table*> parents, bool is_export, bool is_key = false) {
+static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, const std::unordered_set<Table*>& parents_base, bool is_export, bool is_key = false) {
   switch (lua_type(L, -1)) {
     default:
       if (is_export) {
@@ -668,16 +668,18 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, std
     case LUA_TTABLE:;
   }
   Table *h = hvalue(index2value(L, -1));
-  if (indents != 1 && parents.count(h)) {
+  if (indents != 1 && parents_base.count(h)) {
     if (is_export) {
       luaL_error(L, "Can't export recursive table");
     }
     dump.append("*RECURSION*");
     return;
   }
-  parents.emplace(h);
+  lua_checkstack(L, 7);
   dump.push_back('{');
-  lua_checkstack(L, 5);
+  std::unordered_set<Table*>& parents = *pluto_newclassinst(L, std::unordered_set<Table*>, parents_base);
+  parents.emplace(h);
+  lua_pushvalue(L, -2);
   lua_pushnil(L);
   bool empty = true;
   while (lua_next(L, -2)) {
@@ -706,6 +708,7 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, std
     dump.append(indents - 1, '\t');
   }
   dump.push_back('}');
+  lua_pop(L, 2);
 }
 
 static int luaB_dumpvar (lua_State *L) {
@@ -713,12 +716,12 @@ static int luaB_dumpvar (lua_State *L) {
     lua_pushliteral(L, "(no value)");
   }
   else {
-    std::unordered_set<Table*> parents;
+    std::string& dump = *pluto_newclassinst(L, std::string);
+    std::unordered_set<Table*>& parents = *pluto_newclassinst(L, std::unordered_set<Table*>);
+    lua_pushvalue(L, 1);
     if (ttistable(index2value(L, -1)))
       parents.emplace(hvalue(index2value(L, -1)));
-    std::string& dump = *pluto_newclassinst(L, std::string);
-    lua_pushvalue(L, 1);
-    luaB_dumpvar_impl(L, dump, 1, std::move(parents), false);
+    luaB_dumpvar_impl(L, dump, 1, parents, false);
     pluto_pushstring(L, dump);
   }
   return 1;
@@ -726,12 +729,12 @@ static int luaB_dumpvar (lua_State *L) {
 
 static int luaB_exportvar (lua_State *L) {
   luaL_checkany(L, 1);
-  std::unordered_set<Table*> parents;
+  std::string& dump = *pluto_newclassinst(L, std::string);
+  std::unordered_set<Table*>& parents = *pluto_newclassinst(L, std::unordered_set<Table*>);
+  lua_pushvalue(L, 1);
   if (ttistable(index2value(L, -1)))
     parents.emplace(hvalue(index2value(L, -1)));
-  std::string& dump = *pluto_newclassinst(L, std::string);
-  lua_pushvalue(L, 1);
-  luaB_dumpvar_impl(L, dump, 1, std::move(parents), true);
+  luaB_dumpvar_impl(L, dump, 1, parents, true);
   pluto_pushstring(L, dump);
   return 1;
 }
