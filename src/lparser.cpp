@@ -3076,6 +3076,10 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
       expr(ls, v);
       adjust_assign(ls, nvars, 1, v);
       adjustlocalvars(ls, nvars);
+      if (v->k == VCALL || v->k == VSAFECALL) {
+        v->k = VNONRELOC;
+        v->u.reg = GETARG_A(getinstruction(ls->fs, v));
+      }
       ls->used_walrus = true;
     }
     else
