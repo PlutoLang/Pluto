@@ -130,8 +130,12 @@ static int l_connect (lua_State *L) {
     if (!host_is_ip_addr) {
       auto spTask = ss.sched.add<soup::ResolveIpAddrTask>(host);
       ss.sched.tick();
-      if (lua_isyieldable(L))
-        return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(spTask.get()), connectudpcont);
+      lua_assert(!spTask->isWorkDone());
+      if (lua_isyieldable(L)) {
+        const auto ctx = reinterpret_cast<lua_KContext>(spTask.get());
+        spTask.reset();
+        return lua_yieldk(L, 0, ctx, connectudpcont);
+      }
       do {
         soup::os::sleep(1);
         ss.sched.tick();
@@ -149,9 +153,10 @@ static int l_connect (lua_State *L) {
     return 1;
   }
 
-  auto spTask = ss.sched.add<soup::netConnectTask>(host, port);
+  auto pTask = ss.sched.add<soup::netConnectTask>(host, port).get();
   ss.sched.tick();
-  return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(spTask.get()), connectcont);
+  lua_assert(!pTask->isWorkDone());
+  return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), connectcont);
 }
 
 static int l_send (lua_State *L) {
