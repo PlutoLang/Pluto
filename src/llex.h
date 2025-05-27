@@ -336,10 +336,10 @@ public:
     }
   }
 
-  void processComment(const char* line) noexcept {
+  void processComment(const std::string_view& line) noexcept {
     for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
       const char* name = luaX_warnNames[id];
-      if (strstr(line, name) == nullptr)
+      if (line.find(name) == std::string::npos)
         continue;
 
       std::string enable = "enable-";
@@ -350,17 +350,17 @@ public:
       disable += name;
       error += name;
 
-      if (strstr(line, enable.c_str()) != nullptr) {
+      if (line.find(enable) != std::string::npos) {
         if (id != ALL_WARNINGS)
           states[id] = WS_ON;
         else
           setAllTo(WS_ON);
-      } else if (strstr(line, disable.c_str()) != nullptr) {
+      } else if (line.find(disable) != std::string::npos) {
         if (id != ALL_WARNINGS)
           states[id] = WS_OFF;
         else
           setAllTo(WS_OFF);
-      } else if (strstr(line, error.c_str()) != nullptr) {
+      } else if (line.find(error) != std::string::npos) {
         if (id != ALL_WARNINGS)
           states[id] = WS_ERROR;
         else
