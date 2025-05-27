@@ -4038,6 +4038,7 @@ do
         assert(mode == 0o755)
         io.chmod("example_module.pluto", mode)
         assert(io.chmod("example_module.pluto") == mode)
+        io.chmod("example_module.pluto", 0o644)
     else
         -- chmod not available on this platform
         assert(io.chmod("example_module.pluto") == nil)
