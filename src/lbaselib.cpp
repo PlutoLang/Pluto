@@ -602,7 +602,7 @@ struct FuncDumpWriter {
   }
 };
 
-static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Table*> parents, bool is_export, bool is_key = false) {
+static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, std::unordered_set<Table*> parents, bool is_export, bool is_key = false) {
   switch (lua_type(L, -1)) {
     default:
       if (is_export) {
@@ -612,7 +612,8 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Tab
     case LUA_TNUMBER:
     case LUA_TBOOLEAN:
     case LUA_TNIL:
-      luaL_tolstring(L, -1, NULL);
+      dump.append(luaL_tolstring(L, -1, NULL));
+      lua_pop(L, 1);
       return;
 
     case LUA_TSTRING: {
@@ -628,6 +629,8 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Tab
       }
       addquoted(&b, s, l);
       luaL_pushresult(&b);
+      dump.append(lua_tostring(L, -1));
+      lua_pop(L, 1);
       return;
     }
 
@@ -651,11 +654,14 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Tab
         }
         addquoted(&b, s, l);
         luaL_pushresult(&b);
+        dump.append(lua_tostring(L, -1));
+        lua_pop(L, 1);
         return;
       }
       else if (is_export)
         luaL_error(L, "Can't export C function");
-      luaL_tolstring(L, -1, NULL);
+      dump.append(luaL_tolstring(L, -1, NULL));
+      lua_pop(L, 1);
       return;
     }
 
@@ -666,11 +672,11 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Tab
     if (is_export) {
       luaL_error(L, "Can't export recursive table");
     }
-    lua_pushstring(L, "*RECURSION*");
+    dump.append("*RECURSION*");
     return;
   }
   parents.emplace(h);
-  std::string dump(1, '{');
+  dump.push_back('{');
   lua_checkstack(L, 5);
   lua_pushnil(L);
   bool empty = true;
@@ -679,32 +685,27 @@ static void luaB_dumpvar_impl (lua_State *L, int indents, std::unordered_set<Tab
       empty = false;
       dump.push_back('\n');
     }
-
     dump.append(indents, '\t');
     dump.push_back('[');
+
     lua_pushvalue(L, -2);
     luaE_incCstack(L);
-    luaB_dumpvar_impl(L, indents + 1, parents, is_export, true);
+    luaB_dumpvar_impl(L, dump, indents + 1, parents, is_export, true);
     L->nCcalls--;
-    dump.append(lua_tostring(L, -1));
-    lua_pop(L, 2);
+    lua_pop(L, 1);
     dump.append("] = ");
 
     lua_pushvalue(L, -1);
     luaE_incCstack(L);
-    luaB_dumpvar_impl(L, indents + 1, parents, is_export);
+    luaB_dumpvar_impl(L, dump, indents + 1, parents, is_export);
     L->nCcalls--;
-    dump.append(lua_tostring(L, -1));
     lua_pop(L, 2);
     dump.append(",\n");
-
-    lua_pop(L, 1);
   }
   if (!empty) {
     dump.append(indents - 1, '\t');
   }
   dump.push_back('}');
-  pluto_pushstring(L, dump);
 }
 
 static int luaB_dumpvar (lua_State *L) {
@@ -712,22 +713,26 @@ static int luaB_dumpvar (lua_State *L) {
     lua_pushliteral(L, "(no value)");
   }
   else {
-    lua_pushvalue(L, 1);
     std::unordered_set<Table*> parents;
     if (ttistable(index2value(L, -1)))
       parents.emplace(hvalue(index2value(L, -1)));
-    luaB_dumpvar_impl(L, 1, std::move(parents), false);
+    std::string& dump = *pluto_newclassinst(L, std::string);
+    lua_pushvalue(L, 1);
+    luaB_dumpvar_impl(L, dump, 1, std::move(parents), false);
+    pluto_pushstring(L, dump);
   }
   return 1;
 }
 
 static int luaB_exportvar (lua_State *L) {
   luaL_checkany(L, 1);
-  lua_pushvalue(L, 1);
   std::unordered_set<Table*> parents;
   if (ttistable(index2value(L, -1)))
     parents.emplace(hvalue(index2value(L, -1)));
-  luaB_dumpvar_impl(L, 1, std::move(parents), true);
+  std::string& dump = *pluto_newclassinst(L, std::string);
+  lua_pushvalue(L, 1);
+  luaB_dumpvar_impl(L, dump, 1, std::move(parents), true);
+  pluto_pushstring(L, dump);
   return 1;
 }
 
