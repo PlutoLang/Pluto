@@ -75,6 +75,22 @@ const TValue *luaT_gettmbyobj (lua_State *L, const TValue *o, TMS event) {
 }
 
 
+const TValue *luaT_getfasttmbyobj (lua_State *L, const TValue *o, TMS event) {
+  Table *mt;
+  switch (ttype(o)) {
+    case LUA_TTABLE:
+      mt = hvalue(o)->metatable;
+      break;
+    case LUA_TUSERDATA:
+      mt = uvalue(o)->metatable;
+      break;
+    default:
+      mt = G(L)->mt[ttype(o)];
+  }
+  return (mt ? luaT_gettm(mt, event, G(L)->tmname[event]) : nullptr);
+}
+
+
 /*
 ** Return the name of the type of an object. For tables and userdata
 ** with metatable, use their '__name' metafield, if present.
