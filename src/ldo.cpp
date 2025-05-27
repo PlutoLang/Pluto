@@ -420,8 +420,8 @@ static StkId tryfuncTM (lua_State *L, StkId func) {
   const TValue *tm;
   StkId p;
   checkstackp(L, 1, func);  /* space for metamethod */
-  tm = luaT_gettmbyobj(L, s2v(func), TM_CALL);  /* (after previous GC) */
-  if (l_unlikely(ttisnil(tm)))
+  tm = luaT_getfasttmbyobj(L, s2v(func), TM_CALL);  /* (after previous GC) */
+  if (l_unlikely(!tm))
     luaG_callerror(L, s2v(func));  /* nothing to call */
   for (p = L->top.p; p > func; p--)  /* open space for metamethod */
     setobjs2s(L, p, p-1);
