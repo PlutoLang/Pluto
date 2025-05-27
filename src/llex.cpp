@@ -697,7 +697,7 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
               luaZ_resetbuffer(ls->buff);  /* 'read_long_string' may dirty the buffer */
               std::string_view si_view(getstr(si.ts), tsslen(si.ts));
               if (si_view.find("@pluto_warnings") != std::string_view::npos)
-                ls->lexPushWarningOverride().processComment(getstr(si.ts));
+                ls->lexPushWarningOverride().processComment(si_view);
               ls->appendLineBuff(']');
               ls->appendLineBuff(sep - 2, '=');
               ls->appendLineBuff(']');
@@ -727,7 +727,7 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           }
           std::string_view buff(luaZ_buffer(ls->buff), luaZ_bufflen(ls->buff));
           if (buff.find("@pluto_warnings") != std::string_view::npos)
-            ls->lexPushWarningOverride().processComment(luaZ_buffer(ls->buff));
+            ls->lexPushWarningOverride().processComment(buff);
           luaZ_resetbuffer(ls->buff);
           if (ls->getLineBuff().find("@fallthrough") != std::string::npos)
             return TK_FALLTHROUGH;
