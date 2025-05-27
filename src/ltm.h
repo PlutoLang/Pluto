@@ -19,6 +19,7 @@ typedef enum {
   TM_GC,
   TM_MODE,
   TM_LEN,
+  TM_CALL,
   TM_EQ,  /* last tag method with fast access */
   TM_ADD,
   TM_SUB,
@@ -37,7 +38,6 @@ typedef enum {
   TM_LT,
   TM_LE,
   TM_CONCAT,
-  TM_CALL,
   TM_CLOSE,
   TM_N		/* number of elements in the enum */
 } TMS;
@@ -45,12 +45,12 @@ typedef enum {
 
 inline const char *const luaT_eventname[] = {  /* ORDER TM */
   "__index", "__mindex", "__newindex",
-  "__gc", "__mode", "__len", "__eq",
+  "__gc", "__mode", "__len", "__call", "__eq",
   "__add", "__sub", "__mul", "__mod", "__pow",
   "__div", "__idiv",
   "__band", "__bor", "__bxor", "__shl", "__shr",
   "__unm", "__bnot", "__lt", "__le",
-  "__concat", "__call", "__close"
+  "__concat", "__close"
 };
 
 
@@ -86,6 +86,8 @@ LUAI_FUNC const char *luaT_objtypename (lua_State *L, const TValue *o);
 LUAI_FUNC const TValue *luaT_gettm (Table *events, TMS event, TString *ename);
 LUAI_FUNC const TValue *luaT_gettmbyobj (lua_State *L, const TValue *o,
                                                        TMS event);
+LUAI_FUNC const TValue *luaT_getfasttmbyobj (lua_State *L, const TValue *o,
+                                                           TMS event);
 LUAI_FUNC void luaT_init (lua_State *L);
 
 LUAI_FUNC void luaT_callTM (lua_State *L, const TValue *f, const TValue *p1,
