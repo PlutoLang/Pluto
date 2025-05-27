@@ -773,7 +773,7 @@ typedef struct ArrayCell ArrayCell;
 
 typedef struct Table {
   CommonHeader;
-  short flags;  /* 1<<p means tagmethod(p) is not present [Pluto] had to extend this from byte to short to fit __mindex metamethod along with BITRAS and BITDUMMY */
+  short flags;  /* 1<<p means tagmethod(p) is not present [Pluto] 2 bits are reserved for BITRAS and BITDUMMY so we extended it to short to cache more metamethods */
   lu_byte lsizenode;  /* log2 of size of 'node' array */
   unsigned int alimit;  /* "limit" of 'array' array */
   ArrayCell *array;  /* array part */

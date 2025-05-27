@@ -2424,8 +2424,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpOut (";");
         StkId ra = RA(i);
         /* implicit pairs */
-        if ((!ttisfunction(s2v(ra)))
-            && ttisnil(luaT_gettmbyobj(L, s2v(ra), TM_CALL))
+        if (ttistable(s2v(ra))
+          && l_likely(!fasttm(L, hvalue(s2v(ra))->metatable, TM_CALL))
         ) {
           setobjs2s(L, ra + 1, ra);
           setfvalue(s2v(ra), luaB_next);
