@@ -727,7 +727,7 @@ void luaK_setreturns (FuncState *fs, expdesc *e, int nresults) {
       lua_assert(GET_OPCODE(pc[2]) == OP_LOADNIL);
       SETARG_B(pc[2], nresults - 1);
       /* handle double-safecall as well (optinst?:optmethod?) */
-      if (e->u.pc + 4 < fs->f->sizecode && GET_OPCODE(pc[3]) == OP_JMP && GET_OPCODE(pc[4]) == OP_LOADNIL) {
+      if (e->u.pc + 4 < fs->pc && GET_OPCODE(pc[3]) == OP_JMP && GET_OPCODE(pc[4]) == OP_LOADNIL) {
         SETARG_B(pc[4], nresults - 1);
       }
     }
