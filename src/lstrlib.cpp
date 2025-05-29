@@ -27,7 +27,9 @@
 #include "lstring.h"
 
 
+#include "vendor/Soup/soup/bitutil.hpp"
 #include "vendor/Soup/soup/string.hpp"
+#include "vendor/Soup/soup/unicode.hpp"
 #include "vendor/Soup/soup/urlenc.hpp"
 
 
@@ -1160,8 +1162,9 @@ static int lua_number2strx (lua_State *L, char *buff, int sz,
 #define MAX_FORMAT	32
 
 
-void addquoted (luaL_Buffer *b, const char *s, size_t len) {
+void addquoted (luaL_Buffer *b, const char *s, size_t len, bool must_be_valid_utf8) {
   const bool prefer_single_line = (*s == '\x1b');
+  uint8_t continuations = 0;
   luaL_addchar(b, '"');
   while (len--) {
     if (*s == '"' || *s == '\\') {
@@ -1184,6 +1187,46 @@ void addquoted (luaL_Buffer *b, const char *s, size_t len) {
       else
         l_sprintf(buff, sizeof(buff), "\\%03d", (int)uchar(*s));
       luaL_addstring(b, buff);
+    }
+    else if ((*s & 0x80) && must_be_valid_utf8) {
+      bool valid = true;
+      if (UTF8_IS_CONTINUATION(*s)) {
+        if (continuations) {
+          --continuations;
+        }
+        else {
+          valid = false;
+        }
+      }
+      else {
+        continuations = soup::bitutil::getNumLeadingZeros(static_cast<uint32_t>((uint8_t)~uchar(*s))) - 25;
+        auto todo = continuations;
+        auto lookahead_s = s;
+        auto lookahead_len = len;
+        while (todo--) {
+          if (!lookahead_len--) {
+            continuations = 0;
+            break;
+          }
+          ++lookahead_s;
+          if ((uchar(*lookahead_s) & 0xC0) != 0x80) {
+            continuations = 0;
+            break;
+          }
+        }
+        valid = (continuations != 0);
+      }
+      if (valid) {
+        luaL_addchar(b, *s);
+      }
+      else {
+        char buff[10];
+        if (!isdigit(uchar(*(s+1))))
+          l_sprintf(buff, sizeof(buff), "\\%d", (int)uchar(*s));
+        else
+          l_sprintf(buff, sizeof(buff), "\\%03d", (int)uchar(*s));
+        luaL_addstring(b, buff);
+      }
     }
     else
       luaL_addchar(b, *s);
@@ -1228,7 +1271,7 @@ static void addliteral (lua_State *L, luaL_Buffer *b, int arg) {
     case LUA_TSTRING: {
       size_t len;
       const char *s = lua_tolstring(L, arg, &len);
-      addquoted(b, s, len);
+      addquoted(b, s, len, false);
       break;
     }
     case LUA_TNUMBER: {
