@@ -585,7 +585,7 @@ static int luaB_newuserdata (lua_State *L) {
 
 
 TValue *index2value (lua_State *L, int idx);
-void addquoted (luaL_Buffer *b, const char *s, size_t len);
+void addquoted (luaL_Buffer *b, const char *s, size_t len, bool must_be_valid_utf8);
 
 struct FuncDumpWriter {
   int init;
@@ -627,7 +627,7 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
         luaL_addvalue(&b);
         luaL_addstring(&b, ") ");
       }
-      addquoted(&b, s, l);
+      addquoted(&b, s, l, true);
       luaL_pushresult(&b);
       dump.append(lua_tostring(L, -1));
       lua_pop(L, 1);
@@ -652,7 +652,7 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
         else {
           luaL_addstring(&b, "load");
         }
-        addquoted(&b, s, l);
+        addquoted(&b, s, l, true);
         luaL_pushresult(&b);
         dump.append(lua_tostring(L, -1));
         lua_pop(L, 1);
