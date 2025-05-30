@@ -332,11 +332,16 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
               i = ls->tokens.erase(i);  /* remove '(' or ',' */
               auto& argtks = ls->macro_args.emplace(param, std::vector<Token>{}).first->second;
               int parens = 0;
-              while (i != ls->tokens.end() && (parens != 0 || i->token != ',') && (parens != 0 || i->token != ')')) {
+              int curlys = 0;
+              while (i != ls->tokens.end() && (parens != 0 || curlys != 0 || (i->token != ',' && i->token != ')'))) {
                 if (i->token == '(')
                   parens++;
                 else if (i->token == ')')
                   parens--;
+                else if (i->token == '{')
+                  curlys++;
+                else if (i->token == '}')
+                  curlys--;
                 argtks.emplace_back(*i);
                 i = ls->tokens.erase(i);  /* remove argument */
               }
