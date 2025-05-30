@@ -3968,6 +3968,19 @@ do
         _ENV.a = 1
         a = 2
     ]]
+
+    -- multiple assignments
+    assert_warn [[
+        -- @pluto_warnings enable-implicit-global
+        _G.a = 1
+        a, b = 2, 3
+    ]]
+    assert_no_warn [[
+        -- @pluto_warnings enable-implicit-global
+        _G.a, _G.b = 1, 2
+        a = 3
+        b = 4
+    ]]
 end
 
 print "Testing chained comparisons."
