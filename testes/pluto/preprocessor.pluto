@@ -66,3 +66,15 @@ assert(load[[
     def(FOO, 1)
     return FOO
 ]]() == 1)
+
+-- Multiple pasted tokens
+load[[$alias defer(what) = local __defer <close> = setmetatable({}, { __close = function() what end })
+
+local block_closed = false
+do
+    assert(not block_closed)
+    defer(block_closed = true)
+    assert(not block_closed)
+end
+assert(block_closed)
+]]()

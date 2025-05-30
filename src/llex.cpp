@@ -330,8 +330,16 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
             }
             for (auto& param : e->second.params) {
               i = ls->tokens.erase(i);  /* remove '(' or ',' */
-              ls->macro_args.emplace(param, *i);
-              i = ls->tokens.erase(i);  /* remove argument */
+              auto& argtks = ls->macro_args.emplace(param, std::vector<Token>{}).first->second;
+              int parens = 0;
+              while (i != ls->tokens.end() && (parens != 0 || i->token != ',') && (parens != 0 || i->token != ')')) {
+                if (i->token == '(')
+                  parens++;
+                else if (i->token == ')')
+                  parens--;
+                argtks.emplace_back(*i);
+                i = ls->tokens.erase(i);  /* remove argument */
+              }
             }
             if (l_unlikely(i->token != ')')) {
               ls->tidx = std::distance(ls->tokens.begin(), i);
@@ -341,8 +349,10 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
             for (auto& t : e->second.sub) {
               if (t.token == TK_NAME) {
                 if (auto arg = ls->macro_args.find(t.seminfo.ts); arg != ls->macro_args.end()) {
-                  i = ls->tokens.insert(i, arg->second);
-                  ++i;
+                  for (auto& argtk : arg->second) {
+                    i = ls->tokens.insert(i, argtk);
+                    ++i;
+                  }
                   continue;
                 }
               }
