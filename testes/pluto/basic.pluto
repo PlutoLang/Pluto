@@ -2475,7 +2475,7 @@ do
         serv:send("pong")
     end)
     sched:add(function()
-        local sock = socket.connect("127.0.0.1", 30725, "udp")
+        local sock = socket.connect("localhost", 30725, "udp")
         sock:send("ping")
         local data = sock:recv()
         assert(data == "pong")
