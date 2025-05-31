@@ -5,6 +5,7 @@
 
 #include "ljson.hpp"
 
+#include "vendor/Soup/soup/MemoryRefReader.hpp"
 #include "vendor/Soup/soup/string.hpp"
 #include "vendor/Soup/soup/StringWriter.hpp"
 
@@ -154,9 +155,20 @@ static int decode(lua_State* L)
 	};
 	try
 	{
-		if (soup::json::decode(jtw, (void*)L, data, size, 100))
+		if (flags & (1 << 2)) // json.msgpack
 		{
-			return 1;
+			soup::MemoryRefReader r(data, size);
+			if (soup::json::msgpackDecode(jtw, (void*)L, r, 100))
+			{
+				return 1;
+			}
+		}
+		else
+		{
+			if (soup::json::decode(jtw, (void*)L, data, size, 100))
+			{
+				return 1;
+			}
 		}
 	}
 	catch (const std::exception& e)
@@ -183,6 +195,8 @@ LUAMOD_API int luaopen_json(lua_State* L)
 	lua_setfield(L, -2, "withnull");
 	lua_pushinteger(L, 1 << 1);
 	lua_setfield(L, -2, "withorder");
+	lua_pushinteger(L, 1 << 2);
+	lua_setfield(L, -2, "msgpack");
 
 	return 1;
 }
