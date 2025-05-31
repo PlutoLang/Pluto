@@ -1618,7 +1618,7 @@ do
     assert(base32.decode("AA======") == "\x00")
 end
 do
-    local json = require("json")
+    local { assert, json } = require "*"
 
     assert(json.decode([[{"a":null]]).a == nil)
     assert(json.decode([[{"a":null}]], json.withnull).a == json.null)
@@ -1679,6 +1679,7 @@ do
 
     -- MessagePack
     assert(json.encode({ 0, true, json.null }, "msgpack") == "\x93\x00\xc3\xc0")
+    assert.equal(json.decode("\x93\x00\xc3\xc0", json.withnull | json.msgpack), { 0, true, json.null })
 end
 do
     local root = {}
