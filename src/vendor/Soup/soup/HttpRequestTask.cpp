@@ -5,7 +5,7 @@
 #include "log.hpp"
 #include "netStatus.hpp"
 #include "ObfusString.hpp"
-#include "ReuseTag.hpp"
+#include "netReuseTag.hpp"
 #include "Scheduler.hpp"
 #include "time.hpp"
 #else
@@ -40,7 +40,7 @@ NAMESPACE_SOUP
 				sock = Scheduler::get()->findReusableSocket(hr.getHost(), hr.port, hr.use_tls);
 				if (sock)
 				{
-					if (sock->custom_data.getStructFromMap(ReuseTag).is_busy)
+					if (sock->custom_data.getStructFromMap(netReuseTag).is_busy)
 					{
 						state = WAIT_TO_REUSE;
 					}
@@ -62,7 +62,7 @@ NAMESPACE_SOUP
 				sock.reset();
 				cannotRecycle();
 			}
-			else if (!sock->custom_data.getStructFromMap(ReuseTag).is_busy)
+			else if (!sock->custom_data.getStructFromMap(netReuseTag).is_busy)
 			{
 				sendRequestOnReusedSocket();
 			}
@@ -86,7 +86,7 @@ NAMESPACE_SOUP
 					SOUP_IF_LIKELY (!Scheduler::get()->findReusableSocket(hr.getHost(), hr.port, hr.use_tls))
 					{
 						hr.setKeepAlive();
-						sock->custom_data.getStructFromMap(ReuseTag).init(hr.getHost(), hr.port, hr.use_tls);
+						sock->custom_data.getStructFromMap(netReuseTag).init(hr.getHost(), hr.port, hr.use_tls);
 					}
 				}
 				state = AWAIT_RESPONSE;
@@ -147,7 +147,7 @@ NAMESPACE_SOUP
 	{
 		state = AWAIT_RESPONSE;
 		retry_on_broken_pipe = true;
-		sock->custom_data.getStructFromMapConst(ReuseTag).is_busy = true;
+		sock->custom_data.getStructFromMapConst(netReuseTag).is_busy = true;
 		awaiting_response_since = time::unixSeconds();
 		hr.setKeepAlive();
 		hr.send(*sock);
@@ -169,9 +169,9 @@ NAMESPACE_SOUP
 				: soup::ObfusString("Protocol Error Or Blocked By Security Solution").str() // could be better if HttpRequest::recvResponse provided a status, but whatever
 				;
 			cap.get<HttpRequestTask*>()->fulfil(std::move(res));
-			if (s.custom_data.isStructInMap(ReuseTag))
+			if (s.custom_data.isStructInMap(netReuseTag))
 			{
-				s.custom_data.getStructFromMap(ReuseTag).is_busy = false;
+				s.custom_data.getStructFromMap(netReuseTag).is_busy = false;
 				if (Scheduler::get()->dont_make_reusable_sockets == false)
 				{
 					s.keepAlive();

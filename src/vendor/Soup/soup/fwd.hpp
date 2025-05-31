@@ -172,7 +172,6 @@ NAMESPACE_SOUP
 	struct WebSocketMessage;
 
 	// os
-	enum ControlInput : uint8_t;
 	struct HandleRaii;
 	class Module;
 	enum MouseButton : uint8_t;

@@ -27,7 +27,7 @@ NAMESPACE_SOUP
 		SOUP_PACKET_IO(s)
 		{
 			return s.u8(handshake_type)
-				&& s.u24be(length)
+				&& s.u24_be(length)
 				;
 		}
 	};

@@ -11,7 +11,7 @@ NAMESPACE_SOUP
 
 		SOUP_PACKET_IO(s)
 		{
-			return s.u64be(seq_num)
+			return s.u64_be(seq_num)
 				&& record.io(s)
 				;
 		}

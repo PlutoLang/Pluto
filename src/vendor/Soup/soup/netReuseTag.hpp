@@ -4,7 +4,7 @@
 
 NAMESPACE_SOUP
 {
-	struct ReuseTag
+	struct netReuseTag
 	{
 		std::string host;
 		uint16_t port;

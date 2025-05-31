@@ -49,14 +49,14 @@ NAMESPACE_SOUP
 		template <typename Str = std::u16string>
 		[[nodiscard]] static char32_t utf16_to_utf32(typename Str::const_iterator& it, const typename Str::const_iterator end) noexcept
 		{
-			char32_t w1 = *it++;
+			char32_t w1 = static_cast<char32_t>(*it++);
 			if (UTF16_IS_HIGH_SURROGATE(w1))
 			{
 				SOUP_IF_UNLIKELY (it == end)
 				{
 					return 0;
 				}
-				char32_t w2 = *it++;
+				char32_t w2 = static_cast<char32_t>(*it++);
 				return utf16_to_utf32(w1, w2);
 			}
 			return w1;

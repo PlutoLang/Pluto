@@ -99,16 +99,16 @@ NAMESPACE_SOUP
 		{
 			uint8_t prefix = 0xFC;
 			auto val = (uint16_t)v;
-			return u8(prefix) && u16le(val);
+			return u8(prefix) && u16_le(val);
 		}
 		else if (v <= 0xFFFFFF)
 		{
 			uint8_t prefix = 0xFD;
 			auto val = (uint32_t)v;
-			return u8(prefix) && u24le(val);
+			return u8(prefix) && u24_le(val);
 		}
 		uint8_t prefix = 0xFE;
 		auto val = v;
-		return u8(prefix) && u64le(val);
+		return u8(prefix) && u64_le(val);
 	}
 }

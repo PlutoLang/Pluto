@@ -819,6 +819,7 @@
     <ClInclude Include="src\vendor\Soup\soup\NamedCurves.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netConfig.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netConnectTask.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\netReuseTag.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netStatus.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ObfusString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Oid.hpp" />
@@ -870,7 +871,6 @@
     <ClInclude Include="src\vendor\Soup\soup\RegexWordBoundaryConstraint.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\RegexWordCharConstraint.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ResolveIpAddrTask.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\ReuseTag.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rflFunc.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rflMember.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rflParser.hpp" />
