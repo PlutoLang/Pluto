@@ -108,4 +108,4 @@ end)EOC";
 #endif
 }
 
-const Pluto::PreloadedLibrary Pluto::preloaded_scheduler{ "scheduler", funcs, &luaopen_scheduler };
+const Pluto::PreloadedLibrary Pluto::preloaded_scheduler{ PLUTO_SCHEDULERLIBNAME, funcs, &luaopen_scheduler };
