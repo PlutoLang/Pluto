@@ -94,7 +94,7 @@ NAMESPACE_SOUP
 		StringWriter sw;
 		{
 			uint16_t priority = this->priority;
-			sw.u16be(priority);
+			sw.u16_be(priority);
 		}
 		{
 			dnsName target;

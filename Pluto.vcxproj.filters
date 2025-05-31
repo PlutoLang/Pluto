@@ -347,6 +347,7 @@
     <ClCompile Include="src\vendor\Soup\soup\SocketAddr.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\crc32c.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -683,9 +684,6 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\rand.hpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClInclude>
-    <ClInclude Include="src\vendor\Soup\soup\ReuseTag.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\RngInterface.hpp">
@@ -1097,6 +1095,10 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\utility.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\crc32c.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\netReuseTag.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>

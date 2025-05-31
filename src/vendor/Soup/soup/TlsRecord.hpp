@@ -17,7 +17,7 @@ NAMESPACE_SOUP
 		{
 			return s.u8(content_type)
 				&& version.io(s)
-				&& s.u16be(length)
+				&& s.u16_be(length)
 				;
 		}
 	};
