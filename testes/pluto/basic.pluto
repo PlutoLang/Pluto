@@ -1682,6 +1682,9 @@ do
     -- Cannot encode non-finite numbers
     assert(not pcall(|| -> json.encode(1/0)))
     assert(not pcall(|| -> json.encode(0/0)))
+
+    -- MessagePack
+    assert(json.encode({ 0, true, json.null }, "msgpack") == "\x93\x00\xc3\xc0")
 end
 do
     local root = {}
