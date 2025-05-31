@@ -1,5 +1,6 @@
 #include "json.hpp"
 
+#include "filesystem.hpp"
 #include "JsonArray.hpp"
 #include "JsonBool.hpp"
 #include "JsonFloat.hpp"
@@ -12,20 +13,39 @@
 
 NAMESPACE_SOUP
 {
+	struct DefaultJsonTreeWriter : public JsonTreeWriter
+	{
+		DefaultJsonTreeWriter()
+		{
+			allocArray = [](void*) -> void* { return new JsonArray(); };
+			allocObject = [](void*) -> void* { return new JsonObject(); };
+			allocString = [](void*, std::string&& value) -> void* { return new JsonString(std::move(value)); };
+			allocInt = [](void*, int64_t value) -> void* { return new JsonInt(value); };
+			allocFloat = [](void*, double value) -> void* { return new JsonFloat(value); };
+			allocBool = [](void*, bool value) -> void* { return new JsonBool(value); };
+			allocNull = [](void*) -> void* { return new JsonNull(); };
+			addToArray = [](void*, void* arr, void* value) -> void { ((JsonArray*)arr)->children.emplace_back((JsonNode*)value); };
+			addToObject = [](void*, void* obj, void* key, void* value) -> void { ((JsonObject*)obj)->children.emplace_back((JsonNode*)key, (JsonNode*)value); };
+			free = [](void*, void* node) -> void { delete (JsonNode*)node; };
+		}
+	};
+
 	UniquePtr<JsonNode> json::decode(const char* data, size_t size, int max_depth)
 	{
-		JsonTreeWriter jtw;
-		jtw.allocArray = [](void*) -> void* { return new JsonArray(); };
-		jtw.allocObject = [](void*) -> void* { return new JsonObject(); };
-		jtw.allocString = [](void*, std::string&& value) -> void* { return new JsonString(std::move(value)); };
-		jtw.allocInt = [](void*, int64_t value) -> void* { return new JsonInt(value); };
-		jtw.allocFloat = [](void*, double value) -> void* { return new JsonFloat(value); };
-		jtw.allocBool = [](void*, bool value) -> void* { return new JsonBool(value); };
-		jtw.allocNull = [](void*) -> void* { return new JsonNull(); };
-		jtw.addToArray = [](void*, void* arr, void* value) -> void { ((JsonArray*)arr)->children.emplace_back((JsonNode*)value); };
-		jtw.addToObject = [](void*, void* obj, void* key, void* value) -> void { ((JsonObject*)obj)->children.emplace_back((JsonNode*)key, (JsonNode*)value); };
-		jtw.free = [](void*, void* node) -> void { delete (JsonNode*)node; };
+		DefaultJsonTreeWriter jtw;
 		return (JsonNode*)decode(jtw, nullptr, data, size, max_depth);
+	}
+
+	UniquePtr<JsonNode> json::decodeFile(const std::filesystem::path& path, int max_depth)
+	{
+		UniquePtr<JsonNode> res;
+		size_t size;
+		if (auto data = filesystem::createFileMapping(path, size))
+		{
+			res = json::decode((const char*)data, size, max_depth);
+			filesystem::destroyFileMapping(data, size);
+		}
+		return res;
 	}
 
 	void* json::decode(const JsonTreeWriter& tw, void* user_data, const char*& c, size_t& s, int max_depth)
@@ -219,90 +239,321 @@ NAMESPACE_SOUP
 		return nullptr;
 	}
 
-	UniquePtr<JsonNode> json::binaryDecode(Reader& r)
+	UniquePtr<JsonNode> json::msgpackDecode(Reader& r, int max_depth)
 	{
+		DefaultJsonTreeWriter jtw;
+		return (JsonNode*)msgpackDecode(jtw, nullptr, r, max_depth);
+	}
+
+	void* json::msgpackDecode(const JsonTreeWriter& tw, void* user_data, Reader& r, int max_depth)
+	{
+		SOUP_ASSERT(max_depth-- != 0, "Depth limit exceeded");
+
 		uint8_t b;
-		if (r.u8(b))
+		SOUP_RETHROW_FALSE(r.u8(b));
+
+		// nil:
+		// - [x] 0xc0
+		// bool:
+		// - [x] 0xc2
+		// - [x] 0xc3
+		// int:
+		// - [x] 0XXXXXXX
+		// - [x] 111YYYYY
+		// - [x] 0xcc
+		// - [x] 0xcd
+		// - [x] 0xce
+		// - [x] 0xcf
+		// - [x] 0xd0
+		// - [x] 0xd1
+		// - [x] 0xd2
+		// - [x] 0xd3
+		// float:
+		// - [x] 0xca
+		// - [x] 0xcb
+		// str:
+		// - [x] 101XXXXX
+		// - [x] 0xd9
+		// - [x] 0xda
+		// - [x] 0xdb
+		// array:
+		// - [x] 1001XXXX
+		// - [x] 0xdc
+		// - [x] 0xdd
+		// map:
+		// - [x] 1000XXXX
+		// - [x] 0xde
+		// - [x] 0xdf
+
+		// Bit 7 not set -> unsigned int
+		if (!((b >> 7) & 1))
 		{
-			uint8_t type = (b & 0b111);
-			if (type == JSON_INT)
+			return tw.allocInt(user_data, b);
+		}
+
+		if ((b >> 6) & 1) // Bit 6 set?
+		{
+			// Bit 5 set -> signed int
+			if ((b >> 5) & 1)
 			{
-				uint8_t extra = (b >> 3);
-				int64_t val;
-				if (extra == 0b11111
-					? r.i64_dyn(val)
-					: (val = extra, true)
-					)
-				{
-					return soup::make_unique<JsonInt>(val);
-				}
+				return tw.allocInt(user_data, static_cast<int8_t>(b));
 			}
-			else if (type == JSON_FLOAT)
+
+			// Bit 5 not set -> type id
+			switch (b)
 			{
+			case 0xc0:
+				return tw.allocNull(user_data);
+
+			case 0xc2:
+				return tw.allocBool(user_data, false);
+
+			case 0xc3:
+				return tw.allocBool(user_data, true);
+
+			case 0xca: {
+				float val;
+				SOUP_RETHROW_FALSE(r.f32(val));
+				return tw.allocFloat(user_data, val);
+			}
+
+			case 0xcb: {
+				double val;
+				SOUP_RETHROW_FALSE(r.f64(val));
+				return tw.allocFloat(user_data, val);
+			}
+
+			case 0xcc: {
+				uint8_t val;
+				SOUP_RETHROW_FALSE(r.u8(val));
+				return tw.allocInt(user_data, val);
+			}
+
+			case 0xcd: {
+				uint16_t val;
+				SOUP_RETHROW_FALSE(r.u16_be(val));
+				return tw.allocInt(user_data, val);
+			}
+
+			case 0xce: {
+				uint32_t val;
+				SOUP_RETHROW_FALSE(r.u32_be(val));
+				return tw.allocInt(user_data, val);
+			}
+
+			case 0xcf: {
 				uint64_t val;
-				if (r.u64le(val))
-				{
-					return soup::make_unique<JsonFloat>(*reinterpret_cast<double*>(&val));
-				}
+				SOUP_RETHROW_FALSE(r.u64_be(val));
+				return tw.allocInt(user_data, val);
 			}
-			else if (type == JSON_STRING)
-			{
-				uint8_t len = (b >> 3);
-				std::string val;
-				if (len == 0b11111
-					? r.str_lp_u64_dyn(val)
-					: r.str(len, val)
-					)
-				{
-					return soup::make_unique<JsonString>(std::move(val));
-				}
-			}
-			else if (type == JSON_BOOL)
-			{
-				return soup::make_unique<JsonBool>(b >> 3);
-			}
-			else if (type == JSON_NULL)
-			{
-				return soup::make_unique<JsonNull>();
-			}
-			else if (type == JSON_ARRAY)
-			{
-				auto arr = soup::make_unique<JsonArray>();
-				while (true)
-				{
-					UniquePtr<JsonNode> node;
 
-					if (node = binaryDecode(r), !node)
+			case 0xd0: {
+				int8_t val;
+				SOUP_RETHROW_FALSE(r.i8(val));
+				return tw.allocInt(user_data, val);
+			}
+
+			case 0xd1: {
+				int16_t val;
+				SOUP_RETHROW_FALSE(r.i16_be(val));
+				return tw.allocInt(user_data, val);
+			}
+
+			case 0xd2: {
+				int32_t val;
+				SOUP_RETHROW_FALSE(r.i32_be(val));
+				return tw.allocInt(user_data, val);
+			}
+
+			case 0xd3: {
+				int64_t val;
+				SOUP_RETHROW_FALSE(r.i64_be(val));
+				return tw.allocInt(user_data, val);
+			}
+
+			case 0xd9: {
+				uint8_t len;
+				SOUP_RETHROW_FALSE(r.u8(len));
+				std::string data;
+				r.str(len, data);
+				return tw.allocString(user_data, std::move(data));
+			}
+
+			case 0xda: {
+				uint16_t len;
+				SOUP_RETHROW_FALSE(r.u16_be(len));
+				std::string data;
+				r.str(len, data);
+				return tw.allocString(user_data, std::move(data));
+			}
+
+			case 0xdb: {
+				uint32_t len;
+				SOUP_RETHROW_FALSE(r.u32_be(len));
+				std::string data;
+				r.str(len, data);
+				return tw.allocString(user_data, std::move(data));
+			}
+
+			case 0xdc: {
+				uint16_t len;
+				SOUP_RETHROW_FALSE(r.u16_be(len));
+				auto arr = tw.allocArray(user_data);
+				while (len--)
+				{
+					void* node = msgpackDecode(tw, user_data, r, max_depth);
+					SOUP_IF_UNLIKELY (!node)
 					{
-						break;
+						tw.free(user_data, arr);
+						return nullptr;
 					}
-
-					arr->children.emplace_back(std::move(node));
+					tw.addToArray(user_data, arr, node);
+				}
+				if (tw.onArrayFinished)
+				{
+					tw.onArrayFinished(user_data, arr);
 				}
 				return arr;
 			}
-			else if (type == JSON_OBJECT)
-			{
-				auto obj = soup::make_unique<JsonObject>();
-				while (true)
+
+			case 0xdd: {
+				uint32_t len;
+				SOUP_RETHROW_FALSE(r.u32_be(len));
+				auto arr = tw.allocArray(user_data);
+				while (len--)
 				{
-					UniquePtr<JsonNode> key;
-					UniquePtr<JsonNode> val;
-
-					if (key = binaryDecode(r), !key)
+					void* node = msgpackDecode(tw, user_data, r, max_depth);
+					SOUP_IF_UNLIKELY (!node)
 					{
-						break;
+						tw.free(user_data, arr);
+						return nullptr;
 					}
-					if (val = binaryDecode(r), !val)
-					{
-						break;
-					}
+					tw.addToArray(user_data, arr, node);
+				}
+				if (tw.onArrayFinished)
+				{
+					tw.onArrayFinished(user_data, arr);
+				}
+				return arr;
+			}
 
-					obj->children.emplace_back(std::move(key), std::move(val));
+			case 0xde: {
+				uint16_t len;
+				SOUP_RETHROW_FALSE(r.u16_be(len));
+				auto obj = tw.allocObject(user_data);
+				while (len--)
+				{
+					void* key = msgpackDecode(tw, user_data, r, max_depth);
+					SOUP_IF_UNLIKELY (!key)
+					{
+						tw.free(user_data, obj);
+						return nullptr;
+					}
+					void* val = msgpackDecode(tw, user_data, r, max_depth);
+					SOUP_IF_UNLIKELY (!val)
+					{
+						tw.free(user_data, key);
+						tw.free(user_data, obj);
+						return nullptr;
+					}
+					tw.addToObject(user_data, obj, key, val);
+				}
+				if (tw.onObjectFinished)
+				{
+					tw.onObjectFinished(user_data, obj);
+				}
+				return obj;
+			}
+
+			case 0xdf: {
+				uint32_t len;
+				SOUP_RETHROW_FALSE(r.u32_be(len));
+				auto obj = tw.allocObject(user_data);
+				while (len--)
+				{
+					void* key = msgpackDecode(tw, user_data, r, max_depth);
+					SOUP_IF_UNLIKELY (!key)
+					{
+						tw.free(user_data, obj);
+						return nullptr;
+					}
+					void* val = msgpackDecode(tw, user_data, r, max_depth);
+					SOUP_IF_UNLIKELY (!val)
+					{
+						tw.free(user_data, key);
+						tw.free(user_data, obj);
+						return nullptr;
+					}
+					tw.addToObject(user_data, obj, key, val);
+				}
+				if (tw.onObjectFinished)
+				{
+					tw.onObjectFinished(user_data, obj);
+				}
+				return obj;
+			}
+			}
+		}
+		else
+		{
+			// Bit 5 set -> str
+			if ((b >> 5) & 1)
+			{
+				uint8_t len = b & 0b11111;
+				std::string data;
+				r.str(len, data);
+				return tw.allocString(user_data, std::move(data));
+			}
+
+			// Array or map
+			uint8_t len = b & 0b1111;
+			if ((b >> 4) & 1) // Bit 4 set -> array
+			{
+				auto arr = tw.allocArray(user_data);
+				while (len--)
+				{
+					void* node = msgpackDecode(tw, user_data, r, max_depth);
+					SOUP_IF_UNLIKELY (!node)
+					{
+						tw.free(user_data, arr);
+						return nullptr;
+					}
+					tw.addToArray(user_data, arr, node);
+				}
+				if (tw.onArrayFinished)
+				{
+					tw.onArrayFinished(user_data, arr);
+				}
+				return arr;
+			}
+			else // Bit 4 not set -> map
+			{
+				auto obj = tw.allocObject(user_data);
+				while (len--)
+				{
+					void* key = msgpackDecode(tw, user_data, r, max_depth);
+					SOUP_IF_UNLIKELY (!key)
+					{
+						tw.free(user_data, obj);
+						return nullptr;
+					}
+					void* val = msgpackDecode(tw, user_data, r, max_depth);
+					SOUP_IF_UNLIKELY (!val)
+					{
+						tw.free(user_data, key);
+						tw.free(user_data, obj);
+						return nullptr;
+					}
+					tw.addToObject(user_data, obj, key, val);
+				}
+				if (tw.onObjectFinished)
+				{
+					tw.onObjectFinished(user_data, obj);
 				}
 				return obj;
 			}
 		}
+
 		return {};
 	}
 

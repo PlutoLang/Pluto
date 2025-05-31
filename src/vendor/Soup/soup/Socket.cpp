@@ -469,7 +469,7 @@ NAMESPACE_SOUP
 			};
 
 			StringWriter sw;
-			sw.vec_u16be_bl_u16be(supported_signature_schemes);
+			sw.vec_u16_bl_u16_be(supported_signature_schemes);
 
 			hello.extensions.add(TlsExtensionType::signature_algorithms, std::move(sw.data));
 		}

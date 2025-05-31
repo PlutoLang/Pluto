@@ -95,12 +95,12 @@ NAMESPACE_SOUP
 	}
 
 #if SOUP_WINDOWS
-	static char empty_file_data = 0;
+	static const char empty_file_data = 0;
 #endif
 
-	void* filesystem::createFileMapping(const std::filesystem::path& path, size_t& out_len)
+	const void* filesystem::createFileMapping(const std::filesystem::path& path, size_t& out_len)
 	{
-		void* addr = nullptr;
+		const void* addr = nullptr;
 #if SOUP_WINDOWS
 		HANDLE f = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 		SOUP_IF_LIKELY (f != INVALID_HANDLE_VALUE)
@@ -141,7 +141,7 @@ NAMESPACE_SOUP
 		return addr;
 	}
 
-	void filesystem::destroyFileMapping(void* addr, size_t len)
+	void filesystem::destroyFileMapping(const void* addr, size_t len)
 	{
 #if SOUP_WINDOWS
 		if (addr != &empty_file_data)
@@ -149,7 +149,7 @@ NAMESPACE_SOUP
 			UnmapViewOfFile(addr);
 		}
 #else
-		munmap(addr, len);
+		munmap(const_cast<void*>(addr), len);
 #endif
 	}
 }

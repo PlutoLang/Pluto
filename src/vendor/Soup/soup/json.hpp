@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "JsonNode.hpp"
 #include "UniquePtr.hpp"
 
@@ -21,12 +23,15 @@ NAMESPACE_SOUP
 		// 2. The returned UniquePtr might be default-constructed in case of a parse error, so you'd be dereferencing a nullptr.
 		[[nodiscard]] static UniquePtr<JsonNode> decode(const std::string& data, int max_depth = 100) { return decode(data.data(), data.size(), max_depth); }
 		[[nodiscard]] static UniquePtr<JsonNode> decode(const char* data, size_t size, int max_depth = 100);
+		[[nodiscard]] static UniquePtr<JsonNode> decodeFile(const std::filesystem::path& path, int max_depth = 100);
 		static void decode(const char* data, int max_depth) = delete;
 		static void decode(const char*& c, int max_depth) = delete;
 		static void* decode(const JsonTreeWriter& tw, void* user_data, const char*& c, size_t& s, int max_depth);
 
-		// specific to soup
-		[[nodiscard]] static UniquePtr<JsonNode> binaryDecode(Reader& r);
+		// Decodes a MessagePack (https://msgpack.org/) binary stream.
+		// If the data represented is not valid JSON (i.e. using extension types), the returned UniquePtr will be default-constructed.
+		[[nodiscard]] static UniquePtr<JsonNode> msgpackDecode(Reader& r, int max_depth = 100);
+		static void* msgpackDecode(const JsonTreeWriter& tw, void* user_data, Reader& r, int max_depth);
 
 		// internal
 		static void handleLeadingSpace(const char*& c, size_t& s);

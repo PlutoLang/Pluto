@@ -21,7 +21,7 @@ NAMESPACE_SOUP
 		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
 		void encodePrettyAndAppendTo(std::string& str, unsigned depth = 0) const SOUP_EXCAL;
 
-		bool binaryEncode(Writer& w) const final;
+		bool msgpackEncode(Writer& w) const final;
 
 		[[nodiscard]] JsonNode* find(std::string k) const noexcept;
 		[[nodiscard]] JsonNode* find(const JsonNode& k) const noexcept;
@@ -36,6 +36,7 @@ NAMESPACE_SOUP
 		void erase(const JsonNode& k) noexcept;
 		void erase(std::string k) noexcept;
 		void erase(Container::const_iterator it) noexcept;
+		[[nodiscard]] bool empty() const noexcept { return children.empty(); }
 		void clear() noexcept;
 		[[nodiscard]] auto begin() noexcept { return children.begin(); }
 		[[nodiscard]] auto end() noexcept { return children.end(); }

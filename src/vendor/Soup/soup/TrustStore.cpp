@@ -21,14 +21,14 @@ NAMESPACE_SOUP
 		MemoryRefReader sr(str);
 
 		uint16_t num_ca_certs;
-		sr.u16le(num_ca_certs);
+		sr.u16_le(num_ca_certs);
 
 		TrustStore ts;
 		ts.data.reserve(num_ca_certs);
 		for (uint16_t i = 0; i != num_ca_certs; ++i)
 		{
 			uint16_t cert_len;
-			sr.u16le(cert_len);
+			sr.u16_le(cert_len);
 
 			X509Certificate cert;
 			cert.fromDer(str.data() + sr.getPosition(), cert_len);

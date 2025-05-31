@@ -39,7 +39,7 @@ NAMESPACE_SOUP
 		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
 		void encodePrettyAndAppendTo(std::string& str, unsigned depth = 0) const SOUP_EXCAL;
 
-		bool binaryEncode(Writer& w) const final;
+		bool msgpackEncode(Writer& w) const final;
 
 		[[nodiscard]] JsonNode& at(size_t i) const;
 		void clear() noexcept;

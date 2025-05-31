@@ -10,7 +10,7 @@ NAMESPACE_SOUP
 
 		SOUP_PACKET_IO(s)
 		{
-			return s.vec_str_lp_u24be_bl_u24be(asn1_certs);
+			return s.vec_str_lp_u24_bl_u24_be(asn1_certs);
 		}
 	};
 }
