@@ -6,17 +6,41 @@
 #include "ljson.hpp"
 
 #include "vendor/Soup/soup/string.hpp"
+#include "vendor/Soup/soup/StringWriter.hpp"
 
 static int encode(lua_State* L) {
-	auto& up = *pluto_newclassinst(L, soup::UniquePtr<soup::JsonNode>);
-	checkJson(L, 1, up);
-	if (lua_istrue(L, 2))
+	int fmt = 0; // compact
+	if (lua_type(L, 2) == LUA_TBOOLEAN)
 	{
-		pluto_pushstring(L, up->encodePretty());
+		if (lua_istrue(L, 2))
+		{
+			fmt = 1; // pretty
+		}
 	}
 	else
 	{
+		static const char* const fmts[] = { "compact", "pretty", "msgpack", nullptr };
+		fmt = luaL_checkoption(L, 2, "compact", fmts);
+	}
+
+	auto& up = *pluto_newclassinst(L, soup::UniquePtr<soup::JsonNode>);
+	checkJson(L, 1, up);
+	
+	switch (fmt)
+	{
+	case 0: default:
 		pluto_pushstring(L, up->encode());
+		break;
+
+	case 1:
+		pluto_pushstring(L, up->encodePretty());
+		break;
+
+	case 2:
+		soup::StringWriter sw;
+		up->msgpackEncode(sw);
+		pluto_pushstring(L, std::move(sw.data));
+		break;
 	}
 	return 1;
 }
