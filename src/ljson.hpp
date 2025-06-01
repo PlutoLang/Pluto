@@ -117,7 +117,7 @@ static void checkJson(lua_State* L, int i, soup::UniquePtr<soup::JsonNode>& out)
 						// table, __order, idx, key, value
 						luaE_incCstack(L);
 						auto& entry = obj.children.emplace_back();
-						entry.first = soup::make_unique<soup::JsonString>(pluto_checkstring(L, -2));
+						checkJson(L, -2, entry.first);
 						checkJson(L, -1, entry.second);
 						L->nCcalls--;
 					}
