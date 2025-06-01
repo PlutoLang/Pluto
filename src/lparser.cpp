@@ -4836,6 +4836,10 @@ static void restdestructuring (LexState *ls, int line, DestructuringPairs& pairs
     luaK_indexed(ls->fs, &e, &p.second);
     singlevar(ls, &l, p.first);
     luaK_storevar(ls->fs, &l, &e);
+
+    /* we just used the local, but that shouldn't count for the 'unused' warning */
+    lua_assert(l.k == VLOCAL);
+    getlocalvardesc(ls->fs, l.u.var.vidx)->vd.used = false;
   }
 
   /* release table */
