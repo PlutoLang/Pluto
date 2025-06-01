@@ -33,6 +33,8 @@ NAMESPACE_SOUP
 			return true;
 		}
 
+		virtual const void* getMemoryView(size_t size) const noexcept { return nullptr; }
+
 		// An unsigned 64-bit integer encoded in 1..9 bytes. The most significant bit of bytes 1 to 8 is used to indicate if another byte follows.
 		// Lua implementation: https://gist.github.com/Sainan/02c3ac9cea5015341412c92feec95e56
 		bool u64_dyn(uint64_t& v) noexcept;

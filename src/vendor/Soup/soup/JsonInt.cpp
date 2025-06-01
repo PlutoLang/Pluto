@@ -4,11 +4,6 @@
 
 NAMESPACE_SOUP
 {
-	JsonInt::JsonInt(int64_t value) noexcept
-		: JsonNode(JSON_INT), value(value)
-	{
-	}
-
 	bool JsonInt::operator==(const JsonNode& b) const noexcept
 	{
 		return JSON_INT == b.type
@@ -27,13 +22,13 @@ NAMESPACE_SOUP
 		{
 			if (value < 0x80)
 			{
-				uint8_t b = value;
+				uint8_t b = (uint8_t)value;
 				return w.u8(b);
 			}
 			if (value <= 0xff)
 			{
 				uint8_t b = 0xcc;
-				uint8_t val = value;
+				auto val = (uint8_t)value;
 				return w.u8(b)
 					&& w.u8(val)
 					;
@@ -41,7 +36,7 @@ NAMESPACE_SOUP
 			if (value <= 0xffff)
 			{
 				uint8_t b = 0xcd;
-				uint16_t val = value;
+				auto val = (uint16_t)value;
 				return w.u8(b)
 					&& w.u16_be(val)
 					;
@@ -49,7 +44,7 @@ NAMESPACE_SOUP
 			if (value <= 0xffff'ffff)
 			{
 				uint8_t b = 0xce;
-				uint32_t val = value;
+				auto val = (uint32_t)value;
 				return w.u8(b)
 					&& w.u32_be(val)
 					;
@@ -64,13 +59,13 @@ NAMESPACE_SOUP
 		{
 			if (value >= -32)
 			{
-				int8_t b = value;
+				int8_t b = (int8_t)value;
 				return w.i8(b);
 			}
 			if (value >= -128)
 			{
 				uint8_t b = 0xd0;
-				int8_t val = value;
+				auto val = (int8_t)value;
 				return w.u8(b)
 					&& w.i8(val)
 					;
@@ -78,7 +73,7 @@ NAMESPACE_SOUP
 			if (value >= -32768)
 			{
 				uint8_t b = 0xd1;
-				int16_t val = value;
+				auto val = (int16_t)value;
 				return w.u8(b)
 					&& w.i16_be(val)
 					;
@@ -86,7 +81,7 @@ NAMESPACE_SOUP
 			if (value >= -2147483648)
 			{
 				uint8_t b = 0xd2;
-				int32_t val = value;
+				auto val = (int32_t)value;
 				return w.u8(b)
 					&& w.i32_be(val)
 					;

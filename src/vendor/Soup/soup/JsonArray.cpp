@@ -11,11 +11,6 @@ NAMESPACE_SOUP
 		return arr->at(i);
 	}
 
-	JsonArray::JsonArray() noexcept
-		: JsonNode(JSON_ARRAY)
-	{
-	}
-
 	void JsonArray::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
 		str.push_back('[');
@@ -59,7 +54,7 @@ NAMESPACE_SOUP
 	{
 		if (children.size() <= 0b1111)
 		{
-			uint8_t b = 0b1001'0000 | children.size();
+			uint8_t b = 0b1001'0000 | (uint8_t)children.size();
 			SOUP_RETHROW_FALSE(w.u8(b));
 		}
 		else if (children.size() <= 0xffff)

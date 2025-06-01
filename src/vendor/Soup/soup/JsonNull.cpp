@@ -4,11 +4,6 @@
 
 NAMESPACE_SOUP
 {
-	JsonNull::JsonNull() noexcept
-		: JsonNode(JSON_NULL)
-	{
-	}
-
 	void JsonNull::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
 		str.append("null");

@@ -8,7 +8,10 @@ NAMESPACE_SOUP
 	{
 		double value;
 
-		explicit JsonFloat(double value = 0.0) noexcept;
+		explicit JsonFloat(double value = 0.0) noexcept
+			: JsonNode(JSON_FLOAT), value(value)
+		{
+		}
 
 		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
 		bool msgpackEncode(Writer& w) const final;

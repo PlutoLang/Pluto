@@ -53,9 +53,9 @@ static int decode(lua_State* L)
 	int flags = (int)luaL_optinteger(L, 2, 0);
 	lua_checkstack(L, 1);
 	soup::JsonTreeWriter jtw;
-	jtw.allocArray = [](void* L) -> void* {
+	jtw.allocArray = [](void* L, size_t reserve_size) -> void* {
 		lua_checkstack((lua_State*)L, 3);
-		lua_newtable((lua_State*)L);
+		lua_createtable((lua_State*)L, (unsigned int)reserve_size, 0);
 		lua_pushinteger((lua_State*)L, 1);
 		return L; // must not return nullptr
 	};
@@ -69,11 +69,11 @@ static int decode(lua_State* L)
 	};
 	if (flags & (1 << 1)) // json.withorder
 	{
-		jtw.allocObject = [](void* L) -> void* {
+		jtw.allocObject = [](void* L, size_t reserve_size) -> void* {
 			lua_checkstack((lua_State*)L, 7);
-			lua_newtable((lua_State*)L);
+			lua_createtable((lua_State*)L, 0, (unsigned int)reserve_size);
 			// stack now: table
-			lua_newtable((lua_State*)L);
+			lua_createtable((lua_State*)L, (unsigned int)reserve_size, 0);
 			// stack now: table, order table
 			lua_pushliteral((lua_State*)L, "__order");
 			lua_pushvalue((lua_State*)L, -2);
@@ -107,9 +107,9 @@ static int decode(lua_State* L)
 	}
 	else
 	{
-		jtw.allocObject = [](void* L) -> void* {
+		jtw.allocObject = [](void* L, size_t reserve_size) -> void* {
 			lua_checkstack((lua_State*)L, 3);
-			lua_newtable((lua_State*)L);
+			lua_createtable((lua_State*)L, 0, (unsigned int)reserve_size);
 			return L; // must not return nullptr
 		};
 		jtw.addToObject = [](void* L, void* object, void* key, void* value) -> void {

@@ -17,9 +17,10 @@ NAMESPACE_SOUP
 	{
 		DefaultJsonTreeWriter()
 		{
-			allocArray = [](void*) -> void* { return new JsonArray(); };
-			allocObject = [](void*) -> void* { return new JsonObject(); };
+			allocArray = [](void*, size_t reserve_size) -> void* { return new JsonArray(reserve_size); };
+			allocObject = [](void*, size_t reserve_size) -> void* { return new JsonObject(reserve_size); };
 			allocString = [](void*, std::string&& value) -> void* { return new JsonString(std::move(value)); };
+			allocUnescapedString = [](void*, const char* data, size_t size) -> void* { return new JsonString(data, size); };
 			allocInt = [](void*, int64_t value) -> void* { return new JsonInt(value); };
 			allocFloat = [](void*, double value) -> void* { return new JsonFloat(value); };
 			allocBool = [](void*, bool value) -> void* { return new JsonBool(value); };
@@ -59,7 +60,7 @@ NAMESPACE_SOUP
 		case '"': {
 			++c; --s;
 			const auto encoded_size = JsonString::getEncodedSize(c, s);
-			if (tw.allocUnescapedString && std::string_view(c, encoded_size).find('\\') == std::string::npos)
+			if (std::string_view(c, encoded_size).find('\\') == std::string::npos)
 			{
 				const auto str = tw.allocUnescapedString(user_data, c, encoded_size);
 				c += encoded_size;
@@ -82,7 +83,7 @@ NAMESPACE_SOUP
 
 		case '[': {
 			++c; --s;
-			auto arr = tw.allocArray(user_data);
+			auto arr = tw.allocArray(user_data, 0);
 			while (true)
 			{
 				handleLeadingSpace(c, s);
@@ -114,7 +115,7 @@ NAMESPACE_SOUP
 
 		case '{': {
 			++c; --s;
-			auto obj = tw.allocObject(user_data);
+			auto obj = tw.allocObject(user_data, 0);
 			while (true)
 			{
 				handleLeadingSpace(c, s);
@@ -374,31 +375,46 @@ NAMESPACE_SOUP
 			case 0xd9: {
 				uint8_t len;
 				SOUP_RETHROW_FALSE(r.u8(len));
+				if (auto data = r.getMemoryView(len))
+				{
+					r.skip(len);
+					return tw.allocUnescapedString(user_data, (const char*)data, len);
+				}
 				std::string data;
-				r.str(len, data);
+				SOUP_RETHROW_FALSE(r.str(len, data));
 				return tw.allocString(user_data, std::move(data));
 			}
 
 			case 0xda: {
 				uint16_t len;
 				SOUP_RETHROW_FALSE(r.u16_be(len));
+				if (auto data = r.getMemoryView(len))
+				{
+					r.skip(len);
+					return tw.allocUnescapedString(user_data, (const char*)data, len);
+				}
 				std::string data;
-				r.str(len, data);
+				SOUP_RETHROW_FALSE(r.str(len, data));
 				return tw.allocString(user_data, std::move(data));
 			}
 
 			case 0xdb: {
 				uint32_t len;
 				SOUP_RETHROW_FALSE(r.u32_be(len));
+				if (auto data = r.getMemoryView(len))
+				{
+					r.skip(len);
+					return tw.allocUnescapedString(user_data, (const char*)data, len);
+				}
 				std::string data;
-				r.str(len, data);
+				SOUP_RETHROW_FALSE(r.str(len, data));
 				return tw.allocString(user_data, std::move(data));
 			}
 
 			case 0xdc: {
 				uint16_t len;
 				SOUP_RETHROW_FALSE(r.u16_be(len));
-				auto arr = tw.allocArray(user_data);
+				auto arr = tw.allocArray(user_data, len);
 				while (len--)
 				{
 					void* node = msgpackDecode(tw, user_data, r, max_depth);
@@ -419,7 +435,7 @@ NAMESPACE_SOUP
 			case 0xdd: {
 				uint32_t len;
 				SOUP_RETHROW_FALSE(r.u32_be(len));
-				auto arr = tw.allocArray(user_data);
+				auto arr = tw.allocArray(user_data, len);
 				while (len--)
 				{
 					void* node = msgpackDecode(tw, user_data, r, max_depth);
@@ -440,7 +456,7 @@ NAMESPACE_SOUP
 			case 0xde: {
 				uint16_t len;
 				SOUP_RETHROW_FALSE(r.u16_be(len));
-				auto obj = tw.allocObject(user_data);
+				auto obj = tw.allocObject(user_data, len);
 				while (len--)
 				{
 					void* key = msgpackDecode(tw, user_data, r, max_depth);
@@ -468,7 +484,7 @@ NAMESPACE_SOUP
 			case 0xdf: {
 				uint32_t len;
 				SOUP_RETHROW_FALSE(r.u32_be(len));
-				auto obj = tw.allocObject(user_data);
+				auto obj = tw.allocObject(user_data, len);
 				while (len--)
 				{
 					void* key = msgpackDecode(tw, user_data, r, max_depth);
@@ -500,8 +516,13 @@ NAMESPACE_SOUP
 			if ((b >> 5) & 1)
 			{
 				uint8_t len = b & 0b11111;
+				if (auto data = r.getMemoryView(len))
+				{
+					r.skip(len);
+					return tw.allocUnescapedString(user_data, (const char*)data, len);
+				}
 				std::string data;
-				r.str(len, data);
+				SOUP_RETHROW_FALSE(r.str(len, data));
 				return tw.allocString(user_data, std::move(data));
 			}
 
@@ -509,7 +530,7 @@ NAMESPACE_SOUP
 			uint8_t len = b & 0b1111;
 			if ((b >> 4) & 1) // Bit 4 set -> array
 			{
-				auto arr = tw.allocArray(user_data);
+				auto arr = tw.allocArray(user_data, len);
 				while (len--)
 				{
 					void* node = msgpackDecode(tw, user_data, r, max_depth);
@@ -528,7 +549,7 @@ NAMESPACE_SOUP
 			}
 			else // Bit 4 not set -> map
 			{
-				auto obj = tw.allocObject(user_data);
+				auto obj = tw.allocObject(user_data, len);
 				while (len--)
 				{
 					void* key = msgpackDecode(tw, user_data, r, max_depth);

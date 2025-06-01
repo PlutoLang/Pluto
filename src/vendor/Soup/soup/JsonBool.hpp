@@ -8,8 +8,10 @@ NAMESPACE_SOUP
 	{
 		bool value;
 
-		explicit JsonBool() noexcept;
-		explicit JsonBool(bool value) noexcept;
+		explicit JsonBool(bool value = false) noexcept
+			: JsonNode(JSON_BOOL), value(value)
+		{
+		}
 
 		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
 		bool msgpackEncode(Writer& w) const final;
