@@ -1686,6 +1686,19 @@ do
     -- MessagePack
     assert(json.encode({ 0, true, json.null }, "msgpack") == "\x93\x00\xc3\xc0")
     assert.equal(json.decode("\x93\x00\xc3\xc0", json.withnull | json.msgpack), { 0, true, json.null })
+
+    -- __order should not change the key type
+    assert(require"json".encode{
+        [10] = "a",
+        [20] = "b",
+        [30] = "c",
+    }:find('10:"a"'))
+    assert(require"json".encode{
+        __order = { 10, 20, 30 },
+        [10] = "a",
+        [20] = "b",
+        [30] = "c",
+    } == '{10:"a",20:"b",30:"c"}')
 end
 do
     local root = {}
