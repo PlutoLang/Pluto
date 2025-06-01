@@ -18,6 +18,11 @@ print "Testing warnings."
 do
     assert_warn([[local a; local a]]) -- var-shadow
 
+    -- unused
+    assert_warn[[local a]]
+    assert_warn[[local { b } = {}]]
+    assert_warn[[local [ c ] = {}]]
+
     assert_no_warn[[
     local function takesInt(_a: int) end
     takesInt(1)
