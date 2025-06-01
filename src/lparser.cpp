@@ -4794,7 +4794,9 @@ static void checktoclose (FuncState *fs, int level) {
 }
 
 
-static void restdestructuring (LexState *ls, int line, std::vector<std::pair<TString*, expdesc>>& pairs) {
+using DestructuringPairs = std::vector<std::pair<TString*, expdesc>>;
+
+static void restdestructuring (LexState *ls, int line, DestructuringPairs& pairs) {
   checknext(ls, '=');
 
   /* begin scope of the locals we want to create */
@@ -4844,7 +4846,7 @@ static void restdestructuring (LexState *ls, int line, std::vector<std::pair<TSt
 
 static void destructuring (LexState *ls) {
   auto line = ls->getLineNumber();
-  std::vector<std::pair<TString*, expdesc>> pairs{};
+  auto& pairs = *pluto_newclassinst(ls->L, DestructuringPairs);
   luaX_next(ls); /* skip '{' */
   do {
     TString* var = str_checkname(ls, N_OVERRIDABLE);
@@ -4857,11 +4859,12 @@ static void destructuring (LexState *ls) {
   } while (testnext(ls, ','));
   check_match(ls, '}', '{', line);
   restdestructuring(ls, line, pairs);
+  ls->L->top.p--;  /* pop pairs */
 }
 
 static void arraydestructuring (LexState *ls) {
   auto line = ls->getLineNumber();
-  std::vector<std::pair<TString*, expdesc>> pairs{};
+  auto& pairs = *pluto_newclassinst(ls->L, DestructuringPairs);
   luaX_next(ls); /* skip '[' */
   expdesc prop;
   init_exp(&prop, VKINT, 0);
@@ -4872,6 +4875,7 @@ static void arraydestructuring (LexState *ls) {
   } while (testnext(ls, ','));
   check_match(ls, ']', '[', line);
   restdestructuring(ls, line, pairs);
+  ls->L->top.p--;  /* pop pairs */
 }
 
 

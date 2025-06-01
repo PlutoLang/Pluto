@@ -3455,6 +3455,11 @@ do
     assert(b == 2)
     assert(c == 3)
 end
+do
+    -- This should not leak memory
+    load'local { a, b, c, '
+    load'local [ a, b, c, '
+end
 
 print "Testing pluto_use."
 do
