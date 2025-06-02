@@ -10,7 +10,7 @@ Pluto is a unique dialect of Lua with a focus on general-purpose programming.
 
 - **Focused On Lua Compatibility.**
   - Pluto is largely compatible with Lua 5.4 source code, but there is an imperfection:
-    - Pluto implements new keywords, which can cause conflicts with otherwise normal identifiers such as 'switch', or 'class'. We offer features — such as Compatibility Mode — to relieve this issue, see our [documentation](https://pluto-lang.org/docs/Compatibility).
+    - Pluto implements new keywords, which can cause conflicts with otherwise normal identifiers such as 'switch', or 'class'. The parser tries to identify what is meant but if that doesn't work, you can [use Compatibility Mode](https://pluto-lang.org/docs/Compatibility#compatibility-mode).
   - Pluto is also compatible with Lua 5.4 bytecode. Pluto can execute Lua bytecode, and most Pluto features generate bytecode compatible with Lua.
     - There's a small subset of Pluto features which do not generate Lua 5.4 bytecode. This is documented alongside those features, so scripters can vouch to avoid using them when bytecode compatibility is desired.
   - Pluto has been dropped into large [communities](https://stand.gg/) (100K> users), and did not break any existing scripts.
