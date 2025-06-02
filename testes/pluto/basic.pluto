@@ -3849,6 +3849,9 @@ end
 do
     -- Possible miscompilation from compile-time concat optimization that was not caught by Lua's test suite
     assert(((true and "hello" or "goodbye") .. "world") == "helloworld")
+
+    -- Should work nicely with optional parentheses, too
+    assert("a is ".."a":byte() == "a is 97")
 end
 assert({ load[[if then print("hello")]] }[2]:contains[[unexpected symbol near 'then']])
 do

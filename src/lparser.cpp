@@ -3905,7 +3905,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
             lhs = v->u.strval;
           else if (v->k == VCONST && ttisstring(&ls->dyd->actvar.arr[v->u.info].k))
             lhs = tsvalue(&ls->dyd->actvar.arr[v->u.info].k);
-          if (lhs && ls->t.token == TK_STRING) {
+          if (lhs && ls->t.token == TK_STRING && luaX_lookahead(ls) != ':' && luaX_lookahead(ls) != '[') {
             const auto lhs_size = tsslen(lhs);
             const auto rhs_size = tsslen(ls->t.seminfo.ts);
             auto data = new char[lhs_size + rhs_size];
