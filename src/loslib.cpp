@@ -9,7 +9,6 @@
 
 #include "lprefix.h"
 
-#include <thread>
 #include <chrono>
 #include <errno.h>
 #include <locale.h>
@@ -26,6 +25,7 @@
 #endif
 
 #include "vendor/Soup/soup/base.hpp"
+#include "vendor/Soup/soup/os.hpp"
 
 
 /*
@@ -401,15 +401,15 @@ static int os_nanos(lua_State* L) {
 
 
 static int os_sleep (lua_State *L) {
-  std::chrono::milliseconds timespan(luaL_checkinteger(L, 1));
+  const auto ms = (unsigned int)luaL_checkinteger(L, 1);
 #ifdef PLUTO_ETL_ENABLE
   std::time_t t = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-  t += std::chrono::duration_cast<std::chrono::nanoseconds>(timespan).count();
+  t += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::milliseconds(ms)).count();
   if (L->l_G->deadline < t) {
     luaL_error(L, "os.sleep would exceed execution time limit");
   }
 #endif
-  std::this_thread::sleep_for(timespan);
+  soup::os::sleep(ms);
   return 0;
 }
 
