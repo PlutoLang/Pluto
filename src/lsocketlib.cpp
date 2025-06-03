@@ -484,7 +484,7 @@ LUAMOD_API int luaopen_socket (lua_State *L) {
   lua_pushliteral(L, "bind");
   luaL_loadstring(L, R"EOC(
 return function(sched, port, callback)
-    sched:add(function()
+    return sched:add(function()
         local l = require"pluto:socket".listen(port)
         assert(l, "Failed to bind port "..port)
         while s := l:accept() do
