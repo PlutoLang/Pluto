@@ -2451,6 +2451,7 @@ do
         assert(s:isopen() == false)
     end)
     sched:add(function()
+        assert(not socket.listen(30724))
         local s = socket.connect("127.0.0.1", 30724)
         assert(s)
         assert(s:isopen() == true)
