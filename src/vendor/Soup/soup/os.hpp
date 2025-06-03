@@ -66,10 +66,5 @@ NAMESPACE_SOUP
 	{
 		return GetCurrentProcessId();
 	}
-
-	inline void os::sleep(unsigned int ms) noexcept
-	{
-		::Sleep(ms);
-	}
 #endif
 }

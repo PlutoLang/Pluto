@@ -118,6 +118,35 @@ NAMESPACE_SOUP
 		}
 #endif
 
+		[[nodiscard]] static unsigned int getNumTrailingZeros(uint16_t mask) noexcept
+		{
+			if (mask != 0)
+			{
+				return getLeastSignificantSetBit(mask);
+			}
+			return sizeof(mask) * 8;
+		}
+
+		[[nodiscard]] static unsigned int getNumTrailingZeros(uint32_t mask) noexcept
+		{
+			if (mask != 0)
+			{
+				return getLeastSignificantSetBit(mask);
+			}
+			return sizeof(mask) * 8;
+		}
+
+#if SOUP_BITS >= 64
+		[[nodiscard]] static unsigned int getNumTrailingZeros(uint64_t mask) noexcept
+		{
+			if (mask != 0)
+			{
+				return getLeastSignificantSetBit(mask);
+			}
+			return sizeof(mask) * 8;
+		}
+#endif
+
 		template <typename T>
 		static constexpr void unsetLeastSignificantSetBit(T& val)
 		{
@@ -144,11 +173,11 @@ NAMESPACE_SOUP
 			SOUP_DEBUG_ASSERT(mask != 0); // UB!
 
 #if defined(_MSC_VER) && !defined(__clang__)
-			unsigned long ret;
-			_BitScanReverse(&ret, mask);
-			return ret;
+			unsigned long idx;
+			_BitScanReverse(&idx, mask);
+			return idx;
 #else
- 			return 31 - __builtin_clz(mask);
+			return 31 - __builtin_clz(mask);
 #endif
 		}
 

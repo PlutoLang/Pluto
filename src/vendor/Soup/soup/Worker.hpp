@@ -16,7 +16,13 @@ NAMESPACE_SOUP
 		WORKER_TYPE_UNSPECIFIED = 0,
 		WORKER_TYPE_SOCKET,
 		WORKER_TYPE_TASK,
-		WORKER_TYPE_USER,
+		WORKER_TYPE_USER // use this as the counting base for your own types
+	};
+
+	enum : uint8_t
+	{
+		WORKER_FLAG_USER, // use this as the counting base for your own flags
+		WORKER_FLAG_SIZE = 8
 	};
 
 	struct Worker
@@ -30,16 +36,10 @@ NAMESPACE_SOUP
 			PROMISE_VOID,
 		};
 
-		enum SchedulingDisposition : int
-		{
-			HIGH_FREQUENCY = (1 << 1) | (1 << 0),
-			NEUTRAL = 1 << 0,
-			LOW_FREQUENCY = 0,
-		};
-
 		uint8_t type;
 		uint8_t recursions = 0;
 		HoldupType holdup_type = NONE;
+		uint8_t flags = 0;
 		Callback<void(Worker&)> holdup_callback;
 		void* holdup_data;
 

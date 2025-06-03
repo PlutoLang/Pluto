@@ -58,5 +58,14 @@ NAMESPACE_SOUP
 		{
 			offset = size;
 		}
+
+		const void* getMemoryView(size_t size) const noexcept final
+		{
+			if (this->offset + size <= this->size)
+			{
+				return this->data + this->offset;
+			}
+			return nullptr;
+		}
 	};
 }

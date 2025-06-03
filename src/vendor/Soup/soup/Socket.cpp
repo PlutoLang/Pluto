@@ -107,31 +107,26 @@ NAMESPACE_SOUP
 		return fd != -1;
 	}
 
-	bool Socket::connect(const char* host, uint16_t port) noexcept
-	{
-		return connect(std::string(host), port);
-	}
-
-	bool Socket::connect(const std::string& host, uint16_t port) noexcept
+	bool Socket::connect(const std::string& host, uint16_t port, unsigned int timeout_ms) noexcept
 	{
 		if (IpAddr hostaddr; hostaddr.fromString(host))
 		{
-			return connect(hostaddr, port);
+			return connect(hostaddr, port, timeout_ms);
 		}
 		auto res = netConfig::get().getDnsResolver().lookupIPv4(host);
-		if (!res.empty() && connect(rand(res), port))
+		if (!res.empty() && connect(rand(res), port, timeout_ms))
 		{
 			return true;
 		}
 		res = netConfig::get().getDnsResolver().lookupIPv6(host);
-		if (!res.empty() && connect(rand(res), port))
+		if (!res.empty() && connect(rand(res), port, timeout_ms))
 		{
 			return true;
 		}
 		return false;
 	}
 
-	bool Socket::connect(const SocketAddr& addr) noexcept
+	bool Socket::connect(const SocketAddr& addr, unsigned int timeout_ms) noexcept
 	{
 		SOUP_RETHROW_FALSE(kickOffConnect(addr));
 		pollfd pfd;
@@ -139,9 +134,9 @@ NAMESPACE_SOUP
 		pfd.events = POLLOUT;
 		pfd.revents = 0;
 #if SOUP_WINDOWS
-		int res = ::WSAPoll(&pfd, 1, netConfig::get().connect_timeout_ms);
+		int res = ::WSAPoll(&pfd, 1, timeout_ms);
 #else
-		int res = ::poll(&pfd, 1, netConfig::get().connect_timeout_ms);
+		int res = ::poll(&pfd, 1, timeout_ms);
 #endif
 		SOUP_IF_UNLIKELY (res != 1 || (pfd.revents & ~POLLOUT))
 		{
@@ -149,11 +144,6 @@ NAMESPACE_SOUP
 			return false;
 		}
 		return true;
-	}
-
-	bool Socket::connect(const IpAddr& ip, uint16_t port) noexcept
-	{
-		return connect(SocketAddr(ip, native_u16_t(port)));
 	}
 
 	bool Socket::kickOffConnect(const SocketAddr& addr) noexcept
@@ -197,12 +187,8 @@ NAMESPACE_SOUP
 
 	bool Socket::isPortLocallyBound(uint16_t port)
 	{
-		auto og = netConfig::get().connect_timeout_ms;
-		netConfig::get().connect_timeout_ms = 20;
 		Socket sock;
-		const bool ret = sock.connect(SOUP_IPV4_NWE(127, 0, 0, 1), port);
-		netConfig::get().connect_timeout_ms = og;
-		return ret;
+		return sock.connect(SOUP_IPV4_NWE(127, 0, 0, 1), port, 20);
 	}
 
 	bool Socket::bind6(uint16_t port) noexcept
@@ -249,7 +235,12 @@ NAMESPACE_SOUP
 		sa.sin6_family = AF_INET6;
 		sa.sin6_port = port_ne;
 		memcpy(&sa.sin6_addr, &addr.data, sizeof(in6_addr));
-		return setOpt<int>(SOL_SOCKET, SO_REUSEADDR, 1)
+		return
+#if SOUP_WINDOWS
+			(type != SOCK_STREAM || setOpt<int>(SOL_SOCKET, SO_LINGER, 0))
+#else
+			setOpt<int>(SOL_SOCKET, SO_REUSEADDR, 1)
+#endif
 			&& bind(fd, (sockaddr*)&sa, sizeof(sa)) != -1
 			&& (type != SOCK_STREAM || listen(fd, 100) != -1)
 			&& setNonBlocking()
@@ -272,7 +263,12 @@ NAMESPACE_SOUP
 		sa.sin_family = AF_INET;
 		sa.sin_port = port_ne;
 		sa.sin_addr.s_addr = addr.getV4();
-		return setOpt<int>(SOL_SOCKET, SO_REUSEADDR, 1)
+		return
+#if SOUP_WINDOWS
+			(type != SOCK_STREAM || setOpt<int>(SOL_SOCKET, SO_LINGER, 0))
+#else
+			setOpt<int>(SOL_SOCKET, SO_REUSEADDR, 1)
+#endif
 			&& bind(fd, (sockaddr*)&sa, sizeof(sa)) != -1
 			&& (type != SOCK_STREAM || listen(fd, 100) != -1)
 			&& setNonBlocking()
@@ -469,7 +465,7 @@ NAMESPACE_SOUP
 			};
 
 			StringWriter sw;
-			sw.vec_u16be_bl_u16be(supported_signature_schemes);
+			sw.vec_u16_bl_u16_be(supported_signature_schemes);
 
 			hello.extensions.add(TlsExtensionType::signature_algorithms, std::move(sw.data));
 		}
@@ -856,14 +852,7 @@ NAMESPACE_SOUP
 			&& tls_sendRecord(TlsContentType::change_cipher_spec, "\1")
 			)
 		{
-			handshaker->getKeys(
-				tls_encrypter_send.mac_key,
-				handshaker->pending_recv_encrypter.mac_key,
-				tls_encrypter_send.cipher_key,
-				handshaker->pending_recv_encrypter.cipher_key,
-				tls_encrypter_send.implicit_iv,
-				handshaker->pending_recv_encrypter.implicit_iv
-			);
+			handshaker->getKeys(tls_encrypter_send, handshaker->pending_recv_encrypter);
 			if (tls_sendHandshake(handshaker, TlsHandshake::finished, handshaker->getClientFinishVerifyData()))
 			{
 				if (!handshaker->initial_application_data.empty())
@@ -1062,14 +1051,7 @@ NAMESPACE_SOUP
 						auto& s = static_cast<Socket&>(w);
 						UniquePtr<SocketTlsHandshaker> handshaker = std::move(cap.get<UniquePtr<SocketTlsHandshaker>>());
 
-						handshaker->getKeys(
-							s.tls_encrypter_recv.mac_key,
-							s.tls_encrypter_send.mac_key,
-							s.tls_encrypter_recv.cipher_key,
-							s.tls_encrypter_send.cipher_key,
-							s.tls_encrypter_recv.implicit_iv,
-							s.tls_encrypter_send.implicit_iv
-						);
+						handshaker->getKeys(s.tls_encrypter_recv, s.tls_encrypter_send);
 
 						handshaker->expected_finished_verify_data = handshaker->getClientFinishVerifyData();
 
@@ -1479,7 +1461,7 @@ NAMESPACE_SOUP
 					if (!s.tls_encrypter_recv.isAead())
 					{
 						constexpr auto record_iv_length = 16;
-						const auto mac_length = s.tls_encrypter_recv.mac_key.size();
+						const auto mac_length = s.tls_encrypter_recv.mac_key_len;
 
 						if ((data.size() % cipher_bytes) != 0
 							|| data.size() < (cipher_bytes + mac_length)
@@ -1493,7 +1475,7 @@ NAMESPACE_SOUP
 						data.erase(0, record_iv_length);
 						aes::cbcDecrypt(
 							reinterpret_cast<uint8_t*>(data.data()), data.size(),
-							reinterpret_cast<const uint8_t*>(s.tls_encrypter_recv.cipher_key.data()), s.tls_encrypter_recv.cipher_key.size(),
+							s.tls_encrypter_recv.cipher_key, s.tls_encrypter_recv.cipher_key_len,
 							reinterpret_cast<const uint8_t*>(iv.data())
 						);
 
@@ -1529,9 +1511,10 @@ NAMESPACE_SOUP
 					}
 					else
 					{
-						constexpr auto record_iv_length = 8;
+						constexpr auto implicit_iv_len = 4;
+						constexpr auto explicit_iv_len = 8;
 
-						if (data.size() < (record_iv_length + cipher_bytes))
+						if (data.size() < (explicit_iv_len + cipher_bytes))
 						{
 							s.tls_close(TlsAlertDescription::bad_record_mac);
 							return;
@@ -1547,18 +1530,19 @@ NAMESPACE_SOUP
 
 						data.erase(data.length() - cipher_bytes);
 
-						auto iv = s.tls_encrypter_recv.implicit_iv;
-						auto nonce_explicit = data.substr(0, record_iv_length);
-						iv.insert(iv.end(), nonce_explicit.begin(), nonce_explicit.end());
-						data.erase(0, record_iv_length);
+						uint8_t iv[implicit_iv_len + explicit_iv_len];
+						memcpy(iv, s.tls_encrypter_recv.implicit_iv, implicit_iv_len);
+						auto nonce_explicit = data.substr(0, explicit_iv_len);
+						memcpy(&iv[implicit_iv_len], nonce_explicit.data(), nonce_explicit.size());
+						data.erase(0, explicit_iv_len);
 
 						auto ad = s.tls_encrypter_recv.calculateMacBytes(cap.content_type, data.size());
 
 						if (aes::gcmDecrypt(
 							(uint8_t*)data.data(), data.size(),
 							(const uint8_t*)ad.data(), ad.size(),
-							s.tls_encrypter_recv.cipher_key.data(), s.tls_encrypter_recv.cipher_key.size(),
-							iv.data(), iv.size(),
+							s.tls_encrypter_recv.cipher_key, s.tls_encrypter_recv.cipher_key_len,
+							iv, sizeof(iv),
 							(const uint8_t*)tag.data()
 						) != true)
 						{

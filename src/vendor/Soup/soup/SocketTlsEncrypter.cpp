@@ -8,11 +8,6 @@
 
 NAMESPACE_SOUP
 {
-	size_t SocketTlsEncrypter::getMacLength() const noexcept
-	{
-		return mac_key.size();
-	}
-
 	std::string SocketTlsEncrypter::calculateMacBytes(TlsContentType_t content_type, size_t content_length) SOUP_EXCAL
 	{
 		TlsMac mac{};
@@ -25,17 +20,17 @@ NAMESPACE_SOUP
 	std::string SocketTlsEncrypter::calculateMac(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL
 	{
 		auto msg = calculateMacBytes(content_type, size);
-		if (mac_key.size() == 20)
+		if (mac_key_len == 20)
 		{
-			sha1::HmacState st(mac_key);
+			sha1::HmacState st(mac_key, mac_key_len);
 			st.append(msg.data(), msg.size());
 			st.append(data, size);
 			st.finalise();
 			return st.getDigest();
 		}
-		//else if (mac_key.size() == 32)
+		//else if (mac_key_len == 32)
 		{
-			sha256::HmacState st(mac_key);
+			sha256::HmacState st(mac_key, mac_key_len);
 			st.append(msg.data(), msg.size());
 			st.append(data, size);
 			st.finalise();
@@ -64,7 +59,7 @@ NAMESPACE_SOUP
 			auto iv = rand.vec_u8(record_iv_length);
 			aes::cbcEncrypt(
 				buf.data(), buf.size(),
-				cipher_key.data(), cipher_key.size(),
+				cipher_key, cipher_key_len,
 				iv.data()
 			);
 
@@ -73,28 +68,32 @@ NAMESPACE_SOUP
 		}
 		else // AES-GCM
 		{
-			constexpr auto record_iv_length = 8;
+			constexpr auto implicit_iv_len = 4;
+			constexpr auto explicit_iv_len = 8;
 
-			auto nonce_explicit = rand.vec_u8(record_iv_length);
-			auto iv = implicit_iv;
-			iv.insert(iv.end(), nonce_explicit.begin(), nonce_explicit.end());
+			uint8_t iv[implicit_iv_len + explicit_iv_len];
+			memcpy(iv, implicit_iv, implicit_iv_len);
+			for (auto i = implicit_iv_len; i != implicit_iv_len + explicit_iv_len; ++i)
+			{
+				iv[i] = rand.byte();
+			}
 
 			auto ad = calculateMacBytes(content_type, size);
 
-			Buffer buf(size + cipher_bytes + nonce_explicit.size());
+			Buffer buf(size + cipher_bytes + explicit_iv_len);
+			buf.append(&iv[implicit_iv_len], explicit_iv_len);
 			buf.append(data, size);
 
 			uint8_t tag[cipher_bytes];
 			aes::gcmEncrypt(
-				buf.data(), buf.size(),
+				buf.data() + explicit_iv_len, buf.size() - explicit_iv_len,
 				(const uint8_t*)ad.data(), ad.size(),
-				cipher_key.data(), cipher_key.size(),
-				iv.data(), iv.size(),
+				cipher_key, cipher_key_len,
+				iv, sizeof(iv),
 				tag
 			);
 
 			buf.append(tag, cipher_bytes);
-			buf.prepend(nonce_explicit.data(), nonce_explicit.size());
 			return buf;
 		}
 	}
@@ -102,7 +101,7 @@ NAMESPACE_SOUP
 	void SocketTlsEncrypter::reset() noexcept
 	{
 		seq_num = 0;
-		cipher_key.clear();
-		mac_key.clear();
+		cipher_key_len = 0;
+		mac_key_len = 0;
 	}
 }

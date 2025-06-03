@@ -47,19 +47,6 @@ NAMESPACE_SOUP
 		return static_cast<intptr_t>(in.tellg());
 	}
 
-	bool filesystem::replace(const std::filesystem::path& replaced, const std::filesystem::path& replacement)
-	{
-#if SOUP_WINDOWS
-		SOUP_IF_UNLIKELY (!std::filesystem::exists(replaced))
-		{
-			return MoveFileW(replacement.c_str(), replaced.c_str()) != 0;
-		}
-		return ReplaceFileW(replaced.c_str(), replacement.c_str(), nullptr, 0, 0, 0) != 0;
-#else
-		return ::rename(replacement.c_str(), replaced.c_str()) == 0;
-#endif
-	}
-
 	std::filesystem::path filesystem::tempfile(const std::string& ext)
 	{
 		std::filesystem::path path;
@@ -95,12 +82,12 @@ NAMESPACE_SOUP
 	}
 
 #if SOUP_WINDOWS
-	static char empty_file_data = 0;
+	static const char empty_file_data = 0;
 #endif
 
-	void* filesystem::createFileMapping(const std::filesystem::path& path, size_t& out_len)
+	const void* filesystem::createFileMapping(const std::filesystem::path& path, size_t& out_len)
 	{
-		void* addr = nullptr;
+		const void* addr = nullptr;
 #if SOUP_WINDOWS
 		HANDLE f = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 		SOUP_IF_LIKELY (f != INVALID_HANDLE_VALUE)
@@ -141,7 +128,7 @@ NAMESPACE_SOUP
 		return addr;
 	}
 
-	void filesystem::destroyFileMapping(void* addr, size_t len)
+	void filesystem::destroyFileMapping(const void* addr, size_t len)
 	{
 #if SOUP_WINDOWS
 		if (addr != &empty_file_data)
@@ -149,7 +136,7 @@ NAMESPACE_SOUP
 			UnmapViewOfFile(addr);
 		}
 #else
-		munmap(addr, len);
+		munmap(const_cast<void*>(addr), len);
 #endif
 	}
 }

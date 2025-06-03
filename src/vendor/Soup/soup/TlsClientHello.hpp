@@ -24,7 +24,7 @@ NAMESPACE_SOUP
 			return version.io(s)
 				&& random.io(s)
 				&& s.template str_lp<u8_t>(session_id, 32)
-				&& s.vec_u16be_bl_u16be(cipher_suites)
+				&& s.vec_u16_bl_u16_be(cipher_suites)
 				&& s.vec_u8_u8(compression_methods)
 				&& extensions.io(s)
 				;

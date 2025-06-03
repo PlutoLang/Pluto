@@ -11,11 +11,6 @@ NAMESPACE_SOUP
 		return arr->at(i);
 	}
 
-	JsonArray::JsonArray() noexcept
-		: JsonNode(JSON_ARRAY)
-	{
-	}
-
 	void JsonArray::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
 		str.push_back('[');
@@ -55,30 +50,35 @@ NAMESPACE_SOUP
 		}
 	}
 
-	bool JsonArray::binaryEncode(Writer& w) const
+	bool JsonArray::msgpackEncode(Writer& w) const
 	{
+		if (children.size() <= 0b1111)
 		{
-			uint8_t b = JSON_ARRAY;
-			if (!w.u8(b))
-			{
-				return false;
-			}
+			uint8_t b = 0b1001'0000 | (uint8_t)children.size();
+			SOUP_RETHROW_FALSE(w.u8(b));
+		}
+		else if (children.size() <= 0xffff)
+		{
+			uint8_t b = 0xdc;
+			SOUP_RETHROW_FALSE(w.u8(b));
+			auto len = (uint16_t)children.size();
+			SOUP_RETHROW_FALSE(w.u16_be(len));
+		}
+		else if (children.size() <= 0xffff'ffff)
+		{
+			uint8_t b = 0xdd;
+			SOUP_RETHROW_FALSE(w.u8(b));
+			auto len = (uint32_t)children.size();
+			SOUP_RETHROW_FALSE(w.u32_be(len));
+		}
+		else
+		{
+			SOUP_ASSERT_UNREACHABLE;
 		}
 
 		for (const auto& child : children)
 		{
-			if (!child->binaryEncode(w))
-			{
-				return false;
-			}
-		}
-
-		{
-			uint8_t b = 0b111;
-			if (!w.u8(b))
-			{
-				return false;
-			}
+			SOUP_RETHROW_FALSE(child->msgpackEncode(w));
 		}
 
 		return true;

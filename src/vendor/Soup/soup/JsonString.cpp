@@ -6,26 +6,6 @@
 
 NAMESPACE_SOUP
 {
-	JsonString::JsonString() noexcept
-		: JsonNode(JSON_STRING)
-	{
-	}
-
-	JsonString::JsonString(const std::string& value) noexcept
-		: JsonNode(JSON_STRING), value(value)
-	{
-	}
-
-	JsonString::JsonString(std::string&& value) noexcept
-		: JsonNode(JSON_STRING), value(std::move(value))
-	{
-	}
-
-	JsonString::JsonString(const char* data, size_t size) noexcept
-		: JsonNode(JSON_STRING), value(data, size)
-	{
-	}
-
 	size_t JsonString::getEncodedSize(const char* data, size_t size) noexcept
 	{
 		std::string_view sw(data, size);
@@ -204,19 +184,46 @@ NAMESPACE_SOUP
 		str.push_back('"');
 	}
 
-	bool JsonString::binaryEncode(Writer& w) const
+	bool JsonString::msgpackEncode(Writer& w) const
 	{
-		uint8_t b = JSON_STRING;
-		if (value.size() < 0b11111)
+		if (value.size() <= 0b11111)
 		{
-			b |= ((uint8_t)value.size() << 3);
+			uint8_t b = 0b1010'0000 | (uint8_t)value.size();
 			return w.u8(b)
-				&& w.str(value.size(), value)
+				&& w.str(value.size(), value.data())
 				;
 		}
-		b |= (0b11111 << 3);
-		return w.u8(b)
-			&& w.str_lp_u64_dyn(*this)
-			;
+
+		if (value.size() <= 0xff)
+		{
+			uint8_t b = 0xd9;
+			auto len = (uint8_t)value.size();
+			return w.u8(b)
+				&& w.u8(len)
+				&& w.str(value.size(), value.data())
+				;
+		}
+
+		if (value.size() <= 0xffff)
+		{
+			uint8_t b = 0xda;
+			auto len = (uint16_t)value.size();
+			return w.u8(b)
+				&& w.u16_be(len)
+				&& w.str(value.size(), value.data())
+				;
+		}
+
+		if (value.size() <= 0xffff'ffff)
+		{
+			uint8_t b = 0xdb;
+			auto len = (uint32_t)value.size();
+			return w.u8(b)
+				&& w.u32_be(len)
+				&& w.str(value.size(), value.data())
+				;
+		}
+
+		SOUP_ASSERT_UNREACHABLE;
 	}
 }
