@@ -31,7 +31,8 @@ NAMESPACE_SOUP
 		virtual void encodeAndAppendTo(std::string& str) const SOUP_EXCAL = 0;
 		void encodePrettyAndAppendTo(std::string& str, unsigned depth = 0) const SOUP_EXCAL;
 
-		virtual bool binaryEncode(Writer& w) const = 0; // specific to soup
+		// Encodes a MessagePack (https://msgpack.org/) binary stream.
+		virtual bool msgpackEncode(Writer& w) const = 0;
 
 		[[nodiscard]] UniquePtr<JsonNode> clone() const SOUP_EXCAL;
 

@@ -13,8 +13,8 @@
 
 NAMESPACE_SOUP
 {
-	netConnectTask::netConnectTask(const std::string& host, uint16_t port, bool prefer_ipv6)
-		: status(NET_PENDING)
+	netConnectTask::netConnectTask(const std::string& host, uint16_t port, bool prefer_ipv6, unsigned int timeout_ms)
+		: timeout_ms(timeout_ms), status(NET_PENDING)
 	{
 		if (IpAddr ip; ip.fromString(host))
 		{
@@ -99,7 +99,7 @@ NAMESPACE_SOUP
 			if (res == 0)
 			{
 				// Pending
-				if (time::millisSince(started_connect_at) > netConfig::get().connect_timeout_ms)
+				if (time::millisSince(started_connect_at) > timeout_ms)
 				{
 					// Timeout
 					sock.transport_close();

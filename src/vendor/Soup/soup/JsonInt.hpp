@@ -8,12 +8,15 @@ NAMESPACE_SOUP
 	{
 		int64_t value;
 
-		explicit JsonInt(int64_t value = 0) noexcept;
+		explicit JsonInt(int64_t value = 0) noexcept
+			: JsonNode(JSON_INT), value(value)
+		{
+		}
 
 		bool operator ==(const JsonNode& b) const noexcept final;
 
 		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
-		bool binaryEncode(Writer& w) const final;
+		bool msgpackEncode(Writer& w) const final;
 		
 		operator int64_t() const noexcept
 		{

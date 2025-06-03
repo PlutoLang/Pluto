@@ -147,6 +147,14 @@ NAMESPACE_SOUP
 			return ret;
 		}
 
+		// Length-prefixed string, using u64_dyn_v2 for the length prefix.
+		bool str_lp_u64_dyn_v2(const std::string& v) noexcept
+		{
+			bool ret = u64_dyn_v2(v.size());
+			ret &= raw(const_cast<char*>(v.data()), v.size());
+			return ret;
+		}
+
 		// Length-prefixed string, using mysql_lenenc for the length prefix.
 		bool str_lp_mysql(const std::string& v) noexcept
 		{
@@ -187,8 +195,8 @@ NAMESPACE_SOUP
 			return ret;
 		}
 
-		// vector of u16be with u16be byte length prefix.
-		bool vec_u16be_bl_u16be(std::vector<uint16_t>& v) noexcept
+		// vector of u16 with u16 byte length prefix, using big endian over-the-wire.
+		bool vec_u16_bl_u16_be(std::vector<uint16_t>& v) noexcept
 		{
 			size_t bl = (v.size() * sizeof(uint16_t));
 			SOUP_IF_UNLIKELY (bl > 0xFFFF)
@@ -197,10 +205,10 @@ NAMESPACE_SOUP
 			}
 			bool ret = true;
 			auto bl_u16 = (uint16_t)bl;
-			ret &= ioBase::u16be(bl_u16);
+			ret &= ioBase::u16_be(bl_u16);
 			for (auto& entry : v)
 			{
-				ret &= ioBase::u16be(entry);
+				ret &= ioBase::u16_be(entry);
 			}
 			return ret;
 		}
@@ -218,8 +226,8 @@ NAMESPACE_SOUP
 			return ret;
 		}
 
-		// vector of str_lp<u24be_t> with u24be byte length prefix.
-		bool vec_str_lp_u24be_bl_u24be(std::vector<std::string>& v) noexcept
+		// vector of str_lp<u24_be_t> with u24_be byte length prefix.
+		bool vec_str_lp_u24_bl_u24_be(std::vector<std::string>& v) noexcept
 		{
 			size_t bl = (v.size() * 3);
 			for (const auto& entry : v)
@@ -232,10 +240,10 @@ NAMESPACE_SOUP
 			}
 			bool ret = true;
 			auto bl_u32 = (uint32_t)bl;
-			ret &= ioBase::u24be(bl_u32);
+			ret &= ioBase::u24_be(bl_u32);
 			for (auto& entry : v)
 			{
-				ret &= str_lp<u24be_t>(entry);
+				ret &= str_lp<u24_be_t>(entry);
 			}
 			return ret;
 		}

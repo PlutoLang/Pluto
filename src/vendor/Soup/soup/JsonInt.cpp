@@ -4,11 +4,6 @@
 
 NAMESPACE_SOUP
 {
-	JsonInt::JsonInt(int64_t value) noexcept
-		: JsonNode(JSON_INT), value(value)
-	{
-	}
-
 	bool JsonInt::operator==(const JsonNode& b) const noexcept
 	{
 		return JSON_INT == b.type
@@ -21,17 +16,80 @@ NAMESPACE_SOUP
 		str.append(std::to_string(value));
 	}
 
-	bool JsonInt::binaryEncode(Writer& w) const
+	bool JsonInt::msgpackEncode(Writer& w) const
 	{
-		uint8_t b = JSON_INT;
-		if (value >= 0 && value < 0b11111)
+		if (value >= 0)
 		{
-			b |= (value << 3);
-			return w.u8(b);
+			if (value < 0x80)
+			{
+				uint8_t b = (uint8_t)value;
+				return w.u8(b);
+			}
+			if (value <= 0xff)
+			{
+				uint8_t b = 0xcc;
+				auto val = (uint8_t)value;
+				return w.u8(b)
+					&& w.u8(val)
+					;
+			}
+			if (value <= 0xffff)
+			{
+				uint8_t b = 0xcd;
+				auto val = (uint16_t)value;
+				return w.u8(b)
+					&& w.u16_be(val)
+					;
+			}
+			if (value <= 0xffff'ffff)
+			{
+				uint8_t b = 0xce;
+				auto val = (uint32_t)value;
+				return w.u8(b)
+					&& w.u32_be(val)
+					;
+			}
+			uint8_t b = 0xcf;
+			uint64_t val = value;
+			return w.u8(b)
+				&& w.u64_be(val)
+				;
 		}
-		b |= (0b11111 << 3);
-		return w.u8(b)
-			&& w.i64_dyn(value)
-			;
+		else
+		{
+			if (value >= -32)
+			{
+				int8_t b = (int8_t)value;
+				return w.i8(b);
+			}
+			if (value >= -128)
+			{
+				uint8_t b = 0xd0;
+				auto val = (int8_t)value;
+				return w.u8(b)
+					&& w.i8(val)
+					;
+			}
+			if (value >= -32768)
+			{
+				uint8_t b = 0xd1;
+				auto val = (int16_t)value;
+				return w.u8(b)
+					&& w.i16_be(val)
+					;
+			}
+			if (value >= -2147483648)
+			{
+				uint8_t b = 0xd2;
+				auto val = (int32_t)value;
+				return w.u8(b)
+					&& w.i32_be(val)
+					;
+			}
+			uint8_t b = 0xd3;
+			return w.u8(b)
+				&& w.i64_be(const_cast<JsonInt*>(this)->value)
+				;
+		}
 	}
 }

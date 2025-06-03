@@ -6,8 +6,10 @@
 
 #if SOUP_WINDOWS
 	#pragma comment(lib, "Gdi32.lib")
+	#pragma comment(lib, "Winmm.lib") // timeBeginPeriod, timeEndPeriod
 
 	#include <psapi.h>
+	#include <timeapi.h> // timeBeginPeriod, timeEndPeriod
 
 	#include "Exception.hpp"
 	#include "ObfusString.hpp"
@@ -130,10 +132,16 @@ NAMESPACE_SOUP
 	{
 		return ::getpid();
 	}
+#endif
 
 	void os::sleep(unsigned int ms) noexcept
 	{
-#if _POSIX_C_SOURCE >= 199309L
+#if SOUP_WINDOWS
+		timeBeginPeriod(ms);
+		::Sleep(ms);
+		timeEndPeriod(ms);
+#else
+	#if _POSIX_C_SOURCE >= 199309L
 		struct timespec ts;
 		ts.tv_sec = ms / 1000;
 		ts.tv_nsec = (ms % 1000) * 1000000;
@@ -142,15 +150,15 @@ NAMESPACE_SOUP
 		{
 			res = ::nanosleep(&ts, &ts);
 		} while (res && errno == EINTR);
-#else
+	#else
 		if (ms >= 1000)
 		{
 			::sleep(ms / 1000);
 		}
 		::usleep((ms % 1000) * 1000);
+	#endif
 #endif
 	}
-#endif
 
 #if SOUP_WINDOWS
 	static bool copy_to_clipboard_utf16(const std::wstring& text)

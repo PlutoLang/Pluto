@@ -50,7 +50,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::string pack(TlsHandshakeType_t handshake_type, const std::string& content) SOUP_EXCAL;
 
 		[[nodiscard]] std::string getMasterSecret() SOUP_EXCAL;
-		void getKeys(std::string& client_write_mac, std::string& server_write_mac, std::vector<uint8_t>& client_write_key, std::vector<uint8_t>& server_write_key, std::vector<uint8_t>& client_write_iv, std::vector<uint8_t>& server_write_iv) SOUP_EXCAL;
+		void getKeys(SocketTlsEncrypter& client_write, SocketTlsEncrypter& server_write) SOUP_EXCAL;
 
 		[[nodiscard]] std::string getClientFinishVerifyData() SOUP_EXCAL;
 		[[nodiscard]] std::string getServerFinishVerifyData() SOUP_EXCAL;

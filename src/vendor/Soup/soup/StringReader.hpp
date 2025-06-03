@@ -80,5 +80,14 @@ NAMESPACE_SOUP
 			}
 			return false;
 		}
+
+		const void* getMemoryView(size_t size) const noexcept final
+		{
+			if (this->offset + size <= this->data.size())
+			{
+				return this->data.data() + this->offset;
+			}
+			return nullptr;
+		}
 	};
 }

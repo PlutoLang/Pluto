@@ -33,6 +33,8 @@ NAMESPACE_SOUP
 			return true;
 		}
 
+		virtual const void* getMemoryView(size_t size) const noexcept { return nullptr; }
+
 		// An unsigned 64-bit integer encoded in 1..9 bytes. The most significant bit of bytes 1 to 8 is used to indicate if another byte follows.
 		// Lua implementation: https://gist.github.com/Sainan/02c3ac9cea5015341412c92feec95e56
 		bool u64_dyn(uint64_t& v) noexcept;
@@ -120,7 +122,7 @@ NAMESPACE_SOUP
 				if (first == 0xFC)
 				{
 					uint16_t val;
-					if (u16le(val))
+					if (u16_le(val))
 					{
 						v = val;
 						return true;
@@ -129,7 +131,7 @@ NAMESPACE_SOUP
 				if (first == 0xFD)
 				{
 					uint32_t val;
-					if (u24le(val))
+					if (u24_le(val))
 					{
 						v = val;
 						return true;
@@ -138,7 +140,7 @@ NAMESPACE_SOUP
 				if (first == 0xFE)
 				{
 					uint64_t val;
-					if (u64le(val))
+					if (u64_le(val))
 					{
 						v = val;
 						return true;
@@ -181,6 +183,13 @@ NAMESPACE_SOUP
 			return u64_dyn(len) && str((size_t)len, v);
 		}
 
+		// Length-prefixed string, using u64_dyn_v2 for the length prefix.
+		bool str_lp_u64_dyn_v2(std::string& v) SOUP_EXCAL
+		{
+			uint64_t len;
+			return u64_dyn_v2(len) && str((size_t)len, v);
+		}
+
 		// Length-prefixed string, using mysql_lenenc for the length prefix.
 		bool str_lp_mysql(std::string& v)
 		{
@@ -221,21 +230,21 @@ NAMESPACE_SOUP
 			return true;
 		}
 
-		// vector of u16be with u16be byte length prefix.
-		bool vec_u16be_bl_u16be(std::vector<uint16_t>& v) SOUP_EXCAL
+		// vector of u16 with u16 byte length prefix, using big endian over-the-wire.
+		bool vec_u16_bl_u16_be(std::vector<uint16_t>& v) SOUP_EXCAL
 		{
 			uint16_t len;
-			SOUP_RETHROW_FALSE(ioBase::u16be(len));
+			SOUP_RETHROW_FALSE(ioBase::u16_be(len));
 			v.clear();
 			v.reserve(len / 2);
 			for (; len >= sizeof(uint16_t); len -= sizeof(uint16_t))
 			{
 				uint16_t entry;
-				SOUP_IF_UNLIKELY (!ioBase::u16be(entry))
+				SOUP_IF_UNLIKELY (!ioBase::u16_be(entry))
 				{
 					return false;
 				}
-				v.emplace_back(std::move(entry));
+				v.emplace_back(entry);
 			}
 			return true;
 		}
@@ -259,17 +268,17 @@ NAMESPACE_SOUP
 			return true;
 		}
 
-		// vector of str_lp<u24be_t> with u24be byte length prefix.
-		bool vec_str_lp_u24be_bl_u24be(std::vector<std::string>& v) SOUP_EXCAL
+		// vector of str_lp<u24_be_t> with u24_be byte length prefix.
+		bool vec_str_lp_u24_bl_u24_be(std::vector<std::string>& v) SOUP_EXCAL
 		{
 			uint32_t len;
-			SOUP_RETHROW_FALSE(ioBase::u24be(len));
+			SOUP_RETHROW_FALSE(ioBase::u24_be(len));
 			v.clear();
 			v.reserve(len / 3);
 			while (len >= 3)
 			{
 				std::string entry;
-				SOUP_IF_UNLIKELY (!str_lp<u24be_t>(entry))
+				SOUP_IF_UNLIKELY (!str_lp<u24_be_t>(entry))
 				{
 					return false;
 				}

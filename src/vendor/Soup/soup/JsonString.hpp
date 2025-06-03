@@ -10,17 +10,32 @@ NAMESPACE_SOUP
 	{
 		std::string value{};
 
-		explicit JsonString() noexcept;
-		explicit JsonString(const std::string& value) noexcept;
-		explicit JsonString(std::string&& value) noexcept;
-		explicit JsonString(const char* data, size_t size) noexcept;
+		explicit JsonString() noexcept
+			: JsonNode(JSON_STRING)
+		{
+		}
+
+		explicit JsonString(const std::string& value) noexcept
+			: JsonNode(JSON_STRING), value(value)
+		{
+		}
+
+		explicit JsonString(std::string&& value) noexcept
+			: JsonNode(JSON_STRING), value(std::move(value))
+		{
+		}
+
+		explicit JsonString(const char* data, size_t size) noexcept
+			: JsonNode(JSON_STRING), value(data, size)
+		{
+		}
 
 		bool operator ==(const JsonNode& b) const noexcept final;
 
 		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
 		static void encodeValue(std::string& str, const std::string& value) SOUP_EXCAL { return encodeValue(str, value.data(), value.size()); }
 		static void encodeValue(std::string& str, const char* data, size_t size) SOUP_EXCAL;
-		bool binaryEncode(Writer& w) const final;
+		bool msgpackEncode(Writer& w) const final;
 
 		operator std::string& () noexcept
 		{

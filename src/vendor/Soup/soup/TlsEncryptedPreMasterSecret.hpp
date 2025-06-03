@@ -10,7 +10,7 @@ NAMESPACE_SOUP
 
 		SOUP_PACKET_IO(s)
 		{
-			return s.template str_lp<u16be_t>(data);
+			return s.template str_lp<u16_be_t>(data);
 		}
 	};
 }

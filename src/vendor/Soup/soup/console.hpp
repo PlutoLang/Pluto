@@ -23,6 +23,16 @@
 
 NAMESPACE_SOUP
 {
+	enum ControlInput : uint8_t
+	{
+		UP,
+		DOWN,
+		LEFT,
+		RIGHT,
+		NEW_LINE,
+		BACKSPACE,
+	};
+
 	class console_impl
 	{
 	private:

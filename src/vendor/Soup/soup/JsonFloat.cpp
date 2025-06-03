@@ -5,23 +5,24 @@
 
 NAMESPACE_SOUP
 {
-	JsonFloat::JsonFloat(double value) noexcept
-		: JsonNode(JSON_FLOAT), value(value)
-	{
-	}
-
 	void JsonFloat::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
 	{
 		str.append(string::fdecimal(value));
 	}
 
-	bool JsonFloat::binaryEncode(Writer& w) const
+	bool JsonFloat::msgpackEncode(Writer& w) const
 	{
-		uint8_t b = JSON_FLOAT;
-		uint64_t val;
-		*reinterpret_cast<double*>(&val) = value;
+		if (auto fval = (float)value; value == (double)fval) // Can be represented as f32 without precision loss?
+		{
+			uint8_t b = 0xca;
+			return w.u8(b)
+				&& w.f32(fval)
+				;
+		}
+
+		uint8_t b = 0xcb;
 		return w.u8(b)
-			&& w.u64le(val)
+			&& w.f64(const_cast<JsonFloat*>(this)->value)
 			;
 	}
 }
