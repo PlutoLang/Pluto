@@ -116,7 +116,7 @@ NAMESPACE_SOUP
 			}
 			else
 			{
-				if (res != -1)
+				if (res == 1 && !(pfd.revents & ~POLLOUT))
 				{
 					// Success
 					sock.setOpt<int>(IPPROTO_TCP, TCP_NODELAY, 1);

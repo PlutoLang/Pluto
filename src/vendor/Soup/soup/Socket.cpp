@@ -143,7 +143,7 @@ NAMESPACE_SOUP
 #else
 		int res = ::poll(&pfd, 1, netConfig::get().connect_timeout_ms);
 #endif
-		SOUP_IF_UNLIKELY (res != 1)
+		SOUP_IF_UNLIKELY (res != 1 || (pfd.revents & ~POLLOUT))
 		{
 			transport_close();
 			return false;
