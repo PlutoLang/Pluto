@@ -205,13 +205,10 @@ static void *weaklycheckudata (lua_State *L, int ud, const char *tname) {
   return p;
 }
 
-struct FfiFuncInfo {
-  FfiType ret;
-  std::vector<FfiType> args;
-};
-
-struct FfiFuncWrapper : public FfiFuncInfo {
+struct FfiFuncWrapper {
   void* addr;
+  std::vector<FfiType> args;
+  FfiType ret;
   soup::SharedPtr<soup::SharedLibrary> owner;
 };
 
@@ -634,13 +631,15 @@ static int ffi_read (lua_State *L) {
   return 1;
 }
 
-struct FfiCallback : public FfiFuncInfo {
+struct FfiCallback {
   void* trampoline = nullptr;
+  std::vector<FfiType> args;
+  FfiType ret;
+  bool blocking = false;
+  std::atomic<uint16_t> waiting = false;
   lua_State* L = nullptr;
   soup::Notifyable L_notify;
   soup::RecursiveMutex L_mtx;
-  std::atomic<uint16_t> waiting = false;
-  bool blocking = false;
 
   ~FfiCallback() {
     if (trampoline) {
