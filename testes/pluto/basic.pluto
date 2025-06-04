@@ -2963,6 +2963,26 @@ do
     ++t.a
     assert(t.a == 2)
 end
+do
+    -- postfix statement
+    local a = 1
+    a++
+    assert(a == 2)
+
+    local t = { a = 1 }
+    t.a++
+    assert(t.a == 2)
+end
+do
+    -- postfix expression
+    local a = 1
+    assert(a++ == 1)
+    assert(a == 2)
+
+    local t = { a = 1 }
+    assert(t.a++ == 1)
+    assert(t.a == 2)
+end
 
 print "Testing non-ascii variable names."
 do
