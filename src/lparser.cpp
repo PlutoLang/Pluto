@@ -137,31 +137,6 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here, const 
 inline thread_local bool parser_emitted_warnings;
 #endif
 
-// No note.
-static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
-  if (ls->shouldEmitWarning(line, warningType)) {
-    auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
-    msg->addMsg(err)
-      .addMsg(" [")
-      .addMsg(ls->getWarningConfig().getWarningName(warningType))
-      .addMsg("]")
-      .addSrcLine(line)
-      .addGenericHere(here)
-      .finalize();
-    if (ls->getWarningConfig().isFatal(warningType)) {
-      delete msg;
-      luaD_throw(ls->L, LUA_ERRSYNTAX);
-    }
-#ifdef PLUTO_PARSER_CACHE
-    parser_emitted_warnings = true;
-#endif
-    lua_warning(ls->L, msg->content.c_str(), 0);
-    delete msg;
-    ls->L->top.p -= 2; // Pluto::ErrorMessage::finalize & luaG_addinfo
-  }
-}
-
-// Note.
 static void throw_warn(LexState* ls, const char* err, const char* here, const char* note, int line, WarningType warningType) {
   if (ls->shouldEmitWarning(line, warningType)) {
     auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
@@ -186,12 +161,16 @@ static void throw_warn(LexState* ls, const char* err, const char* here, const ch
   }
 }
 
+static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
+  return throw_warn(ls, err, here, "", line, warningType);
+}
+
 static void throw_warn(LexState *ls, const char* err, const char *here, WarningType warningType) {
-  return throw_warn(ls, err, here, ls->getLineNumber(), warningType);
+  return throw_warn(ls, err, here, "", ls->getLineNumber(), warningType);
 }
 
 static void throw_warn(LexState *ls, const char *err, int line, WarningType warningType) {
-  return throw_warn(ls, err, "", line, warningType);
+  return throw_warn(ls, err, "", "", line, warningType);
 }
 
 #pragma warning(disable : 4068) // unknown pragma
@@ -2575,7 +2554,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
     const auto expected = funcdesc->getNumParams();
     const auto received = (int)fas.argdescs.size();
     if (!funcdesc->proto->is_vararg && expected < received) {  /* Too many arguments? */
-      auto suffix = expected == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
+      const char* suffix = expected == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
       throw_warn(ls,
         "too many arguments",
           luaO_fmt(ls->L, "expected %d argument%s, got %d.", expected, suffix, received), line, WT_EXCESSIVE_ARGUMENTS);
