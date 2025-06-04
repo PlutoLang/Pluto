@@ -40,3 +40,17 @@ SOUP_CEXPORT void buffer_test(uint8_t* in, size_t inlen, uint8_t* out, size_t ou
     }
     memcpy(out, in, inlen);
 }
+
+using callback_t = int(*)(int);
+
+static callback_t s_cb;
+
+SOUP_CEXPORT void set_cb(callback_t cb)
+{
+    s_cb = cb;
+}
+
+SOUP_CEXPORT int call_cb(int val)
+{
+    return s_cb(val);
+}
