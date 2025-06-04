@@ -199,7 +199,9 @@ if ffi.callback then
     end)
     cb:defaultreturn(-1)
     lib:wrap("void", "set_cb", "ptr")(cb)
+    assert(cb:callcount() == 0)
     assert(lib:wrap("i32", "call_cb", "i32")(42) == -1)
+    assert(cb:callcount() == 1)
 end
 
 -- Finally, remove the library from scope and ensure that it's not unloaded while its functions are still accessible
