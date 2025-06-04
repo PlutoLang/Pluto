@@ -669,8 +669,8 @@ static const char* const common_global_names[] = { PLUTO_COMMON_GLOBAL_NAMES };
 
 static int searchvar (FuncState *fs, TString *n, expdesc *var);
 static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int line, bool check_globals = true, bool check_locals = true) {
-  std::string n = name->toCpp();
-  if (n == "(for state)" || n == "(switch control value)" || n == "(try results)")
+  const char* n = getstr(name);
+  if (strcmp(n, "(for state)") == 0 || strcmp(n, "(switch control value)") == 0 || strcmp(n, "(try results)") == 0)
     return;
   FuncState *current_fs = fs;
   while (current_fs != nullptr) {
@@ -690,7 +690,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, TString *name, int l
     }
     if (check_globals) {
       for (const auto& global_name : common_global_names) {
-        if (n == global_name) {
+        if (strcmp(n, global_name) == 0) {
           throw_warn(ls,
             "duplicate global declaration",
               luaO_fmt(ls->L, "this shadows the initial global definition of '%s'", getstr(name)), line, WT_GLOBAL_SHADOW);

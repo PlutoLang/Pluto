@@ -219,6 +219,14 @@ do
     local x
     local x]]
 end
+do
+    -- This shouldn't leak memory
+    assert(not load[[
+    -- @pluto_warnings error-var-shadow
+    local aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    local aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    ]])
+end
 
 print "Testing assertion library."
 do
