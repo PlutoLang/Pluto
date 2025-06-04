@@ -3759,7 +3759,7 @@ static BinOpr getbinopr (int op) {
 
 static void prefixplusplus (LexState *ls, expdesc *v, bool as_statement) {
   int line = ls->getLineNumber();
-  luaX_next(ls); /* skip second '+' */
+  luaX_next(ls);  /* skip TK_PLUSPLUS */
   if (as_statement)
     suffixedexp(ls, v);
   else
@@ -3838,21 +3838,20 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
   else if (ls->t.token == '+') {
+    /* support pseudo-unary '+' by implying '0 + subexpr' */
     int line = ls->getLineNumber();
     luaX_next(ls); /* skip '+' */
-    if (ls->t.token == '+') { /* '++' ? */
-      prefixplusplus(ls, v, false);
-    }
-    else {
-      /* support pseudo-unary '+' by implying '0 + subexpr' */
-      init_exp(v, VKINT, 0);
-      v->u.ival = 0;
-      luaK_infix(ls->fs, OPR_ADD, v);
 
-      expdesc v2;
-      subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, flags);
-      luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
-    }
+    init_exp(v, VKINT, 0);
+    v->u.ival = 0;
+    luaK_infix(ls->fs, OPR_ADD, v);
+
+    expdesc v2;
+    subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, flags);
+    luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
+  }
+  else if (ls->t.token == TK_PLUSPLUS) {
+    prefixplusplus(ls, v, false);
   }
   else {
     simpleexp(ls, v, flags, prop);
@@ -5761,9 +5760,7 @@ static void statement (LexState *ls, TypeHint *prop) {
       usestat(ls);
       break;
     }
-    case '+': {
-      luaX_next(ls);
-      check(ls, '+');
+    case TK_PLUSPLUS: {
       expdesc v;
       prefixplusplus(ls, &v, true);
       break;
