@@ -568,20 +568,26 @@ static void process_assign (LexState *ls, int vidx, const TypeHint& t, int line)
   auto knownvalue = !t.empty();
   auto incompatible = !var->vd.hint->isCompatibleWith(t);
   if (hinted && knownvalue && incompatible) {
-    const auto hint = var->vd.hint->toString();
-    std::string err = var->vd.name->toCpp();
-    err.insert(0, "'");
-    err.append("' type-hinted as '" + hint);
+    std::string hint = var->vd.hint->toString();
+    auto& err = *pluto_newclassinst(ls->L, std::string);
+    err.push_back('\'');
+    err.append(var->vd.name->toCpp());
+    err.append("' type-hinted as '");
+    err.append(hint);
     err.append("', but provided with ");
     err.append(t.toString());
     err.append(" value.");
     if (t.toPrimitive() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
-      throw_warn(ls, "variable type mismatch", err.c_str(), luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str()), line, WT_TYPE_MISMATCH);
-      ls->L->top.p--; // luaO_fmt
+      const char* here = luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str());
+      hint.clear(); hint.shrink_to_fit();
+      throw_warn(ls, "variable type mismatch", err.c_str(), here, line, WT_TYPE_MISMATCH);
+      ls->L->top.p--;  /* pop 'here' */
     }
     else {  /* Throw a generic mismatch warning. */
+      hint.clear(); hint.shrink_to_fit();
       throw_warn(ls, "variable type mismatch", err.c_str(), line, WT_TYPE_MISMATCH);
     }
+    ls->L->top.p--;  /* pop 'err' */
   }
   var->vd.prop->merge(t); /* propagate type */
   if (ls->fs->bl->var_overide != VT_NONE && ls->fs->bl->var_overide_vidx == vidx) {
@@ -2267,11 +2273,13 @@ static void checkrettype (LexState *ls, TypeHint& rethint, TypeHint& retprop, in
   if (!rethint.empty() /* has type hint for return type? */
       && !retprop.empty() && retprop.descs[0].type != VT_DUNNO /* return type is known? */
       && !rethint.isCompatibleWith(retprop)) { /* incompatible? */
-    std::string err = "function was hinted to return ";
+    auto& err = *pluto_newclassinst(ls->L, std::string);
+    err = "function was hinted to return ";
     err.append(rethint.toString());
     err.append(" but actually returns ");
     err.append(retprop.toString());
     throw_warn(ls, err.c_str(), line, WT_TYPE_MISMATCH);
+    ls->L->top.p--;  /* pop 'err' */
   }
 }
 
@@ -2542,13 +2550,15 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
           continue; /* skip arguments without propagated type */
       }
       if (!param_hint->isCompatibleWith(arg)) {
-        std::string err = "Function's '";;
+        auto& err = *pluto_newclassinst(ls->L, std::string);
+        err = "Function's '";;
         err.append(getstr(funcdesc->proto->locvars[i].varname), tsslen(funcdesc->proto->locvars[i].varname));
         err.append("' parameter was type-hinted as ");
         err.append(param_hint->toString());
         err.append(" but provided with ");
         err.append(arg.toString());
         throw_warn(ls, err.c_str(), "argument type mismatch", line, WT_TYPE_MISMATCH);
+        ls->L->top.p--;  /* pop 'err' */
       }
     }
     const auto expected = funcdesc->getNumParams();

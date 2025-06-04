@@ -226,6 +226,10 @@ do
     local aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     local aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     ]])
+    assert(not load[[
+    -- @pluto_warnings error-type-mismatch
+    local aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: string = 1
+    ]])
 end
 
 print "Testing assertion library."
