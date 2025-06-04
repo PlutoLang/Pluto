@@ -633,6 +633,7 @@ static int ffi_read (lua_State *L) {
 
 struct FfiCallback {
   void* trampoline = nullptr;
+  uintptr_t defaultreturn = 0;
   std::vector<FfiType> args;
   FfiType ret;
   bool blocking = false;
@@ -663,8 +664,8 @@ struct FfiCallback {
 };
 
 static uintptr_t ffi_callback_trampoline (uintptr_t user_data, const uintptr_t* args) {
-  uintptr_t retval = 0;
   auto& cb = *reinterpret_cast<FfiCallback*>(user_data);
+  uintptr_t retval = cb.defaultreturn;
   if (callback_L) {
     cb.exec(callback_L, args, retval);
   }
@@ -718,14 +719,30 @@ static int ffi_callback (lua_State *L) {
   lua_settable(L, -3);
   lua_pushliteral(L, "blocking");
   lua_pushcfunction(L, [](lua_State *L) -> int {
+    const auto nargs = lua_gettop(L);
     lua_pushliteral(L, "__object");
     if (lua_gettable(L, 1) == LUA_TUSERDATA) {
       auto& cb = *(FfiCallback*)lua_touserdata(L, -1);
-      if (lua_gettop(L) == 1) {
+      if (nargs == 1) {
         lua_pushboolean(L, cb.blocking);
         return 1;
       }
       cb.blocking = lua_toboolean(L, 2);
+    }
+    return 0;
+  });
+  lua_settable(L, -3);
+  lua_pushliteral(L, "defaultreturn");
+  lua_pushcfunction(L, [](lua_State *L) -> int {
+    const auto nargs = lua_gettop(L);
+    lua_pushliteral(L, "__object");
+    if (lua_gettable(L, 1) == LUA_TUSERDATA) {
+      auto& cb = *(FfiCallback*)lua_touserdata(L, -1);
+      if (nargs == 1) {
+        push_ffi_value(L, cb.ret, &cb.defaultreturn);
+        return 1;
+      }
+      cb.defaultreturn = check_ffi_value(L, 2, cb.ret);
     }
     return 0;
   });
