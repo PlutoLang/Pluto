@@ -651,6 +651,7 @@ static int ffi_read (lua_State *L) {
 struct FfiCallback {
   void* trampoline = nullptr;
   uintptr_t defaultreturn = 0;
+  lua_Number callcount = 0;
   std::vector<FfiType> args;
   FfiType ret;
   bool blocking = false;
@@ -699,6 +700,7 @@ struct FfiCallback {
 static uintptr_t ffi_callback_trampoline (uintptr_t user_data, const uintptr_t* args) {
   auto& cb = *reinterpret_cast<FfiCallback*>(user_data);
   uintptr_t retval = cb.defaultreturn;
+  ++cb.callcount;
   if (callback_L) {
     cb.exec(callback_L, args, retval);
   }
@@ -776,6 +778,18 @@ static int ffi_callback (lua_State *L) {
         return 1;
       }
       cb.defaultreturn = check_ffi_value(L, 2, cb.ret);
+    }
+    return 0;
+  });
+  lua_settable(L, -3);
+  lua_pushliteral(L, "callcount");
+  lua_pushcfunction(L, [](lua_State *L) -> int {
+    const auto nargs = lua_gettop(L);
+    lua_pushliteral(L, "__object");
+    if (lua_gettable(L, 1) == LUA_TUSERDATA) {
+      auto& cb = *(FfiCallback*)lua_touserdata(L, -1);
+      lua_pushnumber(L, cb.callcount);
+      return 1;
     }
     return 0;
   });
