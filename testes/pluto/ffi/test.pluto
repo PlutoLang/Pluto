@@ -173,6 +173,13 @@ if ffi.callback then
     end)
     lib:wrap("void", "set_cb", "ptr")(cb)
     assert(lib:wrap("i32", "call_cb", "i32")(42) == 42 + 69)
+
+    cb:blocking(true)
+    lib:wrap("void", "call_cb_async")()
+    repeat
+        cb:tick()
+    until lib:value("i32", "cb_async_res") ~= 0
+    assert(lib:value("i32", "cb_async_res") == 90)
 end
 
 -- Finally, remove the library from scope and ensure that it's not unloaded while its functions are still accessible
