@@ -1,3 +1,9 @@
+if os.platform == "windows" then
+    os.execute("clang -std=c++17 --shared -o lib.dll lib.cpp")
+else
+    os.execute("clang -std=c++17 -lstdc++ --shared -fPIC -o liblib.so lib.cpp")
+end
+
 local ffi = require "ffi"
 
 local lib = ffi.open(os.platform == "windows" ? "lib" : "./liblib.so")
@@ -159,6 +165,15 @@ void buffer_test(uint8_t* in, size_t inlen, uint8_t* out, size_t outlen);
 ]]
 lib.buffer_test(pIn, 13, pOut, 13)
 assert(ffi.read(pOut) == "Hello, world!")
+
+-- Callbacks
+if ffi.callback then
+    local cb = ffi.callback("i32", "i32", function(val)
+        return val + 69
+    end)
+    lib:wrap("void", "set_cb", "ptr")(cb)
+    assert(lib:wrap("i32", "call_cb", "i32")(42) == 42 + 69)
+end
 
 -- Finally, remove the library from scope and ensure that it's not unloaded while its functions are still accessible
 local add = lib.add
