@@ -829,6 +829,7 @@
     <ClInclude Include="src\vendor\Soup\soup\netConnectTask.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netReuseTag.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netStatus.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\Notifyable.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ObfusString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Oid.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Op.hpp" />
@@ -853,6 +854,7 @@
     <ClInclude Include="src\vendor\Soup\soup\rand.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Range.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Reader.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\RecursiveMutex.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Regex.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\RegexAlternative.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\RegexAnyCharConstraint.hpp" />
