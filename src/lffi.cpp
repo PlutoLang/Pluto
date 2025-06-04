@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "vendor/Soup/soup/ffi.hpp"
+#include "vendor/Soup/soup/Notifyable.hpp"
 #include "vendor/Soup/soup/rflFunc.hpp"
 #include "vendor/Soup/soup/rflParser.hpp"
 #include "vendor/Soup/soup/rflStruct.hpp"
@@ -162,6 +163,15 @@ static uint64_t check_ffi_value (lua_State *L, int i, FfiType type) {
       static_assert(sizeof(double) == sizeof(uint64_t));
     }
     case FFI_PTR:
+      if (lua_type(L, i) == LUA_TTABLE) {
+        lua_pushliteral(L, "__ffiaddr");
+        if (lua_gettable(L, i) == LUA_TLIGHTUSERDATA) {
+          const auto val = reinterpret_cast<uint64_t>(lua_touserdata(L, -1));
+          lua_pop(L, 1);
+          return val;
+        }
+        lua_pop(L, 1);
+      }
       if (lua_type(L, i) != LUA_TUSERDATA)
         luaL_checktype(L, i, LUA_TLIGHTUSERDATA);
       return reinterpret_cast<uint64_t>(lua_touserdata(L, i));
@@ -625,12 +635,30 @@ static int ffi_read (lua_State *L) {
 }
 
 struct FfiCallback : public FfiFuncInfo {
-  //lua_State* L;
   void* trampoline = nullptr;
+  lua_State* L = nullptr;
+  soup::Notifyable L_notify;
+  soup::RecursiveMutex L_mtx;
+  std::atomic<uint16_t> waiting = false;
+  bool blocking = false;
 
   ~FfiCallback() {
     if (trampoline) {
       soup::ffi::callbackFree(trampoline);
+    }
+  }
+
+  void exec(lua_State *L, const uintptr_t* args, uintptr_t& retval) const {
+    lua_pushinteger(L, reinterpret_cast<uintptr_t>(this));
+    if (lua_gettable(L, LUA_REGISTRYINDEX) == LUA_TFUNCTION) {
+      for (size_t i = 0; i != this->args.size(); ++i) {
+        push_ffi_value(L, this->args[i], &args[i]);
+      }
+      lua_call(L, (int)this->args.size(), ret != FFI_VOID);
+      if (ret != FFI_VOID) {
+        retval = check_ffi_value(L, -1, ret);
+        lua_pop(L, 1);
+      }
     }
   }
 };
@@ -639,16 +667,21 @@ static uintptr_t ffi_callback_trampoline (uintptr_t user_data, const uintptr_t* 
   uintptr_t retval = 0;
   auto& cb = *reinterpret_cast<FfiCallback*>(user_data);
   if (callback_L) {
-    lua_pushinteger(callback_L, reinterpret_cast<uintptr_t>(&cb));
-    if (lua_gettable(callback_L, LUA_REGISTRYINDEX) == LUA_TFUNCTION) {
-      for (size_t i = 0; i != cb.args.size(); ++i) {
-        push_ffi_value(callback_L, cb.args[i], &args[i]);
+    cb.exec(callback_L, args, retval);
+  }
+  else if (cb.blocking) {
+    ++cb.waiting;
+    while (true) {
+      if (!cb.L)
+        cb.L_notify.wait();
+      cb.L_mtx.lock();
+      if (cb.L) {
+        --cb.waiting;
+        cb.exec(cb.L, args, retval);
+        cb.L_mtx.unlock();
+        break;
       }
-      lua_call(callback_L, (int)cb.args.size(), cb.ret != FFI_VOID);
-      if (cb.ret != FFI_VOID) {
-        retval = check_ffi_value(callback_L, -1, cb.ret);
-        lua_pop(callback_L, 1);
-      }
+      cb.L_mtx.unlock();
     }
   }
   return retval;
@@ -668,7 +701,6 @@ static int ffi_callback (lua_State *L) {
   for (int i = 0; i != nargs; ++i) {
     cb.args.emplace_back(check_ffi_type(L, 2 + i));
   }
-  //cb.L = L->l_G->mainthread;
   cb.trampoline = soup::ffi::callbackAlloc(ffi_callback_trampoline, reinterpret_cast<uintptr_t>(&cb));
   lua_pushinteger(L, reinterpret_cast<uintptr_t>(&cb) + 1);
   lua_pushvalue(L, -2);
@@ -678,7 +710,47 @@ static int ffi_callback (lua_State *L) {
   lua_pushvalue(L, nargs + 2);
   lua_settable(L, LUA_REGISTRYINDEX);
 
+  lua_newtable(L);
+  lua_pushliteral(L, "__ffiaddr");
   lua_pushlightuserdata(L, cb.trampoline);
+  lua_settable(L, -3);
+  lua_pushliteral(L, "__object");
+  lua_pushvalue(L, -3);
+  lua_settable(L, -3);
+  lua_pushliteral(L, "blocking");
+  lua_pushcfunction(L, [](lua_State *L) -> int {
+    lua_pushliteral(L, "__object");
+    if (lua_gettable(L, 1) == LUA_TUSERDATA) {
+      auto& cb = *(FfiCallback*)lua_touserdata(L, -1);
+      if (lua_gettop(L) == 1) {
+        lua_pushboolean(L, cb.blocking);
+        return 1;
+      }
+      cb.blocking = lua_toboolean(L, 2);
+    }
+    return 0;
+  });
+  lua_settable(L, -3);
+  lua_pushliteral(L, "tick");
+  lua_pushcfunction(L, [](lua_State *L) -> int {
+    lua_pushliteral(L, "__object");
+    if (lua_gettable(L, 1) == LUA_TUSERDATA) {
+      auto& cb = *(FfiCallback*)lua_touserdata(L, -1);
+      cb.L_mtx.lock();
+      cb.L = L;
+      cb.L_mtx.unlock();
+      while (cb.waiting.load()) {
+        cb.L_notify.wakeOne();
+        cb.L_mtx.lock();
+        cb.L_mtx.unlock();
+      }
+      cb.L_mtx.lock();
+      cb.L = nullptr;
+      cb.L_mtx.unlock();
+    }
+    return 0;
+  });
+  lua_settable(L, -3);
   return 1;
 }
 
