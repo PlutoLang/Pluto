@@ -72,19 +72,18 @@ namespace Pluto {
 			return *this;
 		}
 
-		ErrorMessage& addNote(std::string&& msg) {
+		ErrorMessage& addNote(const char* msg) {
 #ifndef PLUTO_SHORT_ERRORS
-			this->content.push_back('\n');
-			this->content.append(this->line_len, ' ');
-			this->content.append(HCYN "+ note: " RESET);
+			if (*msg != '\0') {
+				this->content.push_back('\n');
+				this->content.append(this->line_len, ' ');
+				this->content.append(HCYN "+ note: " RESET);
 
-			if (msg.find("\n") != std::string::npos) { // Multi-line note?
-				std::vector<std::string> lines = soup::string::explode(msg, '\n');
-				
-				if (lines.empty()) {
-					this->content.append("There should be a note here, but something went wrong. Please report this at: https://github.com/PlutoLang/Pluto/issues");
-				}
-				else {
+				if (strchr(msg, '\n') != nullptr) { // Multi-line note?
+					std::vector<std::string> lines = soup::string::explode<std::string>(msg, '\n');
+
+					lua_assert(!lines.empty());
+
 					this->content.append(lines[0]);
 
 					for (auto i = lines.begin() + 1; i != lines.end(); ++i) {
@@ -94,9 +93,9 @@ namespace Pluto {
 						this->content.append(*i);
 					}
 				}
-			}
-			else {
-				this->content.append(msg);
+				else {
+					this->content.append(msg);
+				}
 			}
 #endif
 			return *this;
