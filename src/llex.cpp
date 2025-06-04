@@ -66,6 +66,7 @@ static const char *const luaX_tokens [] = {
     "<number>", "<integer>", "<name>", "<string>",
     "**", "??", ":=", "->", "|>",
     "<fallthrough annotation>", "<pluto_use annotation>",
+    "++",
 };
 
 
@@ -1133,20 +1134,33 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
         }
         return c;
       }
+      case '+': {
+        int c = ls->current;
+        next(ls);
+        ls->appendLineBuff(c);
+        if (check_next1(ls, '=')) {
+          seminfo->i = c;
+          ls->appendLineBuff('=');
+          return '=';
+        }
+        if (check_next1(ls, '+')) {
+          ls->appendLineBuff('+');
+          return TK_PLUSPLUS;
+        }
+        return c;
+      }
       /* compound support */
-      case '+': case '^':
+      case '^':
       case '%': case '&': {
         int c = ls->current;
         next(ls);
+        ls->appendLineBuff(c);
         if (check_next1(ls, '=')) {
           seminfo->i = c;
-          ls->appendLineBuff(c);
           ls->appendLineBuff('=');
           return '=';
-        } else {
-          ls->appendLineBuff(c);
-          return c;
         }
+        return c;
       }
       /* end of compound support */
       case EOZ: {
