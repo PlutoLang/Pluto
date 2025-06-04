@@ -5,6 +5,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "ldo.h"
+
 #include "vendor/Soup/soup/ffi.hpp"
 #include "vendor/Soup/soup/Notifyable.hpp"
 #include "vendor/Soup/soup/rflFunc.hpp"
@@ -648,7 +650,13 @@ struct FfiCallback {
     }
   }
 
-  void exec(lua_State *L, const uintptr_t* args, uintptr_t& retval) const {
+  struct ExecData {
+    const FfiCallback* cb;
+    const uintptr_t* args;
+    uintptr_t* retval;
+  };
+
+  void protectedExec(lua_State *L, const uintptr_t* args, uintptr_t& retval) const {
     lua_pushinteger(L, reinterpret_cast<uintptr_t>(this));
     if (lua_gettable(L, LUA_REGISTRYINDEX) == LUA_TFUNCTION) {
       for (size_t i = 0; i != this->args.size(); ++i) {
@@ -660,6 +668,16 @@ struct FfiCallback {
         lua_pop(L, 1);
       }
     }
+  }
+
+  static void staticProtectedExec(lua_State *L, void *ud) {
+    auto& ed = *(ExecData*)ud;
+    return ed.cb->protectedExec(L, ed.args, *ed.retval);
+  }
+
+  void exec(lua_State *L, const uintptr_t* args, uintptr_t& retval) const {
+    ExecData ed{ this, args, &retval };
+    luaD_pcall(L, staticProtectedExec, &ed, savestack(L, L->top.p), L->errfunc);
   }
 };
 
