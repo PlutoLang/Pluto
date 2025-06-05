@@ -2944,6 +2944,10 @@ do
     local a = 1
     assert(++a == 2)
     assert(a == 2)
+
+    local t = { a = 1 }
+    assert(++t.a == 2)
+    assert(t.a == 2)
 end
 do
     -- statement
