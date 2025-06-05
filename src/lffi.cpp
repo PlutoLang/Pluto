@@ -679,18 +679,12 @@ struct FfiCallback {
   void exec(lua_State *L, const uintptr_t* args, uintptr_t& retval) const {
     ExecData ed{ this, args, &retval };
     if (luaD_pcall(L, staticProtectedExec, &ed, savestack(L, L->top.p), L->errfunc) != LUA_OK) {
-#if SOUP_WINDOWS
-      throw std::exception(lua_tostring(L, -1));
-#endif
+      throw std::runtime_error(lua_tostring(L, -1));
     }
   }
 };
 
-#if SOUP_WINDOWS
 static uintptr_t ffi_callback_trampoline (uintptr_t user_data, const uintptr_t* args) {
-#else
-static uintptr_t ffi_callback_trampoline (uintptr_t user_data, const uintptr_t* args) noexcept {
-#endif
   auto& cb = *reinterpret_cast<FfiCallback*>(user_data);
   uintptr_t retval = cb.defaultreturn;
   ++cb.callcount;

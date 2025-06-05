@@ -34,12 +34,12 @@ NAMESPACE_SOUP
 			return call(func, args);
 		}
 
-		[[nodiscard]] static bool callbackAvailable();
-#if SOUP_WINDOWS
-		[[nodiscard]] static void* callbackAlloc(uintptr_t(*func)(uintptr_t user_data, const uintptr_t* args), uintptr_t user_data);
+#if SOUP_X86 && SOUP_BITS == 64
+		[[nodiscard]] static bool callbackAvailable() { return true; }
 #else
-		[[nodiscard]] static void* callbackAlloc(uintptr_t(*func)(uintptr_t user_data, const uintptr_t* args) noexcept, uintptr_t user_data);
+		[[nodiscard]] static bool callbackAvailable() { return false; }
 #endif
+		[[nodiscard]] static void* callbackAlloc(uintptr_t(*func)(uintptr_t user_data, const uintptr_t* args), uintptr_t user_data);
 		static void callbackFree(void* cb);
 	};
 }
