@@ -35,7 +35,11 @@ NAMESPACE_SOUP
 		}
 
 		[[nodiscard]] static bool callbackAvailable();
+#if SOUP_WINDOWS
 		[[nodiscard]] static void* callbackAlloc(uintptr_t(*func)(uintptr_t user_data, const uintptr_t* args), uintptr_t user_data);
+#else
+		[[nodiscard]] static void* callbackAlloc(uintptr_t(*func)(uintptr_t user_data, const uintptr_t* args) noexcept, uintptr_t user_data);
+#endif
 		static void callbackFree(void* cb);
 	};
 }
