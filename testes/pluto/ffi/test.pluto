@@ -200,7 +200,11 @@ if ffi.callback then
     cb:defaultreturn(-1)
     lib:wrap("void", "set_cb", "ptr")(cb)
     assert(cb:callcount() == 0)
-    assert(lib:wrap("i32", "call_cb", "i32")(42) == -1)
+    try
+        assert(lib:wrap("i32", "call_cb", "i32")(42) == -1)
+    catch e then
+        assert("oops" in e)
+    end
     assert(cb:callcount() == 1)
 end
 
