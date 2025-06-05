@@ -409,7 +409,7 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up,
 
 /*
 ** For each key-value pair in the table at -1, assigns it to the table at -2.
-** Pops the latter table from the stack.
+** Pops the former table from the stack.
 */
 static void trivialcopy (lua_State* L) {
   lua_pushnil(L);
