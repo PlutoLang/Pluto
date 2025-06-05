@@ -246,6 +246,59 @@ static int tunpack (lua_State *L) {
 
 
 /*
+** For each key-value pair in the table at -1, assigns it to the table at -2.
+** Pops the former table from the stack.
+*/
+static void trivialcopy (lua_State* L) {
+  lua_pushnil(L);
+  /* stack now: newtable, table, key */
+  while (lua_next(L, -2)) {
+    /* stack now: newtable, table, key, value */
+    lua_pushvalue(L, -2);
+    lua_pushvalue(L, -2);
+    lua_settable(L, -6);
+    lua_pop(L, 1);
+  }
+  lua_pop(L, 1);
+}
+
+
+/*
+** Pushes a clone of the table at i.
+*/
+static void auxclone (lua_State *L, int i, int depth) {
+  --depth;
+  lua_checkstack(L, 6);
+  lua_newtable(L);
+  lua_pushvalue(L, i < 0 ? i - 1 : i);
+  lua_pushnil(L);
+  while (lua_next(L, -2)) {
+    /* stack now: newtable, table, key, value */
+    lua_pushvalue(L, -2);
+    if (depth > 0 && lua_type(L, -2) == LUA_TTABLE) {
+      auxclone(L, -2, depth);
+    }
+    else {
+      lua_pushvalue(L, -2);
+    }
+    lua_settable(L, -6);
+    lua_pop(L, 1);
+  }
+  lua_pop(L, 1);
+}
+
+
+static int clone (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  auto depth = (int)luaL_optinteger(L, 2, 100);
+  luaL_argcheck(L, depth >= 1, 2, "depth must be at least 1");
+  auxclone(L, 1, depth);
+  return 1;
+}
+
+
+
+/*
 ** {======================================================
 ** Quicksort
 ** (based on 'Algorithms in MODULA-3', Robert Sedgewick;
@@ -407,33 +460,15 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up,
 }
 
 
-/*
-** For each key-value pair in the table at -1, assigns it to the table at -2.
-** Pops the former table from the stack.
-*/
-static void trivialcopy (lua_State* L) {
-  lua_pushnil(L);
-  /* stack now: newtable, table, key */
-  while (lua_next(L, -2)) {
-    /* stack now: newtable, table, key, value */
-    lua_pushvalue(L, -2);
-    lua_pushvalue(L, -2);
-    lua_settable(L, -6);
-    lua_pop(L, 1);
-  }
-  lua_pop(L, 1);
-}
-
-
 template <bool make_copy>
 static int sort (lua_State *L) {
+  lua_Integer n = aux_getn(L, 1, TAB_RW);
   if (make_copy) {
     lua_newtable(L);
     lua_pushvalue(L, 1);
     trivialcopy(L);
     lua_replace(L, 1);
   }
-  lua_Integer n = aux_getn(L, 1, TAB_RW);
   if (n > 1) {  /* non-trivial interval? */
     luaL_argcheck(L, n < INT_MAX, 1, "array too big");
     if (!lua_isnoneornil(L, 2))  /* is there a 2nd argument? */
@@ -1044,6 +1079,7 @@ static const luaL_Reg tab_funcs[] = {
   {"move", tmove},
   {"sort", sort<false>},
   {"sorted", sort<true>},
+  {"clone", clone},
   {"getn", getn},
   {NULL, NULL}
 };

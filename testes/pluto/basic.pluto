@@ -2111,6 +2111,32 @@ do
     assert(tr[3] == nil)
 end
 do
+    local t = {
+        a = {
+            b = {
+                c = {}
+            },
+        },
+    }
+    local t_1 = t:clone(1)
+    assert(t ~= t_1)
+    assert(t.a == t_1.a)
+    local t_2 = t:clone(2)
+    assert(t ~= t_2)
+    assert(t.a ~= t_2.a)
+    assert(t.a.b == t_2.a.b)
+    local t_3 = t:clone(3)
+    assert(t ~= t_3)
+    assert(t.a ~= t_3.a)
+    assert(t.a.b ~= t_3.a.b)
+    assert(t.a.b.c == t_3.a.b.c)
+    local t_x = t:clone()
+    assert(t ~= t_x)
+    assert(t.a ~= t_x.a)
+    assert(t.a.b ~= t_x.a.b)
+    assert(t.a.b.c ~= t_x.a.b.c)
+end
+do
     local menu = {
         { id = 1, name = "Apple" },
         { id = 2, name = "Banana" },
