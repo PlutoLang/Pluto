@@ -197,11 +197,11 @@ if ffi.callback then
     cb = ffi.callback("i32", "i32", function()
         error("oops")
     end)
-    cb:defaultreturn(-1)
     lib:wrap("void", "set_cb", "ptr")(cb)
     assert(cb:callcount() == 0)
     try
-        assert(lib:wrap("i32", "call_cb", "i32")(42) == -1)
+        lib:wrap("i32", "call_cb", "i32")(42)
+        error()
     catch e then
         assert("oops" in e)
     end
