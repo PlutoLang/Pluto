@@ -1988,7 +1988,7 @@ static void check_assignment (LexState *ls, const expdesc *v) {
     if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
       TString *name = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
       if (ls->explicit_globals.count(name) == 0) {
-        throw_warn(ls, "implicit global creation", luaO_fmt(ls->L, "use a 'global' statement or prefix '%s' with '_G.' to be explicit", getstr(name)), line, WT_IMPLICIT_GLOBAL);
+        throw_warn(ls, "implicit global creation", luaO_fmt(ls->L, "prefix '%s' with '_G.' to be explicit", getstr(name)), line, WT_IMPLICIT_GLOBAL);
         ls->L->top.p--;  /* pop result of luaO_fmt */
       }
     }
@@ -5410,6 +5410,9 @@ static void usestat (LexState *ls) {
     }
     else {
       tokens = { checkkeyword(ls) };
+      if (tokens[0] == TK_GLOBAL) {
+        throw_warn(ls, "'pluto_use global' is deprecated", "use '--@pluto_warnings enable-implicit-global' instead", WT_DEPRECATED);
+      }
     }
 
     /* check if enable or disable */
@@ -5723,6 +5726,7 @@ static void trystat (LexState *ls) {
 
 static void globalstat (LexState *ls) {
   const auto line = ls->getLineNumber();
+  throw_warn(ls, "the 'global' keyword is deprecated", "use the '_G.' prefix instead", WT_DEPRECATED);
   luaX_next(ls);  /* skip GLOBAL */
   if (ls->t.token == TK_FUNCTION) {
     luaX_next(ls);  /* skip FUNCTION */
