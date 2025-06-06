@@ -648,6 +648,7 @@ static int ffi_read (lua_State *L) {
   return 1;
 }
 
+#if SOUP_FFI_CALLBACK_AVAILABLE
 struct FfiCallback {
   void* trampoline = nullptr;
   uintptr_t defaultreturn = 0;
@@ -818,6 +819,7 @@ static int ffi_callback (lua_State *L) {
   lua_settable(L, -3);
   return 1;
 }
+#endif
 
 static const luaL_Reg funcs_ffi[] = {
   {"open", ffi_open},
@@ -831,11 +833,11 @@ static const luaL_Reg funcs_ffi[] = {
 LUAMOD_API int luaopen_ffi(lua_State *L) {
   luaL_newlib(L, funcs_ffi);
 
-  if (soup::ffi::callbackAvailable()) {
-    lua_pushliteral(L, "callback");
-    lua_pushcfunction(L, ffi_callback);
-    lua_settable(L, -3);
-  }
+#if SOUP_FFI_CALLBACK_AVAILABLE
+  lua_pushliteral(L, "callback");
+  lua_pushcfunction(L, ffi_callback);
+  lua_settable(L, -3);
+#endif
 
   lua_pushliteral(L, "new");
   lua_pushvalue(L, -2);
