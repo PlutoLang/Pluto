@@ -5184,7 +5184,7 @@ static void usestat (LexState *ls) {
     /* check affected tokens */
     bool is_all = false;
     bool is_version = false;
-    std::vector<int> tokens{};
+    auto& tokens = *pluto_newclassinst(ls->L, std::vector<int>);
     if (ls->t.token == '*') {
       is_all = true;
       for (int i = FIRST_NON_COMPAT; i != END_OPTIONAL; ++i) {
@@ -5250,6 +5250,8 @@ static void usestat (LexState *ls) {
     else {
       togglekeyword(ls, tokens.at(0), enable);
     }
+
+    ls->L->top.p--; /* pop 'tokens' */
   } while (testnext(ls, ','));
 
   /* update ls->t */

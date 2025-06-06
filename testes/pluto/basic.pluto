@@ -230,6 +230,13 @@ do
     -- @pluto_warnings error-type-mismatch
     local aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: string = 1
     ]])
+    assert(not load[[
+        -- @pluto_warnings error-bad-practice
+        pluto_use switch, continue, enum, new, class, parent, export, try, catch, *
+    ]])
+    assert(not load[[
+        pluto_use "0.9.0" = false
+    ]])
 end
 
 print "Testing assertion library."
