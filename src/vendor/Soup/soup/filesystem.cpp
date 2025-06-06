@@ -6,8 +6,8 @@
 #include <windows.h>
 #include <shlobj.h> // CSIDL_COMMON_APPDATA
 
-#pragma comment(lib, "Shell32.lib") // SHGetFolderPathW
-#pragma comment(lib, "User32.lib") // SendInput
+#pragma comment(lib, "shell32.lib") // SHGetFolderPathW
+#pragma comment(lib, "user32.lib") // SendInput
 #else
 #include <sys/mman.h>
 #include <sys/stat.h>

@@ -5,7 +5,7 @@
 #if SOUP_WINDOWS
 #include <windows.h>
 #include <bcrypt.h>
-#pragma comment(lib, "Bcrypt.lib")
+#pragma comment(lib, "bcrypt.lib")
 #elif SOUP_LINUX
 #include <sys/random.h>
 #else

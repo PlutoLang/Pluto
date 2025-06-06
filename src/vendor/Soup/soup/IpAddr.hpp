@@ -8,7 +8,7 @@
 #include "fwd.hpp"
 
 #if SOUP_WINDOWS
-#pragma comment(lib, "Ws2_32.lib")
+#pragma comment(lib, "ws2_32.lib")
 #include <ws2tcpip.h>
 #else
 #include <arpa/inet.h>

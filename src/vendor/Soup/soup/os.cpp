@@ -5,8 +5,8 @@
 #include <fstream>
 
 #if SOUP_WINDOWS
-	#pragma comment(lib, "Gdi32.lib")
-	#pragma comment(lib, "Winmm.lib") // timeBeginPeriod, timeEndPeriod
+	#pragma comment(lib, "gdi32.lib")
+	#pragma comment(lib, "winmm.lib") // timeBeginPeriod, timeEndPeriod
 
 	#include <psapi.h>
 	#include <timeapi.h> // timeBeginPeriod, timeEndPeriod
