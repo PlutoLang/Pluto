@@ -1,9 +1,11 @@
+print "Compiling library for FFI test."
 if os.platform == "windows" then
     os.execute("clang -std=c++17 --shared -o lib.dll lib.cpp")
 else
     os.execute("clang -std=c++17 -lstdc++ --shared -fPIC -o liblib.so lib.cpp")
 end
 
+print "Testing FFI."
 local ffi = require "ffi"
 
 local lib = ffi.open(os.platform == "windows" ? "lib" : "./liblib.so")
@@ -153,7 +155,7 @@ float_test_inst.d = 420
 assert(float_test_inst.f == 69)
 assert(float_test_inst.d == 420)
 
--- Allocations
+print "Testing FFI allocations."
 local pIn = ffi.alloc(13)
 local pOut = ffi.alloc(13)
 assert(ffi.read(pIn) == "\0":rep(13))
@@ -166,8 +168,8 @@ void buffer_test(uint8_t* in, size_t inlen, uint8_t* out, size_t outlen);
 lib.buffer_test(pIn, 13, pOut, 13)
 assert(ffi.read(pOut) == "Hello, world!")
 
--- Callbacks
 if ffi.callback then
+    print "Testing FFI callbacks."
     local cb = ffi.callback("i32", "i32", function(val)
         return val + 69
     end)
@@ -206,6 +208,8 @@ if ffi.callback then
         assert("oops" in e)
     end
     assert(cb:callcount() == 1)
+else
+    print "Skipping FFI callback test on unsupported platform."
 end
 
 -- Finally, remove the library from scope and ensure that it's not unloaded while its functions are still accessible
