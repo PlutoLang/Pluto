@@ -162,8 +162,8 @@ NAMESPACE_SOUP
 		/* 30 */ 0x48, 0xBE, 0, 0, 0, 0, 0, 0, 0, 0,				// mov     rsi, (8 bytes) ; user_data
 	#endif
 		/* 40 */ 0xFF, 0x25, 0x08, 0x00, 0x00, 0x00,				// jmp     QWORD PTR [rip+0x8] ; callback_finish
-		// 46: callback_save_args
-		// 54: callback_finish
+		/* 46 */ 0, 0, 0, 0, 0, 0, 0, 0,							// callback_save_args
+		/* 54 */ 0, 0, 0, 0, 0, 0, 0, 0,							// callback_finish
   #endif
 #else
 		/*  0 */ 0xff, 0x43, 0x00, 0xd1, // sub sp, sp, #16
@@ -180,10 +180,10 @@ NAMESPACE_SOUP
 		/* 44 */ 0x22, 0x01, 0x00, 0x10, // adr x2, #36 ; callback_finish (80 - 44)
 		/* 48 */ 0x42, 0x00, 0x40, 0xf9, // ldr x2, [x2]
 		/* 52 */ 0x40, 0x00, 0x1f, 0xd6, // br x2
-		// 56: callback_save_args
-		// 64: func
-		// 72: user_data
-		// 80: callback_finish
+		/* 56 */ 0, 0, 0, 0, 0, 0, 0, 0, // callback_save_args
+		/* 64 */ 0, 0, 0, 0, 0, 0, 0, 0, // func
+		/* 72 */ 0, 0, 0, 0, 0, 0, 0, 0, // user_data
+		/* 80 */ 0, 0, 0, 0, 0, 0, 0, 0, // callback_finish
 #endif
 	};
 #endif
@@ -192,11 +192,7 @@ NAMESPACE_SOUP
 	void* ffi::callbackAlloc(uintptr_t(*func)(uintptr_t user_data, const uintptr_t* args), uintptr_t user_data)
 	{
 #if SOUP_X86
-	#if SOUP_BITS == 32
 		void* block = memGuard::alloc(sizeof(callback_bytes), memGuard::ACC_RWX);
-	#else
-		void* block = memGuard::alloc(sizeof(callback_bytes) + sizeof(void*) * 2, memGuard::ACC_RWX);
-	#endif
 		memcpy(block, callback_bytes, sizeof(callback_bytes));
 	#if SOUP_BITS == 32
 		*(void**)((uint8_t*)block + 0 + 1) = (void*)&callback_save_args;
@@ -206,17 +202,19 @@ NAMESPACE_SOUP
 	#else
 		*(void**)((uint8_t*)block + 20 + 2) = (void*)func;
 		*(uintptr_t*)((uint8_t*)block + 30 + 2) = user_data;
-		*(void**)((uint8_t*)block + sizeof(callback_bytes)) = (void*)&callback_save_args;
-		*(void**)((uint8_t*)block + sizeof(callback_bytes) + sizeof(void*)) = (void*)&callback_finish;
+		*(void**)((uint8_t*)block + sizeof(callback_bytes) - sizeof(void*) * 2) = (void*)&callback_save_args;
+		*(void**)((uint8_t*)block + sizeof(callback_bytes) - sizeof(void*) * 1) = (void*)&callback_finish;
 	#endif
+		memGuard::setAllowedAccess(block, sizeof(callback_bytes), memGuard::ACC_READ | memGuard::ACC_EXEC);
 		return block;
 #elif SOUP_ARM && SOUP_BITS == 64
-		void* block = memGuard::alloc(sizeof(callback_bytes) + 8 * 4, memGuard::ACC_RWX);
+		void* block = memGuard::alloc(sizeof(callback_bytes), memGuard::ACC_RWX);
 		memcpy(block, callback_bytes, sizeof(callback_bytes));
-		*(void**)((uint8_t*)block + sizeof(callback_bytes) + 8 * 0) = (void*)&callback_save_args;
-		*(void**)((uint8_t*)block + sizeof(callback_bytes) + 8 * 1) = (void*)func;
-		*(uintptr_t*)((uint8_t*)block + sizeof(callback_bytes) + 8 * 2) = user_data;
-		*(void**)((uint8_t*)block + sizeof(callback_bytes) + 8 * 3) = (void*)&callback_finish;
+		*(void**)((uint8_t*)block + sizeof(callback_bytes) - 8 * 4) = (void*)&callback_save_args;
+		*(void**)((uint8_t*)block + sizeof(callback_bytes) - 8 * 3) = (void*)func;
+		*(uintptr_t*)((uint8_t*)block + sizeof(callback_bytes) - 8 * 2) = user_data;
+		*(void**)((uint8_t*)block + sizeof(callback_bytes) - 8 * 1) = (void*)&callback_finish;
+		memGuard::setAllowedAccess(block, sizeof(callback_bytes), memGuard::ACC_READ | memGuard::ACC_EXEC);
 		return block;
 #else
 		return nullptr;
