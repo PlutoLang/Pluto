@@ -62,6 +62,7 @@ enum RESERVED {
   TK_ARROW,
   TK_PIPE,
   TK_FALLTHROUGH, TK_USEANN,  /* annotations */
+  TK_PLUSPLUS,
 };
 
 #define FIRST_COMPAT TK_PUSE

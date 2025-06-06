@@ -543,10 +543,10 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
   TValue val;
   lua_State *L = fs->ls->L;
   Proto *f = fs->f;
-  const TValue *idx = luaH_get(fs->ls->h, key);  /* query scanner table */
+  int aux = luaH_get(fs->ls->h, key, &val);  /* query scanner table */
   int k, oldsize;
-  if (ttisinteger(idx)) {  /* is there an index there? */
-    k = cast_int(ivalue(idx));
+  if (aux == HOK && ttisinteger(&val)) {  /* is there an index there? */
+    k = cast_int(ivalue(&val));
     /* correct value? (warning: must distinguish floats from integers!) */
     if (k < fs->nk && ttypetag(&f->k[k]) == ttypetag(v) &&
                       luaV_rawequalobj(&f->k[k], v))
@@ -558,7 +558,7 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
   /* numerical value does not need GC barrier;
      table has no metatable, so it does not need to invalidate cache */
   setivalue(&val, k);
-  luaH_finishset(L, fs->ls->h, key, idx, &val);
+  luaH_set(L, fs->ls->h, key, &val);
   luaM_growvector(L, f->k, k, f->sizek, TValue, MAXARG_Ax, "constants");
   while (oldsize < f->sizek) setnilvalue(&f->k[oldsize++]);
   setobj(L, &f->k[k], v);
@@ -2063,7 +2063,7 @@ void luaK_finish (FuncState *fs) {
     lua_assert(i == 0 || isOT(*(pc - 1)) == isIT(*pc));
     switch (GET_OPCODE(*pc)) {
       case OP_RETURN0: case OP_RETURN1: {
-        if (!(fs->needclose || p->is_vararg))
+        if (!(fs->needclose || (p->flag & PF_ISVARARG)))
           break;  /* no extra work */
         /* else use OP_RETURN to do the extra work */
         SET_OPCODE(*pc, OP_RETURN);
@@ -2071,7 +2071,7 @@ void luaK_finish (FuncState *fs) {
       case OP_RETURN: case OP_TAILCALL: {
         if (fs->needclose)
           SETARG_k(*pc, 1);  /* signal that it needs to close */
-        if (p->is_vararg)
+        if (p->flag & PF_ISVARARG)
           SETARG_C(*pc, p->numparams + 1);  /* signal that it is vararg */
         break;
       }

@@ -654,4 +654,4 @@ LUAMOD_API int luaopen_ffi(lua_State *L) {
   return 1;
 }
 
-const Pluto::PreloadedLibrary Pluto::preloaded_ffi{ "ffi", funcs_ffi, &luaopen_ffi};
+const Pluto::PreloadedLibrary Pluto::preloaded_ffi{ PLUTO_FFILIBNAME, funcs_ffi, &luaopen_ffi};

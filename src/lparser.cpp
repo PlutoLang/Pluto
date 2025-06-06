@@ -1008,7 +1008,8 @@ static void singlevar (LexState *ls, expdesc *var) {
 ** local variable.
 */
 static l_noret jumpscopeerror (LexState *ls, Labeldesc *gt) {
-  const char *varname = getstr(getlocalvardesc(ls->fs, gt->nactvar)->vd.name);
+  TString *tsname = getlocalvardesc(ls->fs, gt->nactvar)->vd.name;
+  const char *varname = getstr(tsname);
   const char *msg;
   if (!gt->special) {
     msg = luaO_pushfstring(ls->L, "<goto %s> at line %d jumps into the scope of local '%s'", getstr((TString*)gt->name), gt->line, varname);
@@ -2024,7 +2025,7 @@ static void localclass (LexState *ls, bool isexport = false) {
 
 
 static void setvararg (FuncState *fs, int nparams) {
-  fs->f->is_vararg = 1;
+  fs->f->flag |= PF_ISVARARG;
   luaK_codeABC(fs, OP_VARARGPREP, nparams, 0, 0);
 }
 
@@ -2257,7 +2258,7 @@ static void namedvararg (LexState *ls, TString *varargname) {
   cc.na = cc.nh = cc.tostore = 0;
   cc.t = &t;
   luaK_reserveregs(fs, 1);
-  lua_assert(fs->f->is_vararg);
+  lua_assert(fs->f->flag & PF_ISVARARG);
   init_exp(&cc.v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
   cc.tostore++;
   lastlistfield(fs, &cc);
@@ -2563,7 +2564,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
     }
     const auto expected = funcdesc->getNumParams();
     const auto received = (int)fas.argdescs.size();
-    if (!funcdesc->proto->is_vararg && expected < received) {  /* Too many arguments? */
+    if (!(funcdesc->proto->flag & PF_ISVARARG) && expected < received) {  /* Too many arguments? */
       const char* suffix = expected == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
       throw_warn(ls,
         "too many arguments",
@@ -3126,10 +3127,103 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
 }
 
 
+static void prefixplusplus (LexState *ls, expdesc *v) {
+  int line = ls->getLineNumber();
+  FuncState *fs = ls->fs;
+  expdesc e = *v, v2;
+  if (v->k != VLOCAL) {  /* complex lvalue, use a temporary register. linear perf incr. with complexity of lvalue */
+    const auto regs_to_reserve = fs->freereg-luaY_nvarstack(fs);
+    luaK_dischargevars(fs, &e);
+    luaK_reserveregs(fs, regs_to_reserve);
+    enterlevel(ls);
+    luaK_infix(fs, OPR_ADD, &e);
+    init_exp(&v2, VKINT, 0);
+    v2.u.ival = 1;
+    luaK_posfix(fs, OPR_ADD, &e, &v2, line);
+    leavelevel(ls);
+    luaK_exp2nextreg(fs, &e);
+    luaK_setoneret(ls->fs, &e);
+    luaK_storevar(ls->fs, v, &e);
+  }
+  else {  /* simple lvalue; a local. directly change value (~20% speedup vs temporary register) */
+    enterlevel(ls);
+    luaK_infix(fs, OPR_ADD, &e);
+    init_exp(&v2, VKINT, 0);
+    v2.u.ival = 1;
+    luaK_posfix(fs, OPR_ADD, &e, &v2, line);
+    leavelevel(ls);
+    luaK_setoneret(ls->fs, &e);
+    luaK_storevar(ls->fs, v, &e);
+  }
+}
+
+
+static bool ispostfixplusplus (LexState *ls) {
+  bool ret = false;
+  const auto tidx = luaX_getpos(ls);
+  if (isnametkn(ls, N_OVERRIDABLE)) {
+    luaX_next(ls);
+    while (gett(ls) == '.') {
+      luaX_next(ls);
+      if (!isnametkn(ls, N_OVERRIDABLE))  /* validate name for fieldsel */
+        break;
+      luaX_next(ls);
+    }
+    ret = (gett(ls) == TK_PLUSPLUS);
+  }
+  luaX_setpos(ls, tidx);
+  return ret;
+}
+
+
+static void postfixplusplus (LexState *ls, expdesc *v, int line, int flags) {
+  FuncState new_fs;
+  BlockCnt bl;
+  new_fs.f = addprototype(ls);
+  new_fs.f->linedefined = line;
+  open_func(ls, &new_fs, &bl);
+
+  /* local ret = ... */
+  auto vidx = new_localvar(ls, luaX_newliteral(ls, "(postfix ++ return)"));
+  primaryexp(ls, v, flags);
+  while (gett(ls) == '.')
+    fieldsel(ls, v);
+  check(ls, TK_PLUSPLUS);
+  if (ls->t.line != line) {
+    throw_warn(ls, "possibly unwanted postfix ++", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", line), WT_POSSIBLE_TYPO);
+    ls->L->top.p--;
+  }
+  luaX_next(ls);
+  expdesc _v = *v;
+  luaK_exp2nextreg(&new_fs, v);
+  adjustlocalvars(ls, 1);
+
+  /* ++... */
+  prefixplusplus(ls, &_v);
+
+  /* return ret */
+  expdesc ret;
+  init_var(&new_fs, &ret, vidx);
+  luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, &ret), 1);
+
+  new_fs.f->lastlinedefined = ls->getLineNumber();
+  codeclosure(ls, v);
+  close_func(ls);
+
+  const auto base = v->u.reg;
+  init_exp(v, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, 1, 2));
+  ls->fs->freereg = base + 1;
+}
+
+
 static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   int line = ls->getLineNumber();
+  if (l_unlikely(ispostfixplusplus(ls))) {
+    postfixplusplus(ls, v, line, flags);
+    return;
+  }
   primaryexp(ls, v, flags);
   if (prop) {
     if (v->k == VINDEXUP) {
@@ -3627,7 +3721,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
     }
     case TK_DOTS: {  /* vararg */
       FuncState *fs = ls->fs;
-      check_condition(ls, fs->f->is_vararg,
+      check_condition(ls, fs->f->flag & PF_ISVARARG,
                       "cannot use '...' outside a vararg function");
       init_exp(v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
       luaX_next(ls);
@@ -3753,42 +3847,6 @@ static BinOpr getbinopr (int op) {
 }
 
 
-static void prefixplusplus (LexState *ls, expdesc *v, bool as_statement) {
-  int line = ls->getLineNumber();
-  luaX_next(ls); /* skip second '+' */
-  if (as_statement)
-    suffixedexp(ls, v);
-  else
-    singlevar(ls, v); /* variable name */
-  FuncState *fs = ls->fs;
-  expdesc e = *v, v2;
-  if (v->k != VLOCAL) {  /* complex lvalue, use a temporary register. linear perf incr. with complexity of lvalue */
-    const auto regs_to_reserve = fs->freereg-luaY_nvarstack(fs);
-    luaK_dischargevars(fs, &e);
-    luaK_reserveregs(fs, regs_to_reserve);
-    enterlevel(ls);
-    luaK_infix(fs, OPR_ADD, &e);
-    init_exp(&v2, VKINT, 0);
-    v2.u.ival = 1;
-    luaK_posfix(fs, OPR_ADD, &e, &v2, line);
-    leavelevel(ls);
-    luaK_exp2nextreg(fs, &e);
-    luaK_setoneret(ls->fs, &e);
-    luaK_storevar(ls->fs, v, &e);
-  }
-  else {  /* simple lvalue; a local. directly change value (~20% speedup vs temporary register) */
-    enterlevel(ls);
-    luaK_infix(fs, OPR_ADD, &e);
-    init_exp(&v2, VKINT, 0);
-    v2.u.ival = 1;
-    luaK_posfix(fs, OPR_ADD, &e, &v2, line);
-    leavelevel(ls);
-    luaK_setoneret(ls->fs, &e);
-    luaK_storevar(ls->fs, v, &e);
-  }
-}
-
-
 /*
 ** Priority table for binary operators.
 */
@@ -3834,21 +3892,24 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
   else if (ls->t.token == '+') {
+    /* support pseudo-unary '+' by implying '0 + subexpr' */
     int line = ls->getLineNumber();
     luaX_next(ls); /* skip '+' */
-    if (ls->t.token == '+') { /* '++' ? */
-      prefixplusplus(ls, v, false);
-    }
-    else {
-      /* support pseudo-unary '+' by implying '0 + subexpr' */
-      init_exp(v, VKINT, 0);
-      v->u.ival = 0;
-      luaK_infix(ls->fs, OPR_ADD, v);
 
-      expdesc v2;
-      subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, flags);
-      luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
-    }
+    init_exp(v, VKINT, 0);
+    v->u.ival = 0;
+    luaK_infix(ls->fs, OPR_ADD, v);
+
+    expdesc v2;
+    subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, flags);
+    luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
+  }
+  else if (ls->t.token == TK_PLUSPLUS) {
+    luaX_next(ls);  /* skip TK_PLUSPLUS */
+    primaryexp(ls, v, flags);
+    while (gett(ls) == '.')
+      fieldsel(ls, v);
+    prefixplusplus(ls, v);
   }
   else {
     simpleexp(ls, v, flags, prop);
@@ -5293,7 +5354,7 @@ static void trystat (LexState *ls) {
 
   const auto line = ls->getLineNumber();
   luaX_next(ls);
-  const bool vararg = ls->fs->f->is_vararg;
+  const bool vararg = (ls->fs->f->flag & PF_ISVARARG);
 
   /* temp (try status), (try result), (try result2), (try result3) = */
   const auto status_reg = ls->fs->freereg;
@@ -5754,11 +5815,13 @@ static void statement (LexState *ls, TypeHint *prop) {
       usestat(ls);
       break;
     }
-    case '+': {
-      luaX_next(ls);
-      check(ls, '+');
+    case TK_PLUSPLUS: {
       expdesc v;
-      prefixplusplus(ls, &v, true);
+      luaX_next(ls);  /* skip TK_PLUSPLUS */
+      primaryexp(ls, &v);
+      while (gett(ls) == '.')
+        fieldsel(ls, &v);
+      prefixplusplus(ls, &v);
       break;
     }
     case TK_NEW:
