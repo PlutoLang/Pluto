@@ -33,5 +33,11 @@ NAMESPACE_SOUP
 		{
 			return call(func, args);
 		}
+
+#define SOUP_FFI_CALLBACK_AVAILABLE (SOUP_X86 || (SOUP_ARM && SOUP_BITS == 64 && !SOUP_MACOS))
+#if SOUP_FFI_CALLBACK_AVAILABLE
+		[[nodiscard]] static void* callbackAlloc(uintptr_t(*func)(uintptr_t user_data, const uintptr_t* args), uintptr_t user_data);
+		static void callbackFree(void* cb);
+#endif
 	};
 }
