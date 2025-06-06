@@ -34,7 +34,7 @@ NAMESPACE_SOUP
 			return call(func, args);
 		}
 
-#if SOUP_X86 && SOUP_BITS == 64
+#if SOUP_X86 || (SOUP_ARM && SOUP_BITS == 64)
 		[[nodiscard]] static bool callbackAvailable() { return true; }
 #else
 		[[nodiscard]] static bool callbackAvailable() { return false; }
