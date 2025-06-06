@@ -54,7 +54,7 @@ NAMESPACE_SOUP
 		SOUP_THROW(BadCall());
 	}
 
-#if SOUP_X86 || (SOUP_ARM && SOUP_BITS == 64)
+#if SOUP_FFI_CALLBACK_AVAILABLE
 	struct FfiCallbackTls
 	{
 		uintptr_t a, b, c, d;
@@ -188,6 +188,7 @@ NAMESPACE_SOUP
 	};
 #endif
 
+#if SOUP_FFI_CALLBACK_AVAILABLE
 	void* ffi::callbackAlloc(uintptr_t(*func)(uintptr_t user_data, const uintptr_t* args), uintptr_t user_data)
 	{
 #if SOUP_X86
@@ -224,8 +225,7 @@ NAMESPACE_SOUP
 
 	void ffi::callbackFree(void* cb)
 	{
-#if SOUP_X86 || (SOUP_ARM && SOUP_BITS == 64)
 		return memGuard::free(cb, sizeof(callback_bytes));
-#endif
 	}
+#endif
 }
