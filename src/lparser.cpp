@@ -65,12 +65,24 @@
 
 std::string TypeDesc::toString() const {
   std::string str = vtToString(type);
-  if (type == VT_FUNC &&
-      retn &&
-      !retn->empty()) {
-    str.push_back('(');
-    str.append(retn->toString());
-    str.push_back(')');
+  if (type == VT_FUNC) {
+    lua_assert(nret >= 0);
+    if (nret == 0) {
+      str.append("void");
+    }
+    else if (nret == 1) {
+      str.append(returns[0]->toString());
+    }
+    else {
+      str.push_back('(');
+      for (int8_t i = 0;; ) {
+        str.append(returns[i]->toString());
+        if (++i == nret)
+          break;
+        str.append(", ");
+      }
+      str.push_back(')');
+    }
   }
   return str;
 }
@@ -102,8 +114,8 @@ typedef struct BlockCnt {
 /*
 ** prototypes for recursive non-terminal functions
 */
-static void statement (LexState *ls, TypeHint *prop = nullptr);
-static void expr (LexState *ls, expdesc *v, TypeHint *prop = nullptr, int flags = 0);
+static void statement (LexState *ls, int8_t *nprop = nullptr, TypeHint *prop = nullptr);
+static void expr (LexState *ls, expdesc *v, int8_t *nprop = nullptr, TypeHint *prop = nullptr, int flags = 0);
 
 
 /*
@@ -484,54 +496,77 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
 }
 
 
-[[nodiscard]] static TypeHint gettypehint (LexState *ls, bool funcret = false) {
+static void checktypehint (LexState *ls, TypeHint &th) {
+  if (testnext(ls, '?'))
+    th.emplaceTypeDesc(VT_NIL);
+  do {
+    TString *ts = str_checkname(ls, N_RESERVED);
+    const char *tname = getstr(ts);
+    if (strcmp(tname, "number") == 0)
+      th.emplaceTypeDesc(VT_NUMBER);
+    else if (strcmp(tname, "int") == 0)
+      th.emplaceTypeDesc(VT_INT);
+    else if (strcmp(tname, "float") == 0)
+      th.emplaceTypeDesc(VT_FLT);
+    else if (strcmp(tname, "table") == 0)
+      th.emplaceTypeDesc(VT_TABLE);
+    else if (strcmp(tname, "string") == 0)
+      th.emplaceTypeDesc(VT_STR);
+    else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
+      th.emplaceTypeDesc(VT_BOOL);
+    else if (strcmp(tname, "function") == 0)
+      th.emplaceTypeDesc(VT_FUNC);
+    else if (strcmp(tname, "userdata") != 0) {
+      luaX_prev(ls);
+      throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", WT_TYPE_MISMATCH);
+      ls->L->top.p--;
+      luaX_next(ls);
+    }
+  } while (testnext(ls, '|'));
+  if (!th.contains(VT_NIL) && testnext(ls, '?'))
+    th.emplaceTypeDesc(VT_NIL);
+}
+
+
+[[nodiscard]] static TypeHint gettypehint (LexState *ls) {
   /* TYPEHINT -> [':' TYPEDESC { '|' TYPEDESC } ] */
   TypeHint th;
   if (testnext(ls, ':')) {
-    if (testnext(ls, '?'))
-      th.emplaceTypeDesc(VT_NIL);
-    do {
-      TString *ts = str_checkname(ls, N_RESERVED);
-      const char *tname = getstr(ts);
-      if (strcmp(tname, "number") == 0)
-        th.emplaceTypeDesc(VT_NUMBER);
-      else if (strcmp(tname, "int") == 0)
-        th.emplaceTypeDesc(VT_INT);
-      else if (strcmp(tname, "float") == 0)
-        th.emplaceTypeDesc(VT_FLT);
-      else if (strcmp(tname, "table") == 0)
-        th.emplaceTypeDesc(VT_TABLE);
-      else if (strcmp(tname, "string") == 0)
-        th.emplaceTypeDesc(VT_STR);
-      else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
-        th.emplaceTypeDesc(VT_BOOL);
-      else if (strcmp(tname, "function") == 0)
-        th.emplaceTypeDesc(VT_FUNC);
-      else if (strcmp(tname, "void") == 0) {
-        if (funcret) {
-          if (!th.empty()) { /* already had a hinted type? */
-            luaX_prev(ls);
-            throw_warn(ls, "'void' must be the only return type if used", "invalid type hint", WT_TYPE_MISMATCH);
-            luaX_next(ls);
-          }
-          th.emplaceTypeDesc(VT_VOID);
-          if (testnext(ls, '|'))
-            throw_warn(ls, "'void' must be the only return type if used", "invalid type hint", WT_TYPE_MISMATCH);
-          break; /* no further type hints allowed */
-        }
-        throw_warn(ls, "'void' is not a valid type hint in this context", "invalid type hint", WT_TYPE_MISMATCH);
-      }
-      else if (strcmp(tname, "userdata") != 0) {
-        luaX_prev(ls);
-        throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", WT_TYPE_MISMATCH);
-        ls->L->top.p--;
-        luaX_next(ls);
-      }
-    } while (testnext(ls, '|'));
-    if (!th.contains(VT_NIL) && testnext(ls, '?'))
-      th.emplaceTypeDesc(VT_NIL);
+    checktypehint(ls, th);
   }
   return th;
+}
+
+
+[[nodiscard]] static int8_t getfuncrethint (LexState *ls, TypeHint ths[MAX_TYPED_RETURNS]) {
+  if (testnext(ls, ':')) {
+    auto line = ls->getLineNumber();
+    if (testnext(ls, '(')) {
+      int i = 0;
+      TypeHint scratch;
+      do {
+        if (i < MAX_TYPED_RETURNS) {
+          checktypehint(ls, ths[i++]);
+        }
+        else {
+          checktypehint(ls, scratch);
+        }
+      } while (testnext(ls, ','));
+      check_match(ls, ')', '(', line);
+      return i;
+    }
+    if (ls->t.token != '?') {
+      TString *ts = str_checkname(ls, N_RESERVED);
+      const char *tname = getstr(ts);
+      if (strcmp(tname, "void") == 0) {
+        return 0;
+      }
+      luaX_prev(ls);
+    }
+    checktypehint(ls, ths[0]);
+    return 1;
+  }
+  return -1;
 }
 
 
@@ -1312,29 +1347,28 @@ static int block_follow (LexState *ls, int withuntil) {
 
 
 static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc *key, expdesc *val)>& gen);
-static void statlist (LexState *ls, TypeHint *prop = nullptr, bool no_ret_implies_void = false) {
+static void statlist (LexState *ls, int8_t *nprop = nullptr, TypeHint *prop = nullptr) {
   /* statlist -> { stat [';'] } */
   bool ret = false;
   while (!block_follow(ls, 1)) {
     ret = (ls->t.token == TK_RETURN);
-    TypeHint p{};
+    int8_t np = -1;
+    TypeHint p[MAX_TYPED_RETURNS];
 #if defined LUAI_ASSERT
     const auto levels = ls->L->nCcalls;
 #endif
-    statement(ls, &p);
+    statement(ls, &np, p);
     lua_assert(levels == ls->L->nCcalls);
-    if (prop && /* do we need to propagate the return type? */
-        !p.empty()) { /* is there a return path here? */
-      prop->merge(p);
+    if (nprop && /* do we need to propagate the return type? */
+        np != -1) { /* is there a return path here? */
+      if (np > *nprop) {
+        *nprop = np;
+      }
+      for (int8_t i = 0; i != np; ++i) {
+        prop[i].merge(p[i]);
+      }
     }
     if (ret) break;
-  }
-  if (prop) { /* do we need to propagate the return type? */
-    if (!ret && /* had no return statement? */
-        no_ret_implies_void) { /* does that imply a void return? */
-      prop->emplaceTypeDesc(VT_VOID); /* propagate */
-    }
-    prop->fixTypes();
   }
   if (!ls->fs->bl->export_symbols.empty()) {
     if (ret) {
@@ -2040,7 +2074,7 @@ enum expflags {
   E_NO_CONSUME_COLON = 1 << 6,  /* this expression must not consume a non-nested colon */
 };
 
-static void simpleexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr);
+static void simpleexp (LexState *ls, expdesc *v, int flags = 0, int8_t *nprop = nullptr, TypeHint *prop = nullptr);
 
 
 /* keep advancing until we hit `token` */
@@ -2229,7 +2263,7 @@ static void defaultarguments (LexState *ls, int ismethod, const std::vector<size
       auto pc = nilable.u.pc;
 
       expdesc fallback;
-      expr(ls, &fallback, nullptr, flags);
+      expr(ls, &fallback, nullptr, nullptr, flags);
       luaK_setoneret(fs, &fallback);
       singlevaraux(fs, vd->vd.name, &nilable, 0);
       luaK_storevar(fs, &nilable, &fallback);
@@ -2270,26 +2304,63 @@ static void namedvararg (LexState *ls, TString *varargname) {
 }
 
 
-static void checkrettype (LexState *ls, TypeHint& rethint, TypeHint& retprop, int line) {
-  if (!rethint.empty() /* has type hint for return type? */
-      && !retprop.empty() && retprop.descs[0].type != VT_DUNNO /* return type is known? */
-      && !rethint.isCompatibleWith(retprop)) { /* incompatible? */
+static bool arereturnscompatible (int8_t nhint, TypeHint rethint[MAX_TYPED_RETURNS], int8_t nret, TypeHint retprop[MAX_TYPED_RETURNS]) {
+  if (nhint != nret) {
+    return false;
+  }
+  lua_assert(nhint >= 0);
+  for (int8_t i = 0; i != nhint; ++i) {
+    if (!rethint[i].isCompatibleWith(retprop[i]))
+      return false;
+  }
+  return true;
+}
+
+
+static void hintarraytostring (std::string& str, int8_t nhint, TypeHint hints[MAX_TYPED_RETURNS]) {
+  lua_assert(nhint >= 0);
+  if (nhint == 0) {
+    str.append("void");
+  }
+  else if (nhint == 1) {
+    str.append(hints[0].toString());
+  }
+  else {
+    str.push_back('(');
+    for (int8_t i = 0;; ) {
+      str.append(hints[i].toString());
+      if (++i == nhint)
+        break;
+      str.append(", ");
+    }
+    str.push_back(')');
+  }
+}
+
+
+static void checkrettype (LexState *ls, int8_t nhint, TypeHint rethint[MAX_TYPED_RETURNS], int8_t nret, TypeHint retprop[MAX_TYPED_RETURNS], int line) {
+  if (nhint != -1  /* has return hint? */
+      && !arereturnscompatible(nhint, rethint, nret, retprop)) {  /* incompatible? */
     auto& err = *pluto_newclassinst(ls->L, std::string);
     err = "function was hinted to return ";
-    err.append(rethint.toString());
+    hintarraytostring(err, nhint, rethint);
     err.append(" but actually returns ");
-    err.append(retprop.toString());
+    hintarraytostring(err, nret, retprop);
     throw_warn(ls, err.c_str(), line, WT_TYPE_MISMATCH);
     ls->L->top.p--;  /* pop 'err' */
   }
 }
 
 
-static void propfuncdesc (LexState *ls, FuncState& new_fs, TypeHint& retprop, TypeDesc *funcdesc) {
+static void propfuncdesc (LexState *ls, FuncState& new_fs, int8_t nret, TypeHint retprop[MAX_TYPED_RETURNS], TypeDesc* funcdesc) {
   funcdesc->type = VT_FUNC;
   funcdesc->proto = new_fs.f;
-  funcdesc->retn = new_typehint(ls);
-  *funcdesc->retn = retprop;
+  funcdesc->nret = nret;
+  lua_assert(nret >= 0);
+  for (int8_t i = 0; i != nret; ++i) {
+    funcdesc->returns[i] = new_typehint(ls);
+    *funcdesc->returns[i] = retprop[i];
+  }
   int vidx = new_fs.firstlocal;
   for (lu_byte i = 0; i != funcdesc->getNumTypedParams(); ++i) {
     funcdesc->params[i] = ls->dyd->actvar.arr[vidx].vd.hint;
@@ -2338,13 +2409,16 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   }
   if (varargname)
     namedvararg(ls, varargname);
-  TypeHint rethint = gettypehint(ls, true);
+  TypeHint rethint[MAX_TYPED_RETURNS];
+  auto nrethint = getfuncrethint(ls, rethint);
   const bool nodiscard = getfunctionattribute(ls);
-  TypeHint retprop{};
-  statlist(ls, &retprop, true);
-  checkrettype(ls, rethint, retprop, line);
+  int8_t nret = 0;
+  TypeHint retprop[MAX_TYPED_RETURNS];
+  statlist(ls, &nret, retprop);
+  lua_assert(nret >= 0);
+  checkrettype(ls, nrethint, rethint, nret, retprop, line);
   if (funcdesc) {
-    propfuncdesc(ls, new_fs, retprop, funcdesc);
+    propfuncdesc(ls, new_fs, nret, retprop, funcdesc);
     funcdesc->nodiscard = nodiscard;
   }
   new_fs.f->lastlinedefined = ls->getLineNumber();
@@ -2372,29 +2446,32 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
   TString *varargname = nullptr;
   parlist(ls, nullptr, &bs.fallbacks, &varargname, true);
   checknext(ls, '|');
-  TypeHint rethint = gettypehint(ls, true);
+  TypeHint rethint[MAX_TYPED_RETURNS];
+  auto nrethint = getfuncrethint(ls, rethint);
   const bool nodiscard = getfunctionattribute(ls);
   checknext(ls, TK_ARROW);
   defaultarguments(ls, 0, bs.fallbacks, E_NO_BOR);
   if (varargname)
     namedvararg(ls, varargname);
-  TypeHint retprop{};
+  int8_t nret = 0;
+  TypeHint retprop[MAX_TYPED_RETURNS];
   if (testnext(ls, TK_DO)) {
     ls->pushContext(PARCTX_BODY);
-    statlist(ls, &retprop, true);
+    statlist(ls, &nret, retprop);
     check_match(ls, TK_END, TK_ARROW, line);
     ls->popContext(PARCTX_BODY);
   }
   else {
     ls->pushContext(PARCTX_LAMBDA_BODY);
-    expr(ls, e, &retprop);
+    expr(ls, e, &nret, &retprop[0]);
     ls->fs->seenrets |= 1<<1;
     luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
     ls->popContext(PARCTX_LAMBDA_BODY);
   }
-  checkrettype(ls, rethint, retprop, line);
+  lua_assert(nret >= 0);
+  checkrettype(ls, nrethint, rethint, nret, retprop, line);
   if (funcdesc) {
-    propfuncdesc(ls, new_fs, retprop, funcdesc);
+    propfuncdesc(ls, new_fs, nret, retprop, funcdesc);
     funcdesc->nodiscard = nodiscard;
   }
   new_fs.f->lastlinedefined = ls->getLineNumber();
@@ -2405,13 +2482,19 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
 
 
 static void expr_propagate (LexState *ls, expdesc *v, TypeHint& t) {
-  expr(ls, v, &t);
+  int8_t ntmp;
+  TypeHint tmp[MAX_TYPED_RETURNS];
+  expr(ls, v, &ntmp, tmp);
+  t = tmp[0];
   exp_propagate(ls, *v, t);
 }
 
 
 static void expr_propagate_warn (LexState *ls, expdesc *v, TypeHint& t, std::unordered_set<TString*>& names) {
-  expr(ls, v, &t);
+  int8_t ntmp;
+  TypeHint tmp[MAX_TYPED_RETURNS];
+  expr(ls, v, &ntmp, tmp);
+  t = tmp[0];
   exp_propagate(ls, *v, t);
   if (v->k == VINDEXUP) {
     TString *key = tsvalue(&ls->fs->f->k[v->u.ind.idx]);
@@ -2448,12 +2531,19 @@ static void explist_nonlinear (LexState *ls, expdesc *v, const std::vector<size_
 static int explist (LexState *ls, expdesc *v, TypeHint *prop = nullptr) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
-  expr(ls, v, prop);
-  if (prop)
+  int8_t ntmp;
+  TypeHint tmp[MAX_TYPED_RETURNS];
+  expr(ls, v, prop ? &ntmp : nullptr, prop);
+  if (prop) {
     exp_propagate(ls, *v, *prop);
+  }
   while (testnext(ls, ',')) {
     luaK_exp2nextreg(ls->fs, v);
-    expr(ls, v);
+    expr(ls, v, &ntmp, tmp);
+    if (prop && n < MAX_TYPED_RETURNS) {
+      prop[n] = tmp[0];
+      tmp[0].clear();
+    }
     n++;
   }
   return n;
@@ -3045,7 +3135,7 @@ static bool iswalrusassign (LexState *ls) {
 }
 
 
-static void expsuffix (LexState* ls, expdesc* v, int line, int flags, TypeHint *prop);
+static void expsuffix (LexState* ls, expdesc* v, int line, int flags, int8_t *nprop, TypeHint *prop);
 
 static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
   /* primaryexp -> NAME | '(' expr ')' */
@@ -3092,7 +3182,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
     case '(': {
       int line = ls->getLineNumber();
       luaX_next(ls);
-      expr(ls, v, nullptr, flags & (E_WALRUS | E_OR_KILLED_WALRUS));
+      expr(ls, v, nullptr, nullptr, flags & (E_WALRUS | E_OR_KILLED_WALRUS));
       check_match(ls, ')', '(', line);
       luaK_dischargevars(ls->fs, v);
       return;
@@ -3111,7 +3201,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
     case TK_STRING: {
       codestring(v, ls->t.seminfo.ts);
       luaX_next(ls);
-      expsuffix(ls, v, ls->getLineNumber(), flags, nullptr);
+      expsuffix(ls, v, ls->getLineNumber(), flags, nullptr, nullptr);
       return;
     }
     case '{': {
@@ -3217,7 +3307,7 @@ static void postfixplusplus (LexState *ls, expdesc *v, int line, int flags) {
 }
 
 
-static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop = nullptr) {
+static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, int8_t *nprop = nullptr, TypeHint *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   int line = ls->getLineNumber();
@@ -3232,10 +3322,10 @@ static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, TypeHint *prop
       prop->merge(get_global_prop(ls, tsvalue(key)));
     }
   }
-  expsuffix(ls, v, line, flags, prop);
+  expsuffix(ls, v, line, flags, nprop, prop);
 }
 
-static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *prop) {
+static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *nprop, TypeHint *prop) {
   FuncState *fs = ls->fs;
   for (;;) {
     switch (ls->t.token) {
@@ -3302,8 +3392,12 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
             && vd->vd.prop->descs[0].proto != nullptr  /* real function/not just a hint? */
           ) {
             funcdesc = &vd->vd.prop->descs[0];
-            if (prop) { /* propagate return type */
-              *prop = *vd->vd.prop->descs[0].retn;
+            if (prop) {  /* should propagate return? */
+              lua_assert(vd->vd.prop->descs[0].nret >= 0);
+              *nprop = vd->vd.prop->descs[0].nret;
+              for (int8_t i = 0; i != *nprop; ++i) {
+                prop[i] = *vd->vd.prop->descs[0].returns[i];
+              }
             }
           }
         }
@@ -3362,7 +3456,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, TypeHint *
         if (testnext(ls, '|')) {
           do {
             expdesc arg;
-            expr(ls, &arg, nullptr, E_NO_BOR);
+            expr(ls, &arg, nullptr, nullptr, E_NO_BOR);
             luaK_exp2nextreg(fs, &arg);
             ++nparams;
           } while (testnext(ls, ','));
@@ -3415,14 +3509,14 @@ static void newexpr (LexState *ls, expdesc *v) {
   luaK_exp2nextreg(fs, v);
 
   expdesc first_arg;
-  expr(ls, &first_arg, nullptr, E_NO_CALL);
+  expr(ls, &first_arg, nullptr, nullptr, E_NO_CALL);
   luaK_exp2nextreg(fs, &first_arg);
 
   funcargs(ls, v);
 }
 
 
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop = nullptr, int flags = 0);
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop = nullptr, TypeHint *prop = nullptr, int flags = 0);
 
 
 static BinOpr custombinaryoperator (LexState *ls, expdesc *v, int flags, TString *impl) {
@@ -3437,7 +3531,7 @@ static BinOpr custombinaryoperator (LexState *ls, expdesc *v, int flags, TString
   int base = v->u.reg;  /* base register for call */
 
   expdesc arg2;
-  auto nextop = subexpr(ls, &arg2, 3, nullptr, flags);
+  auto nextop = subexpr(ls, &arg2, 3, nullptr, nullptr, flags);
   luaK_exp2nextreg(fs, &arg2);
 
   int nparams = fs->freereg - (base + 1);
@@ -3479,13 +3573,13 @@ static std::vector<int> casecond (LexState *ls, const expdesc& ctrl, int tk) {
   expdesc e, cmpval;
   e = ctrl;
   luaK_infix(fs, OPR_EQ, &e);
-  expr(ls, &cmpval, nullptr, expr_flags);
+  expr(ls, &cmpval, nullptr, nullptr, expr_flags);
   luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
   jumps.emplace_back(e.u.pc);
   while (testnext(ls, ',')) {
     e = ctrl;
     luaK_infix(fs, OPR_EQ, &e);
-    expr(ls, &cmpval, nullptr, expr_flags);
+    expr(ls, &cmpval, nullptr, nullptr, expr_flags);
     luaK_posfix(fs, OPR_EQ, &e, &cmpval, case_line);
     jumps.emplace_back(e.u.pc);
   }
@@ -3677,27 +3771,36 @@ static void switchexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
+static void simpleexp (LexState *ls, expdesc *v, int flags, int8_t *nprop, TypeHint *prop) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   check_for_non_portable_code(ls);
   switch (ls->t.token) {
     case TK_FLT: {
-      if (prop) prop->emplaceTypeDesc(VT_FLT);
+      if (prop) {
+        *nprop = 1;
+        prop->emplaceTypeDesc(VT_FLT);
+      }
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       luaX_next(ls);
       return;
     }
     case TK_INT: {
-      if (prop) prop->emplaceTypeDesc(VT_INT);
+      if (prop) {
+        *nprop = 1;
+        prop->emplaceTypeDesc(VT_INT);
+      }
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
       luaX_next(ls);
       return;
     }
     case TK_STRING: {
-      if (prop) prop->emplaceTypeDesc(VT_STR);
+      if (prop) {
+        *nprop = 1;
+        prop->emplaceTypeDesc(VT_STR);
+      }
       codestring(v, ls->t.seminfo.ts);
       luaX_next(ls);
       if (ls->t.token == '[' || ls->t.token == ':')
@@ -3705,19 +3808,28 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       return;
     }
     case TK_NIL: {
-      if (prop) prop->emplaceTypeDesc(VT_NIL);
+      if (prop) {
+        *nprop = 1;
+        prop->emplaceTypeDesc(VT_NIL);
+      }
       init_exp(v, VNIL, 0);
       luaX_next(ls);
       return;
     }
     case TK_TRUE: {
-      if (prop) prop->emplaceTypeDesc(VT_BOOL);
+      if (prop) {
+        *nprop = 1;
+        prop->emplaceTypeDesc(VT_BOOL);
+      }
       init_exp(v, VTRUE, 0);
       luaX_next(ls);
       return;
     }
     case TK_FALSE: {
-      if (prop) prop->emplaceTypeDesc(VT_BOOL);
+      if (prop) {
+        *nprop = 1;
+        prop->emplaceTypeDesc(VT_BOOL);
+      }
       init_exp(v, VFALSE, 0);
       luaX_next(ls);
       return;
@@ -3741,6 +3853,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       check_condition(ls, !(flags & E_NO_CONSUME_COLON), "cannot instantiate a function in this context");
       luaX_next(ls);
       if (prop) {
+        *nprop = 1;
         TypeDesc funcdesc;
         body(ls, v, 0, ls->getLineNumber(), &funcdesc);
         prop->emplaceTypeDesc(std::move(funcdesc));
@@ -3754,6 +3867,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       check_condition(ls, !(flags & E_NO_CONSUME_COLON), "cannot instantiate a function in this context");
       luaX_next(ls);
       if (prop) {
+        *nprop = 1;
         TypeDesc funcdesc;
         lambdabody(ls, v, ls->getLineNumber(), &funcdesc);
         prop->emplaceTypeDesc(std::move(funcdesc));
@@ -3765,13 +3879,19 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
     }
     case TK_NEW:
     case TK_PNEW: {
-      if (prop) prop->emplaceTypeDesc(VT_TABLE);
+      if (prop) {
+        *nprop = 1;
+        prop->emplaceTypeDesc(VT_TABLE);
+      }
       newexpr(ls, v);
       break;
     }
     case TK_CLASS:
     case TK_PCLASS: {
-      if (prop) prop->emplaceTypeDesc(VT_TABLE);
+      if (prop) {
+        *nprop = 1;
+        prop->emplaceTypeDesc(VT_TABLE);
+      }
       luaX_next(ls); /* skip 'class' */
       ls->classes.emplace();
       classexpr(ls, v);
@@ -3784,11 +3904,11 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, TypeHint *prop) {
       return;
     }
     default: {
-      suffixedexp(ls, v, flags, prop);
+      suffixedexp(ls, v, flags, nprop, prop);
       return;
     }
   }
-  expsuffix(ls, v, ls->getLineNumber(), flags, prop);
+  expsuffix(ls, v, ls->getLineNumber(), flags, nprop, prop);
 }
 
 
@@ -3882,7 +4002,7 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int flags) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeHint *prop, int flags) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
@@ -3890,7 +4010,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
   if (uop != OPR_NOUNOPR) {  /* prefix (unary) operator? */
     int line = ls->getLineNumber();
     luaX_next(ls);  /* skip operator */
-    subexpr(ls, v, UNARY_PRIORITY, nullptr, flags);
+    subexpr(ls, v, UNARY_PRIORITY, nullptr, nullptr, flags);
     luaK_prefix(ls->fs, uop, v, line);
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
@@ -3904,7 +4024,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
     luaK_infix(ls->fs, OPR_ADD, v);
 
     expdesc v2;
-    subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, flags);
+    subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, nullptr, flags);
     luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
   }
   else if (ls->t.token == TK_PLUSPLUS) {
@@ -3915,7 +4035,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
     prefixplusplus(ls, v);
   }
   else {
-    simpleexp(ls, v, flags, prop);
+    simpleexp(ls, v, flags, nprop, prop);
     if (ls->t.token == TK_IN) {
       throw_warn(ls, "non-portable operator usage", "this operator generates bytecode that is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
       inexpr(ls, v, flags);
@@ -3948,6 +4068,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
       nextop = getbinopr(ls->t.token);
     }
     else {
+      int8_t *subexpr_nprop = nullptr;
       TypeHint *subexpr_prop = nullptr;
       if (op == OPR_CONCAT) {
         if (prop)
@@ -3983,6 +4104,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
         }
         if (prop) {
           prop->erase(VT_NIL);
+          subexpr_nprop = nprop;
           subexpr_prop = prop;
         }
       }
@@ -3994,7 +4116,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
         flags &= ~E_WALRUS;
         flags |= E_OR_KILLED_WALRUS;
       }
-      nextop = subexpr(ls, &v2, priority[op].right, subexpr_prop, flags);
+      nextop = subexpr(ls, &v2, priority[op].right, subexpr_nprop, subexpr_prop, flags);
       luaK_posfix(ls->fs, op, v, &v2, line);
       if (canchainopr(op) && canchainopr(nextop)) {
         while (true) {
@@ -4007,7 +4129,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
           luaK_infix(ls->fs, OPR_AND, v);
           expdesc v3;
           luaK_infix(ls->fs, op, &v2);
-          nextop = subexpr(ls, &v3, priority[op].right, subexpr_prop, flags);
+          nextop = subexpr(ls, &v3, priority[op].right, subexpr_nprop, subexpr_prop, flags);
           luaK_posfix(ls->fs, op, &v2, &v3, line);
           luaK_posfix(ls->fs, OPR_AND, v, &v2, line);
           if (!canchainopr(nextop))
@@ -4023,14 +4145,14 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, TypeHint *prop, int 
 }
 
 
-static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
+static void expr (LexState *ls, expdesc *v, int8_t *nprop, TypeHint *prop, int flags) {
 #ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
     ss.pushLocals();
   }
 #endif
-  subexpr(ls, v, 0, prop, flags);
+  subexpr(ls, v, 0, nprop, prop, flags);
   if (testnext(ls, '?')) { /* ternary expression? */
     check_condition(ls, !(flags & E_NO_CONSUME_COLON), "cannot use a ternary expression in this context");
     if (prop) prop->clear(); /* we don't care what type the condition is/was */
@@ -4042,7 +4164,7 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
       throw_warn(ls, "unreachable code", "the condition before the '?' is always falsy, hence the expression before the ':' is never used.", WT_UNREACHABLE_CODE);
     luaK_goiftrue(ls->fs, v);
     int condition = v->f;
-    expr(ls, v, prop, E_NO_METHOD_CALL);
+    expr(ls, v, nprop, prop, E_NO_METHOD_CALL);
     auto fs = ls->fs;
     luaK_exp2nextreg(fs, v);
     auto reg = v->u.reg;
@@ -4050,7 +4172,7 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
     luaK_patchtohere(fs, condition);
     checknext(ls, ':');
     ls->pushContext(PARCTX_TERNARY_C);
-    expr(ls, v, prop, flags & E_NO_METHOD_CALL);
+    expr(ls, v, nprop, prop, flags & E_NO_METHOD_CALL);
     ls->popContext(PARCTX_TERNARY_C);
     luaK_exp2reg(fs, v, reg);
     luaK_patchtohere(fs, escape);
@@ -4068,12 +4190,12 @@ static void expr (LexState *ls, expdesc *v, TypeHint *prop, int flags) {
 */
 
 
-static void block (LexState *ls, TypeHint *prop = nullptr) {
+static void block (LexState *ls, int8_t *nprop = nullptr, TypeHint *prop = nullptr) {
   /* block -> statlist */
   FuncState *fs = ls->fs;
   BlockCnt bl;
   enterblock(fs, &bl, BlockType::BT_DEFAULT);
-  statlist(ls, prop);
+  statlist(ls, nprop, prop);
   leaveblock(fs);
 }
 
@@ -4209,10 +4331,10 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       return;  /* avoid default */
     }
     luaX_next(ls);
-    TypeHint prop{};
+    TypeHint prop[MAX_TYPED_RETURNS];
     ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
     ls->pushContext(ctx);
-    int nexps = explist(ls, &e, &prop);
+    int nexps = explist(ls, &e, prop);
     ls->popContext(ctx);
     if (nexps != nvars)
       adjust_assign(ls, nvars, nexps, &e);
@@ -4221,11 +4343,11 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       if (lh->v.k == VINDEXUP) {
         TValue *key = &ls->fs->f->k[lh->v.u.ind.idx];
         lua_assert(ttype(key) == LUA_TSTRING);
-        get_global_prop(ls, tsvalue(key)).merge(prop);
+        get_global_prop(ls, tsvalue(key)).merge(prop[0]);
       }
       if (lh->v.k == VLOCAL) { /* assigning to a local variable? */
-        exp_propagate(ls, e, prop);
-        process_assign(ls, lh->v.u.var.vidx, prop, line);
+        exp_propagate(ls, e, prop[0]);
+        process_assign(ls, lh->v.u.var.vidx, prop[0], line);
       }
       luaK_storevar(ls->fs, &lh->v, &e);
       return;  /* avoid default */
@@ -4239,7 +4361,7 @@ static int cond (LexState *ls, bool for_while_loop) {
   /* cond -> exp */
   expdesc v;
   ls->used_walrus = false;
-  expr(ls, &v, nullptr, for_while_loop * E_WALRUS);  /* read condition */
+  expr(ls, &v, nullptr, nullptr, for_while_loop * E_WALRUS);  /* read condition */
   v.normalizeFalse();
   luaK_goiftrue(ls->fs, &v);
   return v.f;
@@ -4423,7 +4545,7 @@ static void fixforjump (FuncState *fs, int pc, int dest, int back) {
 /*
 ** Generate code for a 'for' loop.
 */
-static void forbody (LexState *ls, int base, int line, int nvars, int isgen, TypeHint *prop) {
+static void forbody (LexState *ls, int base, int line, int nvars, int isgen, int8_t *nprop, TypeHint *prop) {
   /* forbody -> DO block */
   static const OpCode forprep[2] = {OP_FORPREP, OP_TFORPREP};
   static const OpCode forloop[2] = {OP_FORLOOP, OP_TFORLOOP};
@@ -4435,7 +4557,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen, Typ
   enterblock(fs, &bl, BlockType::BT_CONTINUE);  /* scope for declared variables */
   adjustlocalvars(ls, nvars);
   luaK_reserveregs(fs, nvars);
-  block(ls, prop);
+  block(ls, nprop, prop);
   leaveblock(fs);  /* end of scope for declared variables */
   fixforjump(fs, prep, luaK_getlabel(fs), 0);
   if (isgen) {  /* generic for? */
@@ -4448,7 +4570,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen, Typ
 }
 
 
-static void fornum (LexState *ls, TString *varname, TypeHint *prop, int line) {
+static void fornum (LexState *ls, TString *varname, int8_t *nprop, TypeHint *prop, int line) {
   /* fornum -> NAME = exp,exp[,exp] forbody */
   FuncState *fs = ls->fs;
   int base = fs->freereg;
@@ -4467,11 +4589,11 @@ static void fornum (LexState *ls, TString *varname, TypeHint *prop, int line) {
     luaK_reserveregs(fs, 1);
   }
   adjustlocalvars(ls, 3);  /* control variables */
-  forbody(ls, base, line, 1, 0, prop);
+  forbody(ls, base, line, 1, 0, nprop, prop);
 }
 
 
-static void forlist (LexState *ls, TString *indexname, TypeHint *prop) {
+static void forlist (LexState *ls, TString *indexname, int8_t *nprop, TypeHint *prop) {
   /* forlist -> NAME {,NAME} IN explist forbody */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -4495,11 +4617,11 @@ static void forlist (LexState *ls, TString *indexname, TypeHint *prop) {
   adjustlocalvars(ls, 4);  /* control variables */
   marktobeclosed(fs);  /* last control var. must be closed */
   luaK_checkstack(fs, 3);  /* extra space to call generator */
-  forbody(ls, base, line, nvars - 4, 1, prop);
+  forbody(ls, base, line, nvars - 4, 1, nprop, prop);
 }
 
 
-static void forvlist (LexState *ls, TypeHint *prop) {
+static void forvlist (LexState *ls, int8_t *nprop, TypeHint *prop) {
   /* forvlist -> explist AS NAME forbody */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -4528,11 +4650,11 @@ static void forvlist (LexState *ls, TypeHint *prop) {
   checkforshadowing(ls, fs, name, line);
   getlocalvardesc(fs, vidx)->vd.name = name;
 
-  forbody(ls, base, line, nvars - 4, 1, prop);
+  forbody(ls, base, line, nvars - 4, 1, nprop, prop);
 }
 
 
-static void forstat (LexState *ls, int line, TypeHint *prop) {
+static void forstat (LexState *ls, int line, int8_t *nprop, TypeHint *prop) {
   /* forstat -> FOR (fornum | forlist) END */
   FuncState *fs = ls->fs;
   BlockCnt bl;
@@ -4541,14 +4663,14 @@ static void forstat (LexState *ls, int line, TypeHint *prop) {
 
   if (luaX_lookahead(ls) == '=') {
     TString *varname = str_checkname(ls);  /* first variable name */
-    fornum(ls, varname, prop, line);
+    fornum(ls, varname, nprop, prop, line);
   }
   else if (luaX_lookahead(ls) == ',' || luaX_lookahead(ls) == TK_IN) {
     TString *varname = str_checkname(ls);  /* first variable name */
-    forlist(ls, varname, prop);
+    forlist(ls, varname, nprop, prop);
   }
   else {
-    forvlist(ls, prop);
+    forvlist(ls, nprop, prop);
   }
 
   check_match(ls, TK_END, TK_FOR, line);
@@ -4556,7 +4678,7 @@ static void forstat (LexState *ls, int line, TypeHint *prop) {
 }
 
 
-static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
+static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeHint *prop) {
   /* test_then_block -> [IF | ELSEIF] cond THEN block */
   BlockCnt bl;
   FuncState *fs = ls->fs;
@@ -4612,7 +4734,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
   }
 
   ls->used_walrus = false;
-  expr(ls, &v, nullptr, E_WALRUS);  /* read condition */
+  expr(ls, &v, nullptr, nullptr, E_WALRUS);  /* read condition */
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);
   if (luaK_isalwaysfalse(ls, &v))
     throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
@@ -4647,7 +4769,7 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
     enterblock(fs, &bl, BlockType::BT_DEFAULT);
     jf = v.f;
   }
-  statlist(ls, prop);  /* 'then' part */
+  statlist(ls, nprop, prop);  /* 'then' part */
   leaveblock(fs);
   if (ls->t.token == TK_ELSE ||
       ls->t.token == TK_ELSEIF) {  /* followed by 'else'/'elseif'? */
@@ -4659,24 +4781,24 @@ static void test_then_block (LexState *ls, int *escapelist, TypeHint *prop) {
 }
 
 
-static void ifstat (LexState *ls, int line, TypeHint *prop = nullptr) {
+static void ifstat (LexState *ls, int line, int8_t *nprop, TypeHint *prop = nullptr) {
   /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
   FuncState *fs = ls->fs;
   BlockCnt walrusbl;
   enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
   int escapelist = NO_JUMP;  /* exit list for finished parts */
-  test_then_block(ls, &escapelist, prop);  /* IF cond THEN block */
+  test_then_block(ls, &escapelist, nprop, prop);  /* IF cond THEN block */
   while (ls->t.token == TK_ELSEIF) {
     leaveblock(fs);
     enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
-    test_then_block(ls, &escapelist, prop);  /* ELSEIF cond THEN block */
+    test_then_block(ls, &escapelist, nprop, prop);  /* ELSEIF cond THEN block */
   }
   if (testnext(ls, TK_ELSE)) {
     leaveblock(fs);
     enterblock(fs, &walrusbl, BlockType::BT_DEFAULT);
     if (ls->t.token == TK_IF && ls->t.line == luaX_lookbehind(ls).line)
       ls->else_if = ls->getLineNumber();
-    block(ls, prop);  /* 'else' part */
+    block(ls, nprop, prop);  /* 'else' part */
   }
   check_match(ls, TK_END, TK_IF, line);
   luaK_patchtohere(fs, escapelist);  /* patch escape list to 'if' end */
@@ -5125,7 +5247,7 @@ static void exprstat (LexState *ls) {
 }
 
 
-static void retstat (LexState *ls, TypeHint *prop) {
+static void retstat (LexState *ls, int8_t *nprop, TypeHint *prop) {
   /* stat -> RETURN [explist] [';'] */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -5137,7 +5259,7 @@ static void retstat (LexState *ls, TypeHint *prop) {
     || (!ls->switchstates.empty() && (ls->t.token == TK_CASE || ls->t.token == TK_DEFAULT || ls->t.token == TK_BREAK))
   ) {
     nret = 0;  /* return no values */
-    if (prop) prop->emplaceTypeDesc(VT_VOID);
+    if (nprop) *nprop = 0;
   }
   else {
     if (fs->istrybody) {
@@ -5152,8 +5274,13 @@ static void retstat (LexState *ls, TypeHint *prop) {
       lua_assert(endpc >= startpc);
     }
     nret = explist(ls, &e, prop);  /* optional return values */
-    if (prop && prop->empty())
-      prop->emplaceTypeDesc(VT_DUNNO);  /* we are returning something, but we don't know what. (this is needed for trystat.) */
+    if (nprop) {
+      *nprop = (int8_t)(nret < MAX_TYPED_RETURNS ? nret : MAX_TYPED_RETURNS);
+      for (int8_t i = 0; i != *nprop; ++i) {
+        if (prop[i].empty())
+          prop->emplaceTypeDesc(VT_DUNNO);
+      }
+    }
     if (hasmultret(e.k)) {
       luaK_setmultret(fs, &e);
       if (e.k == VCALL && nret == 1 && !fs->bl->insidetbc && !fs->istrybody) {  /* tail call? */
@@ -5381,8 +5508,7 @@ static void trystat (LexState *ls) {
   }
 
   /* temp (try status), (try result), (try result2), (try result3) = pcall(function(...) STATLIST */
-  TypeHint prop{};
-  statlist(ls, &prop);
+  statlist(ls);
 
   /* Move gotoes out of try/catch block */
   lua_assert(bl.firstgoto == trybl.firstgoto);
@@ -5629,7 +5755,7 @@ static void globalstat (LexState *ls) {
 }
 
 
-static void statement (LexState *ls, TypeHint *prop) {
+static void statement (LexState *ls, int8_t *nprop, TypeHint *prop) {
 #ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
@@ -5681,7 +5807,7 @@ static void statement (LexState *ls, TypeHint *prop) {
       break;
     }
     case TK_IF: {  /* stat -> ifstat */
-      ifstat(ls, line, prop);
+      ifstat(ls, line, nprop, prop);
       break;
     }
     case '$': {
@@ -5700,7 +5826,7 @@ static void statement (LexState *ls, TypeHint *prop) {
       break;
     }
     case TK_FOR: {  /* stat -> forstat */
-      forstat(ls, line, prop);
+      forstat(ls, line, nprop, prop);
       break;
     }
     case TK_REPEAT: {  /* stat -> repeatstat */
@@ -5789,7 +5915,7 @@ static void statement (LexState *ls, TypeHint *prop) {
     }
     case TK_RETURN: {  /* stat -> retstat */
       luaX_next(ls);  /* skip RETURN */
-      retstat(ls, prop);
+      retstat(ls, nprop, prop);
       break;
     }
     case TK_BREAK: {  /* stat -> breakstat */
@@ -5834,7 +5960,7 @@ static void statement (LexState *ls, TypeHint *prop) {
     case TK_PNEW: {
       expdesc v;
       newexpr(ls, &v);
-      expsuffix(ls, &v, line, 0, prop);
+      expsuffix(ls, &v, line, 0, nprop, prop);
       break;
     }
     case TK_TRY:
