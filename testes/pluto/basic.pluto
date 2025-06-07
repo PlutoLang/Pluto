@@ -2981,6 +2981,13 @@ do
     assert(file == "Hello")
     assert(mode == "r")
     assert(version == 2)
+
+    -- Reassigning positional argument by naming it should error. Should not leak memory.
+    assert("already assigned to positionally" in select(2, load[[
+        --@pluto_warnings disable-unused
+        local function foo(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) end
+        foo(1, a = 2)
+    ]]))
 end
 
 print "Testing classes."
