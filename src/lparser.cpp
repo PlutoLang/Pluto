@@ -2493,16 +2493,16 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
           if (!funcdesc) {
             luaX_syntaxerror(ls, "can't used named arguments here because the function was not found at parse-time");
           }
-          std::vector<size_t> argtis{};
+          auto& argtis = *pluto_newclassinst(ls->L, std::vector<size_t>);
           argtis.resize(funcdesc->getNumParams() - num_positional_args);
           do {
             TString *pname = str_checkname(ls, 0);
             int pi = funcdesc->findParamByName(pname);
             if (pi == -1) {
-              throwerr(ls, luaO_fmt(ls->L, "function does not have a %s parameter", getstr(pname)), "unknown parameter");
+              throwerr(ls, luaO_fmt(ls->L, "function does not have a '%s' parameter", getstr(pname)), "unknown parameter");
             }
             if (num_positional_args > pi) {
-              throwerr(ls, luaO_fmt(ls->L, "%s parameter was already assigned to positionally", getstr(pname)), "double-assignment of parameter");
+              throwerr(ls, luaO_fmt(ls->L, "'%s' parameter was already assigned to positionally", getstr(pname)), "double-assignment of parameter");
             }
             pi -= num_positional_args;
             checknext(ls, '=');
@@ -2512,6 +2512,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
           const auto tidx = luaX_getpos(ls);
           explist_nonlinear(ls, &args, argtis, fas.argdescs);
           luaX_setpos(ls, tidx);
+          ls->L->top.p--;  /* pop 'argtis' */
         }
         if (hasmultret(args.k) && args.k != VSAFECALL)
           luaK_setmultret(fs, &args);
