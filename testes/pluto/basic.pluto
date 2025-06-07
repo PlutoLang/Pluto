@@ -170,6 +170,14 @@ end
 if __newindex then end
 ]]
 
+    -- multiple return values
+    assert_warn[[local function _f(): (boolean, number)
+        return true, false
+    end]]
+    assert_no_warn[[local function _f(): (boolean, number)
+        return true, 1
+    end]]
+
     -- discarded-return basic test
     assert_warn[[local function f() <nodiscard>
     return 69
