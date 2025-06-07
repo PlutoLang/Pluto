@@ -347,7 +347,9 @@
     <ClCompile Include="src\vendor\Soup\soup\SocketAddr.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\Soup\soup\crc32c.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\crc32c.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -1097,8 +1099,10 @@
     <ClInclude Include="src\vendor\Soup\soup\utility.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
-    <ClInclude Include="src\vendor\Soup\soup\crc32c.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netReuseTag.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\crc32c.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>
