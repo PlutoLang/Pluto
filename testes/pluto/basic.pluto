@@ -4056,14 +4056,12 @@ do
     assert((a < b < c) == true)
 end
 
+$alias DEFER(what) = local __defer <close> = setmetatable({}, { __close = function() what end })
+
 print "Testing modified require semantics."
 do
-    local currentdir = io.absolute(io.currentdir())
-    if currentdir:endswith("pluto") then
-        io.currentdir("..")
-    else
-        io.contents("example_module.pluto", "")
-    end
+    io.contents("example_module.pluto", "")
+    DEFER(io.remove("example_module.pluto"))
 
     package.preload["example_module"] = || -> "Test Value"
     assert(select(2, require("example_module")):contains("example_module.pluto"))
@@ -4071,19 +4069,12 @@ do
     package.preload["example_module"] = nil
     assert(select(2, pcall(|| -> require("a"))):contains("module 'a' not found"))
     assert(select(2, pcall(|| -> require("pluto:a"))):contains("is not a valid pluto library"))
-
-    io.currentdir(currentdir)
-    -- check cwd if this fails.
 end
 
 print "Testing cross-platform consistency."
 do
-    local currentdir = io.absolute(io.currentdir())
-    if currentdir:endswith("pluto") then
-        io.currentdir("..")
-    else
-        io.contents("example_module.pluto", "")
-    end
+    io.contents("example_module.pluto", "")
+    DEFER(io.remove("example_module.pluto"))
 
     assert(io.contents("file_that_doesnt_exist") == nil)
     assert(io.contents("example_module.pluto") == "")
@@ -4102,7 +4093,4 @@ do
         assert(io.chmod("example_module.pluto") == nil)
         io.chmod("example_module.pluto", 1)
     end
-
-    io.currentdir(currentdir)
-    -- check cwd if this fails.
 end
