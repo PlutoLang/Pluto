@@ -6,7 +6,7 @@ if (defined("PHP_WINDOWS_VERSION_MAJOR"))
 {
 	$clang .= " -D_CRT_SECURE_NO_WARNINGS";
 }
-else if (PHP_OS_FAMILY != "Darwin")
+else
 {
 	$clang .= " -fPIC";
 }
@@ -14,7 +14,15 @@ else if (PHP_OS_FAMILY != "Darwin")
 $clanglink = $clang;
 if (!defined("PHP_WINDOWS_VERSION_MAJOR"))
 {
-	$clanglink .= " -lstdc++ -pthread -lm -ldl";
+	if (PHP_OS_FAMILY == "Darwin")
+	{
+		$clanglink .= " -lc++";
+	}
+	else
+	{
+		$clanglink .= " -lstdc++";
+	}
+	$clanglink .= " -pthread -lm -ldl";
 	if (!getenv("ANDROID_ROOT"))
 	{
 		$clanglink .= " -lresolv";
