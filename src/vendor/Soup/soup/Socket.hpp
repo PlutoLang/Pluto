@@ -37,8 +37,8 @@ NAMESPACE_SOUP
 		using fd_t = int;
 #endif
 		PrimitiveRaii<fd_t, (fd_t)-1> fd{};
-		SocketAddr peer;
 		StructMap custom_data;
+		SocketAddr peer;
 		bool remote_closed = false;
 		bool dispatched_connection_lost = false;
 		bool callback_recv_on_close = false;
