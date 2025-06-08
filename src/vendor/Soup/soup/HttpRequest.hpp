@@ -14,10 +14,10 @@ NAMESPACE_SOUP
 	{
 	public:
 		bool use_tls = true;
+		bool path_is_encoded = false;
 		uint16_t port = 443;
 		std::string method{};
 		std::string path{};
-		bool path_is_encoded = false;
 
 		HttpRequest() = default;
 		HttpRequest(std::string method, const std::string& host, std::string path);
