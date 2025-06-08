@@ -64,6 +64,12 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 			#define SOUP_ANDROID false
 		#endif
 
+		#ifdef __APPLE__
+			#define SOUP_APPLE true
+		#else
+			#define SOUP_APPLE false
+		#endif
+
 		#if defined(__APPLE__) && defined(__MACH__)
 			#define SOUP_MACOS true
 		#else
