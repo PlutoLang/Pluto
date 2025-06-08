@@ -26,6 +26,7 @@
 
 #include "vendor/Soup/soup/filesystem.hpp"
 #include "vendor/Soup/soup/string.hpp"
+#include "vendor/Soup/soup/unicode.hpp"
 
 #if SOUP_WINDOWS
 #include <windows.h>
@@ -45,8 +46,13 @@
 
 
 /* Basic error handling. Exceptions have better error messages than error_codes. */
+#if SOUP_WINDOWS && !defined(PLUTO_NO_UTF8)
+#define Protect(...) \
+  try { __VA_ARGS__; } catch (const std::exception& err) { auto msg = soup::unicode::utf16_to_utf8(soup::unicode::acp_to_utf16(err.what())); luaL_error(L, msg.c_str()); } 
+#else
 #define Protect(...) \
   try { __VA_ARGS__; } catch (const std::exception& err) { luaL_error(L, err.what()); } 
+#endif
 
 
 /*
