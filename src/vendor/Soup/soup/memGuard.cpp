@@ -56,7 +56,18 @@ NAMESPACE_SOUP
 #if SOUP_WINDOWS
 		return VirtualAlloc(nullptr, len, MEM_COMMIT | MEM_RESERVE, allowedAccessToProtect(allowed_access));
 #else
-		return mmap(nullptr, len, allowed_access, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+	#if SOUP_APPLE
+		if ((allowed_access & (memGuard::ACC_WRITE | memGuard::ACC_EXEC)) == (memGuard::ACC_WRITE | memGuard::ACC_EXEC))
+		{
+			flags |= MAP_JIT;
+		}
+	#endif
+		if (const auto block = mmap(nullptr, len, allowed_access, flags, -1, 0); block != MAP_FAILED)
+		{
+			return block;
+		}
+		return nullptr;
 #endif
 	}
 
