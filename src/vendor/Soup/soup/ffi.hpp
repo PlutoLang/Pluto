@@ -34,8 +34,9 @@ NAMESPACE_SOUP
 			return call(func, args);
 		}
 
-#define SOUP_FFI_CALLBACK_AVAILABLE (SOUP_X86 || (SOUP_ARM && SOUP_BITS == 64 && !SOUP_MACOS))
+#define SOUP_FFI_CALLBACK_AVAILABLE (SOUP_X86 || (SOUP_ARM && SOUP_BITS == 64))
 #if SOUP_FFI_CALLBACK_AVAILABLE
+		// Note that, on MacOS, allocation may fail if the 'com.apple.security.cs.allow-jit' entitlement is missing.
 		[[nodiscard]] static void* callbackAlloc(uintptr_t(*func)(uintptr_t user_data, const uintptr_t* args), uintptr_t user_data);
 		static void callbackFree(void* cb);
 #endif
