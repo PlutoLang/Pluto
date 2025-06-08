@@ -27,12 +27,12 @@ NAMESPACE_SOUP
 		{
 			auto tbsCert = cert.getSeq(0);
 			auto oid = cert.getSeq(1).getOid(0);
-			if (oid == Oid::SHA1_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA1; }
-			else if (oid == Oid::SHA256_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA256; }
-			else if (oid == Oid::SHA384_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA384; }
-			else if (oid == Oid::SHA512_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA512; }
-			else if (oid == Oid::ECDSA_WITH_SHA256) { sig_type = ECDSA_WITH_SHA256; }
-			else if (oid == Oid::ECDSA_WITH_SHA384) { sig_type = ECDSA_WITH_SHA384; }
+			if (oid == OID_SHA1_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA1; }
+			else if (oid == OID_SHA256_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA256; }
+			else if (oid == OID_SHA384_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA384; }
+			else if (oid == OID_SHA512_WITH_RSA_ENCRYPTION) { sig_type = RSA_WITH_SHA512; }
+			else if (oid == OID_ECDSA_WITH_SHA256) { sig_type = ECDSA_WITH_SHA256; }
+			else if (oid == OID_ECDSA_WITH_SHA384) { sig_type = ECDSA_WITH_SHA384; }
 			else { sig_type = UNK_WITH_UNK; }
 			tbsCertDer = tbsCert.toDer();
 			sig = cert.getString(2);
@@ -47,7 +47,7 @@ NAMESPACE_SOUP
 			std::string pubKeyStr = pubInfo.getString(1);
 			pubKeyStr.erase(0, 1); // trim leading zero
 
-			if (pubCrypto == Oid::RSA_ENCRYPTION)
+			if (pubCrypto == OID_RSA_ENCRYPTION)
 			{
 				is_ec = false;
 
@@ -57,16 +57,16 @@ NAMESPACE_SOUP
 					pubKey.getInt(1)
 				);
 			}
-			else if (pubCrypto == Oid::EC_PUBLIC_KEY)
+			else if (pubCrypto == OID_EC_PUBLIC_KEY)
 			{
 				is_ec = true;
 
 				auto pubCurve = pubType.getOid(1);
-				if (pubCurve == Oid::PRIME256V1)
+				if (pubCurve == OID_PRIME256V1)
 				{
 					curve = &EccCurve::secp256r1();
 				}
-				else if (pubCurve == Oid::ANSIP384R1)
+				else if (pubCurve == OID_ANSIP384R1)
 				{
 					curve = &EccCurve::secp384r1();
 				}
@@ -97,7 +97,7 @@ NAMESPACE_SOUP
 			{
 				Asn1Sequence ext = extensions.getSeq(i);
 				const auto oid = ext.getOid(0);
-				if (oid == Oid::CE_SUBJECTALTNAME)
+				if (oid == OID_CE_SUBJECTALTNAME)
 				{
 					size_t data_idx = ((ext.at(1).identifier.type == ASN1_BOOLEAN) ? 2 : 1);
 					// RFC 2459, page 33
@@ -121,7 +121,7 @@ NAMESPACE_SOUP
 						}
 					}
 				}
-				else if (oid == Oid::CE_BASICCONSTRAINTS)
+				else if (oid == OID_CE_BASICCONSTRAINTS)
 				{
 					size_t data_idx = ((ext.at(1).identifier.type == ASN1_BOOLEAN) ? 2 : 1);
 					auto data = Asn1Sequence::fromDer(ext.getString(data_idx));
@@ -239,12 +239,12 @@ NAMESPACE_SOUP
 
 	const Oid& X509Certificate::getAlgoOid() const noexcept
 	{
-		if (sig_type == RSA_WITH_SHA1) { return Oid::SHA1_WITH_RSA_ENCRYPTION; }
-		else if (sig_type == RSA_WITH_SHA384) { return Oid::SHA384_WITH_RSA_ENCRYPTION; }
-		else if (sig_type == RSA_WITH_SHA512) { return Oid::SHA512_WITH_RSA_ENCRYPTION; }
-		else if (sig_type == ECDSA_WITH_SHA256) { return Oid::ECDSA_WITH_SHA256; }
-		else if (sig_type == ECDSA_WITH_SHA384) { return Oid::ECDSA_WITH_SHA384; }
-		return Oid::SHA256_WITH_RSA_ENCRYPTION;
+		if (sig_type == RSA_WITH_SHA1) { return OID_SHA1_WITH_RSA_ENCRYPTION; }
+		else if (sig_type == RSA_WITH_SHA384) { return OID_SHA384_WITH_RSA_ENCRYPTION; }
+		else if (sig_type == RSA_WITH_SHA512) { return OID_SHA512_WITH_RSA_ENCRYPTION; }
+		else if (sig_type == ECDSA_WITH_SHA256) { return OID_ECDSA_WITH_SHA256; }
+		else if (sig_type == ECDSA_WITH_SHA384) { return OID_ECDSA_WITH_SHA384; }
+		return OID_SHA256_WITH_RSA_ENCRYPTION;
 	}
 
 	Asn1Sequence X509Certificate::toAsn1() const SOUP_EXCAL
@@ -297,7 +297,7 @@ NAMESPACE_SOUP
 			Asn1Sequence pubInfo;
 			{
 				Asn1Sequence pubType;
-				pubType.addOid(Oid::RSA_ENCRYPTION);
+				pubType.addOid(OID_RSA_ENCRYPTION);
 				pubType.addNull();
 				pubInfo.addSeq(pubType);
 			}

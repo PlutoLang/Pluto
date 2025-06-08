@@ -27,17 +27,17 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] std::string getCommonName() const SOUP_EXCAL
 		{
-			return get(Oid::COMMON_NAME);
+			return get(OID_COMMON_NAME);
 		}
 
 		[[nodiscard]] std::string getCountry() const SOUP_EXCAL
 		{
-			return get({ 2, 5, 4, 6 });
+			return get(Oid({ 2, 5, 4, 6 }));
 		}
 
 		[[nodiscard]] std::string getOrganisationName() const SOUP_EXCAL
 		{
-			return get({ 2, 5, 4, 10 });
+			return get(Oid({ 2, 5, 4, 10 }));
 		}
 
 		[[nodiscard]] Asn1Sequence toSet() const;

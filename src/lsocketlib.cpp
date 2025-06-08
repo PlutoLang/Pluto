@@ -8,6 +8,8 @@
 #include <queue>
 #include <thread>
 
+#undef MAX_SIZE
+
 #include "vendor/Soup/soup/CertStore.hpp"
 #include "vendor/Soup/soup/netConnectTask.hpp"
 #include "vendor/Soup/soup/os.hpp"
