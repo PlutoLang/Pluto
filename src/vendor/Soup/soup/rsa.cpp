@@ -269,7 +269,7 @@ NAMESPACE_SOUP
 				X509RelativeDistinguishedName subject;
 				for (const auto& common_name : common_names)
 				{
-					subject.emplace_back(Oid::COMMON_NAME, common_name);
+					subject.emplace_back(OID_COMMON_NAME, common_name);
 				}
 				certReqInfo.addName(subject);
 			}
@@ -277,7 +277,7 @@ NAMESPACE_SOUP
 				Asn1Sequence subjectPublicKeyInfo;
 				{
 					Asn1Sequence algorithm;
-					algorithm.addOid(Oid::RSA_ENCRYPTION);
+					algorithm.addOid(OID_RSA_ENCRYPTION);
 					algorithm.addNull();
 					subjectPublicKeyInfo.addSeq(algorithm);
 				}
@@ -298,7 +298,7 @@ NAMESPACE_SOUP
 		}
 		{
 			Asn1Sequence signatureAlgorithm;
-			signatureAlgorithm.addOid(Oid::SHA256_WITH_RSA_ENCRYPTION);
+			signatureAlgorithm.addOid(OID_SHA256_WITH_RSA_ENCRYPTION);
 			signatureAlgorithm.addNull();
 			certReq.addSeq(signatureAlgorithm);
 		}
