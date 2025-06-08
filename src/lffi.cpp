@@ -740,6 +740,13 @@ static int ffi_callback (lua_State *L) {
     cb.args.emplace_back(check_ffi_type(L, 2 + i));
   }
   cb.trampoline = soup::ffi::callbackAlloc(ffi_callback_trampoline, reinterpret_cast<uintptr_t>(&cb));
+  if (!cb.trampoline) {
+#if SOUP_APPLE
+    luaL_error(L, "Failed to allocate an FFI callback. Is the 'com.apple.security.cs.allow-jit' entitlement set?");
+#else
+    luaL_error(L, "Failed to allocate an FFI callback.");
+#endif
+  }
   lua_pushinteger(L, reinterpret_cast<uintptr_t>(&cb) + 1);
   lua_pushvalue(L, -2);
   lua_settable(L, LUA_REGISTRYINDEX);
