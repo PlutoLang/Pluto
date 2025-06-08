@@ -28,7 +28,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] std::array<uint32_t, 4> random() const noexcept;
 
-		[[nodiscard]] constexpr IpAddr getAddr() const noexcept
+		[[nodiscard]] IpAddr getAddr() const noexcept
 		{
 			return Ipv6Maths::toIpAddr(addr);
 		}

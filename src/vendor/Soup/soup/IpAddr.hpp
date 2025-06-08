@@ -28,11 +28,12 @@ NAMESPACE_SOUP
 		union
 		{
 			in6_addr data;
-			uint64_t longs[2];
-			uint32_t ints[4];
 			uint16_t shorts[8]; // <- constexpr
 			uint8_t bytes[16];
 		};
+
+		[[nodiscard]] SOUP_PURE uint64_t* /*[2]*/ longs() noexcept { return reinterpret_cast<uint64_t*>(this); }
+		[[nodiscard]] SOUP_PURE uint32_t* /*[4]*/ ints() noexcept { return reinterpret_cast<uint32_t*>(this); }
 
 		constexpr IpAddr() noexcept
 			: shorts{ 0, 0, 0, 0, 0, 0, 0, 0 }
@@ -48,7 +49,7 @@ NAMESPACE_SOUP
 		{
 			for (auto i = 0; i != 4; ++i)
 			{
-				this->ints[i] = ints[i];
+				this->ints()[i] = ints[i];
 			}
 		}
 
