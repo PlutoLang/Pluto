@@ -3964,7 +3964,7 @@ static BinOpr getbinopr (int op) {
     case TK_AND: return OPR_AND;
     case TK_OR: return OPR_OR;
     case TK_COAL: return OPR_COAL;
-    case TK_POW: return OPR_POW;  /* '**' operator support */
+    case TK_IPOW: return OPR_IPOW;
     default: return OPR_NOBINOPR;
   }
 }
@@ -3988,6 +3988,7 @@ static const struct {
    {3, 3}, {3, 3}, {3, 3},   /* ~=, >, >= */
    {3, 3}, {3, 3},           /* <=>, instanceof */
    {2, 2}, {1, 1}, {1, 1},   /* and, or, ?? */
+   {14, 13},                 /* '**' (right associative) */
 };
 
 #define UNARY_PRIORITY	12  /* priority for unary operators */
@@ -4047,8 +4048,6 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
     return OPR_NOBINOPR;
   }
   /* expand while operators have priorities higher than 'limit' */
-  if (l_unlikely(ls->t.token == TK_POW))
-    throw_warn(ls, "'**' is deprecated", "use '^' instead", WT_DEPRECATED);
   op = getbinopr(ls->t.token);
   if ((flags & E_NO_BOR) && op == OPR_BOR)
     op = OPR_NOBINOPR;
@@ -4065,6 +4064,10 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
     }
     else if (op == OPR_SPACESHIP) {
       custombinaryoperator(ls, v, flags, luaS_newliteral(ls->L, "Pluto_operator_spaceship"));
+      nextop = getbinopr(ls->t.token);
+    }
+    else if (op == OPR_IPOW) {
+      custombinaryoperator(ls, v, flags, luaS_newliteral(ls->L, "Pluto_operator_ipow"));
       nextop = getbinopr(ls->t.token);
     }
     else {
@@ -4324,8 +4327,6 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       check(ls, '=');
     BinOpr compound_op = (ls->t.token == TK_NE ? OPR_BXOR : getbinopr((int)ls->t.seminfo.i));
     if (compound_op != OPR_NOBINOPR) {  /* compound operator? */
-      if (l_unlikely(ls->t.seminfo.i == TK_POW))
-        throw_warn(ls, "'**' is deprecated", "use '^' instead", WT_DEPRECATED);
       check_condition(ls, nvars == 1, "unsupported tuple assignment");
       compoundassign(ls, &lh->v, compound_op);  /* perform binop & assignment */
       return;  /* avoid default */
@@ -5991,7 +5992,7 @@ static void statement (LexState *ls, int8_t *nprop, TypeHint *prop) {
 
 
 static void builtinoperators (LexState *ls) {
-  if (ls->uses_new || ls->uses_extends || ls->uses_instanceof || ls->uses_spaceship) {
+  if (ls->uses_new || ls->uses_extends || ls->uses_instanceof || ls->uses_spaceship || ls->uses_ipow) {
     /* capture state */
     std::vector<Token> tokens = std::move(ls->tokens);
 
@@ -6364,6 +6365,73 @@ static void builtinoperators (LexState *ls) {
       ls->tokens.emplace_back(Token(TK_INT, (lua_Integer)+1));
       ls->tokens.emplace_back(Token(':'));
       ls->tokens.emplace_back(Token(TK_INT, (lua_Integer)0));
+
+      // end
+      ls->tokens.emplace_back(Token(TK_END));
+    }
+    if (ls->uses_ipow) {
+      // local Pluto_operator_ipow <const> = function(x, p)
+      ls->tokens.emplace_back(Token(TK_LOCAL));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "Pluto_operator_ipow")));
+#ifndef PLUTO_ALLOW_FUNCTION_INJECTION_REASSIGNMENT
+      ls->tokens.emplace_back(Token('<'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "const")));
+      ls->tokens.emplace_back(Token('>'));
+#endif
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_FUNCTION));
+      ls->tokens.emplace_back(Token('('));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "x")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "p")));
+      ls->tokens.emplace_back(Token(')'));
+
+      //   local res = 1
+      ls->tokens.emplace_back(Token(TK_LOCAL));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "res")));
+      ls->tokens.emplace_back(Token('='));
+      ls->tokens.emplace_back(Token(TK_INT, (lua_Integer)1));
+
+      //   while p > 0 do
+      ls->tokens.emplace_back(Token(TK_WHILE));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "p")));
+      ls->tokens.emplace_back(Token('>'));
+      ls->tokens.emplace_back(Token(TK_INT, (lua_Integer)0));
+      ls->tokens.emplace_back(Token(TK_DO));
+
+      //     if p & 1 ~= 0 then
+      ls->tokens.emplace_back(Token(TK_IF));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "p")));
+      ls->tokens.emplace_back(Token('&'));
+      ls->tokens.emplace_back(Token(TK_INT, (lua_Integer)1));
+      ls->tokens.emplace_back(Token(TK_NE));
+      ls->tokens.emplace_back(Token(TK_INT, (lua_Integer)0));
+      ls->tokens.emplace_back(Token(TK_THEN));
+
+      //       res *= x
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "res")));
+      ls->tokens.emplace_back(Token('=', (lua_Integer)'*'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "x")));
+
+      //     end
+      ls->tokens.emplace_back(Token(TK_END));
+
+      //     p >>= 1
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "p")));
+      ls->tokens.emplace_back(Token('=', (lua_Integer)TK_SHR));
+      ls->tokens.emplace_back(Token(TK_INT, (lua_Integer)1));
+
+      //     x *= x
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "x")));
+      ls->tokens.emplace_back(Token('=', (lua_Integer)'*'));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "x")));
+
+      //   end
+      ls->tokens.emplace_back(Token(TK_END));
+
+      //   return res
+      ls->tokens.emplace_back(Token(TK_RETURN));
+      ls->tokens.emplace_back(Token(TK_NAME, luaX_newliteral(ls, "res")));
 
       // end
       ls->tokens.emplace_back(Token(TK_END));
