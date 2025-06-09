@@ -4090,6 +4090,13 @@ do
     assert(get_val() <=> get_val() == 0)
 end
 
+print "Testing integer exponentiation operator."
+do
+    assert(3 ** 3 == 27)
+    assert(-3 ** 3 == -27)
+    assert(30 ** 30 == 2565992168703393792)
+end
+
 print "Testing implicit/explicit global creation."
 do
     assert_warn [[
