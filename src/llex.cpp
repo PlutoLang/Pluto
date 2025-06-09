@@ -1104,15 +1104,9 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           return '=';  /* '*=' */
         }
         else if (check_next1(ls, '*')) { /*  got '**' */
-          if (check_next1(ls, '=')) {  /* compound support; **= */
-            ls->appendLineBuff("**=");
-            seminfo->i = TK_POW;
-            return '=';
-          }
-          else {
-            ls->appendLineBuff("**");
-            return TK_POW;  /* '**' */
-          }
+          ls->appendLineBuff("**");
+          ls->uses_ipow = true;
+          return TK_IPOW;  /* '**' */
         }
         else {
           ls->appendLineBuff('*');
