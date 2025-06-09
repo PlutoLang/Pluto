@@ -134,8 +134,7 @@ typedef struct expdesc {
 #define RDKCONST	1   /* constant */
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* compile-time constant */
-#define RDKCONSTEXP	4   /* [Pluto] enforced compile-time constant */
-#define RDKENUM		5   /* [Pluto] named enum */
+#define RDKENUM		4   /* [Pluto] named enum */
 
 struct TypeHint;
 
