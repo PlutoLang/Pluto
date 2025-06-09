@@ -56,7 +56,7 @@ enum RESERVED {
   TK_SHL, TK_SHR, TK_DBCOLON, TK_EOS,
   TK_FLT, TK_INT, TK_NAME, TK_STRING,
   /* Pluto symbols */
-  TK_POW,     /* exponents / power */
+  TK_IPOW,
   TK_COAL,    /* null coal.        */
   TK_WALRUS,  /* walrus operator   */
   TK_ARROW,
@@ -496,6 +496,7 @@ struct LexState {
   bool uses_extends = false;
   bool uses_instanceof = false;
   bool uses_spaceship = false;
+  bool uses_ipow = false;
 
   int else_if = 0;  /* line on which 'else if' was seen, to raise warning in case of missing 'end' */
   std::vector<WarningConfig> warnconfs;
