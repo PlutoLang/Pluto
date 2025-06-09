@@ -4712,8 +4712,10 @@ static void constexprdefinestat (LexState *ls, int line) {
   TypeHint t;
   expr_propagate(ls, &e, t);
   ls->popContext(PARCTX_CREATE_VAR);
-  if (!luaK_exp2const(fs, &e, &var->k))
+  if (!luaK_exp2const(fs, &e, &var->k)) {
+    luaX_prev(ls);
     throwerr(ls, "variable was not assigned a compile-time constant value", "expression not constant", line);
+  }
 
   fs->nactvar++;  /* don't adjustlocalvars, but count it */
 }
@@ -4957,8 +4959,10 @@ static void localstat (LexState *ls, bool isexport = false) {
       luaX_prev(ls);
       luaK_semerror(ls, "<constexpr> variable assignment needs adjustment");
     }
-    if (!vkisconst(e.k))
+    if (!vkisconst(e.k)) {
+      luaX_prev(ls);
       throwerr(ls, "<constexpr> variable was not assigned a compile-time constant value", "expression not constant", line);
+    }
     var->vd.kind = RDKCONST;
   }
   if (nvars == nexps) { /* no adjustments? */
