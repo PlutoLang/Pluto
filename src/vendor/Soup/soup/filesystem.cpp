@@ -81,11 +81,9 @@ NAMESPACE_SOUP
 #endif
 	}
 
-#if SOUP_WINDOWS
 	static const char empty_file_data = 0;
-#endif
 
-	const void* filesystem::createFileMapping(const std::filesystem::path& path, size_t& out_len)
+	const void* filesystem::createFileMapping(const std::filesystem::path& path, size_t& out_len) noexcept
 	{
 		const void* addr = nullptr;
 #if SOUP_WINDOWS
@@ -103,7 +101,7 @@ NAMESPACE_SOUP
 				else
 				{
 					HANDLE m = CreateFileMappingA(f, nullptr, PAGE_READONLY, liSize.HighPart, liSize.LowPart, NULL);
-					SOUP_IF_LIKELY(m != NULL)
+					SOUP_IF_LIKELY (m != NULL)
 					{
 						addr = MapViewOfFile(m, FILE_MAP_READ, 0, 0, out_len);
 						CloseHandle(m);
@@ -120,7 +118,18 @@ NAMESPACE_SOUP
 			SOUP_IF_LIKELY (fstat(f, &st) != -1)
 			{
 				out_len = st.st_size;
-				addr = mmap(nullptr, st.st_size, PROT_READ, MAP_SHARED, f, 0);
+				if (out_len == 0)
+				{
+					addr = &empty_file_data;
+				}
+				else
+				{
+					addr = mmap(nullptr, st.st_size, PROT_READ, MAP_SHARED, f, 0);
+					SOUP_IF_UNLIKELY (addr == MAP_FAILED)
+					{
+						addr = nullptr;
+					}
+				}
 			}
 			::close(f);
 		}
@@ -128,15 +137,15 @@ NAMESPACE_SOUP
 		return addr;
 	}
 
-	void filesystem::destroyFileMapping(const void* addr, size_t len)
+	void filesystem::destroyFileMapping(const void* addr, size_t len) noexcept
 	{
-#if SOUP_WINDOWS
 		if (addr != &empty_file_data)
 		{
+#if SOUP_WINDOWS
 			UnmapViewOfFile(addr);
-		}
 #else
-		munmap(const_cast<void*>(addr), len);
+			munmap(const_cast<void*>(addr), len);
 #endif
+		}
 	}
 }
