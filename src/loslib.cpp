@@ -409,7 +409,7 @@ static int os_sleep (lua_State *L) {
     luaL_error(L, "os.sleep would exceed execution time limit");
   }
 #endif
-  soup::os::sleep(ms);
+  soup::os::fastSleep(ms);
   return 0;
 }
 

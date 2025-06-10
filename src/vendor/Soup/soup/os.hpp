@@ -31,6 +31,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] static pid_t getProcessId() noexcept;
 
 		static void sleep(unsigned int ms) noexcept;
+		static void fastSleep(unsigned int ms) noexcept; // On Windows, this tries to be more accurate for ms < 15.
 
 #if SOUP_WINDOWS
 		static bool copyToClipboard(const std::string& text);
@@ -65,6 +66,16 @@ NAMESPACE_SOUP
 	inline pid_t os::getProcessId() noexcept
 	{
 		return GetCurrentProcessId();
+	}
+
+	inline void os::sleep(unsigned int ms) noexcept
+	{
+		::Sleep(ms);
+	}
+#else
+	inline void os::fastSleep(unsigned int ms) noexcept
+	{
+		os::sleep(ms);
 	}
 #endif
 }
