@@ -14,6 +14,7 @@
 #include <string.h>
 
 #ifdef _WIN32
+#include <fcntl.h>
 #include <vector>
 #endif
 
@@ -703,6 +704,10 @@ int main (int argc, char **argv) {
     if (GetConsoleMode(hSTDOUT, &mode))
       SetConsoleMode(hSTDOUT, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
   }
+#endif
+#ifdef _WIN32
+  /* If we print '\r\n' in text mode, Windows would convert it into '\r\r\n', which some environments interpret as 2 new lines instead of 1. */
+  _setmode(_fileno(stdout), O_BINARY);
 #endif
   int status, result;
   lua_State *L = luaL_newstate();  /* create state */
