@@ -5964,6 +5964,12 @@ static void builtinoperators (LexState *ls) {
       //   for { ... } as mm do
       ls->tokens.emplace_back(Token(TK_FOR));
       ls->tokens.emplace_back(Token('{'));
+      ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "__index")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "__mindex")));
+      ls->tokens.emplace_back(Token(','));
+      ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "__newindex")));
+      ls->tokens.emplace_back(Token(','));
       ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "__gc")));
       ls->tokens.emplace_back(Token(','));
       ls->tokens.emplace_back(Token(TK_STRING, luaX_newliteral(ls, "__mode")));
