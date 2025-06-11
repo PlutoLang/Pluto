@@ -24,6 +24,7 @@ local Pluto_operator_extends <const> = function(c, p)
   end
   for {
     -- luaT_eventname
+    "__index", "__mindex", "__newindex",
     "__gc", "__mode", "__len", "__eq",
     "__add", "__sub", "__mul", "__mod", "__pow",
     "__div", "__idiv",

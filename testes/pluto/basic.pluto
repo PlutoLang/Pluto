@@ -3147,6 +3147,26 @@ do
     assert(inst.derived_member == 12)
     assert(inst.user_defined == 4)
 end
+do
+    local class Base
+        function __index()
+            return "Base.__index"
+        end
+
+        function __newindex()
+            rawset(self, "newindex_called", true)
+        end
+    end
+
+    local class Derived extends Base
+
+    end
+
+    local inst = new Derived()
+    assert(inst.a == "Base.__index")
+    inst.a = true
+    assert(rawget(inst, "newindex_called"))
+end
 -- Metamethod inheritance
 do
     local class Base
