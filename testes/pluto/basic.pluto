@@ -2320,6 +2320,9 @@ do
     assert(math.isnan(0 / 0) == true)
     assert(math.isnan(69) == false)
 
+    assert(math.cbrt(27) == 3)
+    assert(math.cbrt(-27) == -3)
+
     assert(tostring(math.hypot(1e155, 1e155)):sub(1, 7) == "1.41421")
 end
 do
