@@ -54,7 +54,7 @@ NAMESPACE_SOUP
 		}
 #elif SOUP_ARM
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("crc")))
+		__attribute__((target("arch=armv8-a+crc")))
 	#endif
 		uint32_t crc32_armv8(const uint8_t* p, size_t size, uint32_t crc) noexcept
 		{

@@ -203,7 +203,7 @@ NAMESPACE_SOUP
 		}
 #elif SOUP_ARM
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("sha2")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void sha1_transform(uint32_t state[5], const uint8_t data[64]) noexcept
 		{

@@ -330,7 +330,7 @@ NAMESPACE_SOUP
 		}
 #elif SOUP_ARM
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("aes")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void aes_encrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept
 		{
@@ -350,7 +350,7 @@ NAMESPACE_SOUP
 		}
 
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("aes")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void aes_encrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept
 		{
@@ -372,7 +372,7 @@ NAMESPACE_SOUP
 		}
 
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("aes")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void aes_encrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept
 		{
@@ -396,7 +396,7 @@ NAMESPACE_SOUP
 		}
 
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("aes")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void aes_prepare_decryption_128(uint8_t w[176]) noexcept
 		{
@@ -412,7 +412,7 @@ NAMESPACE_SOUP
 		}
 
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("aes")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void aes_prepare_decryption_192(uint8_t w[208]) noexcept
 		{
@@ -430,7 +430,7 @@ NAMESPACE_SOUP
 		}
 
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("aes")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void aes_prepare_decryption_256(uint8_t w[240]) noexcept
 		{
@@ -450,7 +450,7 @@ NAMESPACE_SOUP
 		}
 
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("aes")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void aes_decrypt_block_128(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[176]) noexcept
 		{
@@ -470,7 +470,7 @@ NAMESPACE_SOUP
 		}
 
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("aes")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void aes_decrypt_block_192(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[208]) noexcept
 		{
@@ -492,7 +492,7 @@ NAMESPACE_SOUP
 		}
 
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("aes")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void aes_decrypt_block_256(const uint8_t in[16], uint8_t out[16], const uint8_t roundKeys[240]) noexcept
 		{
