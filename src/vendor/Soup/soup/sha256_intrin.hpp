@@ -228,7 +228,7 @@ NAMESPACE_SOUP
 		};
 
 	#if defined(__GNUC__) || defined(__clang__)
-		__attribute__((target("sha2")))
+		__attribute__((target("arch=armv8-a+crypto")))
 	#endif
 		void sha256_transform(uint32_t state[8], const uint8_t data[64]) noexcept
 		{
