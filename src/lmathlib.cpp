@@ -177,6 +177,12 @@ static int math_sqrt (lua_State *L) {
 }
 
 
+static int math_cbrt (lua_State *L) {
+  lua_pushnumber(L, l_mathop(cbrt)(luaL_checknumber(L, 1)));
+  return 1;
+}
+
+
 static int math_ult (lua_State *L) {
   lua_Integer a = luaL_checkinteger(L, 1);
   lua_Integer b = luaL_checkinteger(L, 2);
@@ -759,6 +765,7 @@ static const luaL_Reg mathlib[] = {
   {"round", math_round},  /* Added in Pluto 0.9.0 */
   {"sin",   math_sin},
   {"sqrt",  math_sqrt},
+  {"cbrt",  math_cbrt},
   {"tan",   math_tan},
   {"type", math_type},
   {"isnan", math_isnan},
