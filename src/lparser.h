@@ -73,7 +73,6 @@ typedef enum {
 enum ValType : lu_byte {
   VT_NONE = 0,
   VT_DUNNO,
-  VT_VOID,
   VT_NIL,
   VT_NUMBER,
   VT_INT,
@@ -88,7 +87,6 @@ enum ValType : lu_byte {
   switch (vt) {
     case VT_NONE: return "none";
     case VT_DUNNO: return "dunno";
-    case VT_VOID: return "void";
     case VT_NIL: return "nil";
     case VT_NUMBER: return "number";
     case VT_INT: return "int";
@@ -136,20 +134,22 @@ typedef struct expdesc {
 #define RDKCONST	1   /* constant */
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* compile-time constant */
-#define RDKCONSTEXP	4   /* [Pluto] enforced compile-time constant */
-#define RDKENUM		5   /* [Pluto] named enum */
+#define RDKENUM		4   /* [Pluto] named enum */
 
 struct TypeHint;
+
+inline constexpr int MAX_TYPED_RETURNS = 3;
 
 struct TypeDesc {
   ValType type;
 
   /* function info */
-  Proto* proto = nullptr;
-  TypeHint* retn = nullptr;
-  static constexpr int MAX_TYPED_PARAMS = 10;
-  TypeHint* params[MAX_TYPED_PARAMS];
   bool nodiscard = false;
+  int8_t nret = 0;
+  Proto* proto = nullptr;
+  TypeHint* returns[MAX_TYPED_RETURNS];
+  static constexpr int MAX_TYPED_PARAMS = 7;
+  TypeHint* params[MAX_TYPED_PARAMS];
 
   TypeDesc() = default;
 
@@ -299,22 +299,9 @@ struct TypeHint {
     return contains(VT_NIL);
   }
 
-  void fixTypes() {
-    if (descs[1].type != VT_NONE) { /* contains more than 1 type? */
-      /* convert 'void' to 'nil' (or 'none' if we already have a 'nil') */
-      const bool already_has_nil = isNullable();
-      for (auto& desc : descs) {
-        if (desc.type == VT_VOID) {
-          desc.type = already_has_nil ? VT_NONE : VT_NIL;
-          break;
-        }
-      }
-    }
-  }
-
   [[nodiscard]] std::string toString() const {
     if (empty()) {
-      return "nil";
+      return "NOINFO";
     }
     std::string str{};
     if (isNullable()) {

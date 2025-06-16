@@ -165,6 +165,14 @@ end
 if __newindex then end
 ]]
 
+    -- multiple return values
+    assert_warn[[local function _f(): (boolean, number)
+        return true, false
+    end]]
+    assert_no_warn[[local function _f(): (boolean, number)
+        return true, 1
+    end]]
+
     -- discarded-return basic test
     assert_warn[[local function f() <nodiscard>
     return 69
@@ -1440,6 +1448,12 @@ if table.freeze then
     status, _ = pcall(function () _ENV[function () end] = "abc" end)
     assert(status == false, "expected error")
     --]] --> Doing this will break tests done with dofile(), since the environment is reused.
+
+    t = table.freeze({ 1, a = 1 })
+    pcall(|| -> do t[1] = 2 end)
+    pcall(|| -> do t.a = 2 end)
+    assert(t[1] == 1)
+    assert(t.a == 1)
 end
 
 print "Testing pipe operator."
@@ -1612,7 +1626,7 @@ do
     assert(base32.decode("AA======") == "\x00")
 end
 do
-    local json = require("json")
+    local { assert, json } = require "*"
 
     assert(json.decode([[{"a":null]]).a == nil)
     assert(json.decode([[{"a":null}]], json.withnull).a == json.null)
@@ -1670,6 +1684,23 @@ do
     -- Cannot encode non-finite numbers
     assert(not pcall(|| -> json.encode(1/0)))
     assert(not pcall(|| -> json.encode(0/0)))
+
+    -- MessagePack
+    assert(json.encode({ 0, true, json.null }, "msgpack") == "\x93\x00\xc3\xc0")
+    assert.equal(json.decode("\x93\x00\xc3\xc0", json.withnull | json.msgpack), { 0, true, json.null })
+
+    -- __order should not change the key type
+    assert(require"json".encode{
+        [10] = "a",
+        [20] = "b",
+        [30] = "c",
+    }:find('10:"a"'))
+    assert(require"json".encode{
+        __order = { 10, 20, 30 },
+        [10] = "a",
+        [20] = "b",
+        [30] = "c",
+    } == '{10:"a",20:"b",30:"c"}')
 end
 do
     local root = {}
@@ -2080,6 +2111,32 @@ do
     assert(tr[1] == 1)
     assert(tr[2] == 3)
     assert(tr[3] == nil)
+end
+do
+    local t = {
+        a = {
+            b = {
+                c = {}
+            },
+        },
+    }
+    local t_1 = t:clone(1)
+    assert(t ~= t_1)
+    assert(t.a == t_1.a)
+    local t_2 = t:clone(2)
+    assert(t ~= t_2)
+    assert(t.a ~= t_2.a)
+    assert(t.a.b == t_2.a.b)
+    local t_3 = t:clone(3)
+    assert(t ~= t_3)
+    assert(t.a ~= t_3.a)
+    assert(t.a.b ~= t_3.a.b)
+    assert(t.a.b.c == t_3.a.b.c)
+    local t_x = t:clone()
+    assert(t ~= t_x)
+    assert(t.a ~= t_x.a)
+    assert(t.a.b ~= t_x.a.b)
+    assert(t.a.b.c ~= t_x.a.b.c)
 end
 do
     local menu = {
@@ -2909,6 +2966,10 @@ do
     local a = 1
     assert(++a == 2)
     assert(a == 2)
+
+    local t = { a = 1 }
+    assert(++t.a == 2)
+    assert(t.a == 2)
 end
 do
     -- statement
@@ -2918,6 +2979,26 @@ do
 
     local t = { a = 1 }
     ++t.a
+    assert(t.a == 2)
+end
+do
+    -- postfix statement
+    local a = 1
+    a++
+    assert(a == 2)
+
+    local t = { a = 1 }
+    t.a++
+    assert(t.a == 2)
+end
+do
+    -- postfix expression
+    local a = 1
+    assert(a++ == 1)
+    assert(a == 2)
+
+    local t = { a = 1 }
+    assert(t.a++ == 1)
     assert(t.a == 2)
 end
 
@@ -3989,35 +4070,20 @@ do
     assert(get_val() <=> get_val() == 0)
 end
 
+print "Testing integer exponentiation operator."
+do
+    assert(3 ** 3 == 27)
+    assert(-3 ** 3 == -27)
+    assert(30 ** 30 == 2565992168703393792)
+end
+
 print "Testing implicit/explicit global creation."
 do
-    assert_warn [[pluto_use global; a = 1]]
-    assert_warn [[pluto_use global; function a() end]]
-    assert_warn [[pluto_use global; class a end]]
-    assert_no_warn [[pluto_use global; local a; a = 1]]
-    assert_no_warn [[pluto_use global; local a; do a = 1 end]]
-
-    -- explicit globals
-    assert_no_warn [[pluto_use global; global a = 1]]
-    assert_no_warn [[pluto_use global; global function a() end]]
-    assert_no_warn [[pluto_use global; global class a end]]
-
-    -- predefine globals
-    assert_no_warn [[pluto_use global; global a; a = 1]]
-    assert_no_warn [[pluto_use global; global a, b; a = 1; b = 2]]
-
-    -- if we use pluto_warnings to enable the warning, it should also be raised.
     assert_warn [[
         -- @pluto_warnings enable-implicit-global
         a = 1
     ]]
-    assert_no_warn [[
-        pluto_use global
-        -- @pluto_warnings disable-implicit-global
-        a = 1
-    ]]
 
-    -- '_G.' and '_ENV.' can also be used to explicitly declare globals
     assert_no_warn [[
         -- @pluto_warnings enable-implicit-global
         _G.a = 1
