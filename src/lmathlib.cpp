@@ -69,6 +69,13 @@ static int math_atan (lua_State *L) {
   return 1;
 }
 
+static int math_hypot (lua_State *L) {
+  lua_Number x = luaL_checknumber(L, 1);
+  lua_Number y = luaL_checknumber(L, 2);
+  lua_pushnumber(L, l_mathop(hypot)(x, y));
+  return 1;
+}
+
 
 static int math_toint (lua_State *L) {
   int valid;
@@ -735,6 +742,7 @@ static const luaL_Reg mathlib[] = {
   {"acos",  math_acos},
   {"asin",  math_asin},
   {"atan",  math_atan},
+  {"hypot", math_hypot},
   {"ceil",  math_ceil},
   {"cos",   math_cos},
   {"deg",   math_deg},
