@@ -2557,6 +2557,10 @@ do
     assert(tostring(buf) == "abc":rep(10))
 end
 do
+    assert(exportvar(1/0) == "math.huge")
+    assert(exportvar(-1/0) == "-math.huge")
+    assert(exportvar(0/0) == "0/0")
+
     assert(exportvar("\147") == [["\147"]])
     assert(exportvar("\25\147\13") == [["\25\147\13"]])
     assert(exportvar("\xc3\xa4") == '"\xc3\xa4"')

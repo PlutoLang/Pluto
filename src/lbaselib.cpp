@@ -9,6 +9,7 @@
 
 #include <ctype.h>
 #include <locale.h>
+#include <math.h> // HUGE_VAL
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -609,9 +610,28 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
         luaL_error(L, luaO_pushfstring(L, "can not export variables of type %s", ttypename(lua_type(L, -1))));
       }
       [[fallthrough]];
-    case LUA_TNUMBER:
     case LUA_TBOOLEAN:
     case LUA_TNIL:
+      dump.append(luaL_tolstring(L, -1, NULL));
+      lua_pop(L, 1);
+      return;
+
+    case LUA_TNUMBER:
+      if (is_export && !lua_isinteger(L, -1)) {
+        auto n = lua_tonumber(L, -1);
+        if (n == (lua_Number)HUGE_VAL) {
+          dump.append("math.huge");
+          return;
+        }
+        if (n == -(lua_Number)HUGE_VAL) {
+          dump.append("-math.huge");
+          return;
+        }
+        if (n != n) {
+          dump.append("0/0");
+          return;
+        }
+      }
       dump.append(luaL_tolstring(L, -1, NULL));
       lua_pop(L, 1);
       return;
