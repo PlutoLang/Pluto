@@ -110,6 +110,17 @@ static int math_floor (lua_State *L) {
 }
 
 
+static int math_trunc (lua_State *L) {
+  if (lua_isinteger(L, 1))
+    lua_settop(L, 1);  /* integer doesn't need truncation */
+  else {
+    lua_Number d = l_mathop(trunc)(luaL_checknumber(L, 1));
+    pushnumint(L, d);
+  }
+  return 1;
+}
+
+
 static int math_round (lua_State *L) {
   if (lua_isinteger(L, 1))
     lua_settop(L, 1);  /* integer is already round */
@@ -763,6 +774,7 @@ static const luaL_Reg mathlib[] = {
   {"modf",   math_modf},
   {"rad",   math_rad},
   {"round", math_round},  /* Added in Pluto 0.9.0 */
+  {"trunc", math_trunc},
   {"sin",   math_sin},
   {"sqrt",  math_sqrt},
   {"cbrt",  math_cbrt},
