@@ -626,7 +626,9 @@ NAMESPACE_SOUP
 	{
 		if (negative ^ b.negative)
 		{
+			negative ^= 1;
 			subUnsigned(b);
+			negative ^= 1;
 		}
 		else
 		{
