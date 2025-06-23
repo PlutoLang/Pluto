@@ -2570,6 +2570,8 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
           num_positional_args++;
           expr_propagate(ls, &args, *(TypeHint*)fas.argdescs.emplace_back(new_typehint(ls)));
           while (testnext(ls, ',')) {
+            if (ls->t.token == ')')  /* allow trailing comma */
+              break;
             luaK_exp2nextreg(ls->fs, &args);
             if (isnamedarg(ls))
               break;
@@ -2586,7 +2588,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
           }
           auto& argtis = *pluto_newclassinst(ls->L, std::vector<size_t>);
           argtis.resize(funcdesc->getNumParams() - num_positional_args);
-          do {
+          while (true) {
             TString *pname = str_checkname(ls, 0);
             int pi = funcdesc->findParamByName(pname);
             if (pi == -1) {
@@ -2599,7 +2601,11 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
             checknext(ls, '=');
             argtis.at(pi) = luaX_getpos(ls);
             skip_over_simpleexp_within_parenlist(ls);
-          } while (testnext(ls, ','));
+            if (!testnext(ls, ','))
+              break;
+            if (ls->t.token == ')')  /* allow trailing comma */
+              break;
+          }
           const auto tidx = luaX_getpos(ls);
           explist_nonlinear(ls, &args, argtis, fas.argdescs);
           luaX_setpos(ls, tidx);
