@@ -4225,12 +4225,16 @@ do
     end
 end
 
-print "Testing trailing commas in function calls."
+print "Testing trailing commas for function parameters."
 do
-    local function count(...)
-        return select('#', ...)
+    local function add(
+        a: number,
+        b: number,
+    )
+        return a + b
     end
-    assert(count(1,) == 1)
-    assert(count(1, 2,) == 2)
-    assert(count(1, 2, 3,) == 3)
+    assert(add(
+        1,
+        2,
+    ) == 3)
 end
