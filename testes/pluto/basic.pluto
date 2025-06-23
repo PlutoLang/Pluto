@@ -4240,3 +4240,13 @@ do
     io.copy("example_module.pluto", "file_that_doesnt_exist")
     assert(io.contents("example_module.pluto") == io.contents("file_that_doesnt_exist"))
 end
+
+print "Testing trailing commas in function calls."
+do
+    local function count(...)
+        return select('#', ...)
+    end
+    assert(count(1,) == 1)
+    assert(count(1, 2,) == 2)
+    assert(count(1, 2, 3,) == 3)
+end
