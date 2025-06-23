@@ -2165,7 +2165,7 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
   int nparams = 0;
   int isvararg = 0;
   if (ls->t.token != ')' && ls->t.token != '|') {  /* is 'parlist' not empty? */
-    do {
+    while (true) {
       if (isnametkn(ls, N_OVERRIDABLE) || (ls->t.IsNonCompatible() && trydisablekeyword(ls) && isnametkn(ls, N_OVERRIDABLE))) {
         auto parname = str_checkname(ls, N_OVERRIDABLE);
         if (promotions) {
@@ -2214,7 +2214,11 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
         }
       }
       else luaX_syntaxerror(ls, "<name> or '...' expected");
-    } while (!isvararg && testnext(ls, ','));
+      if (isvararg || !testnext(ls, ','))
+        break;
+      if (ls->t.token == ')')  /* allow trailing comma */
+        break;
+    }
   }
   adjustlocalvars(ls, nparams);
   f->numparams = cast_byte(fs->nactvar);
