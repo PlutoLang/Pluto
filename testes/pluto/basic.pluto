@@ -4213,3 +4213,13 @@ do
         io.chmod("example_module.pluto", 1)
     end
 end
+
+print "Testing trailing commas in function calls."
+do
+    local function count(...)
+        return select('#', ...)
+    end
+    assert(count(1,) == 1)
+    assert(count(1, 2,) == 2)
+    assert(count(1, 2, 3,) == 3)
+end
