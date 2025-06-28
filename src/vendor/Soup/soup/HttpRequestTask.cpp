@@ -3,6 +3,7 @@
 #if !SOUP_WASM
 #include "format.hpp"
 #include "log.hpp"
+#include "netConfig.hpp"
 #include "netStatus.hpp"
 #include "ObfusString.hpp"
 #include "netReuseTag.hpp"
@@ -25,8 +26,23 @@ NAMESPACE_SOUP
 	}
 
 #if !SOUP_WASM
-	HttpRequestTask::HttpRequestTask(HttpRequest&& _hr)
-		: hr(std::move(_hr))
+	HttpRequestTask::HttpRequestTask(HttpRequest&& hr)
+		: HttpRequestTask(std::move(hr), &Socket::certchain_validator_default)
+	{
+	}
+
+	HttpRequestTask::HttpRequestTask(HttpRequest&& hr, SharedPtr<dnsResolver> resolver)
+		: HttpRequestTask(std::move(hr), resolver, &Socket::certchain_validator_default)
+	{
+	}
+
+	HttpRequestTask::HttpRequestTask(HttpRequest&& hr, certchain_validator_t certchain_validator)
+		: HttpRequestTask(std::move(hr), netConfig::get().getDnsResolver(), certchain_validator)
+	{
+	}
+
+	HttpRequestTask::HttpRequestTask(HttpRequest&& hr, SharedPtr<dnsResolver> resolver, certchain_validator_t certchain_validator)
+		: hr(std::move(hr)), resolver(resolver), certchain_validator(certchain_validator)
 	{
 	}
 
@@ -96,7 +112,7 @@ NAMESPACE_SOUP
 					sock->enableCryptoClient(hr.getHost(), [](Socket&, Capture&& cap) SOUP_EXCAL
 					{
 						cap.get<HttpRequestTask*>()->recvResponse();
-					}, this, hr.getDataToSend());
+					}, this, hr.getDataToSend(), certchain_validator);
 				}
 				else
 				{
@@ -157,7 +173,7 @@ NAMESPACE_SOUP
 	void HttpRequestTask::cannotRecycle()
 	{
 		state = CONNECTING;
-		connector.emplace(hr.getHost(), hr.port, prefer_ipv6);
+		connector.emplace(resolver, hr.getHost(), hr.port, prefer_ipv6);
 	}
 
 	void HttpRequestTask::recvResponse() SOUP_EXCAL
