@@ -32,7 +32,6 @@ NAMESPACE_SOUP
 	struct Asn1Sequence;
 
 	// data.container
-	class Buffer;
 	struct StructMap;
 
 	// data.json
