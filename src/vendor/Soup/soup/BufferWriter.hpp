@@ -9,7 +9,7 @@ NAMESPACE_SOUP
 	class BufferWriter final : public Writer
 	{
 	public:
-		Buffer buf{};
+		Buffer<> buf{};
 
 		BufferWriter()
 			: Writer()
