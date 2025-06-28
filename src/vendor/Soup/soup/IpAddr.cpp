@@ -89,7 +89,8 @@ NAMESPACE_SOUP
 #if !SOUP_WASM
 	std::string IpAddr::getReverseDns() const
 	{
-		return getReverseDns(netConfig::get().getDnsResolver());
+		auto resolver = netConfig::get().getDnsResolver();
+		return getReverseDns(*resolver);
 	}
 
 	std::string IpAddr::getReverseDns(dnsResolver& resolver) const
