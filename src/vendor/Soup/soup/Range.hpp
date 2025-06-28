@@ -52,7 +52,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] size_t scanWithMultipleResultsSimd(const Pattern& sig, Pointer buf[], size_t buflen) const noexcept;
 #if SOUP_X86 && SOUP_BITS == 64
 		[[nodiscard]] size_t scanWithMultipleResultsAvx2(const Pattern& sig, Pointer buf[], size_t buflen) const noexcept;
-		//[[nodiscard]] size_t scanWithMultipleResultsAvx512(const Pattern& sig, Pointer buf[], size_t buflen) const noexcept;
+		[[nodiscard]] size_t scanWithMultipleResultsAvx512(const Pattern& sig, Pointer buf[], size_t buflen) const noexcept;
 #endif
 	};
 }

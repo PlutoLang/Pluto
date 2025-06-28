@@ -83,7 +83,7 @@ NAMESPACE_SOUP
 		, uintptr_t g, uintptr_t h
 #endif
 #if SOUP_X86 && SOUP_BITS == 32
-		uintptr_t i, uintptr_t j, uintptr_t k, uintptr_t l, uintptr_t m, uintptr_t n, uintptr_t o, uintptr_t p, uintptr_t q, uintptr_t r, uintptr_t s, uintptr_t t
+		, uintptr_t i, uintptr_t j, uintptr_t k, uintptr_t l, uintptr_t m, uintptr_t n, uintptr_t o, uintptr_t p, uintptr_t q, uintptr_t r, uintptr_t s, uintptr_t t
 #endif
 	)
 	{

@@ -27,7 +27,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::string calculateMac(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL { return calculateMac(content_type, content.data(), content.size()); }
 		[[nodiscard]] std::string calculateMac(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL;
 
-		[[nodiscard]] Buffer encrypt(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL;
+		[[nodiscard]] Buffer<> encrypt(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL;
 
 		void reset() noexcept;
 	};
