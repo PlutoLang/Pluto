@@ -38,7 +38,7 @@ NAMESPACE_SOUP
 		}
 	}
 
-	Buffer SocketTlsEncrypter::encrypt(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL
+	Buffer<> SocketTlsEncrypter::encrypt(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL
 	{
 		constexpr auto cipher_bytes = 16;
 
@@ -51,7 +51,8 @@ NAMESPACE_SOUP
 			auto aligned_in_len = ((((cont_with_mac_size + 1) / cipher_bytes) + 1) * cipher_bytes);
 			auto pad_len = static_cast<char>(aligned_in_len - cont_with_mac_size);
 
-			Buffer buf(size + mac.size() + pad_len);
+			Buffer buf;
+			buf.reserve(size + mac.size() + pad_len);
 			buf.append(data, size);
 			buf.append(mac.data(), mac.size());
 			buf.insert_back((size_t)pad_len, (pad_len - 1));
@@ -80,7 +81,8 @@ NAMESPACE_SOUP
 
 			auto ad = calculateMacBytes(content_type, size);
 
-			Buffer buf(size + cipher_bytes + explicit_iv_len);
+			Buffer buf;
+			buf.reserve(size + cipher_bytes + explicit_iv_len);
 			buf.append(&iv[implicit_iv_len], explicit_iv_len);
 			buf.append(data, size);
 
