@@ -334,9 +334,6 @@
     <ClCompile Include="src\vendor\Soup\soup\QrCode.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\Soup\soup\memAllocator.cpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\ResolveIpAddrTask.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
@@ -1078,9 +1075,6 @@
     <ClInclude Include="src\vendor\Soup\soup\ResolveIpAddrTask.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
-    <ClInclude Include="src\vendor\Soup\soup\memAllocator.hpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\memCAllocator.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
@@ -1151,6 +1145,9 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\RecursiveMutex.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\memAllocating.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>

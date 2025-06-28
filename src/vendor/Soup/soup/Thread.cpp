@@ -39,7 +39,6 @@ NAMESPACE_SOUP
 	{
 		auto data = reinterpret_cast<Thread::RunningData*>(handover);
 		data->f(std::move(data->f_cap));
-		data->f_cap.reset();
 		delete data;
 	}
 

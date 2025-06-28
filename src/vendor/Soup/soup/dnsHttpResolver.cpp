@@ -4,6 +4,8 @@
 #include "HttpRequest.hpp"
 #include "HttpRequestTask.hpp"
 #include "ObfusString.hpp"
+#include "os.hpp"
+#include "Scheduler.hpp"
 
 NAMESPACE_SOUP
 {
@@ -21,10 +23,12 @@ NAMESPACE_SOUP
 		std::string path = "/dns-query?dns=";
 		path.append(base64::urlEncode(getQuery(qtype, name)));
 
-		HttpRequest hr(std::string(server), std::move(path));
-		auto hres = hr.execute(keep_alive_sched);
-
-		return parseResponse(std::move(hres->body));
+		auto task = keep_alive_sched->add<HttpRequestTask>(HttpRequest(std::string(server), std::move(path))/*, certchain_validator*/);
+		do
+		{
+			os::sleep(1);
+		} while (!task->isWorkDone());
+		return parseResponse(std::move(task->result->body));
 #endif
 	}
 

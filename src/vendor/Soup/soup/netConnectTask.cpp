@@ -14,16 +14,21 @@
 NAMESPACE_SOUP
 {
 	netConnectTask::netConnectTask(const std::string& host, uint16_t port, bool prefer_ipv6, unsigned int timeout_ms)
-		: timeout_ms(timeout_ms), status(NET_PENDING)
+		: netConnectTask(netConfig::get().getDnsResolver(), host, port, prefer_ipv6, timeout_ms)
+	{
+	}
+
+	netConnectTask::netConnectTask(SharedPtr<dnsResolver> resolver, const std::string& host, uint16_t port, bool prefer_ipv6, unsigned int timeout_ms)
+		: resolver(std::move(resolver)), status(NET_PENDING), timeout_ms(timeout_ms)
 	{
 		if (IpAddr ip; ip.fromString(host))
 		{
-			second_lookup = true; // No retry possible
+			this->resolver.reset(); // No retry possible
 			proceedToConnect(ip, port);
 		}
 		else
 		{
-			lookup = netConfig::get().getDnsResolver().makeLookupTask(prefer_ipv6 ? DNS_AAAA : DNS_A, host);
+			lookup = this->resolver->makeLookupTask(prefer_ipv6 ? DNS_AAAA : DNS_A, host);
 			current_lookup_is_ipv6 = prefer_ipv6;
 
 			// In case we get no A records, we need enough data to start AAAA query.
@@ -58,7 +63,7 @@ NAMESPACE_SOUP
 
 				if (results.empty())
 				{
-					if (second_lookup)
+					if (!resolver) // Was that the final lookup?
 					{
 						if (lookup->result.has_value())
 						{
@@ -96,14 +101,12 @@ NAMESPACE_SOUP
 #else
 			int res = ::poll(&pfd, 1, 0);
 #endif
-			if (res == 0)
+			if (res == 0) // Pending?
 			{
-				// Pending
-				if (time::millisSince(started_connect_at) > timeout_ms)
+				if (time::millisSince(started_connect_at) > timeout_ms) // Timeout?
 				{
-					// Timeout
 					sock.transport_close();
-					if (second_lookup)
+					if (!resolver) // Can't do another lookup?
 					{
 						status = NET_FAIL_L4_TIMEOUT;
 						setWorkDone();
@@ -125,7 +128,7 @@ NAMESPACE_SOUP
 				else
 				{
 					// Error
-					if (!second_lookup)
+					if (resolver) // Can do another lookup?
 					{
 						doSecondLookup();
 						return;
@@ -152,8 +155,8 @@ NAMESPACE_SOUP
 	void netConnectTask::doSecondLookup()
 	{
 		current_lookup_is_ipv6 = !current_lookup_is_ipv6;
-		lookup = netConfig::get().getDnsResolver().makeLookupTask(current_lookup_is_ipv6 ? DNS_AAAA : DNS_A, host);
-		second_lookup = true;
+		lookup = resolver->makeLookupTask(current_lookup_is_ipv6 ? DNS_AAAA : DNS_A, host);
+		this->resolver.reset(); // No more tries possible after this
 	}
 
 	void netConnectTask::proceedToConnect(const IpAddr& addr, uint16_t port)
@@ -169,7 +172,7 @@ NAMESPACE_SOUP
 		if (lookup)
 		{
 			str.append(ObfusString("Lookup #").str());
-			str.push_back(second_lookup ? '2' : '1');
+			str.push_back(resolver ? '1' : '2');
 			str.append(": ");
 			str.append(current_lookup_is_ipv6 ? ObfusString("AAAA").str() : ObfusString("A").str());
 			str.append(": ");

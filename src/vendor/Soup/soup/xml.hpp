@@ -90,8 +90,11 @@ NAMESPACE_SOUP
 
 	struct XmlMode
 	{
-		// If not empty, `/>` is ignored. Instead, only contained tags are considered self-closing.
-		std::unordered_set<std::string> self_closing_tags;
+		// A 0-terminated array of JOAAT Hashes. If not empty, `/>` is ignored. Instead, only contained tags are considered self-closing.
+		static constexpr const uint32_t NO_SELF_CLOSING_TAGS[] = {0};
+		const uint32_t* self_closing_tags = NO_SELF_CLOSING_TAGS;
+		[[nodiscard]] bool hasSelfClosingTags() const noexcept { return self_closing_tags[0] != 0; }
+		[[nodiscard]] bool isSelfClosingTag(const std::string& name) const noexcept;
 
 		// Allow attributes to be specified without a value.
 		bool empty_attribute_syntax = false;

@@ -4,7 +4,7 @@
 #include "type.hpp"
 
 #include "dnsResolver.hpp"
-#include "UniquePtr.hpp"
+#include "SharedPtr.hpp"
 
 NAMESPACE_SOUP
 {
@@ -12,12 +12,9 @@ NAMESPACE_SOUP
 	{
 		[[nodiscard]] static netConfig& get(); // returns the netConfig instance for this thread
 
-		UniquePtr<dnsResolver> dns_resolver;
-#if !SOUP_WASM
-		certchain_validator_t certchain_validator;
-#endif
+		SharedPtr<dnsResolver> dns_resolver;
 
-		[[nodiscard]] dnsResolver& getDnsResolver() SOUP_EXCAL;
+		[[nodiscard]] SharedPtr<dnsResolver>& getDnsResolver() SOUP_EXCAL;
 
 		netConfig();
 	};

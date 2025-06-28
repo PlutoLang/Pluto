@@ -109,16 +109,22 @@ NAMESPACE_SOUP
 
 	bool Socket::connect(const std::string& host, uint16_t port, unsigned int timeout_ms) noexcept
 	{
+		auto resolver = netConfig::get().getDnsResolver();
+		return connect(*resolver, host, port, timeout_ms);
+	}
+
+	bool Socket::connect(const dnsResolver& resolver, const std::string& host, uint16_t port, unsigned int timeout_ms) noexcept
+	{
 		if (IpAddr hostaddr; hostaddr.fromString(host))
 		{
 			return connect(hostaddr, port, timeout_ms);
 		}
-		auto res = netConfig::get().getDnsResolver().lookupIPv4(host);
+		auto res = resolver.lookupIPv4(host);
 		if (!res.empty() && connect(rand(res), port, timeout_ms))
 		{
 			return true;
 		}
-		res = netConfig::get().getDnsResolver().lookupIPv6(host);
+		res = resolver.lookupIPv6(host);
 		if (!res.empty() && connect(rand(res), port, timeout_ms))
 		{
 			return true;
@@ -374,7 +380,6 @@ NAMESPACE_SOUP
 	{
 		Socket& s;
 		SocketTlsHandshaker* handshaker;
-		certchain_validator_t certchain_validator;
 	};
 
 	struct CaptureValidateSke
@@ -385,11 +390,12 @@ NAMESPACE_SOUP
 		bool sha256;
 	};
 
-	void Socket::enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap, std::string&& initial_application_data) SOUP_EXCAL
+	void Socket::enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap, std::string&& initial_application_data, certchain_validator_t certchain_validator) SOUP_EXCAL
 	{
-		auto handshaker = make_unique<SocketTlsHandshaker>(
+		auto handshaker = soup::make_unique<SocketTlsHandshaker>(
 			callback,
-			std::move(cap)
+			std::move(cap),
+			certchain_validator
 		);
 		handshaker->server_name = std::move(server_name);
 		handshaker->initial_application_data = std::move(initial_application_data);
@@ -528,7 +534,7 @@ NAMESPACE_SOUP
 							bool res;
 							SOUP_TRY
 							{
-								res = cap.certchain_validator(cap.handshaker->certchain, cap.handshaker->server_name, cap.s.custom_data);
+								res = cap.handshaker->certchain_validator(cap.handshaker->certchain, cap.handshaker->server_name, cap.s.custom_data);
 							}
 							SOUP_CATCH (std::bad_alloc, _)
 							{
@@ -543,8 +549,7 @@ NAMESPACE_SOUP
 							}
 						}, CaptureValidateCertchain{
 							s,
-							handshaker.get(),
-							netConfig::get().certchain_validator
+							handshaker.get()
 						});
 					}
 					SOUP_CATCH_ANY
@@ -910,10 +915,10 @@ NAMESPACE_SOUP
 	{
 		auto handshaker = make_unique<SocketTlsHandshaker>(
 			callback,
-			std::move(cap)
+			std::move(cap),
+			std::move(certstore),
+			on_client_hello
 		);
-		handshaker->certstore = std::move(certstore);
-		handshaker->on_client_hello = on_client_hello;
 		tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
 		{
 			if (handshake_type != TlsHandshake::client_hello)
@@ -1277,7 +1282,8 @@ NAMESPACE_SOUP
 		record.content_type = content_type;
 		record.length = static_cast<uint16_t>(body.size());
 
-		Buffer header(5);
+		Buffer header;
+		header.reserve(5);
 		BufferRefWriter bw(header);
 		record.write(bw);
 
@@ -1602,7 +1608,7 @@ NAMESPACE_SOUP
 		return ::recv(fd, &buf, 1, MSG_PEEK) == 1;
 	}
 
-	bool Socket::transport_send(const Buffer& buf) const noexcept
+	bool Socket::transport_send(const Buffer<>& buf) const noexcept
 	{
 		return transport_send(buf.data(), static_cast<int>(buf.size()));
 	}
