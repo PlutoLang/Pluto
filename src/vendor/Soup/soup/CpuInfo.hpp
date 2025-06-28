@@ -123,6 +123,11 @@ NAMESPACE_SOUP
 			return (extended_features_0_ebx >> 29) & 1;
 		}
 
+		[[nodiscard]] bool supportsAVX512BW() const noexcept
+		{
+			return (extended_features_0_ebx >> 30) & 1;
+		}
+
 		[[nodiscard]] bool supportsSHA512() const noexcept
 		{
 			return (extended_features_1_eax >> 0) & 1;
