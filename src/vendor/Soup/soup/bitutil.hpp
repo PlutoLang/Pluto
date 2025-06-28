@@ -113,7 +113,7 @@ NAMESPACE_SOUP
 			_BitScanForward64(&ret, mask);
 			return ret;
 #else
-			return __builtin_ctz(mask);
+			return __builtin_ctzll(mask);
 #endif
 		}
 #endif
@@ -181,19 +181,34 @@ NAMESPACE_SOUP
 #endif
 		}
 
-		[[nodiscard]] static uint32_t getNumSetBits(uint32_t i) noexcept
+		[[nodiscard]] static auto getNumSetBits(uint16_t i) noexcept
 		{
-#if defined(_MSC_VER) && !defined(__clang__)
-			// https://stackoverflow.com/a/109025
-			i = i - ((i >> 1) & 0x55555555);
-			i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-			i = (i + (i >> 4)) & 0x0F0F0F0F;
-			i *= 0x01010101;
-			return i >> 24;
+#if defined(_MSC_VER)
+			return __popcnt16(i);
 #else
 			return __builtin_popcount(i);
 #endif
 		}
+
+		[[nodiscard]] static auto getNumSetBits(uint32_t i) noexcept
+		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			return __popcnt(i);
+#else
+			return __builtin_popcount(i);
+#endif
+		}
+
+#if SOUP_BITS >= 64
+		[[nodiscard]] static auto getNumSetBits(uint64_t i) noexcept
+		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			return __popcnt64(i);
+#else
+			return __builtin_popcountll(i);
+#endif
+		}
+#endif
 
 		// https://stackoverflow.com/a/2602885
 		[[nodiscard]] static uint8_t reverse(uint8_t b) noexcept
