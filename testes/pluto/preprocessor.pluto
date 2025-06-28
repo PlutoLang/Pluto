@@ -78,3 +78,16 @@ do
 end
 assert(block_closed)
 ]]()
+
+-- Self-referencing alias should not be resolved
+assert(load[[
+    $alias r = r
+    local r = 69
+    return r
+]]() == 69)
+assert(load[[
+    $alias r(x) = r = x
+    r(69)
+    return _G["r"]
+]]() == 69)
+
