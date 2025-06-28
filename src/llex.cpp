@@ -367,6 +367,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
           }
           else {
             i = ls->tokens.insert(i, e->second.sub.begin(), e->second.sub.end());
+            i += e->second.sub.size();
           }
           continue;
         }
