@@ -710,6 +710,9 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
   while (lua_next(L, -2)) {
     if (empty) {
       empty = false;
+      dump.append(" -- ");
+      dump.append(luaL_tolstring(L, -3, NULL));
+      lua_pop(L, 1);
       dump.push_back('\n');
     }
     dump.append(indents, '\t');
@@ -729,7 +732,13 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
     lua_pop(L, 2);
     dump.append(",\n");
   }
-  if (!empty) {
+  if (empty) {
+    dump.append(" --[[ ");
+    dump.append(luaL_tolstring(L, -1, NULL));
+    lua_pop(L, 1);
+    dump.append(" ]] ");
+  }
+  else {
     dump.append(indents - 1, '\t');
   }
   dump.push_back('}');
