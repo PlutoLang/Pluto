@@ -9,9 +9,9 @@ NAMESPACE_SOUP
 	class BufferRefWriter final : public Writer
 	{
 	public:
-		Buffer& buf;
+		Buffer<>& buf;
 
-		BufferRefWriter(Buffer& buf)
+		BufferRefWriter(Buffer<>& buf)
 			: Writer(), buf(buf)
 		{
 		}
