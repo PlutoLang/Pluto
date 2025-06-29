@@ -2521,6 +2521,9 @@ do
 
     assert(tostring(-new bigint(4)) == "-4")
     assert(tostring(-new bigint(-4)) == "4")
+
+    -- Mixed bigint/number operands
+    assert(tostring(new bigint(4) * 2) == "8")
 end
 do
     local { scheduler } = require "*"
