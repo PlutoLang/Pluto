@@ -6,6 +6,12 @@
 void pushbigint (lua_State *L, soup::Bigint&& x);
 
 soup::Bigint* checkbigint (lua_State *L, int i) {
+  if (lua_type(L, i) == LUA_TNUMBER) {
+    size_t len;
+    const char *str = lua_tolstring(L, i, &len);
+    pushbigint(L, soup::Bigint::fromString(str, len));
+    i = -1;
+  }
   return (soup::Bigint*)luaL_checkudata(L, i, "pluto:bigint");
 }
 
