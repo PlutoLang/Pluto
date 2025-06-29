@@ -2518,6 +2518,9 @@ do
         assert(n:hex() == "D8D12A03AE2F14B16CBFDF160FF7AC97911862B3D048F18E3B95E909A08D91AAD4BA48D8A1FE4EBC555782FDE14D13085A35F6F62D57A4F86CE1FF32503A9055")
         assert(n:bitlength() == 512)
     end
+
+    assert(tostring(-new bigint(4)) == "-4")
+    assert(tostring(-new bigint(-4)) == "4")
 end
 do
     local { scheduler } = require "*"
