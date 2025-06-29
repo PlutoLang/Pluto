@@ -710,6 +710,11 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
   while (lua_next(L, -2)) {
     if (empty) {
       empty = false;
+      if (!is_export && luaL_getmetafield(L, -3, "__name") != LUA_TNIL) {
+        dump.append(" -- ");
+        dump.append(luaL_tolstring(L, -1, NULL));
+        lua_pop(L, 2);
+      }
       dump.push_back('\n');
     }
     dump.append(indents, '\t');
@@ -729,7 +734,15 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
     lua_pop(L, 2);
     dump.append(",\n");
   }
-  if (!empty) {
+  if (empty) {
+    if (!is_export && luaL_getmetafield(L, -1, "__name") != LUA_TNIL) {
+      dump.append(" --[[ ");
+      dump.append(luaL_tolstring(L, -1, NULL));
+      dump.append(" ]] ");
+      lua_pop(L, 2);
+    }
+  }
+  else {
     dump.append(indents - 1, '\t');
   }
   dump.push_back('}');
