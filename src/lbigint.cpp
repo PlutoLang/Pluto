@@ -73,6 +73,13 @@ static int bigint_le (lua_State *L) {
   return 1;
 }
 
+static int bigint_unm (lua_State *L) {
+  soup::Bigint cpy = *checkbigint(L, 1);
+  cpy.negative ^= 1;
+  pushbigint(L, std::move(cpy));
+  return 1;
+}
+
 static int bigint_hex (lua_State *L) {
   pluto_pushstring(L, checkbigint(L, 1)->toStringHex());
   return 1;
@@ -127,6 +134,9 @@ void pushbigint (lua_State *L, soup::Bigint&& x) {
     lua_pushliteral(L, "__le");
     lua_pushcfunction(L, bigint_le);
     lua_settable(L, -3);
+	lua_pushliteral(L, "__unm");
+	lua_pushcfunction(L, bigint_unm);
+	lua_settable(L, -3);
     lua_pushliteral(L, "__index");
     luaL_loadbuffer(L, "return require\"pluto:bigint\"", 28, 0);
     lua_call(L, 0, 1);
