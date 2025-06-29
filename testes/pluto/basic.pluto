@@ -2657,6 +2657,15 @@ do
     assert(tostring(buf) == "abc":rep(10))
 end
 do
+    local class MyClass
+        __name = "MyClass"
+    end
+    local a = new MyClass()
+    local b = new MyClass()
+    b.prop = true
+    assert(dumpvar({ a, b }) == "{\n\t[1] = { --[[ MyClass ]] },\n\t[2] = { -- MyClass\n\t\t[\"prop\"] = true,\n\t},\n}")
+end
+do
     assert(exportvar(1/0) == "math.huge")
     assert(exportvar(-1/0) == "-math.huge")
     assert(exportvar(0/0) == "0/0")
