@@ -69,6 +69,13 @@ static int math_atan (lua_State *L) {
   return 1;
 }
 
+static int math_hypot (lua_State *L) {
+  lua_Number x = luaL_checknumber(L, 1);
+  lua_Number y = luaL_checknumber(L, 2);
+  lua_pushnumber(L, l_mathop(hypot)(x, y));
+  return 1;
+}
+
 
 static int math_toint (lua_State *L) {
   int valid;
@@ -97,6 +104,17 @@ static int math_floor (lua_State *L) {
     lua_settop(L, 1);  /* integer is its own floor */
   else {
     lua_Number d = l_mathop(floor)(luaL_checknumber(L, 1));
+    pushnumint(L, d);
+  }
+  return 1;
+}
+
+
+static int math_trunc (lua_State *L) {
+  if (lua_isinteger(L, 1))
+    lua_settop(L, 1);  /* integer doesn't need truncation */
+  else {
+    lua_Number d = l_mathop(trunc)(luaL_checknumber(L, 1));
     pushnumint(L, d);
   }
   return 1;
@@ -166,6 +184,12 @@ static int math_modf (lua_State *L) {
 
 static int math_sqrt (lua_State *L) {
   lua_pushnumber(L, l_mathop(sqrt)(luaL_checknumber(L, 1)));
+  return 1;
+}
+
+
+static int math_cbrt (lua_State *L) {
+  lua_pushnumber(L, l_mathop(cbrt)(luaL_checknumber(L, 1)));
   return 1;
 }
 
@@ -637,28 +661,18 @@ static void setseed (lua_State *L, Rand64 *state,
 }
 
 
-/*
-** Set a "random" seed. To get some randomness, use the current time
-** and the address of 'L' (in case the machine does address space layout
-** randomization).
-*/
-static void randseed (lua_State *L, RanState *state) {
-  lua_Unsigned seed1 = (lua_Unsigned)time(NULL);
-  lua_Unsigned seed2 = (lua_Unsigned)(size_t)L;
-  setseed(L, state->s, seed1, seed2);
-}
-
-
 static int math_randomseed (lua_State *L) {
   RanState *state = (RanState *)lua_touserdata(L, lua_upvalueindex(1));
+  lua_Unsigned n1, n2;
   if (lua_isnone(L, 1)) {
-    randseed(L, state);
+    n1 = luaL_makeseed(L);  /* "random" seed */
+    n2 = I2UInt(nextrand(state->s));  /* in case seed is not that random... */
   }
   else {
-    lua_Integer n1 = luaL_checkinteger(L, 1);
-    lua_Integer n2 = luaL_optinteger(L, 2, 0);
-    setseed(L, state->s, n1, n2);
+    n1 = luaL_checkinteger(L, 1);
+    n2 = luaL_optinteger(L, 2, 0);
   }
+  setseed(L, state->s, n1, n2);
   return 2;  /* return seeds */
 }
 
@@ -675,7 +689,7 @@ static const luaL_Reg randfuncs[] = {
 */
 static void setrandfunc (lua_State *L) {
   RanState *state = (RanState *)lua_newuserdatauv(L, sizeof(RanState), 0);
-  randseed(L, state);  /* initialize with a "random" seed */
+  setseed(L, state->s, luaL_makeseed(L), 0);  /* initialize with random seed */
   lua_pop(L, 2);  /* remove pushed seeds */
   luaL_setfuncs(L, randfuncs, 1);
 
@@ -745,6 +759,7 @@ static const luaL_Reg mathlib[] = {
   {"acos",  math_acos},
   {"asin",  math_asin},
   {"atan",  math_atan},
+  {"hypot", math_hypot},
   {"ceil",  math_ceil},
   {"cos",   math_cos},
   {"deg",   math_deg},
@@ -759,8 +774,10 @@ static const luaL_Reg mathlib[] = {
   {"modf",   math_modf},
   {"rad",   math_rad},
   {"round", math_round},  /* Added in Pluto 0.9.0 */
+  {"trunc", math_trunc},
   {"sin",   math_sin},
   {"sqrt",  math_sqrt},
+  {"cbrt",  math_cbrt},
   {"tan",   math_tan},
   {"type", math_type},
   {"isnan", math_isnan},
@@ -796,6 +813,8 @@ LUAMOD_API int luaopen_math (lua_State *L) {
   lua_setfield(L, -2, "pi");
   lua_pushnumber(L, (lua_Number)HUGE_VAL);
   lua_setfield(L, -2, "huge");
+  lua_pushnumber(L, (lua_Number)HUGE_VAL);
+  lua_setfield(L, -2, "inf");
   lua_pushinteger(L, LUA_MAXINTEGER);
   lua_setfield(L, -2, "maxinteger");
   lua_pushinteger(L, LUA_MININTEGER);

@@ -2,8 +2,8 @@
 
 #include "HttpRequestTask.hpp"
 #include "joaat.hpp"
+#include "netConfig.hpp"
 #include "ObfusString.hpp"
-#include "os.hpp"
 #include "Scheduler.hpp"
 #include "Socket.hpp"
 #include "UniquePtr.hpp"
@@ -116,22 +116,28 @@ NAMESPACE_SOUP
 		Optional<HttpResponse> resp;
 	};
 
-	Optional<HttpResponse> HttpRequest::execute(Scheduler* keep_alive_sched) const
+	Optional<HttpResponse> HttpRequest::execute() const
 	{
-		if (keep_alive_sched)
-		{
-			auto task = keep_alive_sched->add<HttpRequestTask>(HttpRequest(*this));
-			do
-			{
-				os::sleep(1);
-			} while (!task->isWorkDone());
-			SOUP_MOVE_RETURN(task->result);
-		}
+		return execute(&Socket::certchain_validator_default);
+	}
 
+	Optional<HttpResponse> HttpRequest::execute(certchain_validator_t certchain_validator) const
+	{
+		auto resolver = netConfig::get().getDnsResolver();
+		return execute(*resolver, certchain_validator);
+	}
+
+	Optional<HttpResponse> HttpRequest::execute(const dnsResolver& resolver) const
+	{
+		return execute(resolver, &Socket::certchain_validator_default);
+	}
+
+	Optional<HttpResponse> HttpRequest::execute(const dnsResolver& resolver, certchain_validator_t certchain_validator) const
+	{
 		HttpRequestExecuteData data{ this };
-		auto sock = make_shared<Socket>();
+		auto sock = soup::make_shared<Socket>();
 		const auto host = getHost();
-		if (sock->connect(host, port))
+		if (sock->connect(resolver, host, port))
 		{
 			Scheduler sched{};
 			sched.addSocket(sock);
@@ -141,7 +147,7 @@ NAMESPACE_SOUP
 				{
 					auto& data = *cap.get<HttpRequestExecuteData*>();
 					execute_recvResponse(s, &data.resp);
-				}, &data, getDataToSend());
+				}, &data, getDataToSend(), certchain_validator);
 			}
 			else
 			{
@@ -163,10 +169,16 @@ NAMESPACE_SOUP
 
 	void HttpRequest::executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) const
 	{
+		auto resolver = netConfig::get().getDnsResolver();
+		return executeEventStream(*resolver, on_event, std::move(cap));
+	}
+
+	void HttpRequest::executeEventStream(const dnsResolver& resolver, void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) const
+	{
 		HttpRequestExecuteEventStreamData data{ this, on_event, std::move(cap) };
 		auto sock = make_shared<Socket>();
 		const auto host = getHost();
-		if (sock->connect(host, port))
+		if (sock->connect(resolver, host, port))
 		{
 			Scheduler sched{};
 			sched.addSocket(sock);

@@ -49,7 +49,7 @@ NAMESPACE_SOUP
 			return static_cast<T*>(this)->template io<Reader>(r);
 		}
 
-		[[nodiscard]] Buffer toBinary() SOUP_EXCAL
+		[[nodiscard]] Buffer<> toBinary() SOUP_EXCAL
 		{
 			BufferWriter w;
 			write(w);

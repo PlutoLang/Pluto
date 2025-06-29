@@ -198,4 +198,19 @@ NAMESPACE_SOUP
 		}
 		return char_len;
 	}
+
+	void unicode::utf8_sanitise(std::string& str)
+	{
+		for (auto it = str.cbegin(); it != str.cend(); )
+		{
+			const auto char_begin = it;
+			SOUP_IF_UNLIKELY (utf8_to_utf32_char(it, str.cend()) == REPLACEMENT_CHAR)
+			{
+				const auto off = char_begin - str.cbegin();
+				str.erase(char_begin, it);
+				str.insert(off, "\xEF\xBF\xBD");
+				it = str.cbegin() + off + 3;
+			}
+		}
+	}
 }
