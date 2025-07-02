@@ -106,6 +106,11 @@ static int bigint_abs (lua_State *L) {
   return 1;
 }
 
+static int bigint_gcd (lua_State *L) {
+  pushbigint(L, checkbigint(L, 1)->gcd(*checkbigint(L, 2)));
+  return 1;
+}
+
 void pushbigint (lua_State *L, soup::Bigint&& x) {
   new (lua_newuserdata(L, sizeof(soup::Bigint))) soup::Bigint(std::move(x));
   if (l_unlikely(luaL_newmetatable(L, "pluto:bigint"))) {
@@ -172,6 +177,7 @@ static const luaL_Reg funcs_bigint[] = {
   {"binary", bigint_binary},
   {"bitlength", bigint_bitlength},
   {"abs", bigint_abs},
+  {"gcd", bigint_gcd},
   {nullptr, nullptr}
 };
 
