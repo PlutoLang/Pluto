@@ -2525,6 +2525,8 @@ do
     assert(tostring(-new bigint(4)) == "-4")
     assert(tostring(-new bigint(-4)) == "4")
 
+    assert(bigint.new(48):gcd(bigint.new(18)):tostring() == "6")
+
     -- Mixed bigint/number operands
     assert(tostring(new bigint(4) * 2) == "8")
 end
