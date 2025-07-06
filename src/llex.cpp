@@ -920,6 +920,12 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
                 t.token = TK_CONCAT;
                 t.line = (int)ls->lines.size();
                 t.column = (int)ls->getLineBuff().size(); }
+
+                { Token& t = ls->tokens.emplace_back(Token{});
+                t.token = TK_NAME;
+                t.line = (int)ls->lines.size();
+                t.column = (int)ls->getLineBuff().size();
+                t.seminfo.ts = luaX_newliteral(ls, "tostring"); }
               }
               next(ls);  /* skip '{' */
               ls->appendLineBuff('{');
