@@ -2996,10 +2996,17 @@ do
         function printInformation()
             return $"My name is {self.name} & my age is {self.age}."
         end
+
+        function __tostring()
+            return $"Person(\"{self.name}\", {self.age})"
+        end
     end
 
     local person = new Person("John", 25)
     assert($"{person:printInformation()}" == "My name is John & my age is 25.")
+
+    assert($"We have {person}" == 'We have Person("John", 25)')
+    assert($'We have {person}' == 'We have Person("John", 25)')
 end
 -- @pluto_warnings: disable-next
 assert($"{true ? 'true' : 'false'} is the value" == "true is the value")
