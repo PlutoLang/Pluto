@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string>
 
 #include "lua.h"
 #include "lprefix.h"
@@ -1818,7 +1819,8 @@ void luaK_infix (FuncState *fs, BinOpr op, expdesc *v) {
       break;
     }
     case OPR_CONCAT: {
-      luaK_exp2nextreg(fs, v);  /* operand must be on the stack */
+      if (!vkisconst(v->k))
+        luaK_exp2nextreg(fs, v);  /* operand must be on the stack */
       break;
     }
     case OPR_ADD: case OPR_SUB:
@@ -1932,8 +1934,26 @@ void luaK_posfix (FuncState *fs, BinOpr opr,
       break;
     }
     case OPR_CONCAT: {  /* e1 .. e2 */
-      luaK_exp2nextreg(fs, e2);
-      codeconcat(fs, e1, e2, line);
+      TValue tv1, tv2;
+      if (luaK_exp2const(fs, e1, &tv1) && luaK_exp2const(fs, e2, &tv2) &&
+          ttisstring(&tv1) && ttisstring(&tv2)) {
+        lua_State* L = fs->ls->L;
+        size_t l1 = tsslen(tsvalue(&tv1));
+        size_t l2 = tsslen(tsvalue(&tv2));
+        std::string tmp;
+        tmp.reserve(l1 + l2);
+        tmp.append(getstr(tsvalue(&tv1)), l1);
+        tmp.append(getstr(tsvalue(&tv2)), l2);
+        TString* ts = luaS_newlstr(L, tmp.c_str(), tmp.size());
+        e1->f = e1->t = NO_JUMP;
+        e1->k = VKSTR;
+        e1->u.strval = ts;
+        e1->code_primitive = VT_STR;
+      }
+      else {
+        luaK_exp2nextreg(fs, e2);
+        codeconcat(fs, e1, e2, line);
+      }
       break;
     }
     case OPR_ADD: case OPR_MUL: {

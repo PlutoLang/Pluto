@@ -2739,35 +2739,12 @@ static void constexpr_call (LexState *ls, expdesc *v, lua_CFunction f) {
       ++nargs;
       auto argline = ls->getLineNumber();
       expdesc argexp;
-      simpleexp(ls, &argexp, E_NO_METHOD_CALL);
-      switch (argexp.k) {
-        case VKSTR:
-          lua_pushlstring(L, getstr(argexp.u.strval), tsslen(argexp.u.strval));
-          break;
-        case VKINT:
-          lua_pushinteger(L, argexp.u.ival);
-          break;
-        case VKFLT:
-          lua_pushnumber(L, argexp.u.nval);
-          break;
-        case VTRUE:
-          lua_pushboolean(L, true);
-          break;
-        case VFALSE:
-          lua_pushboolean(L, false);
-          break;
-        case VNIL:
-          lua_pushnil(L);
-          break;
-        case VCONST:
-          lua_lock(L);
-          *s2v(L->top.p) = ls->dyd->actvar.arr[argexp.u.info].k;
-          api_incr_top(L);
-          lua_unlock(L);
-          break;
-        default:
-          throwerr(ls, "unexpected argument type in constexpr_call", "unexpected argument type", argline);
-      }
+      expr(ls, &argexp);
+      TValue tv;
+      if (!luaK_exp2const(ls->fs, &argexp, &tv))
+        throwerr(ls, "unexpected argument type in constexpr_call", "unexpected argument type", argline);
+      setobj(L, s2v(L->top.p), &tv);
+      api_incr_top(L);
     } while (testnext(ls, ','));
   }
   check_match(ls, ')', '(', line);
