@@ -5042,7 +5042,7 @@ static void destructuring (LexState *ls) {
     expdesc propexp;
     codestring(&propexp, prop);
     pairs.emplace_back(var, std::move(propexp));
-  } while (testnext(ls, ','));
+  } while (testnext(ls, ',') && gett(ls) != '}');
   check_match(ls, '}', '{', line);
   restdestructuring(ls, line, pairs);
   ls->L->top.p--;  /* pop pairs */
@@ -5058,7 +5058,7 @@ static void arraydestructuring (LexState *ls) {
   do {
     pairs.emplace_back(str_checkname(ls, N_OVERRIDABLE), prop);
     prop.u.ival++;
-  } while (testnext(ls, ','));
+  } while (testnext(ls, ',') && gett(ls) != ']');
   check_match(ls, ']', '[', line);
   restdestructuring(ls, line, pairs);
   ls->L->top.p--;  /* pop pairs */
