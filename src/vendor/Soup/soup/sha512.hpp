@@ -18,6 +18,8 @@ NAMESPACE_SOUP
 
 		struct State
 		{
+			using Hash = sha512;
+
 			uint8_t buffer[BLOCK_BYTES];
 			uint64_t state[8];
 			uint8_t buffer_counter;
