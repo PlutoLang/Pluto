@@ -328,7 +328,7 @@ static int random(lua_State *L) {
     default: luaL_error(L, "wrong number of arguments");
   }
   if (up == 0) {
-	lua_pushinteger(L, static_cast<lua_Integer>(soup::FastHardwareRng::generate64()));
+    lua_pushinteger(L, static_cast<lua_Integer>(soup::FastHardwareRng::generate64()));
   }
   else {
     luaL_argcheck(L, low <= up, 1, "interval is empty");
