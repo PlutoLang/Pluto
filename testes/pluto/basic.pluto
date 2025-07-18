@@ -1601,6 +1601,13 @@ do
 
     assert(crypto.ripemd160("Pluto") == "c2072a85f4a691803b8942709036072086fd9550")
     assert(crypto.ripemd160("Pluto", true) == "\xc2\x07\x2a\x85\xf4\xa6\x91\x80\x3b\x89\x42\x70\x90\x36\x07\x20\x86\xfd\x95\x50")
+
+    do
+        local key = "\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b"
+        assert(crypto.hmac("sha256", key, "Hi There") == "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7")
+        assert(crypto.hmac("sha256", key, "Hi There", false) == "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7")
+        assert(crypto.hmac("sha256", key, "Hi There", true) == "\xb0\x34\x4c\x61\xd8\xdb\x38\x53\x5c\xa8\xaf\xce\xaf\x0b\xf1\x2b\x88\x1d\xc2\x00\xc9\x83\x3d\xa7\x26\xe9\x37\x6c\x2e\x32\xcf\xf7")
+    end
 end
 do
     local base64 = require("base64")
