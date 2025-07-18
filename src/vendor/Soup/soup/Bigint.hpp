@@ -38,7 +38,6 @@ NAMESPACE_SOUP
 		using chunk_t = halfsize_t;
 		using chunk_signed_t = halfintmax_t;
 
-	private:
 #if SOUP_BIGINT_USE_INTVECTOR
 		IntVector<chunk_t> chunks{};
 #else
@@ -46,7 +45,6 @@ NAMESPACE_SOUP
 #endif
 		bool negative = false;
 
-	public:
 		Bigint() noexcept = default;
 		Bigint(chunk_signed_t v) SOUP_EXCAL;
 		Bigint(chunk_t v, bool negative = false) SOUP_EXCAL;

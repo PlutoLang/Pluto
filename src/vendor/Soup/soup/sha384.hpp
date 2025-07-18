@@ -16,6 +16,8 @@ NAMESPACE_SOUP
 
 		struct State : public sha512::State
 		{
+			using Hash = sha384;
+
 			State() noexcept;
 
 			void getDigest(uint8_t out[DIGEST_BYTES]) const noexcept;

@@ -99,6 +99,8 @@ NAMESPACE_SOUP
 
 		struct HmacState
 		{
+			using Hash = T;
+
 			typename T::State inner;
 			typename T::State outer;
 
