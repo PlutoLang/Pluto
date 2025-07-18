@@ -3631,7 +3631,7 @@ do
         assert(i == 1337)
     end
     do
-        local { str, i } = t
+        local { str, i, } = t
         assert(str == "hello")
         assert(i == 1337)
     end
@@ -3663,7 +3663,7 @@ do
 end
 do
     local t = { 1, 2, 3 }
-    local [a, b, c] = t
+    local [a, b, c,] = t
     assert(a == 1)
     assert(b == 2)
     assert(c == 3)
