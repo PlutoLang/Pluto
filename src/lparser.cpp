@@ -67,6 +67,7 @@ std::string TypeDesc::toString() const {
   std::string str = vtToString(type);
   if (type == VT_FUNC) {
     lua_assert(nret >= 0);
+    str.push_back('(');
     if (nret == 0) {
       str.append("void");
     }
@@ -74,15 +75,14 @@ std::string TypeDesc::toString() const {
       str.append(returns[0]->toString());
     }
     else {
-      str.push_back('(');
       for (int8_t i = 0;; ) {
         str.append(returns[i]->toString());
         if (++i == nret)
           break;
         str.append(", ");
       }
-      str.push_back(')');
     }
+    str.push_back(')');
   }
   return str;
 }
