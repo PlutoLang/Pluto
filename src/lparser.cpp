@@ -674,8 +674,11 @@ static void process_assign (LexState *ls, int vidx, const TypeHint& t, int line)
       throw_warn(ls, "variable type mismatch", err.c_str(), line, WT_TYPE_MISMATCH);
     }
     ls->L->top.p--;  /* pop 'err' */
+    var->vd.prop->clear();  /* don't raise further warnings about this variable */
   }
-  var->vd.prop->merge(t); /* propagate type */
+  else {
+    var->vd.prop->merge(t); /* propagate type */
+  }
   if (ls->fs->bl->var_overide != VT_NONE && ls->fs->bl->var_overide_vidx == vidx) {
     ls->fs->bl->var_overide = t.toPrimitive();
   }
