@@ -204,6 +204,12 @@ end]]
     assert_no_warn[[if false and true then
 else
 end]]
+
+    -- function return type propagation from global
+    assert_no_warn[[a = function()
+    return 1
+end
+local _b: number = a()]]
 end
 -- Propagate conditional in block
 do
