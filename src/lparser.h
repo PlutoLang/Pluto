@@ -145,7 +145,8 @@ struct TypeDesc {
 
   /* function info */
   bool nodiscard = false;
-  int8_t nret = 0;
+  int8_t nparam = -1;
+  int8_t nret = -1;
   Proto* proto = nullptr;
   TypeHint* returns[MAX_TYPED_RETURNS];
   static constexpr int MAX_TYPED_PARAMS = 7;
@@ -166,24 +167,25 @@ struct TypeDesc {
     return type;
   }
 
-  [[nodiscard]] lu_byte getNumParams() const noexcept {
-    return proto->numparams;
-  }
-
   [[nodiscard]] int findParamByName(TString* name) noexcept {
-    for (lu_byte i = 0; i != getNumParams(); ++i) {
-      if (name == proto->locvars[i].varname) {
-        return i;
+    if (proto != nullptr) {
+      for (lu_byte i = 0; i != nparam; ++i) {
+        if (name == proto->locvars[i].varname) {
+          return i;
+        }
       }
     }
     return -1;
   }
 
   [[nodiscard]] lu_byte getNumTypedParams() noexcept {
-    auto p = getNumParams();
-    if (p >= MAX_TYPED_PARAMS)
-      p = MAX_TYPED_PARAMS;
-    return p;
+    if (nparam > 0) {
+      auto p = nparam;
+      if (p >= MAX_TYPED_PARAMS)
+        p = MAX_TYPED_PARAMS;
+      return p;
+    }
+    return 0;
   }
 
   [[nodiscard]] std::string toString() const;
