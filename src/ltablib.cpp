@@ -932,23 +932,23 @@ static int tslice (lua_State *L) {
   }
 
   lua_newtable(L);
-  int tabloc = lua_gettop(L);
   lua_Integer idx_result = 1;
   for (lua_Integer i = idx_start; i <= idx_end; ++i) {
+    /* stack: res */
     lua_pushinteger(L, i);
+    /* stack: res, idx */
     lua_gettable(L, 1);
+    /* stack: res, val */
     if (!lua_isnoneornil(L, -1)) {
       lua_pushinteger(L, idx_result++);
+      /* stack: res, val, idx */
       lua_pushvalue(L, -2);
-      lua_settable(L, tabloc);
+      /* stack: res, val, idx, val */
+      lua_settable(L, -4);
     }
-    else {
-      lua_pop(L, 1);
-    }
+    /* stack: res, val */
+    lua_pop(L, 1);
   }
-
-  lua_settop(L, tabloc);
-
   return 1;
 }
 
