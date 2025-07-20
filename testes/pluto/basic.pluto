@@ -96,6 +96,8 @@ do
     ]])
 
     -- Complex function type hints
+    assert_no_warn[[local _: function(number): void = function(x: number) assert(x) end]]
+    assert_warn[[local _: function(string): void = function(x: number) assert(x) end]]
     assert_warn[[local function f(cb: function(str: string): number)
     cb(10)
 end
