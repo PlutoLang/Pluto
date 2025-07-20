@@ -631,12 +631,20 @@ static void process_assign (LexState *ls, int vidx, const TypeHint& t, int line)
 }
 
 
-static TypeHint& get_global_prop(LexState* ls, const TString* name) {
+static TypeHint* get_global_prop_opt(LexState* ls, const TString* name) {
   if (auto e = ls->global_props.find(name); e != ls->global_props.end()) {
-    return *reinterpret_cast<TypeHint*>(e->second);
+    return reinterpret_cast<TypeHint*>(e->second);
   }
-  auto th = new_typehint(ls);
-  ls->global_props.emplace(name, th);
+  return nullptr;
+}
+
+
+static TypeHint& get_global_prop(LexState* ls, const TString* name) {
+  auto th = get_global_prop_opt(ls, name);
+  if (!th) {
+    th = new_typehint(ls);
+    ls->global_props.emplace(name, th);
+  }
   return *th;
 }
 
@@ -3430,6 +3438,21 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
             uv = &efs->f->upvalues[idx];
             efs = efs->prev;
             idx = uv->idx;
+          }
+        } else if (v->k == VINDEXUP) {
+          TValue *key = &ls->fs->f->k[v->u.ind.idx];
+          lua_assert(ttype(key) == LUA_TSTRING);
+          if (auto th = get_global_prop_opt(ls, tsvalue(key))) {
+            if (th->descs[0].type == VT_FUNC && th->descs[0].proto != nullptr) {
+              funcdesc = &th->descs[0];
+              if (prop) {
+                lua_assert(th->descs[0].nret >= 0);
+                *nprop = th->descs[0].nret;
+                for (int8_t i = 0; i != *nprop; ++i) {
+                  prop[i] = *th->descs[0].returns[i];
+                }
+              }
+            }
           }
         }
         luaK_exp2nextreg(fs, v);
