@@ -2969,7 +2969,18 @@ int luaB_assert (lua_State *L);
 static void const_expr (LexState *ls, expdesc *v) {
   switch (ls->t.token) {
     case TK_NAME: {
-      if (!check_constexpr_call(ls, v, "tonumber", luaB_tonumber)
+      if (strcmp(getstr(ls->t.seminfo.ts), "getproptype") == 0) {
+        luaX_next(ls); /* skip TK_NAME */
+        checknext(ls, '(');
+        TypeHint hint;
+        expr_propagate(ls, v, hint);
+        checknext(ls, ')');
+        auto& str = *pluto_newclassinst(ls->L, std::string);
+        str = hint.toString();
+        codestring(v, luaX_newstring(ls, str.data(), str.size()));
+        ls->L->top.p--;  /* pop 'str' */
+      }
+      else if (!check_constexpr_call(ls, v, "tonumber", luaB_tonumber)
           && !check_constexpr_call(ls, v, "utonumber", luaB_utonumber)
           && !check_constexpr_call(ls, v, "tostring", luaB_tostring)
           && !check_constexpr_call(ls, v, "utostring", luaB_utostring)
