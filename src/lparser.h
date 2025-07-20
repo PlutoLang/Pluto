@@ -301,7 +301,7 @@ struct TypeHint {
 
   [[nodiscard]] std::string toString() const {
     if (empty()) {
-      return "NOINFO";
+      return "never";
     }
     std::string str{};
     if (isNullable()) {
