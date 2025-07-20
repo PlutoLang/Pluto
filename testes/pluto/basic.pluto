@@ -78,6 +78,17 @@ do
     end
     ]]
 
+    -- a violated type hint implies unreachable code so does not raise further warnings
+    assert_no_warn[[-- @pluto_warnings disable-next
+local a: number = ""
+local _b: string = a
+local _c: table = a]]
+    assert_no_warn[[local a: number = 0
+-- @pluto_warnings disable-next
+a = ""
+local _b: string = a
+local _c: table = a]]
+
     -- TypeHint::merge should copy over function info
     do
         local f = function(_a) end
