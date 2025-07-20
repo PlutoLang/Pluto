@@ -66,23 +66,40 @@
 std::string TypeDesc::toString() const {
   std::string str = vtToString(type);
   if (type == VT_FUNC) {
-    lua_assert(nret >= 0);
-    str.push_back('(');
-    if (nret == 0) {
-      str.append("void");
+    if (nparam >= 0) {  /* know parameters? */
+      str.push_back('(');
+      if (nparam != 0) {
+        for (int8_t i = 0;; ) {
+          str.append(params[i]->toString());
+          if (++i == nparam || i == MAX_TYPED_PARAMS)
+            break;
+          str.append(", ");
+        }
+      }
+      str.push_back(')');
     }
-    else if (nret == 1) {
-      str.append(returns[0]->toString());
-    }
-    else {
-      for (int8_t i = 0;; ) {
-        str.append(returns[i]->toString());
-        if (++i == nret)
-          break;
-        str.append(", ");
+    if (nret >= 0) { /* know returns? */
+      str.push_back(':');
+      if (nparam >= 0) {
+        str.push_back(' ');
+      }
+      if (nret == 0) {
+        str.append("void");
+      }
+      else if (nret == 1) {
+        str.append(returns[0]->toString());
+      }
+      else {
+        str.push_back('(');
+        for (int8_t i = 0;; ) {
+          str.append(returns[i]->toString());
+          if (++i == nret)
+            break;
+          str.append(", ");
+        }
+        str.push_back(')');
       }
     }
-    str.push_back(')');
   }
   return str;
 }
@@ -495,6 +512,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
   return ::new (ls->parse_time_allocations.emplace_back(malloc(sizeof(TypeHint)))) TypeHint();
 }
 
+[[nodiscard]] static int8_t getfuncrethint(LexState* ls, TypeHint ths[MAX_TYPED_RETURNS]);
 
 static void checktypehint (LexState *ls, TypeHint &th) {
   if (testnext(ls, '?'))
@@ -514,8 +532,41 @@ static void checktypehint (LexState *ls, TypeHint &th) {
       th.emplaceTypeDesc(VT_STR);
     else if (strcmp(tname, "boolean") == 0 || strcmp(tname, "bool") == 0)
       th.emplaceTypeDesc(VT_BOOL);
-    else if (strcmp(tname, "function") == 0)
-      th.emplaceTypeDesc(VT_FUNC);
+    else if (strcmp(tname, "function") == 0) {
+      TypeDesc td = VT_FUNC;
+      if (testnext(ls, '(')) {
+        td.nparam = 0;
+        if (ls->t.token != ')') {
+          do {
+            if (ls->t.token != TK_EOS && luaX_lookahead(ls) == ':') {
+              /* skip optional parameter name */
+              checknext(ls, TK_NAME);
+              checknext(ls, ':');
+            }
+            if (td.nparam < MAX_TYPED_RETURNS) {
+              luaE_incCstack(ls->L);
+              td.params[td.nparam] = new_typehint(ls);
+              checktypehint(ls, *td.params[td.nparam]);
+              ls->L->nCcalls--;
+            }
+            ++td.nparam;
+          } while (testnext(ls, ','));
+        }
+        checknext(ls, ')');
+      }
+      if (ls->t.token == ':') {
+        luaE_incCstack(ls->L);
+        TypeHint ths[MAX_TYPED_RETURNS];
+        td.nret = getfuncrethint(ls, ths);
+        lua_assert(td.nret >= 0);
+        for (decltype(td.nret) i = 0; i != td.nret; ++i) {
+          td.returns[i] = new_typehint(ls);
+          *td.returns[i] = ths[i];
+        }
+        ls->L->nCcalls--;
+      }
+      th.emplaceTypeDesc(td);
+    }
     else if (strcmp(tname, "userdata") != 0) {
       luaX_prev(ls);
       throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", WT_TYPE_MISMATCH);
@@ -2367,6 +2418,7 @@ static void checkrettype (LexState *ls, int8_t nhint, TypeHint rethint[MAX_TYPED
 static void propfuncdesc (LexState *ls, FuncState& new_fs, int8_t nret, TypeHint retprop[MAX_TYPED_RETURNS], TypeDesc* funcdesc) {
   funcdesc->type = VT_FUNC;
   funcdesc->proto = new_fs.f;
+  funcdesc->nparam = new_fs.f->numparams;
   funcdesc->nret = nret;
   lua_assert(nret >= 0);
   for (int8_t i = 0; i != nret; ++i) {
@@ -2596,10 +2648,10 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
             error_expected(ls, ')');  /* then raise syntax error similar to Lua */
           }
           if (!funcdesc) {
-            luaX_syntaxerror(ls, "can't used named arguments here because the function was not found at parse-time");
+            luaX_syntaxerror(ls, "can't use named arguments here because the function was not found at parse-time");
           }
           auto& argtis = *pluto_newclassinst(ls->L, std::vector<size_t>);
-          argtis.resize(funcdesc->getNumParams() - num_positional_args);
+          argtis.resize(funcdesc->nparam - num_positional_args);
           while (true) {
             TString *pname = str_checkname(ls, 0);
             int pi = funcdesc->findParamByName(pname);
@@ -2661,9 +2713,16 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
       }
       if (!param_hint->isCompatibleWith(arg)) {
         auto& err = *pluto_newclassinst(ls->L, std::string);
-        err = "Function's '";;
-        err.append(getstr(funcdesc->proto->locvars[i].varname), tsslen(funcdesc->proto->locvars[i].varname));
-        err.append("' parameter was type-hinted as ");
+        if (funcdesc->proto) {
+          err = "Function's '";
+          err.append(getstr(funcdesc->proto->locvars[i].varname), tsslen(funcdesc->proto->locvars[i].varname));
+          err.append("' parameter");
+        }
+        else {
+          err = "Parameter ";
+          err.append(std::to_string((int)i + 1));
+        }
+        err.append(" was type-hinted as ");
         err.append(param_hint->toString());
         err.append(" but provided with ");
         err.append(arg.toString());
@@ -2671,16 +2730,18 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
         ls->L->top.p--;  /* pop 'err' */
       }
     }
-    const auto expected = funcdesc->getNumParams();
-    const auto received = (int)fas.argdescs.size();
-    if (!(funcdesc->proto->flag & PF_ISVARARG) && expected < received) {  /* Too many arguments? */
-      const char* suffix = expected == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
-      throw_warn(ls,
-        "too many arguments",
-          luaO_fmt(ls->L, "expected %d argument%s, got %d.", expected, suffix, received), line, WT_EXCESSIVE_ARGUMENTS);
-      --ls->L->top.p;
+    if (funcdesc->nparam >= 0) {
+      const auto received = (int)fas.argdescs.size();
+      const auto isvararg = funcdesc->proto && ((funcdesc->proto->flag & PF_ISVARARG) != 0);
+      if (!isvararg && funcdesc->nparam < received) {  /* Too many arguments? */
+        const char* suffix = funcdesc->nparam == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
+        throw_warn(ls,
+          "too many arguments",
+            luaO_fmt(ls->L, "expected %d argument%s, got %d.", funcdesc->nparam, suffix, received), line, WT_EXCESSIVE_ARGUMENTS);
+        --ls->L->top.p;
+      }
+      ls->nodiscard = funcdesc->nodiscard;
     }
-    ls->nodiscard = funcdesc->nodiscard;
   }
   else {
     ls->nodiscard = false;
@@ -3406,12 +3467,9 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
         if (v->k == VLOCAL) {
           vd = getlocalvardesc(ls->fs, v->u.var.vidx);
         _funcdesc_from_vd:
-          if (vd->vd.prop->descs[0].type == VT_FUNC  /* just in case... */
-            && vd->vd.prop->descs[0].proto != nullptr  /* real function/not just a hint? */
-          ) {
+          if (vd->vd.prop->descs[0].type == VT_FUNC) {
             funcdesc = &vd->vd.prop->descs[0];
-            if (prop) {  /* should propagate return? */
-              lua_assert(vd->vd.prop->descs[0].nret >= 0);
+            if (prop && vd->vd.prop->descs[0].nret >= 0) {  /* should and can propagate returns? */
               *nprop = vd->vd.prop->descs[0].nret;
               for (int8_t i = 0; i != *nprop; ++i) {
                 prop[i] = *vd->vd.prop->descs[0].returns[i];
@@ -3443,10 +3501,9 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
           TValue *key = &ls->fs->f->k[v->u.ind.idx];
           lua_assert(ttype(key) == LUA_TSTRING);
           if (auto th = get_global_prop_opt(ls, tsvalue(key))) {
-            if (th->descs[0].type == VT_FUNC && th->descs[0].proto != nullptr) {
+            if (th->descs[0].type == VT_FUNC) {
               funcdesc = &th->descs[0];
-              if (prop) {
-                lua_assert(th->descs[0].nret >= 0);
+              if (prop && th->descs[0].nret >= 0) {  /* should and can propagate returns? */
                 *nprop = th->descs[0].nret;
                 for (int8_t i = 0; i != *nprop; ++i) {
                   prop[i] = *th->descs[0].returns[i];

@@ -95,6 +95,16 @@ do
     delegator()
     ]])
 
+    -- Complex function type hints
+    assert_warn[[local function f(cb: function(str: string): number)
+    cb(10)
+end
+f(tonumber)]]
+    assert_warn[[local function f(cb: function(string): number)
+    local _: string = cb("10")
+end
+f(tonumber)]]
+
     -- Nested localstat
     assert_no_warn[[local _f: function = function()
     local _: int = 0
