@@ -111,6 +111,13 @@ static int bigint_gcd (lua_State *L) {
   return 1;
 }
 
+static int bigint_isprobableprime (lua_State *L) {
+  const auto self = checkbigint(L, 1);
+  const auto miller_rabin_iterations = (int)luaL_checkinteger(L, 2);
+  lua_pushboolean(L, self->isProbablePrime(miller_rabin_iterations));
+  return 1;
+}
+
 void pushbigint (lua_State *L, soup::Bigint&& x) {
   new (lua_newuserdata(L, sizeof(soup::Bigint))) soup::Bigint(std::move(x));
   if (l_unlikely(luaL_newmetatable(L, "pluto:bigint"))) {
@@ -178,6 +185,7 @@ static const luaL_Reg funcs_bigint[] = {
   {"bitlength", bigint_bitlength},
   {"abs", bigint_abs},
   {"gcd", bigint_gcd},
+  {"isprobableprime", bigint_isprobableprime},
   {nullptr, nullptr}
 };
 
