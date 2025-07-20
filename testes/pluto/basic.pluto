@@ -95,6 +95,16 @@ do
     delegator()
     ]])
 
+    -- Complex function type hints
+    assert_warn[[local function f(cb: function(str: string): number)
+    cb(10)
+end
+f(tonumber)]]
+    assert_warn[[local function f(cb: function(string): number)
+    local _: string = cb("10")
+end
+f(tonumber)]]
+
     assert_warn([[local a = 69; local _b: string = a]]) -- type mismatch in local-to-local assignment
     assert_warn([[g = 69; local _l: string = g]]) -- type mismatch in global-to-local assignment
 
