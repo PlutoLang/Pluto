@@ -139,6 +139,7 @@ typedef struct expdesc {
 struct TypeHint;
 
 inline constexpr int MAX_TYPED_RETURNS = 3;
+inline constexpr int MAX_TYPED_PARAMS = 7;
 
 struct TypeDesc {
   ValType type;
@@ -149,7 +150,6 @@ struct TypeDesc {
   int8_t nret = -1;
   Proto* proto = nullptr;
   TypeHint* returns[MAX_TYPED_RETURNS];
-  static constexpr int MAX_TYPED_PARAMS = 7;
   TypeHint* params[MAX_TYPED_PARAMS];
 
   TypeDesc() = default;
@@ -265,7 +265,27 @@ struct TypeHint {
   [[nodiscard]] bool contains(const TypeDesc& td) const noexcept {
     for (const auto& desc : descs) {
       if (desc.type == td.type) {
-        // TODO: Might need better logic in regards to VT_FUNC
+        if (desc.type == VT_FUNC) {
+          if ((desc.nparam != -1 && desc.nparam != td.nparam) || desc.nret > td.nret) {
+            return false;
+          }
+          if (desc.nparam != -1) {
+            /* desc.nparam == td.nparam */
+            for (lu_byte i = 0; i != desc.nparam && i != MAX_TYPED_PARAMS; ++i) {
+              if (!desc.params[i]->isCompatibleWith(*td.params[i])) {
+                return false;
+              }
+            }
+          }
+          if (desc.nret != -1) {
+            /* desc.nret <= td.nret */
+            for (lu_byte i = 0; i != desc.nret && i != MAX_TYPED_RETURNS; ++i) {
+              if (!desc.returns[i]->isCompatibleWith(*td.returns[i])) {
+                return false;
+              }
+            }
+          }
+        }
         return true;
       }
     }
@@ -273,7 +293,7 @@ struct TypeHint {
   }
 
   [[nodiscard]] bool isCompatibleWith(const TypeDesc& td) const noexcept {
-    return contains(td.type)
+    return contains(td)
         || td.type == VT_DUNNO
         || ((td.type == VT_INT || td.type == VT_FLT) && contains(VT_NUMBER));
   }
