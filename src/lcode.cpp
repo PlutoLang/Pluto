@@ -783,7 +783,7 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
   switch (e->k) {
     case VCONST: {
       const2exp(const2val(fs, e), e);
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VLOCAL: {  /* already in a register */
@@ -796,39 +796,39 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
     case VUPVAL: {  /* move value to some (pending) register */
       e->u.pc = luaK_codeABC(fs, OP_GETUPVAL, 0, e->u.info, 0);
       e->k = VRELOC;
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VINDEXUP: {
       e->u.pc = luaK_codeABC(fs, OP_GETTABUP, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VINDEXI: {
       freereg(fs, e->u.ind.t);
       e->u.pc = luaK_codeABC(fs, OP_GETI, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VINDEXSTR: {
       freereg(fs, e->u.ind.t);
       e->u.pc = luaK_codeABC(fs, OP_GETFIELD, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VINDEXED: {
       freeregs(fs, e->u.ind.t, e->u.ind.idx);
       e->u.pc = luaK_codeABC(fs, OP_GETTABLE, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VVARARG: case VCALL: case VSAFECALL: {
       luaK_setoneret(fs, e);
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     default: break;  /* there is one value available (somewhere) */
@@ -1768,7 +1768,7 @@ static void codeeq (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2) {
 ** Apply prefix operation 'op' to expression 'e'.
 */
 void luaK_prefix (FuncState *fs, UnOpr opr, expdesc *e, int line) {
-  static const expdesc ef = {VKINT, {0}, NO_JUMP, NO_JUMP, VT_DUNNO};
+  static const expdesc ef = {VKINT, {0}, NO_JUMP, NO_JUMP, VT_ANY};
   luaK_dischargevars(fs, e);
   switch (opr) {
     case OPR_MINUS: case OPR_BNOT:  /* use 'ef' as fake 2nd operand */

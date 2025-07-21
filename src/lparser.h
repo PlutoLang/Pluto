@@ -72,7 +72,7 @@ typedef enum {
 /* types of values, for type hinting and propagation */
 enum ValType : lu_byte {
   VT_NONE = 0,
-  VT_DUNNO,
+  VT_ANY,
   VT_NIL,
   VT_NUMBER,
   VT_INT,
@@ -86,7 +86,7 @@ enum ValType : lu_byte {
 [[nodiscard]] inline const char* vtToString(ValType vt) {
   switch (vt) {
     case VT_NONE: return "none";
-    case VT_DUNNO: return "dunno";
+    case VT_ANY: return "any";
     case VT_NIL: return "nil";
     case VT_NUMBER: return "number";
     case VT_INT: return "int";
@@ -323,7 +323,7 @@ struct TypeHint {
 
   [[nodiscard]] bool isCompatibleWith(const TypeDesc& td) const noexcept {
     return contains(td)
-        || td.type == VT_DUNNO
+        || td.type == VT_ANY
         || ((td.type == VT_INT || td.type == VT_FLT) && contains(VT_NUMBER));
   }
 
@@ -340,7 +340,7 @@ struct TypeHint {
     if (descs[1].type == VT_NONE) {
       return descs[0].type;
     }
-    return VT_DUNNO;
+    return VT_ANY;
   }
 
   [[nodiscard]] bool isNullable() const noexcept {
