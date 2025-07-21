@@ -462,6 +462,12 @@ struct SwitchState {
   std::vector<SwitchCase> cases{};
 };
 
+struct LocalstatState {
+  std::unordered_set<TString*> variable_names{};
+  std::unordered_set<TString*> expression_names{};
+  std::vector<void*> ts{};
+};
+
 struct Macro {
   bool functionlike = false;
   std::vector<const TString*> params{};
@@ -497,12 +503,10 @@ struct LexState {
   std::stack<FuncArgsState> funcargsstates{};
   std::stack<BodyState> bodystates{};
   std::stack<SwitchState> switchstates{};
+  std::stack<LocalstatState> localstatstates{};
   std::stack<std::unordered_set<TString*>> constructorfieldsets{};
   std::vector<EnumDesc> enums{};
   std::vector<void*> parse_time_allocations{};
-  std::unordered_set<TString*> localstat_variable_names{};
-  std::unordered_set<TString*> localstat_expression_names{};
-  std::vector<void*> localstat_ts{};
   std::unordered_set<TString*> explicit_globals{};
   std::unordered_map<const TString*, void*> global_props{};
   KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];

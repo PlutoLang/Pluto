@@ -4895,14 +4895,13 @@ static void localstat (LexState *ls, bool isexport = false) {
   auto line = ls->getLineNumber(); /* in case we need to emit a warning */
   size_t starting_tidx = ls->tidx; /* code snippets on tuple assignments can have inaccurate line readings because the parser skips lines until it can close the statement */
   bool is_constexpr = false;
-  ls->localstat_variable_names.clear();
-  ls->localstat_expression_names.clear();
+  auto& st = ls->localstatstates.emplace();
   do {
     if (is_constexpr)
       luaK_semerror(ls, "<constexpr> must only be used on the last variable in local list");
     TString* name = str_checkname(ls, N_OVERRIDABLE);
     vidx = new_localvar(ls, name, line, gettypehint(ls), false);
-    ls->localstat_variable_names.emplace(name);
+    st.variable_names.emplace(name);
     kind = isexport ? RDKCONST : getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
@@ -4929,20 +4928,19 @@ static void localstat (LexState *ls, bool isexport = false) {
     }
     nvars++;
   } while (testnext(ls, ','));
-  ls->localstat_ts.clear();
   if (testnext(ls, '=')) {
     ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
     ls->pushContext(ctx);
     nexps = 1;
-    expr_propagate_warn(ls, &e, *(TypeHint*)ls->localstat_ts.emplace_back(new_typehint(ls)), ls->localstat_expression_names);
+    expr_propagate_warn(ls, &e, *(TypeHint*)st.ts.emplace_back(new_typehint(ls)), st.expression_names);
     while (testnext(ls, ',')) {
       luaK_exp2nextreg(ls->fs, &e);
-      expr_propagate_warn(ls, &e, *(TypeHint*)ls->localstat_ts.emplace_back(new_typehint(ls)), ls->localstat_expression_names);
+      expr_propagate_warn(ls, &e, *(TypeHint*)st.ts.emplace_back(new_typehint(ls)), st.expression_names);
       nexps++;
     }
     ls->popContext(ctx);
-    for (auto variable_name : ls->localstat_variable_names) {
-      if (ls->localstat_expression_names.find(variable_name) == ls->localstat_expression_names.end()) { // Not a localization optimization?
+    for (auto variable_name : st.variable_names) {
+      if (st.expression_names.find(variable_name) == st.expression_names.end()) { // Not a localization optimization?
         checkforshadowing(ls, fs, variable_name, line, true, false); // new_localvar already checked for local duplication
       }
     }
@@ -4952,7 +4950,7 @@ static void localstat (LexState *ls, bool isexport = false) {
     e.k = VVOID;
     nexps = 0;
     process_assign(ls, vidx, TypeHint{ VT_NIL }, line);
-    checkforshadowing(ls, fs, ls->localstat_variable_names, line);
+    checkforshadowing(ls, fs, st.variable_names, line);
   }
   if (is_constexpr) {
     if (nvars != nexps) {
@@ -4974,7 +4972,7 @@ static void localstat (LexState *ls, bool isexport = false) {
     }
     else {
       vidx = vidx - nvars + 1;
-      for (void* t : ls->localstat_ts) {
+      for (void* t : st.ts) {
         process_assign(ls, vidx, *(TypeHint*)t, line);
         ++vidx;
       }
@@ -4987,6 +4985,7 @@ static void localstat (LexState *ls, bool isexport = false) {
     adjustlocalvars(ls, nvars);
   }
   checktoclose(fs, toclose);
+  ls->localstatstates.pop();
 }
 
 
