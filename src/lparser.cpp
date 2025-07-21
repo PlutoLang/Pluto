@@ -2720,8 +2720,6 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
       TypeHint arg{};
       if (i < (int)fas.argdescs.size())
         arg = *(TypeHint*)fas.argdescs.at(i);
-      if (arg.empty())
-        arg.emplaceTypeDesc(VT_NIL);
       if (!param_hint->isCompatibleWith(arg)) {
         auto& err = *pluto_newclassinst(ls->L, std::string);
         if (funcdesc->proto) {
@@ -2735,9 +2733,15 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
         }
         err.append(" was type-hinted as '");
         err.append(param_hint->toString());
-        err.append("' but provided with '");
-        err.append(arg.toString());
-        err.push_back('\'');
+        err.append("' but provided with ");
+        if (!arg.empty()) {
+          err.push_back('\'');
+          err.append(arg.toString());
+          err.push_back('\'');
+        }
+        else {
+          err.append("nothing");
+        }
         throw_warn(ls, err.c_str(), "argument type mismatch", line, WT_TYPE_MISMATCH);
         ls->L->top.p--;  /* pop 'err' */
       }
