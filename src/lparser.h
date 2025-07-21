@@ -219,6 +219,35 @@ struct TypeHint {
 
   void emplaceTypeDesc(TypeDesc td) {
     if (!contains(td)) {
+      if (td.type == VT_INT) {
+        if (contains(VT_NUMBER))
+          return;
+        for (auto& desc : descs) {
+          if (desc.type == VT_FLT) {
+            desc = VT_NUMBER;
+            return;
+          }
+        }
+      }
+      else if (td.type == VT_FLT) {
+        if (contains(VT_NUMBER))
+          return;
+        for (auto& desc : descs) {
+          if (desc.type == VT_INT) {
+            desc = VT_NUMBER;
+            return;
+          }
+        }
+      }
+      else if (td.type == VT_NUMBER) {
+        for (auto& desc : descs) {
+          if (desc.type == VT_INT || desc.type == VT_FLT) {
+            desc = VT_NUMBER;
+            return;
+          }
+        }
+      }
+
       for (auto& desc : descs) {
         if (desc.type == VT_NONE) {
           desc = std::move(td);
