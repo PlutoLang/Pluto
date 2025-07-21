@@ -533,7 +533,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
   return ::new (ls->parse_time_allocations.emplace_back(malloc(sizeof(TypeHint)))) TypeHint();
 }
 
-[[nodiscard]] static int8_t getfuncrethint(LexState* ls, TypeHint ths[MAX_TYPED_RETURNS]);
+static void checkfuncspec (LexState *ls, TypeDesc &td);
 
 static void checktypehint (LexState *ls, TypeHint &th) {
   if (testnext(ls, '?'))
@@ -574,37 +574,7 @@ static void checktypehint (LexState *ls, TypeHint &th) {
       th.emplaceTypeDesc(VT_BOOL);
     else if (strcmp(tname, "function") == 0) {
       TypeDesc td = VT_FUNC;
-      if (testnext(ls, '(')) {
-        td.nparam = 0;
-        if (ls->t.token != ')') {
-          do {
-            if (ls->t.token != TK_EOS && luaX_lookahead(ls) == ':') {
-              /* skip optional parameter name */
-              checknext(ls, TK_NAME);
-              checknext(ls, ':');
-            }
-            if (td.nparam < MAX_TYPED_RETURNS) {
-              luaE_incCstack(ls->L);
-              td.params[td.nparam] = new_typehint(ls);
-              checktypehint(ls, *td.params[td.nparam]);
-              ls->L->nCcalls--;
-            }
-            ++td.nparam;
-          } while (testnext(ls, ','));
-        }
-        checknext(ls, ')');
-      }
-      if (ls->t.token == ':') {
-        luaE_incCstack(ls->L);
-        TypeHint ths[MAX_TYPED_RETURNS];
-        td.nret = getfuncrethint(ls, ths);
-        lua_assert(td.nret >= 0);
-        for (decltype(td.nret) i = 0; i != td.nret; ++i) {
-          td.returns[i] = new_typehint(ls);
-          *td.returns[i] = ths[i];
-        }
-        ls->L->nCcalls--;
-      }
+      checkfuncspec(ls, td);
       th.emplaceTypeDesc(td);
     }
     else if (strcmp(tname, "any") == 0) {
@@ -639,7 +609,6 @@ static void checktypehint (LexState *ls, TypeHint &th) {
   return th;
 }
 
-
 [[nodiscard]] static int8_t getfuncrethint (LexState *ls, TypeHint ths[MAX_TYPED_RETURNS]) {
   if (testnext(ls, ':')) {
     auto line = ls->getLineNumber();
@@ -669,6 +638,40 @@ static void checktypehint (LexState *ls, TypeHint &th) {
     return 1;
   }
   return -1;
+}
+
+static void checkfuncspec (LexState *ls, TypeDesc &td) {
+  if (testnext(ls, '(')) {
+    td.nparam = 0;
+    if (ls->t.token != ')') {
+      do {
+        if (ls->t.token != TK_EOS && luaX_lookahead(ls) == ':') {
+          /* skip optional parameter name */
+          checknext(ls, TK_NAME);
+          checknext(ls, ':');
+        }
+        if (td.nparam < MAX_TYPED_RETURNS) {
+          luaE_incCstack(ls->L);
+          td.params[td.nparam] = new_typehint(ls);
+          checktypehint(ls, *td.params[td.nparam]);
+          ls->L->nCcalls--;
+        }
+        ++td.nparam;
+      } while (testnext(ls, ','));
+    }
+    checknext(ls, ')');
+  }
+  if (ls->t.token == ':') {
+    luaE_incCstack(ls->L);
+    TypeHint ths[MAX_TYPED_RETURNS];
+    td.nret = getfuncrethint(ls, ths);
+    lua_assert(td.nret >= 0);
+    for (decltype(td.nret) i = 0; i != td.nret; ++i) {
+      td.returns[i] = new_typehint(ls);
+      *td.returns[i] = ths[i];
+    }
+    ls->L->nCcalls--;
+  }
 }
 
 
@@ -3057,8 +3060,27 @@ int luaB_assert (lua_State *L);
 static void const_expr (LexState *ls, expdesc *v) {
   switch (ls->t.token) {
     case TK_NAME: {
-      if (strcmp(getstr(ls->t.seminfo.ts), "getproptype") == 0) {
-        luaX_next(ls); /* skip TK_NAME */
+      if (strcmp(getstr(ls->t.seminfo.ts), "declare") == 0) {
+        luaX_next(ls); /* skip 'declare' */
+        if (ls->t.token == TK_FUNCTION) {
+          luaX_next(ls); /* skip TK_FUNCTION */
+          TString *name = str_checkname(ls);
+          TypeDesc td = VT_FUNC;
+          checkfuncspec(ls, td);
+          TypeHint& th = get_global_prop(ls, name);
+          th.clear();
+          th.emplaceTypeDesc(std::move(td));
+        }
+        else {
+          TString *name = str_checkname(ls);
+          checknext(ls, ':');
+          TypeHint& th = get_global_prop(ls, name);
+          th.clear();
+          checktypehint(ls, th);
+        }
+      }
+      else if (strcmp(getstr(ls->t.seminfo.ts), "getproptype") == 0) {
+        luaX_next(ls); /* skip 'getproptype' */
         checknext(ls, '(');
         TypeHint hint;
         expr_propagate(ls, v, hint);
