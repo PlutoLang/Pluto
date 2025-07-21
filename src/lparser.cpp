@@ -660,9 +660,9 @@ static void process_assign (LexState *ls, int vidx, const TypeHint& t, int line)
     err.append(var->vd.name->toCpp());
     err.append("' type-hinted as '");
     err.append(hint);
-    err.append("', but provided with ");
+    err.append("', but provided with '");
     err.append(t.toString());
-    err.append(" value.");
+    err.append("' value.");
     if (t.toPrimitive() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
       const char* here = luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str());
       hint.clear(); hint.shrink_to_fit();
@@ -2725,10 +2725,11 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
           err = "Parameter ";
           err.append(std::to_string((int)i + 1));
         }
-        err.append(" was type-hinted as ");
+        err.append(" was type-hinted as '");
         err.append(param_hint->toString());
-        err.append(" but provided with ");
+        err.append("' but provided with '");
         err.append(arg.toString());
+        err.push_back('\'');
         throw_warn(ls, err.c_str(), "argument type mismatch", line, WT_TYPE_MISMATCH);
         ls->L->top.p--;  /* pop 'err' */
       }
