@@ -1700,7 +1700,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAddB();
         vmDumpAddC();
-        vmDumpOut ("; push self to call '" << getstr(key) << "'");
+        vmDumpOut ("; push self to call '" << getstr(key) << "' (" << stringify_ttype(s2v(ra)) << ")");
         vmbreak;
       }
       vmcase(OP_ADDI) {
