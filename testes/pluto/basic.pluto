@@ -127,6 +127,13 @@ f(tonumber)]]
 end
 f(tonumber)]]
 
+    -- Complex table type hints
+    assert_warn[[local h = { name = "" }
+    local _: number = h.name]]
+    assert_warn[[local function _f(h: { name: string })
+        local _: number = h.name
+    end]]
+
     -- Nested localstat
     assert_no_warn[[local _f: function = function()
     local _: int = 0
