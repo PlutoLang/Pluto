@@ -639,6 +639,8 @@ NAMESPACE_SOUP
 		string::replaceAll(this->contents, "&amp;", "&");
 		string::replaceAll(this->contents, "&lt;", "<");
 		string::replaceAll(this->contents, "&gt;", ">");
+
+		string::replaceAll(this->contents, "&#34;", "\"");
 	}
 
 	void XmlText::encodeAndAppendTo(std::string& str) const SOUP_EXCAL
