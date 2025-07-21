@@ -330,6 +330,9 @@ struct TypeHint {
   }
 
   [[nodiscard]] bool isCompatibleWith(const TypeHint& b) const noexcept {
+    if (b.empty()) {
+      return isNullable();
+    }
     for (const auto& desc : b.descs) {
       if (desc.type != VT_NONE && !isCompatibleWith(desc)) {
         return false;
