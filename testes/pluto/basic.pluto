@@ -95,6 +95,11 @@ do
     delegator()
     ]])
 
+    -- Nested localstat
+    assert_no_warn[[local _f: function = function()
+    local _: int = 0
+end]]
+
     assert_warn([[local a = 69; local _b: string = a]]) -- type mismatch in local-to-local assignment
     assert_warn([[g = 69; local _l: string = g]]) -- type mismatch in global-to-local assignment
 
