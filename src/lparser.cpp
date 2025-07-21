@@ -2608,6 +2608,7 @@ static int explist (LexState *ls, expdesc *v, TypeHint *prop = nullptr) {
     luaK_exp2nextreg(ls->fs, v);
     expr(ls, v, &ntmp, tmp);
     if (prop && n < MAX_TYPED_RETURNS) {
+      exp_propagate(ls, *v, tmp[0]);
       prop[n] = tmp[0];
       tmp[0].clear();
     }
