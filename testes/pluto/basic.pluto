@@ -265,6 +265,12 @@ do
             local _str: number = arg
         end
     end]]
+
+    -- 'any'
+    assert_no_warn[[
+        local function f(_: any) end
+        f(0)
+    ]]
 end
 -- Strings should not be able to disable warnings
 do
