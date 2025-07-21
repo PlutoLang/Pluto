@@ -5363,7 +5363,7 @@ static void retstat (LexState *ls, int8_t *nprop, TypeHint *prop) {
       *nprop = (int8_t)(nret < MAX_TYPED_RETURNS ? nret : MAX_TYPED_RETURNS);
       for (int8_t i = 0; i != *nprop; ++i) {
         if (prop[i].empty())
-          prop->emplaceTypeDesc(VT_DUNNO);
+          prop[i].emplaceTypeDesc(VT_DUNNO);
       }
     }
     if (hasmultret(e.k)) {
