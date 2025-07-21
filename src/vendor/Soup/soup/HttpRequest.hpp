@@ -16,7 +16,6 @@ NAMESPACE_SOUP
 	public:
 		bool use_tls = true;
 		bool path_is_encoded = false;
-		uint16_t port = 443;
 		std::string method{};
 		std::string path{};
 
@@ -25,7 +24,8 @@ NAMESPACE_SOUP
 		HttpRequest(const std::string& host, std::string path);
 		HttpRequest(const Uri& uri);
 
-		[[nodiscard]] std::string getHost() const;
+		[[nodiscard]] std::string getHost() const; // host[:port]
+		[[nodiscard]] std::tuple<std::string, uint16_t> getHostAndPort() const;
 		[[nodiscard]] std::string getUrl() const;
 
 		void setPath(std::string&& path);
