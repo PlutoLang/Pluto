@@ -269,6 +269,16 @@ end]]
     assert_warn[[function f(_a: bool) end
     f("")]]
 
+    -- $declare
+    assert_no_warn[[$declare _PVERSION: string
+    local _: string = _PVERSION]]
+    assert_warn[[$declare _PVERSION: string
+    local _: number = _PVERSION]]
+    assert_no_warn[[$declare function tonumber(str: string, base: ?number): number
+    local _: number = tonumber("10")]]
+    assert_warn[[$declare function tonumber(str: string, base: ?number): number
+    local _: string = tonumber("10")]]
+
     -- Propagate conditional in block
     assert_no_warn[[local function _test(arg: string|number): void
         if type(arg) == "string" then
