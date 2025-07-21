@@ -53,7 +53,8 @@ NAMESPACE_SOUP
 		case START:
 			if (!dont_use_reusable_sockets)
 			{
-				sock = Scheduler::get()->findReusableSocket(hr.getHost(), hr.port, hr.use_tls);
+				const auto [host, port] = hr.getHostAndPort();
+				sock = Scheduler::get()->findReusableSocket(host, port, hr.use_tls);
 				if (sock)
 				{
 					if (sock->custom_data.getStructFromMap(netReuseTag).is_busy)
@@ -99,10 +100,11 @@ NAMESPACE_SOUP
 					)
 				{
 					// Tag socket we just created for reuse, if it's not a one-off.
-					SOUP_IF_LIKELY (!Scheduler::get()->findReusableSocket(hr.getHost(), hr.port, hr.use_tls))
+					const auto [host, port] = hr.getHostAndPort();
+					SOUP_IF_LIKELY (!Scheduler::get()->findReusableSocket(host, port, hr.use_tls))
 					{
 						hr.setKeepAlive();
-						sock->custom_data.getStructFromMap(netReuseTag).init(hr.getHost(), hr.port, hr.use_tls);
+						sock->custom_data.getStructFromMap(netReuseTag).init(host, port, hr.use_tls);
 					}
 				}
 				state = AWAIT_RESPONSE;
@@ -173,7 +175,9 @@ NAMESPACE_SOUP
 	void HttpRequestTask::cannotRecycle()
 	{
 		state = CONNECTING;
-		connector.emplace(resolver, hr.getHost(), hr.port, prefer_ipv6);
+
+		const auto [host, port] = hr.getHostAndPort();
+		connector.emplace(resolver, host, port, prefer_ipv6);
 	}
 
 	void HttpRequestTask::recvResponse() SOUP_EXCAL
