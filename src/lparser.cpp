@@ -567,6 +567,11 @@ static void checktypehint (LexState *ls, TypeHint &th) {
       }
       th.emplaceTypeDesc(td);
     }
+    else if (strcmp(tname, "void") == 0) {
+      luaX_prev(ls);
+      throw_warn(ls, "'void' is not a valid type in this context", "invalid type hint", WT_TYPE_MISMATCH);
+      luaX_next(ls);
+    }
     else if (strcmp(tname, "userdata") != 0) {
       luaX_prev(ls);
       throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", WT_TYPE_MISMATCH);
