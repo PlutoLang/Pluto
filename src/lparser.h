@@ -140,23 +140,33 @@ struct TypeHint;
 
 inline constexpr int MAX_TYPED_RETURNS = 3;
 inline constexpr int MAX_TYPED_PARAMS = 7;
+inline constexpr int MAX_TYPED_FIELDS = 5;
 
-struct TypeDesc {
-  ValType type;
+union TypeDesc {
+  struct {
+    ValType type;
+    /* function info */
+    int8_t nparam;
+    int8_t nret;
+    bool nodiscard;
+    Proto* proto;
+    TypeHint* returns[MAX_TYPED_RETURNS];
+    TypeHint* params[MAX_TYPED_PARAMS];
+  };
+  struct {
+    ValType type_;
+    /* table info */
+    int8_t nfields;
+    TString* names[MAX_TYPED_FIELDS];
+    TypeHint* hints[MAX_TYPED_FIELDS];
+  };
 
-  /* function info */
-  bool nodiscard = false;
-  int8_t nparam = -1;
-  int8_t nret = -1;
-  Proto* proto = nullptr;
-  TypeHint* returns[MAX_TYPED_RETURNS];
-  TypeHint* params[MAX_TYPED_PARAMS];
-
-  TypeDesc() = default;
-
-  TypeDesc(ValType type)
-    : type(type)
-  {
+  TypeDesc(ValType type = VT_NONE)
+    : type(type) {
+    nparam = -1;  /* also sets nfields to -1 */
+    nret = -1;
+    nodiscard = false;
+    proto = nullptr;
   }
 
   void clear() noexcept {
