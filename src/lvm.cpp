@@ -1603,7 +1603,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAddB();
         vmDumpAddC();
-        vmDumpOut ("; T[" << c << "] = " << stringify_tvalue(rc) << " (T=" << stringify_tvalue(s2v(ra)) << ")");
+        vmDumpOut ("; T[" << b << "] = " << stringify_tvalue(rc) << " (T=" << stringify_tvalue(s2v(ra)) << ")");
         vmbreak;
       }
       vmcase(OP_SETFIELD) {
