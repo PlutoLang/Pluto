@@ -2710,11 +2710,10 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
       if (param_hint->empty())
         continue; /* skip parameters without type hint */
       TypeHint arg{};
-      if (i < (int)fas.argdescs.size()) {
+      if (i < (int)fas.argdescs.size())
         arg = *(TypeHint*)fas.argdescs.at(i);
-        if (arg.empty())
-          continue; /* skip arguments without propagated type */
-      }
+      if (arg.empty())
+        arg.emplaceTypeDesc(VT_NIL);
       if (!param_hint->isCompatibleWith(arg)) {
         auto& err = *pluto_newclassinst(ls->L, std::string);
         if (funcdesc->proto) {
