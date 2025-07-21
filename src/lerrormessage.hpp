@@ -30,7 +30,15 @@ namespace Pluto {
 
 		ErrorMessage& addSrcLine(int line) {
 #ifndef PLUTO_SHORT_ERRORS
-			const auto line_string = this->ls->getLineString(line);
+			auto line_string = this->ls->getLineString(line);
+			if (line_string.length() > 80) {
+				if (auto sep = line_string.find("--"); sep != std::string::npos) {
+					line_string.erase(sep);
+					while (!line_string.empty() && line_string.back() == ' ') {
+						line_string.pop_back();
+					}
+				}
+			}
 			const auto init_len = this->content.length();
 			this->content.append("\n    ");
 			this->content.append(std::to_string(line));
