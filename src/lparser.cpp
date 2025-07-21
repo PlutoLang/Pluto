@@ -64,6 +64,19 @@
 
 
 std::string TypeDesc::toString() const {
+  if (type == VT_TABLE && nfields != -1) {
+    std::string str(1, '{');
+    for (int8_t i = 0;; ) {
+      str.append(getstr(names[i]), tsslen(names[i]));
+      str.append(": ");
+      str.append(hints[i]->toString());
+      if (++i == nfields)
+        break;
+      str.append(", ");
+    }
+    str.push_back('}');
+    return str;
+  }
   std::string str = vtToString(type);
   if (type == VT_FUNC) {
     if (nparam >= 0) {  /* know parameters? */
@@ -518,6 +531,25 @@ static void checktypehint (LexState *ls, TypeHint &th) {
   if (testnext(ls, '?'))
     th.emplaceTypeDesc(VT_NIL);
   do {
+    if (ls->t.token == '{') {
+      luaX_next(ls);  /* skip '{' */
+      TypeDesc td = VT_TABLE;
+      td.nfields = 0;
+      do {
+        TString *ts = str_checkname(ls, N_RESERVED);
+        checknext(ls, ':');
+        TypeHint *fieldth = new_typehint(ls);
+        checktypehint(ls, *fieldth);
+        if (td.nfields != MAX_TYPED_FIELDS) {
+          td.names[td.nfields] = ts;
+          td.hints[td.nfields] = fieldth;
+          ++td.nfields;
+        }
+      } while (testnext(ls, ',') || testnext(ls, ';'));
+      checknext(ls, '}');
+      th.emplaceTypeDesc(std::move(td));
+      continue;
+    }
     TString *ts = str_checkname(ls, N_RESERVED);
     const char *tname = getstr(ts);
     if (strcmp(tname, "number") == 0)
@@ -1587,13 +1619,22 @@ static void breakstat (LexState *ls) {
 }
 
 
-static void fieldsel (LexState *ls, expdesc *v) {
+static void fieldsel (LexState *ls, expdesc *v, TypeHint *prop = nullptr) {
   /* fieldsel -> ['.' | ':'] NAME */
   FuncState *fs = ls->fs;
   expdesc key;
+  TypeHint th;
+  if (prop) exp_propagate(ls, *v, th);
   luaK_exp2anyregup(fs, v);
   luaX_next(ls);  /* skip the dot or colon */
   codename(ls, &key, N_RESERVED);
+  if (prop && th.descs[0].type == VT_TABLE && th.descs[0].nfields != -1 && key.k == VKSTR) {
+    for (lu_byte i = 0; i != th.descs[0].nfields; ++i) {
+      if (eqstr(key.u.strval, th.descs[0].names[i])) {
+        *prop = *th.descs[0].hints[i];
+      }
+    }
+  }
   luaK_indexed(fs, v, &key);
 }
 
@@ -1617,6 +1658,7 @@ static void yindex (LexState *ls, expdesc *v) {
 typedef struct ConsControl {
   expdesc v;  /* last list item read */
   expdesc *t;  /* table descriptor */
+  TypeDesc *td = nullptr;
   int nh;  /* total number of 'record' elements */
   int na;  /* number of array elements already stored */
   int tostore;  /* number of array elements pending to be stored */
@@ -1634,13 +1676,16 @@ static void preassignfield (LexState *ls, expdesc& key) {
   }
 }
 
+static void expr_propagate (LexState *ls, expdesc *v, TypeHint& t);
+
 static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   /* recfield -> (NAME | '['exp']') = exp */
   FuncState *fs = ls->fs;
   auto reg = ls->fs->freereg;
   expdesc tab, key, val;
+  TString *name = nullptr;
   if (ls->t.token == TK_NAME) {
-    TString *name = str_checkname(ls, N_RESERVED);  /* we already know this is a TK_NAME, but don't wanna raise non-portable-name, so passing N_RESERVED */
+    name = str_checkname(ls, N_RESERVED);  /* we already know this is a TK_NAME, but don't wanna raise non-portable-name, so passing N_RESERVED */
     if (for_class) {
       if (strcmp(getstr(name), "public") == 0) {
         name = str_checkname(ls);
@@ -1673,7 +1718,20 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   }
   else {
     checknext(ls, '=');
-    expr(ls, &val);
+    if (name && cc->td) {
+      if (cc->td->nfields == -1) {
+        cc->td->nfields = 0;
+      }
+      if (cc->td->nfields != MAX_TYPED_FIELDS) {
+        TypeHint *th = new_typehint(ls);
+        expr_propagate(ls, &val, *th);
+        cc->td->names[cc->td->nfields] = name;
+        cc->td->hints[cc->td->nfields] = th;
+        ++cc->td->nfields;
+      }
+      else expr(ls, &val);
+    }
+    else expr(ls, &val);
   }
   luaK_storevar(fs, &tab, &val);
   fs->freereg = reg;  /* free registers */
@@ -1811,7 +1869,7 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
 }
 
 
-static void constructor (LexState *ls, expdesc *t) {
+static void constructor (LexState *ls, expdesc *t, TypeDesc *td) {
   /* constructor -> '{' [ field { sep field } [sep] ] '}'
      sep -> ',' | ';' */
   FuncState *fs = ls->fs;
@@ -1822,6 +1880,7 @@ static void constructor (LexState *ls, expdesc *t) {
   luaK_code(fs, 0);  /* space for extra arg. */
   cc.na = cc.nh = cc.tostore = 0;
   cc.t = t;
+  cc.td = td;
   init_exp(t, VNONRELOC, fs->freereg);  /* table will be at stack top */
   luaK_reserveregs(fs, 1);
   init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
@@ -2695,9 +2754,9 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
     }
     case '{': {  /* funcargs -> constructor */
       auto hint = new_typehint(ls);
-      hint->emplaceTypeDesc(VT_TABLE);
+      hint->descs[0].type = VT_TABLE;
+      constructor(ls, &args, &hint->descs[0]);
       fas.argdescs = { hint };
-      constructor(ls, &args);
       break;
     }
     case TK_STRING: {  /* funcargs -> STRING */
@@ -3446,7 +3505,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
         break;
       }
       case '.': {  /* fieldsel */
-        fieldsel(ls, v);
+        fieldsel(ls, v, prop);
         break;
       }
       case '[': {  /* '[' exp ']' */
@@ -3960,8 +4019,12 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, int8_t *nprop, TypeH
       break;
     }
     case '{': {  /* constructor */
-      if (prop) prop->emplaceTypeDesc(VT_TABLE);
-      constructor(ls, v);
+      if (prop) {
+        TypeDesc td = VT_TABLE;
+        constructor(ls, v, &td);
+        prop->emplaceTypeDesc(std::move(td));
+      }
+      else constructor(ls, v, nullptr);
       if (ls->t.token == '[' || ls->t.token == ':' || ls->t.token == '.' || ls->t.token == TK_PIPE)
         break;
       return;
