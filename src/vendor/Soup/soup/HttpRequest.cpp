@@ -36,25 +36,27 @@ NAMESPACE_SOUP
 	}
 
 	HttpRequest::HttpRequest(const Uri& uri)
-		: HttpRequest(uri.host, uri.getRequestPath())
+		: HttpRequest(uri.getHost(), uri.getRequestPath())
 	{
+		use_tls = (joaat::hash(uri.scheme) != joaat::compileTimeHash("http"));
 		path_is_encoded = true;
-
-		if (joaat::hash(uri.scheme) == joaat::compileTimeHash("http"))
-		{
-			use_tls = false;
-			port = 80;
-		}
-
-		if (uri.port != 0)
-		{
-			port = uri.port;
-		}
 	}
 
 	std::string HttpRequest::getHost() const
 	{
 		return findHeader(ObfusString("Host")).value();
+	}
+
+	std::tuple<std::string, uint16_t> HttpRequest::getHostAndPort() const
+	{
+		std::string host = getHost();
+		uint16_t port = (use_tls ? 443 : 80);
+		if (auto sep = host.find_last_of(':'); sep != std::string::npos)
+		{
+			port = string::toInt<uint16_t>(host.c_str() + sep + 1, port, string::TI_FULL);
+			host.erase(sep);
+		}
+		return { std::move(host), port };
 	}
 
 	std::string HttpRequest::getUrl() const
@@ -69,11 +71,6 @@ NAMESPACE_SOUP
 			str = "http://";
 		}
 		str.append(getHost());
-		if (port != (use_tls ? 443 : 80))
-		{
-			str.push_back(':');
-			str.append(std::to_string(port));
-		}
 		if (path_is_encoded)
 		{
 			str.append(path);
@@ -136,7 +133,7 @@ NAMESPACE_SOUP
 	{
 		HttpRequestExecuteData data{ this };
 		auto sock = soup::make_shared<Socket>();
-		const auto host = getHost();
+		const auto [host, port] = getHostAndPort();
 		if (sock->connect(resolver, host, port))
 		{
 			Scheduler sched{};
@@ -177,7 +174,7 @@ NAMESPACE_SOUP
 	{
 		HttpRequestExecuteEventStreamData data{ this, on_event, std::move(cap) };
 		auto sock = make_shared<Socket>();
-		const auto host = getHost();
+		const auto [host, port] = getHostAndPort();
 		if (sock->connect(resolver, host, port))
 		{
 			Scheduler sched{};
