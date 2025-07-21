@@ -323,8 +323,10 @@ struct TypeHint {
 
   [[nodiscard]] bool isCompatibleWith(const TypeDesc& td) const noexcept {
     return contains(td)
-        || td.type == VT_ANY
-        || ((td.type == VT_INT || td.type == VT_FLT) && contains(VT_NUMBER));
+        || ((td.type == VT_INT || td.type == VT_FLT) && contains(VT_NUMBER))
+        || td.type == VT_ANY  /* if we don't know what RHS really is, assume it's fine */
+        || contains(VT_ANY)  /* if LHS wants _any_ value, then the fact that we have a RHS is good enough */
+        ;
   }
 
   [[nodiscard]] bool isCompatibleWith(const TypeHint& b) const noexcept {

@@ -567,6 +567,9 @@ static void checktypehint (LexState *ls, TypeHint &th) {
       }
       th.emplaceTypeDesc(td);
     }
+    else if (strcmp(tname, "any") == 0) {
+      th.emplaceTypeDesc(VT_ANY);
+    }
     else if (strcmp(tname, "void") == 0) {
       luaX_prev(ls);
       throw_warn(ls, "'void' is not a valid type in this context", "invalid type hint", WT_TYPE_MISMATCH);
