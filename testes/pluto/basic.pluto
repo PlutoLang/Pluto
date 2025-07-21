@@ -200,6 +200,9 @@ if __newindex then end
     assert_no_warn[[local function _f(): (boolean, number)
         return true, 1
     end]]
+    assert_no_warn[[local _f: function:(int,int) = function(a: int, b: int)
+        return a, b
+    end]]
 
     -- discarded-return basic test
     assert_warn[[local function f() <nodiscard>
