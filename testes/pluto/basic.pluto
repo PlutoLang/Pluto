@@ -4327,3 +4327,11 @@ do
         2,
     ) == 3)
 end
+
+print "Testing global function type propagation."
+do
+    assert_warn[[
+        function f(_a: bool, _b: bool, _c: string) end
+        f(true, false, true)
+    ]]
+end

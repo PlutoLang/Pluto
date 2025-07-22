@@ -5355,8 +5355,19 @@ static void funcstat (LexState *ls, int line, const bool global) {
   ismethod = funcname(ls, &v);
   if (!global)
     check_assignment(ls, &v);
-  body(ls, &b, ismethod, line);
+  TypeDesc funcdesc;
+  if (v.k == VINDEXUP)
+    body(ls, &b, ismethod, line, &funcdesc);
+  else
+    body(ls, &b, ismethod, line);
   check_readonly(ls, &v);
+  if (v.k == VINDEXUP) {
+    TValue *key = &ls->fs->f->k[v.u.ind.idx];
+    lua_assert(ttype(key) == LUA_TSTRING);
+    TypeHint th;
+    th.emplaceTypeDesc(std::move(funcdesc));
+    get_global_prop(ls, tsvalue(key)).merge(th);
+  }
   luaK_storevar(ls->fs, &v, &b);
   luaK_fixline(ls->fs, line);  /* definition "happens" in the first line */
 }
