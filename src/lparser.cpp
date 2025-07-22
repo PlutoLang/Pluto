@@ -529,7 +529,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
 
 static void checktypehint (LexState *ls, TypeHint &th) {
   if (testnext(ls, '?'))
-    th.emplaceTypeDesc(VT_NIL);
+    th.emplaceTypeDesc(VT_NULL);
   do {
     if (ls->t.token == '{') {
       luaX_next(ls);  /* skip '{' */
@@ -602,6 +602,9 @@ static void checktypehint (LexState *ls, TypeHint &th) {
     else if (strcmp(tname, "any") == 0) {
       th.emplaceTypeDesc(VT_ANY);
     }
+    else if (strcmp(tname, "nil") == 0) {
+      th.emplaceTypeDesc(VT_NIL);
+    }
     else if (strcmp(tname, "void") == 0) {
       luaX_prev(ls);
       throw_warn(ls, "'void' is not a valid type in this context", "invalid type hint", WT_TYPE_MISMATCH);
@@ -614,8 +617,8 @@ static void checktypehint (LexState *ls, TypeHint &th) {
       luaX_next(ls);
     }
   } while (testnext(ls, '|'));
-  if (!th.contains(VT_NIL) && testnext(ls, '?'))
-    th.emplaceTypeDesc(VT_NIL);
+  if (!th.contains(VT_NULL) && testnext(ls, '?'))
+    th.emplaceTypeDesc(VT_NULL);
 }
 
 
@@ -2779,6 +2782,8 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
       TypeHint arg{};
       if (i < (int)fas.argdescs.size())
         arg = *(TypeHint*)fas.argdescs.at(i);
+      if (arg.empty())
+        arg.emplaceTypeDesc(VT_NULL);
       if (!param_hint->isCompatibleWith(arg)) {
         auto& err = *pluto_newclassinst(ls->L, std::string);
         if (funcdesc->proto) {
@@ -2793,14 +2798,9 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
         err.append(" was type-hinted as '");
         err.append(param_hint->toString());
         err.append("' but provided with ");
-        if (!arg.empty()) {
-          err.push_back('\'');
-          err.append(arg.toString());
-          err.push_back('\'');
-        }
-        else {
-          err.append("nothing");
-        }
+        err.push_back('\'');
+        err.append(arg.toString());
+        err.push_back('\'');
         throw_warn(ls, "argument type mismatch", err.c_str(), line, WT_TYPE_MISMATCH);
         ls->L->top.p--;  /* pop 'err' */
       }
@@ -5305,7 +5305,7 @@ static void localstat (LexState *ls, bool isexport = false) {
   else {
     e.k = VVOID;
     nexps = 0;
-    process_assign(ls, vidx, TypeHint{ VT_NIL }, line);
+    process_assign(ls, vidx, TypeHint{ VT_NULL }, line);
     checkforshadowing(ls, fs, st.variable_names, line);
   }
   if (nvars == nexps) { /* no adjustments? */
