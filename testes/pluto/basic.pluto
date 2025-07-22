@@ -78,11 +78,14 @@ do
     end
     ]]
 
+    -- 3-way union
     assert_no_warn[[local _x: ?string|number]]
     assert_no_warn[[local _x: ?string|number = nil]]
     assert_no_warn[[local _x: ?string|number = 0]]
     assert_no_warn[[local _x: ?string|number = ""]]
     assert_warn[[local _x: ?string|number = {}]]
+    -- 4-way union
+    assert_no_warn[[local _: ?string|number|table = {}]]
 
     -- a violated type hint implies unreachable code so does not raise further warnings
     assert_no_warn[[-- @pluto_warnings disable-next
