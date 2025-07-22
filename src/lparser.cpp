@@ -2742,7 +2742,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
         else {
           err.append("nothing");
         }
-        throw_warn(ls, err.c_str(), "argument type mismatch", line, WT_TYPE_MISMATCH);
+        throw_warn(ls, "argument type mismatch", err.c_str(), line, WT_TYPE_MISMATCH);
         ls->L->top.p--;  /* pop 'err' */
       }
     }
