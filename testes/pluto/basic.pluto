@@ -294,6 +294,41 @@ do
         local function f(_: ?any) end
         f()
     ]]
+
+    -- 'nil'
+    assert_warn[[
+        local function f(_: nil|bool) end
+        f()
+    ]]
+    assert_no_warn[[
+        local function f(_: nil|bool) end
+        f(nil)
+    ]]
+    assert_no_warn[[
+        local function f(_: nil|bool) end
+        f(true)
+    ]]
+    assert_warn[[
+        local function f(_: nil|bool) end
+        f("true")
+    ]]
+    -- '?'
+    assert_no_warn[[
+        local function f(_: ?bool) end
+        f()
+    ]]
+    assert_no_warn[[
+        local function f(_: ?bool) end
+        f(nil)
+    ]]
+    assert_no_warn[[
+        local function f(_: ?bool) end
+        f(true)
+    ]]
+    assert_warn[[
+        local function f(_: ?bool) end
+        f("true")
+    ]]
 end
 -- Strings should not be able to disable warnings
 do
