@@ -251,8 +251,16 @@ struct TypeHint {
       for (auto& desc : descs) {
         if (desc.type == VT_NONE) {
           desc = std::move(td);
-          break;
+          return;
         }
+      }
+
+      /* too many types in this union, turn it into 'any' or '?any' */
+      const auto nullable = isNullable();
+      clear();
+      emplaceTypeDesc(VT_ANY);
+      if (nullable) {
+        emplaceTypeDesc(VT_NIL);
       }
     }
   }
