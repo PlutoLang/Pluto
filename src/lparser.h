@@ -73,6 +73,7 @@ typedef enum {
 enum ValType : lu_byte {
   VT_NONE = 0,
   VT_ANY,
+  VT_NULL,  /* used to represent an implicit nil (when the assignment has too few values) */
   VT_NIL,
   VT_NUMBER,
   VT_INT,
@@ -85,8 +86,9 @@ enum ValType : lu_byte {
 
 [[nodiscard]] inline const char* vtToString(ValType vt) {
   switch (vt) {
-    case VT_NONE: return "none";
+    case VT_NONE: lua_assert(0); return "none";
     case VT_ANY: return "any";
+    case VT_NULL: return "void";
     case VT_NIL: return "nil";
     case VT_NUMBER: return "number";
     case VT_INT: return "int";
@@ -97,6 +99,7 @@ enum ValType : lu_byte {
     case VT_FUNC: return "function";
     default:;
   }
+  lua_assert(0);
   return "ERROR";
 }
 
@@ -270,7 +273,7 @@ struct TypeHint {
       clear();
       emplaceTypeDesc(VT_ANY);
       if (nullable) {
-        emplaceTypeDesc(VT_NIL);
+        emplaceTypeDesc(VT_NULL);
       }
     }
   }
@@ -342,8 +345,9 @@ struct TypeHint {
   [[nodiscard]] bool isCompatibleWith(const TypeDesc& td) const noexcept {
     return contains(td)
         || ((td.type == VT_INT || td.type == VT_FLT) && contains(VT_NUMBER))
+        || (td.type == VT_NIL && isNullable())  /* allowing implicit nils also allows explicit nils */
         || td.type == VT_ANY  /* if we don't know what RHS really is, assume it's fine */
-        || contains(VT_ANY)  /* if LHS wants _any_ value, then the fact that we have a RHS is good enough */
+        || (td.type != VT_NULL && contains(VT_ANY))  /* if LHS wants _any_ value, then the fact that we have a RHS is good enough */
         ;
   }
 
@@ -367,7 +371,7 @@ struct TypeHint {
   }
 
   [[nodiscard]] bool isNullable() const noexcept {
-    return contains(VT_NIL);
+    return contains(VT_NULL);
   }
 
   [[nodiscard]] std::string toString() const {
@@ -376,12 +380,13 @@ struct TypeHint {
     }
     std::string str{};
     if (isNullable()) {
-      if (descs[1].type == VT_NONE)
-        return "nil";
+      if (descs[1].type == VT_NONE) {
+        return vtToString(VT_NULL);
+      }
       str.push_back('?');
     }
     for (const auto& desc : descs) {
-      if (desc.type != VT_NONE && desc.type != VT_NIL) {
+      if (desc.type != VT_NONE && desc.type != VT_NULL) {
         str.append(desc.toString());
         str.push_back('|');
       }
