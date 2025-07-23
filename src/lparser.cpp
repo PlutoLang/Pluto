@@ -2316,7 +2316,8 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
         }
         auto parhint = gettypehint(ls);
         auto vidx = new_localvar(ls, parname, parhint);
-        *getlocalvardesc(fs, vidx)->vd.prop = parhint;  /* set hinted type as propagated type */
+        Vardesc *vd = getlocalvardesc(fs, vidx);
+        *vd->vd.prop = parhint;  /* set hinted type as propagated type */
         if (fallbacks) {
           if (testnext(ls, '=')) {
             if (ls->t.token == TK_NIL) {
@@ -2329,6 +2330,10 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
                 skip_over_simpleexp_within_lambdaparlist(ls);
               else
                 skip_over_simpleexp_within_parenlist(ls);
+            }
+            if (vd->vd.prop) {
+              vd->vd.prop->erase(VT_NULL);
+              vd->vd.prop->erase(VT_NIL);
             }
           }
           else {
