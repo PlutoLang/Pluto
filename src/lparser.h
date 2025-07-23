@@ -317,13 +317,13 @@ struct TypeHint {
       if (desc.type == td.type) {
         if (desc.type == VT_FUNC) {
           if ((desc.nparam != -1 && desc.nparam != td.nparam) || desc.nret > td.nret) {
-            return false;
+            continue;
           }
           if (desc.nparam != -1) {
             /* desc.nparam == td.nparam */
             for (lu_byte i = 0; i != desc.nparam && i != MAX_TYPED_PARAMS; ++i) {
               if (!desc.params[i]->isCompatibleWith(*td.params[i])) {
-                return false;
+                goto _contains__continue_2;
               }
             }
           }
@@ -331,13 +331,14 @@ struct TypeHint {
             /* desc.nret <= td.nret */
             for (lu_byte i = 0; i != desc.nret && i != MAX_TYPED_RETURNS; ++i) {
               if (!desc.returns[i]->isCompatibleWith(*td.returns[i])) {
-                return false;
+                goto _contains__continue_2;
               }
             }
           }
         }
         return true;
       }
+      _contains__continue_2:;
     }
     return false;
   }
