@@ -184,6 +184,12 @@ local a: string = f() ?? true]]
 end
 local _a: bool|int = f() ?? 0]]
 
+    -- Default argument removes nil from propagated type
+    assert_no_warn[[local function f(a: ?bool = true)
+        local _: bool = a
+    end
+    f(true)]]
+
     -- 'else' propagates its return type too
     assert_no_warn[[function _foo(x: number): ?string
     if x == 2 then
