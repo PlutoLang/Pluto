@@ -258,12 +258,15 @@ end]]
 
     -- function return type propagation from global
     assert_no_warn[[a = function()
-    return 1
-end
-local _b: number = a()]]
-end
--- Propagate conditional in block
-do
+        return 1
+    end
+    local _b: number = a()]]
+
+    -- funcstat also propagates type
+    assert_warn[[function f(_a: bool) end
+    f("")]]
+
+    -- Propagate conditional in block
     assert_no_warn[[local function _test(arg: string|number): void
         if type(arg) == "string" then
             local _str: string = arg
