@@ -152,7 +152,8 @@ static void expr (LexState *ls, expdesc *v, int8_t *nprop = nullptr, TypeHint *p
 ** Throws an exception into Lua, which will promptly close the program.
 ** This is only called for vital errors, like lexer and/or syntax problems.
 */
-static l_noret throwerr (LexState *ls, const char *err, const char *here, int line, const char *note = nullptr) {
+static l_noret throwerr (LexState *ls, const char *err, const char *here, intptr_t line_or_tidx, const char *note = nullptr) {
+  const auto line = Pluto::ErrorMessage::decodeLine(ls, line_or_tidx);
   err = luaG_addinfo(ls->L, err, ls->source, line);
   auto msg = new Pluto::ErrorMessage{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
   msg->addMsg(err);
@@ -160,7 +161,7 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here, int li
     msg->addMsg(" near ")
        .addMsg(luaX_token2str(ls, ls->t));
   }
-  msg->addSrcLine(line)
+  msg->addSrcLine(line_or_tidx)
      .addGenericHere(here);
 
   if (note != nullptr) {
@@ -179,14 +180,15 @@ static l_noret throwerr (LexState *ls, const char *err, const char *here, const 
 inline thread_local bool parser_emitted_warnings;
 #endif
 
-static void throw_warn(LexState* ls, const char* err, const char* here, const char* note, int line, WarningType warningType) {
+static void throw_warn(LexState* ls, const char* err, const char* here, const char* note, intptr_t line_or_tidx, WarningType warningType) {
+  int line = Pluto::ErrorMessage::decodeLine(ls, line_or_tidx);
   if (ls->shouldEmitWarning(line, warningType)) {
     auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
     msg->addMsg(err)
       .addMsg(" [")
       .addMsg(luaX_getwarnname(warningType))
       .addMsg("]")
-      .addSrcLine(line)
+      .addSrcLine(line_or_tidx)
       .addGenericHere(here)
       .addNote(note)
       .finalize();
@@ -203,16 +205,16 @@ static void throw_warn(LexState* ls, const char* err, const char* here, const ch
   }
 }
 
-static void throw_warn (LexState *ls, const char *err, const char *here, int line, WarningType warningType) {
-  return throw_warn(ls, err, here, "", line, warningType);
+static void throw_warn (LexState *ls, const char *err, const char *here, intptr_t line_or_tidx, WarningType warningType) {
+  return throw_warn(ls, err, here, "", line_or_tidx, warningType);
 }
 
 static void throw_warn(LexState *ls, const char* err, const char *here, WarningType warningType) {
   return throw_warn(ls, err, here, "", ls->getLineNumber(), warningType);
 }
 
-static void throw_warn(LexState *ls, const char *err, int line, WarningType warningType) {
-  return throw_warn(ls, err, "", "", line, warningType);
+static void throw_warn(LexState *ls, const char *err, intptr_t line_or_tidx, WarningType warningType) {
+  return throw_warn(ls, err, "", "", line_or_tidx, warningType);
 }
 
 #pragma warning(disable : 4068) // unknown pragma
@@ -253,7 +255,7 @@ static void check_for_non_portable_code (LexState *ls) {
         ls->setKeywordState(ls->t.token, KS_ENABLED_BY_PLUTO_INFORMED);
     }
     if (ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_PLUTO_INFORMED || ls->getKeywordState(ls->t.token) == KS_ENABLED_BY_ENV) {  /* enabled by a means other than 'pluto_use'? */
-      throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t)), WT_NON_PORTABLE_CODE);
+      throw_warn(ls, "non-portable keyword usage", luaO_fmt(ls->L, "use 'pluto_%s' instead, or 'pluto_use' this keyword: https://pluto.do/compat", luaX_token2str_noq(ls, ls->t)), Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_NON_PORTABLE_CODE);
       ls->L->top.p--;
     }
   }
@@ -275,27 +277,32 @@ static l_noret error_expected (LexState *ls, int token) {
     }
     case TK_IN: {
       throwerr(ls,
-        "expected 'in' to delimit loop iterator.", "expected 'in' symbol.");
+        "expected 'in' to delimit loop iterator.", "expected 'in' symbol.",
+        Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     case TK_DO: {
       throwerr(ls,
-        "expected 'do' to establish block.", "you need to append this with the 'do' symbol.");
+        "expected 'do' to establish block.", "you need to append this with the 'do' symbol.",
+        Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     case TK_END: {
       throwerr(ls,
-        "expected 'end' to terminate block.", "expected 'end' symbol after or on this line.");
+        "expected 'end' to terminate block.", "expected 'end' symbol after or on this line.",
+        Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     case TK_NAME: {
       throwerr(ls,
-        "expected an identifier.", "this needs a name.");
+        "expected an identifier.", "this needs a name.",
+        Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     case TK_PCONTINUE: {
       throwerr(ls,
-        "expected 'continue' inside a loop.", "this is not within a loop.");
+        "expected 'continue' inside a loop.", "this is not within a loop.",
+        Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     default: {
       _default:
-      throwerr(ls, luaO_fmt(ls->L, "%s expected near %s", luaX_token2str(ls, token), luaX_token2str(ls, ls->t)), "this is invalid syntax.");
+      throwerr(ls, luaO_fmt(ls->L, "%s expected near %s", luaX_token2str(ls, token), luaX_token2str(ls, ls->t)), "this is invalid syntax.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
   }
 }
@@ -454,7 +461,7 @@ static TString *str_checkname (LexState *ls, int flags = 0) {
     if (ls->t.IsNonCompatible()) {
       if (trydisablekeyword(ls))  /* see if we can fix it */
         return str_checkname(ls, flags);  /* then try again */
-      throwerr(ls, luaO_fmt(ls->L, "expected a name, found %s", luaX_token2str(ls, ls->t)), luaO_fmt(ls->L, "%s has a different meaning in Pluto, but you can disable this: https://pluto.do/compat", luaX_token2str(ls, ls->t)));
+      throwerr(ls, luaO_fmt(ls->L, "expected a name, found %s", luaX_token2str(ls, ls->t)), luaO_fmt(ls->L, "%s has a different meaning in Pluto, but you can disable this: https://pluto.do/compat", luaX_token2str(ls, ls->t)), Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     error_expected(ls, TK_NAME);
   }
@@ -467,6 +474,7 @@ static TString *str_checkname (LexState *ls, int flags = 0) {
           ls,
           luaO_fmt(ls->L, "'%s' is a non-portable name", getstr(ts)),
           "use a different name, or use 'pluto_use' to disable this keyword: https://pluto.do/compat",
+          Pluto::ErrorMessage::encodePos(luaX_getpos(ls)),
           WT_NON_PORTABLE_NAME
         );
         ls->L->top.p--;
@@ -607,12 +615,12 @@ static void checktypehint (LexState *ls, TypeHint &th) {
     }
     else if (strcmp(tname, "void") == 0) {
       luaX_prev(ls);
-      throw_warn(ls, "'void' is not a valid type in this context", "invalid type hint", WT_TYPE_MISMATCH);
+      throw_warn(ls, "'void' is not a valid type in this context", "invalid type hint", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_TYPE_MISMATCH);
       luaX_next(ls);
     }
     else if (strcmp(tname, "userdata") != 0) {
       luaX_prev(ls);
-      throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", WT_TYPE_MISMATCH);
+      throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_TYPE_MISMATCH);
       ls->L->top.p--;
       luaX_next(ls);
     }
@@ -1561,7 +1569,7 @@ static void continuestat (LexState *ls) {
   if (ls->t.token == TK_INT) {
     backwards = ls->t.seminfo.i;
     if (backwards == 0) {
-      throwerr(ls, "expected number of blocks to skip, found '0'", "unexpected '0'", line);
+      throwerr(ls, "expected number of blocks to skip, found '0'", "unexpected '0'", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     luaX_next(ls);
   }
@@ -1572,7 +1580,7 @@ static void continuestat (LexState *ls) {
   else {
     int foundloops = countdepth(fs, BlockType::BT_CONTINUE);
     if (foundloops == 0)
-      throwerr(ls, "'continue' outside of a loop","'continue' can only be used inside the context of a loop.", line);
+      throwerr(ls, "'continue' outside of a loop", "'continue' can only be used inside the context of a loop.", line);
     else {
       if (foundloops == 1) {
         throwerr(ls,
@@ -1614,7 +1622,7 @@ static void breakstat (LexState *ls) {
   if (ls->t.token == TK_INT) {
     backwards = ls->t.seminfo.i;
     if (backwards == 0) {
-      throwerr(ls, "expected number of blocks to skip, found '0'", "unexpected '0'", line);
+      throwerr(ls, "expected number of blocks to skip, found '0'", "unexpected '0'", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     luaX_next(ls);
   }
@@ -1864,7 +1872,7 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
     }
     default: {
       if (for_class)
-        throwerr(ls, luaO_fmt(ls->L, "unexpected token: %s", luaX_token2str(ls, ls->t)), "expected a class member");
+        throwerr(ls, luaO_fmt(ls->L, "unexpected token: %s", luaX_token2str(ls, ls->t)), "expected a class member", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
       listfield(ls, cc);
       break;
     }
@@ -2120,7 +2128,7 @@ static void check_assignment (LexState *ls, const expdesc *v) {
     if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
       TString *name = str_checkname(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
       if (ls->explicit_globals.count(name) == 0) {
-        throw_warn(ls, "implicit global creation", luaO_fmt(ls->L, "prefix '%s' with '_G.' to be explicit", getstr(name)), line, WT_IMPLICIT_GLOBAL);
+        throw_warn(ls, "implicit global creation", luaO_fmt(ls->L, "prefix '%s' with '_G.' to be explicit", getstr(name)), Pluto::ErrorMessage::encodePos(luaX_getpos(ls) - 1), WT_IMPLICIT_GLOBAL);
         ls->L->top.p--;  /* pop result of luaO_fmt */
       }
     }
@@ -2530,7 +2538,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   if (ls->t.token != ')' && ismethod != 2 && luaX_lookbehind(ls).token == TK_NAME) {
     const char *str = getstr(luaX_lookbehind(ls).seminfo.ts);
     if (strcmp(str, "private") == 0 || strcmp(str, "protected") == 0 || strcmp(str, "public") == 0) {
-      throwerr(ls, luaO_fmt(ls->L, "attempt to use constructor promotion outside of '__construct' near %s", luaX_token2str(ls, ls->t)), "this is invalid syntax.");
+      throwerr(ls, luaO_fmt(ls->L, "attempt to use constructor promotion outside of '__construct' near %s", luaX_token2str(ls, ls->t)), "this is invalid syntax.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls) - 1));
     }
   }
   checknext(ls, ')');
@@ -3083,7 +3091,7 @@ static void const_expr (LexState *ls, expdesc *v) {
             }
           }
           if (lib == nullptr) {
-            throwerr(ls, luaO_fmt(ls->L, "%s is not available in constant expression", getstr(ls->t.seminfo.ts)), "unrecognized name.");
+            throwerr(ls, luaO_fmt(ls->L, "%s is not available in constant expression", getstr(ls->t.seminfo.ts)), "unrecognized name.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
           }
         }
         luaX_next(ls); /* skip TK_NAME */
@@ -3097,7 +3105,7 @@ static void const_expr (LexState *ls, expdesc *v) {
           }
         }
         if (f == NULL) {
-          throwerr(ls, luaO_fmt(ls->L, "%s is not a member of %s", getstr(ls->t.seminfo.ts), lib->name), "unknown function.");
+          throwerr(ls, luaO_fmt(ls->L, "%s is not a member of %s", getstr(ls->t.seminfo.ts), lib->name), "unknown function.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
         }
         else {
           luaX_next(ls); /* skip TK_NAME */
@@ -3108,7 +3116,7 @@ static void const_expr (LexState *ls, expdesc *v) {
     }
     default: {
       const char *token = luaX_token2str(ls, ls->t);
-      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
   }
 }
@@ -3187,7 +3195,7 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
         });
       }
       else {
-        throwerr(ls, luaO_fmt(ls->L, "%s is not a member of enums", getstr(ls->t.seminfo.ts)), "unknown member.");
+        throwerr(ls, luaO_fmt(ls->L, "%s is not a member of enums", getstr(ls->t.seminfo.ts)), "unknown member.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
       }
       return;
     }
@@ -3211,12 +3219,12 @@ static void enumexp (LexState *ls, expdesc *v, TString *varname) {
           return;
         }
       }
-      throwerr(ls, luaO_fmt(ls->L, "%s is not a member of %s", getstr(ls->t.seminfo.ts), getstr(varname)), "unknown member.");
+      throwerr(ls, luaO_fmt(ls->L, "%s is not a member of %s", getstr(ls->t.seminfo.ts), getstr(varname)), "unknown member.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
       return;
     }
     default: {
       const char *token = luaX_token2str(ls, ls->t);
-      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
   }
 }
@@ -3316,7 +3324,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
       if (flags & E_OR_KILLED_WALRUS)
         throwerr(ls, "':=' is not allowed in this context", "due to the 'or', it is no longer guaranteed that the local will be initialized by the time it's in scope.");
       if (!(flags & E_WALRUS) || ls->fs->freereg != luaY_nvarstack(ls->fs))
-        throwerr(ls, "':=' is only allowed in 'if' and 'while' statements", "unexpected ':='");
+        throwerr(ls, "':=' is only allowed in 'if' and 'while' statements", "unexpected ':='", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
       new_localvar(ls, varname);  /* first local */
       int nvars = 1;
       while (gett(ls) == ',') {
@@ -3379,10 +3387,10 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
     }
     default: {
       if (ls->t.token == ')' && ls->getContext() == PARCTX_BODY) {
-        throwerr(ls, "unexpected ')', expected 'end' to close function.", "missing 'end' before ')'.");
+        throwerr(ls, "unexpected ')', expected 'end' to close function.", "missing 'end' before ')'.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
       }
       const char *token = luaX_token2str(ls, ls->t);
-      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
+      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
   }
 }
@@ -4223,7 +4231,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
   else {
     simpleexp(ls, v, flags, nprop, prop);
     if (ls->t.token == TK_IN) {
-      throw_warn(ls, "non-portable operator usage", "this operator generates bytecode that is incompatible with Lua.", WT_NON_PORTABLE_BYTECODE);
+      throw_warn(ls, "non-portable operator usage", "this operator generates bytecode that is incompatible with Lua.", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_NON_PORTABLE_BYTECODE);
       inexpr(ls, v, flags);
       if (prop) prop->emplaceTypeDesc(VT_BOOL);
     }
@@ -4904,7 +4912,7 @@ static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeH
                 && !eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "thread"))
                 && !eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "no value"))
               ) {
-                throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a possible return value of 'type'", getstr(ls->t.seminfo.ts)), WT_POSSIBLE_TYPO);
+                throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a possible return value of 'type'", getstr(ls->t.seminfo.ts)), Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_POSSIBLE_TYPO);
                 ls->L->top.p--;
               }
             }
@@ -4928,11 +4936,11 @@ static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeH
     /* standard block opener for ifstat */
   }
   else if (testnext(ls, TK_DO)) {
-    throw_warn(ls, "non-portable block opener", "using 'do' instead of 'then' is Pluto-specific", WT_NON_PORTABLE_CODE);
+    throw_warn(ls, "non-portable block opener", "using 'do' instead of 'then' is Pluto-specific", Pluto::ErrorMessage::encodePos(luaX_getpos(ls) - 1), WT_NON_PORTABLE_CODE);
   }
   else {
     const char* token = luaX_token2str(ls, ls->t);
-    throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "expected 'then' or 'do' to open the block");
+    throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "expected 'then' or 'do' to open the block", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
   }
   if (ls->t.token == TK_BREAK && luaX_lookahead(ls) != TK_INT) {  /* 'if x then break' and not 'if x then break int' ? */
     ls->laststat.token = TK_BREAK;
@@ -5282,7 +5290,7 @@ static void localstat (LexState *ls, bool isexport = false) {
           || strcmp(getstr(ls->t.seminfo.ts), "constexpr") == 0
           || strcmp(getstr(ls->t.seminfo.ts), "close") == 0
           ) {
-          throw_warn(ls, "possibly mistyped attribute", luaO_fmt(ls->L, "did you mean '<%s>'?", getstr(ls->t.seminfo.ts)), WT_POSSIBLE_TYPO);
+          throw_warn(ls, "possibly mistyped attribute", luaO_fmt(ls->L, "did you mean '<%s>'?", getstr(ls->t.seminfo.ts)), Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_POSSIBLE_TYPO);
           ls->L->top.p--;
         }
       }
