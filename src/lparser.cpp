@@ -3566,7 +3566,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
         if (v->k == VLOCAL) {
           vd = getlocalvardesc(ls->fs, v->u.var.vidx);
         _funcdesc_from_vd:
-          if (vd->vd.prop->descs[0].type == VT_FUNC) {
+          if (vd->vd.prop->descs[0].type == VT_FUNC && vd->vd.prop->descs[1].type == VT_NONE) {
             funcdesc = &vd->vd.prop->descs[0];
             if (prop && vd->vd.prop->descs[0].nret >= 0) {  /* should and can propagate returns? */
               *nprop = vd->vd.prop->descs[0].nret;
@@ -3600,7 +3600,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
           TValue *key = &ls->fs->f->k[v->u.ind.idx];
           lua_assert(ttype(key) == LUA_TSTRING);
           if (auto th = get_global_prop_opt(ls, tsvalue(key))) {
-            if (th->descs[0].type == VT_FUNC) {
+            if (th->descs[0].type == VT_FUNC && th->descs[1].type == VT_NONE) {
               funcdesc = &th->descs[0];
               if (prop && th->descs[0].nret >= 0) {  /* should and can propagate returns? */
                 *nprop = th->descs[0].nret;
