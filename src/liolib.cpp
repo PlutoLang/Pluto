@@ -896,6 +896,7 @@ static int f_flush (lua_State *L) {
 }
 
 static int isdir (lua_State *L) {
+  FS_FUNCTION
   auto& path = getStringStreamPathForRead(L, 1);
   std::error_code ec;
   const auto ret = std::filesystem::is_directory(path, ec);
@@ -908,6 +909,7 @@ static int isdir (lua_State *L) {
 
 
 static int isfile (lua_State *L) {
+  FS_FUNCTION
   auto& path = getStringStreamPathForRead(L, 1);
   std::error_code ec;
   const auto ret = std::filesystem::is_regular_file(path, ec);
@@ -920,6 +922,7 @@ static int isfile (lua_State *L) {
 
 
 static int filesize (lua_State *L) {
+  FS_FUNCTION
   auto& path = getStringStreamPathForRead(L, 1);
   std::error_code ec;
   const auto ret = (lua_Integer)std::filesystem::file_size(path, ec);
@@ -932,6 +935,7 @@ static int filesize (lua_State *L) {
 
 
 static int exists (lua_State *L) {
+  FS_FUNCTION
   auto& path = getStringStreamPathForRead(L, 1);
   std::error_code ec;
   const auto ret = std::filesystem::exists(path, ec);
@@ -944,6 +948,7 @@ static int exists (lua_State *L) {
 
 
 static int io_copy (lua_State *L) {
+  FS_FUNCTION
   lua_settop(L, 2);
   /* stack: arg_from, arg_to */
   auto& from = getStringStreamPathForRead(L, -2);
@@ -978,6 +983,7 @@ static int io_copyto (lua_State *L) {
 
 
 static int absolute (lua_State *L) {
+  FS_FUNCTION
   const auto bCanonical = lua_istrue(L, 2);
   auto& f = getStringStreamPathForRead(L, 1);
   std::error_code ec;
@@ -991,6 +997,7 @@ static int absolute (lua_State *L) {
 
 
 static int relative (lua_State *L) {
+  FS_FUNCTION
   auto& f = getStringStreamPathForRead(L, 1);
   std::error_code ec;
   const auto r = std::filesystem::relative(f, ec);
@@ -1022,6 +1029,7 @@ static int io_part (lua_State *L) {
 
 
 static int makedir (lua_State *L) {
+  FS_FUNCTION
   auto& path = getStringStreamPathForWrite(L, 1);
   std::error_code ec;
   const auto res = std::filesystem::create_directory(path, ec);
@@ -1043,6 +1051,7 @@ static int makedir (lua_State *L) {
 
 
 static int makedirs (lua_State *L) {
+  FS_FUNCTION
   auto& path = getStringStreamPathForWrite(L, 1);
   std::error_code ec;
   lua_pushboolean(L, std::filesystem::create_directories(path, ec));
@@ -1072,6 +1081,7 @@ static void listdir_r (lua_State* L, lua_Integer& i, const std::filesystem::path
 }
 
 static int listdir (lua_State *L) {
+  FS_FUNCTION
   const auto recursive = lua_istrue(L, 2);
   auto& f = getStringStreamPathForRead(L, 1);
   lua_newtable(L);
@@ -1093,6 +1103,7 @@ static int listdir (lua_State *L) {
 
 
 int l_os_remove (lua_State *L) {
+  FS_FUNCTION
   auto& path = getStringStreamPathForWrite(L, 1);
   std::error_code ec;
   std::filesystem::remove(path, ec);
@@ -1106,6 +1117,7 @@ int l_os_remove (lua_State *L) {
 }
 
 static int l_remove (lua_State *L) {
+  FS_FUNCTION
   const auto recursive = lua_istrue(L, 2);
   auto& path = getStringStreamPathForWrite(L, 1);
   std::error_code ec;
@@ -1123,6 +1135,7 @@ static int l_remove (lua_State *L) {
 
 
 int l_os_rename (lua_State *L) {
+  FS_FUNCTION
   lua_settop(L, 2);
   /* stack: arg_from, arg_to */
   auto& from = getStringStreamPathForRead(L, -2);
@@ -1141,6 +1154,7 @@ int l_os_rename (lua_State *L) {
 }
 
 static int l_rename (lua_State *L) {
+  FS_FUNCTION
   lua_settop(L, 2);
   /* stack: arg_from, arg_to */
   auto& from = getStringStreamPathForRead(L, -2);
@@ -1196,6 +1210,7 @@ static int currentdir (lua_State *L) {
 }
 
 static int writetime (lua_State *L) {
+  FS_FUNCTION
   if (lua_gettop(L) == 1) {
     /* getter */
     auto& file = getStringStreamPathForRead(L, 1);
@@ -1223,6 +1238,7 @@ static int writetime (lua_State *L) {
 
 
 static int contents (lua_State *L) {
+  FS_FUNCTION
   if (lua_gettop(L) == 1) {
     /* getter */
     auto& file = getStringStreamPathForRead(L, 1);
@@ -1246,6 +1262,7 @@ static int contents (lua_State *L) {
 
 
 static int io_chmod (lua_State *L) {
+  FS_FUNCTION
   switch (lua_gettop(L)) {
     case 0: {  /* availability check */
       lua_pushboolean(L, !SOUP_WINDOWS);
