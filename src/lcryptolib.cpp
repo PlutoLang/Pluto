@@ -387,18 +387,6 @@ static int random(lua_State *L) {
 }
 
 
-static int hexdigest(lua_State *L)
-{
-  pluto_warning(L, "hexdigest(n) is deprecated; use string.format(\"0x%x\", n) instead.");
-
-  std::stringstream stream;
-  stream << "0x";
-  stream << std::hex << luaL_checkinteger(L, 1);
-  lua_pushstring(L, stream.str().c_str());
-  return 1;
-}
-
-
 void pushbigint (lua_State *L, soup::Bigint&& x);
 soup::Bigint* checkbigint (lua_State *L, int i);
 
@@ -884,7 +872,6 @@ static int l_ripemd160 (lua_State *L) {
 
 
 static const luaL_Reg funcs_crypto[] = {
-  {"hexdigest", hexdigest},  /* deprecated since 0.8.0 */
   {"random", random},
   {"sha1", l_hashwithdigest<soup::sha1>},
   {"sha256", l_hashwithdigest<soup::sha256>},
