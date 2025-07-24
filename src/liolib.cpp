@@ -45,16 +45,6 @@
 #endif
 
 
-/* Basic error handling. In theory, exceptions can provide better messages than status codes. In practice, Windows always says "unknown error" in ACP and attempting to convert this to UTF-8 in the catch block would leak memory. */
-#if SOUP_WINDOWS
-#define Protect(...) \
-  try { __VA_ARGS__; } catch (const std::exception& err) { (void)err; luaL_error(L, "operation failed"); } 
-#else
-#define Protect(...) \
-  try { __VA_ARGS__; } catch (const std::exception& err) { luaL_error(L, err.what()); } 
-#endif
-
-
 /*
 ** Change this macro to accept other modes for 'fopen' besides
 ** the standard ones.
@@ -905,63 +895,78 @@ static int f_flush (lua_State *L) {
   return path;
 }
 
-
 static int isdir (lua_State *L) {
-  Protect(
-    auto& dir = getStringStreamPathForRead(L, 1);
-    lua_pushboolean(L, std::filesystem::is_directory(dir));
-  );
-
+  auto& path = getStringStreamPathForRead(L, 1);
+  std::error_code ec;
+  const auto ret = std::filesystem::is_directory(path, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
+  lua_pushboolean(L, ret);
   return 1;
 }
 
 
 static int isfile (lua_State *L) {
-  Protect(
-    auto& dir = getStringStreamPathForRead(L, 1);
-    lua_pushboolean(L, std::filesystem::is_regular_file(dir));
-  );
-
+  auto& path = getStringStreamPathForRead(L, 1);
+  std::error_code ec;
+  const auto ret = std::filesystem::is_regular_file(path, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
+  lua_pushboolean(L, ret);
   return 1;
 }
 
 
 static int filesize (lua_State *L) {
-  Protect(
-    auto& f = getStringStreamPathForRead(L, 1);
-    const auto s = (lua_Integer)std::filesystem::file_size(f);
-    lua_pushinteger(L, s);
-  );
-
+  auto& path = getStringStreamPathForRead(L, 1);
+  std::error_code ec;
+  const auto ret = (lua_Integer)std::filesystem::file_size(path, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
+  lua_pushinteger(L, ret);
   return 1;
 }
 
 
 static int exists (lua_State *L) {
-  Protect(
-    auto& f = getStringStreamPathForRead(L, 1);
-    lua_pushboolean(L, std::filesystem::exists(f));
-  );
-
+  auto& path = getStringStreamPathForRead(L, 1);
+  std::error_code ec;
+  const auto ret = std::filesystem::exists(path, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
+  lua_pushboolean(L, ret);
   return 1;
 }
 
 
 static int io_copy (lua_State *L) {
-  Protect(
-    lua_settop(L, 2);
-    /* stack: arg_from, arg_to */
-    auto& from = getStringStreamPathForRead(L, -2);
-    /* stack: arg_from, arg_to, path_from */
-    auto& to = getStringStreamPathForWrite(L, -2);
-    /* stack: arg_from, arg_to, path_from, path_to */
+  lua_settop(L, 2);
+  /* stack: arg_from, arg_to */
+  auto& from = getStringStreamPathForRead(L, -2);
+  /* stack: arg_from, arg_to, path_from */
+  auto& to = getStringStreamPathForWrite(L, -2);
+  /* stack: arg_from, arg_to, path_from, path_to */
 
-    if (std::filesystem::is_regular_file(to)) {
-      std::filesystem::remove(to);
+  std::error_code ec;
+  const auto to_exists = std::filesystem::is_regular_file(to, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "failed to stat destination");
+  }
+  if (to_exists) {
+    std::filesystem::remove(to, ec);
+    if (l_unlikely(ec.operator bool())) {
+      luaL_error(L, "destination already exists, attempted to delete but failed");
     }
+  }
 
-    std::filesystem::copy_file(from, to);
-  );
+  std::filesystem::copy_file(from, to, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
 
   return 0;
 }
@@ -973,80 +978,77 @@ static int io_copyto (lua_State *L) {
 
 
 static int absolute (lua_State *L) {
-  Protect(
-    const auto bCanonical = lua_istrue(L, 2);
-    auto& f = getStringStreamPathForRead(L, 1);
-    const auto r = bCanonical ? std::filesystem::canonical(f) : std::filesystem::absolute(f);
-    lua_pushstring(L, (const char*)r.u8string().c_str());
-  );
-
+  const auto bCanonical = lua_istrue(L, 2);
+  auto& f = getStringStreamPathForRead(L, 1);
+  std::error_code ec;
+  const auto r = bCanonical ? std::filesystem::canonical(f, ec) : std::filesystem::absolute(f, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
+  lua_pushstring(L, (const char*)r.u8string().c_str());
   return 1;
 }
 
 
 static int relative (lua_State *L) {
-  Protect(
-    auto& f = getStringStreamPathForRead(L, 1);
-    const auto r = std::filesystem::relative(f);
-    lua_pushstring(L, (const char*)r.u8string().c_str());
-  );
-
+  auto& f = getStringStreamPathForRead(L, 1);
+  std::error_code ec;
+  const auto r = std::filesystem::relative(f, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
+  lua_pushstring(L, (const char*)r.u8string().c_str());
   return 1;
 }
 
 
 static int io_part (lua_State *L) {
-  Protect(
-    if (lua_gettop(L) == 1) {
-      auto& path = getStringStreamPathRaw(L, 1);
-      pluto_pushstring(L, soup::string::fixType(path.parent_path().u8string()));
-      pluto_pushstring(L, soup::string::fixType(path.filename().u8string()));
-      return 2;
-    }
-    static const char *const parts[] = {"parent", "name", nullptr};
-    int part = luaL_checkoption(L, 2, nullptr, parts);
+  if (lua_gettop(L) == 1) {
     auto& path = getStringStreamPathRaw(L, 1);
-    if (part == 0)
-      path = path.parent_path();
-    else
-      path = path.filename();
-    pluto_pushstring(L, soup::string::fixType(path.u8string()));
-  );
-
+    pluto_pushstring(L, soup::string::fixType(path.parent_path().u8string()));
+    pluto_pushstring(L, soup::string::fixType(path.filename().u8string()));
+    return 2;
+  }
+  static const char *const parts[] = {"parent", "name", nullptr};
+  int part = luaL_checkoption(L, 2, nullptr, parts);
+  auto& path = getStringStreamPathRaw(L, 1);
+  if (part == 0)
+    path = path.parent_path();
+  else
+    path = path.filename();
+  pluto_pushstring(L, soup::string::fixType(path.u8string()));
   return 1;
 }
 
 
 static int makedir (lua_State *L) {
   auto& path = getStringStreamPathForWrite(L, 1);
+  std::error_code ec;
+  const auto res = std::filesystem::create_directory(path, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
+  lua_pushboolean(L, res);
 #if SOUP_WINDOWS
-  Protect(
-    if (std::filesystem::create_directory(path)) {
-      if (path.filename().empty())
-        path = path.parent_path();
-      if (path.filename().c_str()[0] == '.') {
-        SetFileAttributesW(path.c_str(), FILE_ATTRIBUTE_HIDDEN);
-      }
-      lua_pushboolean(L, true);
+  if (res) {
+    if (path.filename().empty())
+      path = path.parent_path();
+    if (path.filename().c_str()[0] == '.') {
+      SetFileAttributesW(path.c_str(), FILE_ATTRIBUTE_HIDDEN);
     }
-    else {
-      lua_pushboolean(L, false);
-    }
-  );
-#else
-  Protect(lua_pushboolean(L, std::filesystem::create_directory(path)));
+  }
 #endif
-
   return 1;
 }
 
 
 static int makedirs (lua_State *L) {
-  Protect(
-    auto& path = getStringStreamPathForWrite(L, 1);
-    lua_pushboolean(L, std::filesystem::create_directories(path))
-  );
-
+  auto& path = getStringStreamPathForWrite(L, 1);
+  std::error_code ec;
+  lua_pushboolean(L, std::filesystem::create_directories(path, ec));
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
   return 1;
 }
 
@@ -1059,7 +1061,7 @@ static int makedirs (lua_State *L) {
 static void listdir_r (lua_State* L, lua_Integer& i, const std::filesystem::path& f) {
   std::error_code ec;
   std::filesystem::directory_iterator it(f, ec);
-  if (ec) return; /* skip this directory if we failed to enter it */
+  if (l_unlikely(ec.operator bool())) return; /* skip this directory if we failed to enter it */
   for (auto const& dir_entry : it) {
     lua_pushstring(L, (const char*)dir_entry.path().u8string().c_str());
     lua_rawseti(L, -2, ++i);
@@ -1074,31 +1076,31 @@ static int listdir (lua_State *L) {
   auto& f = getStringStreamPathForRead(L, 1);
   lua_newtable(L);
   lua_Integer i = 0;
-  Protect(
-    for (auto const& dir_entry : std::filesystem::directory_iterator(f)) {
-      lua_pushstring(L, (const char*)dir_entry.path().u8string().c_str());
-      lua_rawseti(L, -2, ++i);
-      if (recursive && dir_entry.is_directory()) {
-        listdir_r(L, i, dir_entry.path());
-      }
+  std::error_code ec;
+  std::filesystem::directory_iterator it(f, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
+  for (auto const& dir_entry : it) {
+    lua_pushstring(L, (const char*)dir_entry.path().u8string().c_str());
+    lua_rawseti(L, -2, ++i);
+    if (recursive && dir_entry.is_directory()) {
+      listdir_r(L, i, dir_entry.path());
     }
-  );
+  }
   return 1;
 }
 
 
 int l_os_remove (lua_State *L) {
   auto& path = getStringStreamPathForWrite(L, 1);
-
-  try {
-    std::filesystem::remove(path);
-  }
-  catch (const std::exception& e) {
+  std::error_code ec;
+  std::filesystem::remove(path, ec);
+  if (l_unlikely(ec.operator bool())) {
     lua_pushboolean(L, 0);
-    lua_pushstring(L, e.what());
+    lua_pushliteral(L, "operation failed");
     return 2;
   }
-
   lua_pushboolean(L, 1);
   return 1;
 }
@@ -1106,16 +1108,16 @@ int l_os_remove (lua_State *L) {
 static int l_remove (lua_State *L) {
   const auto recursive = lua_istrue(L, 2);
   auto& path = getStringStreamPathForWrite(L, 1);
-
-  Protect(
-    if (recursive) {
-      std::filesystem::remove_all(path);
-    }
-    else {
-      std::filesystem::remove(path);
-    }
-  );
-
+  std::error_code ec;
+  if (recursive) {
+    std::filesystem::remove_all(path, ec);
+  }
+  else {
+    std::filesystem::remove(path, ec);
+  }
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
   return 0;
 }
 
@@ -1127,16 +1129,13 @@ int l_os_rename (lua_State *L) {
   /* stack: arg_from, arg_to, path_from */
   auto& to = getStringStreamPathForWrite(L, -2);
   /* stack: arg_from, arg_to, path_from, path_to */
-
-  try {
-    std::filesystem::rename(from, to);
-  }
-  catch (const std::exception& e) {
+  std::error_code ec;
+  std::filesystem::rename(from, to, ec);
+  if (l_unlikely(ec.operator bool())) {
     lua_pushboolean(L, 0);
-    lua_pushstring(L, e.what());
+    lua_pushliteral(L, "operation failed");
     return 2;
   }
-
   lua_pushboolean(L, 1);
   return 1;
 }
@@ -1148,9 +1147,11 @@ static int l_rename (lua_State *L) {
   /* stack: arg_from, arg_to, path_from */
   auto& to = getStringStreamPathForWrite(L, -2);
   /* stack: arg_from, arg_to, path_from, path_to */
-
-  Protect(std::filesystem::rename(from, to));
-
+  std::error_code ec;
+  std::filesystem::rename(from, to, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
   return 0;
 }
 
@@ -1160,14 +1161,22 @@ static int currentdir (lua_State *L) {
   if (lua_gettop(L) == 0) {
     /* getter */
     auto& cd = *pluto_newclassinst(L, std::filesystem::path);
-    Protect(cd = std::filesystem::current_path());
+    std::error_code ec;
+    cd = std::filesystem::current_path(ec);
+    if (l_unlikely(ec.operator bool())) {
+      luaL_error(L, "operation failed");
+    }
     lua_pushstring(L, (const char*)cd.u8string().c_str());
     return 1;
   }
   else {
     /* setter */
     auto& cd = getStringStreamPathRaw(L, 1);
-    Protect(std::filesystem::current_path(cd));
+    std::error_code ec;
+    std::filesystem::current_path(cd, ec);
+    if (l_unlikely(ec.operator bool())) {
+      luaL_error(L, "operation failed");
+    }
     return 0;
   }
 }
@@ -1190,8 +1199,12 @@ static int writetime (lua_State *L) {
   if (lua_gettop(L) == 1) {
     /* getter */
     auto& file = getStringStreamPathForRead(L, 1);
+    std::error_code ec;
     std::time_t ut;
-    Protect(ut = file_time_to_unix_time(std::filesystem::last_write_time(file)));
+    ut = file_time_to_unix_time(std::filesystem::last_write_time(file, ec));
+    if (l_unlikely(ec.operator bool())) {
+      luaL_error(L, "operation failed");
+    }
     lua_pushinteger(L, ut);
     return 1;
   }
@@ -1199,7 +1212,11 @@ static int writetime (lua_State *L) {
     /* setter */
     const auto ut = luaL_checkinteger(L, 2);
     auto& file = getStringStreamPathForWrite(L, 1);
-    Protect(std::filesystem::last_write_time(file, unix_time_to_file_time(ut)));
+    std::error_code ec;
+    std::filesystem::last_write_time(file, unix_time_to_file_time(ut), ec);
+    if (l_unlikely(ec.operator bool())) {
+      luaL_error(L, "operation failed");
+    }
     return 0;
   }
 }
