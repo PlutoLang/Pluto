@@ -858,7 +858,7 @@ static int f_flush (lua_State *L) {
 }
 
 
-[[nodiscard]] static std::filesystem::path getStringStreamPathRaw(lua_State *L, int idx) {
+[[nodiscard]] static std::filesystem::path& getStringStreamPathRaw(lua_State *L, int idx) {
   const char* f;
 
   if (lua_isuserdata(L, idx)) {
@@ -873,14 +873,14 @@ static int f_flush (lua_State *L) {
   }
 
 #if SOUP_CPP20
-  return soup::string::toUtf8Type(f);
+  return *pluto_newclassinst(L, std::filesystem::path, soup::string::toUtf8Type(f));
 #else
-  return std::filesystem::u8path(f);
+  return *pluto_newclassinst(L, std::filesystem::path, std::filesystem::u8path(f));
 #endif
 }
 
-[[nodiscard]] static std::filesystem::path getStringStreamPathForRead(lua_State *L, int idx) {
-  const auto path = getStringStreamPathRaw(L, idx);
+[[nodiscard]] static std::filesystem::path& getStringStreamPathForRead(lua_State *L, int idx) {
+  auto& path = getStringStreamPathRaw(L, idx);
 #ifdef PLUTO_NO_FILESYSTEM
   luaL_error(L, "disallowed by content moderation policy");
 #endif
@@ -892,8 +892,8 @@ static int f_flush (lua_State *L) {
   return path;
 }
 
-[[nodiscard]] static std::filesystem::path getStringStreamPathForWrite(lua_State *L, int idx) {
-  const auto path = getStringStreamPathRaw(L, idx);
+[[nodiscard]] static std::filesystem::path& getStringStreamPathForWrite(lua_State *L, int idx) {
+  auto& path = getStringStreamPathRaw(L, idx);
 #ifdef PLUTO_NO_FILESYSTEM
   luaL_error(L, "disallowed by content moderation policy");
 #endif
@@ -908,7 +908,7 @@ static int f_flush (lua_State *L) {
 
 static int isdir (lua_State *L) {
   Protect(
-    const auto dir = getStringStreamPathForRead(L, 1);
+    auto& dir = getStringStreamPathForRead(L, 1);
     lua_pushboolean(L, std::filesystem::is_directory(dir));
   );
 
@@ -918,7 +918,7 @@ static int isdir (lua_State *L) {
 
 static int isfile (lua_State *L) {
   Protect(
-    const auto dir = getStringStreamPathForRead(L, 1);
+    auto& dir = getStringStreamPathForRead(L, 1);
     lua_pushboolean(L, std::filesystem::is_regular_file(dir));
   );
 
@@ -928,7 +928,7 @@ static int isfile (lua_State *L) {
 
 static int filesize (lua_State *L) {
   Protect(
-    const auto f = getStringStreamPathForRead(L, 1);
+    auto& f = getStringStreamPathForRead(L, 1);
     const auto s = (lua_Integer)std::filesystem::file_size(f);
     lua_pushinteger(L, s);
   );
@@ -939,7 +939,7 @@ static int filesize (lua_State *L) {
 
 static int exists (lua_State *L) {
   Protect(
-    const auto f = getStringStreamPathForRead(L, 1);
+    auto& f = getStringStreamPathForRead(L, 1);
     lua_pushboolean(L, std::filesystem::exists(f));
   );
 
@@ -949,8 +949,12 @@ static int exists (lua_State *L) {
 
 static int io_copy (lua_State *L) {
   Protect(
-    const auto from = getStringStreamPathForRead(L, 1);
-    const auto to = getStringStreamPathForWrite(L, 2);
+    lua_settop(L, 2);
+    /* stack: arg_from, arg_to */
+    auto& from = getStringStreamPathForRead(L, -2);
+    /* stack: arg_from, arg_to, path_from */
+    auto& to = getStringStreamPathForWrite(L, -2);
+    /* stack: arg_from, arg_to, path_from, path_to */
 
     if (std::filesystem::is_regular_file(to)) {
       std::filesystem::remove(to);
@@ -970,8 +974,9 @@ static int io_copyto (lua_State *L) {
 
 static int absolute (lua_State *L) {
   Protect(
-    const auto f = getStringStreamPathForRead(L, 1);
-    const auto r = lua_istrue(L, 2) ? std::filesystem::canonical(f) : std::filesystem::absolute(f);
+    const auto bCanonical = lua_istrue(L, 2);
+    auto& f = getStringStreamPathForRead(L, 1);
+    const auto r = bCanonical ? std::filesystem::canonical(f) : std::filesystem::absolute(f);
     lua_pushstring(L, (const char*)r.u8string().c_str());
   );
 
@@ -981,7 +986,7 @@ static int absolute (lua_State *L) {
 
 static int relative (lua_State *L) {
   Protect(
-    const auto f = getStringStreamPathForRead(L, 1);
+    auto& f = getStringStreamPathForRead(L, 1);
     const auto r = std::filesystem::relative(f);
     lua_pushstring(L, (const char*)r.u8string().c_str());
   );
@@ -992,14 +997,15 @@ static int relative (lua_State *L) {
 
 static int io_part (lua_State *L) {
   Protect(
-    std::filesystem::path path = getStringStreamPathRaw(L, 1);
     if (lua_gettop(L) == 1) {
+      auto& path = getStringStreamPathRaw(L, 1);
       pluto_pushstring(L, soup::string::fixType(path.parent_path().u8string()));
       pluto_pushstring(L, soup::string::fixType(path.filename().u8string()));
       return 2;
     }
     static const char *const parts[] = {"parent", "name", nullptr};
     int part = luaL_checkoption(L, 2, nullptr, parts);
+    auto& path = getStringStreamPathRaw(L, 1);
     if (part == 0)
       path = path.parent_path();
     else
@@ -1012,7 +1018,7 @@ static int io_part (lua_State *L) {
 
 
 static int makedir (lua_State *L) {
-  auto path = getStringStreamPathForWrite(L, 1);
+  auto& path = getStringStreamPathForWrite(L, 1);
 #if SOUP_WINDOWS
   Protect(
     if (std::filesystem::create_directory(path)) {
@@ -1037,7 +1043,7 @@ static int makedir (lua_State *L) {
 
 static int makedirs (lua_State *L) {
   Protect(
-    const auto path = getStringStreamPathForWrite(L, 1);
+    auto& path = getStringStreamPathForWrite(L, 1);
     lua_pushboolean(L, std::filesystem::create_directories(path))
   );
 
@@ -1064,8 +1070,8 @@ static void listdir_r (lua_State* L, lua_Integer& i, const std::filesystem::path
 }
 
 static int listdir (lua_State *L) {
-  const auto f = getStringStreamPathForRead(L, 1);
   const auto recursive = lua_istrue(L, 2);
+  auto& f = getStringStreamPathForRead(L, 1);
   lua_newtable(L);
   lua_Integer i = 0;
   Protect(
@@ -1082,7 +1088,7 @@ static int listdir (lua_State *L) {
 
 
 int l_os_remove (lua_State *L) {
-  const auto path = getStringStreamPathForWrite(L, 1);
+  auto& path = getStringStreamPathForWrite(L, 1);
 
   try {
     std::filesystem::remove(path);
@@ -1098,8 +1104,8 @@ int l_os_remove (lua_State *L) {
 }
 
 static int l_remove (lua_State *L) {
-  const auto path = getStringStreamPathForWrite(L, 1);
   const auto recursive = lua_istrue(L, 2);
+  auto& path = getStringStreamPathForWrite(L, 1);
 
   Protect(
     if (recursive) {
@@ -1115,11 +1121,15 @@ static int l_remove (lua_State *L) {
 
 
 int l_os_rename (lua_State *L) {
-  const auto oldP = getStringStreamPathForRead(L, 1);
-  const auto newP = getStringStreamPathForWrite(L, 2);
+  lua_settop(L, 2);
+  /* stack: arg_from, arg_to */
+  auto& from = getStringStreamPathForRead(L, -2);
+  /* stack: arg_from, arg_to, path_from */
+  auto& to = getStringStreamPathForWrite(L, -2);
+  /* stack: arg_from, arg_to, path_from, path_to */
 
   try {
-    std::filesystem::rename(oldP, newP);
+    std::filesystem::rename(from, to);
   }
   catch (const std::exception& e) {
     lua_pushboolean(L, 0);
@@ -1132,10 +1142,14 @@ int l_os_rename (lua_State *L) {
 }
 
 static int l_rename (lua_State *L) {
-  const auto oldP = getStringStreamPathForRead(L, 1);
-  const auto newP = getStringStreamPathForWrite(L, 2);
+  lua_settop(L, 2);
+  /* stack: arg_from, arg_to */
+  auto& from = getStringStreamPathForRead(L, -2);
+  /* stack: arg_from, arg_to, path_from */
+  auto& to = getStringStreamPathForWrite(L, -2);
+  /* stack: arg_from, arg_to, path_from, path_to */
 
-  Protect(std::filesystem::rename(oldP, newP));
+  Protect(std::filesystem::rename(from, to));
 
   return 0;
 }
@@ -1145,14 +1159,14 @@ static int currentdir (lua_State *L) {
   FS_FUNCTION
   if (lua_gettop(L) == 0) {
     /* getter */
-    std::filesystem::path cd;
+    auto& cd = *pluto_newclassinst(L, std::filesystem::path);
     Protect(cd = std::filesystem::current_path());
     lua_pushstring(L, (const char*)cd.u8string().c_str());
     return 1;
   }
   else {
     /* setter */
-    std::filesystem::path cd = getStringStreamPathRaw(L, 1);
+    auto& cd = getStringStreamPathRaw(L, 1);
     Protect(std::filesystem::current_path(cd));
     return 0;
   }
@@ -1175,7 +1189,7 @@ static int currentdir (lua_State *L) {
 static int writetime (lua_State *L) {
   if (lua_gettop(L) == 1) {
     /* getter */
-    std::filesystem::path file = getStringStreamPathForRead(L, 1);
+    auto& file = getStringStreamPathForRead(L, 1);
     std::time_t ut;
     Protect(ut = file_time_to_unix_time(std::filesystem::last_write_time(file)));
     lua_pushinteger(L, ut);
@@ -1183,8 +1197,9 @@ static int writetime (lua_State *L) {
   }
   else {
     /* setter */
-    std::filesystem::path file = getStringStreamPathForWrite(L, 1);
-    Protect(std::filesystem::last_write_time(file, unix_time_to_file_time(luaL_checkinteger(L, 2))));
+    const auto ut = luaL_checkinteger(L, 2);
+    auto& file = getStringStreamPathForWrite(L, 1);
+    Protect(std::filesystem::last_write_time(file, unix_time_to_file_time(ut)));
     return 0;
   }
 }
@@ -1193,7 +1208,7 @@ static int writetime (lua_State *L) {
 static int contents (lua_State *L) {
   if (lua_gettop(L) == 1) {
     /* getter */
-    std::filesystem::path file = getStringStreamPathForRead(L, 1);
+    auto& file = getStringStreamPathForRead(L, 1);
     size_t len;
     if (auto data = soup::filesystem::createFileMapping(file, len)) {
       lua_pushlstring(L, (const char*)data, len);
@@ -1203,10 +1218,10 @@ static int contents (lua_State *L) {
   }
   else {
     /* setter */
-    std::filesystem::path file = getStringStreamPathForWrite(L, 1);
-    std::ofstream of(file, std::ios_base::binary);
     size_t len;
-    const char* str = luaL_checklstring(L, 2, &len);
+    const char *str = luaL_checklstring(L, 2, &len);
+    auto& file = getStringStreamPathForWrite(L, 1);
+    std::ofstream of(file, std::ios_base::binary);
     of.write(str, len);
   }
   return 0;
@@ -1221,7 +1236,7 @@ static int io_chmod (lua_State *L) {
     }
     case 1: {  /* getter */
 #if !SOUP_WINDOWS
-      std::filesystem::path file = getStringStreamPathForRead(L, 1);
+      auto& file = getStringStreamPathForRead(L, 1);
       struct stat st;
       if (stat(file.c_str(), &st) == 0) {
         lua_pushinteger(L, st.st_mode & 0777);
@@ -1232,8 +1247,9 @@ static int io_chmod (lua_State *L) {
     }
     case 2: {  /* setter */
 #if !SOUP_WINDOWS
-      std::filesystem::path file = getStringStreamPathForWrite(L, 1);
-      chmod(file.c_str(), (mode_t)luaL_checkinteger(L, 2));
+      const auto mode = (mode_t)luaL_checkinteger(L, 2);
+      auto& file = getStringStreamPathForWrite(L, 1);
+      chmod(file.c_str(), mode);
 #endif
       return 0;
     }
