@@ -45,10 +45,10 @@
 #endif
 
 
-/* Basic error handling. Exceptions have better error messages than error_codes. */
-#if SOUP_WINDOWS && !defined(PLUTO_NO_UTF8)
+/* Basic error handling. In theory, exceptions can provide better messages than status codes. In practice, Windows always says "unknown error" in ACP and attempting to convert this to UTF-8 in the catch block would leak memory. */
+#if SOUP_WINDOWS
 #define Protect(...) \
-  try { __VA_ARGS__; } catch (const std::exception& err) { auto msg = soup::unicode::utf16_to_utf8(soup::unicode::acp_to_utf16(err.what())); luaL_error(L, msg.c_str()); } 
+  try { __VA_ARGS__; } catch (const std::exception& err) { (void)err; luaL_error(L, "operation failed"); } 
 #else
 #define Protect(...) \
   try { __VA_ARGS__; } catch (const std::exception& err) { luaL_error(L, err.what()); } 
