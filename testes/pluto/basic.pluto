@@ -126,6 +126,9 @@ f(tonumber)]]
     local _: string = cb("10")
 end
 f(tonumber)]]
+    assert_no_warn[[local a: function(int) | function(string) = function(_: int) end
+    a = function(_: string) end
+    a("")]]
 
     -- Complex table type hints
     assert_warn[[local h = { name = "" }
