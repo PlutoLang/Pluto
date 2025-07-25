@@ -543,7 +543,7 @@ static void checktypehint (LexState *ls, TypeHint &th) {
       luaX_next(ls);  /* skip '{' */
       TypeDesc td = VT_TABLE;
       td.nfields = 0;
-      do {
+      while (ls->t.token != '}') {
         TString *ts = str_checkname(ls, N_RESERVED);
         checknext(ls, ':');
         TypeHint *fieldth = new_typehint(ls);
@@ -553,7 +553,8 @@ static void checktypehint (LexState *ls, TypeHint &th) {
           td.hints[td.nfields] = fieldth;
           ++td.nfields;
         }
-      } while (testnext(ls, ',') || testnext(ls, ';'));
+        testnext(ls, ',') || testnext(ls, ';');
+      }
       checknext(ls, '}');
       th.emplaceTypeDesc(std::move(td));
       continue;
