@@ -4378,6 +4378,9 @@ do
         assert(io.chmod("example_module.pluto") == nil)
         io.chmod("example_module.pluto", 1)
     end
+
+    assert(io.unique("example_module", "pluto") == "example_module (2).pluto")
+    assert(io.unique("file_that_doesnt_exist", "pluto") == "file_that_doesnt_exist.pluto")
 end
 
 print "Testing trailing commas for function parameters."
