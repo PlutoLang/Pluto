@@ -136,6 +136,9 @@ f(tonumber)]]
     assert_warn[[local function _f(h: { name: string })
         local _: number = h.name
     end]]
+    -- trailing ; or ,
+    assert_no_warn[[local _: { x: number, } = { x = 1 }]]
+    assert_no_warn[[local _: { x: number; } = { x = 1 }]]
 
     -- Nested localstat
     assert_no_warn[[local _f: function = function()
