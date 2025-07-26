@@ -2,6 +2,7 @@
 
 #include "base.hpp"
 #include "fwd.hpp"
+#include "type.hpp"
 
 #include "Callback.hpp"
 #include "HttpResponse.hpp"
@@ -15,7 +16,6 @@ NAMESPACE_SOUP
 	public:
 		bool use_tls = true;
 		bool path_is_encoded = false;
-		uint16_t port = 443;
 		std::string method{};
 		std::string path{};
 
@@ -24,7 +24,8 @@ NAMESPACE_SOUP
 		HttpRequest(const std::string& host, std::string path);
 		HttpRequest(const Uri& uri);
 
-		[[nodiscard]] std::string getHost() const;
+		[[nodiscard]] std::string getHost() const; // host[:port]
+		[[nodiscard]] std::tuple<std::string, uint16_t> getHostAndPort() const;
 		[[nodiscard]] std::string getUrl() const;
 
 		void setPath(std::string&& path);
@@ -34,8 +35,12 @@ NAMESPACE_SOUP
 		void setPayload(std::string payload);
 
 #if !SOUP_WASM
-		[[nodiscard]] Optional<HttpResponse> execute(Scheduler* keep_alive_sched = nullptr) const; // blocking
+		[[nodiscard]] Optional<HttpResponse> execute() const; // blocking
+		[[nodiscard]] Optional<HttpResponse> execute(certchain_validator_t certchain_validator) const; // blocking
+		[[nodiscard]] Optional<HttpResponse> execute(const dnsResolver& resolver) const; // blocking
+		[[nodiscard]] Optional<HttpResponse> execute(const dnsResolver& resolver, certchain_validator_t certchain_validator) const; // blocking
 		void executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}) const; // blocking
+		void executeEventStream(const dnsResolver& resolver, void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}) const; // blocking
 		[[nodiscard]] std::string getDataToSend() const SOUP_EXCAL;
 		void send(Socket& s) const SOUP_EXCAL;
 	private:

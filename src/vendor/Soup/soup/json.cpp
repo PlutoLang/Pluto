@@ -1,36 +1,11 @@
 #include "json.hpp"
 
 #include "filesystem.hpp"
-#include "JsonArray.hpp"
-#include "JsonBool.hpp"
-#include "JsonFloat.hpp"
-#include "JsonInt.hpp"
-#include "JsonNull.hpp"
-#include "JsonObject.hpp"
-#include "JsonString.hpp"
 #include "Reader.hpp"
 #include "string.hpp"
 
 NAMESPACE_SOUP
 {
-	struct DefaultJsonTreeWriter : public JsonTreeWriter
-	{
-		DefaultJsonTreeWriter()
-		{
-			allocArray = [](void*, size_t reserve_size) -> void* { return new JsonArray(reserve_size); };
-			allocObject = [](void*, size_t reserve_size) -> void* { return new JsonObject(reserve_size); };
-			allocString = [](void*, std::string&& value) -> void* { return new JsonString(std::move(value)); };
-			allocUnescapedString = [](void*, const char* data, size_t size) -> void* { return new JsonString(data, size); };
-			allocInt = [](void*, int64_t value) -> void* { return new JsonInt(value); };
-			allocFloat = [](void*, double value) -> void* { return new JsonFloat(value); };
-			allocBool = [](void*, bool value) -> void* { return new JsonBool(value); };
-			allocNull = [](void*) -> void* { return new JsonNull(); };
-			addToArray = [](void*, void* arr, void* value) -> void { ((JsonArray*)arr)->children.emplace_back((JsonNode*)value); };
-			addToObject = [](void*, void* obj, void* key, void* value) -> void { ((JsonObject*)obj)->children.emplace_back((JsonNode*)key, (JsonNode*)value); };
-			free = [](void*, void* node) -> void { delete (JsonNode*)node; };
-		}
-	};
-
 	UniquePtr<JsonNode> json::decode(const char* data, size_t size, int max_depth)
 	{
 		DefaultJsonTreeWriter jtw;
