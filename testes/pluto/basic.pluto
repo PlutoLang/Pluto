@@ -4399,3 +4399,13 @@ do
         2,
     ) == 3)
 end
+
+print "Testing deprecation warnings."
+do
+    assert_warn[[for k, v in { a = 1 } do
+        k = v
+    end]]
+    assert_warn[[for i = 1, 10 do
+        i = 99999
+    end]]
+end
