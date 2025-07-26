@@ -849,10 +849,10 @@ static void checkforshadowing (LexState *ls, FuncState *fs, const std::unordered
 
 
 /*
-** Create a new local variable with the given 'name'. Return its index
-** in the function.
+** Create a new local variable with the given 'name' and given 'kind'.
+** Return its index in the function.
 */
-static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = {}, bool check_globals = true, bool used = false) {
+static int new_localvarkind (LexState *ls, TString *name, int kind, int line, TypeHint hint = {}, bool check_globals = true, bool used = false) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -861,7 +861,7 @@ static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = 
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
                   dyd->actvar.size, Vardesc, SHRT_MAX, "local variables");
   var = &dyd->actvar.arr[dyd->actvar.n++];
-  var->vd.kind = VDKREG;  /* default */
+  var->vd.kind = kind;
   var->vd.hint = new_typehint(ls);
   var->vd.prop = new_typehint(ls);
   if (!hint.empty())
@@ -872,8 +872,20 @@ static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = 
   return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
+static int new_localvarkind (LexState *ls, TString *name, int kind) {
+  return new_localvarkind(ls, name, kind, ls->getLineNumber());
+}
+
+
+/*
+** Create a new local variable with the given 'name' and regular kind.
+*/
+static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = {}, bool used = false) {
+  return new_localvarkind(ls, name, VDKREG, line, std::move(hint), true, used);
+}
+
 static int new_localvar (LexState *ls, TString *name, TypeHint hint = {}, bool used = false) {
-  return new_localvar(ls, name, ls->getLineNumber(), std::move(hint), true, used);
+  return new_localvarkind(ls, name, VDKREG, ls->getLineNumber(), std::move(hint), true, used);
 }
 
 
@@ -896,30 +908,41 @@ static void init_var (FuncState *fs, expdesc *e, int vidx) {
 static void check_readonly (LexState *ls, expdesc *e) {
   FuncState *fs = ls->fs;
   TString *varname = NULL;  /* to be set if variable is const */
+  bool warn;
   switch (e->k) {
     case VCONST: {
       varname = ls->dyd->actvar.arr[e->u.info].vd.name;
+      warn = false;
       break;
     }
     case VLOCAL: {
       Vardesc *vardesc = getlocalvardesc(fs, e->u.var.vidx);
-      if (vardesc->vd.kind != VDKREG)  /* not a regular variable? */
+      if (vardesc->vd.kind != VDKREG) {  /* not a regular variable? */
         varname = vardesc->vd.name;
+        warn = (vardesc->vd.kind == RDKWOW);
+      }
       break;
     }
     case VUPVAL: {
       Upvaldesc *up = &fs->f->upvalues[e->u.info];
-      if (up->kind != VDKREG)
+      if (up->kind != VDKREG) {
         varname = up->name;
+        warn = (up->kind == RDKWOW);
+      }
       break;
     }
     default:
       return;  /* other cases cannot be read-only */
   }
   if (varname) {
-    const char *msg = luaO_fmt(ls->L, "attempt to reassign constant '%s'", getstr(varname));
-    const char *here = "this variable is constant, and cannot be reassigned.";
-    throwerr(ls, luaO_fmt(ls->L, msg, getstr(varname)), here);
+    if (warn) {
+      throw_warn(ls, "reassignment of for loop control variable is deprecated", WT_DEPRECATED);
+    }
+    else {
+      const char *msg = luaO_fmt(ls->L, "attempt to reassign constant '%s'", getstr(varname));
+      const char *here = "this variable is constant, and cannot be reassigned.";
+      throwerr(ls, luaO_fmt(ls->L, msg, getstr(varname)), here);
+    }
   }
 }
 
@@ -4794,7 +4817,7 @@ static void fornum (LexState *ls, TString *varname, int8_t *nprop, TypeHint *pro
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
-  new_localvar(ls, varname);
+  new_localvarkind(ls, varname, RDKWOW);  /* [Pluto] warn on write in preparation for Lua 5.5 */
   checknext(ls, '=');
   exp1(ls);  /* initial value */
   checknext(ls, ',');
@@ -4823,7 +4846,7 @@ static void forlist (LexState *ls, TString *indexname, int8_t *nprop, TypeHint *
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
   /* create declared variables */
-  new_localvar(ls, indexname);
+  new_localvarkind(ls, indexname, RDKWOW);  /* [Pluto] warn on write in preparation for Lua 5.5 */
   while (testnext(ls, ',')) {
     new_localvar(ls, str_checkname(ls));
     nvars++;
