@@ -139,6 +139,12 @@ f(tonumber)]]
     -- trailing ; or ,
     assert_no_warn[[local _: { x: number, } = { x = 1 }]]
     assert_no_warn[[local _: { x: number; } = { x = 1 }]]
+    -- warn on missing and incompatible fields
+    assert_warn[[local _: { x: number; y: number } = {}]]
+    assert_warn[[local _: { x: number; y: number } = { x = 1 }]]
+    assert_warn[[local _: { x: number; y: number } = { x = 1, y = "" }]]
+    assert_no_warn[[local _: { x: number; y: number } = { x = 1, y = 2 }]]
+    assert_no_warn[[local _: { x: ?number; y: ?number } = {}]]
 
     -- Nested localstat
     assert_no_warn[[local _f: function = function()
