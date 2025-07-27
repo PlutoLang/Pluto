@@ -4269,9 +4269,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
   }
   else if (ls->t.token == TK_PLUSPLUS) {
     luaX_next(ls);  /* skip TK_PLUSPLUS */
-    primaryexp(ls, v, flags);
-    while (gett(ls) == '.')
-      fieldsel(ls, v);
+    singlevar(ls, v);  /* variable name */
     prefixplusplus(ls, v);
   }
   else {
@@ -6180,9 +6178,7 @@ static void statement (LexState *ls, int8_t *nprop, TypeHint *prop) {
     case TK_PLUSPLUS: {
       expdesc v;
       luaX_next(ls);  /* skip TK_PLUSPLUS */
-      primaryexp(ls, &v);
-      while (gett(ls) == '.')
-        fieldsel(ls, &v);
+      suffixedexp(ls, &v);
       prefixplusplus(ls, &v);
       break;
     }
