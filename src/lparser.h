@@ -316,7 +316,24 @@ struct TypeHint {
   [[nodiscard]] bool contains(const TypeDesc& td) const noexcept {
     for (const auto& desc : descs) {
       if (desc.type == td.type) {
-        if (desc.type == VT_FUNC) {
+        if (desc.type == VT_TABLE) {
+          if (desc.nfields != -1 &&
+            td.nfields != -1 && td.nfields < MAX_TYPED_FIELDS) {  /* know all fields of 'td'? */
+            for (lu_byte i = 0; i != desc.nfields && i != MAX_TYPED_FIELDS; ++i) {
+              bool field_exists_compatibly = false;
+              for (lu_byte j = 0; j != td.nfields && j != MAX_TYPED_FIELDS; ++j) {
+                if (desc.names[i] == td.names[j]) {
+                  field_exists_compatibly = desc.hints[i]->isCompatibleWith(*td.hints[j]);
+                  break;
+                }
+              }
+              if (!field_exists_compatibly && !desc.hints[i]->contains(VT_NULL)) {
+                goto _contains_next_union_alternative;
+              }
+            }
+          }
+        }
+        else if (desc.type == VT_FUNC) {
           if ((desc.nparam != -1 && desc.nparam != td.nparam) || desc.nret > td.nret) {
             continue;
           }
@@ -324,7 +341,7 @@ struct TypeHint {
             /* desc.nparam == td.nparam */
             for (lu_byte i = 0; i != desc.nparam && i != MAX_TYPED_PARAMS; ++i) {
               if (!desc.params[i]->isCompatibleWith(*td.params[i])) {
-                goto _contains__continue_2;
+                goto _contains_next_union_alternative;
               }
             }
           }
@@ -332,14 +349,14 @@ struct TypeHint {
             /* desc.nret <= td.nret */
             for (lu_byte i = 0; i != desc.nret && i != MAX_TYPED_RETURNS; ++i) {
               if (!desc.returns[i]->isCompatibleWith(*td.returns[i])) {
-                goto _contains__continue_2;
+                goto _contains_next_union_alternative;
               }
             }
           }
         }
         return true;
       }
-      _contains__continue_2:;
+      _contains_next_union_alternative:;
     }
     return false;
   }
