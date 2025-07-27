@@ -66,13 +66,15 @@
 std::string TypeDesc::toString() const {
   if (type == VT_TABLE && nfields != -1) {
     std::string str(1, '{');
-    for (int8_t i = 0;; ) {
-      str.append(getstr(names[i]), tsslen(names[i]));
-      str.append(": ");
-      str.append(hints[i]->toString());
-      if (++i == nfields)
-        break;
-      str.append(", ");
+    if (nfields != 0) {  /* empty case handling, e.g. local _: { x: number; y: number } = {} */
+      for (int8_t i = 0;; ) {
+        str.append(getstr(names[i]), tsslen(names[i]));
+        str.append(": ");
+        str.append(hints[i]->toString());
+        if (++i == nfields)
+          break;
+        str.append(", ");
+      }
     }
     str.push_back('}');
     return str;
@@ -1757,9 +1759,6 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   else {
     checknext(ls, '=');
     if (name && cc->td) {
-      if (cc->td->nfields == -1) {
-        cc->td->nfields = 0;
-      }
       if (cc->td->nfields != MAX_TYPED_FIELDS) {
         TypeHint *th = new_typehint(ls);
         expr_propagate(ls, &val, *th);
@@ -1919,6 +1918,9 @@ static void constructor (LexState *ls, expdesc *t, TypeDesc *td) {
   cc.na = cc.nh = cc.tostore = 0;
   cc.t = t;
   cc.td = td;
+  if (td) {
+    td->nfields = 0;
+  }
   init_exp(t, VNONRELOC, fs->freereg);  /* table will be at stack top */
   luaK_reserveregs(fs, 1);
   init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
