@@ -177,10 +177,6 @@ union TypeDesc {
     type = VT_NONE;
   }
 
-  [[nodiscard]] ValType getType() const noexcept {
-    return type;
-  }
-
   [[nodiscard]] int findParamByName(TString* name) noexcept {
     if (proto != nullptr) {
       for (lu_byte i = 0; i != nparam; ++i) {
@@ -232,6 +228,7 @@ struct TypeHint {
   }
 
   void emplaceTypeDesc(TypeDesc td) {
+    lua_assert(td.type != VT_NONE);
     if (!contains(td)) {
       if (td.type == VT_INT) {
         if (contains(VT_NUMBER))
@@ -283,7 +280,9 @@ struct TypeHint {
     if (b.empty())  /* absolutely nothing is known about the other type? */
       clear();  /* then now we also know nothing about this type. */
     for (auto& desc : b.descs) {
-      emplaceTypeDesc(desc);
+      if (desc.type != VT_NONE) {
+        emplaceTypeDesc(desc);
+      }
     }
   }
 
@@ -305,6 +304,7 @@ struct TypeHint {
   }
 
   [[nodiscard]] bool contains(ValType vt) const noexcept {
+    lua_assert(vt != VT_NONE);
     for (const auto& desc : descs) {
       if (desc.type == vt) {
         return true;
@@ -314,6 +314,7 @@ struct TypeHint {
   }
 
   [[nodiscard]] bool contains(const TypeDesc& td) const noexcept {
+    lua_assert(td.type != VT_NONE);
     for (const auto& desc : descs) {
       if (desc.type == td.type) {
         if (desc.type == VT_TABLE) {
