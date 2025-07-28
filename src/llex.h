@@ -511,6 +511,7 @@ struct LexState {
   std::vector<void*> parse_time_allocations{};
   std::unordered_set<TString*> explicit_globals{};
   std::unordered_map<const TString*, void*> global_props{};
+  std::unordered_map<const TString*, void*> named_types{};
   KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
   bool nodiscard = false;
   bool used_walrus = false;
