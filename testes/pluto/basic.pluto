@@ -146,6 +146,12 @@ f(tonumber)]]
     assert_no_warn[[local _: { x: number; y: number } = { x = 1, y = 2 }]]
     assert_no_warn[[local _: { x: ?number; y: ?number } = {}]]
 
+    -- Named types
+    assert_warn[[$type Point = { x: number, y: number }
+    local _: Point = {}]]
+    assert_no_warn[[$type Point = { x: number, y: number }
+    local _: Point = { x = 1, y = 2 }]]
+
     -- Nested localstat
     assert_no_warn[[local _f: function = function()
     local _: int = 0
