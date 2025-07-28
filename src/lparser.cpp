@@ -535,6 +535,24 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
   return ::new (ls->parse_time_allocations.emplace_back(malloc(sizeof(TypeHint)))) TypeHint();
 }
 
+
+static TypeHint* get_named_type_opt(LexState* ls, const TString* name) {
+  if (auto e = ls->named_types.find(name); e != ls->named_types.end()) {
+    return reinterpret_cast<TypeHint*>(e->second);
+  }
+  return nullptr;
+}
+
+static TypeHint& get_named_type(LexState* ls, const TString* name) {
+  auto th = get_named_type_opt(ls, name);
+  if (!th) {
+    th = new_typehint(ls);
+    ls->named_types.emplace(name, th);
+  }
+  return *th;
+}
+
+
 static void checkfuncspec (LexState *ls, TypeDesc &td);
 
 static void checktypehint (LexState *ls, TypeHint &th) {
@@ -591,7 +609,13 @@ static void checktypehint (LexState *ls, TypeHint &th) {
       throw_warn(ls, "'void' is not a valid type in this context", "invalid type hint", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_TYPE_MISMATCH);
       luaX_next(ls);
     }
-    else if (strcmp(tname, "userdata") != 0) {
+    else if (strcmp(tname, "userdata") == 0) {
+      /* TODO */
+    }
+    else if (auto named_th = get_named_type_opt(ls, ts)) {
+      th.merge(*named_th);
+    }
+    else {
       luaX_prev(ls);
       throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a type known to the parser", tname), "unknown type hint", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_TYPE_MISMATCH);
       ls->L->top.p--;
@@ -3104,6 +3128,14 @@ static void const_expr (LexState *ls, expdesc *v) {
           th.clear();
           checktypehint(ls, th);
         }
+      }
+      else if (strcmp(getstr(ls->t.seminfo.ts), "type") == 0) {
+        luaX_next(ls); /* skip 'type' */
+        TString *name = str_checkname(ls);
+        checknext(ls, '=');
+        TypeHint& th = get_named_type(ls, name);
+        th.clear();
+        checktypehint(ls, th);
       }
       else if (strcmp(getstr(ls->t.seminfo.ts), "getproptype") == 0) {
         luaX_next(ls); /* skip 'getproptype' */
