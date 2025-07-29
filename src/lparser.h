@@ -175,9 +175,9 @@ union TypeDesc {
     proto = nullptr;
   }
 
-  void clear() noexcept {
+  /*void clear() noexcept {
     type = VT_NONE;
-  }
+  }*/
 
   [[nodiscard]] int findParamByName(TString* name) noexcept {
     if (proto != nullptr) {
@@ -204,29 +204,25 @@ union TypeDesc {
 };
 
 struct TypeHint {
-  static constexpr int MAX_TYPE_DESCS = 3;
-
-  TypeDesc descs[MAX_TYPE_DESCS];
+  std::vector<TypeDesc> descs;
 
   TypeHint() {
-    clear();
+    //clear();
   }
 
   TypeHint(ValType vt) {
-    clear();
+    //clear();
     emplaceTypeDesc(vt);
   }
 
   void operator=(ValType) = delete;
 
   void clear() noexcept {
-    for (auto& desc : descs) {
-      desc.clear();
-    }
+    descs.clear();
   }
 
   [[nodiscard]] bool empty() const noexcept {
-    return descs[0].type == VT_NONE;
+    return descs.empty();
   }
 
   void emplaceTypeDesc(TypeDesc td) {
@@ -261,20 +257,7 @@ struct TypeHint {
         }
       }
 
-      for (auto& desc : descs) {
-        if (desc.type == VT_NONE) {
-          desc = std::move(td);
-          return;
-        }
-      }
-
-      /* too many types in this union, turn it into 'any' or '?any' */
-      const auto nullable = isNullable();
-      clear();
-      emplaceTypeDesc(VT_ANY);
-      if (nullable) {
-        emplaceTypeDesc(VT_NULL);
-      }
+      descs.emplace_back(std::move(td));
     }
   }
 
@@ -282,26 +265,17 @@ struct TypeHint {
     if (b.empty())  /* absolutely nothing is known about the other type? */
       clear();  /* then now we also know nothing about this type. */
     for (auto& desc : b.descs) {
-      if (desc.type != VT_NONE) {
-        emplaceTypeDesc(desc);
-      }
+      lua_assert(desc.type != VT_NONE);
+      emplaceTypeDesc(desc);
     }
   }
 
   void erase(ValType vt) {
-    int target = -1;
-    for (int i = 0; i != MAX_TYPE_DESCS; ++i) {
-      if (descs[i].type == vt) {
-        target = i;
+    for (auto i = descs.begin(); i != descs.end(); ++i) {
+      if (i->type == vt) {
+        descs.erase(i);
         break;
       }
-    }
-    if (target != -1) {
-      int i = target;
-      for (; i != MAX_TYPE_DESCS - 1; ++i) {
-        descs[i] = descs[i + 1];
-      }
-      descs[i].clear();
     }
   }
 
@@ -378,7 +352,8 @@ struct TypeHint {
       return isNullable();
     }
     for (const auto& desc : b.descs) {
-      if (desc.type != VT_NONE && !isCompatibleWith(desc)) {
+      lua_assert(desc.type != VT_NONE);
+      if (!isCompatibleWith(desc)) {
         return false;
       }
     }
@@ -386,7 +361,7 @@ struct TypeHint {
   }
 
   [[nodiscard]] ValType toPrimitive() const noexcept {
-    if (descs[1].type == VT_NONE) {
+    if (descs.size() == 1) {
       return descs[0].type;
     }
     return VT_ANY;
@@ -402,13 +377,14 @@ struct TypeHint {
     }
     std::string str{};
     if (isNullable()) {
-      if (descs[1].type == VT_NONE) {
+      if (descs.size() != 1) {
         return vtToString(VT_NULL);
       }
       str.push_back('?');
     }
     for (const auto& desc : descs) {
-      if (desc.type != VT_NONE && desc.type != VT_NULL) {
+      lua_assert(desc.type != VT_NONE);
+      if (desc.type != VT_NULL) {
         str.append(desc.toString());
         str.push_back('|');
       }

@@ -1692,7 +1692,7 @@ static void fieldsel (LexState *ls, expdesc *v, TypeHint *prop = nullptr) {
   luaK_exp2anyregup(fs, v);
   luaX_next(ls);  /* skip the dot or colon */
   codename(ls, &key, N_RESERVED);
-  if (prop && th.descs[0].type == VT_TABLE && th.descs[0].nfields != -1 && key.k == VKSTR) {
+  if (prop && !th.descs.empty() && th.descs[0].type == VT_TABLE && th.descs[0].nfields != -1 && key.k == VKSTR) {
     for (lu_byte i = 0; i != th.descs[0].nfields; ++i) {
       if (eqstr(key.u.strval, th.descs[0].names[i])) {
         *prop = *th.descs[0].hints[i];
@@ -2823,7 +2823,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
     }
     case '{': {  /* funcargs -> constructor */
       auto hint = new_typehint(ls);
-      hint->descs[0].type = VT_TABLE;
+      hint->descs.emplace_back(VT_TABLE);
       constructor(ls, &args, &hint->descs[0]);
       fas.argdescs = { hint };
       break;
@@ -3646,7 +3646,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
         if (v->k == VLOCAL) {
           vd = getlocalvardesc(ls->fs, v->u.var.vidx);
         _funcdesc_from_vd:
-          if (vd->vd.prop->descs[0].type == VT_FUNC && vd->vd.prop->descs[1].type == VT_NONE) {
+          if (vd->vd.prop->descs.size() == 1 && vd->vd.prop->descs[0].type == VT_FUNC) {
             funcdesc = &vd->vd.prop->descs[0];
             if (prop && vd->vd.prop->descs[0].nret >= 0) {  /* should and can propagate returns? */
               *nprop = vd->vd.prop->descs[0].nret;
@@ -3680,7 +3680,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
           TValue *key = &ls->fs->f->k[v->u.ind.idx];
           lua_assert(ttype(key) == LUA_TSTRING);
           if (auto th = get_global_prop_opt(ls, tsvalue(key))) {
-            if (th->descs[0].type == VT_FUNC && th->descs[1].type == VT_NONE) {
+            if (th->descs.size() == 1 && th->descs[0].type == VT_FUNC) {
               funcdesc = &th->descs[0];
               if (prop && th->descs[0].nret >= 0) {  /* should and can propagate returns? */
                 *nprop = th->descs[0].nret;
