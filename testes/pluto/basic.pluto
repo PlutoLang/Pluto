@@ -312,6 +312,12 @@ end]]
             local _str: number = arg
         end
     end]]
+    -- Acts as a filter, not an upcast
+    assert_no_warn[[local function _(f: function(int))
+        if type(f) == "function" then
+            local __: function(int) = f
+        end
+    end]]
 
     -- 'any'
     assert_no_warn[[
