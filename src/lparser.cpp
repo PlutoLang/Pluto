@@ -610,7 +610,7 @@ static void checktypehint (LexState *ls, TypeHint &th) {
       luaX_next(ls);
     }
     else if (strcmp(tname, "userdata") == 0) {
-      /* TODO */
+      th.emplaceTypeDesc(VT_USERDATA);
     }
     else if (auto named_th = get_named_type_opt(ls, ts)) {
       th.merge(*named_th);
