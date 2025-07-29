@@ -744,8 +744,8 @@ static void process_assign (LexState *ls, int vidx, const TypeHint& t, int line)
     err.append("', but provided with '");
     err.append(t.toString());
     err.append("' value.");
-    if (t.toPrimitive() == VT_NIL) {  /* Specialize warnings for nullable state incompatibility. */
-      const char* here = luaO_fmt(ls->L, "try a nilable type hint: '?%s'", hint.c_str());
+    if (t.toPrimitive() == VT_NULL) {  /* Specialize warnings for nullable state incompatibility. */
+      const char* here = luaO_fmt(ls->L, "try a void-able type hint: '?%s'", hint.c_str());
       hint.clear(); hint.shrink_to_fit();
       throw_warn(ls, "variable type mismatch", err.c_str(), here, line, WT_TYPE_MISMATCH);
       ls->L->top.p--;  /* pop 'here' */
