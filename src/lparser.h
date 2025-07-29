@@ -82,6 +82,7 @@ enum ValType : lu_byte {
   VT_STR,
   VT_TABLE,
   VT_FUNC,
+  VT_USERDATA,
 };
 
 [[nodiscard]] inline const char* vtToString(ValType vt) {
@@ -97,6 +98,7 @@ enum ValType : lu_byte {
     case VT_STR: return "string";
     case VT_TABLE: return "table";
     case VT_FUNC: return "function";
+    case VT_USERDATA: return "userdata";
     default:;
   }
   lua_assert(0);
