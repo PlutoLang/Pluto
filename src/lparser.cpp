@@ -137,8 +137,8 @@ typedef struct BlockCnt {
   BlockType type;  /* one of block types */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
   std::vector<TString*> export_symbols{};
-  ValType var_overide = VT_NONE;
-  unsigned short var_overide_vidx;
+  TypeHint *var_override_th = nullptr;
+  unsigned short var_override_vidx;
 } BlockCnt;
 
 
@@ -707,8 +707,8 @@ static void checkfuncspec (LexState *ls, TypeDesc &td) {
 */
 static void exp_propagate(LexState* ls, const expdesc& e, TypeHint& t) noexcept {
   if (e.k == VLOCAL) {
-    if (ls->fs->bl->var_overide != VT_NONE && ls->fs->bl->var_overide_vidx == e.u.var.vidx) {
-      t.merge(ls->fs->bl->var_overide);
+    if (ls->fs->bl->var_override_th != nullptr && ls->fs->bl->var_override_vidx == e.u.var.vidx) {
+      t.merge(*ls->fs->bl->var_override_th);
     }
     else {
       t.merge(*getlocalvardesc(ls->fs, e.u.var.vidx)->vd.prop);
@@ -760,8 +760,8 @@ static void process_assign (LexState *ls, int vidx, const TypeHint& t, int line)
   else {
     var->vd.prop->merge(t); /* propagate type */
   }
-  if (ls->fs->bl->var_overide != VT_NONE && ls->fs->bl->var_overide_vidx == vidx) {
-    ls->fs->bl->var_overide = t.toPrimitive();
+  if (ls->fs->bl->var_override_th != nullptr && ls->fs->bl->var_override_vidx == vidx) {
+    *ls->fs->bl->var_override_th = t;
   }
 }
 
@@ -4967,24 +4967,24 @@ static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeH
         if (var.k == VLOCAL && testnext(ls, ')')) {
           if (testnext(ls, TK_EQ)) {
             if (ls->t.token == TK_STRING) {
-              bl.var_overide_vidx = var.u.var.vidx;
+              ValType filter = VT_NONE;
               if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "nil"))) {
-                bl.var_overide = VT_NIL;
+                filter = VT_NIL;
               }
               else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "boolean"))) {
-                bl.var_overide = VT_BOOL;
+                filter = VT_BOOL;
               }
               else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "number"))) {
-                bl.var_overide = VT_NUMBER;
+                filter = VT_NUMBER;
               }
               else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "string"))) {
-                bl.var_overide = VT_STR;
+                filter = VT_STR;
               }
               else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "table"))) {
-                bl.var_overide = VT_TABLE;
+                filter = VT_TABLE;
               }
               else if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "function"))) {
-                bl.var_overide = VT_FUNC;
+                filter = VT_FUNC;
               }
               else if (!eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "userdata"))
                 && !eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "thread"))
@@ -4992,6 +4992,21 @@ static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeH
               ) {
                 throw_warn(ls, luaO_fmt(ls->L, "'%s' is not a possible return value of 'type'", getstr(ls->t.seminfo.ts)), Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_POSSIBLE_TYPO);
                 ls->L->top.p--;
+              }
+              if (filter != VT_NONE) {
+                bl.var_override_vidx = var.u.var.vidx;
+                lua_assert(bl.var_override_th == nullptr);
+                bl.var_override_th = new_typehint(ls);
+                if (TypeHint* prop = getlocalvardesc(ls->fs, var.u.var.vidx)->vd.prop) {
+                  for (const auto& desc : prop->descs) {
+                    if (desc.type == filter) {
+                      bl.var_override_th->emplaceTypeDesc(std::move(desc));
+                    }
+                  }
+                }
+                else {
+                  bl.var_override_th->emplaceTypeDesc(filter);
+                }
               }
             }
             luaX_prev(ls);  /* back to '==' */
