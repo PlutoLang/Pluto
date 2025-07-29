@@ -366,6 +366,12 @@ end]]
         local function f(_: ?bool) end
         f("true")
     ]]
+
+    -- 'userdata' (currently not inferred)
+    assert_warn[[$declare function newuserdata(): userdata
+    local _: table = newuserdata()]]
+    assert_no_warn[[$declare function newuserdata(): userdata
+    local _: userdata = newuserdata()]]
 end
 -- Strings should not be able to disable warnings
 do
