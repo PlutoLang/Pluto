@@ -318,6 +318,17 @@ end]]
             local __: function(int) = f
         end
     end]]
+    -- And the other way around
+    assert_no_warn[[local function _(a: number|string)
+        if type(a) ~= "string" then
+            local __: number = a
+        end
+    end]]
+    assert_no_warn[[local function _(a: number|string)
+        if type(a) != "string" then
+            local __: number = a
+        end
+    end]]
 
     -- 'any'
     assert_no_warn[[
