@@ -4965,7 +4965,8 @@ static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeH
         expdesc var;
         singlevar(ls, &var);
         if (var.k == VLOCAL && testnext(ls, ')')) {
-          if (testnext(ls, TK_EQ)) {
+          const bool iseq = (ls->t.token == TK_EQ);
+          if ((iseq && (luaX_next(ls), true)) || testnext2(ls, TK_NE, TK_NE2)) {
             if (ls->t.token == TK_STRING) {
               ValType filter = VT_NONE;
               if (eqstr(ls->t.seminfo.ts, luaX_newliteral(ls, "nil"))) {
@@ -4994,18 +4995,20 @@ static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeH
                 ls->L->top.p--;
               }
               if (filter != VT_NONE) {
-                bl.var_override_vidx = var.u.var.vidx;
                 lua_assert(bl.var_override_th == nullptr);
-                bl.var_override_th = new_typehint(ls);
                 if (TypeHint* prop = getlocalvardesc(ls->fs, var.u.var.vidx)->vd.prop) {
+                  bl.var_override_th = new_typehint(ls);
                   for (const auto& desc : prop->descs) {
-                    if (desc.type == filter) {
+                    if (iseq ? (desc.type == filter) : (desc.type != VT_NONE && desc.type != filter)) {
                       bl.var_override_th->emplaceTypeDesc(std::move(desc));
                     }
                   }
+                  bl.var_override_vidx = var.u.var.vidx;
                 }
-                else {
+                else if (iseq) {
+                  bl.var_override_th = new_typehint(ls);
                   bl.var_override_th->emplaceTypeDesc(filter);
+                  bl.var_override_vidx = var.u.var.vidx;
                 }
               }
             }
