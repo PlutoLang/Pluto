@@ -583,7 +583,7 @@ static void checktypehint (LexState *ls, TypeHint &th) {
     const char *tname = getstr(ts);
     if (strcmp(tname, "number") == 0)
       th.emplaceTypeDesc(VT_NUMBER);
-    else if (strcmp(tname, "int") == 0)
+    else if (strcmp(tname, "int") == 0 || strcmp(tname, "integer") == 0)
       th.emplaceTypeDesc(VT_INT);
     else if (strcmp(tname, "float") == 0)
       th.emplaceTypeDesc(VT_FLT);
