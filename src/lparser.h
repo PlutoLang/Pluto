@@ -5,6 +5,8 @@
 ** See Copyright Notice in lua.h
 */
 
+#include <cstdint> // int8_t
+
 #include "llimits.h"
 #include "lobject.h"
 #include "lzio.h"
