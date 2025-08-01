@@ -3,6 +3,7 @@
 #if !SOUP_WASM
 #include "format.hpp"
 #include "log.hpp"
+#include "netConfig.hpp"
 #include "netStatus.hpp"
 #include "ObfusString.hpp"
 #include "netReuseTag.hpp"
@@ -25,8 +26,23 @@ NAMESPACE_SOUP
 	}
 
 #if !SOUP_WASM
-	HttpRequestTask::HttpRequestTask(HttpRequest&& _hr)
-		: hr(std::move(_hr))
+	HttpRequestTask::HttpRequestTask(HttpRequest&& hr)
+		: HttpRequestTask(std::move(hr), &Socket::certchain_validator_default)
+	{
+	}
+
+	HttpRequestTask::HttpRequestTask(HttpRequest&& hr, SharedPtr<dnsResolver> resolver)
+		: HttpRequestTask(std::move(hr), resolver, &Socket::certchain_validator_default)
+	{
+	}
+
+	HttpRequestTask::HttpRequestTask(HttpRequest&& hr, certchain_validator_t certchain_validator)
+		: HttpRequestTask(std::move(hr), netConfig::get().getDnsResolver(), certchain_validator)
+	{
+	}
+
+	HttpRequestTask::HttpRequestTask(HttpRequest&& hr, SharedPtr<dnsResolver> resolver, certchain_validator_t certchain_validator)
+		: hr(std::move(hr)), resolver(resolver), certchain_validator(certchain_validator)
 	{
 	}
 
@@ -37,7 +53,8 @@ NAMESPACE_SOUP
 		case START:
 			if (!dont_use_reusable_sockets)
 			{
-				sock = Scheduler::get()->findReusableSocket(hr.getHost(), hr.port, hr.use_tls);
+				const auto [host, port] = hr.getHostAndPort();
+				sock = Scheduler::get()->findReusableSocket(host, port, hr.use_tls);
 				if (sock)
 				{
 					if (sock->custom_data.getStructFromMap(netReuseTag).is_busy)
@@ -83,10 +100,11 @@ NAMESPACE_SOUP
 					)
 				{
 					// Tag socket we just created for reuse, if it's not a one-off.
-					SOUP_IF_LIKELY (!Scheduler::get()->findReusableSocket(hr.getHost(), hr.port, hr.use_tls))
+					const auto [host, port] = hr.getHostAndPort();
+					SOUP_IF_LIKELY (!Scheduler::get()->findReusableSocket(host, port, hr.use_tls))
 					{
 						hr.setKeepAlive();
-						sock->custom_data.getStructFromMap(netReuseTag).init(hr.getHost(), hr.port, hr.use_tls);
+						sock->custom_data.getStructFromMap(netReuseTag).init(host, port, hr.use_tls);
 					}
 				}
 				state = AWAIT_RESPONSE;
@@ -96,7 +114,7 @@ NAMESPACE_SOUP
 					sock->enableCryptoClient(hr.getHost(), [](Socket&, Capture&& cap) SOUP_EXCAL
 					{
 						cap.get<HttpRequestTask*>()->recvResponse();
-					}, this, hr.getDataToSend());
+					}, this, hr.getDataToSend(), certchain_validator);
 				}
 				else
 				{
@@ -157,7 +175,9 @@ NAMESPACE_SOUP
 	void HttpRequestTask::cannotRecycle()
 	{
 		state = CONNECTING;
-		connector.emplace(hr.getHost(), hr.port, prefer_ipv6);
+
+		const auto [host, port] = hr.getHostAndPort();
+		connector.emplace(resolver, host, port, prefer_ipv6);
 	}
 
 	void HttpRequestTask::recvResponse() SOUP_EXCAL

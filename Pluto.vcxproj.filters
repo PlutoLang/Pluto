@@ -334,9 +334,6 @@
     <ClCompile Include="src\vendor\Soup\soup\QrCode.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
-    <ClCompile Include="src\vendor\Soup\soup\memAllocator.cpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\ResolveIpAddrTask.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
@@ -348,6 +345,15 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\crc32c.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\memGuard.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\Process.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\ProcessHandle.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1069,9 +1075,6 @@
     <ClInclude Include="src\vendor\Soup\soup\ResolveIpAddrTask.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
-    <ClInclude Include="src\vendor\Soup\soup\memAllocator.hpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\memCAllocator.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
@@ -1103,6 +1106,48 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\crc32c.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\memGuard.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\Process.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\ProcessHandle.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\Module.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\Range.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\Pointer.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\Pointerlike.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\HandleRaii.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\VirtualHandleRaii.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\HandleBase.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\FileReader.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\Notifyable.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\RecursiveMutex.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\memAllocating.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>

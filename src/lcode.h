@@ -36,6 +36,8 @@ typedef enum BinOpr {
   OPR_SPACESHIP, OPR_INSTANCEOF,
   /* logical operators */
   OPR_AND, OPR_OR, OPR_COAL,
+  /* pluto additions */
+  OPR_IPOW,
   OPR_NOBINOPR,
 } BinOpr;
 

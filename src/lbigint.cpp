@@ -6,6 +6,12 @@
 void pushbigint (lua_State *L, soup::Bigint&& x);
 
 soup::Bigint* checkbigint (lua_State *L, int i) {
+  if (lua_type(L, i) == LUA_TNUMBER) {
+    size_t len;
+    const char *str = lua_tolstring(L, i, &len);
+    pushbigint(L, soup::Bigint::fromString(str, len));
+    i = -1;
+  }
   return (soup::Bigint*)luaL_checkudata(L, i, "pluto:bigint");
 }
 
@@ -73,6 +79,13 @@ static int bigint_le (lua_State *L) {
   return 1;
 }
 
+static int bigint_unm (lua_State *L) {
+  soup::Bigint cpy = *checkbigint(L, 1);
+  cpy.negative ^= 1;
+  pushbigint(L, std::move(cpy));
+  return 1;
+}
+
 static int bigint_hex (lua_State *L) {
   pluto_pushstring(L, checkbigint(L, 1)->toStringHex());
   return 1;
@@ -85,6 +98,23 @@ static int bigint_binary (lua_State *L) {
 
 static int bigint_bitlength (lua_State *L) {
   lua_pushinteger(L, checkbigint(L, 1)->getBitLength());
+  return 1;
+}
+
+static int bigint_abs (lua_State *L) {
+  pushbigint(L, checkbigint(L, 1)->abs());
+  return 1;
+}
+
+static int bigint_gcd (lua_State *L) {
+  pushbigint(L, checkbigint(L, 1)->gcd(*checkbigint(L, 2)));
+  return 1;
+}
+
+static int bigint_isprobableprime (lua_State *L) {
+  const auto self = checkbigint(L, 1);
+  const auto miller_rabin_iterations = (int)luaL_checkinteger(L, 2);
+  lua_pushboolean(L, self->isProbablePrime(miller_rabin_iterations));
   return 1;
 }
 
@@ -127,6 +157,9 @@ void pushbigint (lua_State *L, soup::Bigint&& x) {
     lua_pushliteral(L, "__le");
     lua_pushcfunction(L, bigint_le);
     lua_settable(L, -3);
+	lua_pushliteral(L, "__unm");
+	lua_pushcfunction(L, bigint_unm);
+	lua_settable(L, -3);
     lua_pushliteral(L, "__index");
     luaL_loadbuffer(L, "return require\"pluto:bigint\"", 28, 0);
     lua_call(L, 0, 1);
@@ -150,6 +183,9 @@ static const luaL_Reg funcs_bigint[] = {
   {"hex", bigint_hex},
   {"binary", bigint_binary},
   {"bitlength", bigint_bitlength},
+  {"abs", bigint_abs},
+  {"gcd", bigint_gcd},
+  {"isprobableprime", bigint_isprobableprime},
   {nullptr, nullptr}
 };
 

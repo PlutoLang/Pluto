@@ -5,6 +5,8 @@
 ** See Copyright Notice in lua.h
 */
 
+#include <cstdint> // int8_t
+
 #include "llimits.h"
 #include "lobject.h"
 #include "lzio.h"
@@ -72,8 +74,8 @@ typedef enum {
 /* types of values, for type hinting and propagation */
 enum ValType : lu_byte {
   VT_NONE = 0,
-  VT_DUNNO,
-  VT_VOID,
+  VT_ANY,
+  VT_NULL,  /* used to represent an implicit nil (when the assignment has too few values) */
   VT_NIL,
   VT_NUMBER,
   VT_INT,
@@ -82,13 +84,14 @@ enum ValType : lu_byte {
   VT_STR,
   VT_TABLE,
   VT_FUNC,
+  VT_USERDATA,
 };
 
 [[nodiscard]] inline const char* vtToString(ValType vt) {
   switch (vt) {
-    case VT_NONE: return "none";
-    case VT_DUNNO: return "dunno";
-    case VT_VOID: return "void";
+    case VT_NONE: lua_assert(0); return "none";
+    case VT_ANY: return "any";
+    case VT_NULL: return "void";
     case VT_NIL: return "nil";
     case VT_NUMBER: return "number";
     case VT_INT: return "int";
@@ -97,8 +100,10 @@ enum ValType : lu_byte {
     case VT_STR: return "string";
     case VT_TABLE: return "table";
     case VT_FUNC: return "function";
+    case VT_USERDATA: return "userdata";
     default:;
   }
+  lua_assert(0);
   return "ERROR";
 }
 
@@ -136,54 +141,65 @@ typedef struct expdesc {
 #define RDKCONST	1   /* constant */
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* compile-time constant */
-#define RDKCONSTEXP	4   /* [Pluto] enforced compile-time constant */
-#define RDKENUM		5   /* [Pluto] named enum */
+#define RDKENUM		4   /* [Pluto] named enum */
+#define RDKWOW		5   /* [Pluto] warn on write */
 
 struct TypeHint;
 
-struct TypeDesc {
-  ValType type;
+inline constexpr int MAX_TYPED_RETURNS = 3;
+inline constexpr int MAX_TYPED_PARAMS = 7;
+inline constexpr int MAX_TYPED_FIELDS = 5;
 
-  /* function info */
-  Proto* proto = nullptr;
-  TypeHint* retn = nullptr;
-  static constexpr int MAX_TYPED_PARAMS = 10;
-  TypeHint* params[MAX_TYPED_PARAMS];
-  bool nodiscard = false;
+union TypeDesc {
+  struct {
+    ValType type;
+    /* function info */
+    int8_t nparam;
+    int8_t nret;
+    bool nodiscard;
+    Proto* proto;
+    TypeHint* returns[MAX_TYPED_RETURNS];
+    TypeHint* params[MAX_TYPED_PARAMS];
+  };
+  struct {
+    ValType type_;
+    /* table info */
+    int8_t nfields;
+    TString* names[MAX_TYPED_FIELDS];
+    TypeHint* hints[MAX_TYPED_FIELDS];
+  };
 
-  TypeDesc() = default;
-
-  TypeDesc(ValType type)
-    : type(type)
-  {
+  TypeDesc(ValType type = VT_NONE)
+    : type(type) {
+    nparam = -1;  /* also sets nfields to -1 */
+    nret = -1;
+    nodiscard = false;
+    proto = nullptr;
   }
 
   void clear() noexcept {
     type = VT_NONE;
   }
 
-  [[nodiscard]] ValType getType() const noexcept {
-    return type;
-  }
-
-  [[nodiscard]] lu_byte getNumParams() const noexcept {
-    return proto->numparams;
-  }
-
   [[nodiscard]] int findParamByName(TString* name) noexcept {
-    for (lu_byte i = 0; i != getNumParams(); ++i) {
-      if (name == proto->locvars[i].varname) {
-        return i;
+    if (proto != nullptr) {
+      for (lu_byte i = 0; i != nparam; ++i) {
+        if (name == proto->locvars[i].varname) {
+          return i;
+        }
       }
     }
     return -1;
   }
 
   [[nodiscard]] lu_byte getNumTypedParams() noexcept {
-    auto p = getNumParams();
-    if (p >= MAX_TYPED_PARAMS)
-      p = MAX_TYPED_PARAMS;
-    return p;
+    if (nparam > 0) {
+      auto p = nparam;
+      if (p >= MAX_TYPED_PARAMS)
+        p = MAX_TYPED_PARAMS;
+      return p;
+    }
+    return 0;
   }
 
   [[nodiscard]] std::string toString() const;
@@ -216,12 +232,50 @@ struct TypeHint {
   }
 
   void emplaceTypeDesc(TypeDesc td) {
+    lua_assert(td.type != VT_NONE);
     if (!contains(td)) {
+      if (td.type == VT_INT) {
+        if (contains(VT_NUMBER))
+          return;
+        for (auto& desc : descs) {
+          if (desc.type == VT_FLT) {
+            desc = VT_NUMBER;
+            return;
+          }
+        }
+      }
+      else if (td.type == VT_FLT) {
+        if (contains(VT_NUMBER))
+          return;
+        for (auto& desc : descs) {
+          if (desc.type == VT_INT) {
+            desc = VT_NUMBER;
+            return;
+          }
+        }
+      }
+      else if (td.type == VT_NUMBER) {
+        for (auto& desc : descs) {
+          if (desc.type == VT_INT || desc.type == VT_FLT) {
+            desc = VT_NUMBER;
+            return;
+          }
+        }
+      }
+
       for (auto& desc : descs) {
         if (desc.type == VT_NONE) {
           desc = std::move(td);
-          break;
+          return;
         }
+      }
+
+      /* too many types in this union, turn it into 'any' or '?any' */
+      const auto nullable = isNullable();
+      clear();
+      emplaceTypeDesc(VT_ANY);
+      if (nullable) {
+        emplaceTypeDesc(VT_NULL);
       }
     }
   }
@@ -230,7 +284,9 @@ struct TypeHint {
     if (b.empty())  /* absolutely nothing is known about the other type? */
       clear();  /* then now we also know nothing about this type. */
     for (auto& desc : b.descs) {
-      emplaceTypeDesc(desc);
+      if (desc.type != VT_NONE) {
+        emplaceTypeDesc(desc);
+      }
     }
   }
 
@@ -252,6 +308,7 @@ struct TypeHint {
   }
 
   [[nodiscard]] bool contains(ValType vt) const noexcept {
+    lua_assert(vt != VT_NONE);
     for (const auto& desc : descs) {
       if (desc.type == vt) {
         return true;
@@ -261,19 +318,61 @@ struct TypeHint {
   }
 
   [[nodiscard]] bool contains(const TypeDesc& td) const noexcept {
+    lua_assert(td.type != VT_NONE);
     for (const auto& desc : descs) {
       if (desc.type == td.type) {
-        // TODO: Might need better logic in regards to VT_FUNC
+        if (desc.type == VT_TABLE) {
+          if (desc.nfields != -1 &&
+            td.nfields != -1 && td.nfields < MAX_TYPED_FIELDS) {  /* know all fields of 'td'? */
+            for (lu_byte i = 0; i != desc.nfields && i != MAX_TYPED_FIELDS; ++i) {
+              bool field_exists_compatibly = false;
+              for (lu_byte j = 0; j != td.nfields && j != MAX_TYPED_FIELDS; ++j) {
+                if (desc.names[i] == td.names[j]) {
+                  field_exists_compatibly = desc.hints[i]->isCompatibleWith(*td.hints[j]);
+                  break;
+                }
+              }
+              if (!field_exists_compatibly && !desc.hints[i]->contains(VT_NULL)) {
+                goto _contains_next_union_alternative;
+              }
+            }
+          }
+        }
+        else if (desc.type == VT_FUNC) {
+          if ((desc.nparam != -1 && desc.nparam != td.nparam) || desc.nret > td.nret) {
+            continue;
+          }
+          if (desc.nparam != -1) {
+            /* desc.nparam == td.nparam */
+            for (lu_byte i = 0; i != desc.nparam && i != MAX_TYPED_PARAMS; ++i) {
+              if (!desc.params[i]->isCompatibleWith(*td.params[i])) {
+                goto _contains_next_union_alternative;
+              }
+            }
+          }
+          if (desc.nret != -1) {
+            /* desc.nret <= td.nret */
+            for (lu_byte i = 0; i != desc.nret && i != MAX_TYPED_RETURNS; ++i) {
+              if (!desc.returns[i]->isCompatibleWith(*td.returns[i])) {
+                goto _contains_next_union_alternative;
+              }
+            }
+          }
+        }
         return true;
       }
+      _contains_next_union_alternative:;
     }
     return false;
   }
 
   [[nodiscard]] bool isCompatibleWith(const TypeDesc& td) const noexcept {
-    return contains(td.type)
-        || td.type == VT_DUNNO
-        || ((td.type == VT_INT || td.type == VT_FLT) && contains(VT_NUMBER));
+    return contains(td)
+        || ((td.type == VT_INT || td.type == VT_FLT) && contains(VT_NUMBER))
+        || (td.type == VT_NIL && isNullable())  /* allowing implicit nils also allows explicit nils */
+        || td.type == VT_ANY  /* if we don't know what RHS really is, assume it's fine */
+        || (td.type != VT_NULL && contains(VT_ANY))  /* if LHS wants _any_ value, then the fact that we have a RHS is good enough */
+        ;
   }
 
   [[nodiscard]] bool isCompatibleWith(const TypeHint& b) const noexcept {
@@ -281,7 +380,7 @@ struct TypeHint {
       return isNullable();
     }
     for (const auto& desc : b.descs) {
-      if (!isCompatibleWith(desc)) {
+      if (desc.type != VT_NONE && !isCompatibleWith(desc)) {
         return false;
       }
     }
@@ -292,38 +391,26 @@ struct TypeHint {
     if (descs[1].type == VT_NONE) {
       return descs[0].type;
     }
-    return VT_DUNNO;
+    return VT_ANY;
   }
 
   [[nodiscard]] bool isNullable() const noexcept {
-    return contains(VT_NIL);
-  }
-
-  void fixTypes() {
-    if (descs[1].type != VT_NONE) { /* contains more than 1 type? */
-      /* convert 'void' to 'nil' (or 'none' if we already have a 'nil') */
-      const bool already_has_nil = isNullable();
-      for (auto& desc : descs) {
-        if (desc.type == VT_VOID) {
-          desc.type = already_has_nil ? VT_NONE : VT_NIL;
-          break;
-        }
-      }
-    }
+    return contains(VT_NULL);
   }
 
   [[nodiscard]] std::string toString() const {
     if (empty()) {
-      return "nil";
+      return "never";
     }
     std::string str{};
     if (isNullable()) {
-      if (descs[1].type == VT_NONE)
-        return "nil";
+      if (descs[1].type == VT_NONE) {
+        return vtToString(VT_NULL);
+      }
       str.push_back('?');
     }
     for (const auto& desc : descs) {
-      if (desc.type != VT_NONE && desc.type != VT_NIL) {
+      if (desc.type != VT_NONE && desc.type != VT_NULL) {
         str.append(desc.toString());
         str.push_back('|');
       }

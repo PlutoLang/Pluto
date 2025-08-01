@@ -35,6 +35,8 @@ NAMESPACE_SOUP
 #endif
 		HttpRequest hr;
 #if !SOUP_WASM
+		SharedPtr<dnsResolver> resolver;
+		certchain_validator_t certchain_validator;
 		Optional<netConnectTask> connector;
 		SharedPtr<Socket> sock;
 		time_t awaiting_response_since;
@@ -43,9 +45,14 @@ NAMESPACE_SOUP
 		std::vector<const char*> headers;
 #endif
 
-		HttpRequestTask(HttpRequest&& hr);
 		HttpRequestTask(const Uri& uri);
 		HttpRequestTask(std::string host, std::string path);
+		HttpRequestTask(HttpRequest&& hr);
+#if !SOUP_WASM
+		HttpRequestTask(HttpRequest&& hr, SharedPtr<dnsResolver> resolver);
+		HttpRequestTask(HttpRequest&& hr, certchain_validator_t certchain_validator);
+		HttpRequestTask(HttpRequest&& hr, SharedPtr<dnsResolver> resolver, certchain_validator_t certchain_validator);
+#endif
 
 #if !SOUP_WASM
 		void onTick() final;
