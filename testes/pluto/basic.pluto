@@ -1772,6 +1772,7 @@ do
         assert(crypto.hmac("sha256", key, "Hi There") == "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7")
         assert(crypto.hmac("sha256", key, "Hi There", false) == "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7")
         assert(crypto.hmac("sha256", key, "Hi There", true) == "\xb0\x34\x4c\x61\xd8\xdb\x38\x53\x5c\xa8\xaf\xce\xaf\x0b\xf1\x2b\x88\x1d\xc2\x00\xc9\x83\x3d\xa7\x26\xe9\x37\x6c\x2e\x32\xcf\xf7")
+        assert(crypto.hmac("sha1", "plnlrtfpijpuhqylxbgqiiyipieyxvfsavzgxbbcfusqkozwpngsyejqlmjsytrmd", "\xA0\x09\xC1\xA4\x85\x91\x2C\x6A\xE6\x30\xD3\xE7\x44\x24\x0B\x04\x00\x00\x00\x01") == "c9b3082a25d4634b5e06260c5c790178cb152044")
     end
 end
 do
