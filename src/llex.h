@@ -237,6 +237,11 @@ inline const char* const luaX_warnNames[] = {
 };
 static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
 
+[[nodiscard]] inline const char* luaX_getwarnname(const WarningType w) {
+  lua_assert((size_t)w >= 0 && (size_t)w < NUM_WARNING_TYPES);
+  return luaX_warnNames[(size_t)w];
+}
+
 
 enum WarningState : lu_byte {
   WS_OFF,
@@ -367,11 +372,6 @@ public:
           setAllTo(WS_ERROR);
       }
     }
-  }
-
-  [[nodiscard]] static const char* getWarningName(const WarningType w) {
-    lua_assert((size_t)w >= 0 && (size_t)w < NUM_WARNING_TYPES);
-    return luaX_warnNames[(size_t)w];
   }
 };
 
