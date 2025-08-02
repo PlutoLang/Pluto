@@ -142,7 +142,7 @@ static void throw_warn(LexState* ls, const char* err, const char* here, const ch
     auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
     msg->addMsg(err)
       .addMsg(" [")
-      .addMsg(ls->getWarningConfig().getWarningName(warningType))
+      .addMsg(luaX_getwarnname(warningType))
       .addMsg("]")
       .addSrcLine(line)
       .addGenericHere(here)
