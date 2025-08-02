@@ -366,8 +366,17 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
             }
           }
           else {
+            bool selfref = false;
+            for (auto& t : e->second.sub) {
+              if (t.token == TK_NAME && t.seminfo.ts == e->first) {
+                selfref = true;
+                break;
+              }
+            }
             i = ls->tokens.insert(i, e->second.sub.begin(), e->second.sub.end());
-            i += e->second.sub.size();
+            if (selfref) {
+              i += e->second.sub.size();
+            }
           }
           continue;
         }
