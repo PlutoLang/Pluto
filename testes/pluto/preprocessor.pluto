@@ -79,7 +79,18 @@ end
 assert(block_closed)
 ]]()
 
--- Self-referencing alias should not be resolved
+-- Aliases can reference other aliases
+do
+    local a, b = load[[
+        $alias a = "hello"
+        $alias b = a, "world"
+        return b
+    ]]()
+    assert(a == "hello")
+    assert(b == "world")
+end
+
+-- but self-referencing aliases should not be resolved
 assert(load[[
     $alias r = r
     local r = 69
