@@ -3148,6 +3148,11 @@ static void const_expr (LexState *ls, expdesc *v) {
         codestring(v, luaX_newstring(ls, str.data(), str.size()));
         ls->L->top.p--;  /* pop 'str' */
       }
+      else if (strcmp(getstr(ls->t.seminfo.ts), "haltcompiler") == 0) {
+        do {
+          luaX_next(ls);
+        } while (ls->t.token != TK_EOS);
+      }
       else if (!check_constexpr_call(ls, v, "tonumber", luaB_tonumber)
           && !check_constexpr_call(ls, v, "utonumber", luaB_utonumber)
           && !check_constexpr_call(ls, v, "tostring", luaB_tostring)
