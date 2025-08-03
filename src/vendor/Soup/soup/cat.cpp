@@ -101,7 +101,10 @@ NAMESPACE_SOUP
 				delim = line_trimmed.find(':', delim);
 				if (delim == std::string::npos
 					|| delim == 0
-					|| line_trimmed.at(delim - 1) != '\\'
+					|| line_trimmed.size() == delim + 1
+					|| (line_trimmed[delim - 1] != '\\'
+						&& line_trimmed[delim + 1] == ' '
+						)
 					)
 				{
 					break;
@@ -114,7 +117,7 @@ NAMESPACE_SOUP
 				node->name = line_trimmed.substr(0, delim);
 				if (line_trimmed.size() != delim + 1)
 				{
-					CAT_ASSERT(line_trimmed.at(delim + 1) == ' ');
+					SOUP_DEBUG_ASSERT(line_trimmed[delim + 1] == ' ');
 					node->value = line_trimmed.substr(delim + 2); // ": "
 					SOUP_IF_UNLIKELY (node->value.size() > 2
 						&& node->value.front() == '"'
