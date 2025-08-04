@@ -157,9 +157,9 @@ void pushbigint (lua_State *L, soup::Bigint&& x) {
     lua_pushliteral(L, "__le");
     lua_pushcfunction(L, bigint_le);
     lua_settable(L, -3);
-	lua_pushliteral(L, "__unm");
-	lua_pushcfunction(L, bigint_unm);
-	lua_settable(L, -3);
+    lua_pushliteral(L, "__unm");
+    lua_pushcfunction(L, bigint_unm);
+    lua_settable(L, -3);
     lua_pushliteral(L, "__index");
     luaL_loadbuffer(L, "return require\"pluto:bigint\"", 28, 0);
     lua_call(L, 0, 1);
