@@ -5681,7 +5681,7 @@ static void usestat (LexState *ls) {
       }
       else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", getstr(ls->t.seminfo.ts)), "did you mean \"0.8.0\", \"0.6.0\", \"0.5.0\" or \"0.2.0\"?");
       if (getstr(ls->t.seminfo.ts)[ls->t.seminfo.ts->size() - 1] == '+') {
-        if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.9.0") >= 0) {
+        if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.9.0") >= 0 && soup::version_compare(getstr(ls->t.seminfo.ts), "0.12.0") < 0) {
           tokens.emplace_back(TK_GLOBAL);
         }
       }
