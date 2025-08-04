@@ -2018,13 +2018,12 @@ NAMESPACE_SOUP
 		return str;
 	}
 
-	std::string Bigint::toBinary(size_t bytes) const
+	std::string Bigint::toBinary(size_t min_bytes) const SOUP_EXCAL
 	{
 		auto bin = toBinary();
-		SOUP_ASSERT(bytes >= bin.size());
-		if (size_t pad = (bytes - bin.size()))
+		if (bin.size() < min_bytes)
 		{
-			bin.insert(bin.begin(), pad, '\0');
+			bin.insert(bin.begin(), min_bytes - bin.size(), '\0');
 		}
 		return bin;
 	}
