@@ -1744,6 +1744,7 @@ do
     local crypto = require("crypto")
     assert(crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
     assert(crypto.fnv1a("hello world") == 8618312879776256743)
+    assert(crypto.fnv1a32("hello world") == 0xd58b3fa7)
     assert(crypto.joaat("hello world") == 1045060183)
     assert(crypto.crc32("hello world") == 222957957)
     assert(crypto.crc32c("hello world") == 3381945770)
