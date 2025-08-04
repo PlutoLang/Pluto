@@ -118,6 +118,25 @@ static int bigint_isprobableprime (lua_State *L) {
   return 1;
 }
 
+static int bigint_export (lua_State *L) {
+  const auto self = checkbigint(L, 1);
+  if (lua_isnoneornil(L, 2)) {
+    pluto_pushstring(L, self->toBinary());
+  }
+  else {
+    const auto bytes = luaL_checkinteger(L, 2);
+    pluto_pushstring(L, self->toBinary(bytes));
+  }
+  return 1;
+}
+
+static int bigint_import (lua_State *L) {
+  size_t size;
+  auto data = luaL_checklstring(L, 1, &size);
+  pushbigint(L, soup::Bigint::fromBinary(data, size));
+  return 1;
+}
+
 void pushbigint (lua_State *L, soup::Bigint&& x) {
   new (lua_newuserdata(L, sizeof(soup::Bigint))) soup::Bigint(std::move(x));
   if (l_unlikely(luaL_newmetatable(L, "pluto:bigint"))) {
@@ -186,6 +205,8 @@ static const luaL_Reg funcs_bigint[] = {
   {"abs", bigint_abs},
   {"gcd", bigint_gcd},
   {"isprobableprime", bigint_isprobableprime},
+  {"export", bigint_export},
+  {"import", bigint_import},
   {nullptr, nullptr}
 };
 
