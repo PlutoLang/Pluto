@@ -3104,7 +3104,6 @@ int luaB_tonumber (lua_State *L);
 int luaB_utonumber (lua_State *L);
 int luaB_tostring (lua_State *L);
 int luaB_utostring (lua_State *L);
-int luaB_type (lua_State *L);
 int luaB_assert (lua_State *L);
 
 static void const_expr (LexState *ls, expdesc *v) {
@@ -3157,7 +3156,6 @@ static void const_expr (LexState *ls, expdesc *v) {
           && !check_constexpr_call(ls, v, "utonumber", luaB_utonumber)
           && !check_constexpr_call(ls, v, "tostring", luaB_tostring)
           && !check_constexpr_call(ls, v, "utostring", luaB_utostring)
-          && !check_constexpr_call(ls, v, "type", luaB_type)
           && !check_constexpr_call(ls, v, "assert", luaB_assert)
         )
       {
