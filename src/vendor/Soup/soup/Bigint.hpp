@@ -324,7 +324,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] static Bigint fromBinary(const std::string& msg) SOUP_EXCAL;
 		[[nodiscard]] static Bigint fromBinary(const void* data, size_t size) SOUP_EXCAL;
 		[[nodiscard]] std::string toBinary() const SOUP_EXCAL;
-		[[nodiscard]] std::string toBinary(size_t bytes) const;
+		[[nodiscard]] std::string toBinary(size_t min_bytes) const SOUP_EXCAL;
 
 		SOUP_PACKET_IO(s) SOUP_EXCAL
 		{

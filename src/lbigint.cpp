@@ -124,8 +124,8 @@ static int bigint_export (lua_State *L) {
     pluto_pushstring(L, self->toBinary());
   }
   else {
-    const auto bytes = luaL_checkinteger(L, 2);
-    pluto_pushstring(L, self->toBinary(bytes));
+    const auto min_bytes = luaL_checkinteger(L, 2);
+    pluto_pushstring(L, self->toBinary(min_bytes));
   }
   return 1;
 }
