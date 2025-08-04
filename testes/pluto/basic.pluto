@@ -2699,6 +2699,12 @@ do
 
     -- Mixed bigint/number operands
     assert(tostring(new bigint(4) * 2) == "8")
+
+    -- Import/Export
+    assert(require"bigint".new("1056"):export() == "\x04\x20")
+    assert(require"bigint".new("1056"):export(4) == "\x00\x00\x04\x20")
+    assert(require"bigint".import("\x04\x20"):tostring() == "1056")
+    assert(require"bigint".import("\x00\x00\x04\x20"):tostring() == "1056")
 end
 do
     local { scheduler } = require "*"
