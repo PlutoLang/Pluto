@@ -44,6 +44,19 @@ static int fnv1(lua_State *L)
 }
 
 
+static int fnv1a32 (lua_State *L) {
+  size_t size;
+  const char *data = luaL_checklstring(L, 1, &size);
+  uint32_t hash = 2166136261u;
+  for (; size--; ++data) {
+    hash ^= *reinterpret_cast<const uint8_t*>(data);
+    hash *= 16777619u;
+  }
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
 static int fnv1a(lua_State *L)
 {
   const auto FNV_offset_basis = 0xcbf29ce484222325ull;
@@ -844,6 +857,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"murmur1", murmur1},
   {"times33", times33},
   {"joaat", joaat},
+  {"fnv1a32", fnv1a32},
   {"fnv1a", fnv1a},
   {"fnv1", fnv1},
   {"generatekeypair", generatekeypair},
