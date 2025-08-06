@@ -112,6 +112,10 @@ NAMESPACE_SOUP
 		if (auto key_offset = line.find(": "); key_offset != std::string::npos)
 		{
 			normaliseHeaderCasingInplace(line.data(), key_offset);
+			for (size_t i = key_offset + 2; string::isSpace(line.c_str()[i]); )
+			{
+				line.erase(i, 1);
+			}
 			headers.emplace_back(std::move(line));
 		}
 	}
