@@ -284,6 +284,7 @@ static int decode(lua_State* L)
 	jtw.free = [](void* L, void* node) -> void {
 		lua_pop((lua_State*)L, 1);
 	};
+	std::string* what = nullptr;
 	try
 	{
 		if (soup::json::decode(jtw, (void*)L, data, size, 100))
@@ -293,7 +294,12 @@ static int decode(lua_State* L)
 	}
 	catch (const std::exception& e)
 	{
-		luaL_error(L, e.what());
+		what = pluto_newclassinst(L, std::string);
+		*what = e.what();
+	}
+	if (what)
+	{
+		luaL_error(L, what->c_str());
 	}
 	return 0;
 }
