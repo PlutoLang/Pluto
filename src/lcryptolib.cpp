@@ -413,6 +413,30 @@ static int importkey (lua_State *L) {
   else luaL_error(L, "Unknown format");
 }
 
+// Without this, Pluto compiled MSVC would crash when running:
+// assert(not pcall(require"crypto".encrypt, "abc", "aes-ecb-pkcs7", "abc"))
+// assert(not pcall(require"crypto".decrypt, "abc", "aes-ecb-pkcs7", "abc"))
+#if defined(_MSC_VER) && !defined(__clang__)
+#define MSVC_NO_INLINE __declspec(noinline)
+#else
+#define MSVC_NO_INLINE
+#endif
+
+static MSVC_NO_INLINE void rsa_priv_encrypt_pkcs1 (std::string& data, soup::Bigint* p, soup::Bigint* q) {
+  data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptPkcs1(std::move(data)).toBinary();
+}
+
+static MSVC_NO_INLINE void rsa_priv_encrypt_raw (std::string& data, soup::Bigint* p, soup::Bigint* q) {
+  data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptUnpadded(std::move(data)).toBinary();
+}
+
+static MSVC_NO_INLINE void rsa_pub_encrypt_pkcs1 (std::string& data, soup::Bigint* n, soup::Bigint* e) {
+  data = soup::RsaPublicKey(*n, *e).encryptPkcs1(std::move(data)).toBinary();
+}
+
+static MSVC_NO_INLINE void rsa_pub_encrypt_raw (std::string& data, soup::Bigint* n, soup::Bigint* e) {
+  data = soup::RsaPublicKey(*n, *e).encryptUnpadded(std::move(data)).toBinary();
+}
 
 static int l_encrypt (lua_State *L) {
   size_t mode_len;
@@ -518,10 +542,10 @@ static int l_encrypt (lua_State *L) {
       bool invalid = false;
       try {
         if (strcmp(mode, "rsa-pkcs1") == 0) {
-          data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptPkcs1(std::move(data)).toBinary();
+          rsa_priv_encrypt_pkcs1(data, p, q);
         }
         else {
-          data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptUnpadded(std::move(data)).toBinary();
+          rsa_priv_encrypt_raw(data, p, q);
         }
       }
       catch (std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
@@ -536,10 +560,10 @@ static int l_encrypt (lua_State *L) {
     else if (n && e) {  /* public key? */
       std::string data = pluto_checkstring(L, 1);
       if (strcmp(mode, "rsa-pkcs1") == 0) {
-        data = soup::RsaPublicKey(*n, *e).encryptPkcs1(std::move(data)).toBinary();
+        rsa_pub_encrypt_pkcs1(data, n, e);
       }
       else {
-        data = soup::RsaPublicKey(*n, *e).encryptUnpadded(std::move(data)).toBinary();
+        rsa_pub_encrypt_raw(data, n, e);
       }
       pluto_pushstring(L, data);
       return 1;
@@ -549,6 +573,21 @@ static int l_encrypt (lua_State *L) {
   else luaL_error(L, "Unknown mode");
 }
 
+static MSVC_NO_INLINE void rsa_priv_decrypt_pkcs1 (std::string& data, soup::Bigint* p, soup::Bigint* q) {
+  data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptPkcs1(soup::Bigint::fromBinary(data));
+}
+
+static MSVC_NO_INLINE void rsa_priv_decrypt_raw (std::string& data, soup::Bigint* p, soup::Bigint* q) {
+  data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptUnpadded(soup::Bigint::fromBinary(data));
+}
+
+static MSVC_NO_INLINE void rsa_pub_decrypt_pkcs1 (std::string& data, soup::Bigint* n, soup::Bigint* e) {
+  data = soup::RsaPublicKey(*n, *e).decryptPkcs1(soup::Bigint::fromBinary(data));
+}
+
+static MSVC_NO_INLINE void rsa_pub_decrypt_raw (std::string& data, soup::Bigint* n, soup::Bigint* e) {
+  data = soup::RsaPublicKey(*n, *e).decryptUnpadded(soup::Bigint::fromBinary(data));
+}
 
 static int l_decrypt (lua_State *L) {
   size_t mode_len;
@@ -664,10 +703,10 @@ static int l_decrypt (lua_State *L) {
       bool invalid = false;
       try {
         if (strcmp(mode, "rsa-pkcs1") == 0) {
-          data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptPkcs1(soup::Bigint::fromBinary(data));
+          rsa_priv_decrypt_pkcs1(data, p, q);
         }
         else {
-          data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptUnpadded(soup::Bigint::fromBinary(data));
+          rsa_priv_decrypt_raw(data, p, q);
         }
       }
       catch (std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
@@ -682,10 +721,10 @@ static int l_decrypt (lua_State *L) {
     else if (n && e) {  /* public key? */
       std::string data = pluto_checkstring(L, 1);
       if (strcmp(mode, "rsa-pkcs1") == 0) {
-        data = soup::RsaPublicKey(*n, *e).decryptPkcs1(soup::Bigint::fromBinary(data));
+        rsa_pub_decrypt_pkcs1(data, n, e);
       }
       else {
-        data = soup::RsaPublicKey(*n, *e).decryptUnpadded(soup::Bigint::fromBinary(data));
+        rsa_pub_decrypt_raw(data, n, e);
       }
       pluto_pushstring(L, data);
       return 1;
