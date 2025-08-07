@@ -4478,3 +4478,13 @@ do
         i = 99999
     end]]
 end
+
+print "Testing $object."
+do
+    local a = 1
+    local b = 2
+    local obj = $object(a, b)
+    assert(obj:size() == 2)
+    assert(obj.a == a)
+    assert(obj.b == b)
+end

@@ -3109,7 +3109,21 @@ int luaB_assert (lua_State *L);
 static void const_expr (LexState *ls, expdesc *v) {
   switch (ls->t.token) {
     case TK_NAME: {
-      if (strcmp(getstr(ls->t.seminfo.ts), "declare") == 0) {
+      if (strcmp(getstr(ls->t.seminfo.ts), "object") == 0) {
+        luaX_next(ls); /* skip 'object' */
+        checknext(ls, '(');
+        newtable(ls, v, [ls](expdesc *key, expdesc *val) {
+          if (ls->t.token == ')')
+            return false;
+          codename(ls, key, N_RESERVED);
+          luaX_prev(ls);
+          singlevar(ls, val);
+          testnext(ls, ',');
+          return true;
+        });
+        checknext(ls, ')');
+      }
+      else if (strcmp(getstr(ls->t.seminfo.ts), "declare") == 0) {
         luaX_next(ls); /* skip 'declare' */
         if (ls->t.token == TK_FUNCTION) {
           luaX_next(ls); /* skip TK_FUNCTION */
