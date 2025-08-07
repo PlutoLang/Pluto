@@ -515,6 +515,7 @@ static int l_encrypt (lua_State *L) {
     soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {  /* private key? */
       std::string data = pluto_checkstring(L, 1);
+      bool invalid = false;
       try {
         if (strcmp(mode, "rsa-pkcs1") == 0) {
           data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptPkcs1(std::move(data)).toBinary();
@@ -525,8 +526,10 @@ static int l_encrypt (lua_State *L) {
       }
       catch (std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
         data.clear(); data.shrink_to_fit();
-        luaL_error(L, "Invalid private key");
+        invalid = true;
       }
+      if (invalid)
+        luaL_error(L, "Invalid private key");
       pluto_pushstring(L, data);
       return 1;
     }
@@ -658,6 +661,7 @@ static int l_decrypt (lua_State *L) {
     soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {  /* private key? */
       std::string data = pluto_checkstring(L, 1);
+      bool invalid = false;
       try {
         if (strcmp(mode, "rsa-pkcs1") == 0) {
           data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptPkcs1(soup::Bigint::fromBinary(data));
@@ -668,8 +672,10 @@ static int l_decrypt (lua_State *L) {
       }
       catch (std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
         data.clear(); data.shrink_to_fit();
-        luaL_error(L, "Invalid private key");
+        invalid = true;
       }
+      if (invalid)
+        luaL_error(L, "Invalid private key");
       pluto_pushstring(L, data);
       return 1;
     }
@@ -698,6 +704,7 @@ static int l_sign (lua_State *L) {
     soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {
       std::string data = pluto_checkstring(L, 1);
+      bool invalid = false;
       try {
         if (strcmp(mode, "rsa-sha1") == 0) {
           data = soup::RsaPrivateKey::fromPrimes(*p, *q).sign<soup::sha1>(data).toBinary();
@@ -708,8 +715,10 @@ static int l_sign (lua_State *L) {
       }
       catch (std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
         data.clear(); data.shrink_to_fit();
-        luaL_error(L, "Invalid private key");
+        invalid = true;
       }
+      if (invalid)
+        luaL_error(L, "Invalid private key");
       pluto_pushstring(L, data);
       return 1;
     }
