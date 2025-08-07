@@ -2503,7 +2503,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
 #endif
         for (; n > 0; n--) {
           TValue *val = s2v(ra + n);
-          obj2arr(h, last, val);
+          obj2arr(h, last - 1, val);
 #ifdef PLUTO_VMDUMP
           rep.insert(0, stringify_tvalue(val) + "; ");
 #endif
