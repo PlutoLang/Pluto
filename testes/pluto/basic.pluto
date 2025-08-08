@@ -2384,6 +2384,9 @@ do
     assert(crypto.decrypt(base64.decode("a3bHHwmClgOnNAVFUWgwAw=="), "aes-cbc-pkcs7", key, iv) == "Hello, world!")
     assert(crypto.decrypt(base64.decode("wR/89K4T9cGKI9baKR0s7xI="), "aes-gcm", aadata, key, iv, base64.decode("d62kzEuotTdpAgYTrzdPpQ==")) == "Hello from Pluto!")
 
+    assert("got no value" in select(2, pcall(crypto.encrypt, "", "aes-cbc-pkcs7", key)))
+    assert("got no value" in select(2, pcall(crypto.decrypt, "", "aes-cbc-pkcs7", key)))
+
     assert(not pcall(crypto.encrypt, "abc", "aes-ecb-pkcs7", "abc"))
     assert(not pcall(crypto.decrypt, "abc", "aes-ecb-pkcs7", "abc"))
     assert(not pcall(crypto.sign, "deez"))

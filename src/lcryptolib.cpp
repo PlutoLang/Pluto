@@ -442,13 +442,6 @@ static int l_encrypt (lua_State *L) {
   size_t mode_len;
   const char *mode = luaL_checklstring(L, 2, &mode_len);
   if (mode_len >= 7 && memcmp(mode, "aes-", 4) == 0) {
-    size_t data_len;
-    const char *in_data = luaL_checklstring(L, 1, &data_len);
-    char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15 + 16));  /* need up to 15 for alignment and up to 16 for padding */
-    if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
-      data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
-    }
-    memcpy(data, in_data, data_len);
     const char *aadata = NULL;  /* for AEAD ciphers */
     size_t aadata_len;
     const char *key;
@@ -470,13 +463,20 @@ static int l_encrypt (lua_State *L) {
     else {
       luaL_error(L, "Unknown mode");
     }
-
     if (key_len != 16 && key_len != 24 && key_len != 32) {
       luaL_error(L, "Key length must be 16, 24, or 32 bytes for 128, 192, or 256-bit AES, respectively.");
     }
     if (!aadata && iv && iv_len != 16) {
       luaL_error(L, "IV must be 16 bytes");
     }
+
+    size_t data_len;
+    const char *in_data = luaL_checklstring(L, 1, &data_len);
+    char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15 + 16));  /* need up to 15 for alignment and up to 16 for padding */
+    if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
+      data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
+    }
+    memcpy(data, in_data, data_len);
 
     if (mode_len != 7) {
       if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
@@ -595,11 +595,7 @@ static int l_decrypt (lua_State *L) {
   if (mode_len >= 7 && memcmp(mode, "aes-", 4) == 0) {
     size_t data_len;
     const char *in_data = luaL_checklstring(L, 1, &data_len);
-    char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15));  /* need up to 15 for alignment */
-    if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
-      data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
-    }
-    memcpy(data, in_data, data_len);
+
     const char *aadata = NULL;  /* for AEAD ciphers */
     size_t aadata_len;
     const char *key;
@@ -627,13 +623,18 @@ static int l_decrypt (lua_State *L) {
     else {
       luaL_error(L, "Unknown mode");
     }
-
     if (key_len != 16 && key_len != 24 && key_len != 32) {
       luaL_error(L, "Key length must be 16, 24, or 32 bytes for 128, 192, or 256-bit AES, respectively.");
     }
     if (!aadata && iv && iv_len != 16) {
       luaL_error(L, "IV must be 16 bytes");
     }
+
+    char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15));  /* need up to 15 for alignment */
+    if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
+      data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
+    }
+    memcpy(data, in_data, data_len);
 
     bool pkcs7 = false;
     if (mode_len != 7) {
