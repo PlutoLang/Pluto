@@ -2642,6 +2642,7 @@ do
     assert(not pcall(crypto.encrypt, "abc", "aes-ecb-pkcs7", "abc"))
     assert(not pcall(crypto.decrypt, "abc", "aes-ecb-pkcs7", "abc"))
     assert(not pcall(crypto.sign, "deez"))
+    assert(not pcall(crypto.generatekeypair, "deez"))
 
     assert(not pcall(crypto.encrypt, "123", "rsa-sha1", { p = bigint.new("123"), q = bigint.new("123") }))
     assert(not pcall(crypto.decrypt, "123", "rsa-sha1", { p = bigint.new("123"), q = bigint.new("123") }))
@@ -2690,6 +2691,15 @@ do
     local reimported = pem |> crypto.importkey|"pem"|
     assert(reimported.p == priv.p)
     assert(reimported.q == priv.q)
+
+    -- X25519 test vectors as per RFC 7748 Section 6.1
+    local alice_priv <const> = "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a":fromhex()
+    local alice_pub <const> = "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a":fromhex()
+    local bob_priv <const> = "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb":fromhex()
+    local bob_pub <const> = "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f":fromhex()
+    local shared_secret <const> = "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742":fromhex()
+    assert(crypto.x25519(alice_priv, bob_pub) == shared_secret)
+    assert(crypto.x25519(bob_priv, alice_pub) == shared_secret)
 end
 do
     local bigint = require "pluto:bigint"
