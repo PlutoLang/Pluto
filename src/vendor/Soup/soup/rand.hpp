@@ -103,9 +103,18 @@ NAMESPACE_SOUP
 		template <size_t S>
 		static void fill(uint8_t(&arr)[S]) noexcept
 		{
-			for (auto& b : arr)
+			for (size_t i = 0; i != S; ++i)
 			{
-				b = byte();
+				arr[i] = byte();
+			}
+		}
+
+		template <size_t S>
+		static void fill(uint8_t arr[S]) noexcept
+		{
+			for (size_t i = 0; i != S; ++i)
+			{
+				arr[i] = byte();
 			}
 		}
 
