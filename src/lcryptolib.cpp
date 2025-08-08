@@ -15,6 +15,7 @@
 #include "vendor/Soup/soup/aes.hpp"
 #include "vendor/Soup/soup/crc32.hpp"
 #include "vendor/Soup/soup/crc32c.hpp"
+#include "vendor/Soup/soup/Curve25519.hpp"
 #include "vendor/Soup/soup/deflate.hpp"
 #include "vendor/Soup/soup/HardwareRng.hpp"
 #include "vendor/Soup/soup/ripemd160.hpp"
@@ -407,25 +408,34 @@ soup::Bigint* checkbigint (lua_State *L, int i);
 static int generatekeypair (lua_State *L) {
   auto type = luaL_checkstring(L, 1);
   auto bits = (int)luaL_checkinteger(L, 2);
-  if (strcmp(type, "rsa") != 0) {
-    luaL_error(L, "Unknown type");
+  if (strcmp(type, "rsa") == 0) {
+    auto kp = soup::RsaKeypair::generate(bits < 0 ? bits * -1 : bits, bits < 0);
+    lua_newtable(L);
+    lua_pushliteral(L, "n");
+    pushbigint(L, std::move(kp.n));
+    lua_settable(L, -3);
+    lua_pushliteral(L, "e");
+    pushbigint(L, std::move(kp.e));
+    lua_settable(L, -3);
+    lua_newtable(L);
+    lua_pushliteral(L, "p");
+    pushbigint(L, std::move(kp.p));
+    lua_settable(L, -3);
+    lua_pushliteral(L, "q");
+    pushbigint(L, std::move(kp.q));
+    lua_settable(L, -3);
+    return 2;
   }
-  auto kp = soup::RsaKeypair::generate(bits < 0 ? bits * -1 : bits, bits < 0);
-  lua_newtable(L);
-  lua_pushliteral(L, "n");
-  pushbigint(L, std::move(kp.n));
-  lua_settable(L, -3);
-  lua_pushliteral(L, "e");
-  pushbigint(L, std::move(kp.e));
-  lua_settable(L, -3);
-  lua_newtable(L);
-  lua_pushliteral(L, "p");
-  pushbigint(L, std::move(kp.p));
-  lua_settable(L, -3);
-  lua_pushliteral(L, "q");
-  pushbigint(L, std::move(kp.q));
-  lua_settable(L, -3);
-  return 2;
+  if (strcmp(type, "curve25519") == 0) {
+    uint8_t priv[soup::Curve25519::KEY_SIZE];
+    uint8_t pub[soup::Curve25519::KEY_SIZE];
+    soup::Curve25519::generatePrivate(priv);
+    soup::Curve25519::derivePublic(pub, priv);
+    lua_pushlstring(L, (const char*)pub, sizeof(pub));
+    lua_pushlstring(L, (const char*)priv, sizeof(priv));
+    return 2;
+  }
+  luaL_error(L, "Unknown type");
 }
 
 
@@ -838,6 +848,23 @@ static int l_verify (lua_State *L) {
 }
 
 
+static int l_x25519 (lua_State *L) {
+  size_t priv_len, pub_len;
+  const char *priv = luaL_checklstring(L, 1, &priv_len);
+  if (l_unlikely(priv_len != 32)) {
+    luaL_error(L, "Invalid private key");
+  }
+  const char *pub = luaL_checklstring(L, 2, &pub_len);
+  if (l_unlikely(pub_len != 32)) {
+    luaL_error(L, "Invalid public key");
+  }
+  uint8_t shared_secret[soup::Curve25519::SHARED_SIZE];
+  soup::Curve25519::x25519(shared_secret, (const uint8_t*)priv, (const uint8_t*)pub);
+  lua_pushlstring(L, (const char*)shared_secret, sizeof(shared_secret));
+  return 1;
+}
+
+
 static int l_adler32 (lua_State *L) {
   size_t size;
   const char *data = luaL_checklstring(L, 1, &size);
@@ -915,6 +942,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"decrypt", l_decrypt},
   {"sign", l_sign},
   {"verify", l_verify},
+  {"x25519", l_x25519},
   {"adler32", l_adler32},
   {"decompress", l_decompress},
   {"ripemd160", l_ripemd160},
