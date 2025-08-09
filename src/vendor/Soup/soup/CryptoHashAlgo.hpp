@@ -6,6 +6,8 @@
 #include <cstring> // memset, memcpy
 #include <string>
 
+#include "Endian.hpp"
+
 NAMESPACE_SOUP
 {
 	template <typename T>
@@ -38,6 +40,27 @@ NAMESPACE_SOUP
 			st.append(msg.data(), msg.size());
 			st.finalise();
 			return st.getDigest();
+		}
+
+		[[nodiscard]] static std::string mgf1(const void* seed_data, size_t seed_size, size_t out_len)
+		{
+			std::string out;
+			out.reserve(((out_len / T::DIGEST_BYTES) + 1) * T::DIGEST_BYTES);
+			for (uint32_t counter = 0; out.size() < out_len; ++counter)
+			{
+				const auto counter_be = Endianness::toNetwork(counter);
+
+				typename T::State st;
+				st.append(seed_data, seed_size);
+				st.append(&counter_be, 4);
+				st.finalise();
+				out.append(st.getDigest());
+			}
+			if (size_t x = out.size() - out_len)
+			{
+				out.erase(out_len, x);
+			}
+			return out;
 		}
 
 		// used as (secret, label, seed) in the RFC

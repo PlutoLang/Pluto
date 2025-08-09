@@ -4,6 +4,7 @@
 
 #include "Bigint.hpp"
 #include "JsonObject.hpp"
+#include "rand.hpp"
 
 NAMESPACE_SOUP
 {
@@ -20,6 +21,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] size_t getMaxUnpaddedMessageBytes() const noexcept;
 		[[nodiscard]] size_t getMaxPkcs1MessageBytes() const noexcept;
+		[[nodiscard]] size_t getMaxOaepMessageBytes(size_t digest_bytes) const noexcept;
 
 		bool padPublic(std::string& str) const SOUP_EXCAL; // non-deterministic
 		bool padPrivate(std::string& str) const SOUP_EXCAL; // deterministic
@@ -36,6 +38,130 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] UniquePtr<JsonObject> publicToJwk(const Bigint& e) const SOUP_EXCAL;
 		[[nodiscard]] std::string publicGetJwkThumbprint(const Bigint& e) const SOUP_EXCAL;
+
+		template <typename Hash>
+		std::string padOaep(const std::string& msg, const char* label_data = "", size_t label_size = 0) const SOUP_EXCAL // non-deterministic
+		{
+			const auto k = getMaxUnpaddedMessageBytes();
+			constexpr auto hLen = Hash::DIGEST_BYTES;
+			const auto mLen = msg.size();
+
+			SOUP_IF_UNLIKELY (k < (2 * hLen + 2) || mLen > (k - 2 * hLen - 2))
+			{
+				return {};
+			}
+
+			// Step 1
+			uint8_t lHash[hLen];
+			{
+				typename Hash::State st;
+				st.append(label_data, label_size);
+				st.finalise();
+				st.getDigest(lHash);
+			}
+
+			std::string db;
+			db.reserve(k - hLen - 1);
+			db.append((const char*)lHash, sizeof(lHash));
+			db.append(k - mLen - 2 * hLen - 2, '\0'); // Step 2
+			db.push_back('\x01');
+			db.append(msg); // Step 3
+			SOUP_DEBUG_ASSERT(db.size() == k - hLen - 1);
+
+			// Step 4
+			uint8_t seed[hLen];
+			soup::rand.fill(seed);
+
+			// Step 5
+			const auto dbMask = Hash::mgf1(seed, sizeof(seed), db.size());
+
+			// Step 6
+			for (size_t i = 0; i != db.size(); ++i)
+			{
+				db[i] ^= dbMask[i];
+			}
+
+			// Step 7
+			const auto seedMask = Hash::mgf1(db.data(), db.size(), sizeof(seed));
+
+			// Step 8
+			for (size_t i = 0; i != sizeof(seed); ++i)
+			{
+				seed[i] ^= seedMask[i];
+			}
+
+			// Step 9
+			SOUP_DEBUG_ASSERT(1 + sizeof(seed) + db.size() == k);
+			std::string res;
+			res.reserve(k);
+			res.push_back('\0');
+			res.append((const char*)seed, sizeof(seed));
+			res.append(db);
+			return res;
+		}
+
+		template <typename Hash>
+		static bool unpadOaep(std::string& str, const char* label_data = "", size_t label_size = 0) SOUP_EXCAL // deterministic
+		{
+			constexpr auto hLen = Hash::DIGEST_BYTES;
+
+			SOUP_IF_UNLIKELY (str.size() < (2 * hLen + 2) || str[0] != '\0')
+			{
+				str.clear();
+				return false;
+			}
+
+			// Reverse step 9
+			uint8_t seed[hLen];
+			memcpy(seed, str.data() + 1, hLen);
+			auto db = str.substr(1 + hLen);
+
+			// Reverse step 8 & 7
+			const auto seedMask = Hash::mgf1(db.data(), db.size(), sizeof(seed));
+			for (size_t i = 0; i != sizeof(seed); ++i)
+			{
+				seed[i] ^= seedMask[i];
+			}
+
+			// Reverse step 6 & 5
+			const auto dbMask = Hash::mgf1(seed, sizeof(seed), db.size());
+			for (size_t i = 0; i != db.size(); ++i)
+			{
+				db[i] ^= dbMask[i];
+			}
+
+			// Verify label
+			uint8_t lHash[hLen];
+			{
+				typename Hash::State st;
+				st.append(label_data, label_size);
+				st.finalise();
+				st.getDigest(lHash);
+			}
+			SOUP_IF_UNLIKELY (memcmp(lHash, db.data(), sizeof(lHash)) != 0)
+			{
+				str.clear();
+				return false;
+			}
+
+			// Final push
+			size_t i = sizeof(lHash);
+			for (; i != db.size(); ++i)
+			{
+				if (db[i] == 1)
+				{
+					++i;
+					break;
+				}
+				SOUP_IF_UNLIKELY (db[i] != 0)
+				{
+					str.clear();
+					return false;
+				}
+			}
+			str = db.substr(i);
+			return true;
+		}
 	};
 
 	template <typename T>
@@ -51,6 +177,21 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::string decryptUnpadded(const Bigint& enc) const SOUP_EXCAL
 		{
 			return static_cast<const T*>(this)->modPow(enc).toBinary();
+		}
+
+		template <typename Hash>
+		[[nodiscard]] Bigint encryptOaep(const std::string& msg) const SOUP_EXCAL
+		{
+			return encryptUnpadded(padOaep<Hash>(msg));
+		}
+
+		template <typename Hash>
+		[[nodiscard]] std::string decryptOaep(const Bigint& enc) const SOUP_EXCAL
+		{
+			const auto k = getMaxUnpaddedMessageBytes();
+			auto msg = static_cast<const T*>(this)->modPow(enc).toBinary(k);
+			unpadOaep<Hash>(msg);
+			return msg;
 		}
 
 		// With 2048-bit private key, OpenSSL takes ~0.001 ms. Soup takes ~12.4 ms. What the fuck?
