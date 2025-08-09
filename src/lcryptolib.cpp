@@ -470,12 +470,26 @@ static int importkey (lua_State *L) {
 #define MSVC_NO_INLINE
 #endif
 
+template <typename Hash>
+static MSVC_NO_INLINE void rsa_priv_encrypt_oaep (std::string& data, soup::Bigint* p, soup::Bigint* q, const char* label_data, size_t label_size) {
+  auto priv = soup::RsaPrivateKey::fromPrimes(*p, *q);
+  data = priv.padOaep<Hash>(data, label_data, label_size);
+  data = priv.encryptUnpadded(data).toBinary();
+}
+
 static MSVC_NO_INLINE void rsa_priv_encrypt_pkcs1 (std::string& data, soup::Bigint* p, soup::Bigint* q) {
   data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptPkcs1(std::move(data)).toBinary();
 }
 
 static MSVC_NO_INLINE void rsa_priv_encrypt_raw (std::string& data, soup::Bigint* p, soup::Bigint* q) {
   data = soup::RsaPrivateKey::fromPrimes(*p, *q).encryptUnpadded(std::move(data)).toBinary();
+}
+
+template <typename Hash>
+static MSVC_NO_INLINE void rsa_pub_encrypt_oaep (std::string& data, soup::Bigint* n, soup::Bigint* e, const char* label_data, size_t label_size) {
+  auto pub = soup::RsaPublicKey(*n, *e);
+  data = pub.padOaep<Hash>(data, label_data, label_size);
+  data = pub.encryptUnpadded(data).toBinary();
 }
 
 static MSVC_NO_INLINE void rsa_pub_encrypt_pkcs1 (std::string& data, soup::Bigint* n, soup::Bigint* e) {
@@ -588,9 +602,26 @@ static int l_encrypt (lua_State *L) {
     soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {  /* private key? */
       std::string data = pluto_checkstring(L, 1);
+      size_t label_size = 0;
+      const char* label_data = "";
+      if (!lua_isnoneornil(L, 4)) {
+        label_data = luaL_checklstring(L, 4, &label_size);
+      }
       bool fail = false;
       try {
-        if (strcmp(mode, "rsa-pkcs1") == 0) {
+        if (strcmp(mode, "rsa-sha1") == 0) {
+          rsa_priv_encrypt_oaep<soup::sha1>(data, p, q, label_data, label_size);
+        }
+        else if (strcmp(mode, "rsa-sha256") == 0) {
+          rsa_priv_encrypt_oaep<soup::sha256>(data, p, q, label_data, label_size);
+        }
+        else if (strcmp(mode, "rsa-sha384") == 0) {
+          rsa_priv_encrypt_oaep<soup::sha384>(data, p, q, label_data, label_size);
+        }
+        else if (strcmp(mode, "rsa-sha512") == 0) {
+          rsa_priv_encrypt_oaep<soup::sha512>(data, p, q, label_data, label_size);
+        }
+        else if (strcmp(mode, "rsa-pkcs1") == 0) {
           rsa_priv_encrypt_pkcs1(data, p, q);
         }
         else {
@@ -608,7 +639,24 @@ static int l_encrypt (lua_State *L) {
     }
     else if (n && e) {  /* public key? */
       std::string data = pluto_checkstring(L, 1);
-      if (strcmp(mode, "rsa-pkcs1") == 0) {
+      size_t label_size = 0;
+      const char* label_data = "";
+      if (!lua_isnoneornil(L, 4)) {
+        label_data = luaL_checklstring(L, 4, &label_size);
+      }
+      if (strcmp(mode, "rsa-sha1") == 0) {
+        rsa_pub_encrypt_oaep<soup::sha1>(data, n, e, label_data, label_size);
+      }
+      else if (strcmp(mode, "rsa-sha256") == 0) {
+        rsa_pub_encrypt_oaep<soup::sha256>(data, n, e, label_data, label_size);
+      }
+      else if (strcmp(mode, "rsa-sha384") == 0) {
+        rsa_pub_encrypt_oaep<soup::sha384>(data, n, e, label_data, label_size);
+      }
+      else if (strcmp(mode, "rsa-sha512") == 0) {
+        rsa_pub_encrypt_oaep<soup::sha512>(data, n, e, label_data, label_size);
+      }
+      else if (strcmp(mode, "rsa-pkcs1") == 0) {
         rsa_pub_encrypt_pkcs1(data, n, e);
       }
       else {
@@ -622,12 +670,28 @@ static int l_encrypt (lua_State *L) {
   else luaL_error(L, "Unknown mode");
 }
 
+template <typename Hash>
+[[nodiscard]] static MSVC_NO_INLINE bool rsa_priv_decrypt_oaep (std::string& data, soup::Bigint* p, soup::Bigint* q, const char* label_data, size_t label_size) {
+  auto priv = soup::RsaPrivateKey::fromPrimes(*p, *q);
+  const auto k = priv.getMaxUnpaddedMessageBytes();
+  data = priv.modPow(soup::Bigint::fromBinary(data)).toBinary(k);
+  return priv.unpadOaep<Hash>(data, label_data, label_size);
+}
+
 static MSVC_NO_INLINE void rsa_priv_decrypt_pkcs1 (std::string& data, soup::Bigint* p, soup::Bigint* q) {
   data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptPkcs1(soup::Bigint::fromBinary(data));
 }
 
 static MSVC_NO_INLINE void rsa_priv_decrypt_raw (std::string& data, soup::Bigint* p, soup::Bigint* q) {
   data = soup::RsaPrivateKey::fromPrimes(*p, *q).decryptUnpadded(soup::Bigint::fromBinary(data));
+}
+
+template <typename Hash>
+[[nodiscard]] static MSVC_NO_INLINE bool rsa_pub_decrypt_oaep (std::string& data, soup::Bigint* n, soup::Bigint* e, const char* label_data, size_t label_size) {
+  auto pub = soup::RsaPublicKey(*n, *e);
+  const auto k = pub.getMaxUnpaddedMessageBytes();
+  data = pub.modPow(soup::Bigint::fromBinary(data)).toBinary(k);
+  return pub.unpadOaep<Hash>(data, label_data, label_size);
 }
 
 static MSVC_NO_INLINE void rsa_pub_decrypt_pkcs1 (std::string& data, soup::Bigint* n, soup::Bigint* e) {
@@ -730,11 +794,11 @@ static int l_decrypt (lua_State *L) {
     if (pkcs7) {
       char pad_size = data[data_len - 1];
       if (l_unlikely(pad_size < 1 || pad_size > 16)) {
-        luaL_error(L, "PKCS#7 unpadding failed");
+        luaL_error(L, "Unpadding failed");
       }
       for (auto i = pad_size; i; --i) {
         if (l_unlikely(data[--data_len] != pad_size)) {
-          luaL_error(L, "PKCS#7 unpadding failed");
+          luaL_error(L, "Unpadding failed");
         }
       }
     }
@@ -750,9 +814,27 @@ static int l_decrypt (lua_State *L) {
     soup::Bigint *q = lua_getfield(L, 3, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
     if (p && q) {  /* private key? */
       std::string data = pluto_checkstring(L, 1);
-      bool fail = false;
+      size_t label_size = 0;
+      const char* label_data = "";
+      if (!lua_isnoneornil(L, 4)) {
+          label_data = luaL_checklstring(L, 4, &label_size);
+      }
+      bool invalidkey = false;
+      bool padok = true;
       try {
-        if (strcmp(mode, "rsa-pkcs1") == 0) {
+        if (strcmp(mode, "rsa-sha1") == 0) {
+          padok = rsa_priv_decrypt_oaep<soup::sha1>(data, p, q, label_data, label_size);
+        }
+        else if (strcmp(mode, "rsa-sha256") == 0) {
+          padok = rsa_priv_decrypt_oaep<soup::sha256>(data, p, q, label_data, label_size);
+        }
+        else if (strcmp(mode, "rsa-sha384") == 0) {
+          padok = rsa_priv_decrypt_oaep<soup::sha384>(data, p, q, label_data, label_size);
+        }
+        else if (strcmp(mode, "rsa-sha512") == 0) {
+          padok = rsa_priv_decrypt_oaep<soup::sha512>(data, p, q, label_data, label_size);
+        }
+        else if (strcmp(mode, "rsa-pkcs1") == 0) {
           rsa_priv_decrypt_pkcs1(data, p, q);
         }
         else {
@@ -761,21 +843,43 @@ static int l_decrypt (lua_State *L) {
       }
       catch (std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
         data.clear(); data.shrink_to_fit();
-        fail = true;
+        invalidkey = true;
       }
-      if (l_unlikely(fail))
+      if (l_unlikely(invalidkey))
         luaL_error(L, "Invalid private key");
+      if (!padok)
+        luaL_error(L, "Unpadding failed");
       pluto_pushstring(L, data);
       return 1;
     }
     else if (n && e) {  /* public key? */
       std::string data = pluto_checkstring(L, 1);
-      if (strcmp(mode, "rsa-pkcs1") == 0) {
+      size_t label_size = 0;
+      const char* label_data = "";
+      if (!lua_isnoneornil(L, 4)) {
+          label_data = luaL_checklstring(L, 4, &label_size);
+      }
+      bool padok = true;
+      if (strcmp(mode, "rsa-sha1") == 0) {
+        padok = rsa_pub_decrypt_oaep<soup::sha1>(data, n, e, label_data, label_size);
+      }
+      else if (strcmp(mode, "rsa-sha256") == 0) {
+        padok = rsa_pub_decrypt_oaep<soup::sha256>(data, n, e, label_data, label_size);
+      }
+      else if (strcmp(mode, "rsa-sha384") == 0) {
+        padok = rsa_pub_decrypt_oaep<soup::sha384>(data, n, e, label_data, label_size);
+      }
+      else if (strcmp(mode, "rsa-sha512") == 0) {
+        padok = rsa_pub_decrypt_oaep<soup::sha512>(data, n, e, label_data, label_size);
+      }
+      else if (strcmp(mode, "rsa-pkcs1") == 0) {
         rsa_pub_decrypt_pkcs1(data, n, e);
       }
       else {
         rsa_pub_decrypt_raw(data, n, e);
       }
+      if (!padok)
+        luaL_error(L, "Unpadding failed");
       pluto_pushstring(L, data);
       return 1;
     }
