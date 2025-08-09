@@ -78,6 +78,26 @@ do
     end
     ]]
 
+    -- 3-way union
+    assert_no_warn[[local _x: ?string|number]]
+    assert_no_warn[[local _x: ?string|number = nil]]
+    assert_no_warn[[local _x: ?string|number = 0]]
+    assert_no_warn[[local _x: ?string|number = ""]]
+    assert_warn[[local _x: ?string|number = {}]]
+    -- 4-way union
+    assert_no_warn[[local _: ?string|number|table = {}]]
+
+    -- a violated type hint implies unreachable code so does not raise further warnings
+    assert_no_warn[[-- @pluto_warnings disable-next
+local a: number = ""
+local _b: string = a
+local _c: table = a]]
+    assert_no_warn[[local a: number = 0
+-- @pluto_warnings disable-next
+a = ""
+local _b: string = a
+local _c: table = a]]
+
     -- TypeHint::merge should copy over function info
     do
         local f = function(_a) end
@@ -94,6 +114,43 @@ do
     local function delegator(_f: function) end
     delegator()
     ]])
+
+    -- Complex function type hints
+    assert_no_warn[[local _: function(number): void = function(x: number) assert(x) end]]
+    assert_warn[[local _: function(string): void = function(x: number) assert(x) end]]
+    assert_warn[[local function f(cb: function(str: string): number)
+    cb(10)
+end
+f(tonumber)]]
+    assert_warn[[local function f(cb: function(string): number)
+    local _: string = cb("10")
+end
+f(tonumber)]]
+    assert_no_warn[[local a: function(int) | function(string) = function(_: int) end
+    a = function(_: string) end
+    a("")]]
+
+    -- Complex table type hints
+    assert_warn[[local h = { name = "" }
+    local _: number = h.name]]
+    assert_warn[[local function _f(h: { name: string })
+        local _: number = h.name
+    end]]
+    -- trailing ; or ,
+    assert_no_warn[[local _: { x: number, } = { x = 1 }]]
+    assert_no_warn[[local _: { x: number; } = { x = 1 }]]
+    -- warn on missing and incompatible fields
+    assert_warn[[local _: { x: number; y: number } = {}]]
+    assert_warn[[local _: { x: number; y: number } = { x = 1 }]]
+    assert_warn[[local _: { x: number; y: number } = { x = 1, y = "" }]]
+    assert_no_warn[[local _: { x: number; y: number } = { x = 1, y = 2 }]]
+    assert_no_warn[[local _: { x: ?number; y: ?number } = {}]]
+
+    -- Named types
+    assert_warn[[$type Point = { x: number, y: number }
+    local _: Point = {}]]
+    assert_no_warn[[$type Point = { x: number, y: number }
+    local _: Point = { x = 1, y = 2 }]]
 
     -- Nested localstat
     assert_no_warn[[local _f: function = function()
@@ -136,14 +193,20 @@ end
     end
     return true
 end
-local a: string = f() ?? true]]
+local _: string = f() ?? true]]
     assert_no_warn [[local function f(): ?bool
     if x then
         return nil
     end
     return true
 end
-local _a: bool|int = f() ?? 0]]
+local _: bool|int = f() ?? 0]]
+
+    -- Default argument removes nil from propagated type
+    assert_no_warn[[local function f(a: ?bool = true)
+        local _: bool = a
+    end
+    f(true)]]
 
     -- 'else' propagates its return type too
     assert_no_warn[[function _foo(x: number): ?string
@@ -169,6 +232,20 @@ if mt then
 end
 if __newindex then end
 ]]
+
+    -- multiple return values
+    assert_warn[[local function _f(): (boolean, number)
+        return true, false
+    end]]
+    assert_no_warn[[local function _f(): (boolean, number)
+        return true, 1
+    end]]
+    assert_no_warn[[local _f: function:(int,int) = function(a: int, b: int)
+        return a, b
+    end]]
+    assert_warn[[local _f: function:(int,string) = function(a: int, b: int)
+        return a, b
+    end]]
 
     -- discarded-return basic test
     assert_warn[[local function f() <nodiscard>
@@ -196,9 +273,28 @@ end]]
     assert_no_warn[[if false and true then
 else
 end]]
-end
--- Propagate conditional in block
-do
+
+    -- function return type propagation from global
+    assert_no_warn[[a = function()
+        return 1
+    end
+    local _b: number = a()]]
+
+    -- funcstat also propagates type
+    assert_warn[[function f(_a: bool) end
+    f("")]]
+
+    -- $declare
+    assert_no_warn[[$declare _PVERSION: string
+    local _: string = _PVERSION]]
+    assert_warn[[$declare _PVERSION: string
+    local _: number = _PVERSION]]
+    assert_no_warn[[$declare function tonumber(str: string, base: ?number): number
+    local _: number = tonumber("10")]]
+    assert_warn[[$declare function tonumber(str: string, base: ?number): number
+    local _: string = tonumber("10")]]
+
+    -- Propagate conditional in block
     assert_no_warn[[local function _test(arg: string|number): void
         if type(arg) == "string" then
             local _str: string = arg
@@ -216,6 +312,83 @@ do
             local _str: number = arg
         end
     end]]
+    -- Acts as a filter, not an upcast
+    assert_no_warn[[local function _(f: function(int))
+        if type(f) == "function" then
+            local __: function(int) = f
+        end
+    end]]
+    -- And the other way around
+    assert_no_warn[[local function _(a: number|string)
+        if type(a) ~= "string" then
+            local __: number = a
+        end
+    end]]
+    assert_no_warn[[local function _(a: number|string)
+        if type(a) != "string" then
+            local __: number = a
+        end
+    end]]
+
+    -- 'any'
+    assert_no_warn[[
+        local function f(_: any) end
+        f(0)
+    ]]
+    assert_no_warn[[
+        local function f(_: any) end
+        f(nil)
+    ]]
+    -- to make 'any' not entirely useless for function parameters...
+    assert_warn[[
+        local function f(_: any) end
+        f()
+    ]]
+    assert_no_warn[[
+        local function f(_: ?any) end
+        f()
+    ]]
+
+    -- 'nil'
+    assert_warn[[
+        local function f(_: nil|bool) end
+        f()
+    ]]
+    assert_no_warn[[
+        local function f(_: nil|bool) end
+        f(nil)
+    ]]
+    assert_no_warn[[
+        local function f(_: nil|bool) end
+        f(true)
+    ]]
+    assert_warn[[
+        local function f(_: nil|bool) end
+        f("true")
+    ]]
+    -- '?'
+    assert_no_warn[[
+        local function f(_: ?bool) end
+        f()
+    ]]
+    assert_no_warn[[
+        local function f(_: ?bool) end
+        f(nil)
+    ]]
+    assert_no_warn[[
+        local function f(_: ?bool) end
+        f(true)
+    ]]
+    assert_warn[[
+        local function f(_: ?bool) end
+        f("true")
+    ]]
+
+    -- 'userdata' (currently not inferred)
+    assert_warn[[$declare function newuserdata(): userdata
+    local _: table = newuserdata()]]
+    assert_no_warn[[$declare function newuserdata(): userdata
+    local _: userdata = newuserdata()]]
 end
 -- Strings should not be able to disable warnings
 do
@@ -1446,6 +1619,12 @@ if table.freeze then
     status, _ = pcall(function () _ENV[function () end] = "abc" end)
     assert(status == false, "expected error")
     --]] --> Doing this will break tests done with dofile(), since the environment is reused.
+
+    t = table.freeze({ 1, a = 1 })
+    pcall(|| -> do t[1] = 2 end)
+    pcall(|| -> do t.a = 2 end)
+    assert(t[1] == 1)
+    assert(t.a == 1)
 end
 
 print "Testing pipe operator."
@@ -1565,6 +1744,7 @@ do
     local crypto = require("crypto")
     assert(crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
     assert(crypto.fnv1a("hello world") == 8618312879776256743)
+    assert(crypto.fnv1a32("hello world") == 0xd58b3fa7)
     assert(crypto.joaat("hello world") == 1045060183)
     assert(crypto.crc32("hello world") == 222957957)
     assert(crypto.crc32c("hello world") == 3381945770)
@@ -1587,6 +1767,14 @@ do
 
     assert(crypto.ripemd160("Pluto") == "c2072a85f4a691803b8942709036072086fd9550")
     assert(crypto.ripemd160("Pluto", true) == "\xc2\x07\x2a\x85\xf4\xa6\x91\x80\x3b\x89\x42\x70\x90\x36\x07\x20\x86\xfd\x95\x50")
+
+    do
+        local key = "\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b"
+        assert(crypto.hmac("sha256", key, "Hi There") == "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7")
+        assert(crypto.hmac("sha256", key, "Hi There", false) == "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7")
+        assert(crypto.hmac("sha256", key, "Hi There", true) == "\xb0\x34\x4c\x61\xd8\xdb\x38\x53\x5c\xa8\xaf\xce\xaf\x0b\xf1\x2b\x88\x1d\xc2\x00\xc9\x83\x3d\xa7\x26\xe9\x37\x6c\x2e\x32\xcf\xf7")
+        assert(crypto.hmac("sha1", "plnlrtfpijpuhqylxbgqiiyipieyxvfsavzgxbbcfusqkozwpngsyejqlmjsytrmd", "\xA0\x09\xC1\xA4\x85\x91\x2C\x6A\xE6\x30\xD3\xE7\x44\x24\x0B\x04\x00\x00\x00\x01") == "c9b3082a25d4634b5e06260c5c790178cb152044")
+    end
 end
 do
     local base64 = require("base64")
@@ -1618,7 +1806,7 @@ do
     assert(base32.decode("AA======") == "\x00")
 end
 do
-    local json = require("json")
+    local { assert, json } = require "*"
 
     assert(json.decode([[{"a":null]]).a == nil)
     assert(json.decode([[{"a":null}]], json.withnull).a == json.null)
@@ -1676,6 +1864,23 @@ do
     -- Cannot encode non-finite numbers
     assert(not pcall(|| -> json.encode(1/0)))
     assert(not pcall(|| -> json.encode(0/0)))
+
+    -- MessagePack
+    assert(json.encode({ 0, true, json.null }, "msgpack") == "\x93\x00\xc3\xc0")
+    assert.equal(json.decode("\x93\x00\xc3\xc0", json.withnull | json.msgpack), { 0, true, json.null })
+
+    -- __order should not change the key type
+    assert(require"json".encode{
+        [10] = "a",
+        [20] = "b",
+        [30] = "c",
+    }:find('10:"a"'))
+    assert(require"json".encode{
+        __order = { 10, 20, 30 },
+        [10] = "a",
+        [20] = "b",
+        [30] = "c",
+    } == '{10:"a",20:"b",30:"c"}')
 end
 do
     local root = {}
@@ -2088,6 +2293,32 @@ do
     assert(tr[3] == nil)
 end
 do
+    local t = {
+        a = {
+            b = {
+                c = {}
+            },
+        },
+    }
+    local t_1 = t:clone(1)
+    assert(t ~= t_1)
+    assert(t.a == t_1.a)
+    local t_2 = t:clone(2)
+    assert(t ~= t_2)
+    assert(t.a ~= t_2.a)
+    assert(t.a.b == t_2.a.b)
+    local t_3 = t:clone(3)
+    assert(t ~= t_3)
+    assert(t.a ~= t_3.a)
+    assert(t.a.b ~= t_3.a.b)
+    assert(t.a.b.c == t_3.a.b.c)
+    local t_x = t:clone()
+    assert(t ~= t_x)
+    assert(t.a ~= t_x.a)
+    assert(t.a.b ~= t_x.a.b)
+    assert(t.a.b.c ~= t_x.a.b.c)
+end
+do
     local menu = {
         { id = 1, name = "Apple" },
         { id = 2, name = "Banana" },
@@ -2262,6 +2493,27 @@ end
 do
     assert(math.isnan(0 / 0) == true)
     assert(math.isnan(69) == false)
+
+    -- Lua: Round to smallest adjacent integer
+    assert(math.floor(10.5) == 10)
+    assert(math.floor(-10.5) == -11)
+
+    -- Pluto: Round towards 0
+    assert(math.trunc(10.5) == 10)
+    assert(math.trunc(-10.5) == -10)
+
+    -- Pluto: Round to closest integer
+    assert(math.round(10.5) == 11)
+    assert(math.round(-10.5) == -11)
+
+    -- Lua: Round to biggest adjacent integer
+    assert(math.ceil(10.5) == 11)
+    assert(math.ceil(-10.5) == -10)
+
+    assert(math.round(math.cbrt(27)) == 3)
+    assert(math.round(math.cbrt(-27)) == -3)
+
+    assert(tostring(math.hypot(1e155, 1e155)):sub(1, 7) == "1.41421")
 end
 do
     local t = range(3)
@@ -2443,6 +2695,21 @@ do
         assert(n:hex() == "D8D12A03AE2F14B16CBFDF160FF7AC97911862B3D048F18E3B95E909A08D91AAD4BA48D8A1FE4EBC555782FDE14D13085A35F6F62D57A4F86CE1FF32503A9055")
         assert(n:bitlength() == 512)
     end
+
+    assert(tostring(-new bigint(4)) == "-4")
+    assert(tostring(-new bigint(-4)) == "4")
+
+    assert(bigint.new(48):gcd(bigint.new(18)):tostring() == "6")
+
+    -- Mixed bigint/number operands
+    assert(tostring(new bigint(4) * 2) == "8")
+
+    -- Import/Export
+    assert(require"bigint".new("1056"):export() == "\x04\x20")
+    assert(require"bigint".new("1056"):export(0) == "\x04\x20")
+    assert(require"bigint".new("1056"):export(4) == "\x00\x00\x04\x20")
+    assert(require"bigint".import("\x04\x20"):tostring() == "1056")
+    assert(require"bigint".import("\x00\x00\x04\x20"):tostring() == "1056")
 end
 do
     local { scheduler } = require "*"
@@ -2574,6 +2841,15 @@ do
     end
     assert(buf:tostring() == "abc":rep(10))
     assert(tostring(buf) == "abc":rep(10))
+end
+do
+    local class MyClass
+        __name = "MyClass"
+    end
+    local a = new MyClass()
+    local b = new MyClass()
+    b.prop = true
+    assert(dumpvar({ a, b }) == "{\n\t[1] = { --[[ MyClass ]] },\n\t[2] = { -- MyClass\n\t\t[\"prop\"] = true,\n\t},\n}")
 end
 do
     assert(exportvar(1/0) == "math.huge")
@@ -2912,10 +3188,17 @@ do
         function printInformation()
             return $"My name is {self.name} & my age is {self.age}."
         end
+
+        function __tostring()
+            return $"Person(\"{self.name}\", {self.age})"
+        end
     end
 
     local person = new Person("John", 25)
     assert($"{person:printInformation()}" == "My name is John & my age is 25.")
+
+    assert($"We have {person}" == 'We have Person("John", 25)')
+    assert($'We have {person}' == 'We have Person("John", 25)')
 end
 -- @pluto_warnings: disable-next
 assert($"{true ? 'true' : 'false'} is the value" == "true is the value")
@@ -2932,6 +3215,16 @@ do
     local a = 1
     assert(++a == 2)
     assert(a == 2)
+
+    -- https://github.com/PlutoLang/Pluto/issues/1293
+    assert(
+        nil == load[[
+            local t = { a = 1 }
+            assert(++t.a == 2)
+            assert(t.a == 2)
+        ]]
+    )
+    
 end
 do
     -- statement
@@ -2941,6 +3234,26 @@ do
 
     local t = { a = 1 }
     ++t.a
+    assert(t.a == 2)
+end
+do
+    -- postfix statement
+    local a = 1
+    a++
+    assert(a == 2)
+
+    local t = { a = 1 }
+    t.a++
+    assert(t.a == 2)
+end
+do
+    -- postfix expression
+    local a = 1
+    assert(a++ == 1)
+    assert(a == 2)
+
+    local t = { a = 1 }
+    assert(t.a++ == 1)
     assert(t.a == 2)
 end
 
@@ -3493,7 +3806,7 @@ do
         assert(i == 1337)
     end
     do
-        local { str, i } = t
+        local { str, i, } = t
         assert(str == "hello")
         assert(i == 1337)
     end
@@ -3525,7 +3838,7 @@ do
 end
 do
     local t = { 1, 2, 3 }
-    local [a, b, c] = t
+    local [a, b, c,] = t
     assert(a == 1)
     assert(b == 2)
     assert(c == 3)
@@ -4012,35 +4325,20 @@ do
     assert(get_val() <=> get_val() == 0)
 end
 
+print "Testing integer exponentiation operator."
+do
+    assert(3 ** 3 == 27)
+    assert(-3 ** 3 == -27)
+    assert(30 ** 30 == 2565992168703393792)
+end
+
 print "Testing implicit/explicit global creation."
 do
-    assert_warn [[pluto_use global; a = 1]]
-    assert_warn [[pluto_use global; function a() end]]
-    assert_warn [[pluto_use global; class a end]]
-    assert_no_warn [[pluto_use global; local a; a = 1]]
-    assert_no_warn [[pluto_use global; local a; do a = 1 end]]
-
-    -- explicit globals
-    assert_no_warn [[pluto_use global; global a = 1]]
-    assert_no_warn [[pluto_use global; global function a() end]]
-    assert_no_warn [[pluto_use global; global class a end]]
-
-    -- predefine globals
-    assert_no_warn [[pluto_use global; global a; a = 1]]
-    assert_no_warn [[pluto_use global; global a, b; a = 1; b = 2]]
-
-    -- if we use pluto_warnings to enable the warning, it should also be raised.
     assert_warn [[
         -- @pluto_warnings enable-implicit-global
         a = 1
     ]]
-    assert_no_warn [[
-        pluto_use global
-        -- @pluto_warnings disable-implicit-global
-        a = 1
-    ]]
 
-    -- '_G.' and '_ENV.' can also be used to explicitly declare globals
     assert_no_warn [[
         -- @pluto_warnings enable-implicit-global
         _G.a = 1
@@ -4136,4 +4434,41 @@ do
         assert(io.chmod("example_module.pluto") == nil)
         io.chmod("example_module.pluto", 1)
     end
+
+    assert(io.unique("example_module", "pluto") == "example_module (2).pluto")
+    assert(io.unique("file_that_doesnt_exist", "pluto") == "file_that_doesnt_exist.pluto")
+end
+
+print "Testing trailing commas for function parameters."
+do
+    local function add(
+        a: number,
+        b: number,
+    )
+        return a + b
+    end
+    assert(add(
+        1,
+        2,
+    ) == 3)
+end
+
+print "Testing deprecation warnings."
+do
+    assert_warn[[for k, v in { a = 1 } do
+        k = v
+    end]]
+    assert_warn[[for i = 1, 10 do
+        i = 99999
+    end]]
+end
+
+print "Testing $object."
+do
+    local a = 1
+    local b = 2
+    local obj = $object(a, b)
+    assert(obj:size() == 2)
+    assert(obj.a == a)
+    assert(obj.b == b)
 end

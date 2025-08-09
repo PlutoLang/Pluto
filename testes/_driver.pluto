@@ -8,11 +8,6 @@ assert(pcall(dofile, "pluto/many-locals.pluto") == false)
 
 if true then -- ffi test
   io.currentdir("pluto/ffi")
-  if os.platform == "windows" then
-    os.execute("clang -std=c++17 --shared -o lib.dll lib.cpp")
-  else
-    os.execute("clang -std=c++17 -lstdc++ --shared -fPIC -o liblib.so lib.cpp")
-  end
   dofile("test.pluto")
   io.currentdir("../..")
 end

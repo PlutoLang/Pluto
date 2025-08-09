@@ -15,6 +15,8 @@ NAMESPACE_SOUP
 
 		virtual ~dnsResolver() noexcept = default;
 
+		[[nodiscard]] static SharedPtr<dnsResolver> makeDefault();
+
 		[[nodiscard]] std::vector<IpAddr> lookupIPv4(const std::string& name) const;
 		[[nodiscard]] std::vector<IpAddr> lookupIPv6(const std::string& name) const;
 

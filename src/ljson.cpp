@@ -5,175 +5,44 @@
 
 #include "ljson.hpp"
 
+#include "vendor/Soup/soup/MemoryRefReader.hpp"
 #include "vendor/Soup/soup/string.hpp"
-
-static void encodeaux (lua_State *L, int i, bool pretty, std::string& str, unsigned depth = 0)
-{
-	switch (lua_type(L, i))
-	{
-	case LUA_TBOOLEAN:
-		if (lua_toboolean(L, i))
-		{
-			str.append("true");
-		}
-		else
-		{
-			str.append("false");
-		}
-		break;
-
-	case LUA_TNUMBER:
-		if (lua_isinteger(L, i))
-		{
-			str.append(std::to_string(lua_tointeger(L, i)));
-		}
-		else
-		{
-			lua_Number n = lua_tonumber(L, i);
-			if (std::isfinite(n))
-			{
-				str.append(soup::string::fdecimal(n));
-				return;
-			}
-			luaL_error(L, "%f has no JSON representation", n);
-		}
-		break;
-
-	case LUA_TSTRING: {
-		size_t size;
-		const char* data = luaL_checklstring(L, i, &size);
-		soup::JsonString::encodeValue(str, data, size);
-	} break;
-
-	case LUA_TTABLE: {
-		lua_checkstack(L, 5);
-		lua_pushvalue(L, i);
-		const auto child_depth = (depth + 1);
-		if (isIndexBasedTable(L, -1))
-		{
-			str.push_back('[');
-			lua_pushnil(L);
-			while (lua_next(L, -2))
-			{
-				lua_pushvalue(L, -2);
-				if (pretty)
-				{
-					str.push_back('\n');
-					str.append(child_depth * 4, ' ');
-				}
-				{
-					luaE_incCstack(L);
-					encodeaux(L, -2, pretty, str, child_depth);
-					L->nCcalls--;
-				}
-				str.push_back(',');
-				lua_pop(L, 2);
-			}
-			if (str.back() == ',')
-			{
-				str.pop_back();
-				if (pretty)
-				{
-					str.push_back('\n');
-					str.append(depth * 4, ' ');
-				}
-			}
-			str.push_back(']');
-		}
-		else
-		{
-			str.push_back('{');
-			lua_pushliteral(L, "__order");
-			if (lua_rawget(L, -2) == LUA_TTABLE)
-			{
-				// table, __order
-				lua_pushnil(L);
-				// table, __order, idx
-				while (lua_next(L, -2))
-				{
-					// table, __order, idx, key
-					lua_pushvalue(L, -1);
-					// table, __order, idx, key, key
-					if (lua_rawget(L, -5) > LUA_TNIL)
-					{
-						// table, __order, idx, key, value
-						if (pretty)
-						{
-							str.push_back('\n');
-							str.append(child_depth * 4, ' ');
-						}
-						luaE_incCstack(L);
-						encodeaux(L, -2, pretty, str, child_depth);
-						str.push_back(':');
-						if (pretty)
-						{
-							str.push_back(' ');
-						}
-						encodeaux(L, -1, pretty, str, child_depth);
-						L->nCcalls--;
-						str.push_back(',');
-					}
-					// table, __order, idx, key, value
-					lua_pop(L, 2);
-					// table, __order, idx
-				}
-				lua_pop(L, 1);  /* pop __order */
-			}
-			else
-			{
-				lua_pop(L, 1);  /* pop __order (nil)*/
-				lua_pushnil(L);
-				while (lua_next(L, -2))
-				{
-					lua_pushvalue(L, -2);
-					if (pretty)
-					{
-						str.push_back('\n');
-						str.append(child_depth * 4, ' ');
-					}
-					luaE_incCstack(L);
-					encodeaux(L, -1, pretty, str, child_depth);
-					str.push_back(':');
-					if (pretty)
-					{
-						str.push_back(' ');
-					}
-					encodeaux(L, -2, pretty, str, child_depth);
-					L->nCcalls--;
-					str.push_back(',');
-					lua_pop(L, 2);
-				}
-			}
-			if (str.back() == ',')
-			{
-				str.pop_back();
-				if (pretty)
-				{
-					str.push_back('\n');
-					str.append(depth * 4, ' ');
-				}
-			}
-			str.push_back('}');
-		}
-		lua_pop(L, 1);
-	} break;
-
-	case LUA_TLIGHTUSERDATA:
-		if (reinterpret_cast<uintptr_t>(lua_touserdata(L, i)) == 0xF01D)
-		{
-			str.append("null");
-			break;
-		}
-		[[fallthrough]];
-	default:
-		luaL_typeerror(L, i, "JSON-castable type");
-	}
-}
+#include "vendor/Soup/soup/StringWriter.hpp"
 
 static int encode(lua_State* L) {
-	auto str = pluto_newclassinst(L, std::string);
-	encodeaux(L, 1, lua_istrue(L, 2), *str);
-	pluto_pushstring(L, *str);
+	int fmt = 0; // compact
+	if (lua_type(L, 2) == LUA_TBOOLEAN)
+	{
+		if (lua_istrue(L, 2))
+		{
+			fmt = 1; // pretty
+		}
+	}
+	else
+	{
+		static const char* const fmts[] = { "compact", "pretty", "msgpack", nullptr };
+		fmt = luaL_checkoption(L, 2, "compact", fmts);
+	}
+
+	auto& up = *pluto_newclassinst(L, soup::UniquePtr<soup::JsonNode>);
+	checkJson(L, 1, up);
+	
+	switch (fmt)
+	{
+	case 0: default:
+		pluto_pushstring(L, up->encode());
+		break;
+
+	case 1:
+		pluto_pushstring(L, up->encodePretty());
+		break;
+
+	case 2:
+		soup::StringWriter sw;
+		up->msgpackEncode(sw);
+		pluto_pushstring(L, std::move(sw.data));
+		break;
+	}
 	return 1;
 }
 
@@ -287,9 +156,20 @@ static int decode(lua_State* L)
 	std::string* what = nullptr;
 	try
 	{
-		if (soup::json::decode(jtw, (void*)L, data, size, 100))
+		if (flags & (1 << 2)) // json.msgpack
 		{
-			return 1;
+			soup::MemoryRefReader r(data, size);
+			if (soup::json::msgpackDecode(jtw, (void*)L, r, 100))
+			{
+				return 1;
+			}
+		}
+		else
+		{
+			if (soup::json::decode(jtw, (void*)L, data, size, 100))
+			{
+				return 1;
+			}
 		}
 	}
 	catch (const std::exception& e)
@@ -321,7 +201,9 @@ LUAMOD_API int luaopen_json(lua_State* L)
 	lua_setfield(L, -2, "withnull");
 	lua_pushinteger(L, 1 << 1);
 	lua_setfield(L, -2, "withorder");
+	lua_pushinteger(L, 1 << 2);
+	lua_setfield(L, -2, "msgpack");
 
 	return 1;
 }
-const Pluto::PreloadedLibrary Pluto::preloaded_json{ "json", funcs, &luaopen_json };
+const Pluto::PreloadedLibrary Pluto::preloaded_json{ PLUTO_JSONLIBNAME, funcs, &luaopen_json };

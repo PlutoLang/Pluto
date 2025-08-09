@@ -57,7 +57,7 @@ struct PlutoBuffer
 #ifdef PLUTO_MEMORY_LIMIT
     PlutoSingleBlockAllocator allocator;
 #endif
-    soup::Buffer buffer;
+    soup::Buffer<> buffer;
 
     PlutoBuffer()
 #ifdef PLUTO_MEMORY_LIMIT
@@ -110,7 +110,7 @@ static int buffer_append (lua_State *L) {
 }
 
 static int buffer_tostring (lua_State *L) {
-  soup::Buffer& buf = checkbuffer(L, 1)->buffer;
+  soup::Buffer<>& buf = checkbuffer(L, 1)->buffer;
   try {
     lua_pushlstring(L, (const char*)buf.data(), buf.size());
   }

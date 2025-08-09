@@ -44,6 +44,19 @@ static int fnv1(lua_State *L)
 }
 
 
+static int fnv1a32 (lua_State *L) {
+  size_t size;
+  const char *data = luaL_checklstring(L, 1, &size);
+  uint32_t hash = 2166136261u;
+  for (; size--; ++data) {
+    hash ^= *reinterpret_cast<const uint8_t*>(data);
+    hash *= 16777619u;
+  }
+  lua_pushinteger(L, hash);
+  return 1;
+}
+
+
 static int fnv1a(lua_State *L)
 {
   const auto FNV_offset_basis = 0xcbf29ce484222325ull;
@@ -308,6 +321,53 @@ static int l_hashwithdigest (lua_State *L) {
 }
 
 
+template <typename State>
+static int l_hmac_aux (lua_State *L) {
+  size_t keylen, datalen;
+  const char *key = luaL_checklstring(L, 2, &keylen);
+  const char *data = luaL_checklstring(L, 3, &datalen);
+  const bool binary = lua_istrue(L, 4);
+
+  State st(key, keylen);
+  st.append(data, datalen);
+  st.finalise();
+
+  char shrtbuf[LUAI_MAXSHORTLEN];
+  if (binary) {
+    char *out = plutoS_prealloc(L, shrtbuf, State::Hash::DIGEST_BYTES);
+    st.getDigest(reinterpret_cast<uint8_t*>(out));
+    plutoS_commit(L, out, State::Hash::DIGEST_BYTES);
+  }
+  else {
+    uint8_t digest[State::Hash::DIGEST_BYTES];
+    st.getDigest(digest);
+
+    char *out = plutoS_prealloc(L, shrtbuf, State::Hash::DIGEST_BYTES * 2);
+    soup::string::bin2hexAt(out, (const char*)digest, sizeof(digest), soup::string::charset_hex_lower);
+    plutoS_commit(L, out, State::Hash::DIGEST_BYTES * 2);
+  }
+  return 1;
+}
+
+
+static int l_hmac (lua_State *L) {
+  const char *hash_algo = luaL_checkstring(L, 1);
+  if (strcmp(hash_algo, "sha1") == 0) {
+    return l_hmac_aux<soup::sha1::HmacState>(L);
+  }
+  if (strcmp(hash_algo, "sha256") == 0) {
+    return l_hmac_aux<soup::sha256::HmacState>(L);
+  }
+  if (strcmp(hash_algo, "sha384") == 0) {
+    return l_hmac_aux<soup::sha384::HmacState>(L);
+  }
+  if (strcmp(hash_algo, "sha512") == 0) {
+    return l_hmac_aux<soup::sha512::HmacState>(L);
+  }
+  luaL_error(L, "unknown hash algorithm: %s", hash_algo);
+}
+
+
 static int random(lua_State *L) {
   lua_Integer low;
   lua_Integer up = 0;
@@ -336,18 +396,6 @@ static int random(lua_State *L) {
     std::uniform_int_distribution<lua_Integer> dist(low, up);
     lua_pushinteger(L, dist(rng));
   }
-  return 1;
-}
-
-
-static int hexdigest(lua_State *L)
-{
-  pluto_warning(L, "hexdigest(n) is deprecated; use string.format(\"0x%x\", n) instead.");
-
-  std::stringstream stream;
-  stream << "0x";
-  stream << std::hex << luaL_checkinteger(L, 1);
-  lua_pushstring(L, stream.str().c_str());
   return 1;
 }
 
@@ -837,12 +885,12 @@ static int l_ripemd160 (lua_State *L) {
 
 
 static const luaL_Reg funcs_crypto[] = {
-  {"hexdigest", hexdigest},  /* deprecated since 0.8.0 */
   {"random", random},
   {"sha1", l_hashwithdigest<soup::sha1>},
   {"sha256", l_hashwithdigest<soup::sha256>},
   {"sha384", l_hashwithdigest<soup::sha384>},
   {"sha512", l_hashwithdigest<soup::sha512>},
+  {"hmac", l_hmac},
   {"lua", lua},
   {"crc32", crc32},
   {"crc32c", crc32c},
@@ -859,6 +907,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"murmur1", murmur1},
   {"times33", times33},
   {"joaat", joaat},
+  {"fnv1a32", fnv1a32},
   {"fnv1a", fnv1a},
   {"fnv1", fnv1},
   {"generatekeypair", generatekeypair},

@@ -317,4 +317,4 @@ return module)EOC";
 #endif
 }
 
-const Pluto::PreloadedLibrary Pluto::preloaded_assert{ "assert", funcs, &luaopen_assert };
+const Pluto::PreloadedLibrary Pluto::preloaded_assert{ PLUTO_ASSERTLIBNAME, funcs, &luaopen_assert };

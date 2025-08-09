@@ -41,7 +41,7 @@ int luaS_eqlngstr (TString *a, TString *b) {
 }
 
 
-unsigned int luaS_hash (const char *str, size_t l, unsigned int seed) {
+unsigned luaS_hash (const char *str, size_t l, unsigned seed) {
   unsigned int h = seed ^ cast_uint(l);
   for (; l > 0; l--)
     h ^= ((h<<5) + (h>>2) + cast_byte(str[l - 1]));
@@ -49,7 +49,7 @@ unsigned int luaS_hash (const char *str, size_t l, unsigned int seed) {
 }
 
 
-unsigned int luaS_hashlongstr (TString *ts) {
+unsigned luaS_hashlongstr (TString *ts) {
   lua_assert(ts->tt == LUA_VLNGSTR);
   if (ts->extra == 0) {  /* no hash? */
     size_t len = ts->u.lnglen;
@@ -137,28 +137,43 @@ void luaS_init (lua_State *L) {
 }
 
 
+size_t luaS_sizelngstr (size_t len, int kind) {
+  switch (kind) {
+    case LSTRREG:  /* regular long string */
+      /* don't need 'falloc'/'ud', but need space for content */
+      return offsetof(TString, falloc) + (len + 1) * sizeof(char);
+    case LSTRFIX:  /* fixed external long string */
+      /* don't need 'falloc'/'ud' */
+      return offsetof(TString, falloc);
+    default:  /* external long string with deallocation */
+      lua_assert(kind == LSTRMEM);
+      return sizeof(TString);
+  }
+}
+
 
 /*
 ** creates a new string object
 */
-static TString *createstrobj (lua_State *L, size_t l, int tag, unsigned int h) {
+static TString *createstrobj (lua_State *L, size_t totalsize, int tag,
+                              unsigned h) {
   TString *ts;
   GCObject *o;
-  size_t totalsize;  /* total size of TString object */
-  totalsize = sizelstring(l);
   o = luaC_newobj(L, tag, totalsize);
   ts = gco2ts(o);
   ts->hash = h;
   ts->extra = 0;
-  getstr(ts)[l] = '\0';  /* ending 0 */
   return ts;
 }
 
 
 TString *luaS_createlngstrobj (lua_State *L, size_t l) {
-  TString *ts = createstrobj(L, l, LUA_VLNGSTR, G(L)->seed);
+  size_t totalsize = luaS_sizelngstr(l, LSTRREG);
+  TString *ts = createstrobj(L, totalsize, LUA_VLNGSTR, G(L)->seed);
   ts->u.lnglen = l;
-  ts->shrlen = 0xFF;  /* signals that it is a long string */
+  ts->shrlen = LSTRREG;  /* signals that it is a regular long string */
+  ts->contents = cast_charp(ts) + offsetof(TString, falloc);
+  ts->contents[l] = '\0';  /* ending 0 */
   return ts;
 }
 
@@ -195,7 +210,8 @@ static TString *internshrstr (lua_State *L, const char *str, size_t l) {
   TString **list = &tb->hash[lmod(h, tb->size)];
   lua_assert(str != NULL);  /* otherwise 'memcmp'/'memcpy' are undefined */
   for (ts = *list; ts != NULL; ts = ts->u.hnext) {
-    if (l == ts->shrlen && (memcmp(str, getshrstr(ts), l * sizeof(char)) == 0)) {
+    if (l == cast_uint(ts->shrlen) &&
+        (memcmp(str, getshrstr(ts), l * sizeof(char)) == 0)) {
       /* found! */
       if (isdead(g, ts))  /* dead (but not collected yet)? */
         changewhite(ts);  /* resurrect it */
@@ -207,8 +223,9 @@ static TString *internshrstr (lua_State *L, const char *str, size_t l) {
     growstrtab(L, tb);
     list = &tb->hash[lmod(h, tb->size)];  /* rehash with new size */
   }
-  ts = createstrobj(L, l, LUA_VSHRSTR, h);
+  ts = createstrobj(L, sizestrshr(l), LUA_VSHRSTR, h);
   ts->shrlen = cast_byte(l);
+  getshrstr(ts)[l] = '\0';  /* ending 0 */
   memcpy(getshrstr(ts), str, l * sizeof(char));
   ts->u.hnext = *list;
   *list = ts;
@@ -271,6 +288,63 @@ Udata *luaS_newudata (lua_State *L, size_t s, int nuvalue) {
   for (i = 0; i < nuvalue; i++)
     setnilvalue(&u->uv[i].uv);
   return u;
+}
+
+
+struct NewExt {
+  int kind;
+  const char *s;
+   size_t len;
+  TString *ts;  /* output */
+};
+
+
+static void f_newext (lua_State *L, void *ud) {
+  struct NewExt *ne = cast(struct NewExt *, ud);
+  size_t size = luaS_sizelngstr(0, ne->kind);
+  ne->ts = createstrobj(L, size, LUA_VLNGSTR, G(L)->seed);
+}
+
+
+static void f_pintern (lua_State *L, void *ud) {
+  struct NewExt *ne = cast(struct NewExt *, ud);
+  ne->ts = internshrstr(L, ne->s, ne->len);
+}
+
+
+TString *luaS_newextlstr (lua_State *L,
+              const char *s, size_t len, lua_Alloc falloc, void *ud) {
+  struct NewExt ne;
+  if (len <= LUAI_MAXSHORTLEN) {  /* short string? */
+    ne.s = s; ne.len = len;
+    if (!falloc)
+      f_pintern(L, &ne);  /* just internalize string */
+    else {
+      int status = luaD_rawrunprotected(L, f_pintern, &ne);
+      (*falloc)(ud, cast_voidp(s), len + 1, 0);  /* free external string */
+      if (status != LUA_OK)  /* memory error? */
+        luaM_error(L);  /* re-raise memory error */
+    }
+    return ne.ts;
+  }
+  /* "normal" case: long strings */
+  if (!falloc) {
+    ne.kind = LSTRFIX;
+    f_newext(L, &ne);  /* just create header */
+  }
+  else {
+    ne.kind = LSTRMEM;
+    if (luaD_rawrunprotected(L, f_newext, &ne) != LUA_OK) {  /* mem. error? */
+      (*falloc)(ud, cast_voidp(s), len + 1, 0);  /* free external string */
+      luaM_error(L);  /* re-raise memory error */
+    }
+    ne.ts->falloc = falloc;
+    ne.ts->ud = ud;
+  }
+  ne.ts->shrlen = ne.kind;
+  ne.ts->u.lnglen = len;
+  ne.ts->contents = cast_charp(s);
+  return ne.ts;
 }
 
 

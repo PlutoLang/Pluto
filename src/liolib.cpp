@@ -869,8 +869,7 @@ static int f_flush (lua_State *L) {
 #endif
 }
 
-[[nodiscard]] static std::filesystem::path& getStringStreamPathForRead(lua_State *L, int idx) {
-  auto& path = getStringStreamPathRaw(L, idx);
+static void checkPathForRead(std::filesystem::path& path) {
 #ifdef PLUTO_NO_FILESYSTEM
   luaL_error(L, "disallowed by content moderation policy");
 #endif
@@ -879,6 +878,11 @@ static int f_flush (lua_State *L) {
     luaL_error(L, "disallowed by content moderation policy");
   }
 #endif
+}
+
+[[nodiscard]] static std::filesystem::path& getStringStreamPathForRead(lua_State *L, int idx) {
+  auto& path = getStringStreamPathRaw(L, idx);
+  checkPathForRead(path);
   return path;
 }
 
@@ -974,11 +978,6 @@ static int io_copy (lua_State *L) {
   }
 
   return 0;
-}
-
-static int io_copyto (lua_State *L) {
-  pluto_warning(L, "io.copyto is deprecated, replace the call with io.copy.");
-  return io_copy(L);
 }
 
 
@@ -1292,10 +1291,38 @@ static int io_chmod (lua_State *L) {
 }
 
 
+static int io_unique (lua_State *L) {
+  const char* ext = luaL_checkstring(L, 2);
+  auto& base = getStringStreamPathRaw(L, 1);
+  auto& path = *pluto_newclassinst(L, std::filesystem::path, base);
+  path += '.';
+  path += ext;
+  checkPathForRead(path);
+  if (!std::filesystem::exists(path)) {
+    lua_pushstring(L, (const char*)path.u8string().c_str());
+    return 1;
+  }
+  for (int i = 2; i != 100; ++i) {
+    path = base;
+    path += " (";
+    path += std::to_string(i);
+    path += ").";
+    path += ext;
+    checkPathForRead(path);
+    if (!std::filesystem::exists(path)) {
+      lua_pushstring(L, (const char*)path.u8string().c_str());
+      return 1;
+    }
+  }
+  luaL_error(L, "operation failed");
+}
+
+
 /*
 ** functions for 'io' library
 */
 static const luaL_Reg iolib[] = {
+  {"unique", io_unique},
   {"chmod", io_chmod},
   {"contents", contents},
   {"writetime", writetime},
@@ -1312,8 +1339,7 @@ static const luaL_Reg iolib[] = {
   {"absolute", absolute},
   {"relative", relative},
   {"part", io_part},
-  {"copy", io_copy}, /* added in Pluto 0.8.0 */
-  {"copyto", io_copyto}, /* deprecated as of Pluto 0.8.0 */
+  {"copy", io_copy},
   {"exists", exists},
   {"filesize", filesize},
   {"isfile", isfile},
