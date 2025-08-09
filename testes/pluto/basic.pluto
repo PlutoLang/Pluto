@@ -2645,30 +2645,40 @@ do
     assert(not pcall(crypto.sign, "123", "rsa-sha1", { p = bigint.new("123"), q = bigint.new("123") }))
 
     local priv = {
-        p = bigint.new("3835446257"),
-        q = bigint.new("3714629299"),
-    }
-    local pub = {
-        n = priv.p * priv.q, -- 14247261040992083843
-        e = bigint.new(0x10001),
-    }
-
-    enc = crypto.encrypt("Hi", "rsa", pub)
-    assert(base64.encode(enc) == "w1v3stxRHCs=")
-    assert(crypto.decrypt(enc, "rsa", priv) == "Hi")
-
-    enc = crypto.encrypt("Hi", "rsa", priv)
-    assert(base64.encode(enc) == "GClnRNYar5c=")
-    assert(crypto.decrypt(enc, "rsa", pub) == "Hi")
-
-    priv = {
         p = bigint.new("115443384115231951475820445136871322101870729500298182134363293112660251666017"),
         q = bigint.new("98365361248415863235179644468056200977592391948608651522703704315152579004021"),
     }
-    pub = {
+    local pub = {
         n = priv.p * priv.q, -- 11355630182234424425429331560518598643298965915936825610957270519615363349759012613228119611304846673085167794661819394470107090216347491908311079792054357
         e = bigint.new(0x10001),
     }
+    assert(pub.n:bitlength() == 512)
+
+    enc = crypto.encrypt("Hi", "rsa", pub)
+    assert(enc:tohex() == "6da7a220435d98ffe933e96d3d0246e1684a31c0c8b6b3d5fe3b99d2633ee13dbaba7b2a9b4167a365d9dbc102f5351f3ae016fd0e7efc8e074cd66f26f3d068")
+    assert(crypto.decrypt(enc, "rsa", priv) == "Hi")
+
+    enc = crypto.encrypt("Hi", "rsa", priv)
+    assert(enc:tohex() == "b849403a056cc14131f7e97bbff2b08cb603203d496bf5615fa8660e9216d94d124c17fc6b10fdd00734defd15dc89fb16c97ca56e7a2ee5e1af41cd60168a65")
+    assert(crypto.decrypt(enc, "rsa", pub) == "Hi")
+
+    -- OAEP
+    do
+        enc = crypto.encrypt("Hi", "rsa-sha1", priv)
+        assert(crypto.decrypt(enc, "rsa-sha1", pub) == "Hi")
+
+        enc = crypto.encrypt("Hi", "rsa-sha1", pub)
+        assert(crypto.decrypt(enc, "rsa-sha1", priv) == "Hi")
+
+        enc = crypto.encrypt("Hi", "rsa-sha1", pub, "Authenticated Data")
+        assert(crypto.decrypt(enc, "rsa-sha1", priv, "Authenticated Data") == "Hi")
+
+        enc = crypto.encrypt("Hi", "rsa-sha1", priv, "Authenticated Data")
+        assert(crypto.decrypt(enc, "rsa-sha1", pub, "Authenticated Data") == "Hi")
+
+        enc = "6da7a220435d98ffe933e96d3d0246e1684a31c0c8b6b3d5fe3b99d2633ee13dbaba7b2a9b4167a365d9dbc102f5351f3ae016fd0e7efc8e074cd66f26f3d068":fromhex()
+        assert(select(2, pcall(crypto.decrypt, enc, "rsa-sha1", priv)) == "Unpadding failed")
+    end
 
     local sig = crypto.sign("Pluto is certified cool", "rsa-sha1", priv)
     assert(crypto.verify("Pluto is certified cool", "rsa-sha1", pub, sig))
