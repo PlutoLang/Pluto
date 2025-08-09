@@ -26,7 +26,15 @@ NAMESPACE_SOUP
 
 	size_t RsaMod::getMaxPkcs1MessageBytes() const noexcept
 	{
-		return getMaxUnpaddedMessageBytes() - 11;
+		const auto k = getMaxUnpaddedMessageBytes();
+		return k > 11 ? k - 11 : 0;
+	}
+
+	size_t RsaMod::getMaxOaepMessageBytes(size_t digest_bytes) const noexcept
+	{
+		const auto k = getMaxUnpaddedMessageBytes();
+		const auto sl = 2 * digest_bytes + 2;
+		return k > sl ? k - sl : 0;
 	}
 
 	bool RsaMod::padPublic(std::string& str) const SOUP_EXCAL
