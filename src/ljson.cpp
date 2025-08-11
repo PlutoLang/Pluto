@@ -297,7 +297,7 @@ static int decode(lua_State* L)
 		what = pluto_newclassinst(L, std::string);
 		*what = e.what();
 	}
-	if (what)
+	if (l_unlikely(what))
 	{
 		luaL_error(L, what->c_str());
 	}

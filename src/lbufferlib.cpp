@@ -99,24 +99,30 @@ static int buffer_new (lua_State *L) {
 
 static int buffer_append (lua_State *L) {
   size_t size;
+  bool fail = false;
   const char* data = luaL_checklstring(L, 2, &size);
   try {
     checkbuffer(L, 1)->buffer.append(data, size);
   }
   catch (std::bad_alloc&) {
-    luaD_throw(L, LUA_ERRMEM);
+    fail = true;
   }
+  if (l_unlikely(fail))
+    luaD_throw(L, LUA_ERRMEM);
   return 0;
 }
 
 static int buffer_tostring (lua_State *L) {
   soup::Buffer& buf = checkbuffer(L, 1)->buffer;
+  bool fail = false;
   try {
     lua_pushlstring(L, (const char*)buf.data(), buf.size());
   }
   catch (std::bad_alloc&) {
-    luaD_throw(L, LUA_ERRMEM);
+    fail = true;
   }
+  if (l_unlikely(fail))
+    luaD_throw(L, LUA_ERRMEM);
   return 1;
 }
 
