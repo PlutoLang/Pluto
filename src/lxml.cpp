@@ -146,7 +146,8 @@ static int xml_decode (lua_State *L) {
     what = pluto_newclassinst(L, std::string);
     *what = e.what();
   }
-  if (!root) {
+  if (l_unlikely(!root)) {
+    lua_assert(what);
     luaL_error(L, what->c_str());
   }
   lua_assert(!what);

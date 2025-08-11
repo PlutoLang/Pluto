@@ -237,15 +237,21 @@ static int ffi_funcwrapper_call (lua_State *L) {
     ++i;
   }
   uintptr_t retval;
+  std::string* what = nullptr;
   try {
     retval = soup::ffi::call(fw->addr, args, i);
   }
   catch (std::exception& e) {
-    luaL_error(L, "C++ exception: %s", e.what());
+    what = pluto_newclassinst(L, std::string);
+    *what = "C++ exception: ";
+    what->append(e.what());
   }
   catch (...) {
-    luaL_error(L, "C++ exception");
+    what = pluto_newclassinst(L, std::string);
+    *what = "C++ exception";
   }
+  if (l_unlikely(what))
+    luaL_error(L, what->c_str());
   return push_ffi_value(L, fw->ret, &retval);
 }
 
@@ -300,22 +306,27 @@ static int ffi_lib_cdef (lua_State *L) {
   auto par = pluto_newclassinst(L, soup::rflParser, pluto_checkstring(L, 2));
   auto var = pluto_newclassinst(L, soup::rflVar);
   auto func = pluto_newclassinst(L, soup::rflFunc);
+  bool fail = false;
   while (par->hasMore()) {
     const auto i = par->i;
     try {
       *var = par->readVar();
     }
     catch (...) {
-      luaL_error(L, "malformed variable");
+      fail = true;
     }
+    if (l_unlikely(fail))
+      luaL_error(L, "malformed variable");
     if (par->align(), par->i->isLiteral() && par->i->val.getString() == "(") {
       par->i = i;
       try {
           *func = par->readFunc();
       }
       catch (...) {
-        luaL_error(L, "malformed function");
+        fail = false;
       }
+      if (l_unlikely(fail))
+        luaL_error(L, "malformed function");
       pluto_pushstring(L, func->name);
       auto fw = newfuncwrapper(L);
       fw->ret = rfl_type_to_ffi_type(func->return_type);
@@ -499,12 +510,15 @@ static void validate_struct (lua_State *L, const FfiStruct& strct) {
 static int ffi_struct (lua_State *L) {
   auto par = pluto_newclassinst(L, soup::rflParser, pluto_checkstring(L, 1));
   auto strct = ffi_new_struct_type(L);
+  bool fail = false;
   try {
     *strct = par->readStruct();
   }
   catch (...) {
-    luaL_error(L, "malformed struct");
+    fail = true;
   }
+  if (l_unlikely(fail))
+    luaL_error(L, "malformed struct");
   validate_struct(L, *strct);
   return 1;
 }
@@ -525,12 +539,15 @@ static int ffi_cdef (lua_State *L) {
   /* stack now: par, ffi */
   while (par->hasMore()) {
     auto strct = ffi_new_struct_type(L);
+    bool fail = false;
     try {
       *strct = par->readStruct();
     }
     catch (...) {
-      luaL_error(L, "malformed struct");
+      fail = true;
     }
+    if (l_unlikely(fail))
+      luaL_error(L, "malformed struct");
     luaL_check(L, strct->name.empty(), "anonymous structs not supported in ffi.cdef");
     validate_struct(L, *strct);
     /* stack now: par, ffi, strct */
