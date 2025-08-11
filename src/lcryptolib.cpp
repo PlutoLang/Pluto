@@ -413,7 +413,7 @@ static int importkey (lua_State *L) {
   else luaL_error(L, "Unknown format");
 }
 
-// Without this, Pluto compiled MSVC would crash when running:
+// Without this, Pluto compiled with MSVC would crash when running:
 // assert(not pcall(require"crypto".encrypt, "abc", "aes-ecb-pkcs7", "abc"))
 // assert(not pcall(require"crypto".decrypt, "abc", "aes-ecb-pkcs7", "abc"))
 #if defined(_MSC_VER) && !defined(__clang__)
