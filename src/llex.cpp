@@ -66,6 +66,7 @@ static const char *const luaX_tokens [] = {
     "<number>", "<integer>", "<name>", "<string>",
     "**", "??", ":=", "->", "|>",
     "<fallthrough annotation>", "<pluto_use annotation>",
+    "++",
 };
 
 
@@ -210,13 +211,13 @@ l_noret luaX_syntaxerror (LexState *ls, const char *msg) {
 TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
   lua_State *L = ls->L;
   TString *ts = luaS_newlstr(L, str, l);  /* create new string */
-  const TValue *o = luaH_getstr(ls->h, ts);
-  if (!ttisnil(o))  /* string already present? */
-    ts = keystrval(nodefromval(o));  /* get saved copy */
-  else {  /* not in use yet */
+  TString *oldts = luaH_getstrkey(ls->h, ts);
+  if (oldts != NULL)  /* string already present? */
+    return oldts;  /* use it */
+  else {  /* create a new entry */
     TValue *stv = s2v(L->top.p++);  /* reserve stack space for string */
     setsvalue(L, stv, ts);  /* temporarily anchor the string */
-    luaH_finishset(L, ls->h, stv, o, stv);  /* t[string] = string */
+    luaH_set(L, ls->h, stv, stv);  /* t[string] = string */
     /* table is not a metatable, so it does not need to invalidate cache */
     luaC_checkGC(L);
     L->top.p--;  /* remove string from stack */
@@ -919,6 +920,12 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
                 t.token = TK_CONCAT;
                 t.line = (int)ls->lines.size();
                 t.column = (int)ls->getLineBuff().size(); }
+
+                { Token& t = ls->tokens.emplace_back(Token{});
+                t.token = TK_NAME;
+                t.line = (int)ls->lines.size();
+                t.column = (int)ls->getLineBuff().size();
+                t.seminfo.ts = luaX_newliteral(ls, "tostring"); }
               }
               next(ls);  /* skip '{' */
               ls->appendLineBuff('{');
@@ -1103,15 +1110,9 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           return '=';  /* '*=' */
         }
         else if (check_next1(ls, '*')) { /*  got '**' */
-          if (check_next1(ls, '=')) {  /* compound support; **= */
-            ls->appendLineBuff("**=");
-            seminfo->i = TK_POW;
-            return '=';
-          }
-          else {
-            ls->appendLineBuff("**");
-            return TK_POW;  /* '**' */
-          }
+          ls->appendLineBuff("**");
+          ls->uses_ipow = true;
+          return TK_IPOW;  /* '**' */
         }
         else {
           ls->appendLineBuff('*');
@@ -1133,20 +1134,33 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
         }
         return c;
       }
+      case '+': {
+        int c = ls->current;
+        next(ls);
+        ls->appendLineBuff(c);
+        if (check_next1(ls, '=')) {
+          seminfo->i = c;
+          ls->appendLineBuff('=');
+          return '=';
+        }
+        if (check_next1(ls, '+')) {
+          ls->appendLineBuff('+');
+          return TK_PLUSPLUS;
+        }
+        return c;
+      }
       /* compound support */
-      case '+': case '^':
+      case '^':
       case '%': case '&': {
         int c = ls->current;
         next(ls);
+        ls->appendLineBuff(c);
         if (check_next1(ls, '=')) {
           seminfo->i = c;
-          ls->appendLineBuff(c);
           ls->appendLineBuff('=');
           return '=';
-        } else {
-          ls->appendLineBuff(c);
-          return c;
         }
+        return c;
       }
       /* end of compound support */
       case EOZ: {

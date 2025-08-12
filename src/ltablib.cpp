@@ -60,6 +60,16 @@ static void checktab (lua_State *L, int arg, int what) {
 }
 
 
+static int tcreate (lua_State *L) {
+  lua_Unsigned sizeseq = (lua_Unsigned)luaL_checkinteger(L, 1);
+  lua_Unsigned sizerest = (lua_Unsigned)luaL_optinteger(L, 2, 0);
+  luaL_argcheck(L, sizeseq <= UINT_MAX, 1, "out of range");
+  luaL_argcheck(L, sizerest <= UINT_MAX, 2, "out of range");
+  lua_createtable(L, (unsigned)sizeseq, (unsigned)sizerest);
+  return 1;
+}
+
+
 static int tinsert (lua_State *L) {
   lua_Integer pos;  /* where to insert new element */
   lua_Integer e = aux_getn(L, 1, TAB_RW);
@@ -236,6 +246,59 @@ static int tunpack (lua_State *L) {
 
 
 /*
+** For each key-value pair in the table at -1, assigns it to the table at -2.
+** Pops the former table from the stack.
+*/
+static void trivialcopy (lua_State* L) {
+  lua_pushnil(L);
+  /* stack now: newtable, table, key */
+  while (lua_next(L, -2)) {
+    /* stack now: newtable, table, key, value */
+    lua_pushvalue(L, -2);
+    lua_pushvalue(L, -2);
+    lua_settable(L, -6);
+    lua_pop(L, 1);
+  }
+  lua_pop(L, 1);
+}
+
+
+/*
+** Pushes a clone of the table at i.
+*/
+static void auxclone (lua_State *L, int i, int depth) {
+  --depth;
+  lua_checkstack(L, 6);
+  lua_newtable(L);
+  lua_pushvalue(L, i < 0 ? i - 1 : i);
+  lua_pushnil(L);
+  while (lua_next(L, -2)) {
+    /* stack now: newtable, table, key, value */
+    lua_pushvalue(L, -2);
+    if (depth > 0 && lua_type(L, -2) == LUA_TTABLE) {
+      auxclone(L, -2, depth);
+    }
+    else {
+      lua_pushvalue(L, -2);
+    }
+    lua_settable(L, -6);
+    lua_pop(L, 1);
+  }
+  lua_pop(L, 1);
+}
+
+
+static int clone (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  auto depth = (int)luaL_optinteger(L, 2, 100);
+  luaL_argcheck(L, depth >= 1, 2, "depth must be at least 1");
+  auxclone(L, 1, depth);
+  return 1;
+}
+
+
+
+/*
 ** {======================================================
 ** Quicksort
 ** (based on 'Algorithms in MODULA-3', Robert Sedgewick;
@@ -254,32 +317,9 @@ typedef unsigned int IdxT;
 ** of a partition. (If you don't want/need this "randomness", ~0 is a
 ** good choice.)
 */
-#if !defined(l_randomizePivot)		/* { */
-
-#include <time.h>
-
-/* size of 'e' measured in number of 'unsigned int's */
-#define sof(e)		(sizeof(e) / sizeof(unsigned int))
-
-/*
-** Use 'time' and 'clock' as sources of "randomness". Because we don't
-** know the types 'clock_t' and 'time_t', we cannot cast them to
-** anything without risking overflows. A safe way to use their values
-** is to copy them to an array of a known type and use the array values.
-*/
-static unsigned int l_randomizePivot (void) {
-  clock_t c = clock();
-  time_t t = time(NULL);
-  unsigned int buff[sof(c) + sof(t)];
-  unsigned int i, rnd = 0;
-  memcpy(buff, &c, sof(c) * sizeof(unsigned int));
-  memcpy(buff + sof(c), &t, sof(t) * sizeof(unsigned int));
-  for (i = 0; i < sof(buff); i++)
-    rnd += buff[i];
-  return rnd;
-}
-
-#endif					/* } */
+#if !defined(l_randomizePivot)
+#define l_randomizePivot(L)	luaL_makeseed(L)
+#endif
 
 
 /* arrays larger than 'RANLIMIT' may use randomized pivots */
@@ -357,7 +397,7 @@ static IdxT partition (lua_State *L, IdxT lo, IdxT up) {
 */
 static IdxT choosePivot (IdxT lo, IdxT up, unsigned int rnd) {
   IdxT r4 = (up - lo) / 4;  /* range/4 */
-  IdxT p = rnd % (r4 * 2) + (lo + r4);
+  IdxT p = (rnd ^ lo ^ up) % (r4 * 2) + (lo + r4);
   lua_assert(lo + r4 <= p && p <= up - r4);
   return p;
 }
@@ -366,8 +406,7 @@ static IdxT choosePivot (IdxT lo, IdxT up, unsigned int rnd) {
 /*
 ** Quicksort algorithm (recursive function)
 */
-static void auxsort (lua_State *L, IdxT lo, IdxT up,
-                                   unsigned int rnd) {
+static void auxsort (lua_State *L, IdxT lo, IdxT up, unsigned rnd) {
   while (lo < up) {  /* loop for tail recursion */
     IdxT p;  /* Pivot index */
     IdxT n;  /* to be used later */
@@ -415,38 +454,20 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up,
       up = p - 1;  /* tail call for [lo .. p - 1]  (lower interval) */
     }
     if ((up - lo) / 128 > n) /* partition too imbalanced? */
-      rnd = l_randomizePivot();  /* try a new randomization */
+      rnd = l_randomizePivot(L);  /* try a new randomization */
   }  /* tail call auxsort(L, lo, up, rnd) */
-}
-
-
-/*
-** For each key-value pair in the table at -1, assigns it to the table at -2.
-** Pops the former table from the stack.
-*/
-static void trivialcopy (lua_State* L) {
-  lua_pushnil(L);
-  /* stack now: newtable, table, key */
-  while (lua_next(L, -2)) {
-    /* stack now: newtable, table, key, value */
-    lua_pushvalue(L, -2);
-    lua_pushvalue(L, -2);
-    lua_settable(L, -6);
-    lua_pop(L, 1);
-  }
-  lua_pop(L, 1);
 }
 
 
 template <bool make_copy>
 static int sort (lua_State *L) {
+  lua_Integer n = aux_getn(L, 1, TAB_RW);
   if (make_copy) {
     lua_newtable(L);
     lua_pushvalue(L, 1);
     trivialcopy(L);
     lua_replace(L, 1);
   }
-  lua_Integer n = aux_getn(L, 1, TAB_RW);
   if (n > 1) {  /* non-trivial interval? */
     luaL_argcheck(L, n < INT_MAX, 1, "array too big");
     if (!lua_isnoneornil(L, 2))  /* is there a 2nd argument? */
@@ -1049,6 +1070,7 @@ static const luaL_Reg tab_funcs[] = {
   {"freeze", tfreeze},
 #endif
   {"concat", tconcat},
+  {"create", tcreate},
   {"insert", tinsert},
   {"pack", tpack},
   {"unpack", tunpack},
@@ -1056,6 +1078,7 @@ static const luaL_Reg tab_funcs[] = {
   {"move", tmove},
   {"sort", sort<false>},
   {"sorted", sort<true>},
+  {"clone", clone},
   {"getn", getn},
   {NULL, NULL}
 };

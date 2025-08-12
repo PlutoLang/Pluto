@@ -34,6 +34,7 @@ typedef struct {
   lua_State *L;
   ZIO *Z;
   const char *name;
+  lu_byte fixed;  /* dump is fixed in memory */
 } LoadState;
 
 
@@ -52,6 +53,16 @@ static l_noret error (LoadState *S, const char *why) {
 static void loadBlock (LoadState *S, void *b, size_t size) {
   if (luaZ_read(S->Z, b, size) != 0)
     error(S, "truncated chunk");
+}
+
+
+#define getaddr(S,n,t)	cast(t *, getaddr_(S,n,sizeof(t)))
+
+static const void *getaddr_ (LoadState *S, int n, int sz) {
+  const void *block = luaZ_getaddr(S->Z, n * sz);
+  if (block == NULL)
+    error(S, "truncated fixed buffer");
+  return block;
 }
 
 
@@ -143,9 +154,15 @@ static TString *loadString (LoadState *S, Proto *p) {
 
 static void loadCode (LoadState *S, Proto *f) {
   int n = loadInt(S);
-  f->code = luaM_newvectorchecked(S->L, n, Instruction);
-  f->sizecode = n;
-  loadVector(S, f->code, n);
+  if (S->fixed) {
+    f->code = getaddr(S, n, Instruction);
+    f->sizecode = n;
+  }
+  else {
+    f->code = luaM_newvectorchecked(S->L, n, Instruction);
+    f->sizecode = n;
+    loadVector(S, f->code, n);
+  }
 }
 
 
@@ -227,9 +244,15 @@ static void loadUpvalues (LoadState *S, Proto *f) {
 static void loadDebug (LoadState *S, Proto *f) {
   int i, n;
   n = loadInt(S);
-  f->lineinfo = luaM_newvectorchecked(S->L, n, ls_byte);
-  f->sizelineinfo = n;
-  loadVector(S, f->lineinfo, n);
+  if (S->fixed) {
+    f->lineinfo = getaddr(S, n, ls_byte);
+    f->sizelineinfo = n;
+  }
+  else {
+    f->lineinfo = luaM_newvectorchecked(S->L, n, ls_byte);
+    f->sizelineinfo = n;
+    loadVector(S, f->lineinfo, n);
+  }
   n = loadInt(S);
   f->abslineinfo = luaM_newvectorchecked(S->L, n, AbsLineInfo);
   f->sizeabslineinfo = n;
@@ -262,7 +285,9 @@ static void loadFunction (LoadState *S, Proto *f, TString *psource) {
   f->linedefined = loadInt(S);
   f->lastlinedefined = loadInt(S);
   f->numparams = loadByte(S);
-  f->is_vararg = loadByte(S);
+  f->flag = loadByte(S) & PF_ISVARARG;  /* get only the meaningful flags */
+  if (S->fixed)
+    f->flag |= PF_FIXED;  /* signal that code is fixed */
   f->maxstacksize = loadByte(S);
   loadCode(S, f);
   loadConstants(S, f);
@@ -318,7 +343,7 @@ static void checkHeader (LoadState *S) {
 /*
 ** Load precompiled chunk.
 */
-LClosure *luaU_undump(lua_State *L, ZIO *Z, const char *name) {
+LClosure *luaU_undump (lua_State *L, ZIO *Z, const char *name, int fixed) {
   LoadState S;
   LClosure *cl;
   if (*name == '@' || *name == '=')
@@ -329,6 +354,7 @@ LClosure *luaU_undump(lua_State *L, ZIO *Z, const char *name) {
     S.name = name;
   S.L = L;
   S.Z = Z;
+  S.fixed = fixed;
   checkHeader(&S);
   cl = luaF_newLclosure(L, loadByte(&S));
   setclLvalue2s(L, L->top.p, cl);

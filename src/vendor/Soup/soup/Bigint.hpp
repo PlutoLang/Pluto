@@ -38,7 +38,6 @@ NAMESPACE_SOUP
 		using chunk_t = halfsize_t;
 		using chunk_signed_t = halfintmax_t;
 
-	private:
 #if SOUP_BIGINT_USE_INTVECTOR
 		IntVector<chunk_t> chunks{};
 #else
@@ -46,7 +45,6 @@ NAMESPACE_SOUP
 #endif
 		bool negative = false;
 
-	public:
 		Bigint() noexcept = default;
 		Bigint(chunk_signed_t v) SOUP_EXCAL;
 		Bigint(chunk_t v, bool negative = false) SOUP_EXCAL;
@@ -326,7 +324,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] static Bigint fromBinary(const std::string& msg) SOUP_EXCAL;
 		[[nodiscard]] static Bigint fromBinary(const void* data, size_t size) SOUP_EXCAL;
 		[[nodiscard]] std::string toBinary() const SOUP_EXCAL;
-		[[nodiscard]] std::string toBinary(size_t bytes) const;
+		[[nodiscard]] std::string toBinary(size_t min_bytes) const SOUP_EXCAL;
 
 		SOUP_PACKET_IO(s) SOUP_EXCAL
 		{

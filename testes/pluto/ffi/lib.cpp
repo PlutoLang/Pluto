@@ -1,6 +1,7 @@
 #include <cstdint> // uint8_t
 #include <cstring> // memcpy
 #include <stdexcept>
+#include <thread>
 #include "../../../src/vendor/Soup/soup/base.hpp"
 
 SOUP_CEXPORT int MY_MAGIC_INT = 69;
@@ -39,4 +40,29 @@ SOUP_CEXPORT void buffer_test(uint8_t* in, size_t inlen, uint8_t* out, size_t ou
         inlen = outlen;
     }
     memcpy(out, in, inlen);
+}
+
+using callback_t = int(*)(int);
+
+static callback_t s_cb;
+
+SOUP_CEXPORT void set_cb(callback_t cb)
+{
+    s_cb = cb;
+}
+
+SOUP_CEXPORT int call_cb(int val)
+{
+    return s_cb(val);
+}
+
+SOUP_CEXPORT int cb_async_res = 0;
+
+SOUP_CEXPORT void call_cb_async()
+{
+    std::thread t([]
+    {
+        cb_async_res = s_cb(21);
+    });
+    t.detach();
 }

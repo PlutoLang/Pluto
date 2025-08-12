@@ -79,6 +79,7 @@ NAMESPACE_SOUP
 		// Resolves the hostname and tries to connect per IPv4, falling back to IPv6 if that fails.
 		// 'timeout_ms' defines how long each connection attempt can maximally take and does not include DNS lookup time.
 		bool connect(const std::string& host, uint16_t port, unsigned int timeout_ms = 3000) noexcept; // blocking
+		bool connect(const dnsResolver& resolver, const std::string& host, uint16_t port, unsigned int timeout_ms = 3000) noexcept; // blocking
 
 		bool connect(const SocketAddr& addr, unsigned int timeout_ms = 3000) noexcept; // blocking
 		bool connect(const IpAddr& ip, uint16_t port, unsigned int timeout_ms = 3000) noexcept // blocking
@@ -118,7 +119,7 @@ NAMESPACE_SOUP
 		static bool certchain_validator_none(const X509Certchain&, const std::string&, StructMap&) SOUP_EXCAL; // Accepts everything.
 		static bool certchain_validator_default(const X509Certchain&, const std::string&, StructMap&) SOUP_EXCAL;
 
-		void enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap = {}, std::string&& initial_application_data = {}) SOUP_EXCAL;
+		void enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&) SOUP_EXCAL, Capture&& cap = {}, std::string&& initial_application_data = {}, certchain_validator_t certchain_validator = &Socket::certchain_validator_default) SOUP_EXCAL;
 	protected:
 		void enableCryptoClientRecvServerHelloDone(UniquePtr<SocketTlsHandshaker>&& handshaker) SOUP_EXCAL;
 		void enableCryptoClientProcessServerHelloDone(UniquePtr<SocketTlsHandshaker>&& handshaker) SOUP_EXCAL;
@@ -187,7 +188,7 @@ NAMESPACE_SOUP
 
 		// Transport Layer
 
-		bool transport_send(const Buffer& buf) const noexcept;
+		bool transport_send(const Buffer<>& buf) const noexcept;
 		bool transport_send(const std::string& data) const noexcept;
 		bool transport_send(const void* data, int size) const noexcept;
 

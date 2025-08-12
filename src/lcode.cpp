@@ -543,10 +543,10 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
   TValue val;
   lua_State *L = fs->ls->L;
   Proto *f = fs->f;
-  const TValue *idx = luaH_get(fs->ls->h, key);  /* query scanner table */
+  int tag = luaH_get(fs->ls->h, key, &val);  /* query scanner table */
   int k, oldsize;
-  if (ttisinteger(idx)) {  /* is there an index there? */
-    k = cast_int(ivalue(idx));
+  if (tag == LUA_VNUMINT) {  /* is there an index there? */
+    k = cast_int(ivalue(&val));
     /* correct value? (warning: must distinguish floats from integers!) */
     if (k < fs->nk && ttypetag(&f->k[k]) == ttypetag(v) &&
                       luaV_rawequalobj(&f->k[k], v))
@@ -558,7 +558,7 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
   /* numerical value does not need GC barrier;
      table has no metatable, so it does not need to invalidate cache */
   setivalue(&val, k);
-  luaH_finishset(L, fs->ls->h, key, idx, &val);
+  luaH_set(L, fs->ls->h, key, &val);
   luaM_growvector(L, f->k, k, f->sizek, TValue, MAXARG_Ax, "constants");
   while (oldsize < f->sizek) setnilvalue(&f->k[oldsize++]);
   setobj(L, &f->k[k], v);
@@ -783,7 +783,7 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
   switch (e->k) {
     case VCONST: {
       const2exp(const2val(fs, e), e);
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VLOCAL: {  /* already in a register */
@@ -796,39 +796,39 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
     case VUPVAL: {  /* move value to some (pending) register */
       e->u.pc = luaK_codeABC(fs, OP_GETUPVAL, 0, e->u.info, 0);
       e->k = VRELOC;
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VINDEXUP: {
       e->u.pc = luaK_codeABC(fs, OP_GETTABUP, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VINDEXI: {
       freereg(fs, e->u.ind.t);
       e->u.pc = luaK_codeABC(fs, OP_GETI, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VINDEXSTR: {
       freereg(fs, e->u.ind.t);
       e->u.pc = luaK_codeABC(fs, OP_GETFIELD, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VINDEXED: {
       freeregs(fs, e->u.ind.t, e->u.ind.idx);
       e->u.pc = luaK_codeABC(fs, OP_GETTABLE, 0, e->u.ind.t, e->u.ind.idx);
       e->k = VRELOC;
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     case VVARARG: case VCALL: case VSAFECALL: {
       luaK_setoneret(fs, e);
-      e->code_primitive = VT_DUNNO;
+      e->code_primitive = VT_ANY;
       break;
     }
     default: break;  /* there is one value available (somewhere) */
@@ -1768,7 +1768,7 @@ static void codeeq (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2) {
 ** Apply prefix operation 'op' to expression 'e'.
 */
 void luaK_prefix (FuncState *fs, UnOpr opr, expdesc *e, int line) {
-  static const expdesc ef = {VKINT, {0}, NO_JUMP, NO_JUMP, VT_DUNNO};
+  static const expdesc ef = {VKINT, {0}, NO_JUMP, NO_JUMP, VT_ANY};
   luaK_dischargevars(fs, e);
   switch (opr) {
     case OPR_MINUS: case OPR_BNOT:  /* use 'ef' as fake 2nd operand */
@@ -2063,7 +2063,7 @@ void luaK_finish (FuncState *fs) {
     lua_assert(i == 0 || isOT(*(pc - 1)) == isIT(*pc));
     switch (GET_OPCODE(*pc)) {
       case OP_RETURN0: case OP_RETURN1: {
-        if (!(fs->needclose || p->is_vararg))
+        if (!(fs->needclose || (p->flag & PF_ISVARARG)))
           break;  /* no extra work */
         /* else use OP_RETURN to do the extra work */
         SET_OPCODE(*pc, OP_RETURN);
@@ -2071,7 +2071,7 @@ void luaK_finish (FuncState *fs) {
       case OP_RETURN: case OP_TAILCALL: {
         if (fs->needclose)
           SETARG_k(*pc, 1);  /* signal that it needs to close */
-        if (p->is_vararg)
+        if (p->flag & PF_ISVARARG)
           SETARG_C(*pc, p->numparams + 1);  /* signal that it is vararg */
         break;
       }

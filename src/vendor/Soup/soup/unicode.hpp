@@ -135,5 +135,7 @@ NAMESPACE_SOUP
 				--it;
 			}
 		}
+
+		static void utf8_sanitise(std::string& str);
 	};
 }

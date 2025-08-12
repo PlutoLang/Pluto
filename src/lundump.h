@@ -19,13 +19,13 @@
 /*
 ** Encode major-minor version in one byte, one nibble for each
 */
-#define MYINT(s)	(s[0]-'0')  /* assume one-digit numerals */
-#define LUAC_VERSION  (((LUA_VERSION_NUM / 100) * 16) + LUA_VERSION_NUM % 100)
+#define LUAC_VERSION	(LUA_VERSION_MAJOR_N*16+LUA_VERSION_MINOR_N)
 
 #define LUAC_FORMAT	0	/* this is the official format */
 
 /* load one chunk; from lundump.c */
-LUAI_FUNC LClosure* luaU_undump (lua_State* L, ZIO* Z, const char* name);
+LUAI_FUNC LClosure* luaU_undump (lua_State* L, ZIO* Z, const char* name,
+                                               int fixed);
 
 /* dump one chunk; from ldump.c */
 LUAI_FUNC int luaU_dump (lua_State* L, const Proto* f, lua_Writer w,
