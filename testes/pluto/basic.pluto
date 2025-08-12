@@ -2853,6 +2853,23 @@ do
     assert(name == "nuts")
 end
 do
+    assert(not io.exists("file_that_doesnt_exist"))
+    assert(not pcall(io.isfile, "file_that_doesnt_exist"))
+    assert(not pcall(io.isdir, "file_that_doesnt_exist"))
+    do
+        local ok, res = pcall(io.isfile, "file_that_doesnt_exist", true)
+        assert(ok)
+        assert(ok)
+        assert(not res)
+    end
+    do
+        local ok, res = pcall(io.isdir, "file_that_doesnt_exist", true)
+        assert(ok)
+        assert(ok)
+        assert(not res)
+    end
+end
+do
     local buffer = require "buffer"
 
     local buf = new buffer()

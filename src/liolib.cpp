@@ -901,10 +901,11 @@ static void checkPathForRead(std::filesystem::path& path) {
 
 static int isdir (lua_State *L) {
   FS_FUNCTION
+  const bool nothrow = lua_toboolean(L, 2);
   auto& path = getStringStreamPathForRead(L, 1);
   std::error_code ec;
   const auto ret = std::filesystem::is_directory(path, ec);
-  if (l_unlikely(ec.operator bool())) {
+  if (ec.operator bool() && !nothrow) {
     luaL_error(L, "operation failed");
   }
   lua_pushboolean(L, ret);
@@ -914,10 +915,11 @@ static int isdir (lua_State *L) {
 
 static int isfile (lua_State *L) {
   FS_FUNCTION
+  const bool nothrow = lua_toboolean(L, 2);
   auto& path = getStringStreamPathForRead(L, 1);
   std::error_code ec;
   const auto ret = std::filesystem::is_regular_file(path, ec);
-  if (l_unlikely(ec.operator bool())) {
+  if (ec.operator bool() && !nothrow) {
     luaL_error(L, "operation failed");
   }
   lua_pushboolean(L, ret);
