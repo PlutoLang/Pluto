@@ -957,11 +957,7 @@ static int io_copy (lua_State *L) {
   /* stack: arg_from, arg_to, path_from, path_to */
 
   std::error_code ec;
-  const auto to_exists = std::filesystem::is_regular_file(to, ec);
-  if (l_unlikely(ec.operator bool())) {
-    luaL_error(L, "failed to stat destination");
-  }
-  if (to_exists) {
+  if (std::filesystem::is_regular_file(to, ec)) {
     std::filesystem::remove(to, ec);
     if (l_unlikely(ec.operator bool())) {
       luaL_error(L, "destination already exists, attempted to delete but failed");
