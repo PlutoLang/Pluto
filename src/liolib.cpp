@@ -900,9 +900,7 @@ static int isdir (lua_State *L) {
   auto& path = getStringStreamPathForRead(L, 1);
   std::error_code ec;
   const auto ret = std::filesystem::is_directory(path, ec);
-  if (l_unlikely(ec.operator bool())) {
-    luaL_error(L, "operation failed");
-  }
+  (void)ec;  /* if there's *nothing* at the given path, that means it's not a directory; return false, don't error. */
   lua_pushboolean(L, ret);
   return 1;
 }
@@ -913,9 +911,7 @@ static int isfile (lua_State *L) {
   auto& path = getStringStreamPathForRead(L, 1);
   std::error_code ec;
   const auto ret = std::filesystem::is_regular_file(path, ec);
-  if (l_unlikely(ec.operator bool())) {
-    luaL_error(L, "operation failed");
-  }
+  (void)ec;  /* if there's *nothing* at the given path, that means it's not a file; return false, don't error. */
   lua_pushboolean(L, ret);
   return 1;
 }

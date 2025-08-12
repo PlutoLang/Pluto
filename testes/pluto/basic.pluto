@@ -2566,6 +2566,11 @@ do
     assert(name == "nuts")
 end
 do
+    assert(not io.exists("file_that_doesnt_exist"))
+    assert(not io.isfile("file_that_doesnt_exist")) -- shouldn't error
+    assert(not io.isdir("file_that_doesnt_exist")) -- shouldn't error
+end
+do
     local buffer = require "buffer"
 
     local buf = new buffer()
