@@ -4141,4 +4141,15 @@ do
         assert(io.chmod("example_module.pluto") == nil)
         io.chmod("example_module.pluto", 1)
     end
+
+    assert(io.contents("example_module.pluto") ~= io.contents("file_that_doesnt_exist"))
+    -- copy to non-existent
+    -- @pluto_warnings disable-next
+    DEFER(io.remove("file_that_doesnt_exist"))
+    io.copy("example_module.pluto", "file_that_doesnt_exist")
+    assert(io.contents("example_module.pluto") == io.contents("file_that_doesnt_exist"))
+    -- copy to existent
+    io.contents("example_module.pluto", "changed contents")
+    io.copy("example_module.pluto", "file_that_doesnt_exist")
+    assert(io.contents("example_module.pluto") == io.contents("file_that_doesnt_exist"))
 end
