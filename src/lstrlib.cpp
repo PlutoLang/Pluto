@@ -116,6 +116,22 @@ static int str_sub (lua_State *L) {
 }
 
 
+static int str_span (lua_State *L) {
+  size_t l;
+  const char *s = luaL_checklstring(L, 1, &l);
+  size_t off = posrelatI(luaL_checkinteger(L, 2), l) - 1;
+  size_t len = luaL_optinteger(L, 3, l - off);
+  if (off < l) {
+    if (l_unlikely(len > (l - off))) {
+      len = (l - off);
+    }
+    lua_pushlstring(L, s + off, len);
+  }
+  else lua_pushliteral(L, "");
+  return 1;
+}
+
+
 static int str_reverse (lua_State *L) {
   size_t l, i;
   luaL_Buffer b;
@@ -2378,6 +2394,7 @@ static const luaL_Reg strlib[] = {
   {"rep", str_rep},
   {"reverse", str_reverse},
   {"sub", str_sub},
+  {"span", str_span},
   {"upper", str_upper},
   {"pack", str_pack},
   {"packsize", str_packsize},
