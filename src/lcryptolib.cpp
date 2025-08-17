@@ -979,14 +979,37 @@ static int l_adler32 (lua_State *L) {
 }
 
 
+size_t posrelatI (lua_Integer pos, size_t len);
 static int l_decompress (lua_State *L) {
   size_t size;
   const char *data = luaL_checklstring(L, 1, &size);
   soup::deflate::DecompressResult res;
-  if (lua_gettop(L) >= 2)
-    res = soup::deflate::decompress(data, size, luaL_checkinteger(L, 2));
-  else
-    res = soup::deflate::decompress(data, size);
+  switch (lua_gettop(L)) {
+    case 1: {  /* (data) */
+      res = soup::deflate::decompress(data, size);
+      break;
+    }
+    case 2: {  /* (data, decompressed_size) */
+      res = soup::deflate::decompress(data, size, luaL_checkinteger(L, 2));
+      break;
+    }
+    case 3: {  /* (data, offset, decompressed_size) */
+      size_t offset = posrelatI(luaL_checkinteger(L, 2), size) - 1;
+      if (l_unlikely(offset > size)) {
+        luaL_error(L, "offset out of range");
+      }
+      data += offset;
+      size -= offset;
+      if (lua_isnil(L, 3)) {
+        res = soup::deflate::decompress(data, size);
+      }
+      else {
+        res = soup::deflate::decompress(data, size, luaL_checkinteger(L, 3));
+      }
+      break;
+    }
+    default: luaL_error(L, "wrong number of arguments");
+  }
   pluto_pushstring(L, res.decompressed);
   lua_newtable(L);
   lua_pushliteral(L, "compressed_size");
