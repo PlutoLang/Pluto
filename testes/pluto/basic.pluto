@@ -2702,6 +2702,36 @@ do
     assert(crypto.x25519(bob_priv, alice_pub) == shared_secret)
 end
 do
+    local crypto = require "pluto:crypto"
+
+    -- gzcompress("Hello World") .. gzcompress("FooBarBaz")
+    local deflated = "\x78\x9c\xf3\x48\xcd\xc9\xc9\x57\x08\xcf\x2f\xca\x49\x01\x00\x18\x0b\x04\x1d" .. "\x78\x9c\x73\xcb\xcf\x77\x4a\x2c\x72\x4a\xac\x02\x00\x10\x3b\x03\x57"
+
+    -- (data)
+    local inflated, info = crypto.decompress(deflated)
+    assert(inflated == "Hello World")
+    assert(info.compressed_size == 19)
+
+    -- (data, decompressed_size)
+    inflated, info = crypto.decompress(deflated, 11)
+    assert(inflated == "Hello World")
+    assert(info.compressed_size == 19)
+
+    -- (data, offset, decompressed_size)
+    inflated, info = crypto.decompress(deflated, 20, nil)
+    assert(inflated == "FooBarBaz")
+    assert(info.compressed_size == 17)
+    inflated, info = crypto.decompress(deflated, 20, 9)
+    assert(inflated == "FooBarBaz")
+    assert(info.compressed_size == 17)
+    inflated, info = crypto.decompress(deflated, -17, nil)
+    assert(inflated == "FooBarBaz")
+    assert(info.compressed_size == 17)
+    inflated, info = crypto.decompress(deflated, -17, 9)
+    assert(inflated == "FooBarBaz")
+    assert(info.compressed_size == 17)
+end
+do
     local bigint = require "pluto:bigint"
 
     do
