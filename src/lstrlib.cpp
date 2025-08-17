@@ -75,7 +75,7 @@ static int str_len (lua_State *L) {
 ** The inverted comparison avoids a possible overflow
 ** computing '-pos'.
 */
-static size_t posrelatI (lua_Integer pos, size_t len) {
+size_t posrelatI (lua_Integer pos, size_t len) {
   if (pos > 0)
     return (size_t)pos;
   else if (pos == 0)
