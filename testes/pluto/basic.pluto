@@ -2097,6 +2097,10 @@ do
     assert("58 59 5a":fromhex() == "XYZ")
     assert("58595A":fromhex() == "XYZ")
     assert("58 59 5A":fromhex() == "XYZ")
+
+    assert("abc":span(2) == "bc")
+    assert("abc":span(2, 1) == "b")
+    assert("abc":span(1, 100) == "abc")
 end
 do
     local arr = "a b c":split(" ")
