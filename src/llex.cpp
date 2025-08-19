@@ -31,6 +31,10 @@
 #include "ltable.h"
 #include "lzio.h"
 
+#ifdef PLUTO_LOADFILE_HOOK
+extern bool PLUTO_LOADFILE_HOOK(lua_State* L, const char* filename);
+#endif
+
 // Note that this may sometimes break parsing so should be used alongside PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO.
 #define TOKENDUMP false
 
@@ -341,6 +345,12 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
           luaX_syntaxerror(ls, "expected string after $include");
         }
         const char *fname = getstr(i->seminfo.ts);
+#ifdef PLUTO_LOADFILE_HOOK
+        if (!PLUTO_LOADFILE_HOOK(ls->L, fname)) {
+          ls->tidx = std::distance(ls->tokens.begin(), i);
+          luaX_syntaxerror(ls, "disallowed by content moderation policy");
+        }
+#endif
         std::ifstream file(fname, std::ios::binary);
         if (l_unlikely(!file.is_open())) {
           ls->tidx = std::distance(ls->tokens.begin(), i);
