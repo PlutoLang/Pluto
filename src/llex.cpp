@@ -12,6 +12,8 @@
 
 #include <locale.h>
 #include <string.h>
+#include <fstream>
+#include <iterator>
 
 #include "lua.h"
 
@@ -29,6 +31,10 @@
 #include "ltable.h"
 #include "lzio.h"
 
+#ifdef PLUTO_LOADFILE_HOOK
+extern bool PLUTO_LOADFILE_HOOK(lua_State* L, const char* filename);
+#endif
+
 // Note that this may sometimes break parsing so should be used alongside PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO.
 #define TOKENDUMP false
 
@@ -36,6 +42,22 @@
 #include <iostream>
 #endif
 
+
+
+struct LoadS {
+  const char *s;
+  size_t size;
+};
+
+static const char *getS (lua_State *L, void *ud, size_t *size) {
+  LoadS *ls = (LoadS *)ud;
+  (void)L;
+  if (ls->size == 0)
+    return NULL;
+  *size = ls->size;
+  ls->size = 0;
+  return ls->s;
+}
 
 
 #define next(ls)	(ls->current = zgetc(ls->z))
@@ -269,49 +291,94 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
 
   /* preprocessor */
   for (auto i = ls->tokens.begin(); i != ls->tokens.end(); ) {
-    if (i->token == '$' && (i + 1)->token == TK_NAME && strcmp(getstr((i + 1)->seminfo.ts), "alias") == 0) {
-      const auto directive_begin = i;
-      i += 2;  /* skip '$alias' */
-      if (l_unlikely(i->token != TK_NAME)) {
-        ls->tidx = std::distance(ls->tokens.begin(), i);
-        luaX_syntaxerror(ls, "expected name after $alias");
-      }
-      Macro& macro = ls->macros.emplace(i->seminfo.ts, Macro{}).first->second;
-      ++i;  /* skip name */
-      if (i->token == '(') {
-        macro.functionlike = true;
-        do {
-          ++i;  /* skip '(' or ',' */
-          if (l_unlikely(i->token != TK_NAME)) {
-            ls->tidx = std::distance(ls->tokens.begin(), i);
-            luaX_syntaxerror(ls, "expected parameter name for function-like alias");
-          }
-          macro.params.emplace_back(i->seminfo.ts);
-          ++i;  /* skip name */
-        } while (i->token == ',');
-        if (l_unlikely(i->token != ')')) {
+    if (i->token == '$' && (i + 1)->token == TK_NAME) {
+      const char *directive = getstr((i + 1)->seminfo.ts);
+      if (strcmp(directive, "alias") == 0) {
+        const auto directive_begin = i;
+        i += 2;  /* skip '$alias' */
+        if (l_unlikely(i->token != TK_NAME)) {
           ls->tidx = std::distance(ls->tokens.begin(), i);
-          luaX_syntaxerror(ls, "expected ')' after parameter list for function-like alias");
+          luaX_syntaxerror(ls, "expected name after $alias");
         }
-        ++i;  /* skip ')' */
-      }
-      if (l_unlikely(i->token != '=')) {
-        ls->tidx = std::distance(ls->tokens.begin(), i);
-        luaX_syntaxerror(ls, "expected '=' after $alias <name>");
-      }
-      ++i;  /* skip '=' */
-      while (i->line == (i - 1)->line || (i - 1)->token == '\\') {
-        if (i->token == TK_EOS)
-          break;
-        if (i->token == '\\' && (i + 1)->line != i->line) {
+        Macro& macro = ls->macros.emplace(i->seminfo.ts, Macro{}).first->second;
+        ++i;  /* skip name */
+        if (i->token == '(') {
+          macro.functionlike = true;
+          do {
+            ++i;  /* skip '(' or ',' */
+            if (l_unlikely(i->token != TK_NAME)) {
+              ls->tidx = std::distance(ls->tokens.begin(), i);
+              luaX_syntaxerror(ls, "expected parameter name for function-like alias");
+            }
+            macro.params.emplace_back(i->seminfo.ts);
+            ++i;  /* skip name */
+          } while (i->token == ',');
+          if (l_unlikely(i->token != ')')) {
+            ls->tidx = std::distance(ls->tokens.begin(), i);
+            luaX_syntaxerror(ls, "expected ')' after parameter list for function-like alias");
+          }
+          ++i;  /* skip ')' */
+        }
+        if (l_unlikely(i->token != '=')) {
+          ls->tidx = std::distance(ls->tokens.begin(), i);
+          luaX_syntaxerror(ls, "expected '=' after $alias <name>");
+        }
+        ++i;  /* skip '=' */
+        while (i->line == (i - 1)->line || (i - 1)->token == '\\') {
+          if (i->token == TK_EOS)
+            break;
+          if (i->token == '\\' && (i + 1)->line != i->line) {
+            ++i;
+            continue;
+          }
+          macro.sub.emplace_back(*i);
           ++i;
-          continue;
         }
-        macro.sub.emplace_back(*i);
-        ++i;
+        i = ls->tokens.erase(directive_begin, i);  /* erase directive */
+        continue;
       }
-      i = ls->tokens.erase(directive_begin, i);  /* erase directive */
-      continue;
+      else if (strcmp(directive, "include") == 0) {
+        const auto directive_begin = i;
+        i += 2;  /* skip '$include' */
+        if (l_unlikely(i->token != TK_STRING)) {
+          ls->tidx = std::distance(ls->tokens.begin(), i);
+          luaX_syntaxerror(ls, "expected string after $include");
+        }
+        const char *fname = getstr(i->seminfo.ts);
+#ifdef PLUTO_LOADFILE_HOOK
+        if (!PLUTO_LOADFILE_HOOK(ls->L, fname)) {
+          ls->tidx = std::distance(ls->tokens.begin(), i);
+          luaX_syntaxerror(ls, "disallowed by content moderation policy");
+        }
+#endif
+        std::ifstream file(fname, std::ios::binary);
+        if (l_unlikely(!file.is_open())) {
+          ls->tidx = std::distance(ls->tokens.begin(), i);
+          luaX_syntaxerror(ls, "cannot open file for $include");
+        }
+        std::string code((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        LoadS lsdata{code.c_str(), code.size()};
+        ZIO z2;
+        luaZ_init(ls->L, &z2, getS, &lsdata);
+        int firstchar = zgetc(&z2);
+        Mbuffer buff2;
+        luaZ_initbuffer(ls->L, &buff2);
+        LexState ls2;
+        ls2.buff = &buff2;
+        ls2.h = ls->h;
+        ls2.dyd = ls->dyd;
+        luaX_setinput(ls->L, &ls2, &z2, luaX_newstring(ls, fname), firstchar);
+        luaZ_freebuffer(ls->L, &buff2);
+        size_t count = ls2.tokens.size();
+        if (count > 0 && ls2.tokens.back().token == TK_EOS)
+          --count;
+        i = ls->tokens.erase(directive_begin, i + 1);  /* remove directive */
+        auto insert_pos = ls->tokens.insert(i, ls2.tokens.begin(), ls2.tokens.begin() + count);
+        for (auto pos = insert_pos; pos != insert_pos + count; ++pos)
+          pos->line = Token::LINE_INJECTED;
+        i = insert_pos + count;
+        continue;
+      }
     }
     ++i;
   }
