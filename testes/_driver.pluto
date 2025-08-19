@@ -2,6 +2,7 @@ io.currentdir(io.part(io.absolute(arg[0]), "parent"))
 
 dofile("pluto/basic.pluto")
 dofile("pluto/preprocessor.pluto")
+dofile("pluto/include.pluto")
 dofile("pluto/test_compilation_errors.pluto")
 assert(dofile("pluto/many-consts.pluto") == "Hello255")
 assert(pcall(dofile, "pluto/many-locals.pluto") == false)
