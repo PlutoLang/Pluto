@@ -283,7 +283,15 @@ static int starttls (lua_State *L) {
     ss.sock->enableCryptoServer(std::move(*certstore), starttlscallbackserver, &ss);
   }
   else {
-    ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallbackclient, &ss);
+    std::string& early_data = *pluto_newclassinst(L, std::string);
+    if (lua_type(L, 3) == LUA_TTABLE) {
+      lua_pushliteral(L, "early_data");
+      if (lua_rawget(L, 3) == LUA_TSTRING) {
+        early_data = pluto_checkstring(L, -1);
+      }
+      lua_pop(L, 1);
+    }
+    ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallbackclient, &ss, std::move(early_data));
   }
 
   if (lua_isyieldable(L))
