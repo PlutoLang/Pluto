@@ -53,6 +53,8 @@ struct StandaloneSocket {
   }
 };
 
+using AlpnProtocol = std::string;
+
 static StandaloneSocket* checksocket (lua_State *L, int i) {
   return (StandaloneSocket*)luaL_checkudata(L, i, "pluto:socket");
 }
@@ -227,6 +229,11 @@ static int starttlscont (lua_State *L, int status, lua_KContext ctx) {
   if (l_likely(!ss.did_tls_handshake && !ss.sock->isWorkDone()))
     return lua_yieldk(L, 0, ctx, starttlscont);
   lua_pushboolean(L, ss.did_tls_handshake);
+  if (!ss.from_listener && ss.sock->custom_data.isStructInMap(AlpnProtocol)) {
+    pluto_pushstring(L, ss.sock->custom_data.getStructFromMapConst(AlpnProtocol));
+    ss.sock->custom_data.removeStructFromMap(AlpnProtocol);
+    return 2;
+  }
   return 1;
 }
 
@@ -239,6 +246,9 @@ static void starttlscallbackserver (soup::Socket&, soup::Capture&& cap) SOUP_EXC
 static void starttlscallbackclient (soup::Socket&, soup::Capture&& cap, std::string&& alpn_protocol) SOUP_EXCAL {
   StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
   ss.did_tls_handshake = true;
+  if (!alpn_protocol.empty()) {
+    ss.sock->custom_data.addStructToMap(AlpnProtocol, std::move(alpn_protocol));
+  }
   ss.recvLoop();  /* re-add recv loop, now on crypto layer */
 }
 
@@ -283,15 +293,26 @@ static int starttls (lua_State *L) {
     ss.sock->enableCryptoServer(std::move(*certstore), starttlscallbackserver, &ss);
   }
   else {
-    std::string& early_data = *pluto_newclassinst(L, std::string);
+    auto& early_data = *pluto_newclassinst(L, std::string);
+    auto& alpn_protocols = *pluto_newclassinst(L, std::vector<std::string>);
     if (lua_type(L, 3) == LUA_TTABLE) {
       lua_pushliteral(L, "early_data");
-      if (lua_rawget(L, 3) == LUA_TSTRING) {
+      if (lua_rawget(L, 3) > 0) {
         early_data = pluto_checkstring(L, -1);
       }
       lua_pop(L, 1);
+
+      lua_pushliteral(L, "alpn");
+      if (lua_rawget(L, 3) > 0) {
+        lua_pushnil(L);
+        while (lua_next(L, -2)) {
+          alpn_protocols.emplace_back(pluto_checkstring(L, -1));
+          lua_pop(L, 1);
+        }
+      }
+      lua_pop(L, 1);
     }
-    ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallbackclient, &ss, std::move(early_data));
+    ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallbackclient, &ss, std::move(early_data), &soup::Socket::certchain_validator_default, std::move(alpn_protocols));
   }
 
   if (lua_isyieldable(L))
@@ -302,6 +323,11 @@ static int starttls (lua_State *L) {
     ss.sched.tick();
   } while (!ss.did_tls_handshake && !ss.sock->isWorkDone());
   lua_pushboolean(L, ss.did_tls_handshake);
+  if (!ss.from_listener && ss.sock->custom_data.isStructInMap(AlpnProtocol)) {
+    pluto_pushstring(L, ss.sock->custom_data.getStructFromMapConst(AlpnProtocol));
+    ss.sock->custom_data.removeStructFromMap(AlpnProtocol);
+    return 2;
+  }
   return 1;
 }
 
