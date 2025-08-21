@@ -14,7 +14,7 @@ NAMESPACE_SOUP
 	/* Having generated 32 random bytes, you should call this function to
 	 * finalize the generated key.
 	 */
-	static inline void c25519_prepare(uint8_t* key)
+	void Curve25519::prepare(uint8_t key[KEY_SIZE])
 	{
 		key[0] &= 0xf8;
 		key[31] &= 0x7f;
@@ -339,7 +339,7 @@ NAMESPACE_SOUP
 	void Curve25519::generatePrivate(uint8_t private_key[KEY_SIZE])
 	{
 		rand.fill<KEY_SIZE>(private_key);
-		c25519_prepare(private_key);
+		Curve25519::prepare(private_key);
 	}
 
 	void Curve25519::derivePublic(uint8_t public_key[KEY_SIZE], const uint8_t private_key[KEY_SIZE])
@@ -349,9 +349,6 @@ NAMESPACE_SOUP
 
 	void Curve25519::x25519(uint8_t shared_secret[SHARED_SIZE], const uint8_t my_private_key[KEY_SIZE], const uint8_t their_public_key[KEY_SIZE])
 	{
-		uint8_t clamped_private_key[KEY_SIZE];
-		memcpy(clamped_private_key, my_private_key, KEY_SIZE);
-		c25519_prepare(clamped_private_key);
-		c25519_smult(shared_secret, their_public_key, clamped_private_key);
+		c25519_smult(shared_secret, their_public_key, my_private_key);
 	}
 }
