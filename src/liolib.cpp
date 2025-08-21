@@ -973,6 +973,34 @@ static int io_copy (lua_State *L) {
 }
 
 
+static int io_symlink (lua_State *L) {
+  FS_FUNCTION
+  lua_settop(L, 2);
+  /* stack: arg_from, arg_to */
+  auto& from = getStringStreamPathForRead(L, -2);
+  /* stack: arg_from, arg_to, path_from */
+  auto& to = getStringStreamPathForWrite(L, -2);
+  /* stack: arg_from, arg_to, path_from, path_to */
+
+  std::error_code ec;
+  if (std::filesystem::exists(to, ec)) {
+    std::filesystem::remove(to, ec);
+    if (l_unlikely(ec.operator bool())) {
+      luaL_error(L, "destination already exists, attempted to delete but failed");
+    }
+  }
+
+  if (std::filesystem::is_directory(from))
+    std::filesystem::create_directory_symlink(from, to, ec);
+  else
+    std::filesystem::create_symlink(from, to, ec);
+  if (l_unlikely(ec.operator bool())) {
+    luaL_error(L, "operation failed");
+  }
+  return 0;
+}
+
+
 static int absolute (lua_State *L) {
   FS_FUNCTION
   const auto bCanonical = lua_istrue(L, 2);
@@ -1332,6 +1360,7 @@ static const luaL_Reg iolib[] = {
   {"relative", relative},
   {"part", io_part},
   {"copy", io_copy},
+  {"symlink", io_symlink},
   {"exists", exists},
   {"filesize", filesize},
   {"isfile", isfile},
