@@ -397,23 +397,27 @@ enum ParserContext : lu_byte {
 struct ClassData {
   size_t parent_name_pos = 0;
   std::unordered_set<std::string> private_fields{};
+  std::unordered_set<std::string> protected_fields{};
 
-  std::string addField(std::string&& name) {
+  std::string addPrivateField(std::string name) {
     private_fields.emplace(name);
     return addPrefix(std::move(name));
   }
 
-  [[nodiscard]] std::string addPrefix(std::string&& name) const {
+  std::string addProtectedField(std::string name) {
+    protected_fields.emplace(name);
+    return addPrefix(std::move(name));
+  }
+
+  [[nodiscard]] std::string addPrefix(std::string name) const {
     name.insert(0, "__restricted__");
     return name;
   }
 
   [[nodiscard]] std::optional<std::string> getSpecialName(TString* key) const {
-    for (const auto& pf : private_fields) {
-      if (pf == getstr(key)) {
-        return addPrefix(getstr(key));
-      }
-    }
+    std::string s = getstr(key);
+    if (private_fields.count(s) || protected_fields.count(s))
+      return addPrefix(std::move(s));
     return std::nullopt;
   }
 };
@@ -502,6 +506,7 @@ struct LexState {
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
   std::stack<ClassData> classes{};
+  std::unordered_map<std::string, std::unordered_set<std::string>> class_protected_fields{};
   std::stack<FuncArgsState> funcargsstates{};
   std::stack<BodyState> bodystates{};
   std::stack<SwitchState> switchstates{};
