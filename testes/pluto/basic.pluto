@@ -3596,7 +3596,7 @@ do
         property_type_hint: string
 
         public property_public
-        --protected property_protected
+        protected property_protected
         private property_private
     end
 end
@@ -3770,6 +3770,33 @@ do
     assert(var.__restricted__var3 == "3")
     assert(var:doSwitch(1) == "One")
     assert(var:doSwitch(2) == "Two")
+end
+
+print "Testing protected fields."
+do
+    local class Base
+        protected foo = "bar"
+        protected function greet()
+            return self.foo
+        end
+    end
+
+    local class Child extends Base
+        function getFoo()
+            return self.foo
+        end
+        function callGreet()
+            return self:greet()
+        end
+    end
+
+    local obj = new Child()
+    assert(obj:getFoo() == "bar")
+    assert(obj:callGreet() == "bar")
+    assert(obj.foo == nil)
+    assert(obj.greet == nil)
+    assert(obj.__restricted__foo == "bar")
+    assert(obj.__restricted__greet ~= nil)
 end
 
 print "Testing named varargs."
