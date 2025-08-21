@@ -2656,10 +2656,9 @@ do
         p = bigint.new("115443384115231951475820445136871322101870729500298182134363293112660251666017"),
         q = bigint.new("98365361248415863235179644468056200977592391948608651522703704315152579004021"),
     }
-    local pub = {
-        n = priv.p * priv.q, -- 11355630182234424425429331560518598643298965915936825610957270519615363349759012613228119611304846673085167794661819394470107090216347491908311079792054357
-        e = bigint.new(0x10001),
-    }
+    local pub = crypto.derive("rsa", priv)
+    assert(pub.n == priv.p * priv.q)
+    assert(pub.e == bigint.new(0x10001))
     assert(pub.n:bitlength() == 512)
 
     enc = crypto.encrypt("Hi", "rsa", pub)
@@ -2702,6 +2701,8 @@ do
     local bob_priv <const> = "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb":fromhex()
     local bob_pub <const> = "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f":fromhex()
     local shared_secret <const> = "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742":fromhex()
+    assert(crypto.derive("curve25519", alice_priv) == alice_pub)
+    assert(crypto.derive("curve25519", bob_priv) == bob_pub)
     assert(crypto.x25519(alice_priv, bob_pub) == shared_secret)
     assert(crypto.x25519(bob_priv, alice_pub) == shared_secret)
 end

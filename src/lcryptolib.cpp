@@ -401,7 +401,7 @@ static int random(lua_State *L) {
 }
 
 
-void pushbigint (lua_State *L, soup::Bigint&& x);
+void pushbigint (lua_State *L, soup::Bigint x);
 soup::Bigint* checkbigint (lua_State *L, int i);
 
 
@@ -470,6 +470,42 @@ static int importkey (lua_State *L) {
   }
   else luaL_error(L, "Unknown format");
 }
+
+
+static int derive (lua_State *L) {
+  const char *ciphersuite = luaL_checkstring(L, 1);
+  if (strcmp(ciphersuite, "rsa") == 0) {
+    soup::Bigint *p = lua_getfield(L, 2, "p") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (p) lua_pop(L, 1);
+    soup::Bigint *q = lua_getfield(L, 2, "q") == LUA_TUSERDATA ? checkbigint(L, -1) : nullptr; if (q) lua_pop(L, 1);
+    if (l_likely(p && q)) {
+      lua_newtable(L);
+      lua_pushliteral(L, "n");
+      pushbigint(L, *p * *q);
+      lua_settable(L, -3);
+      lua_pushliteral(L, "e");
+      pushbigint(L, soup::RsaPublicKey::E_PREF);
+      lua_settable(L, -3);
+      return 1;
+    }
+    else luaL_error(L, "Invalid private key");
+  }
+  else if (strcmp(ciphersuite, "curve25519") == 0) {
+    size_t priv_len;
+    const char *priv = luaL_checklstring(L, 2, &priv_len);
+    if (l_unlikely(priv_len != soup::Curve25519::KEY_SIZE)) {
+      luaL_error(L, "Invalid private key");
+    }
+    uint8_t prepared_priv[soup::Curve25519::KEY_SIZE];
+    memcpy(prepared_priv, priv, soup::Curve25519::KEY_SIZE);
+    soup::Curve25519::prepare(prepared_priv);
+    uint8_t pub[soup::Curve25519::KEY_SIZE];
+    soup::Curve25519::derivePublic(pub, prepared_priv);
+    lua_pushlstring(L, (const char*)pub, sizeof(pub));
+    return 1;
+  }
+  else luaL_error(L, "Unknown ciphersuite");
+}
+
 
 // Without this, Pluto compiled with MSVC would crash when running:
 // assert(not pcall(require"crypto".encrypt, "abc", "aes-ecb-pkcs7", "abc"))
@@ -957,15 +993,18 @@ static int l_verify (lua_State *L) {
 static int l_x25519 (lua_State *L) {
   size_t priv_len, pub_len;
   const char *priv = luaL_checklstring(L, 1, &priv_len);
-  if (l_unlikely(priv_len != 32)) {
+  if (l_unlikely(priv_len != soup::Curve25519::KEY_SIZE)) {
     luaL_error(L, "Invalid private key");
   }
   const char *pub = luaL_checklstring(L, 2, &pub_len);
-  if (l_unlikely(pub_len != 32)) {
+  if (l_unlikely(pub_len != soup::Curve25519::KEY_SIZE)) {
     luaL_error(L, "Invalid public key");
   }
+  uint8_t prepared_priv[soup::Curve25519::KEY_SIZE];
+  memcpy(prepared_priv, priv, soup::Curve25519::KEY_SIZE);
+  soup::Curve25519::prepare(prepared_priv);
   uint8_t shared_secret[soup::Curve25519::SHARED_SIZE];
-  soup::Curve25519::x25519(shared_secret, (const uint8_t*)priv, (const uint8_t*)pub);
+  soup::Curve25519::x25519(shared_secret, prepared_priv, (const uint8_t*)pub);
   lua_pushlstring(L, (const char*)shared_secret, sizeof(shared_secret));
   return 1;
 }
@@ -1067,6 +1106,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"generatekeypair", generatekeypair},
   {"exportkey", exportkey},
   {"importkey", importkey},
+  {"derive", derive},
   {"encrypt", l_encrypt},
   {"decrypt", l_decrypt},
   {"sign", l_sign},
