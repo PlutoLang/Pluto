@@ -111,7 +111,7 @@ NAMESPACE_SOUP
 				awaiting_response_since = time::unixSeconds();
 				if (hr.use_tls)
 				{
-					sock->enableCryptoClient(hr.getHost(), [](Socket&, Capture&& cap) SOUP_EXCAL
+					sock->enableCryptoClient(hr.getHost(), [](Socket&, Capture&& cap, std::string&&) SOUP_EXCAL
 					{
 						cap.get<HttpRequestTask*>()->recvResponse();
 					}, this, hr.getDataToSend(), certchain_validator);

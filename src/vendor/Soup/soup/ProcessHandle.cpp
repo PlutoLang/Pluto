@@ -1,5 +1,6 @@
 #include "ProcessHandle.hpp"
 
+#include "alloc.hpp"
 #include "memGuard.hpp"
 #include "Range.hpp"
 
@@ -63,6 +64,49 @@ NAMESPACE_SOUP
 			res.emplace_back(AllocationInfo{ Range{ start, end - start }, allowed_access });
 		}
 #endif
+		return res;
+	}
+
+	size_t ProcessHandle::externalRead(Pointer p, void* out, size_t size) const noexcept
+	{
+#if SOUP_WINDOWS
+		SIZE_T read = 0;
+		ReadProcessMemory(*h, p.as<void*>(), out, size, &read);
+		return read;
+#else
+		FileReader fr("/proc/" + std::to_string(pid) + "/mem");
+		fr.seek(p.as<size_t>());
+		SOUP_IF_UNLIKELY (!fr.raw(out, size))
+		{
+			return 0;
+		}
+		return size;
+#endif
+	}
+
+	std::string ProcessHandle::externalReadString(Pointer p) const
+	{
+		std::string str;
+		char c;
+		do
+		{
+			c = externalRead<char>(p);
+			p = p.add(1);
+		} while (c != '\0' && (str.push_back(c), true));
+		return str;
+	}
+
+	Pointer ProcessHandle::externalScan(const Range& range, const Pattern& sig) const
+	{
+		Pointer res{};
+		const auto local_alloc = soup::malloc(range.size);
+		const auto read_size = externalRead(range.base, local_alloc, range.size);
+		Range local_range(local_alloc, read_size);
+		if (auto local_res = local_range.scan(sig))
+		{
+			res = local_res.as<uintptr_t>() - reinterpret_cast<uintptr_t>(local_alloc) + range.base.as<uintptr_t>();
+		}
+		soup::free(local_alloc);
 		return res;
 	}
 }

@@ -9,9 +9,11 @@ NAMESPACE_SOUP
 		bool value;
 
 		explicit JsonBool(bool value = false) noexcept
-			: JsonNode(JSON_BOOL), value(value)
+			: JsonNode(), value(value)
 		{
 		}
+
+		[[nodiscard]] JsonNodeType getType() const noexcept final { return JSON_BOOL; }
 
 		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
 		bool msgpackEncode(Writer& w) const final;

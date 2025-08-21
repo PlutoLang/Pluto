@@ -38,9 +38,10 @@ NAMESPACE_SOUP
 	{
 		SharedPtr<CertStore> certstore;
 		tls_server_on_client_hello_t on_client_hello;
+		tls_server_alpn_select_protocol_t alpn_select_protocol;
 
-		CaptureServerPortCrypto(Server* server, ServerService* service, const SharedPtr<CertStore>& certstore, tls_server_on_client_hello_t on_client_hello)
-			: CaptureServerPort(server, service), certstore(certstore), on_client_hello(on_client_hello)
+		CaptureServerPortCrypto(Server* server, ServerService* service, const SharedPtr<CertStore>& certstore, tls_server_on_client_hello_t on_client_hello, tls_server_alpn_select_protocol_t alpn_select_protocol)
+			: CaptureServerPort(server, service), certstore(certstore), on_client_hello(on_client_hello), alpn_select_protocol(alpn_select_protocol)
 		{
 		}
 
@@ -57,15 +58,15 @@ NAMESPACE_SOUP
 				{
 					CaptureServerPortCrypto& cap = *_cap.get<CaptureServerPortCrypto*>();
 					cap.service->on_tunnel_established(s, *cap.service, *cap.server);
-				}, this, on_client_hello);
+				}, this, on_client_hello, alpn_select_protocol);
 			}
 		}
 	};
 
 	struct CaptureServerPortOptCrypto : public CaptureServerPortCrypto
 	{
-		CaptureServerPortOptCrypto(Server* server, ServerService* service, const SharedPtr<CertStore>& certstore, tls_server_on_client_hello_t on_client_hello)
-			: CaptureServerPortCrypto(server, service, certstore, on_client_hello)
+		CaptureServerPortOptCrypto(Server* server, ServerService* service, const SharedPtr<CertStore>& certstore, tls_server_on_client_hello_t on_client_hello, tls_server_alpn_select_protocol_t alpn_select_protocol)
+			: CaptureServerPortCrypto(server, service, certstore, on_client_hello, alpn_select_protocol)
 		{
 		}
 
@@ -88,7 +89,7 @@ NAMESPACE_SOUP
 						{
 							CaptureServerPortOptCrypto& cap = *_cap.get<CaptureServerPortOptCrypto*>();
 							cap.service->on_tunnel_established(s, *cap.service, *cap.server);
-						}, &cap, cap.on_client_hello);
+						}, &cap, cap.on_client_hello, cap.alpn_select_protocol);
 					}
 					else
 					{
@@ -147,7 +148,7 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	bool Server::bindCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_on_client_hello_t on_client_hello) SOUP_EXCAL
+	bool Server::bindCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_on_client_hello_t on_client_hello, tls_server_alpn_select_protocol_t alpn_select_protocol) SOUP_EXCAL
 	{
 		Socket sock6{};
 		if (!sock6.bind6(port))
@@ -155,7 +156,7 @@ NAMESPACE_SOUP
 			return false;
 		}
 		setDataAvailableHandlerCrypto6(sock6);
-		sock6.holdup_callback.cap = CaptureServerPortCrypto(this, service, certstore, on_client_hello);
+		sock6.holdup_callback.cap = CaptureServerPortCrypto(this, service, certstore, on_client_hello, alpn_select_protocol);
 		addSocket(std::move(sock6));
 
 #if SOUP_WINDOWS
@@ -165,14 +166,14 @@ NAMESPACE_SOUP
 			return false;
 		}
 		setDataAvailableHandlerCrypto4(sock4);
-		sock4.holdup_callback.cap = CaptureServerPortCrypto(this, service, certstore, on_client_hello);
+		sock4.holdup_callback.cap = CaptureServerPortCrypto(this, service, certstore, on_client_hello, alpn_select_protocol);
 		addSocket(std::move(sock4));
 #endif
 
 		return true;
 	}
 
-	bool Server::bindOptCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_on_client_hello_t on_client_hello) SOUP_EXCAL
+	bool Server::bindOptCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_on_client_hello_t on_client_hello, tls_server_alpn_select_protocol_t alpn_select_protocol) SOUP_EXCAL
 	{
 		Socket sock6{};
 		if (!sock6.bind6(port))
@@ -180,7 +181,7 @@ NAMESPACE_SOUP
 			return false;
 		}
 		setDataAvailableHandlerOptCrypto6(sock6);
-		sock6.holdup_callback.cap = CaptureServerPortOptCrypto(this, service, certstore, on_client_hello);
+		sock6.holdup_callback.cap = CaptureServerPortOptCrypto(this, service, certstore, on_client_hello, alpn_select_protocol);
 		addSocket(std::move(sock6));
 
 #if SOUP_WINDOWS
@@ -190,7 +191,7 @@ NAMESPACE_SOUP
 			return false;
 		}
 		setDataAvailableHandlerOptCrypto4(sock4);
-		sock4.holdup_callback.cap = CaptureServerPortOptCrypto(this, service, certstore, on_client_hello);
+		sock4.holdup_callback.cap = CaptureServerPortOptCrypto(this, service, certstore, on_client_hello, alpn_select_protocol);
 		addSocket(std::move(sock4));
 #endif
 

@@ -10,13 +10,7 @@ NAMESPACE_SOUP
 {
 	struct JsonNode
 	{
-		JsonNodeType type;
-
-		explicit JsonNode(JsonNodeType type) noexcept
-			: type(type)
-		{
-		}
-
+		[[nodiscard]] virtual JsonNodeType getType() const noexcept = 0;
 		virtual ~JsonNode() = default;
 
 #if SOUP_CPP20
@@ -203,37 +197,37 @@ NAMESPACE_SOUP
 
 	inline bool JsonNode::isArr() const noexcept
 	{
-		return type == JSON_ARRAY;
+		return getType() == JSON_ARRAY;
 	}
 
 	inline bool JsonNode::isBool() const noexcept
 	{
-		return type == JSON_BOOL;
+		return getType() == JSON_BOOL;
 	}
 
 	inline bool JsonNode::isFloat() const noexcept
 	{
-		return type == JSON_FLOAT;
+		return getType() == JSON_FLOAT;
 	}
 
 	inline bool JsonNode::isInt() const noexcept
 	{
-		return type == JSON_INT;
+		return getType() == JSON_INT;
 	}
 
 	inline bool JsonNode::isNull() const noexcept
 	{
-		return type == JSON_NULL;
+		return getType() == JSON_NULL;
 	}
 
 	inline bool JsonNode::isObj() const noexcept
 	{
-		return type == JSON_OBJECT;
+		return getType() == JSON_OBJECT;
 	}
 
 	inline bool JsonNode::isStr() const noexcept
 	{
-		return type == JSON_STRING;
+		return getType() == JSON_STRING;
 	}
 
 	// Using reinterpret_cast instead of static_cast because not all of these types may be known

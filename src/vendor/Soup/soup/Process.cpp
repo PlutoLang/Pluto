@@ -7,6 +7,8 @@
 	#include "HandleRaii.hpp"
 	#include "VirtualHandleRaii.hpp"
 #else
+	#include <filesystem>
+
 	#include "FileReader.hpp"
 	#include "Range.hpp"
 	#include "Regex.hpp"
@@ -40,15 +42,22 @@ NAMESPACE_SOUP
 				} while (Process32Next(hSnap, &entry));
 			}
 		}
-		return {};
 #else
-		return soup::make_unique<Process>(id);
+		std::ifstream commFile("/proc/" + std::to_string(id) + "/comm");
+		if (commFile.is_open())
+		{
+			std::string procName;
+			std::getline(commFile, procName);
+			commFile.close();
+			return soup::make_unique<Process>(id, std::move(procName));
+		}
 #endif
+		return {};
 	}
 
-#if SOUP_WINDOWS
 	UniquePtr<Process> Process::get(const char* name)
 	{
+#if SOUP_WINDOWS
 		HandleRaii hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 		if (hSnap)
 		{
@@ -65,12 +74,43 @@ NAMESPACE_SOUP
 				} while (Process32Next(hSnap, &entry));
 			}
 		}
+#else
+		for (const auto& entry : std::filesystem::directory_iterator("/proc"))
+		{
+			if (!entry.is_directory())
+			{
+				continue;
+			}
+
+			const auto optPid = string::toIntOpt<pid_t>(entry.path().filename(), string::TI_FULL);
+			if (!optPid)
+			{
+				continue;
+			}
+
+			std::ifstream commFile(entry.path() / "comm");
+			if (!commFile.is_open())
+			{
+				continue;
+			}
+
+			std::string procName;
+			std::getline(commFile, procName);
+			commFile.close();
+
+			if (procName == name)
+			{
+				return soup::make_unique<Process>(*optPid, std::move(procName));
+			}
+		}
+#endif
 		return {};
 	}
 
 	std::vector<UniquePtr<Process>> Process::getAll()
 	{
 		std::vector<UniquePtr<Process>> res{};
+#if SOUP_WINDOWS
 		HandleRaii hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 		if (hSnap)
 		{
@@ -84,9 +124,35 @@ NAMESPACE_SOUP
 				} while (Process32Next(hSnap, &entry));
 			}
 		}
+#else
+		for (const auto& entry : std::filesystem::directory_iterator("/proc"))
+		{
+			if (!entry.is_directory())
+			{
+				continue;
+			}
+
+			const auto optPid = string::toIntOpt<pid_t>(entry.path().filename(), string::TI_FULL);
+			if (!optPid)
+			{
+				continue;
+			}
+
+			std::ifstream commFile(entry.path() / "comm");
+			if (!commFile.is_open())
+			{
+				continue;
+			}
+
+			std::string procName;
+			std::getline(commFile, procName);
+			commFile.close();
+
+			res.emplace_back(soup::make_unique<Process>(*optPid, std::move(procName)));
+		}
+#endif
 		return res;
 	}
-#endif
 
 	std::shared_ptr<ProcessHandle> Process::open() const
 	{
