@@ -338,9 +338,6 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
     <ClCompile Include="src\lbufferlib.cpp" />
-    <ClCompile Include="src\vendor\Soup\soup\memAllocator.cpp">
-      <Filter>vendor\Soup\soup</Filter>
-    </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\SocketAddr.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
@@ -354,6 +351,9 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
     <ClCompile Include="src\vendor\Soup\soup\ProcessHandle.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\Range.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1148,6 +1148,12 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\memAllocating.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\TlsExtAlpn.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\Pattern.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>

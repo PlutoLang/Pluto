@@ -229,7 +229,13 @@ static int starttlscont (lua_State *L, int status, lua_KContext ctx) {
   return 1;
 }
 
-static void starttlscallback (soup::Socket&, soup::Capture&& cap) SOUP_EXCAL {
+static void starttlscallbackserver (soup::Socket&, soup::Capture&& cap) SOUP_EXCAL {
+  StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
+  ss.did_tls_handshake = true;
+  ss.recvLoop();  /* re-add recv loop, now on crypto layer */
+}
+
+static void starttlscallbackclient (soup::Socket&, soup::Capture&& cap, std::string&& alpn_protocol) SOUP_EXCAL {
   StandaloneSocket& ss = *cap.get<StandaloneSocket*>();
   ss.did_tls_handshake = true;
   ss.recvLoop();  /* re-add recv loop, now on crypto layer */
@@ -273,10 +279,10 @@ static int starttls (lua_State *L) {
       ss.recvd.pop_back();
     }
 
-    ss.sock->enableCryptoServer(std::move(*certstore), starttlscallback, &ss);
+    ss.sock->enableCryptoServer(std::move(*certstore), starttlscallbackserver, &ss);
   }
   else {
-    ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallback, &ss);
+    ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallbackclient, &ss);
   }
 
   if (lua_isyieldable(L))

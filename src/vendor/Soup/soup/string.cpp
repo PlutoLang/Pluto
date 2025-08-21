@@ -190,9 +190,9 @@ NAMESPACE_SOUP
 		return toFile(soup::filesystem::u8path(file), contents);
 	}
 
-	void string::toFile(const std::filesystem::path& file, const std::string& contents)
+	void string::toFile(const std::filesystem::path& file, const char* data, size_t size)
 	{
 		std::ofstream of(file, std::ios_base::binary);
-		of << contents;
+		of.write(data, size);
 	}
 }

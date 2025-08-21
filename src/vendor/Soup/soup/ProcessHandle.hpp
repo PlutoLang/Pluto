@@ -38,5 +38,22 @@ NAMESPACE_SOUP
 			int allowed_access; // memGuard::AllowedAccessFlags
 		};
 		[[nodiscard]] std::vector<AllocationInfo> getAllocations() const;
+
+		size_t externalRead(Pointer p, void* out, size_t size) const noexcept;
+
+		template <typename T>
+		[[nodiscard]] T externalRead(Pointer p) const noexcept
+		{
+			T val;
+			externalRead(p, &val, sizeof(val));
+			return val;
+		}
+
+		[[nodiscard]] std::string externalReadString(Pointer p) const;
+
+#if SOUP_WINDOWS
+		[[nodiscard]] Pointer externalScan(const Pattern& sig) const { return externalScan(range, sig); }
+#endif
+		[[nodiscard]] Pointer externalScan(const Range& range, const Pattern& sig) const;
 	};
 }

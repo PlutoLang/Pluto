@@ -9,9 +9,11 @@ NAMESPACE_SOUP
 		int64_t value;
 
 		explicit JsonInt(int64_t value = 0) noexcept
-			: JsonNode(JSON_INT), value(value)
+			: JsonNode(), value(value)
 		{
 		}
+
+		[[nodiscard]] JsonNodeType getType() const noexcept final { return JSON_INT; }
 
 		bool operator ==(const JsonNode& b) const noexcept final;
 

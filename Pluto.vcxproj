@@ -643,6 +643,7 @@
     <ClCompile Include="src\vendor\Soup\soup\Promise.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\QrCode.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\rand.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\Range.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\RasterFont.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Reader.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Regex.cpp" />
@@ -839,6 +840,7 @@
     <ClInclude Include="src\vendor\Soup\soup\ParseError.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ParserState.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\parse_tree.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\Pattern.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\pem.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\plusaes.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Pointer.hpp" />
@@ -937,6 +939,7 @@
     <ClInclude Include="src\vendor\Soup\soup\TlsClientHelloExtServerName.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsContentType.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsEncryptedPreMasterSecret.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\TlsExtAlpn.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsExtensionType.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsHandshake.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsHelloExtensions.hpp" />

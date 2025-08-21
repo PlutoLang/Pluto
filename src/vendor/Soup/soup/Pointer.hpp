@@ -95,7 +95,7 @@ NAMESPACE_SOUP
 		}
 
 #if SOUP_WINDOWS
-		[[nodiscard]] Pointer externalRip(const Module& mod) const noexcept;
+		[[nodiscard]] Pointer externalRip(const ProcessHandle& mod) const noexcept;
 
 		[[nodiscard]] bool isInModule() const noexcept;
 		[[nodiscard]] bool isInModule(const Module& mod) const noexcept;
