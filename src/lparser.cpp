@@ -1755,11 +1755,11 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
         name = str_checkname(ls);
       }
       else if (strcmp(getstr(name), "protected") == 0) {
-        luaX_syntaxerror(ls, "'protected' is reserved in this context");
-        name = str_checkname(ls);
+        const auto field_name = ls->classes.top().addProtectedField(str_checkname(ls)->toCpp());
+        name = luaX_newstring(ls, field_name.c_str());
       }
       else if (strcmp(getstr(name), "private") == 0) {
-        const auto field_name = ls->classes.top().addPrefix(str_checkname(ls)->toCpp());
+        const auto field_name = ls->classes.top().addPrivateField(str_checkname(ls)->toCpp());
         name = luaX_newstring(ls, field_name.c_str());
       }
     }
@@ -1850,7 +1850,7 @@ static void listfield (LexState *ls, ConsControl *cc) {
 
 
 static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *funcdesc = nullptr);
-static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool isprivate = false) {
+static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool isprivate = false, bool isprotected = false) {
   /* funcfield -> function NAME funcargs */
   FuncState *fs = ls->fs;
   auto reg = ls->fs->freereg;
@@ -1859,7 +1859,11 @@ static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool 
   luaX_next(ls); /* skip TK_FUNCTION */
   codename(ls, &key);
   if (isprivate) {
-    const auto new_name = ls->classes.top().addPrefix(getstr(key.u.strval));
+    const auto new_name = ls->classes.top().addPrivateField(getstr(key.u.strval));
+    codestring(&key, luaX_newstring(ls, new_name.c_str()));
+  }
+  else if (isprotected) {
+    const auto new_name = ls->classes.top().addProtectedField(getstr(key.u.strval));
     codestring(&key, luaX_newstring(ls, new_name.c_str()));
   }
   if (ismethod)
@@ -1894,6 +1898,10 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
       else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "public") == 0) {
         luaX_next(ls);
         funcfield(ls, cc, true);
+      }
+      else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "protected") == 0) {
+        luaX_next(ls);
+        funcfield(ls, cc, true, false, true);
       }
       else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
         luaX_next(ls);
@@ -2026,6 +2034,21 @@ static void skip_classname (LexState *ls) {
   }
 }
 
+static std::string classnametostr (LexState *ls, size_t pos) {
+  auto old = luaX_getpos(ls);
+  luaX_setpos(ls, pos);
+  TString *name = str_checkname(ls, 0);
+  std::string res = getstr(name);
+  while (ls->t.token == '.') {
+    luaX_next(ls);
+    name = str_checkname(ls, N_RESERVED);
+    res.push_back('.');
+    res += getstr(name);
+  }
+  luaX_setpos(ls, old);
+  return res;
+}
+
 static size_t checkextends (LexState *ls) {
   size_t pos = 0;
 #ifdef PLUTO_PARSER_SUGGESTIONS
@@ -2117,16 +2140,28 @@ static size_t preprocessclass (LexState *ls) {
       break;
     }
 
-    if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
+    if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "protected") == 0) {
       if (luaX_lookahead(ls) == TK_FUNCTION) {
         checknext(ls, TK_NAME);
         checknext(ls, TK_FUNCTION);
-        ls->classes.top().addField(getstr(ls->t.seminfo.ts));
+        ls->classes.top().addProtectedField(getstr(ls->t.seminfo.ts));
         ++allowed_ends; // For TK_FUNCTION
       }
       else if (luaX_lookahead(ls) == TK_NAME) {
         checknext(ls, TK_NAME);
-        ls->classes.top().addField(getstr(ls->t.seminfo.ts));
+        ls->classes.top().addProtectedField(getstr(ls->t.seminfo.ts));
+      }
+    }
+    else if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
+      if (luaX_lookahead(ls) == TK_FUNCTION) {
+        checknext(ls, TK_NAME);
+        checknext(ls, TK_FUNCTION);
+        ls->classes.top().addPrivateField(getstr(ls->t.seminfo.ts));
+        ++allowed_ends; // For TK_FUNCTION
+      }
+      else if (luaX_lookahead(ls) == TK_NAME) {
+        checknext(ls, TK_NAME);
+        ls->classes.top().addPrivateField(getstr(ls->t.seminfo.ts));
       }
     }
 
@@ -2204,12 +2239,22 @@ static void classstat (LexState *ls, int line, const bool global) {
   }
 
   size_t parent_pos = checkextends(ls);
+  if (parent_pos) {
+    const auto pname = classnametostr(ls, parent_pos);
+    if (auto it = ls->class_protected_fields.find(pname); it != ls->class_protected_fields.end()) {
+      for (const auto& f : it->second)
+        ls->classes.top().protected_fields.emplace(f);
+    }
+  }
 
   expdesc t;
   classexpr(ls, &t);
   check_readonly(ls, &v);
   luaK_storevar(ls->fs, &v, &t);
   luaK_fixline(ls->fs, line);
+
+  const auto cname = classnametostr(ls, name_pos);
+  ls->class_protected_fields[cname] = ls->classes.top().protected_fields;
 
   lua_assert(ls->getParentClassPos() == parent_pos);
   ls->classes.pop();
@@ -2230,6 +2275,13 @@ static void localclass (LexState *ls, bool isexport = false) {
   size_t name_pos = luaX_getpos(ls);
   TString *name = str_checkname(ls, 0);
   size_t parent_pos = checkextends(ls);
+  if (parent_pos) {
+    const auto pname = classnametostr(ls, parent_pos);
+    if (auto it = ls->class_protected_fields.find(pname); it != ls->class_protected_fields.end()) {
+      for (const auto& f : it->second)
+        ls->classes.top().protected_fields.emplace(f);
+    }
+  }
 
   int vidx = new_localvar(ls, name, line);
   if (isexport)
@@ -2240,6 +2292,9 @@ static void localclass (LexState *ls, bool isexport = false) {
 
   adjust_assign(ls, 1, 1, &t);
   adjustlocalvars(ls, 1);
+
+  const auto cname = classnametostr(ls, name_pos);
+  ls->class_protected_fields[cname] = ls->classes.top().protected_fields;
 
   lua_assert(ls->getParentClassPos() == parent_pos);
   ls->classes.pop();
@@ -2367,11 +2422,13 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
             promotions->emplace_back(parname, parname);
           }
           else if (strcmp(getstr(parname), "protected") == 0) {
-            luaX_syntaxerror(ls, "'protected' is reserved in this context");
+            parname = str_checkname(ls, N_OVERRIDABLE);
+            const auto field_name = ls->classes.top().addProtectedField(parname->toCpp());
+            promotions->emplace_back(parname, luaX_newstring(ls, field_name.c_str()));
           }
           else if (strcmp(getstr(parname), "private") == 0) {
             parname = str_checkname(ls, N_OVERRIDABLE);
-            const auto field_name = ls->classes.top().addPrefix(parname->toCpp());
+            const auto field_name = ls->classes.top().addPrivateField(parname->toCpp());
             promotions->emplace_back(parname, luaX_newstring(ls, field_name.c_str()));
           }
         }
