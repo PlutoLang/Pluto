@@ -2034,19 +2034,18 @@ static void skip_classname (LexState *ls) {
   }
 }
 
-static std::string classnametostr (LexState *ls, size_t pos) {
+static void classnametostr (LexState *ls, size_t pos, std::string& res) {
   auto old = luaX_getpos(ls);
   luaX_setpos(ls, pos);
   TString *name = str_checkname(ls, 0);
-  std::string res = getstr(name);
+  res.assign(getstr(name), tsslen(name));
   while (ls->t.token == '.') {
     luaX_next(ls);
     name = str_checkname(ls, N_RESERVED);
     res.push_back('.');
-    res += getstr(name);
+    res.append(getstr(name), tsslen(name));
   }
   luaX_setpos(ls, old);
-  return res;
 }
 
 static size_t checkextends (LexState *ls) {
@@ -2240,11 +2239,13 @@ static void classstat (LexState *ls, int line, const bool global) {
 
   size_t parent_pos = checkextends(ls);
   if (parent_pos) {
-    const auto pname = classnametostr(ls, parent_pos);
+    auto& pname = *pluto_newclassinst(ls->L, std::string);
+    classnametostr(ls, parent_pos, pname);
     if (auto it = ls->class_protected_fields.find(pname); it != ls->class_protected_fields.end()) {
       for (const auto& f : it->second)
         ls->classes.top().protected_fields.emplace(f);
     }
+    ls->L->top.p--;  /* pop 'pname' */
   }
 
   expdesc t;
@@ -2253,8 +2254,10 @@ static void classstat (LexState *ls, int line, const bool global) {
   luaK_storevar(ls->fs, &v, &t);
   luaK_fixline(ls->fs, line);
 
-  const auto cname = classnametostr(ls, name_pos);
+  auto& cname = *pluto_newclassinst(ls->L, std::string);
+  classnametostr(ls, name_pos, cname);
   ls->class_protected_fields[cname] = ls->classes.top().protected_fields;
+  ls->L->top.p--;  /* pop 'cname' */
 
   lua_assert(ls->getParentClassPos() == parent_pos);
   ls->classes.pop();
@@ -2276,11 +2279,13 @@ static void localclass (LexState *ls, bool isexport = false) {
   TString *name = str_checkname(ls, 0);
   size_t parent_pos = checkextends(ls);
   if (parent_pos) {
-    const auto pname = classnametostr(ls, parent_pos);
+    auto& pname = *pluto_newclassinst(ls->L, std::string);
+    classnametostr(ls, parent_pos, pname);
     if (auto it = ls->class_protected_fields.find(pname); it != ls->class_protected_fields.end()) {
       for (const auto& f : it->second)
         ls->classes.top().protected_fields.emplace(f);
     }
+    ls->L->top.p--;  /* pop 'pname' */
   }
 
   int vidx = new_localvar(ls, name, line);
@@ -2293,8 +2298,10 @@ static void localclass (LexState *ls, bool isexport = false) {
   adjust_assign(ls, 1, 1, &t);
   adjustlocalvars(ls, 1);
 
-  const auto cname = classnametostr(ls, name_pos);
+  auto& cname = *pluto_newclassinst(ls->L, std::string);
+  classnametostr(ls, name_pos, cname);
   ls->class_protected_fields[cname] = ls->classes.top().protected_fields;
+  ls->L->top.p--;  /* pop 'cname' */
 
   lua_assert(ls->getParentClassPos() == parent_pos);
   ls->classes.pop();
