@@ -3,7 +3,7 @@
 
 #include "vendor/Soup/soup/Bigint.hpp"
 
-void pushbigint (lua_State *L, soup::Bigint&& x);
+void pushbigint (lua_State *L, soup::Bigint x);
 
 soup::Bigint* checkbigint (lua_State *L, int i) {
   if (lua_type(L, i) == LUA_TNUMBER) {
@@ -137,7 +137,7 @@ static int bigint_import (lua_State *L) {
   return 1;
 }
 
-void pushbigint (lua_State *L, soup::Bigint&& x) {
+void pushbigint (lua_State *L, soup::Bigint x) {
   new (lua_newuserdata(L, sizeof(soup::Bigint))) soup::Bigint(std::move(x));
   if (l_unlikely(luaL_newmetatable(L, "pluto:bigint"))) {
     lua_pushliteral(L, "__gc");
