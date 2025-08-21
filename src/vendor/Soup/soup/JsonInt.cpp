@@ -6,7 +6,7 @@ NAMESPACE_SOUP
 {
 	bool JsonInt::operator==(const JsonNode& b) const noexcept
 	{
-		return JSON_INT == b.type
+		return JSON_INT == b.getType()
 			&& value == b.reinterpretAsInt().value
 			;
 	}

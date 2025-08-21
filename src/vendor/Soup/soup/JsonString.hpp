@@ -11,24 +11,26 @@ NAMESPACE_SOUP
 		std::string value{};
 
 		explicit JsonString() noexcept
-			: JsonNode(JSON_STRING)
+			: JsonNode()
 		{
 		}
 
 		explicit JsonString(const std::string& value) noexcept
-			: JsonNode(JSON_STRING), value(value)
+			: JsonNode(), value(value)
 		{
 		}
 
 		explicit JsonString(std::string&& value) noexcept
-			: JsonNode(JSON_STRING), value(std::move(value))
+			: JsonNode(), value(std::move(value))
 		{
 		}
 
 		explicit JsonString(const char* data, size_t size) noexcept
-			: JsonNode(JSON_STRING), value(data, size)
+			: JsonNode(), value(data, size)
 		{
 		}
+
+		[[nodiscard]] JsonNodeType getType() const noexcept final { return JSON_STRING; }
 
 		bool operator ==(const JsonNode& b) const noexcept final;
 

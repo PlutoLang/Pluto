@@ -140,7 +140,7 @@ NAMESPACE_SOUP
 			sched.addSocket(sock);
 			if (use_tls)
 			{
-				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
+				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap, std::string&& alpn_protocol) SOUP_EXCAL
 				{
 					auto& data = *cap.get<HttpRequestExecuteData*>();
 					execute_recvResponse(s, &data.resp);
@@ -181,7 +181,7 @@ NAMESPACE_SOUP
 			sched.addSocket(sock);
 			if (use_tls)
 			{
-				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
+				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap, std::string&&) SOUP_EXCAL
 				{
 					auto* data = cap.get<HttpRequestExecuteEventStreamData*>();
 					executeEventStream_recv(s, data);

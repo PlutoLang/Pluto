@@ -160,6 +160,7 @@ NAMESPACE_SOUP
 	// net.tls
 	class SocketTlsHandshaker;
 	struct TlsClientHello;
+	struct TlsExtAlpn;
 
 	// net.web
 	class HttpRequest;
@@ -174,6 +175,7 @@ NAMESPACE_SOUP
 	struct HandleRaii;
 	class Module;
 	enum MouseButton : uint8_t;
+	class ProcessHandle;
 	class Thread;
 	struct Window;
 

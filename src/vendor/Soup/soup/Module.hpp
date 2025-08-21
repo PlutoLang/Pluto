@@ -51,21 +51,6 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] Pointer getExport(const char* name) const noexcept;
 
-		size_t externalRead(Pointer p, void* out, size_t size) const noexcept;
-
-		template <typename T>
-		[[nodiscard]] T externalRead(Pointer p) const noexcept
-		{
-			T val;
-			externalRead(p, &val, sizeof(val));
-			return val;
-		}
-
-		[[nodiscard]] std::string externalReadString(Pointer p) const;
-
-		[[nodiscard]] Pointer externalScan(const Pattern& sig) const;
-		[[nodiscard]] Pointer externalScan(const Range& range, const Pattern& sig) const;
-
 		[[nodiscard]] UniquePtr<AllocRaiiRemote> allocate(size_t size, DWORD type = MEM_COMMIT | MEM_RESERVE, DWORD protect = PAGE_EXECUTE_READWRITE) const;
 		[[nodiscard]] UniquePtr<AllocRaiiRemote> copyInto(const void* data, size_t size) const;
 		size_t externalWrite(Pointer p, const void* data, size_t size) const noexcept;

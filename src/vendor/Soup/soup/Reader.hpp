@@ -36,16 +36,19 @@ NAMESPACE_SOUP
 		virtual const void* getMemoryView(size_t size) const noexcept { return nullptr; }
 
 		// An unsigned 64-bit integer encoded in 1..9 bytes. The most significant bit of bytes 1 to 8 is used to indicate if another byte follows.
-		// Lua implementation: https://gist.github.com/Sainan/02c3ac9cea5015341412c92feec95e56
+		// https://github.com/calamity-inc/u64_dyn
 		bool u64_dyn(uint64_t& v) noexcept;
 
 		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn.)
+		// https://github.com/calamity-inc/u64_dyn
 		bool i64_dyn(int64_t& v) noexcept;
 
 		// An unsigned 64-bit integer encoded in 1..9 bytes. This is a slightly more efficient version of u64_dyn, e.g. 0x4000..0x407f are encoded in 2 bytes instead of 3.
+		// https://github.com/calamity-inc/u64_dyn
 		bool u64_dyn_v2(uint64_t& v) noexcept;
 
 		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn_v2. This revision also simplifies how negative integers are handled.)
+		// https://github.com/calamity-inc/u64_dyn
 		bool i64_dyn_v2(int64_t& v) noexcept;
 
 		// An integer where every byte's most significant bit is used to indicate if another byte follows, most significant byte first.
@@ -221,10 +224,7 @@ NAMESPACE_SOUP
 			while (len--)
 			{
 				uint8_t entry;
-				SOUP_IF_UNLIKELY (!u8(entry))
-				{
-					return false;
-				}
+				SOUP_RETHROW_FALSE(u8(entry));
 				v.emplace_back(std::move(entry));
 			}
 			return true;
@@ -240,10 +240,7 @@ NAMESPACE_SOUP
 			for (; len >= sizeof(uint16_t); len -= sizeof(uint16_t))
 			{
 				uint16_t entry;
-				SOUP_IF_UNLIKELY (!ioBase::u16_be(entry))
-				{
-					return false;
-				}
+				SOUP_RETHROW_FALSE(ioBase::u16_be(entry));
 				v.emplace_back(entry);
 			}
 			return true;
@@ -259,10 +256,7 @@ NAMESPACE_SOUP
 			for (; len != 0; --len)
 			{
 				std::string entry;
-				SOUP_IF_UNLIKELY (!str_nt(entry))
-				{
-					return false;
-				}
+				SOUP_RETHROW_FALSE(str_nt(entry));
 				v.emplace_back(std::move(entry));
 			}
 			return true;
@@ -274,15 +268,27 @@ NAMESPACE_SOUP
 			uint32_t len;
 			SOUP_RETHROW_FALSE(ioBase::u24_be(len));
 			v.clear();
-			v.reserve(len / 3);
 			while (len >= 3)
 			{
 				std::string entry;
-				SOUP_IF_UNLIKELY (!str_lp<u24_be_t>(entry))
-				{
-					return false;
-				}
+				SOUP_RETHROW_FALSE(str_lp<u24_be_t>(entry));
 				len -= ((uint32_t)entry.size() + 3);
+				v.emplace_back(std::move(entry));
+			}
+			return true;
+		}
+
+		// vector of str_lp<u8_t> with u16_be byte length prefix.
+		bool vec_str_lp_u8_bl_u16_be(std::vector<std::string>& v) SOUP_EXCAL
+		{
+			uint16_t len;
+			SOUP_RETHROW_FALSE(ioBase::u16_be(len));
+			v.clear();
+			while (len >= 1)
+			{
+				std::string entry;
+				SOUP_RETHROW_FALSE(str_lp<u8_t>(entry));
+				len -= ((uint16_t)entry.size() + 1);
 				v.emplace_back(std::move(entry));
 			}
 			return true;
