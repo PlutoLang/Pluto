@@ -9,6 +9,8 @@ NAMESPACE_SOUP
 {
 	enum dnsType : uint16_t
 	{
+		DNS_NONE = 0,
+
 		DNS_A = 1, // a host address [RFC1035]
 		DNS_NS = 2, // an authoritative name server [RFC1035]
 		DNS_MD = 3, // a mail destination (OBSOLETE - use MX) [RFC1035]
@@ -99,7 +101,8 @@ NAMESPACE_SOUP
 		DNS_TA = 32768, // DNSSEC Trust Authorities [Sam_Weiler][http://cameo.library.cmu.edu/][ Deploying DNSSEC Without a Signed Root. Technical Report 1999-19, Information Networking Institute, Carnegie Mellon University, April 2004.]  2005-12-13
 		DNS_DLV = 32769, // DNSSEC Lookaside Validation (OBSOLETE) [RFC8749][RFC4431]
 	};
-	
+
 	[[nodiscard]] extern std::string dnsTypeToString(dnsType type);
-	[[nodiscard]] extern Optional<dnsType> dnsTypeFromString(const std::string& str);
+	[[nodiscard]] extern dnsType dnsTypeFromString(const char* str);
+	[[nodiscard]] inline dnsType dnsTypeFromString(const std::string& str) { return dnsTypeFromString(str.c_str()); };
 }
