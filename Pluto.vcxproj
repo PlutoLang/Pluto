@@ -602,9 +602,11 @@
     <ClCompile Include="src\vendor\Soup\soup\DetachedScheduler.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\dnsHttpResolver.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\dnsName.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\dnsOsResolver.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\dnsRawResolver.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\dnsResolver.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\dnsSmartResolver.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\dnsType.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\dnsUdpResolver.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\dns_records.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ecc.cpp" />
@@ -765,6 +767,7 @@
     <ClInclude Include="src\vendor\Soup\soup\dnsHttpResolver.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\dnsLookupTask.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\dnsName.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\dnsOsResolver.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\dnsQuestion.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\dnsRawResolver.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\dnsResolver.hpp" />

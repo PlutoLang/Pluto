@@ -110,7 +110,7 @@ guess:
 	@$(MAKE) `$(UNAME)`
 
 AIX aix:
-	$(MAKE) $(ALL) CXX="xlc" CFLAGS="-O2 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-ldl" SYSLDFLAGS="-brtl -bexpall"
+	$(MAKE) $(ALL) CXX="xlc" CFLAGS="-O2 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-ldl -lresolv" SYSLDFLAGS="-brtl -bexpall"
 
 bsd:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-Wl,-E"
@@ -123,9 +123,17 @@ generic: $(ALL)
 Linux linux:	linux-noreadline
 
 linux-noreadline:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX" SYSLIBS="-ldl"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX" SYSLIBS="-ldl -lresolv"
 
 linux-readline:
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE" SYSLIBS="-ldl -lresolv -lreadline"
+
+termux:	termux-noreadline
+
+termux-noreadline:
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX" SYSLIBS="-ldl"
+
+termux-readline:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE" SYSLIBS="-ldl -lreadline"
 
 Darwin macos macosx:
@@ -135,7 +143,7 @@ posix:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX"
 
 SunOS solaris:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN -D_REENTRANT" SYSLIBS="-ldl"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN -D_REENTRANT" SYSLIBS="-ldl -lresolv"
 
 # Targets that do not create files (not all makes understand .PHONY).
 .PHONY: all $(PLATS) help test clean default o a depend echo
