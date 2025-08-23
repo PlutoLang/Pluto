@@ -407,8 +407,8 @@ soup::Bigint* checkbigint (lua_State *L, int i);
 
 static int generatekeypair (lua_State *L) {
   auto type = luaL_checkstring(L, 1);
-  auto bits = (int)luaL_checkinteger(L, 2);
   if (strcmp(type, "rsa") == 0) {
+    auto bits = (int)luaL_checkinteger(L, 2);
     auto kp = soup::RsaKeypair::generate(bits < 0 ? bits * -1 : bits, bits < 0);
     lua_newtable(L);
     lua_pushliteral(L, "n");
