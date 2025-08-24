@@ -642,7 +642,7 @@ struct LexState {
 
   [[nodiscard]] bool shouldEmitWarning(int line, WarningType warning_type) const {
     const auto& linebuff = this->getLineString(line);
-    const auto& lastattr = line > 1 ? this->getLineString(line - 1) : linebuff;
+    const auto& lastattr = (line > 1 && line != Token::LINE_INJECTED) ? this->getLineString(line - 1) : linebuff;
     return lastattr.find("@pluto_warnings: disable-next") == std::string::npos
         && lastattr.find("@pluto_warnings disable-next") == std::string::npos
         && getWarningConfig().isEnabled(warning_type)
