@@ -535,6 +535,12 @@ do
     assert(a == 2)
     assert(b == 4)
 
+    a, b = 2, 3
+    a **= 2
+    b **= 3
+    assert(a == 4)
+    assert(b == 27)
+
     a, b = 1, 2
     a %= 2
     b %= 2

@@ -1176,9 +1176,14 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           seminfo->i = '*';
           return '=';  /* '*=' */
         }
-        else if (check_next1(ls, '*')) { /*  got '**' */
+        else if (check_next1(ls, '*')) { /* got '**' */
           ls->appendLineBuff("**");
           ls->uses_ipow = true;
+          if (check_next1(ls, '=')) {  /* '**=' */
+            ls->appendLineBuff('=');
+            seminfo->i = TK_IPOW;
+            return '=';
+          }
           return TK_IPOW;  /* '**' */
         }
         else {
