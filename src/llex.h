@@ -680,7 +680,8 @@ struct LexState {
 
 LUAI_FUNC void luaX_init (lua_State *L);
 LUAI_FUNC void luaX_setinput (lua_State *L, LexState *ls, ZIO *z,
-                              TString *source, int firstchar);
+                              TString *source, int firstchar,
+                              std::unordered_map<const TString*, Macro>* macros_out = nullptr);
 LUAI_FUNC TString *luaX_newstring (LexState *ls, const char *str, size_t l);
 LUAI_FUNC TString* luaX_newstring (LexState *ls, const char *str);
 LUAI_FUNC void luaX_next (LexState *ls);

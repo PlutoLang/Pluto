@@ -270,7 +270,8 @@ static void inclinenumber (LexState *ls) {
 
 static int llex (LexState *ls, SemInfo *seminfo, int *column);
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
-                    int firstchar) {
+                    int firstchar,
+                    std::unordered_map<const TString*, Macro>* macros_out) {
   ls->t.token = 0;
   ls->L = L;
   ls->current = firstchar;
@@ -367,7 +368,8 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
         ls2.buff = &buff2;
         ls2.h = ls->h;
         ls2.dyd = ls->dyd;
-        luaX_setinput(ls->L, &ls2, &z2, luaX_newstring(ls, fname), firstchar);
+        decltype(ls->macros) macros2;
+        luaX_setinput(ls->L, &ls2, &z2, luaX_newstring(ls, fname), firstchar, &macros2);
         luaZ_freebuffer(ls->L, &buff2);
         size_t count = ls2.tokens.size();
         if (count > 0 && ls2.tokens.back().token == TK_EOS)
@@ -377,6 +379,8 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
         for (auto pos = insert_pos; pos != insert_pos + count; ++pos)
           pos->line = Token::LINE_INJECTED;
         i = insert_pos + count;
+        for (auto &m : macros2)
+          ls->macros.insert(m);
         continue;
       }
     }
@@ -451,7 +455,10 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
       }
       ++i;
     }
-    { decltype(ls->macros) bin; std::swap(ls->macros, bin); }  /* free memory for macros map */
+    if (macros_out)
+      *macros_out = std::move(ls->macros);
+    else
+      { decltype(ls->macros) bin; std::swap(ls->macros, bin); }  /* free memory for macros map */
     { decltype(ls->macro_args) bin; std::swap(ls->macro_args, bin); }
   }
 

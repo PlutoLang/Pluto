@@ -6857,7 +6857,7 @@ LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
   lexstate.buff = buff;
   lexstate.dyd = dyd;
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
-  luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
+  luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar, nullptr);
   if (L->l_G->have_preference_switch)
     applyenvkeywordpreference(&lexstate, TK_SWITCH, L->l_G->preference_switch);
   if (L->l_G->have_preference_continue)

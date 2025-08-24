@@ -2,3 +2,6 @@ print "Testing $include."
 $include "pluto/include-target.pluto"
 assert(included_value == 123)
 
+$include "pluto/include-alias-target.pluto"
+assert(add(1, 2) == 3)
+
