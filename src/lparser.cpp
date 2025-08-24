@@ -3561,7 +3561,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
 }
 
 
-static void prefixplusplus (LexState *ls, expdesc *v) {
+static void prefixplusplusaux (LexState *ls, expdesc *v) {
   int line = ls->getLineNumber();
   FuncState *fs = ls->fs;
   expdesc e = *v, v2;
@@ -3589,6 +3589,42 @@ static void prefixplusplus (LexState *ls, expdesc *v) {
     luaK_setoneret(ls->fs, &e);
     luaK_storevar(ls->fs, v, &e);
   }
+}
+
+static void prefixplusplus (LexState *ls, expdesc *v, int flags) {
+  const auto tidx = ls->tidx;
+  primaryexp(ls, v, flags);
+  if (gett(ls) != '.')
+    return prefixplusplusaux(ls, v);
+  /* it's an indexed prefix expression; we need to switch to a lambda now */
+
+  FuncState new_fs;
+  BlockCnt bl;
+  new_fs.f = addprototype(ls);
+  new_fs.f->linedefined = ls->getLineNumber();
+  open_func(ls, &new_fs, &bl);
+
+  /* ++... */
+  luaX_prev(ls);
+  primaryexp(ls, v, flags);  /* can't use the local in the lambda's scope, need to get it again, this time as upvalue */
+  while (gett(ls) == '.')
+    fieldsel(ls, v);
+  prefixplusplusaux(ls, v);
+
+  /* return ... */
+  luaX_setpos(ls, tidx);
+  primaryexp(ls, v, flags);
+  while (gett(ls) == '.')
+    fieldsel(ls, v);
+  luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, v), 1);
+
+  new_fs.f->lastlinedefined = ls->getLineNumber();
+  codeclosure(ls, v);
+  close_func(ls);
+
+  const auto base = v->u.reg;
+  init_exp(v, VCALL, luaK_codeABC(ls->fs, OP_CALL, base, 1, 2));
+  ls->fs->freereg = base + 1;
 }
 
 
@@ -3633,7 +3669,7 @@ static void postfixplusplus (LexState *ls, expdesc *v, int line, int flags) {
   adjustlocalvars(ls, 1);
 
   /* ++... */
-  prefixplusplus(ls, &_v);
+  prefixplusplusaux(ls, &_v);
 
   /* return ret */
   expdesc ret;
@@ -4388,8 +4424,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
   }
   else if (ls->t.token == TK_PLUSPLUS) {
     luaX_next(ls);  /* skip TK_PLUSPLUS */
-    singlevar(ls, v);  /* variable name */
-    prefixplusplus(ls, v);
+    prefixplusplus(ls, v, flags);
   }
   else {
     simpleexp(ls, v, flags, nprop, prop);
@@ -6315,8 +6350,10 @@ static void statement (LexState *ls, int8_t *nprop, TypeHint *prop) {
     case TK_PLUSPLUS: {
       expdesc v;
       luaX_next(ls);  /* skip TK_PLUSPLUS */
-      suffixedexp(ls, &v);
-      prefixplusplus(ls, &v);
+      primaryexp(ls, &v);
+      while (gett(ls) == '.')
+        fieldsel(ls, &v);
+      prefixplusplusaux(ls, &v);
       break;
     }
     case TK_NEW:

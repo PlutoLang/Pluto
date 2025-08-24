@@ -3283,15 +3283,9 @@ do
     assert(++a == 2)
     assert(a == 2)
 
-    -- https://github.com/PlutoLang/Pluto/issues/1293
-    assert(
-        nil == load[[
-            local t = { a = 1 }
-            assert(++t.a == 2)
-            assert(t.a == 2)
-        ]]
-    )
-    
+    local t = { a = 1 }
+    assert(++t.a == 2)
+    assert(t.a == 2)
 end
 do
     -- statement
