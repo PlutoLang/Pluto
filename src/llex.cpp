@@ -377,6 +377,8 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
         for (auto pos = insert_pos; pos != insert_pos + count; ++pos)
           pos->line = Token::LINE_INJECTED;
         i = insert_pos + count;
+        for (auto &m : ls2.macros)
+          ls->macros.insert(m);
         continue;
       }
     }
@@ -451,8 +453,6 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
       }
       ++i;
     }
-    { decltype(ls->macros) bin; std::swap(ls->macros, bin); }  /* free memory for macros map */
-    { decltype(ls->macro_args) bin; std::swap(ls->macro_args, bin); }
   }
 
 #if TOKENDUMP
