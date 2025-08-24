@@ -6858,6 +6858,8 @@ LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
   lexstate.dyd = dyd;
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
   luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
+  { decltype(lexstate.macros) bin; std::swap(lexstate.macros, bin); }  /* free memory for macros map */
+  { decltype(lexstate.macro_args) bin; std::swap(lexstate.macro_args, bin); }
   if (L->l_G->have_preference_switch)
     applyenvkeywordpreference(&lexstate, TK_SWITCH, L->l_G->preference_switch);
   if (L->l_G->have_preference_continue)
