@@ -4659,7 +4659,45 @@ static void compoundassign (LexState *ls, expdesc *v, BinOpr op) {
   int line = ls->getLineNumber();
   FuncState *fs = ls->fs;
   expdesc e = *v, v2;
-  if (v->k != VLOCAL) {  /* complex lvalue, use a temporary register. linear perf incr. with complexity of lvalue */
+  if (op == OPR_IPOW) {  /* integer exponentiation needs special handling */
+    if (v->k != VLOCAL) {  /* complex lvalue */
+      const auto regs_to_reserve = fs->freereg-luaY_nvarstack(fs);
+      luaK_dischargevars(fs, &e);
+      luaK_reserveregs(fs, regs_to_reserve);
+      enterlevel(ls);
+      expdesc func;
+      singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_ipow"), &func, 1);
+      luaK_prepcallfirstarg(fs, &e, &func);
+      expr(ls, &v2);
+      luaK_exp2nextreg(fs, &v2);
+      int base = e.u.reg;
+      int nparams = fs->freereg - (base + 1);
+      init_exp(&e, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
+      luaK_fixline(fs, line);
+      fs->freereg = base + 1;
+      leavelevel(ls);
+      luaK_exp2nextreg(fs, &e);
+      luaK_setoneret(ls->fs, &e);
+      luaK_storevar(ls->fs, v, &e);
+    }
+    else {  /* simple lvalue */
+      enterlevel(ls);
+      expdesc func;
+      singlevaraux(fs, luaS_newliteral(ls->L, "Pluto_operator_ipow"), &func, 1);
+      luaK_prepcallfirstarg(fs, &e, &func);
+      expr(ls, &v2);
+      luaK_exp2nextreg(fs, &v2);
+      int base = e.u.reg;
+      int nparams = fs->freereg - (base + 1);
+      init_exp(&e, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams + 1, 2));
+      luaK_fixline(fs, line);
+      fs->freereg = base + 1;
+      leavelevel(ls);
+      luaK_setoneret(ls->fs, &e);
+      luaK_storevar(ls->fs, v, &e);
+    }
+  }
+  else if (v->k != VLOCAL) {  /* complex lvalue, use a temporary register. linear perf incr. with complexity of lvalue */
     const auto regs_to_reserve = fs->freereg-luaY_nvarstack(fs);
     luaK_dischargevars(fs, &e);
     luaK_reserveregs(fs, regs_to_reserve);
