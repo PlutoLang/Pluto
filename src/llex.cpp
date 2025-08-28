@@ -747,6 +747,8 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
   for (;;) {
     switch (ls->current) {
       case '\n': case '\r': {  /* Line breaks. */
+        if (column)
+          *column = 0;
         inclinenumber(ls);
         break;
       }
