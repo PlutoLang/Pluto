@@ -35,7 +35,7 @@ NAMESPACE_SOUP
 		std::vector<UniquePtr<JsonNode>> children{};
 
 		explicit JsonArray() noexcept
-			: JsonNode(JSON_ARRAY)
+			: JsonNode()
 		{
 		}
 
@@ -44,6 +44,8 @@ NAMESPACE_SOUP
 		{
 			children.reserve(reserve_size);
 		}
+
+		[[nodiscard]] JsonNodeType getType() const noexcept final { return JSON_ARRAY; }
 
 		void encodeAndAppendTo(std::string& str) const SOUP_EXCAL final;
 		void encodePrettyAndAppendTo(std::string& str, unsigned depth = 0) const SOUP_EXCAL;

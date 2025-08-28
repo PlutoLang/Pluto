@@ -185,7 +185,7 @@ static const char *upvalname (const Proto *p, int uv) {
 
 
 static const char *findvararg (CallInfo *ci, int n, StkId *pos) {
-  if (clLvalue(s2v(ci->func.p))->p->is_vararg) {
+  if (clLvalue(s2v(ci->func.p))->p->flag & PF_ISVARARG) {
     int nextra = ci->u.l.nextraargs;
     if (n >= -nextra) {  /* 'n' is negative */
       *pos = ci->func.p - nextra - (n + 1);
@@ -233,10 +233,7 @@ LUA_API const char *lua_getlocal (lua_State *L, const lua_Debug *ar, int n) {
     StkId pos = NULL;  /* to avoid warnings */
     name = luaG_findlocal(L, ar->i_ci, n, &pos);
     if (name) {
-      if (luai_unlikely(ttype(s2v(pos)) == LUA_TITER))
-        setnilvalue(s2v(L->top.p));
-      else
-        setobjs2s(L, L->top.p, pos);
+      setobjs2s(L, L->top.p, pos);
       api_incr_top(L);
     }
   }
@@ -251,7 +248,7 @@ LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
   lua_lock(L);
   name = luaG_findlocal(L, ar->i_ci, n, &pos);
   if (name) {
-    StkId to = pos + 4;
+    api_checkpop(L, 1);
 #ifdef PLUTO_ENABLE_TABLE_FREEZING
     if (ttistable(s2v(pos))) {
       if (hvalue(s2v(pos))->isfrozen) {
@@ -261,13 +258,6 @@ LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
 #endif
     setobjs2s(L, pos, L->top.p - 1);
     L->top.p--;  /* pop value */
-    if (to > L->top.p) to = L->top.p;
-    while(++pos < to) {
-      if (luai_unlikely(ttype(s2v(pos)) == LUA_TITER)) {
-        setnilvalue(s2v(pos));
-        break;
-      }
-    }
   }
   lua_unlock(L);
   return name;
@@ -285,8 +275,7 @@ static void funcinfo (lua_Debug *ar, Closure *cl) {
   else {
     const Proto *p = cl->l.p;
     if (p->source) {
-      ar->source = getstr(p->source);
-      ar->srclen = tsslen(p->source);
+      ar->source = getlstr(p->source, ar->srclen);
     }
     else {
       ar->source = "=?";
@@ -332,7 +321,7 @@ static void collectvalidlines (lua_State *L, Closure *f) {
       int i;
       TValue v;
       setbtvalue(&v);  /* boolean 'true' to be the value of all indices */
-      if (!p->is_vararg)  /* regular function? */
+      if (!(p->flag & PF_ISVARARG))  /* regular function? */
         i = 0;  /* consider all instructions */
       else {  /* vararg function */
         lua_assert(GET_OPCODE(p->code[0]) == OP_VARARGPREP);
@@ -378,7 +367,7 @@ static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
           ar->nparams = 0;
         }
         else {
-          ar->isvararg = f->l.p->is_vararg;
+          ar->isvararg = f->l.p->flag & PF_ISVARARG;
           ar->nparams = f->l.p->numparams;
         }
         break;
@@ -854,8 +843,11 @@ const char *luaG_addinfo (lua_State *L, const char *msg, TString *src,
   if (line == 'plin')
     return luaO_pushfstring(L, "[Pluto-injected code]: %s", msg);
   char buff[LUA_IDSIZE];
-  if (src)
-    luaO_chunkid(buff, getstr(src), tsslen(src));
+  if (src) {
+    size_t idlen;
+    const char *id = getlstr(src, idlen);
+    luaO_chunkid(buff, id, idlen);
+  }
   else {  /* no source available; use "?" instead */
     buff[0] = '?'; buff[1] = '\0';
   }
@@ -949,7 +941,7 @@ int luaG_tracecall (lua_State *L) {
   Proto *p = ci_func(ci)->p;
   ci->u.l.trap = 1;  /* ensure hooks will be checked */
   if (ci->u.l.savedpc == p->code) {  /* first instruction (not resuming)? */
-    if (p->is_vararg)
+    if (p->flag & PF_ISVARARG)
       return 0;  /* hooks will start at VARARGPREP instruction */
     else if (!(ci->callstatus & CIST_HOOKYIELD))  /* not yieded? */
       luaD_hookcall(L, ci);  /* check 'call' hook */

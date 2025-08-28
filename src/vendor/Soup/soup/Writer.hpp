@@ -22,16 +22,19 @@ NAMESPACE_SOUP
 		}
 
 		// An unsigned 64-bit integer encoded in 1..9 bytes. The most significant bit of bytes 1 to 8 is used to indicate if another byte follows.
-		// Lua implementation: https://gist.github.com/Sainan/02c3ac9cea5015341412c92feec95e56
+		// https://github.com/calamity-inc/u64_dyn
 		bool u64_dyn(const uint64_t& v) noexcept;
 
 		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn.)
+		// https://github.com/calamity-inc/u64_dyn
 		bool i64_dyn(const int64_t& v) noexcept;
 
 		// An unsigned 64-bit integer encoded in 1..9 bytes. This is a slightly more efficient version of u64_dyn, e.g. 0x4000..0x407f are encoded in 2 bytes instead of 3.
+		// https://github.com/calamity-inc/u64_dyn
 		bool u64_dyn_v2(const uint64_t& v) noexcept;
 
 		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn_v2. This revision also simplifies how negative integers are handled.)
+		// https://github.com/calamity-inc/u64_dyn
 		bool i64_dyn_v2(const int64_t& v) noexcept;
 
 		// An integer where every byte's most significant bit is used to indicate if another byte follows, most significant byte first.
@@ -181,10 +184,7 @@ NAMESPACE_SOUP
 		// std::vector<uint8_t> with u8 size prefix.
 		bool vec_u8_u8(std::vector<uint8_t>& v) noexcept
 		{
-			SOUP_IF_UNLIKELY (v.size() > 0xFF)
-			{
-				return false;
-			}
+			SOUP_RETHROW_FALSE(v.size() <= 0xFF);
 			bool ret = true;
 			auto len = (uint8_t)v.size();
 			ret &= u8(len);
@@ -199,10 +199,7 @@ NAMESPACE_SOUP
 		bool vec_u16_bl_u16_be(std::vector<uint16_t>& v) noexcept
 		{
 			size_t bl = (v.size() * sizeof(uint16_t));
-			SOUP_IF_UNLIKELY (bl > 0xFFFF)
-			{
-				return false;
-			}
+			SOUP_RETHROW_FALSE(bl <= 0xFFFF);
 			bool ret = true;
 			auto bl_u16 = (uint16_t)bl;
 			ret &= ioBase::u16_be(bl_u16);
@@ -234,16 +231,32 @@ NAMESPACE_SOUP
 			{
 				bl += entry.size();
 			}
-			SOUP_IF_UNLIKELY (bl > 0xFFFFFF)
-			{
-				return false;
-			}
+			SOUP_RETHROW_FALSE(bl <= 0xFFFFFF);
 			bool ret = true;
 			auto bl_u32 = (uint32_t)bl;
 			ret &= ioBase::u24_be(bl_u32);
 			for (auto& entry : v)
 			{
 				ret &= str_lp<u24_be_t>(entry);
+			}
+			return ret;
+		}
+
+		// vector of str_lp<u8_t> with u16_be byte length prefix.
+		bool vec_str_lp_u8_bl_u16_be(std::vector<std::string>& v) SOUP_EXCAL
+		{
+			size_t bl = v.size();
+			for (const auto& entry : v)
+			{
+				bl += entry.size();
+			}
+			SOUP_RETHROW_FALSE(bl <= 0xFFFF);
+			bool ret = true;
+			auto bl_u16 = (uint16_t)bl;
+			ret &= ioBase::u16_be(bl_u16);
+			for (auto& entry : v)
+			{
+				ret &= str_lp<u8_t>(entry);
 			}
 			return ret;
 		}

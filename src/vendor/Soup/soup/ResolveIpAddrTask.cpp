@@ -9,7 +9,7 @@ NAMESPACE_SOUP
 	ResolveIpAddrTask::ResolveIpAddrTask(std::string _name)
 		: name(std::move(_name))
 	{
-		lookup = netConfig::get().getDnsResolver().makeLookupTask(DNS_A, name);
+		lookup = netConfig::get().getDnsResolver()->makeLookupTask(DNS_A, name);
 	}
 
 	void ResolveIpAddrTask::onTick()
@@ -33,7 +33,7 @@ NAMESPACE_SOUP
 				auto results = dnsResolver::simplifyIPv4LookupResults(lookup->result);
 				if (results.empty())
 				{
-					lookup = netConfig::get().getDnsResolver().makeLookupTask(DNS_AAAA, name);
+					lookup = netConfig::get().getDnsResolver()->makeLookupTask(DNS_AAAA, name);
 					second_lookup = true;
 				}
 				else

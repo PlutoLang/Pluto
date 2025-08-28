@@ -29,7 +29,9 @@ NAMESPACE_SOUP
 			{
 				if (auto resolv = resolv_wr.getPointer())
 				{
-					if (subtask->result.has_value())
+					if (subtask->result.has_value()
+						&& (!subtask->result->empty() || retry || resolv->switched_to_http) // Only accept an empty result over HTTPS. Censorship is more likely than a typo'd name.
+						)
 					{
 						if (retry)
 						{

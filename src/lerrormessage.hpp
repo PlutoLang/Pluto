@@ -9,6 +9,7 @@ namespace Pluto {
 	class ErrorMessage {
 	private:
 		LexState* ls;
+		size_t src_off = 0;
 		size_t src_len = 0; // The size of the source line itself.
 		size_t line_len = 0; // The buffer size needed to align a bar (|) or note (+).
 
@@ -28,16 +29,59 @@ namespace Pluto {
 			return *this;
 		}
 
-		ErrorMessage& addSrcLine(int line) {
+		[[nodiscard]] static intptr_t encodePos(size_t tidx) {
+			return ~tidx;
+		}
+
+		[[nodiscard]] static int decodeLine(LexState* ls, intptr_t line_or_tidx) {
+			if (line_or_tidx >= 0) {
+				return static_cast<int>(line_or_tidx);
+			}
+			size_t tidx = ~line_or_tidx;
+			return ls->tokens.at(tidx).line;
+		}
+
+		ErrorMessage& addSrcLine(intptr_t line_or_tidx) {
 #ifndef PLUTO_SHORT_ERRORS
-			const auto line_string = this->ls->getLineString(line);
+			const auto line = decodeLine(ls, line_or_tidx);
+
 			const auto init_len = this->content.length();
 			this->content.append("\n    ");
 			this->content.append(std::to_string(line));
 			this->content.append(" | ");
 			this->line_len = this->content.length() - init_len - 3;
-			this->src_len += line_string.length();
+
+			auto line_string = this->ls->getLineString(line);
+			if (line_string.length() > 80) {
+				if (auto sep = line_string.find("--"); sep != std::string::npos) {
+					line_string.erase(sep);
+					while (!line_string.empty() && line_string.back() == ' ') {
+						line_string.pop_back();
+					}
+				}
+			}
+			this->src_len = line_string.length();
 			this->content.append(line_string);
+
+			if (line_or_tidx < 0) {
+				const size_t tidx = ~line_or_tidx;
+				const auto& tk = ls->tokens.at(tidx);
+				if (tk.line == line && tk.column < this->src_len) {
+					this->src_off = tk.column;
+					const auto& ntk = ls->tokens.at(tidx + 1);
+					if (ntk.line == line) {
+						int eot = ntk.column;
+						while (eot-- != 0 && soup::string::isSpace(line_string[eot]));
+						++eot;
+						if (eot > tk.column) {
+							this->src_len = eot - tk.column;
+						}
+					}
+					else {
+						this->src_len -= src_off;
+					}
+				}
+			}
 #endif
 			return *this;
 		}
@@ -51,6 +95,7 @@ namespace Pluto {
 			this->content.append(this->line_len, ' ');
 			this->content.append("| ");
 			this->content.append(HBLU);
+			this->content.append(this->src_off, ' ');
 			this->content.append(this->src_len, '^');
 			this->content.append(" here: ");
 			this->content.append(msg);
@@ -65,6 +110,7 @@ namespace Pluto {
 			this->content.append(this->line_len, ' ');
 			this->content.append("| ");
 			this->content.append(HBLU);
+			this->content.append(this->src_off, ' ');
 			this->content.append(this->src_len, '^');
 			this->content.append(" here");
 			this->content.append(RESET);

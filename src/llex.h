@@ -56,12 +56,13 @@ enum RESERVED {
   TK_SHL, TK_SHR, TK_DBCOLON, TK_EOS,
   TK_FLT, TK_INT, TK_NAME, TK_STRING,
   /* Pluto symbols */
-  TK_POW,     /* exponents / power */
+  TK_IPOW,
   TK_COAL,    /* null coal.        */
   TK_WALRUS,  /* walrus operator   */
   TK_ARROW,
   TK_PIPE,
   TK_FALLTHROUGH, TK_USEANN,  /* annotations */
+  TK_PLUSPLUS,
 };
 
 #define FIRST_COMPAT TK_PUSE
@@ -396,23 +397,27 @@ enum ParserContext : lu_byte {
 struct ClassData {
   size_t parent_name_pos = 0;
   std::unordered_set<std::string> private_fields{};
+  std::unordered_set<std::string> protected_fields{};
 
-  std::string addField(std::string&& name) {
+  std::string addPrivateField(std::string name) {
     private_fields.emplace(name);
     return addPrefix(std::move(name));
   }
 
-  [[nodiscard]] std::string addPrefix(std::string&& name) const {
+  std::string addProtectedField(std::string name) {
+    protected_fields.emplace(name);
+    return addPrefix(std::move(name));
+  }
+
+  [[nodiscard]] std::string addPrefix(std::string name) const {
     name.insert(0, "__restricted__");
     return name;
   }
 
   [[nodiscard]] std::optional<std::string> getSpecialName(TString* key) const {
-    for (const auto& pf : private_fields) {
-      if (pf == getstr(key)) {
-        return addPrefix(getstr(key));
-      }
-    }
+    std::string s = getstr(key);
+    if (private_fields.count(s) || protected_fields.count(s))
+      return addPrefix(std::move(s));
     return std::nullopt;
   }
 };
@@ -495,11 +500,13 @@ struct LexState {
   bool uses_extends = false;
   bool uses_instanceof = false;
   bool uses_spaceship = false;
+  bool uses_ipow = false;
 
   int else_if = 0;  /* line on which 'else if' was seen, to raise warning in case of missing 'end' */
   std::vector<WarningConfig> warnconfs;
   std::stack<ParserContext> parser_context_stck{};
   std::stack<ClassData> classes{};
+  std::unordered_map<std::string, std::unordered_set<std::string>> class_protected_fields{};
   std::stack<FuncArgsState> funcargsstates{};
   std::stack<BodyState> bodystates{};
   std::stack<SwitchState> switchstates{};
@@ -509,6 +516,7 @@ struct LexState {
   std::vector<void*> parse_time_allocations{};
   std::unordered_set<TString*> explicit_globals{};
   std::unordered_map<const TString*, void*> global_props{};
+  std::unordered_map<const TString*, void*> named_types{};
   KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
   bool nodiscard = false;
   bool used_walrus = false;
@@ -634,7 +642,7 @@ struct LexState {
 
   [[nodiscard]] bool shouldEmitWarning(int line, WarningType warning_type) const {
     const auto& linebuff = this->getLineString(line);
-    const auto& lastattr = line > 1 ? this->getLineString(line - 1) : linebuff;
+    const auto& lastattr = (line > 1 && line != Token::LINE_INJECTED) ? this->getLineString(line - 1) : linebuff;
     return lastattr.find("@pluto_warnings: disable-next") == std::string::npos
         && lastattr.find("@pluto_warnings disable-next") == std::string::npos
         && getWarningConfig().isEnabled(warning_type)

@@ -12,6 +12,8 @@
 
 #include <locale.h>
 #include <string.h>
+#include <fstream>
+#include <iterator>
 
 #include "lua.h"
 
@@ -29,6 +31,10 @@
 #include "ltable.h"
 #include "lzio.h"
 
+#ifdef PLUTO_LOADFILE_HOOK
+extern bool PLUTO_LOADFILE_HOOK(lua_State* L, const char* filename);
+#endif
+
 // Note that this may sometimes break parsing so should be used alongside PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO.
 #define TOKENDUMP false
 
@@ -36,6 +42,22 @@
 #include <iostream>
 #endif
 
+
+
+struct LoadS {
+  const char *s;
+  size_t size;
+};
+
+static const char *getS (lua_State *L, void *ud, size_t *size) {
+  LoadS *ls = (LoadS *)ud;
+  (void)L;
+  if (ls->size == 0)
+    return NULL;
+  *size = ls->size;
+  ls->size = 0;
+  return ls->s;
+}
 
 
 #define next(ls)	(ls->current = zgetc(ls->z))
@@ -66,6 +88,7 @@ static const char *const luaX_tokens [] = {
     "<number>", "<integer>", "<name>", "<string>",
     "**", "??", ":=", "->", "|>",
     "<fallthrough annotation>", "<pluto_use annotation>",
+    "++",
 };
 
 
@@ -210,13 +233,13 @@ l_noret luaX_syntaxerror (LexState *ls, const char *msg) {
 TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
   lua_State *L = ls->L;
   TString *ts = luaS_newlstr(L, str, l);  /* create new string */
-  const TValue *o = luaH_getstr(ls->h, ts);
-  if (!ttisnil(o))  /* string already present? */
-    ts = keystrval(nodefromval(o));  /* get saved copy */
-  else {  /* not in use yet */
+  TString *oldts = luaH_getstrkey(ls->h, ts);
+  if (oldts != NULL)  /* string already present? */
+    return oldts;  /* use it */
+  else {  /* create a new entry */
     TValue *stv = s2v(L->top.p++);  /* reserve stack space for string */
     setsvalue(L, stv, ts);  /* temporarily anchor the string */
-    luaH_finishset(L, ls->h, stv, o, stv);  /* t[string] = string */
+    luaH_set(L, ls->h, stv, stv);  /* t[string] = string */
     /* table is not a metatable, so it does not need to invalidate cache */
     luaC_checkGC(L);
     L->top.p--;  /* remove string from stack */
@@ -268,49 +291,96 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
 
   /* preprocessor */
   for (auto i = ls->tokens.begin(); i != ls->tokens.end(); ) {
-    if (i->token == '$' && (i + 1)->token == TK_NAME && strcmp(getstr((i + 1)->seminfo.ts), "alias") == 0) {
-      const auto directive_begin = i;
-      i += 2;  /* skip '$alias' */
-      if (l_unlikely(i->token != TK_NAME)) {
-        ls->tidx = std::distance(ls->tokens.begin(), i);
-        luaX_syntaxerror(ls, "expected name after $alias");
-      }
-      Macro& macro = ls->macros.emplace(i->seminfo.ts, Macro{}).first->second;
-      ++i;  /* skip name */
-      if (i->token == '(') {
-        macro.functionlike = true;
-        do {
-          ++i;  /* skip '(' or ',' */
-          if (l_unlikely(i->token != TK_NAME)) {
-            ls->tidx = std::distance(ls->tokens.begin(), i);
-            luaX_syntaxerror(ls, "expected parameter name for function-like alias");
-          }
-          macro.params.emplace_back(i->seminfo.ts);
-          ++i;  /* skip name */
-        } while (i->token == ',');
-        if (l_unlikely(i->token != ')')) {
+    if (i->token == '$' && (i + 1)->token == TK_NAME) {
+      const char *directive = getstr((i + 1)->seminfo.ts);
+      if (strcmp(directive, "alias") == 0) {
+        const auto directive_begin = i;
+        i += 2;  /* skip '$alias' */
+        if (l_unlikely(i->token != TK_NAME)) {
           ls->tidx = std::distance(ls->tokens.begin(), i);
-          luaX_syntaxerror(ls, "expected ')' after parameter list for function-like alias");
+          luaX_syntaxerror(ls, "expected name after $alias");
         }
-        ++i;  /* skip ')' */
-      }
-      if (l_unlikely(i->token != '=')) {
-        ls->tidx = std::distance(ls->tokens.begin(), i);
-        luaX_syntaxerror(ls, "expected '=' after $alias <name>");
-      }
-      ++i;  /* skip '=' */
-      while (i->line == (i - 1)->line || (i - 1)->token == '\\') {
-        if (i->token == TK_EOS)
-          break;
-        if (i->token == '\\' && (i + 1)->line != i->line) {
+        Macro& macro = ls->macros.emplace(i->seminfo.ts, Macro{}).first->second;
+        ++i;  /* skip name */
+        if (i->token == '(') {
+          macro.functionlike = true;
+          do {
+            ++i;  /* skip '(' or ',' */
+            if (l_unlikely(i->token != TK_NAME)) {
+              ls->tidx = std::distance(ls->tokens.begin(), i);
+              luaX_syntaxerror(ls, "expected parameter name for function-like alias");
+            }
+            macro.params.emplace_back(i->seminfo.ts);
+            ++i;  /* skip name */
+          } while (i->token == ',');
+          if (l_unlikely(i->token != ')')) {
+            ls->tidx = std::distance(ls->tokens.begin(), i);
+            luaX_syntaxerror(ls, "expected ')' after parameter list for function-like alias");
+          }
+          ++i;  /* skip ')' */
+        }
+        if (l_unlikely(i->token != '=')) {
+          ls->tidx = std::distance(ls->tokens.begin(), i);
+          luaX_syntaxerror(ls, "expected '=' after $alias <name>");
+        }
+        ++i;  /* skip '=' */
+        while (i->line == (i - 1)->line || (i - 1)->token == '\\') {
+          if (i->token == TK_EOS)
+            break;
+          if (i->token == '\\' && (i + 1)->line != i->line) {
+            ++i;
+            continue;
+          }
+          macro.sub.emplace_back(*i);
           ++i;
-          continue;
         }
-        macro.sub.emplace_back(*i);
-        ++i;
+        i = ls->tokens.erase(directive_begin, i);  /* erase directive */
+        continue;
       }
-      i = ls->tokens.erase(directive_begin, i);  /* erase directive */
-      continue;
+      else if (strcmp(directive, "include") == 0) {
+        const auto directive_begin = i;
+        i += 2;  /* skip '$include' */
+        if (l_unlikely(i->token != TK_STRING)) {
+          ls->tidx = std::distance(ls->tokens.begin(), i);
+          luaX_syntaxerror(ls, "expected string after $include");
+        }
+        const char *fname = getstr(i->seminfo.ts);
+#ifdef PLUTO_LOADFILE_HOOK
+        if (!PLUTO_LOADFILE_HOOK(ls->L, fname)) {
+          ls->tidx = std::distance(ls->tokens.begin(), i);
+          luaX_syntaxerror(ls, "disallowed by content moderation policy");
+        }
+#endif
+        std::ifstream file(fname, std::ios::binary);
+        if (l_unlikely(!file.is_open())) {
+          ls->tidx = std::distance(ls->tokens.begin(), i);
+          luaX_syntaxerror(ls, "cannot open file for $include");
+        }
+        std::string code((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        LoadS lsdata{code.c_str(), code.size()};
+        ZIO z2;
+        luaZ_init(ls->L, &z2, getS, &lsdata);
+        int firstchar = zgetc(&z2);
+        Mbuffer buff2;
+        luaZ_initbuffer(ls->L, &buff2);
+        LexState ls2;
+        ls2.buff = &buff2;
+        ls2.h = ls->h;
+        ls2.dyd = ls->dyd;
+        luaX_setinput(ls->L, &ls2, &z2, luaX_newstring(ls, fname), firstchar);
+        luaZ_freebuffer(ls->L, &buff2);
+        size_t count = ls2.tokens.size();
+        if (count > 0 && ls2.tokens.back().token == TK_EOS)
+          --count;
+        i = ls->tokens.erase(directive_begin, i + 1);  /* remove directive */
+        auto insert_pos = ls->tokens.insert(i, ls2.tokens.begin(), ls2.tokens.begin() + count);
+        for (auto pos = insert_pos; pos != insert_pos + count; ++pos)
+          pos->line = Token::LINE_INJECTED;
+        i = insert_pos + count;
+        for (auto &m : ls2.macros)
+          ls->macros.insert(m);
+        continue;
+      }
     }
     ++i;
   }
@@ -383,8 +453,6 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
       }
       ++i;
     }
-    { decltype(ls->macros) bin; std::swap(ls->macros, bin); }  /* free memory for macros map */
-    { decltype(ls->macro_args) bin; std::swap(ls->macro_args, bin); }
   }
 
 #if TOKENDUMP
@@ -679,6 +747,8 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
   for (;;) {
     switch (ls->current) {
       case '\n': case '\r': {  /* Line breaks. */
+        if (column)
+          *column = 0;
         inclinenumber(ls);
         break;
       }
@@ -919,6 +989,12 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
                 t.token = TK_CONCAT;
                 t.line = (int)ls->lines.size();
                 t.column = (int)ls->getLineBuff().size(); }
+
+                { Token& t = ls->tokens.emplace_back(Token{});
+                t.token = TK_NAME;
+                t.line = (int)ls->lines.size();
+                t.column = (int)ls->getLineBuff().size();
+                t.seminfo.ts = luaX_newliteral(ls, "tostring"); }
               }
               next(ls);  /* skip '{' */
               ls->appendLineBuff('{');
@@ -1102,16 +1178,15 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           seminfo->i = '*';
           return '=';  /* '*=' */
         }
-        else if (check_next1(ls, '*')) { /*  got '**' */
-          if (check_next1(ls, '=')) {  /* compound support; **= */
-            ls->appendLineBuff("**=");
-            seminfo->i = TK_POW;
+        else if (check_next1(ls, '*')) { /* got '**' */
+          ls->appendLineBuff("**");
+          ls->uses_ipow = true;
+          if (check_next1(ls, '=')) {  /* '**=' */
+            ls->appendLineBuff('=');
+            seminfo->i = TK_IPOW;
             return '=';
           }
-          else {
-            ls->appendLineBuff("**");
-            return TK_POW;  /* '**' */
-          }
+          return TK_IPOW;  /* '**' */
         }
         else {
           ls->appendLineBuff('*');
@@ -1133,20 +1208,33 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
         }
         return c;
       }
+      case '+': {
+        int c = ls->current;
+        next(ls);
+        ls->appendLineBuff(c);
+        if (check_next1(ls, '=')) {
+          seminfo->i = c;
+          ls->appendLineBuff('=');
+          return '=';
+        }
+        if (check_next1(ls, '+')) {
+          ls->appendLineBuff('+');
+          return TK_PLUSPLUS;
+        }
+        return c;
+      }
       /* compound support */
-      case '+': case '^':
+      case '^':
       case '%': case '&': {
         int c = ls->current;
         next(ls);
+        ls->appendLineBuff(c);
         if (check_next1(ls, '=')) {
           seminfo->i = c;
-          ls->appendLineBuff(c);
           ls->appendLineBuff('=');
           return '=';
-        } else {
-          ls->appendLineBuff(c);
-          return c;
         }
+        return c;
       }
       /* end of compound support */
       case EOZ: {

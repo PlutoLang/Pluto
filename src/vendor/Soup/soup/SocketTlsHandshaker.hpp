@@ -19,13 +19,12 @@ NAMESPACE_SOUP
 	class SocketTlsHandshaker
 	{
 	public:
-		void(*callback)(Socket&, Capture&&);
 		Capture callback_capture;
 
 		TlsCipherSuite_t cipher_suite = TLS_RSA_WITH_AES_128_CBC_SHA;
 		uint16_t ecdhe_curve = 0; // client
-		Promise<> promise{};
 		bool extended_master_secret = false;
+		Promise<> promise{};
 		std::string layer_bytes{};
 		std::string client_random{};
 		std::string server_random{};
@@ -33,19 +32,10 @@ NAMESPACE_SOUP
 		std::string master_secret{};
 		std::string expected_finished_verify_data{};
 
-		// client
-		X509Certchain certchain{};
-		std::string server_name{};
-		std::string ecdhe_public_key{};
-		std::string initial_application_data{};
-		SocketTlsEncrypter pending_recv_encrypter;
-
-		// server
-		SharedPtr<CertStore> certstore;
-		void(*on_client_hello)(Socket&, TlsClientHello&&);
-		const RsaPrivateKey* private_key{};
-
-		explicit SocketTlsHandshaker(void(*callback)(Socket&, Capture&&), Capture&& callback_capture) noexcept;
+	protected:
+		explicit SocketTlsHandshaker(Capture&& callback_capture);
+	public:
+		virtual ~SocketTlsHandshaker() = default;
 
 		[[nodiscard]] std::string pack(TlsHandshakeType_t handshake_type, const std::string& content) SOUP_EXCAL;
 
@@ -58,6 +48,34 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::string getFinishVerifyData(const std::string& label) SOUP_EXCAL;
 		[[nodiscard]] std::string getPseudoRandomBytes(const std::string& label, const size_t bytes, const std::string& secret, const std::string& seed) const SOUP_EXCAL;
 		[[nodiscard]] std::string getLayerBytesHash() const SOUP_EXCAL;
+	};
+
+	struct SocketTlsHandshakerClient : public SocketTlsHandshaker
+	{
+		void(*callback)(Socket&, Capture&&, std::string&&);
+		certchain_validator_t certchain_validator;
+
+		X509Certchain certchain{};
+		std::string server_name{};
+		std::string ecdhe_public_key{};
+		std::string initial_application_data{};
+		std::string alpn_protocol{};
+		SocketTlsEncrypter pending_recv_encrypter;
+
+		explicit SocketTlsHandshakerClient(void(*callback)(Socket&, Capture&&, std::string&&), Capture&& callback_capture, certchain_validator_t certchain_validator) noexcept;
+	};
+
+	struct SocketTlsHandshakerServer : public SocketTlsHandshaker
+	{
+		void(*callback)(Socket&, Capture&&);
+		SharedPtr<CertStore> certstore;
+		tls_server_on_client_hello_t on_client_hello;
+		tls_server_alpn_select_protocol_t alpn_select_protocol;
+
+		std::string ecdhe_private_key{};
+		const RsaPrivateKey* private_key{};
+
+		explicit SocketTlsHandshakerServer(void(*callback)(Socket&, Capture&&), Capture&& callback_capture, SharedPtr<CertStore>&& certstore, tls_server_on_client_hello_t on_client_hello, tls_server_alpn_select_protocol_t alpn_select_protocol) noexcept;
 	};
 }
 #endif

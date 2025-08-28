@@ -1,13 +1,18 @@
 #include "dnsResolver.hpp"
 
-#if !SOUP_WASM
-
 #include "DetachedScheduler.hpp"
 #include "ObfusString.hpp"
 #include "WeakRef.hpp"
 
+#if SOUP_WASM
+#include "dnsHttpResolver.hpp"
+#else
+#include "dnsSmartResolver.hpp"
+#endif
+
 NAMESPACE_SOUP
 {
+#if !SOUP_WASM
 	static DetachedScheduler dns_async_sched;
 
 	struct dnsAsyncExecTask : public dnsLookupTask
@@ -54,7 +59,21 @@ NAMESPACE_SOUP
 			return ObfusString("dnsAsyncWatcherTask");
 		}
 	};
+#endif
 
+	SharedPtr<dnsResolver> dnsResolver::makeDefault()
+	{
+#if SOUP_WASM
+		return soup::make_shared<dnsHttpResolver>();
+#else
+		// Reasons for not defaulting to dnsOsResolver:
+		// - Android doesn't have libresolv
+		// - Many ISPs provide disingenuous DNS servers, even blocking sites like pastebin.com
+		return soup::make_shared<dnsSmartResolver>();
+#endif
+	}
+
+#if !SOUP_WASM
 	std::vector<IpAddr> dnsResolver::lookupIPv4(const std::string& name) const
 	{
 		return simplifyIPv4LookupResults(lookup(DNS_A, name));
@@ -108,6 +127,5 @@ NAMESPACE_SOUP
 		}
 		return res;
 	}
-}
-
 #endif
+}

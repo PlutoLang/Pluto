@@ -898,6 +898,7 @@ NAMESPACE_SOUP
 		[[deprecated("Replace 'fromFilePath' with 'fromFile'")]] inline static std::string fromFilePath(const std::filesystem::path& file) { return fromFile(file); }
 		static void toFile(const char* file, const std::string& contents);
 		static void toFile(const std::string& file, const std::string& contents);
-		static void toFile(const std::filesystem::path& file, const std::string& contents);
+		static void toFile(const std::filesystem::path& file, const std::string& contents) { return toFile(file, contents.data(), contents.size()); }
+		static void toFile(const std::filesystem::path& file, const char* data, size_t size);
 	};
 }

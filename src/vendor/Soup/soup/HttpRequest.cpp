@@ -2,8 +2,8 @@
 
 #include "HttpRequestTask.hpp"
 #include "joaat.hpp"
+#include "netConfig.hpp"
 #include "ObfusString.hpp"
-#include "os.hpp"
 #include "Scheduler.hpp"
 #include "Socket.hpp"
 #include "UniquePtr.hpp"
@@ -36,25 +36,27 @@ NAMESPACE_SOUP
 	}
 
 	HttpRequest::HttpRequest(const Uri& uri)
-		: HttpRequest(uri.host, uri.getRequestPath())
+		: HttpRequest(uri.getHost(), uri.getRequestPath())
 	{
+		use_tls = (joaat::hash(uri.scheme) != joaat::compileTimeHash("http"));
 		path_is_encoded = true;
-
-		if (joaat::hash(uri.scheme) == joaat::compileTimeHash("http"))
-		{
-			use_tls = false;
-			port = 80;
-		}
-
-		if (uri.port != 0)
-		{
-			port = uri.port;
-		}
 	}
 
 	std::string HttpRequest::getHost() const
 	{
 		return findHeader(ObfusString("Host")).value();
+	}
+
+	std::tuple<std::string, uint16_t> HttpRequest::getHostAndPort() const
+	{
+		std::string host = getHost();
+		uint16_t port = (use_tls ? 443 : 80);
+		if (auto sep = host.find_last_of(':'); sep != std::string::npos)
+		{
+			port = string::toInt<uint16_t>(host.c_str() + sep + 1, port, string::TI_FULL);
+			host.erase(sep);
+		}
+		return { std::move(host), port };
 	}
 
 	std::string HttpRequest::getUrl() const
@@ -69,11 +71,6 @@ NAMESPACE_SOUP
 			str = "http://";
 		}
 		str.append(getHost());
-		if (port != (use_tls ? 443 : 80))
-		{
-			str.push_back(':');
-			str.append(std::to_string(port));
-		}
 		if (path_is_encoded)
 		{
 			str.append(path);
@@ -116,32 +113,38 @@ NAMESPACE_SOUP
 		Optional<HttpResponse> resp;
 	};
 
-	Optional<HttpResponse> HttpRequest::execute(Scheduler* keep_alive_sched) const
+	Optional<HttpResponse> HttpRequest::execute() const
 	{
-		if (keep_alive_sched)
-		{
-			auto task = keep_alive_sched->add<HttpRequestTask>(HttpRequest(*this));
-			do
-			{
-				os::sleep(1);
-			} while (!task->isWorkDone());
-			SOUP_MOVE_RETURN(task->result);
-		}
+		return execute(&Socket::certchain_validator_default);
+	}
 
+	Optional<HttpResponse> HttpRequest::execute(certchain_validator_t certchain_validator) const
+	{
+		auto resolver = netConfig::get().getDnsResolver();
+		return execute(*resolver, certchain_validator);
+	}
+
+	Optional<HttpResponse> HttpRequest::execute(const dnsResolver& resolver) const
+	{
+		return execute(resolver, &Socket::certchain_validator_default);
+	}
+
+	Optional<HttpResponse> HttpRequest::execute(const dnsResolver& resolver, certchain_validator_t certchain_validator) const
+	{
 		HttpRequestExecuteData data{ this };
-		auto sock = make_shared<Socket>();
-		const auto host = getHost();
-		if (sock->connect(host, port))
+		auto sock = soup::make_shared<Socket>();
+		const auto [host, port] = getHostAndPort();
+		if (sock->connect(resolver, host, port))
 		{
 			Scheduler sched{};
 			sched.addSocket(sock);
 			if (use_tls)
 			{
-				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
+				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap, std::string&& alpn_protocol) SOUP_EXCAL
 				{
 					auto& data = *cap.get<HttpRequestExecuteData*>();
 					execute_recvResponse(s, &data.resp);
-				}, &data, getDataToSend());
+				}, &data, getDataToSend(), certchain_validator);
 			}
 			else
 			{
@@ -163,16 +166,22 @@ NAMESPACE_SOUP
 
 	void HttpRequest::executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) const
 	{
+		auto resolver = netConfig::get().getDnsResolver();
+		return executeEventStream(*resolver, on_event, std::move(cap));
+	}
+
+	void HttpRequest::executeEventStream(const dnsResolver& resolver, void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) const
+	{
 		HttpRequestExecuteEventStreamData data{ this, on_event, std::move(cap) };
 		auto sock = make_shared<Socket>();
-		const auto host = getHost();
-		if (sock->connect(host, port))
+		const auto [host, port] = getHostAndPort();
+		if (sock->connect(resolver, host, port))
 		{
 			Scheduler sched{};
 			sched.addSocket(sock);
 			if (use_tls)
 			{
-				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap) SOUP_EXCAL
+				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap, std::string&&) SOUP_EXCAL
 				{
 					auto* data = cap.get<HttpRequestExecuteEventStreamData*>();
 					executeEventStream_recv(s, data);

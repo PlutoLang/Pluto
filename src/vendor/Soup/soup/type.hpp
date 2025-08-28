@@ -25,6 +25,7 @@ NAMESPACE_SOUP
 	using TlsContentType_t = uint8_t;
 	using TlsHandshakeType_t = uint8_t;
 	using tls_server_on_client_hello_t = void(*)(Socket&, TlsClientHello&&) SOUP_EXCAL;
+	using tls_server_alpn_select_protocol_t = std::string(*)(Socket&, const TlsExtAlpn&, TlsCipherSuite_t) SOUP_EXCAL;
 
 	// os
 	using pid_t = unsigned int;

@@ -249,11 +249,11 @@ static int pushmode (lua_State *L, int oldmode) {
 
 static int luaB_collectgarbage (lua_State *L) {
   static const char *const opts[] = {"stop", "restart", "collect",
-    "count", "step", "setpause", "setstepmul",
-    "isrunning", "generational", "incremental", NULL};
-  static const int optsnum[] = {LUA_GCSTOP, LUA_GCRESTART, LUA_GCCOLLECT,
-    LUA_GCCOUNT, LUA_GCSTEP, LUA_GCSETPAUSE, LUA_GCSETSTEPMUL,
-    LUA_GCISRUNNING, LUA_GCGEN, LUA_GCINC};
+    "count", "step", "isrunning", "generational", "incremental",
+    "param", NULL};
+  static const char optsnum[] = {LUA_GCSTOP, LUA_GCRESTART, LUA_GCCOLLECT,
+    LUA_GCCOUNT, LUA_GCSTEP, LUA_GCISRUNNING, LUA_GCGEN, LUA_GCINC,
+    LUA_GCPARAM};
   int o = optsnum[luaL_checkoption(L, 1, "collect", opts)];
   switch (o) {
     case LUA_GCCOUNT: {
@@ -264,18 +264,10 @@ static int luaB_collectgarbage (lua_State *L) {
       return 1;
     }
     case LUA_GCSTEP: {
-      int step = (int)luaL_optinteger(L, 2, 0);
-      int res = lua_gc(L, o, step);
+      lua_Integer n = luaL_optinteger(L, 2, 0);
+      int res = lua_gc(L, o, (int)n);
       checkvalres(res);
       lua_pushboolean(L, res);
-      return 1;
-    }
-    case LUA_GCSETPAUSE:
-    case LUA_GCSETSTEPMUL: {
-      int p = (int)luaL_optinteger(L, 2, 0);
-      int previous = lua_gc(L, o, p);
-      checkvalres(previous);
-      lua_pushinteger(L, previous);
       return 1;
     }
     case LUA_GCISRUNNING: {
@@ -285,15 +277,22 @@ static int luaB_collectgarbage (lua_State *L) {
       return 1;
     }
     case LUA_GCGEN: {
-      int minormul = (int)luaL_optinteger(L, 2, 0);
-      int majormul = (int)luaL_optinteger(L, 3, 0);
-      return pushmode(L, lua_gc(L, o, minormul, majormul));
+      return pushmode(L, lua_gc(L, o));
     }
     case LUA_GCINC: {
-      int pause = (int)luaL_optinteger(L, 2, 0);
-      int stepmul = (int)luaL_optinteger(L, 3, 0);
-      int stepsize = (int)luaL_optinteger(L, 4, 0);
-      return pushmode(L, lua_gc(L, o, pause, stepmul, stepsize));
+      return pushmode(L, lua_gc(L, o));
+    }
+    case LUA_GCPARAM: {
+      static const char *const params[] = {
+        "minormul", "majorminor", "minormajor",
+        "pause", "stepmul", "stepsize", NULL};
+      static const char pnum[] = {
+        LUA_GCPMINORMUL, LUA_GCPMAJORMINOR, LUA_GCPMINORMAJOR,
+        LUA_GCPPAUSE, LUA_GCPSTEPMUL, LUA_GCPSTEPSIZE};
+      int p = pnum[luaL_checkoption(L, 2, NULL, params)];
+      lua_Integer value = luaL_optinteger(L, 3, -1);
+      lua_pushinteger(L, lua_gc(L, o, p, (int)value));
+      return 1;
     }
     default: {
       int res = lua_gc(L, o);
@@ -307,7 +306,7 @@ static int luaB_collectgarbage (lua_State *L) {
 }
 
 
-int luaB_type (lua_State *L) {
+static int luaB_type (lua_State *L) {
   int t = lua_type(L, 1);
   luaL_argcheck(L, t != LUA_TNONE, 1, "value expected");
   lua_pushstring(L, lua_typename(L, t));
@@ -350,9 +349,7 @@ static int luaB_pairs (lua_State *L) {
 /*
 ** Traversal function for 'ipairs'
 */
-#define ipairsaux luaB_ipairsaux
-LUAI_FUNC int ipairsaux (lua_State *L);
-int ipairsaux (lua_State *L) {
+static int ipairsaux (lua_State *L) {
   lua_Integer i = luaL_checkinteger(L, 2);
   i = luaL_intop(+, i, 1);
   lua_pushinteger(L, i);
@@ -390,9 +387,17 @@ static int load_aux (lua_State *L, int status, int envidx) {
 }
 
 
+static const char *getMode (lua_State *L, int idx) {
+  const char *mode = luaL_optstring(L, idx, "bt");
+  if (strchr(mode, 'B') != NULL)  /* Lua code cannot use fixed buffers */
+    luaL_argerror(L, idx, "invalid mode");
+  return mode;
+}
+
+
 static int luaB_loadfile (lua_State *L) {
   const char *fname = luaL_optstring(L, 1, NULL);
-  const char *mode = luaL_optstring(L, 2, NULL);
+  const char *mode = getMode(L, 2);
   int env = (!lua_isnone(L, 3) ? 3 : 0);  /* 'env' index or 0 if no 'env' */
   int status = luaL_loadfilex(L, fname, mode);
   return load_aux(L, status, env);
@@ -449,7 +454,7 @@ static int luaB_load (lua_State *L) {
 #else
   const char *s = lua_tolstring(L, 1, &l);
 #endif
-  const char *mode = luaL_optstring(L, 3, "bt");
+  const char *mode = getMode(L, 3);
   int env = (!lua_isnone(L, 4) ? 4 : 0);  /* 'env' index or 0 if no 'env' */
 #ifndef PLUTO_DISABLE_UNMODERATED_LOAD
   if (s != NULL) {  /* loading a string? */
@@ -705,6 +710,11 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
   while (lua_next(L, -2)) {
     if (empty) {
       empty = false;
+      if (!is_export && luaL_getmetafield(L, -3, "__name") != LUA_TNIL) {
+        dump.append(" -- ");
+        dump.append(luaL_tolstring(L, -1, NULL));
+        lua_pop(L, 2);
+      }
       dump.push_back('\n');
     }
     dump.append(indents, '\t');
@@ -724,7 +734,15 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
     lua_pop(L, 2);
     dump.append(",\n");
   }
-  if (!empty) {
+  if (empty) {
+    if (!is_export && luaL_getmetafield(L, -1, "__name") != LUA_TNIL) {
+      dump.append(" --[[ ");
+      dump.append(luaL_tolstring(L, -1, NULL));
+      dump.append(" ]] ");
+      lua_pop(L, 2);
+    }
+  }
+  else {
     dump.append(indents - 1, '\t');
   }
   dump.push_back('}');

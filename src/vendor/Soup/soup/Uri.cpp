@@ -189,6 +189,17 @@ NAMESPACE_SOUP
 		return scheme == "http" || scheme == "https";
 	}
 
+	std::string Uri::getHost() const noexcept
+	{
+		std::string ret = host;
+		if (port != 0)
+		{
+			ret.push_back(':');
+			ret.append(std::to_string(port));
+		}
+		return ret;
+	}
+
 	uint16_t Uri::getPort() const noexcept
 	{
 		if (port == 0)

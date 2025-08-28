@@ -25,6 +25,7 @@
 #endif
 
 #include "vendor/Soup/soup/base.hpp"
+#include "vendor/Soup/soup/dnsOsResolver.hpp"
 #include "vendor/Soup/soup/os.hpp"
 
 
@@ -445,6 +446,41 @@ static int os_exit (lua_State *L) {
 int l_os_remove(lua_State* L);
 int l_os_rename(lua_State* L);
 
+
+#if !SOUP_ANDROID && !SOUP_WASM
+static int os_dnsresolve (lua_State *L) {
+  const char *qtypestr = luaL_checkstring(L, 1);
+  const char *qname = luaL_checkstring(L, 2);
+  soup::dnsType qtype = soup::dnsTypeFromString(qtypestr);
+  if (l_unlikely(!qtype)) {
+    luaL_error(L, "Unknown type");
+  }
+  auto res = soup::dnsOsResolver::staticLookup(qtype, qname);
+  if (res.has_value()) {
+    lua_newtable(L);
+    lua_Integer i = 0;
+    for (const auto& r : *res) {
+      lua_pushinteger(L, ++i);
+      lua_newtable(L);
+      {
+        lua_pushliteral(L, "type");
+        pluto_pushstring(L, soup::dnsTypeToString(r->type));
+        lua_settable(L, -3);
+      }
+      {
+        lua_pushliteral(L, "data");
+        pluto_pushstring(L, r->toString());
+        lua_settable(L, -3);
+      }
+      lua_settable(L, -3);
+    }
+    return 1;
+  }
+  return 0;
+}
+#endif
+
+
 static const luaL_Reg syslib[] = {
   {"sleep",       os_sleep},
   {"clock",       os_clock},
@@ -467,6 +503,9 @@ static const luaL_Reg syslib[] = {
   {"millis",      os_millis},
   {"micros",      os_micros},
   {"nanos",       os_nanos},
+#if !SOUP_ANDROID && !SOUP_WASM
+  {"dnsresolve",  os_dnsresolve},
+#endif
   {NULL, NULL}
 };
 

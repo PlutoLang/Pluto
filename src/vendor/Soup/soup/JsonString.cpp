@@ -114,7 +114,7 @@ NAMESPACE_SOUP
 
 	bool JsonString::operator==(const JsonNode& b) const noexcept
 	{
-		return JSON_STRING == b.type
+		return JSON_STRING == b.getType()
 			&& value == b.reinterpretAsStr().value
 			;
 	}
