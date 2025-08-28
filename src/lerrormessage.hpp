@@ -73,7 +73,9 @@ namespace Pluto {
 						int eot = ntk.column;
 						while (eot-- != 0 && soup::string::isSpace(line_string[eot]));
 						++eot;
-						this->src_len = eot - tk.column;
+						if (eot > tk.column) {
+							this->src_len = eot - tk.column;
+						}
 					}
 					else {
 						this->src_len -= src_off;
