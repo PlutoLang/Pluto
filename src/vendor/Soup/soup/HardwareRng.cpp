@@ -83,10 +83,28 @@ NAMESPACE_SOUP
 #if SOUP_WINDOWS
 		BCryptGenRandom(nullptr, (PUCHAR)buf, (ULONG)buflen, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
 #elif SOUP_LINUX
-		getrandom(buf, buflen, 0);
+		size_t filled = 0;
+		while (filled != buflen)
+		{
+			auto res = getrandom((char*)buf + filled, buflen - filled, 0);
+			if (res < 0)
+			{
+				break;
+			}
+			filled += res;
+		}
 #else
 		const auto fd = open("/dev/urandom", O_RDONLY);
-		read(fd, buf, buflen);
+		size_t filled = 0;
+		while (filled != buflen)
+		{
+			auto res = read(fd, (char*)buf + filled, buflen - filled);
+			if (res < 0)
+			{
+				break;
+			}
+			filled += res;
+		}
 		close(fd);
 #endif
 	}
