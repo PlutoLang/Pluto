@@ -15,7 +15,7 @@ NAMESPACE_SOUP
 	{
 		ENDIAN_LITTLE = true,
 		ENDIAN_BIG = false,
-#if 'ABCD' == 0x41424344ul
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 		ENDIAN_NATIVE = ENDIAN_LITTLE,
 #else
 		ENDIAN_NATIVE = ENDIAN_BIG,
@@ -23,8 +23,8 @@ NAMESPACE_SOUP
 		ENDIAN_NETWORK = ENDIAN_BIG,
 	};
 
-#if 'ABCD' != 0x41424344ul // Native endian is not little endian?
-	static_assert('ABCD' == 0x44434241ul); // Then it should be big endian.
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__ // Native endian is not little endian?
+	static_assert(__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__); // Then it should be big endian.
 #endif
 
 	SOUP_INT_STRUCT(native_u16_t, uint16_t);

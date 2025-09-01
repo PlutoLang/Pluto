@@ -294,7 +294,7 @@ static void funcinfo (lua_Debug *ar, Closure *cl) {
     }
     ar->linedefined = p->linedefined;
     ar->lastlinedefined = p->lastlinedefined;
-    if (ar->linedefined == 'plin') {
+    if (ar->linedefined == /*'plin'*/ 1886153070) {
       ar->source = "=[Pluto-injected code]";
       ar->srclen = LL("=[Pluto-injected code]");
       ar->linedefined = -1;
@@ -367,7 +367,7 @@ static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
       }
       case 'l': {
         ar->currentline = (ci && isLua(ci)) ? getcurrentline(ci) : -1;
-        if (ar->currentline == 'plin')
+        if (ar->currentline == /*'plin'*/ 1886153070)
           ar->currentline = -1;
         break;
       }
@@ -851,7 +851,7 @@ l_noret luaG_ordererror (lua_State *L, const TValue *p1, const TValue *p2) {
 /* add src:line information to 'msg' */
 const char *luaG_addinfo (lua_State *L, const char *msg, TString *src,
                                         int line) {
-  if (line == 'plin')
+  if (line == /*'plin'*/ 1886153070)
     return luaO_pushfstring(L, "[Pluto-injected code]: %s", msg);
   char buff[LUA_IDSIZE];
   if (src)
