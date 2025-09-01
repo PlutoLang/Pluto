@@ -3,12 +3,11 @@
 
 #include "lstate.h"
 
-#include <thread>
-
 #include "vendor/Soup/soup/DetachedScheduler.hpp"
 #include "vendor/Soup/soup/HttpRequest.hpp"
 #include "vendor/Soup/soup/HttpRequestTask.hpp"
 #include "vendor/Soup/soup/netStatus.hpp"
+#include "vendor/Soup/soup/os.hpp"
 #include "vendor/Soup/soup/Uri.hpp"
 
 static int push_http_response (lua_State *L, soup::HttpRequestTask& task) {
@@ -56,7 +55,7 @@ static int await_task (lua_State *L, soup::SharedPtr<Task>&& spTask) {
     return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), &await_task_cont<Task, callback>);
   }
   while (!spTask->isWorkDone())
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    soup::os::sleep(1);
   return callback(L, *spTask);
 }
 #endif

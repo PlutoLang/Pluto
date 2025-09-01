@@ -6,7 +6,6 @@
 
 #include <deque>
 #include <queue>
-#include <thread>
 
 #undef MAX_SIZE
 
@@ -209,7 +208,7 @@ static int l_recv (lua_State *L) {
     if (lua_isyieldable(L))
       return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(&ss), recvcont);
     while (ss.recvd.empty() && !ss.sock->isWorkDone()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      soup::os::sleep(1);
       ss.sched.tick();
     }
   }
@@ -284,7 +283,7 @@ static int starttls (lua_State *L) {
     return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(&ss), starttlscont);
 
   do {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    soup::os::sleep(1);
     ss.sched.tick();
   } while (!ss.did_tls_handshake && !ss.sock->isWorkDone());
   lua_pushboolean(L, ss.did_tls_handshake);
@@ -380,7 +379,7 @@ static int listener_accept (lua_State *L) {
     }
     do {
       l.serv.tick();
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      soup::os::sleep(1);
     } while (!l.accepted);
   }
   return restaccept(L, l);
