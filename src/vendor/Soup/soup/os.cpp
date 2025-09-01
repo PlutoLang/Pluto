@@ -9,7 +9,9 @@
 	#pragma comment(lib, "winmm.lib") // timeBeginPeriod, timeEndPeriod
 
 	#include <psapi.h>
-	#include <timeapi.h> // timeBeginPeriod, timeEndPeriod
+	#if !SOUP_CROSS_COMPILE
+		#include <timeapi.h> // timeBeginPeriod, timeEndPeriod
+	#endif
 
 	#include "Exception.hpp"
 	#include "ObfusString.hpp"
@@ -159,9 +161,13 @@ NAMESPACE_SOUP
 #if SOUP_WINDOWS
 	void os::fastSleep(unsigned int ms) noexcept
 	{
+	#if !SOUP_CROSS_COMPILE
 		timeBeginPeriod(ms);
+	#endif
 		::Sleep(ms);
+	#if !SOUP_CROSS_COMPILE
 		timeEndPeriod(ms);
+	#endif
 	}
 #endif
 
