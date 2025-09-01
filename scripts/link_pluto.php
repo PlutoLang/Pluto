@@ -2,9 +2,8 @@
 require __DIR__."/common.php";
 check_compiler();
 
-prepare_link();
 $cmd = $compiler." -o src/pluto";
-if(defined("PHP_WINDOWS_VERSION_MAJOR"))
+if($is_windows_target)
 {
 	$cmd .= ".exe";
 }
@@ -20,4 +19,5 @@ for_each_obj(function($file)
 		$cmd .= " int/{$file}.o";
 	}
 });
+$cmd .= get_link_flags();
 passthru($cmd);

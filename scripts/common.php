@@ -17,7 +17,7 @@ function build_soup()
 
 function check_compiler()
 {
-	global $argv, $compiler;
+	global $argv, $compiler, $is_windows_target;
 
 	if(empty($argv[1]))
 	{
@@ -25,14 +25,19 @@ function check_compiler()
 	}
 
 	$compiler = resolve_installed_program($argv[1]);
+	$is_windows_target = defined("PHP_WINDOWS_VERSION_MAJOR") || stripos($argv[1], "mingw") !== false;
 	for($i = 2; $i != count($argv); ++$i)
 	{
 		$compiler .= " ".escapeshellarg($argv[$i]);
 	}
 	$compiler .= " -std=c++17 -O3 -fvisibility=hidden -fno-rtti -ffunction-sections -fdata-sections";
-	if(defined("PHP_WINDOWS_VERSION_MAJOR"))
+	if($is_windows_target)
 	{
 		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
+		if (!defined("PHP_WINDOWS_VERSION_MAJOR"))
+		{
+			$compiler .= " -static-libstdc++";
+		}
 	}
 	else
 	{
@@ -60,10 +65,16 @@ function check_compiler()
 	}
 }
 
-function prepare_link()
+function get_link_flags()
 {
-	global $compiler;
-	$compiler .= " -L".__DIR__."/../src/vendor/Soup -lsoup";
+	global $is_windows_target;
+	$flags = " -L".__DIR__."/../src/vendor/Soup -lsoup";
+	if ($is_windows_target)
+	{
+		$flags .= " -lws2_32 -lbcrypt";
+		$flags .= " -municode";
+	}
+	return $flags;
 }
 
 function resolve_installed_program($exe)
