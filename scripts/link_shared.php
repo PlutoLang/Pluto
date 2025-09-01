@@ -2,7 +2,6 @@
 require __DIR__."/common.php";
 check_compiler();
 
-prepare_link();
 if (PHP_OS_FAMILY == "Darwin")
 {
 	$cmd = $compiler." -dynamiclib -o src/pluto.dylib";
@@ -21,4 +20,5 @@ for_each_obj(function($file)
 	}
 });
 
+$cmd .= get_link_flags();
 passthru($cmd);
