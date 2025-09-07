@@ -153,7 +153,6 @@ static int decode(lua_State* L)
 	jtw.free = [](void* L, void* node) -> void {
 		lua_pop((lua_State*)L, 1);
 	};
-	std::string* what = nullptr;
 	try
 	{
 		if (flags & (1 << 2)) // json.msgpack
@@ -174,12 +173,7 @@ static int decode(lua_State* L)
 	}
 	catch (const std::exception& e)
 	{
-		what = pluto_newclassinst(L, std::string);
-		*what = e.what();
-	}
-	if (l_unlikely(what))
-	{
-		luaL_error(L, what->c_str());
+		luaL_error(L, "%s", e.what());
 	}
 	return 0;
 }

@@ -251,23 +251,19 @@ static int ffi_funcwrapper_call (lua_State *L) {
     ++i;
   }
   uintptr_t retval;
-  std::string* what = nullptr;
   callback_L = L;
   try {
     retval = soup::ffi::call(fw->addr, args, i);
   }
   catch (std::exception& e) {
-    what = pluto_newclassinst(L, std::string);
-    *what = "C++ exception: ";
-    what->append(e.what());
+    callback_L = nullptr;
+    luaL_error(L, "C++ exception: %s", e.what());
   }
   catch (...) {
-    what = pluto_newclassinst(L, std::string);
-    *what = "C++ exception";
+    callback_L = nullptr;
+    luaL_error(L, "C++ exception");
   }
   callback_L = nullptr;
-  if (l_unlikely(what))
-    luaL_error(L, what->c_str());
   return push_ffi_value(L, fw->ret, &retval);
 }
 

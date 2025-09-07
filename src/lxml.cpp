@@ -137,20 +137,13 @@ static int xml_decode (lua_State *L) {
   }
   size_t len;
   const char *data = luaL_checklstring(L, 1, &len);
-  std::string* what = nullptr;
   soup::UniquePtr<soup::XmlTag> root;
   try {
     root = soup::xml::parseAndDiscardMetadata(data, data + len, *mode);
   }
   catch (const std::exception& e) {
-    what = pluto_newclassinst(L, std::string);
-    *what = e.what();
+    luaL_error(L, "%s", e.what());
   }
-  if (l_unlikely(!root)) {
-    lua_assert(what);
-    luaL_error(L, what->c_str());
-  }
-  lua_assert(!what);
   pushxmltag(L, *root);
   return 1;
 }
