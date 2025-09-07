@@ -8,7 +8,13 @@ static soup::Regex* checkregex (lua_State *L, int i) {
 }
 
 static int regex_new (lua_State *L) {
-  new (lua_newuserdata(L, sizeof(soup::Regex))) soup::Regex{ soup::Regex::fromFullString(pluto_checkstring(L, 1)) };
+  void *addr = lua_newuserdata(L, sizeof(soup::Regex));
+  try {
+    new (addr) soup::Regex{ soup::Regex::fromFullString(pluto_checkstring(L, 1)) };
+  }
+  catch (std::exception& e) {
+    luaL_error(L, "%s", e.what());
+  }
   if (luaL_newmetatable(L, "pluto:regex")) {
     lua_pushliteral(L, "__index");
     luaL_loadbuffer(L, "return require\"pluto:regex\"", 27, 0);

@@ -2892,6 +2892,8 @@ do
     assert(match[0] == "anywhere from 3 to 5")
     assert(match[1] == "3")
     assert(match[2] == "5")
+
+    assert(select(2, pcall(regex.new, "/+/")) == "Invalid modifier")
 end
 do
     assert(io.part("/deez/nuts", "parent") == "/deez")
