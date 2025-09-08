@@ -869,7 +869,7 @@ static int f_flush (lua_State *L) {
 #endif
 }
 
-static void checkPathForRead(std::filesystem::path& path) {
+static void checkPathForRead (lua_State *L, std::filesystem::path& path) {
 #ifdef PLUTO_NO_FILESYSTEM
   luaL_error(L, "disallowed by content moderation policy");
 #endif
@@ -882,7 +882,7 @@ static void checkPathForRead(std::filesystem::path& path) {
 
 [[nodiscard]] static std::filesystem::path& getStringStreamPathForRead(lua_State *L, int idx) {
   auto& path = getStringStreamPathRaw(L, idx);
-  checkPathForRead(path);
+  checkPathForRead(L, path);
   return path;
 }
 
@@ -1317,7 +1317,7 @@ static int io_unique (lua_State *L) {
   auto& path = *pluto_newclassinst(L, std::filesystem::path, base);
   path += '.';
   path += ext;
-  checkPathForRead(path);
+  checkPathForRead(L, path);
   if (!std::filesystem::exists(path)) {
     lua_pushstring(L, (const char*)path.u8string().c_str());
     return 1;
@@ -1328,7 +1328,7 @@ static int io_unique (lua_State *L) {
     path += std::to_string(i);
     path += ").";
     path += ext;
-    checkPathForRead(path);
+    checkPathForRead(L, path);
     if (!std::filesystem::exists(path)) {
       lua_pushstring(L, (const char*)path.u8string().c_str());
       return 1;
