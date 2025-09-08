@@ -7,17 +7,24 @@ void pushbigint (lua_State *L, soup::Bigint x);
 
 soup::Bigint* checkbigint (lua_State *L, int i) {
   if (lua_type(L, i) == LUA_TNUMBER) {
+    lua_pushinteger(L, luaL_checkinteger(L, i));
     size_t len;
-    const char *str = lua_tolstring(L, i, &len);
+    const char *str = lua_tolstring(L, -1, &len);
     pushbigint(L, soup::Bigint::fromString(str, len));
+    lua_replace(L, -2);
     i = -1;
   }
   return (soup::Bigint*)luaL_checkudata(L, i, "pluto:bigint");
 }
 
 static int bigint_new (lua_State *L) {
+  int i = 1;
+  if (lua_type(L, 1) == LUA_TNUMBER) {
+    lua_pushinteger(L, luaL_checkinteger(L, 1));
+    i = -1;
+  }
   size_t len;
-  const char *str = lua_tolstring(L, 1, &len);
+  const char *str = lua_tolstring(L, i, &len);
   pushbigint(L, soup::Bigint::fromString(str, len));
   return 1;
 }

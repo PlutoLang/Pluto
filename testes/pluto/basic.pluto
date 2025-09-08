@@ -2769,15 +2769,20 @@ do
 
     assert(bigint.new(48):gcd(bigint.new(18)):tostring() == "6")
 
+    -- Force integer representation
+    assert(bigint.new(1.0):tostring() == "1")
+    assert(not pcall(bigint.new, 1.2))
+
     -- Mixed bigint/number operands
     assert(tostring(new bigint(4) * 2) == "8")
+    assert(tostring(new bigint(4.0) * 2.0) == "8")
 
     -- Import/Export
-    assert(require"bigint".new("1056"):export() == "\x04\x20")
-    assert(require"bigint".new("1056"):export(0) == "\x04\x20")
-    assert(require"bigint".new("1056"):export(4) == "\x00\x00\x04\x20")
-    assert(require"bigint".import("\x04\x20"):tostring() == "1056")
-    assert(require"bigint".import("\x00\x00\x04\x20"):tostring() == "1056")
+    assert(bigint.new("1056"):export() == "\x04\x20")
+    assert(bigint.new("1056"):export(0) == "\x04\x20")
+    assert(bigint.new("1056"):export(4) == "\x00\x00\x04\x20")
+    assert(bigint.import("\x04\x20"):tostring() == "1056")
+    assert(bigint.import("\x00\x00\x04\x20"):tostring() == "1056")
 end
 do
     local { scheduler } = require "*"
