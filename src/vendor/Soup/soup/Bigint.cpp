@@ -456,13 +456,13 @@ NAMESPACE_SOUP
 
 	int Bigint::cmp(const Bigint& b) const noexcept
 	{
-		if (getNumChunks() != b.getNumChunks())
-		{
-			return branchless::trinary(getNumChunks() > b.getNumChunks(), +1, -1);
-		}
 		if (negative ^ b.negative)
 		{
 			return branchless::trinary(negative, -1, +1);
+		}
+		if (getNumChunks() != b.getNumChunks())
+		{
+			return branchless::trinary(getNumChunks() > b.getNumChunks(), +1, -1);
 		}
 		size_t i = chunks.size();
 		while (i != 0)
@@ -639,11 +639,10 @@ NAMESPACE_SOUP
 	void Bigint::addUnsigned(const Bigint& b) SOUP_EXCAL
 	{
 		chunk_t carry = 0;
-		if (cmp(b) >= 0)
+		const size_t nc = getNumChunks();
+		const size_t b_nc = b.getNumChunks();
+		if (nc >= b_nc)
 		{
-			const size_t nc = getNumChunks();
-			const size_t b_nc = b.getNumChunks();
-			SOUP_ASSUME(nc >= b_nc);
 			size_t i = 0;
 			for (; i != b_nc; ++i)
 			{
