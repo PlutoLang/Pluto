@@ -61,6 +61,27 @@ typedef enum UnOpr { OPR_MINUS, OPR_BNOT, OPR_NOT, OPR_LEN, OPR_NOUNOPR } UnOpr;
 
 #define luaK_jumpto(fs,t)	luaK_patchlist(fs, luaK_jump(fs), t)
 
+#define luaK_checkpoint(fs, snap) \
+  struct { \
+    int pc; int lasttarget; int previousline; int nabslineinfo; \
+    int nk; int np; int sizek; int sizep; \
+    lu_byte iwthabs; lu_byte freereg; \
+  } snap { \
+    (fs)->pc, (fs)->lasttarget, (fs)->previousline, (fs)->nabslineinfo, \
+    (fs)->nk, (fs)->np, (fs)->f->sizek, (fs)->f->sizep, \
+    (fs)->iwthabs, (fs)->freereg \
+  }
+
+#define luaK_restore(fs, snap) \
+  do { \
+    (fs)->pc = (snap).pc; (fs)->lasttarget = (snap).lasttarget; \
+    (fs)->previousline = (snap).previousline; (fs)->nabslineinfo = (snap).nabslineinfo; \
+    (fs)->nk = (snap).nk; (fs)->np = (snap).np; \
+    (fs)->f->sizek = (snap).sizek; (fs)->f->sizep = (snap).sizep; \
+    (fs)->iwthabs = (snap).iwthabs; (fs)->freereg = (snap).freereg; \
+  } while (false)
+
+
 LUAI_FUNC int luaK_code (FuncState *fs, Instruction i);
 LUAI_FUNC int luaK_codeABx (FuncState *fs, OpCode o, int A, unsigned Bx);
 LUAI_FUNC int luaK_codeABCk (FuncState *fs, OpCode o, int A,
