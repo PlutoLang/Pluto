@@ -5185,7 +5185,7 @@ static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeH
   expr(ls, &v, nullptr, nullptr, E_WALRUS);  /* read condition */
   const bool alwaystrue = luaK_isalwaystrue(ls, &v);
   if (luaK_isalwaysfalse(ls, &v))
-    throw_warn(ls, "unreachable code", "this condition will never be truthy.", WT_UNREACHABLE_CODE);
+    throw_warn(ls, "unreachable code", "this condition will never be truthy.", "use '$if'/'$end' to avoid emitting unreachable code", ls->getLineNumber(), WT_UNREACHABLE_CODE);
   if (testnext(ls, TK_THEN)) {
     /* standard block opener for ifstat */
   }
@@ -5223,7 +5223,7 @@ static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeH
       ls->t.token == TK_ELSEIF) {  /* followed by 'else'/'elseif'? */
     luaK_concat(fs, escapelist, luaK_jump(fs));  /* must jump over it */
     if (alwaystrue)
-      throw_warn(ls, "unreachable code", "the condition in the if block is always truthy, hence this else block is unreachable.", WT_UNREACHABLE_CODE);
+      throw_warn(ls, "unreachable code", "the condition in the if block is always truthy, hence this else block is unreachable.", "use '$if'/'$else'/'$end' to avoid emitting unreachable code", ls->getLineNumber(), WT_UNREACHABLE_CODE);
   }
   luaK_patchtohere(fs, jf);
 }
