@@ -4549,26 +4549,44 @@ static void expr (LexState *ls, expdesc *v, int8_t *nprop, TypeHint *prop, int f
   if (testnext(ls, '?')) { /* ternary expression? */
     check_condition(ls, !(flags & E_NO_CONSUME_COLON), "cannot use a ternary expression in this context");
     if (prop) prop->clear(); /* we don't care what type the condition is/was */
-    int escape = NO_JUMP;
     v->normalizeFalse();
-    if (luaK_isalwaystrue(ls, v))
-      throw_warn(ls, "unreachable code", "the condition before the '?' is always truthy, hence the expression after the ':' is never used.", WT_UNREACHABLE_CODE);
-    else if (luaK_isalwaysfalse(ls, v))
-      throw_warn(ls, "unreachable code", "the condition before the '?' is always falsy, hence the expression before the ':' is never used.", WT_UNREACHABLE_CODE);
-    luaK_goiftrue(ls->fs, v);
-    int condition = v->f;
-    expr(ls, v, nprop, prop, E_NO_METHOD_CALL);
-    auto fs = ls->fs;
-    luaK_exp2nextreg(fs, v);
-    auto reg = v->u.reg;
-    luaK_concat(fs, &escape, luaK_jump(fs));
-    luaK_patchtohere(fs, condition);
-    checknext(ls, ':');
-    ls->pushContext(PARCTX_TERNARY_C);
-    expr(ls, v, nprop, prop, flags & E_NO_METHOD_CALL);
-    ls->popContext(PARCTX_TERNARY_C);
-    luaK_exp2reg(fs, v, reg);
-    luaK_patchtohere(fs, escape);
+    if (luaK_isalwaysfalse(ls, v)) {  /* skip 'b' expression */
+      luaK_checkpoint(ls->fs, cp);
+      expdesc dummy;
+      expr(ls, &dummy, nullptr, nullptr, E_NO_METHOD_CALL);
+      luaK_restore(ls->fs, cp);
+      checknext(ls, ':');
+      ls->pushContext(PARCTX_TERNARY_C);
+      expr(ls, v, nprop, prop, flags & E_NO_METHOD_CALL);
+      ls->popContext(PARCTX_TERNARY_C);
+    }
+    else if (luaK_isalwaystrue(ls, v)) {  /* skip 'c' expression */
+      expr(ls, v, nprop, prop, E_NO_METHOD_CALL);
+      checknext(ls, ':');
+      ls->pushContext(PARCTX_TERNARY_C);
+      luaK_checkpoint(ls->fs, cp);
+      expdesc dummy;
+      expr(ls, &dummy, nullptr, nullptr, flags & E_NO_METHOD_CALL);
+      luaK_restore(ls->fs, cp);
+      ls->popContext(PARCTX_TERNARY_C);
+    }
+    else {
+      int escape = NO_JUMP;
+      luaK_goiftrue(ls->fs, v);
+      int condition = v->f;
+      expr(ls, v, nprop, prop, E_NO_METHOD_CALL);
+      auto fs = ls->fs;
+      luaK_exp2nextreg(fs, v);
+      auto reg = v->u.reg;
+      luaK_concat(fs, &escape, luaK_jump(fs));
+      luaK_patchtohere(fs, condition);
+      checknext(ls, ':');
+      ls->pushContext(PARCTX_TERNARY_C);
+      expr(ls, v, nprop, prop, flags & E_NO_METHOD_CALL);
+      ls->popContext(PARCTX_TERNARY_C);
+      luaK_exp2reg(fs, v, reg);
+      luaK_patchtohere(fs, escape);
+    }
   }
 }
 
