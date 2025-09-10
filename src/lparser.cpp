@@ -3660,7 +3660,7 @@ static void postfixplusplus (LexState *ls, expdesc *v, int line, int flags) {
     fieldsel(ls, v);
   check(ls, TK_PLUSPLUS);
   if (ls->t.line != line) {
-    throw_warn(ls, "possibly unwanted postfix ++", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", line), Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_POSSIBLE_TYPO);
+    throw_warn(ls, "possibly unwanted postfix ++", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", line), "place a semicolon to delimit the previous expression", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_POSSIBLE_TYPO);
     ls->L->top.p--;
   }
   luaX_next(ls);
@@ -3738,7 +3738,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
         const auto colon_column = ls->t.column;
         luaX_next(ls);  /* skip ':' */
         if (l_unlikely(colon_line != ls->t.line)) {
-          throw_warn(ls, "possibly unwanted function call", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", colon_line), Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_POSSIBLE_TYPO);
+          throw_warn(ls, "possibly unwanted function call", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", colon_line), "place a semicolon to delimit the previous expression", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_POSSIBLE_TYPO);
           ls->L->top.p--;
         }
         else if (l_unlikely(ls->t.column != (colon_column + 1) && ls->getContext() == PARCTX_TERNARY_C)) {
@@ -3759,7 +3759,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
           return;
         }
         if (luaX_lookbehind(ls).line != ls->t.line && (ls->getContext() == PARCTX_LAMBDA_BODY || v->k == VCALL)) {
-          throw_warn(ls, "possibly unwanted function call", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", luaX_lookbehind(ls).line), Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_POSSIBLE_TYPO);
+          throw_warn(ls, "possibly unwanted function call", luaO_fmt(ls->L, "possibly unwanted continuation of the expression on line %d.", luaX_lookbehind(ls).line), "place a semicolon to delimit the previous expression", Pluto::ErrorMessage::encodePos(luaX_getpos(ls)), WT_POSSIBLE_TYPO);
           ls->L->top.p--;
         }
         Vardesc *vd;
