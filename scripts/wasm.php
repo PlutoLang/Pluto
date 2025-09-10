@@ -50,13 +50,13 @@ foreach($files as $file)
 await_commands();
 
 echo "Linking pluto...\n";
-$link = $clang." -s WASM=1 -s MODULARIZE=1 -s EXPORT_NAME=pluto -s EXPORTED_FUNCTIONS=_malloc,_main,_strcpy,_free -s EXPORTED_RUNTIME_METHODS=[\"FS\",\"cwrap\"] -s FS_DEBUG=1 -s FETCH=1";
+$link = $clang." -s WASM=1 -s MODULARIZE=1 -s EXPORT_NAME=pluto -s EXPORTED_FUNCTIONS=_malloc,_main,_strcpy,_free -s EXPORTED_RUNTIME_METHODS=[\"FS\",\"cwrap\",\"getValue\",\"setValue\"] -s FS_DEBUG=1 -s FETCH=1";
 $link .= " -s ALLOW_MEMORY_GROWTH=1 -s ABORTING_MALLOC=0"; // to correctly handle memory-intensive tasks
 //$link .= " -s LINKABLE=1 -s EXPORT_ALL=1 -s ASSERTIONS=1"; // uncomment for debugging
 passthru("$link -o pluto.js ".join(" ", $objects));
 
 echo "Linking libpluto...\n";
-$link = $clang." -s WASM=1 -s MODULARIZE=1 -s EXPORT_NAME=libpluto -s EXPORTED_FUNCTIONS=_malloc -s EXPORTED_RUNTIME_METHODS=[\"FS\",\"cwrap\"] -s FS_DEBUG=1 -s FETCH=1";
+$link = $clang." -s WASM=1 -s MODULARIZE=1 -s EXPORT_NAME=libpluto -s EXPORTED_FUNCTIONS=_malloc -s EXPORTED_RUNTIME_METHODS=[\"FS\",\"cwrap\",\"getValue\",\"setValue\"] -s FS_DEBUG=1 -s FETCH=1";
 $link .= " -s ALLOW_MEMORY_GROWTH=1 -s ABORTING_MALLOC=0"; // to correctly handle memory-intensive tasks
 //$link .= " -s LINKABLE=1 -s EXPORT_ALL=1 -s ASSERTIONS=1"; // uncomment for debugging
 passthru("$link -o libpluto.js ".join(" ", $objects_lib));
