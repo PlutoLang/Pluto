@@ -4492,9 +4492,14 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
         if (luaK_isalwaysnil(ls, v)) {
           /* weird, but nothing worth talking about... */
         }
-        else {
-          if (luaK_isalwaystrue(ls, v) || luaK_isalwaysfalse(ls, v))
-            throw_warn(ls, "unreachable code", "the expression before the '?\?' is never nil, hence the expression after the '?\?' is never used.", WT_UNREACHABLE_CODE);
+        else if (luaK_isalwaystrue(ls, v) || luaK_isalwaysfalse(ls, v)) {
+          /* the expression before the ?? is never nil, hence we don't need to emit the expression after it */
+          luaK_checkpoint(ls->fs, cp);
+          expdesc dummy;
+          nextop = subexpr(ls, &dummy, priority[op].right, nullptr, nullptr, flags);
+          luaK_restore(ls->fs, cp);
+          op = nextop;
+          continue;
         }
         if (prop) {
           prop->erase(VT_NIL);
