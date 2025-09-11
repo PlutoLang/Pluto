@@ -148,7 +148,6 @@ struct TypeHint;
 
 inline constexpr int MAX_TYPED_RETURNS = 3;
 inline constexpr int MAX_TYPED_PARAMS = 7;
-inline constexpr int MAX_TYPED_FIELDS = 5;
 
 union TypeDesc {
   struct {
@@ -165,8 +164,8 @@ union TypeDesc {
     ValType type_;
     /* table info */
     int8_t nfields;
-    TString* names[MAX_TYPED_FIELDS];
-    TypeHint* hints[MAX_TYPED_FIELDS];
+    TString** names;
+    TypeHint** hints;
   };
 
   TypeDesc(ValType type = VT_NONE)
@@ -323,10 +322,10 @@ struct TypeHint {
       if (desc.type == td.type) {
         if (desc.type == VT_TABLE) {
           if (desc.nfields != -1 &&
-            td.nfields != -1 && td.nfields < MAX_TYPED_FIELDS) {  /* know all fields of 'td'? */
-            for (lu_byte i = 0; i != desc.nfields && i != MAX_TYPED_FIELDS; ++i) {
+            td.nfields != -1 && td.nfields != 127) {  /* know all fields of 'td'? */
+            for (lu_byte i = 0; i != desc.nfields; ++i) {
               bool field_exists_compatibly = false;
-              for (lu_byte j = 0; j != td.nfields && j != MAX_TYPED_FIELDS; ++j) {
+              for (lu_byte j = 0; j != td.nfields; ++j) {
                 if (desc.names[i] == td.names[j]) {
                   field_exists_compatibly = desc.hints[i]->isCompatibleWith(*td.hints[j]);
                   break;

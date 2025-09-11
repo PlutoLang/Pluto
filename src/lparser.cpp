@@ -532,7 +532,7 @@ static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
 
 
 [[nodiscard]] static TypeHint* new_typehint (LexState *ls) {
-  return ::new (ls->parse_time_allocations.emplace_back(malloc(sizeof(TypeHint)))) TypeHint();
+  return ::new (ls->parAlloc(sizeof(TypeHint))) TypeHint();
 }
 
 
@@ -563,12 +563,16 @@ static void checktypehint (LexState *ls, TypeHint &th) {
       luaX_next(ls);  /* skip '{' */
       TypeDesc td = VT_TABLE;
       td.nfields = 0;
+      td.names = nullptr;
+      td.hints = nullptr;
       while (ls->t.token != '}') {
         TString *ts = str_checkname(ls, N_RESERVED);
         checknext(ls, ':');
         TypeHint *fieldth = new_typehint(ls);
         checktypehint(ls, *fieldth);
-        if (td.nfields != MAX_TYPED_FIELDS) {
+        if (td.nfields != 127) {
+          td.names = (TString**)ls->parRealloc(td.names, sizeof(TString*) * (td.nfields + 1));
+          td.hints = (TypeHint**)ls->parRealloc(td.hints, sizeof(TypeHint*) * (td.nfields + 1));
           td.names[td.nfields] = ts;
           td.hints[td.nfields] = fieldth;
           ++td.nfields;
@@ -1783,9 +1787,11 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   else {
     checknext(ls, '=');
     if (name && cc->td) {
-      if (cc->td->nfields != MAX_TYPED_FIELDS) {
+      if (cc->td->nfields != 127) {
         TypeHint *th = new_typehint(ls);
         expr_propagate(ls, &val, *th);
+        cc->td->names = (TString**)ls->parRealloc(cc->td->names, sizeof(TString*) * (cc->td->nfields + 1));
+        cc->td->hints = (TypeHint**)ls->parRealloc(cc->td->hints, sizeof(TypeHint*) * (cc->td->nfields + 1));
         cc->td->names[cc->td->nfields] = name;
         cc->td->hints[cc->td->nfields] = th;
         ++cc->td->nfields;
@@ -1952,6 +1958,8 @@ static void constructor (LexState *ls, expdesc *t, TypeDesc *td) {
   cc.td = td;
   if (td) {
     td->nfields = 0;
+    td->names = nullptr;
+    td->hints = nullptr;
   }
   init_exp(t, VNONRELOC, fs->freereg);  /* table will be at stack top */
   luaK_reserveregs(fs, 1);
