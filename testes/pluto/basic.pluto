@@ -898,6 +898,12 @@ do
     tracker[item.key] ??= true
     assert(tracker[item.key] == false)
 end
+do
+    -- Dead code elimination
+    assert(not "off" in string.dump(function()
+        print("on" ?? "off")
+    end))
+end
 
 print "Testing safe navigation."
 do
