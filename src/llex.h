@@ -673,6 +673,23 @@ struct LexState {
     lua_assert(t >= FIRST_NON_COMPAT && t < END_OPTIONAL);
     keyword_states[t - FIRST_NON_COMPAT] = ks;
   }
+
+  [[nodiscard]] void* parAlloc(size_t size) {
+    return parse_time_allocations.emplace_back(malloc(size));
+  }
+
+  [[nodiscard]] void* parRealloc(void* oldaddr, size_t newsize) {
+    void* newaddr = realloc(oldaddr, newsize);
+    if (newaddr != oldaddr && oldaddr != nullptr) {
+      for (auto i = parse_time_allocations.rbegin(); i != parse_time_allocations.rend(); ++i) {
+        if (*i == oldaddr) {
+          *i = newaddr;
+          break;
+        }
+      }
+    }
+    return newaddr;
+  }
 };
 
 #if defined(_MSC_VER) && _MSC_VER && !__INTEL_COMPILER
