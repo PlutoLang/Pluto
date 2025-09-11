@@ -64,10 +64,10 @@
 
 
 std::string TypeDesc::toString() const {
-  if (type == VT_TABLE && nfields != -1) {
+  if (type == VT_TABLE && nfields != TDN_NOINFO) {
     std::string str(1, '{');
     if (nfields != 0) {  /* empty case handling, e.g. local _: { x: number; y: number } = {} */
-      for (int8_t i = 0;; ) {
+      for (tdn_t i = 0;; ) {
         str.append(getstr(names[i]), tsslen(names[i]));
         str.append(": ");
         str.append(hints[i]->toString());
@@ -81,10 +81,10 @@ std::string TypeDesc::toString() const {
   }
   std::string str = vtToString(type);
   if (type == VT_FUNC) {
-    if (nparam >= 0) {  /* know parameters? */
+    if (nparam != TDN_NOINFO) {  /* know parameters? */
       str.push_back('(');
       if (nparam != 0) {
-        for (int8_t i = 0;; ) {
+        for (tdn_t i = 0;; ) {
           str.append(params[i]->toString());
           if (++i == nparam || i == MAX_TYPED_PARAMS)
             break;
@@ -93,9 +93,9 @@ std::string TypeDesc::toString() const {
       }
       str.push_back(')');
     }
-    if (nret >= 0) { /* know returns? */
+    if (nret != TDN_NOINFO) { /* know returns? */
       str.push_back(':');
-      if (nparam >= 0) {
+      if (nparam != TDN_NOINFO) {
         str.push_back(' ');
       }
       if (nret == 0) {
@@ -106,7 +106,7 @@ std::string TypeDesc::toString() const {
       }
       else {
         str.push_back('(');
-        for (int8_t i = 0;; ) {
+        for (tdn_t i = 0;; ) {
           str.append(returns[i]->toString());
           if (++i == nret)
             break;
@@ -146,8 +146,8 @@ typedef struct BlockCnt {
 /*
 ** prototypes for recursive non-terminal functions
 */
-static void statement (LexState *ls, int8_t *nprop = nullptr, TypeHint *prop = nullptr);
-static void expr (LexState *ls, expdesc *v, int8_t *nprop = nullptr, TypeHint *prop = nullptr, int flags = 0);
+static void statement (LexState *ls, tdn_t *nprop = nullptr, TypeHint *prop = nullptr);
+static void expr (LexState *ls, expdesc *v, tdn_t *nprop = nullptr, TypeHint *prop = nullptr, int flags = 0);
 
 
 /*
@@ -570,7 +570,7 @@ static void checktypehint (LexState *ls, TypeHint &th) {
         checknext(ls, ':');
         TypeHint *fieldth = new_typehint(ls);
         checktypehint(ls, *fieldth);
-        if (td.nfields != 127) {
+        if (td.nfields != TDN_LIMIT) {
           td.names = (TString**)ls->parRealloc(td.names, sizeof(TString*) * (td.nfields + 1));
           td.hints = (TypeHint**)ls->parRealloc(td.hints, sizeof(TypeHint*) * (td.nfields + 1));
           td.names[td.nfields] = ts;
@@ -640,7 +640,7 @@ static void checktypehint (LexState *ls, TypeHint &th) {
   return th;
 }
 
-[[nodiscard]] static int8_t getfuncrethint (LexState *ls, TypeHint ths[MAX_TYPED_RETURNS]) {
+[[nodiscard]] static tdn_t getfuncrethint (LexState *ls, TypeHint ths[MAX_TYPED_RETURNS]) {
   if (testnext(ls, ':')) {
     auto line = ls->getLineNumber();
     if (testnext(ls, '(')) {
@@ -668,7 +668,7 @@ static void checktypehint (LexState *ls, TypeHint &th) {
     checktypehint(ls, ths[0]);
     return 1;
   }
-  return -1;
+  return TDN_NOINFO;
 }
 
 static void checkfuncspec (LexState *ls, TypeDesc &td) {
@@ -700,7 +700,7 @@ static void checkfuncspec (LexState *ls, TypeDesc &td) {
     luaE_incCstack(ls->L);
     TypeHint ths[MAX_TYPED_RETURNS];
     td.nret = getfuncrethint(ls, ths);
-    lua_assert(td.nret >= 0);
+    lua_assert(td.nret != TDN_NOINFO);
     for (decltype(td.nret) i = 0; i != td.nret; ++i) {
       td.returns[i] = new_typehint(ls);
       *td.returns[i] = ths[i];
@@ -1521,12 +1521,12 @@ static int block_follow (LexState *ls, int withuntil) {
 
 
 static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc *key, expdesc *val)>& gen);
-static void statlist (LexState *ls, int8_t *nprop = nullptr, TypeHint *prop = nullptr) {
+static void statlist (LexState *ls, tdn_t *nprop = nullptr, TypeHint *prop = nullptr) {
   /* statlist -> { stat [';'] } */
   bool ret = false;
   while (!block_follow(ls, 1)) {
     ret = (ls->t.token == TK_RETURN);
-    int8_t np = -1;
+    tdn_t np = TDN_NOINFO;
     TypeHint p[MAX_TYPED_RETURNS];
 #if defined LUAI_ASSERT
     const auto levels = ls->L->nCcalls;
@@ -1534,11 +1534,11 @@ static void statlist (LexState *ls, int8_t *nprop = nullptr, TypeHint *prop = nu
     statement(ls, &np, p);
     lua_assert(levels == ls->L->nCcalls);
     if (nprop && /* do we need to propagate the return type? */
-        np != -1) { /* is there a return path here? */
+        np != TDN_NOINFO) { /* is there a return path here? */
       if (np > *nprop) {
         *nprop = np;
       }
-      for (int8_t i = 0; i != np; ++i) {
+      for (tdn_t i = 0; i != np; ++i) {
         prop[i].merge(p[i]);
       }
     }
@@ -1700,8 +1700,8 @@ static void fieldsel (LexState *ls, expdesc *v, TypeHint *prop = nullptr) {
   luaK_exp2anyregup(fs, v);
   luaX_next(ls);  /* skip the dot or colon */
   codename(ls, &key, N_RESERVED);
-  if (prop && th.descs[0].type == VT_TABLE && th.descs[0].nfields != -1 && key.k == VKSTR) {
-    for (lu_byte i = 0; i != th.descs[0].nfields; ++i) {
+  if (prop && th.descs[0].type == VT_TABLE && th.descs[0].nfields != TDN_NOINFO && key.k == VKSTR) {
+    for (tdn_t i = 0; i != th.descs[0].nfields; ++i) {
       if (eqstr(key.u.strval, th.descs[0].names[i])) {
         *prop = *th.descs[0].hints[i];
       }
@@ -1791,7 +1791,7 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   else {
     checknext(ls, '=');
     if (name && cc->td) {
-      if (cc->td->nfields != 127) {
+      if (cc->td->nfields != TDN_LIMIT) {
         TypeHint *th = new_typehint(ls);
         expr_propagate(ls, &val, *th);
         cc->td->names = (TString**)ls->parRealloc(cc->td->names, sizeof(TString*) * (cc->td->nfields + 1));
@@ -2346,7 +2346,7 @@ enum expflags {
   E_NESTED           = 1 << 7,
 };
 
-static void simpleexp (LexState *ls, expdesc *v, int flags = 0, int8_t *nprop = nullptr, TypeHint *prop = nullptr);
+static void simpleexp (LexState *ls, expdesc *v, int flags = 0, tdn_t *nprop = nullptr, TypeHint *prop = nullptr);
 
 
 /* keep advancing until we hit `token` */
@@ -2587,12 +2587,12 @@ static void namedvararg (LexState *ls, TString *varargname) {
 }
 
 
-static bool arereturnscompatible (int8_t nhint, TypeHint rethint[MAX_TYPED_RETURNS], int8_t nret, TypeHint retprop[MAX_TYPED_RETURNS]) {
+static bool arereturnscompatible (tdn_t nhint, TypeHint rethint[MAX_TYPED_RETURNS], tdn_t nret, TypeHint retprop[MAX_TYPED_RETURNS]) {
   if (nhint != nret) {
     return false;
   }
-  lua_assert(nhint >= 0);
-  for (int8_t i = 0; i != nhint; ++i) {
+  lua_assert(nhint != TDN_NOINFO);
+  for (tdn_t i = 0; i != nhint; ++i) {
     if (!rethint[i].isCompatibleWith(retprop[i]))
       return false;
   }
@@ -2600,8 +2600,8 @@ static bool arereturnscompatible (int8_t nhint, TypeHint rethint[MAX_TYPED_RETUR
 }
 
 
-static void hintarraytostring (std::string& str, int8_t nhint, TypeHint hints[MAX_TYPED_RETURNS]) {
-  lua_assert(nhint >= 0);
+static void hintarraytostring (std::string& str, tdn_t nhint, TypeHint hints[MAX_TYPED_RETURNS]) {
+  lua_assert(nhint != TDN_NOINFO);
   if (nhint == 0) {
     str.append("void");
   }
@@ -2610,7 +2610,7 @@ static void hintarraytostring (std::string& str, int8_t nhint, TypeHint hints[MA
   }
   else {
     str.push_back('(');
-    for (int8_t i = 0;; ) {
+    for (tdn_t i = 0;; ) {
       str.append(hints[i].toString());
       if (++i == nhint)
         break;
@@ -2621,8 +2621,8 @@ static void hintarraytostring (std::string& str, int8_t nhint, TypeHint hints[MA
 }
 
 
-static void checkrettype (LexState *ls, int8_t nhint, TypeHint rethint[MAX_TYPED_RETURNS], int8_t nret, TypeHint retprop[MAX_TYPED_RETURNS], int line) {
-  if (nhint != -1  /* has return hint? */
+static void checkrettype (LexState *ls, tdn_t nhint, TypeHint rethint[MAX_TYPED_RETURNS], tdn_t nret, TypeHint retprop[MAX_TYPED_RETURNS], int line) {
+  if (nhint != TDN_NOINFO  /* has return hint? */
       && !arereturnscompatible(nhint, rethint, nret, retprop)) {  /* incompatible? */
     auto& err = *pluto_newclassinst(ls->L, std::string);
     err = "function was hinted to return ";
@@ -2635,18 +2635,18 @@ static void checkrettype (LexState *ls, int8_t nhint, TypeHint rethint[MAX_TYPED
 }
 
 
-static void propfuncdesc (LexState *ls, FuncState& new_fs, int8_t nret, TypeHint retprop[MAX_TYPED_RETURNS], TypeDesc* funcdesc) {
+static void propfuncdesc (LexState *ls, FuncState& new_fs, tdn_t nret, TypeHint retprop[MAX_TYPED_RETURNS], TypeDesc* funcdesc) {
   funcdesc->type = VT_FUNC;
   funcdesc->proto = new_fs.f;
   funcdesc->nparam = new_fs.f->numparams;
   funcdesc->nret = nret;
-  lua_assert(nret >= 0);
-  for (int8_t i = 0; i != nret; ++i) {
+  lua_assert(nret != TDN_NOINFO);
+  for (tdn_t i = 0; i != nret; ++i) {
     funcdesc->returns[i] = new_typehint(ls);
     *funcdesc->returns[i] = retprop[i];
   }
   int vidx = new_fs.firstlocal;
-  for (lu_byte i = 0; i != funcdesc->getNumTypedParams(); ++i) {
+  for (tdn_t i = 0; i != funcdesc->getNumTypedParams(); ++i) {
     funcdesc->params[i] = ls->dyd->actvar.arr[vidx].vd.hint;
     ++vidx;
   }
@@ -2696,10 +2696,10 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   TypeHint rethint[MAX_TYPED_RETURNS];
   auto nrethint = getfuncrethint(ls, rethint);
   const bool nodiscard = getfunctionattribute(ls);
-  int8_t nret = 0;
+  tdn_t nret = 0;
   TypeHint retprop[MAX_TYPED_RETURNS];
   statlist(ls, &nret, retprop);
-  lua_assert(nret >= 0);
+  lua_assert(nret != TDN_NOINFO);
   checkrettype(ls, nrethint, rethint, nret, retprop, line);
   if (funcdesc) {
     propfuncdesc(ls, new_fs, nret, retprop, funcdesc);
@@ -2737,7 +2737,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
   defaultarguments(ls, 0, bs.fallbacks, E_NO_BOR);
   if (varargname)
     namedvararg(ls, varargname);
-  int8_t nret = 0;
+  tdn_t nret = 0;
   TypeHint retprop[MAX_TYPED_RETURNS];
   if (testnext(ls, TK_DO)) {
     ls->pushContext(PARCTX_BODY);
@@ -2752,7 +2752,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
     luaK_ret(&new_fs, luaK_exp2anyreg(&new_fs, e), 1);
     ls->popContext(PARCTX_LAMBDA_BODY);
   }
-  lua_assert(nret >= 0);
+  lua_assert(nret != TDN_NOINFO);
   checkrettype(ls, nrethint, rethint, nret, retprop, line);
   if (funcdesc) {
     propfuncdesc(ls, new_fs, nret, retprop, funcdesc);
@@ -2766,7 +2766,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
 
 
 static void expr_propagate (LexState *ls, expdesc *v, TypeHint& t) {
-  int8_t ntmp;
+  tdn_t ntmp;
   TypeHint tmp[MAX_TYPED_RETURNS];
   expr(ls, v, &ntmp, tmp);
   t = tmp[0];
@@ -2775,7 +2775,7 @@ static void expr_propagate (LexState *ls, expdesc *v, TypeHint& t) {
 
 
 static void expr_propagate_warn (LexState *ls, expdesc *v, TypeHint& t, std::unordered_set<TString*>& names) {
-  int8_t ntmp;
+  tdn_t ntmp;
   TypeHint tmp[MAX_TYPED_RETURNS];
   expr(ls, v, &ntmp, tmp);
   t = tmp[0];
@@ -2815,7 +2815,7 @@ static void explist_nonlinear (LexState *ls, expdesc *v, const std::vector<size_
 static int explist (LexState *ls, expdesc *v, TypeHint *prop = nullptr) {
   /* explist -> expr { ',' expr } */
   int n = 1;  /* at least one expression */
-  int8_t ntmp;
+  tdn_t ntmp;
   TypeHint tmp[MAX_TYPED_RETURNS];
   expr(ls, v, prop ? &ntmp : nullptr, prop);
   if (prop) {
@@ -2952,7 +2952,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
         ls->L->top.p--;  /* pop 'err' */
       }
     }
-    if (funcdesc->nparam >= 0) {
+    if (funcdesc->nparam != TDN_NOINFO) {
       const auto received = (int)fas.argdescs.size();
       const auto isvararg = funcdesc->proto && ((funcdesc->proto->flag & PF_ISVARARG) != 0);
       if (!isvararg && funcdesc->nparam < received) {  /* Too many arguments? */
@@ -3491,7 +3491,7 @@ static bool iswalrusassign (LexState *ls) {
 }
 
 
-static void expsuffix (LexState* ls, expdesc* v, int line, int flags, int8_t *nprop, TypeHint *prop);
+static void expsuffix (LexState* ls, expdesc* v, int line, int flags, tdn_t *nprop, TypeHint *prop);
 
 static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
   /* primaryexp -> NAME | '(' expr ')' */
@@ -3699,7 +3699,7 @@ static void postfixplusplus (LexState *ls, expdesc *v, int line, int flags) {
 }
 
 
-static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, int8_t *nprop = nullptr, TypeHint *prop = nullptr) {
+static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, tdn_t *nprop = nullptr, TypeHint *prop = nullptr) {
   /* suffixedexp ->
        primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs } */
   int line = ls->getLineNumber();
@@ -3717,7 +3717,7 @@ static void suffixedexp (LexState *ls, expdesc *v, int flags = 0, int8_t *nprop 
   expsuffix(ls, v, line, flags, nprop, prop);
 }
 
-static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *nprop, TypeHint *prop) {
+static void expsuffix (LexState *ls, expdesc *v, int line, int flags, tdn_t *nprop, TypeHint *prop) {
   FuncState *fs = ls->fs;
   for (;;) {
     switch (ls->t.token) {
@@ -3782,9 +3782,9 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
         _funcdesc_from_vd:
           if (vd->vd.prop->descs[0].type == VT_FUNC && vd->vd.prop->descs[1].type == VT_NONE) {
             funcdesc = &vd->vd.prop->descs[0];
-            if (prop && vd->vd.prop->descs[0].nret >= 0) {  /* should and can propagate returns? */
+            if (prop && vd->vd.prop->descs[0].nret != TDN_NOINFO) {  /* should and can propagate returns? */
               *nprop = vd->vd.prop->descs[0].nret;
-              for (int8_t i = 0; i != *nprop; ++i) {
+              for (tdn_t i = 0; i != *nprop; ++i) {
                 prop[i] = *vd->vd.prop->descs[0].returns[i];
               }
             }
@@ -3816,9 +3816,9 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
           if (auto th = get_global_prop_opt(ls, tsvalue(key))) {
             if (th->descs[0].type == VT_FUNC && th->descs[1].type == VT_NONE) {
               funcdesc = &th->descs[0];
-              if (prop && th->descs[0].nret >= 0) {  /* should and can propagate returns? */
+              if (prop && th->descs[0].nret != TDN_NOINFO) {  /* should and can propagate returns? */
                 *nprop = th->descs[0].nret;
-                for (int8_t i = 0; i != *nprop; ++i) {
+                for (tdn_t i = 0; i != *nprop; ++i) {
                   prop[i] = *th->descs[0].returns[i];
                 }
               }
@@ -3917,7 +3917,7 @@ static void newexpr (LexState *ls, expdesc *v) {
 }
 
 
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop = nullptr, TypeHint *prop = nullptr, int flags = 0);
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, tdn_t *nprop = nullptr, TypeHint *prop = nullptr, int flags = 0);
 
 
 static BinOpr custombinaryoperator (LexState *ls, expdesc *v, int flags, TString *impl) {
@@ -4172,7 +4172,7 @@ static void switchexpr (LexState *ls, expdesc *v) {
 }
 
 
-static void simpleexp (LexState *ls, expdesc *v, int flags, int8_t *nprop, TypeHint *prop) {
+static void simpleexp (LexState *ls, expdesc *v, int flags, tdn_t *nprop, TypeHint *prop) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   check_for_non_portable_code(ls);
@@ -4407,7 +4407,7 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where 'binop' is any binary operator with a priority higher than 'limit'
 */
-static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeHint *prop, int flags) {
+static BinOpr subexpr (LexState *ls, expdesc *v, int limit, tdn_t *nprop, TypeHint *prop, int flags) {
   BinOpr op;
   UnOpr uop;
   enterlevel(ls);
@@ -4472,7 +4472,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
       nextop = getbinopr(ls->t.token);
     }
     else {
-      int8_t *subexpr_nprop = nullptr;
+      tdn_t *subexpr_nprop = nullptr;
       TypeHint *subexpr_prop = nullptr;
       if (op == OPR_CONCAT) {
         if (prop)
@@ -4549,7 +4549,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
 }
 
 
-static void expr (LexState *ls, expdesc *v, int8_t *nprop, TypeHint *prop, int flags) {
+static void expr (LexState *ls, expdesc *v, tdn_t *nprop, TypeHint *prop, int flags) {
 #ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
@@ -4612,7 +4612,7 @@ static void expr (LexState *ls, expdesc *v, int8_t *nprop, TypeHint *prop, int f
 */
 
 
-static void block (LexState *ls, int8_t *nprop = nullptr, TypeHint *prop = nullptr) {
+static void block (LexState *ls, tdn_t *nprop = nullptr, TypeHint *prop = nullptr) {
   /* block -> statlist */
   FuncState *fs = ls->fs;
   BlockCnt bl;
@@ -5003,7 +5003,7 @@ static void fixforjump (FuncState *fs, int pc, int dest, int back) {
 /*
 ** Generate code for a 'for' loop.
 */
-static void forbody (LexState *ls, int base, int line, int nvars, int isgen, int8_t *nprop, TypeHint *prop) {
+static void forbody (LexState *ls, int base, int line, int nvars, int isgen, tdn_t *nprop, TypeHint *prop) {
   /* forbody -> DO block */
   static const OpCode forprep[2] = {OP_FORPREP, OP_TFORPREP};
   static const OpCode forloop[2] = {OP_FORLOOP, OP_TFORLOOP};
@@ -5028,7 +5028,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen, int
 }
 
 
-static void fornum (LexState *ls, TString *varname, int8_t *nprop, TypeHint *prop, int line) {
+static void fornum (LexState *ls, TString *varname, tdn_t *nprop, TypeHint *prop, int line) {
   /* fornum -> NAME = exp,exp[,exp] forbody */
   FuncState *fs = ls->fs;
   int base = fs->freereg;
@@ -5051,7 +5051,7 @@ static void fornum (LexState *ls, TString *varname, int8_t *nprop, TypeHint *pro
 }
 
 
-static void forlist (LexState *ls, TString *indexname, int8_t *nprop, TypeHint *prop) {
+static void forlist (LexState *ls, TString *indexname, tdn_t *nprop, TypeHint *prop) {
   /* forlist -> NAME {,NAME} IN explist forbody */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -5079,7 +5079,7 @@ static void forlist (LexState *ls, TString *indexname, int8_t *nprop, TypeHint *
 }
 
 
-static void forvlist (LexState *ls, int8_t *nprop, TypeHint *prop) {
+static void forvlist (LexState *ls, tdn_t *nprop, TypeHint *prop) {
   /* forvlist -> explist AS NAME forbody */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -5112,7 +5112,7 @@ static void forvlist (LexState *ls, int8_t *nprop, TypeHint *prop) {
 }
 
 
-static void forstat (LexState *ls, int line, int8_t *nprop, TypeHint *prop) {
+static void forstat (LexState *ls, int line, tdn_t *nprop, TypeHint *prop) {
   /* forstat -> FOR (fornum | forlist) END */
   FuncState *fs = ls->fs;
   BlockCnt bl;
@@ -5136,7 +5136,7 @@ static void forstat (LexState *ls, int line, int8_t *nprop, TypeHint *prop) {
 }
 
 
-static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeHint *prop) {
+static void test_then_block (LexState *ls, int *escapelist, tdn_t *nprop, TypeHint *prop) {
   /* test_then_block -> [IF | ELSEIF] cond THEN block */
   BlockCnt bl;
   FuncState *fs = ls->fs;
@@ -5257,7 +5257,7 @@ static void test_then_block (LexState *ls, int *escapelist, int8_t *nprop, TypeH
 }
 
 
-static void ifstat (LexState *ls, int line, int8_t *nprop, TypeHint *prop = nullptr) {
+static void ifstat (LexState *ls, int line, tdn_t *nprop, TypeHint *prop = nullptr) {
   /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
   FuncState *fs = ls->fs;
   BlockCnt walrusbl;
@@ -5709,7 +5709,7 @@ static void exprstat (LexState *ls) {
 }
 
 
-static void retstat (LexState *ls, int8_t *nprop, TypeHint *prop) {
+static void retstat (LexState *ls, tdn_t *nprop, TypeHint *prop) {
   /* stat -> RETURN [explist] [';'] */
   FuncState *fs = ls->fs;
   expdesc e;
@@ -5737,8 +5737,8 @@ static void retstat (LexState *ls, int8_t *nprop, TypeHint *prop) {
     }
     nret = explist(ls, &e, prop);  /* optional return values */
     if (nprop) {
-      *nprop = (int8_t)(nret < MAX_TYPED_RETURNS ? nret : MAX_TYPED_RETURNS);
-      for (int8_t i = 0; i != *nprop; ++i) {
+      *nprop = (tdn_t)(nret < MAX_TYPED_RETURNS ? nret : MAX_TYPED_RETURNS);
+      for (tdn_t i = 0; i != *nprop; ++i) {
         if (prop[i].empty())
           prop[i].emplaceTypeDesc(VT_ANY);
       }
@@ -6221,7 +6221,7 @@ static void globalstat (LexState *ls) {
 }
 
 
-static void statement (LexState *ls, int8_t *nprop, TypeHint *prop) {
+static void statement (LexState *ls, tdn_t *nprop, TypeHint *prop) {
 #ifdef PLUTO_PARSER_SUGGESTIONS
   if (ls->shouldSuggest()) {
     SuggestionsState ss(ls);
