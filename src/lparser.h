@@ -149,12 +149,16 @@ struct TypeHint;
 inline constexpr int MAX_TYPED_RETURNS = 3;
 inline constexpr int MAX_TYPED_PARAMS = 7;
 
+using tdn_t = int8_t;
+#define TDN_NOINFO -1
+#define TDN_LIMIT 127
+
 union TypeDesc {
   struct {
     ValType type;
     /* function info */
-    int8_t nparam;
-    int8_t nret;
+    tdn_t nparam;
+    tdn_t nret;
     bool nodiscard;
     Proto* proto;
     TypeHint* returns[MAX_TYPED_RETURNS];
@@ -163,15 +167,15 @@ union TypeDesc {
   struct {
     ValType type_;
     /* table info */
-    int8_t nfields;
+    tdn_t nfields;
     TString** names;
     TypeHint** hints;
   };
 
   TypeDesc(ValType type = VT_NONE)
     : type(type) {
-    nparam = -1;  /* also sets nfields to -1 */
-    nret = -1;
+    nparam = TDN_NOINFO;  /* also sets nfields to TDN_NOINFO */
+    nret = TDN_NOINFO;
     nodiscard = false;
     proto = nullptr;
   }
@@ -182,7 +186,7 @@ union TypeDesc {
 
   [[nodiscard]] int findParamByName(TString* name) noexcept {
     if (proto != nullptr) {
-      for (lu_byte i = 0; i != nparam; ++i) {
+      for (tdn_t i = 0; i != nparam; ++i) {
         if (name == proto->locvars[i].varname) {
           return i;
         }
@@ -191,8 +195,8 @@ union TypeDesc {
     return -1;
   }
 
-  [[nodiscard]] lu_byte getNumTypedParams() noexcept {
-    if (nparam > 0) {
+  [[nodiscard]] tdn_t getNumTypedParams() noexcept {
+    if (nparam != TDN_NOINFO) {
       auto p = nparam;
       if (p >= MAX_TYPED_PARAMS)
         p = MAX_TYPED_PARAMS;
@@ -321,11 +325,11 @@ struct TypeHint {
     for (const auto& desc : descs) {
       if (desc.type == td.type) {
         if (desc.type == VT_TABLE) {
-          if (desc.nfields != -1 &&
-            td.nfields != -1 && td.nfields != 127) {  /* know all fields of 'td'? */
-            for (lu_byte i = 0; i != desc.nfields; ++i) {
+          if (desc.nfields != TDN_NOINFO &&
+            td.nfields != TDN_NOINFO && td.nfields != TDN_LIMIT) {  /* know all fields of 'td'? */
+            for (tdn_t i = 0; i != desc.nfields; ++i) {
               bool field_exists_compatibly = false;
-              for (lu_byte j = 0; j != td.nfields; ++j) {
+              for (tdn_t j = 0; j != td.nfields; ++j) {
                 if (desc.names[i] == td.names[j]) {
                   field_exists_compatibly = desc.hints[i]->isCompatibleWith(*td.hints[j]);
                   break;
@@ -338,20 +342,20 @@ struct TypeHint {
           }
         }
         else if (desc.type == VT_FUNC) {
-          if ((desc.nparam != -1 && desc.nparam != td.nparam) || desc.nret > td.nret) {
+          if ((desc.nparam != TDN_NOINFO && desc.nparam != td.nparam) || desc.nret > td.nret) {
             continue;
           }
-          if (desc.nparam != -1) {
+          if (desc.nparam != TDN_NOINFO) {
             /* desc.nparam == td.nparam */
-            for (lu_byte i = 0; i != desc.nparam && i != MAX_TYPED_PARAMS; ++i) {
+            for (tdn_t i = 0; i != desc.nparam && i != MAX_TYPED_PARAMS; ++i) {
               if (!desc.params[i]->isCompatibleWith(*td.params[i])) {
                 goto _contains_next_union_alternative;
               }
             }
           }
-          if (desc.nret != -1) {
+          if (desc.nret != TDN_NOINFO) {
             /* desc.nret <= td.nret */
-            for (lu_byte i = 0; i != desc.nret && i != MAX_TYPED_RETURNS; ++i) {
+            for (tdn_t i = 0; i != desc.nret && i != MAX_TYPED_RETURNS; ++i) {
               if (!desc.returns[i]->isCompatibleWith(*td.returns[i])) {
                 goto _contains_next_union_alternative;
               }
