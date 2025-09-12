@@ -678,20 +678,25 @@ static void checkfuncspec (LexState *ls, TypeDesc &td) {
     if (ls->t.token != ')') {
       TypeHint scratch;
       do {
+        if (testnext(ls, TK_DOTS)) {
+          td.vararg = 1;
+          break;
+        }
+        TString *pname = nullptr;
         if (ls->t.token != TK_EOS && luaX_lookahead(ls) == ':') {
-          /* skip optional parameter name */
-          checknext(ls, TK_NAME);
+          pname = str_checkname(ls);
           checknext(ls, ':');
         }
         if (td.nparam != TDN_LIMIT) {
           luaE_incCstack(ls->L);
           td.params = (TypeHint**)ls->parRealloc(td.params, sizeof(TypeHint*) * (td.nparam + 1));
+          td.pnames = (TString**)ls->parRealloc(td.pnames, sizeof(TString*) * (td.nparam + 1));
           td.params[td.nparam] = new_typehint(ls);
+          td.pnames[td.nparam] = pname;
           checktypehint(ls, *td.params[td.nparam++]);
           ls->L->nCcalls--;
         }
         else checktypehint(ls, scratch);
-        ++td.nparam;
         if (!testnext(ls, ','))
           break;
       } while (ls->t.token != ')');
@@ -2642,6 +2647,7 @@ static void propfuncdesc (LexState *ls, FuncState& new_fs, tdn_t nret, TypeHint 
   funcdesc->proto = new_fs.f;
   funcdesc->nparam = new_fs.f->numparams;
   funcdesc->nret = nret;
+  funcdesc->vararg = (new_fs.f->flag & PF_ISVARARG) ? 1 : 0;
   lua_assert(nret != TDN_NOINFO);
   for (tdn_t i = 0; i != nret; ++i) {
     funcdesc->returns[i] = new_typehint(ls);
@@ -2708,7 +2714,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
   checkrettype(ls, nrethint, rethint, nret, retprop, line);
   if (funcdesc) {
     propfuncdesc(ls, new_fs, nret, retprop, funcdesc);
-    funcdesc->nodiscard = nodiscard;
+    funcdesc->nodiscard = nodiscard ? 1 : 0;
   }
   new_fs.f->lastlinedefined = ls->getLineNumber();
   check_match(ls, TK_END, TK_FUNCTION, line);
@@ -2959,8 +2965,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
     }
     if (funcdesc->nparam != TDN_NOINFO) {
       const auto received = (int)fas.argdescs.size();
-      const auto isvararg = funcdesc->proto && ((funcdesc->proto->flag & PF_ISVARARG) != 0);
-      if (!isvararg && funcdesc->nparam < received) {  /* Too many arguments? */
+      if (!funcdesc->vararg && funcdesc->nparam < received) {  /* Too many arguments? */
         const char* suffix = funcdesc->nparam == 1 ? "" : "s"; // Omit plural suffixes when the noun is singular.
         throw_warn(ls,
           "too many arguments",
