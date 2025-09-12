@@ -2772,6 +2772,8 @@ do
     -- Force integer representation
     assert(bigint.new(1.0):tostring() == "1")
     assert(not pcall(bigint.new, 1.2))
+    -- Missing operands should raise error
+    assert(not pcall(bigint.add, 1))
 
     -- Mixed bigint/number operands
     assert(tostring(new bigint(4) * 2) == "8")
