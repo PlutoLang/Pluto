@@ -677,7 +677,7 @@ static void checkfuncspec (LexState *ls, TypeDesc &td) {
           checknext(ls, TK_NAME);
           checknext(ls, ':');
         }
-        if (td.nparam < MAX_TYPED_RETURNS) {
+        if (td.nparam < MAX_TYPED_PARAMS) {
           luaE_incCstack(ls->L);
           td.params[td.nparam] = new_typehint(ls);
           checktypehint(ls, *td.params[td.nparam]);
