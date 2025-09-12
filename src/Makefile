@@ -9,7 +9,7 @@ PLAT=
 CXX= g++ -std=c++17 -O3 -flto -fvisibility=hidden -fPIC
 CXXFLAGS= -Wno-multichar $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
-LIBS= -lm $(SYSLIBS) $(MYLIBS)
+LIBS= -lm -Lvendor/Soup/soup -lsoup $(SYSLIBS) $(MYLIBS)
 
 # Specifying DEBUG=0 (or any value) will remove any optimizations.
 ifdef DEBUG
@@ -27,7 +27,7 @@ SYSLIBS=
 
 MYCFLAGS=
 MYLDFLAGS=
-MYLIBS=-Lvendor/Soup/soup -lsoup
+MYLIBS=
 MYOBJS=
 
 # Special flags for compiler modules; -Os reduces code size.
@@ -35,7 +35,7 @@ CMCFLAGS=
 
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
-PLATS= guess aix bsd freebsd generic linux linux-readline termux termux-readline macosx posix solaris
+PLATS= guess aix bsd freebsd generic linux linux-readline termux termux-readline macosx mingw mingwdll posix solaris
 
 LUA_A=	libplutostatic.a
 LUA_SO= libpluto.so
@@ -138,6 +138,13 @@ termux-readline:
 
 Darwin macos macosx:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX -DLUA_USE_READLINE" SYSLIBS="-lresolv -lreadline"
+
+mingw:
+	$(MAKE) "LUA_T=pluto.exe" "SYSLDFLAGS=-static-libstdc++ -municode" "SYSLIBS=-lws2_32 -lbcrypt" pluto.exe
+	$(MAKE) "LUAC_T=plutoc.exe" "SYSLDFLAGS=-static-libstdc++ -municode" "SYSLIBS=-lws2_32 -lbcrypt" plutoc.exe
+
+mingwdll:
+	$(MAKE) "LUA_SO=pluto.dll" "SYSCFLAGS=-DLUA_BUILD_AS_DLL" "SYSLIBS=-static-libstdc++ -lws2_32 -lbcrypt -ldnsapi" pluto.dll
 
 posix:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX"
