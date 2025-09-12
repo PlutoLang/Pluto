@@ -2,7 +2,7 @@
 
 #include <cstring> // memcpy
 
-#include "rand.hpp"
+#include "HardwareRng.hpp"
 
 NAMESPACE_SOUP
 {
@@ -338,7 +338,7 @@ NAMESPACE_SOUP
 
 	void Curve25519::generatePrivate(uint8_t private_key[KEY_SIZE])
 	{
-		rand.fill<KEY_SIZE>(private_key);
+		FastHardwareRng::generate(private_key, KEY_SIZE);
 		Curve25519::prepare(private_key);
 	}
 

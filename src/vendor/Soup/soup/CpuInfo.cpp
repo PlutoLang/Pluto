@@ -4,7 +4,7 @@
 #if SOUP_X86
 	#include "string.hpp"
 
-	#if defined(_MSC_VER) && !defined(__clang__)
+	#if defined(_MSC_VER)
 		#include <intrin.h>
 	#else
 		#include <cpuid.h>
@@ -173,7 +173,7 @@ NAMESPACE_SOUP
 #if SOUP_X86
 	void CpuInfo::invokeCpuid(void* out, uint32_t eax) noexcept
 	{
-	#if defined(_MSC_VER) && !defined(__clang__)
+	#if defined(_MSC_VER)
 		__cpuid(((int*)out), eax);
 		std::swap(((int*)out)[2], ((int*)out)[3]);
 	#else
@@ -183,7 +183,7 @@ NAMESPACE_SOUP
 
 	void CpuInfo::invokeCpuid(void* out, uint32_t eax, uint32_t ecx) noexcept
 	{
-	#if defined(_MSC_VER) && !defined(__clang__)
+	#if defined(_MSC_VER)
 		__cpuidex(((int*)out), eax, ecx);
 		std::swap(((int*)out)[2], ((int*)out)[3]);
 	#else

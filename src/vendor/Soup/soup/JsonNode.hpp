@@ -134,7 +134,7 @@ NAMESPACE_SOUP
 
 	inline JsonString& JsonNode::asStr()
 	{
-		SOUP_IF_UNLIKELY(!isStr())
+		SOUP_IF_UNLIKELY (!isStr())
 		{
 			throwTypeError();
 		}

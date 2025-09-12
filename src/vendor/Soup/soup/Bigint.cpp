@@ -1447,7 +1447,19 @@ NAMESPACE_SOUP
 
 	Bigint Bigint::gcd(Bigint v) const SOUP_EXCAL
 	{
+		SOUP_IF_UNLIKELY (isZero())
+		{
+			return v;
+		}
+		SOUP_IF_UNLIKELY (v.isZero())
+		{
+			return *this;
+		}
+
 		Bigint u(*this);
+
+		u.negative = false;
+		v.negative = false;
 
 		auto i = u.getTrailingZeroesBinary(); u >>= i;
 		auto j = v.getTrailingZeroesBinary(); v >>= j;
@@ -1455,12 +1467,12 @@ NAMESPACE_SOUP
 
 		while (true)
 		{
-			if (u > v)
+			if (u.cmpUnsigned(v) > 0)
 			{
 				std::swap(u, v);
 			}
 
-			v -= u;
+			v.subUnsigned(u);
 
 			if (v.isZero())
 			{
