@@ -3474,6 +3474,17 @@ do
         local function foo(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) end
         foo(1, a = 2)
     ]]))
+
+    -- Parameter names in type hints are propagated
+    local function caller(f: function(a: ?number, b: ?string))
+        f(b = "hello from caller")
+    end
+    local a_, b_
+    caller(function(a, b)
+        a_, b_ = a, b
+    end)
+    assert(a_ == nil)
+    assert(b_ == "hello from caller")
 end
 
 print "Testing classes."
