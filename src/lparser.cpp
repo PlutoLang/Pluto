@@ -86,7 +86,7 @@ std::string TypeDesc::toString() const {
       if (nparam != 0) {
         for (tdn_t i = 0;; ) {
           str.append(params[i]->toString());
-          if (++i == nparam || i == MAX_TYPED_PARAMS)
+          if (++i == nparam)
             break;
           str.append(", ");
         }
@@ -674,6 +674,7 @@ static void checktypehint (LexState *ls, TypeHint &th) {
 static void checkfuncspec (LexState *ls, TypeDesc &td) {
   if (testnext(ls, '(')) {
     td.nparam = 0;
+    td.params = nullptr;
     if (ls->t.token != ')') {
       TypeHint scratch;
       do {
@@ -682,10 +683,11 @@ static void checkfuncspec (LexState *ls, TypeDesc &td) {
           checknext(ls, TK_NAME);
           checknext(ls, ':');
         }
-        if (td.nparam >= 0 && td.nparam < MAX_TYPED_PARAMS) {
+        if (td.nparam != TDN_LIMIT) {
           luaE_incCstack(ls->L);
+          td.params = (TypeHint**)ls->parRealloc(td.params, sizeof(TypeHint*) * (td.nparam + 1));
           td.params[td.nparam] = new_typehint(ls);
-          checktypehint(ls, *td.params[td.nparam]);
+          checktypehint(ls, *td.params[td.nparam++]);
           ls->L->nCcalls--;
         }
         else checktypehint(ls, scratch);
@@ -2645,10 +2647,13 @@ static void propfuncdesc (LexState *ls, FuncState& new_fs, tdn_t nret, TypeHint 
     funcdesc->returns[i] = new_typehint(ls);
     *funcdesc->returns[i] = retprop[i];
   }
-  int vidx = new_fs.firstlocal;
-  for (tdn_t i = 0; i != funcdesc->getNumTypedParams(); ++i) {
-    funcdesc->params[i] = ls->dyd->actvar.arr[vidx].vd.hint;
-    ++vidx;
+  if (funcdesc->nparam > 0) {
+    funcdesc->params = (TypeHint**)ls->parAlloc(sizeof(TypeHint*) * funcdesc->nparam);
+    int vidx = new_fs.firstlocal;
+    for (tdn_t i = 0; i != funcdesc->nparam; ++i) {
+      funcdesc->params[i] = ls->dyd->actvar.arr[vidx].vd.hint;
+      ++vidx;
+    }
   }
 }
 
