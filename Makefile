@@ -35,7 +35,7 @@ RM= rm -f
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
 # Convenience platforms targets.
-PLATS= guess aix bsd freebsd generic linux linux-readline macosx posix solaris
+PLATS= guess aix bsd freebsd generic linux linux-readline termux termux-readline macosx posix solaris
 
 # What to install.
 TO_BIN= pluto plutoc
