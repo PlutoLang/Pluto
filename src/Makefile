@@ -9,7 +9,7 @@ PLAT=
 CXX= g++ -std=c++17 -O3 -flto -fvisibility=hidden -fPIC
 CXXFLAGS= -Wno-multichar $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
-LIBS= -lm $(SYSLIBS) $(MYLIBS)
+LIBS= -lm -Lvendor/Soup/soup -lsoup $(SYSLIBS) $(MYLIBS)
 
 # Specifying DEBUG=0 (or any value) will remove any optimizations.
 ifdef DEBUG
@@ -27,7 +27,7 @@ SYSLIBS=
 
 MYCFLAGS=
 MYLDFLAGS=
-MYLIBS=-Lvendor/Soup/soup -lsoup
+MYLIBS=
 MYOBJS=
 
 # Special flags for compiler modules; -Os reduces code size.
