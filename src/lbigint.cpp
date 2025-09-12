@@ -12,7 +12,7 @@ soup::Bigint* checkbigint (lua_State *L, int i) {
     const char *str = lua_tolstring(L, -1, &len);
     pushbigint(L, soup::Bigint::fromString(str, len));
     lua_replace(L, -2);
-    i = -1;
+    lua_replace(L, i);
   }
   return (soup::Bigint*)luaL_checkudata(L, i, "pluto:bigint");
 }
