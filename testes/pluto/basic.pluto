@@ -883,6 +883,12 @@ do
     tracker[item.key] ??= true
     assert(tracker[item.key] == false)
 end
+do
+    -- Dead code elimination
+    assert(not "off" in string.dump(function()
+        print("on" ?? "off")
+    end))
+end
 
 print "Testing safe navigation."
 do
@@ -965,8 +971,6 @@ end
 
 print "Testing ternary expression."
 do
-    -- @pluto_warnings: disable-unreachable-code
-
     local a = 3
     assert((true ? "yes" : "no") == "yes")
     assert((false ? "yes" : "no") == "no")
@@ -993,7 +997,10 @@ do
         "no"
     end == "yes")
 
-    -- @pluto_warnings: enable-unreachable-code
+    -- Dead code elimination
+    assert(not "off" in string.dump(function()
+        print(true ? "on" : "off")
+    end))
 end
 do
     local t = {}
