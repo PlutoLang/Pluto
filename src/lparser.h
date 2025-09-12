@@ -158,10 +158,12 @@ union TypeDesc {
     /* function info */
     tdn_t nparam;
     tdn_t nret;
-    bool nodiscard;
+    uint8_t nodiscard : 1;
+    uint8_t vararg : 1;
     Proto* proto;
     TypeHint* returns[MAX_TYPED_RETURNS];
     TypeHint** params;
+    TString** pnames;
   };
   struct {
     ValType type_;
@@ -175,8 +177,10 @@ union TypeDesc {
     : type(type) {
     nparam = TDN_NOINFO;  /* also sets nfields to TDN_NOINFO */
     nret = TDN_NOINFO;
-    nodiscard = false;
+    nodiscard = 0;
+    vararg = 0;
     proto = nullptr;
+    pnames = nullptr;
   }
 
   void clear() noexcept {
@@ -187,6 +191,13 @@ union TypeDesc {
     if (proto != nullptr) {
       for (tdn_t i = 0; i != nparam; ++i) {
         if (name == proto->locvars[i].varname) {
+          return i;
+        }
+      }
+    }
+    else if (pnames != nullptr) {
+      for (tdn_t i = 0; i != nparam; ++i) {
+        if (name == pnames[i]) {
           return i;
         }
       }
