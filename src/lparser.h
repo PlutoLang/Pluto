@@ -149,7 +149,6 @@ typedef struct expdesc {
 struct TypeHint;
 
 inline constexpr int MAX_TYPED_RETURNS = 3;
-inline constexpr int MAX_TYPED_PARAMS = 7;
 
 using tdn_t = int8_t;
 #define TDN_NOINFO -1
@@ -164,7 +163,7 @@ union TypeDesc {
     bool nodiscard;
     Proto* proto;
     TypeHint* returns[MAX_TYPED_RETURNS];
-    TypeHint* params[MAX_TYPED_PARAMS];
+    TypeHint** params;
   };
   struct {
     ValType type_;
@@ -199,10 +198,7 @@ union TypeDesc {
 
   [[nodiscard]] tdn_t getNumTypedParams() noexcept {
     if (nparam != TDN_NOINFO) {
-      auto p = nparam;
-      if (p >= MAX_TYPED_PARAMS)
-        p = MAX_TYPED_PARAMS;
-      return p;
+      return nparam;
     }
     return 0;
   }
@@ -349,7 +345,7 @@ struct TypeHint {
           }
           if (desc.nparam != TDN_NOINFO) {
             /* desc.nparam == td.nparam */
-            for (tdn_t i = 0; i != desc.nparam && i != MAX_TYPED_PARAMS; ++i) {
+            for (tdn_t i = 0; i != desc.nparam; ++i) {
               if (!desc.params[i]->isCompatibleWith(*td.params[i])) {
                 goto _contains_next_union_alternative;
               }
