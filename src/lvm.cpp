@@ -865,11 +865,13 @@ static void inopr (lua_State *L, StkId ra, TValue *a, TValue *b) {
       else
         luaG_runerror(L, "expected second 'in' operand to be table, got %s", ttypename(ttype(b)));
     } else {
+      L->top.p++;  /* may need to call a Lua function, prevent stack corruption */
       if (luaV_searchelement(L, hvalue(b), a)) {
         setbtvalue(s2v(ra));
       } else {
         setbfvalue(s2v(ra));
       }
+      L->top.p--;
     }
   }
 }
