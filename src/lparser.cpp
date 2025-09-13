@@ -4307,17 +4307,16 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, int8_t *nprop, TypeH
 
 
 static void inexpr (LexState *ls, expdesc *v, int flags) {
-  expdesc v2;
   checknext(ls, TK_IN);
   luaK_exp2nextreg(ls->fs, v);
   lua_assert(v->k == VNONRELOC);
-  int base = v->u.reg;
+  expdesc v2;
   simpleexp(ls, &v2, flags);
-  luaK_dischargevars(ls->fs, &v2);
   luaK_exp2nextreg(ls->fs, &v2);
+  lua_assert(v2.k == VNONRELOC);
   luaK_codeABC(ls->fs, OP_IN, v->u.reg, v2.u.reg, 0);
   ls->fs->f->onPlutoOpUsed(0);
-  ls->fs->freereg = base + 1;
+  luaK_freeexp(ls->fs, &v2);
 }
 
 

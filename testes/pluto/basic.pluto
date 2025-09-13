@@ -1075,6 +1075,43 @@ do
     t[1] = "world"
     assert((1 in t) == false)
 end
+do
+    local class Point
+        function __construct(public x, public y) end
+
+        function __eq(other)
+            return self.x == other.x and self.y == other.y
+        end
+
+        function __tostring() return $"({self.x}, {self.y})" end
+    end
+
+    local points  = {new Point(1, 1), new Point(1, 2)}
+    local points2 = {new Point(1, 1), new Point(1, 3)}
+
+    do
+        local n = 0
+        for i = 1, #points do
+            local p = points[i]
+            if p in points2 then
+                assert(tostring(p) == "(1, 1)")
+                ++n
+            end
+        end
+        assert(n == 1)
+    end
+
+    do
+        local n = 0
+        for points as p do
+            if p in points2 then
+                assert(tostring(p) == "(1, 1)")
+                ++n
+            end
+        end
+        assert(n == 1)
+    end
+end
 
 print "Testing break N syntax."
 do
