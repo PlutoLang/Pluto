@@ -152,6 +152,9 @@ f(tonumber)]]
     assert_no_warn[[$type Point = { x: number, y: number }
     local _: Point = { x = 1, y = 2 }]]
 
+    -- Function types accept trailing commas
+    assert_no_warn[[$type Takes2Strings = function(string, string,) ]]
+
     -- Nested localstat
     assert_no_warn[[local _f: function = function()
     local _: int = 0
