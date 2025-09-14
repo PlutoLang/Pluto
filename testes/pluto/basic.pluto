@@ -155,6 +155,9 @@ f(tonumber)]]
     -- Function types accept trailing commas
     assert_no_warn[[$type Takes2Strings = function(string, string,) ]]
 
+    -- Additional parameters may be parsed even if they exceed the underlying limit
+    assert(load($"$type T = function({"string,":rep(1000)})"))
+
     -- Nested localstat
     assert_no_warn[[local _f: function = function()
     local _: int = 0
