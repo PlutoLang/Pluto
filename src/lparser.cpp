@@ -3827,16 +3827,14 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, int8_t *np
         luaX_next(ls);
         int nparams = 1;
         if (!(flags & E_NO_METHOD_CALL) && !(flags & E_NO_CONSUME_COLON) && ls->t.token != TK_EOS && luaX_lookahead(ls) == ':') {
-          int base = fs->freereg;
-          luaK_reserveregs(fs, 3);  /* reserve for func, self, optk (optk is for OP_SELF possibly using a register for the VKSTR if it doesn't fit in 'k' bits) */
-          luaK_exp2nextreg(fs, v);  /* push arg1 after self values */
-          fs->freereg -= 4;
+          expdesc arg1 = *v;
           primaryexp(ls, v);
           checknext(ls, ':');
           expdesc key;
           codename(ls, &key);
           luaK_self(fs, v, &key);
-          luaK_codeABC(ls->fs, OP_MOVE, base + 2, base + 3, 0);  /* func, self, optk, arg -> func, self, arg1 */
+          int base = v->u.reg;
+          luaK_exp2reg(fs, &arg1, base + 2);
           ++nparams;
         }
         else {

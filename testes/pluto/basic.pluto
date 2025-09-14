@@ -1712,7 +1712,9 @@ do
             self.value = value
         end
     }
-    ;(69) |> obj:setValue
+    ;(42) |> obj:setValue
+    assert(obj.value == 42)
+    ;(|| -> 69)() |> obj:setValue
     assert(obj.value == 69)
 
     -- Indexing a global for argument + function
