@@ -684,7 +684,9 @@ static void checkfuncspec (LexState *ls, TypeDesc &td) {
           ls->L->nCcalls--;
         }
         ++td.nparam;
-      } while (testnext(ls, ','));
+        if (!testnext(ls, ','))
+          break;
+      } while (ls->t.token != ')');
     }
     checknext(ls, ')');
   }
