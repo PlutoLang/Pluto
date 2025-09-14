@@ -671,18 +671,20 @@ static void checkfuncspec (LexState *ls, TypeDesc &td) {
   if (testnext(ls, '(')) {
     td.nparam = 0;
     if (ls->t.token != ')') {
+      TypeHint scratch;
       do {
         if (ls->t.token != TK_EOS && luaX_lookahead(ls) == ':') {
           /* skip optional parameter name */
           checknext(ls, TK_NAME);
           checknext(ls, ':');
         }
-        if (td.nparam < MAX_TYPED_PARAMS) {
+        if (td.nparam >= 0 && td.nparam < MAX_TYPED_PARAMS) {
           luaE_incCstack(ls->L);
           td.params[td.nparam] = new_typehint(ls);
           checktypehint(ls, *td.params[td.nparam]);
           ls->L->nCcalls--;
         }
+        else checktypehint(ls, scratch);
         ++td.nparam;
         if (!testnext(ls, ','))
           break;
