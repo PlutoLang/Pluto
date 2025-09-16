@@ -56,26 +56,28 @@ static void checkJson(lua_State* L, int i, soup::UniquePtr<soup::JsonNode>& out)
 	else if (type == LUA_TTABLE)
 	{
 		lua_checkstack(L, 5);
-		if (isIndexBasedTable(L, i))
+		if (const auto n = isIndexBasedTable(L, i))
 		{
 			out = soup::make_unique<soup::JsonArray>();
 			auto& arr = out->reinterpretAsArr();
-			lua_pushvalue(L, i);
-			lua_pushnil(L);
-			while (lua_next(L, -2))
+			for (lua_Integer k = 1; k != n; ++k)
 			{
-				lua_pushvalue(L, -2);
+				if (l_unlikely(lua_geti(L, i, k) == LUA_TNIL))
+				{
+					lua_pop(L, 1);
+					goto _encode_as_object;
+				}
 				luaE_incCstack(L);
 				auto& entry = arr.children.emplace_back();
-				checkJson(L, -2, entry);
+				checkJson(L, -1, entry);
 				L->nCcalls--;
-				lua_pop(L, 2);
+				lua_pop(L, 1);
 			}
-			lua_pop(L, 1);
 			return;
 		}
 		else
 		{
+		_encode_as_object:
 			out = soup::make_unique<soup::JsonObject>();
 			auto& obj = out->reinterpretAsObj();
 			lua_pushvalue(L, i);

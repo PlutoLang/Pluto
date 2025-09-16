@@ -1926,17 +1926,39 @@ do
     assert.equal(json.decode("\x93\x00\xc3\xc0", json.withnull | json.msgpack), { 0, true, json.null })
 
     -- __order should not change the key type
-    assert(require"json".encode{
+    assert(json.encode{
         [10] = "a",
         [20] = "b",
         [30] = "c",
     }:find('10:"a"'))
-    assert(require"json".encode{
+    assert(json.encode{
         __order = { 10, 20, 30 },
         [10] = "a",
         [20] = "b",
         [30] = "c",
     } == '{10:"a",20:"b",30:"c"}')
+
+    -- Array detection
+    assert(json.encode{ 1, 2, 3 } == "[1,2,3]")
+    assert(json.encode{ [1] = 1, [2] = 2, [3] = 3 } == "[1,2,3]")
+    assert(json.encode{ 1, 2, nil, 4 } == "{1:1,2:2,4:4}")
+    assert(json.encode{ [1] = 1, [2] = 2, [4] = 4 } == "{1:1,2:2,4:4}")
+    do
+        local t = {}
+        t[4] = 4
+        t[5] = 5
+        t[10] = 10
+        t[1] = 1
+        t[7] = 7
+        t[2] = 2
+        t[9] = 9
+        t[6] = 6
+        t[3] = 3
+        t[8] = 8
+        assert(json.encode(t) == "[1,2,3,4,5,6,7,8,9,10]")
+    end
+    assert(json.encode{ [-1] = -1, [0] = 0, [1] = 1 }:sub(1, 1) == "{")
+    assert(json.encode{ [10] = "a", [20] = "b", [30] = "c" }:sub(1, 1) == "{")
 end
 do
     local root = {}
