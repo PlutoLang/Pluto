@@ -22,23 +22,22 @@ static bool isIndexBasedTable(lua_State* L, int i)
 	size_t k = 1;
 	for (; lua_next(L, -2); ++k)
 	{
-		lua_pushvalue(L, -2);
-		if (lua_type(L, -1) != LUA_TNUMBER)
+		if (lua_type(L, -2) != LUA_TNUMBER)
 		{
-			lua_pop(L, 4);
+			lua_pop(L, 3);
 			return false;
 		}
-		if (!lua_isinteger(L, -1))
+		if (!lua_isinteger(L, -2))
 		{
-			lua_pop(L, 4);
+			lua_pop(L, 3);
 			return false;
 		}
-		if (lua_tointeger(L, -1) != k)
+		if (lua_tointeger(L, -2) != k)
 		{
-			lua_pop(L, 4);
+			lua_pop(L, 3);
 			return false;
 		}
-		lua_pop(L, 2);
+		lua_pop(L, 1);
 	}
 	lua_pop(L, 1);
 	return true;
