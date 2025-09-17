@@ -217,7 +217,10 @@ NAMESPACE_SOUP
 	{
 		recvResponse(s, [](Socket& s, Optional<HttpResponse>&& resp, Capture&& cap) noexcept
 		{
-			*cap.get<Optional<HttpResponse>*>() = std::move(resp);
+			SOUP_IF_LIKELY (resp.has_value() && !HttpRequest::isChallengeResponse(*resp))
+			{
+				*cap.get<Optional<HttpResponse>*>() = std::move(resp);
+			}
 		}, resp);
 	}
 
@@ -478,17 +481,7 @@ NAMESPACE_SOUP
 				return;
 			}
 			resp.decode();
-			SOUP_IF_LIKELY (!HttpRequest::isChallengeResponse(resp))
-			{
-				callback(s, std::move(resp), std::move(cap));
-			}
-			else
-			{
-#if LOGGING
-				logWriteLine("Challenge response");
-#endif
-				callback(s, std::nullopt, std::move(cap));
-			}
+			callback(s, std::move(resp), std::move(cap));
 		}
 	};
 
