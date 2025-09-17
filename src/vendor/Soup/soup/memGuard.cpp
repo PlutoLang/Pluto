@@ -12,7 +12,7 @@
 NAMESPACE_SOUP
 {
 #if SOUP_WINDOWS
-	DWORD memGuard::allowedAccessToProtect(int allowed_access)
+	DWORD memGuard::allowedAccessToProtect(int allowed_access) noexcept
 	{
 		DWORD protect = 0x01; // PAGE_NOACCESS
 		if (allowed_access & ACC_WRITE)
@@ -33,7 +33,7 @@ NAMESPACE_SOUP
 		return protect;
 	}
 
-	int memGuard::protectToAllowedAccess(DWORD protect)
+	int memGuard::protectToAllowedAccess(DWORD protect) noexcept
 	{
 		switch (protect & ~PAGE_GUARD)
 		{
@@ -51,7 +51,7 @@ NAMESPACE_SOUP
 	static_assert(PROT_EXEC == memGuard::ACC_EXEC);
 #endif
 
-	void* memGuard::alloc(size_t len, int allowed_access)
+	void* memGuard::alloc(size_t len, int allowed_access) noexcept
 	{
 #if SOUP_WINDOWS
 		return VirtualAlloc(nullptr, len, MEM_COMMIT | MEM_RESERVE, allowedAccessToProtect(allowed_access));
@@ -71,7 +71,7 @@ NAMESPACE_SOUP
 #endif
 	}
 
-	void memGuard::free(void* addr, size_t len)
+	void memGuard::free(void* addr, size_t len) noexcept
 	{
 #if SOUP_WINDOWS
 		VirtualFree(addr, len, MEM_DECOMMIT);
@@ -80,7 +80,7 @@ NAMESPACE_SOUP
 #endif
 	}
 
-	void memGuard::setAllowedAccess(void* addr, size_t len, int allowed_access, int* old_allowed_access)
+	void memGuard::setAllowedAccess(void* addr, size_t len, int allowed_access, int* old_allowed_access) noexcept
 	{
 #if SOUP_WINDOWS
 		DWORD oldprotect;
