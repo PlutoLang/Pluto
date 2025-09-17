@@ -329,8 +329,6 @@ typedef struct global_State {
   bool preference_try : 1;
   bool have_preference_catch : 1;
   bool preference_catch : 1;
-
-  void* scheduler;  /* internal use only; do not use this in your own code. */
 #endif
 #ifdef PLUTO_ETL_ENABLE
   std::time_t deadline;  /* internal use only; do not use this in your own code. */
