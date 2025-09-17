@@ -18,6 +18,7 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "ljson.hpp" // isIndexBasedTable
 #include "lstate.h"
 #include "ltable.h"
 
@@ -1031,10 +1032,29 @@ static int tinvert (lua_State *L) {
 }
 
 
+static int tisarray (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  if (const auto n = isIndexBasedTable(L, 1)) {
+    for (lua_Integer k = 1; k != n; ++k) {
+      if (l_unlikely(lua_geti(L, 1, k) == LUA_TNIL)) {
+        lua_pop(L, 1);
+        lua_pushboolean(L, false);
+        return 1;
+      }
+      lua_pop(L, 1);
+    }
+    lua_pushboolean(L, true);
+  }
+  else lua_pushboolean(L, false);
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"isarray", tisarray},
   {"invert", tinvert},
   {"chunk", tchunk},
   {"slice", tslice},
