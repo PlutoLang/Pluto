@@ -151,10 +151,14 @@ static int http_request (lua_State *L) {
   auto pTask = pluto_newclassinst(L, soup::HttpRequestTask, std::move(hr));
   return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), &await_task_cont<soup::HttpRequestTask, push_http_response>);
 #else
-  if (G(L)->scheduler == nullptr) {
-    G(L)->scheduler = new soup::DetachedScheduler();
+  if (lua_getfield(L, LUA_REGISTRYINDEX, "pluto:statescheduler") == LUA_TNIL) {
+    lua_pop(L, 1);
+    pluto_newclassinst(L, soup::DetachedScheduler);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, LUA_REGISTRYINDEX, "pluto:statescheduler");
   }
-  auto spTask = reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->add<soup::HttpRequestTask>(std::move(hr));
+  auto spTask = reinterpret_cast<soup::DetachedScheduler*>(lua_touserdata(L, -1))->add<soup::HttpRequestTask>(std::move(hr));
+  lua_pop(L, 1);
   if (optionsidx) {
     lua_pushliteral(L, "prefer_ipv6");
     if (lua_rawget(L, optionsidx) > LUA_TNIL)
@@ -193,15 +197,16 @@ static int http_hasconnection_result (lua_State *L, HasConnectionTask& task) {
 
 static int http_hasconnection (lua_State *L) {
   soup::Uri uri(pluto_checkstring(L, 1));
-  if (G(L)->scheduler
-    && reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->isActive()
+  if (lua_getfield(L, LUA_REGISTRYINDEX, "pluto:statescheduler") != LUA_TNIL
+    && reinterpret_cast<soup::DetachedScheduler*>(lua_touserdata(L, -1))->isActive()
     ) {
     bool tls = (uri.scheme != "http");
     uint16_t port = uri.port;
     if (port == 0) {
       port = (tls ? 443 : 80);
     }
-    auto spTask = reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->add<HasConnectionTask>(std::move(uri.host), port, tls);
+    auto spTask = reinterpret_cast<soup::DetachedScheduler*>(lua_touserdata(L, -1))->add<HasConnectionTask>(std::move(uri.host), port, tls);
+    lua_pop(L, 1);
     return await_task<HasConnectionTask, http_hasconnection_result>(L, std::move(spTask));
   }
   lua_pushboolean(L, false);
@@ -209,13 +214,14 @@ static int http_hasconnection (lua_State *L) {
 }
 
 static int http_closeconnections_cont (lua_State *L, int status, lua_KContext ctx) {
-  if (G(L)->scheduler
-    && reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->isActive()
+  if (lua_getfield(L, LUA_REGISTRYINDEX, "pluto:statescheduler") != LUA_TNIL
+    && reinterpret_cast<soup::DetachedScheduler*>(lua_touserdata(L, -1))->isActive()
     ) {
+    lua_pop(L, 1);
     return lua_yieldk(L, 0, 0, http_closeconnections_cont);
   }
-  delete reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler);
-  G(L)->scheduler = nullptr;
+  lua_pushnil(L);
+  lua_setfield(L, LUA_REGISTRYINDEX, "pluto:statescheduler");
   return 0;
 }
 #endif
@@ -226,11 +232,12 @@ static int http_closeconnections (lua_State *L) {
     luaL_error(L, "http.closeconnections must be called inside a coroutine");
   }
 #if !SOUP_WASM
-  if (G(L)->scheduler
-    && reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->isActive()
+  if (lua_getfield(L, LUA_REGISTRYINDEX, "pluto:statescheduler") != LUA_TNIL
+    && reinterpret_cast<soup::DetachedScheduler*>(lua_touserdata(L, -1))->isActive()
     ) {
-    reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->setDontMakeReusableSockets();
-    reinterpret_cast<soup::DetachedScheduler*>(G(L)->scheduler)->closeReusableSockets();
+    reinterpret_cast<soup::DetachedScheduler*>(lua_touserdata(L, -1))->setDontMakeReusableSockets();
+    reinterpret_cast<soup::DetachedScheduler*>(lua_touserdata(L, -1))->closeReusableSockets();
+    lua_pop(L, 1);
     return lua_yieldk(L, 0, 0, http_closeconnections_cont);
   }
 #endif
