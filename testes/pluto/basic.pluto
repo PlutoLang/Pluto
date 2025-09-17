@@ -2576,6 +2576,29 @@ do
     assert(i[2] == nil)
 end
 do
+    assert(table.isarray{})
+    assert(table.isarray{ 1, 2, 3 })
+    assert(table.isarray{ [1] = 1, [2] = 2, [3] = 3 })
+    assert(not table.isarray{ 1, 2, nil, 4 })
+    assert(not table.isarray{ [1] = 1, [2] = 2, [4] = 4 })
+    do
+        local t = {}
+        t[4] = 4
+        t[5] = 5
+        t[10] = 10
+        t[1] = 1
+        t[7] = 7
+        t[2] = 2
+        t[9] = 9
+        t[6] = 6
+        t[3] = 3
+        t[8] = 8
+        assert(table.isarray(t))
+    end
+    assert(not table.isarray{ [-1] = -1, [0] = 0, [1] = 1 })
+    assert(not table.isarray{ [10] = "a", [20] = "b", [30] = "c" })
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
