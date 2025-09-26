@@ -1722,6 +1722,8 @@ do
         REDIRECT_INVOKE_FILENAME = "/deez/nuts"
     }
     assert(_SERVER.REDIRECT_INVOKE_FILENAME |> io.part|"parent"| == "/deez")
+
+    assert("test" |> string.upper == "TEST")
 end
 do
     local function test_util(str)

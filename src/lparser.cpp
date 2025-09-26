@@ -2335,6 +2335,7 @@ enum expflags {
   E_WALRUS           = 1 << 4,
   E_OR_KILLED_WALRUS = 1 << 5,
   E_NO_CONSUME_COLON = 1 << 6,  /* this expression must not consume a non-nested colon */
+  E_NESTED           = 1 << 7,
 };
 
 static void simpleexp (LexState *ls, expdesc *v, int flags = 0, int8_t *nprop = nullptr, TypeHint *prop = nullptr);
@@ -3923,7 +3924,7 @@ static BinOpr custombinaryoperator (LexState *ls, expdesc *v, int flags, TString
   int base = v->u.reg;  /* base register for call */
 
   expdesc arg2;
-  auto nextop = subexpr(ls, &arg2, 3, nullptr, nullptr, flags);
+  auto nextop = subexpr(ls, &arg2, 3, nullptr, nullptr, flags | E_NESTED);
   luaK_exp2nextreg(fs, &arg2);
 
   int nparams = fs->freereg - (base + 1);
@@ -4195,7 +4196,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, int8_t *nprop, TypeH
       }
       codestring(v, ls->t.seminfo.ts);
       luaX_next(ls);
-      if (ls->t.token == '[' || ls->t.token == ':')
+      if (ls->t.token == '[' || ls->t.token == ':' || (ls->t.token == TK_PIPE && !(flags & E_NESTED)))
         break;
       return;
     }
@@ -4406,7 +4407,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
   if (uop != OPR_NOUNOPR) {  /* prefix (unary) operator? */
     int line = ls->getLineNumber();
     luaX_next(ls);  /* skip operator */
-    subexpr(ls, v, UNARY_PRIORITY, nullptr, nullptr, flags);
+    subexpr(ls, v, UNARY_PRIORITY, nullptr, nullptr, flags | E_NESTED);
     luaK_prefix(ls->fs, uop, v, line);
   }
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
@@ -4420,7 +4421,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
     luaK_infix(ls->fs, OPR_ADD, v);
 
     expdesc v2;
-    subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, nullptr, flags);
+    subexpr(ls, &v2, priority[OPR_ADD].right, nullptr, nullptr, flags | E_NESTED);
     luaK_posfix(ls->fs, OPR_ADD, v, &v2, line);
   }
   else if (ls->t.token == TK_PLUSPLUS) {
@@ -4511,7 +4512,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
         flags &= ~E_WALRUS;
         flags |= E_OR_KILLED_WALRUS;
       }
-      nextop = subexpr(ls, &v2, priority[op].right, subexpr_nprop, subexpr_prop, flags);
+      nextop = subexpr(ls, &v2, priority[op].right, subexpr_nprop, subexpr_prop, flags | E_NESTED);
       luaK_posfix(ls->fs, op, v, &v2, line);
       if (canchainopr(op) && canchainopr(nextop)) {
         while (true) {
@@ -4524,7 +4525,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit, int8_t *nprop, TypeH
           luaK_infix(ls->fs, OPR_AND, v);
           expdesc v3;
           luaK_infix(ls->fs, op, &v2);
-          nextop = subexpr(ls, &v3, priority[op].right, subexpr_nprop, subexpr_prop, flags);
+          nextop = subexpr(ls, &v3, priority[op].right, subexpr_nprop, subexpr_prop, flags | E_NESTED);
           luaK_posfix(ls->fs, op, &v2, &v3, line);
           luaK_posfix(ls->fs, OPR_AND, v, &v2, line);
           if (!canchainopr(nextop))
