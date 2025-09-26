@@ -4195,7 +4195,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, int8_t *nprop, TypeH
       }
       codestring(v, ls->t.seminfo.ts);
       luaX_next(ls);
-      if (ls->t.token == '[' || ls->t.token == ':')
+      if (ls->t.token == '[' || ls->t.token == ':' || ls->t.token == TK_PIPE)
         break;
       return;
     }
