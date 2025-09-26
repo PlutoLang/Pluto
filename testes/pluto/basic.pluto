@@ -1703,8 +1703,8 @@ do
     ;(69) |> f (69) |> f
 
     -- Other types of function calls are still okay, tho, since string and table are not valid statements.
-    ;("Hello") |> require"json".encode |> |x| -> assert(x == [["Hello"]])
-    ;("Hello") |> (require"json".encode) |> |x| -> assert(x == [["Hello"]])
+    ;"Hello" |> require"json".encode |> |x| -> assert(x == [["Hello"]])
+    ;"Hello" |> (require"json".encode) |> |x| -> assert(x == [["Hello"]])
 
     -- Method calls
     local obj = {
@@ -1727,7 +1727,7 @@ do
     local function test_util(str)
         assert(str == "hellogoodbye")
     end
-    ;("hello") |> |str| -> str .. "goodbye" |> test_util
+    ;"hello" |> |str| -> str .. "goodbye" |> test_util
 end
 
 print "Testing standard library additions."
