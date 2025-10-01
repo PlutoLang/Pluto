@@ -345,6 +345,10 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
           luaX_syntaxerror(ls, "expected string after $include");
         }
         const char *fname = getstr(i->seminfo.ts);
+#ifdef PLUTO_NO_FILESYSTEM
+        ls->tidx = std::distance(ls->tokens.begin(), i);
+        luaX_syntaxerror(ls, "disallowed by content moderation policy");
+#endif
 #ifdef PLUTO_LOADFILE_HOOK
         if (!PLUTO_LOADFILE_HOOK(ls->L, fname)) {
           ls->tidx = std::distance(ls->tokens.begin(), i);

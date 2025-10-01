@@ -1074,7 +1074,7 @@
 // This will affect require and package.loadlib.
 //#define PLUTO_LOADCLIB_HOOK ContmodOnLoadCLib
 
-// If defined, Pluto will not load the io library, and exclude os.remove and os.rename.
+// If defined, Pluto will not load the io library, exclude os.remove and os.rename, and error on any use of the $include directive.
 // It's highly suggested in most cases to define PLUTO_NO_OS_EXECUTE below too, since os.execute can be used for filesystem access. 
 // It's suggested you implement PLUTO_LOADCLIB_HOOK, etc, for even more powerful coverage. Package.loadlib can still load other Pluto/Lua libraries and use their lua_CFunction objects.
 //#define PLUTO_NO_FILESYSTEM
