@@ -1061,7 +1061,7 @@
 
 // If defined, the provided function will be called as bool(lua_State* L, const char* filename).
 // If it returns false, a Lua error is raised.
-// This will affect require and dofile.
+// This will affect require, dofile, and $include.
 //#define PLUTO_LOADFILE_HOOK ContmodOnLoadfile
 
 // It is possible to pass a reader function to the load function.
