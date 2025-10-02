@@ -251,11 +251,6 @@ static void close_state (lua_State *L) {
     luaD_closeprotected(L, 1, LUA_OK);  /* close all upvalues */
     L->top.p = L->stack.p + 1;  /* empty the stack to run finalizers */
     luaC_freeallobjects(L);  /* collect all objects */
-#if !SOUP_WASM
-    if (g->scheduler) {
-      delete reinterpret_cast<soup::DetachedScheduler*>(g->scheduler);
-    }
-#endif
     luai_userstateclose(L);
   }
   luaM_freearray(L, G(L)->strt.hash, G(L)->strt.size);
@@ -445,8 +440,6 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, unsigned seed) {
 #else
   g->have_preference_catch = false;
 #endif
-
-  g->scheduler = nullptr;
 #ifdef PLUTO_ETL_ENABLE
   g->deadline = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() + PLUTO_ETL_NANOS;
 #endif
