@@ -1213,6 +1213,9 @@ void addquoted (luaL_Buffer *b, const char *s, size_t len, bool must_be_valid_ut
         --continuations;
       }
       else {
+        if (l_unlikely(uchar(*s) < 0xC2)) {
+          goto _escape_char;
+        }
         continuations = soup::bitutil::getNumLeadingZeros(static_cast<uint32_t>((uint8_t)~uchar(*s))) - 25;
         if (l_unlikely(continuations == 0)) {
           goto _escape_char;
