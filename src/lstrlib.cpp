@@ -1282,12 +1282,12 @@ static int quotefloat (lua_State *L, char *buff, lua_Number n) {
 }
 
 
-static void addliteral (lua_State *L, luaL_Buffer *b, int arg) {
+static void addliteral (lua_State *L, luaL_Buffer *b, int arg, bool must_be_valid_utf8 = false) {
   switch (lua_type(L, arg)) {
     case LUA_TSTRING: {
       size_t len;
       const char *s = lua_tolstring(L, arg, &len);
-      addquoted(b, s, len, false);
+      addquoted(b, s, len, must_be_valid_utf8);
       break;
     }
     case LUA_TNUMBER: {
@@ -1460,6 +1460,12 @@ static int str_format (lua_State *L) {
           if (form[2] != '\0')  /* modifiers? */
             luaL_error(L, "specifier '%%q' cannot have modifiers");
           addliteral(L, &b, arg);
+          break;
+        }
+        case 'Q': {  /* [Pluto] utf-8-safe quoting */
+          if (form[2] != '\0')  /* modifiers? */
+            luaL_error(L, "specifier '%%Q' cannot have modifiers");
+          addliteral(L, &b, arg, true);
           break;
         }
         case 's': {
