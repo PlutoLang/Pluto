@@ -26,6 +26,7 @@
 #include "lua.h"
 #include "lprefix.h"
 #include "lauxlib.h"
+#include "llimits.h"
 #if defined(PLUTO_MEMORY_LIMIT) || defined(PLUTO_PARSER_CACHE)
 #include "lstate.h"
 #endif
