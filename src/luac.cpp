@@ -22,6 +22,7 @@
 #include "lua.h"
 #include "lauxlib.h"
 
+#include "lapi.h"
 #include "ldebug.h"
 #include "lobject.h"
 #include "lopcodes.h"
