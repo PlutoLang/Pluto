@@ -1197,6 +1197,7 @@ void addquoted (luaL_Buffer *b, const char *s, size_t len, bool must_be_valid_ut
       }
     }
     else if (iscntrl(uchar(*s))) {
+    _escape_char:
       char buff[10];
       if (!isdigit(uchar(*(s+1))))
         l_sprintf(buff, sizeof(buff), "\\%d", (int)uchar(*s));
@@ -1205,44 +1206,41 @@ void addquoted (luaL_Buffer *b, const char *s, size_t len, bool must_be_valid_ut
       luaL_addstring(b, buff);
     }
     else if ((*s & 0x80) && must_be_valid_utf8) {
-      bool valid = true;
       if (UTF8_IS_CONTINUATION(*s)) {
-        if (continuations) {
-          --continuations;
+        if (l_unlikely(!continuations)) {
+          goto _escape_char;
         }
-        else {
-          valid = false;
-        }
+        --continuations;
       }
       else {
         continuations = soup::bitutil::getNumLeadingZeros(static_cast<uint32_t>((uint8_t)~uchar(*s))) - 25;
+        if (l_unlikely(continuations == 0)) {
+          goto _escape_char;
+        }
         auto todo = continuations;
+        uint32_t uni = uchar(*s) & ((1 << (6 - todo)) - 1);
         auto lookahead_s = s;
         auto lookahead_len = len;
         while (todo--) {
-          if (!lookahead_len--) {
+          if (l_unlikely(!lookahead_len--)) {
             continuations = 0;
-            break;
+            goto _escape_char;
           }
           ++lookahead_s;
-          if ((uchar(*lookahead_s) & 0xC0) != 0x80) {
+          if (l_unlikely(!UTF8_IS_CONTINUATION(uchar(*lookahead_s)))) {
             continuations = 0;
-            break;
+            goto _escape_char;
           }
+          uni <<= 6;
+          uni |= (uchar(*lookahead_s) & 0b111111);
         }
-        valid = (continuations != 0);
+        if (l_unlikely((uni >= 0xD800 && uni <= 0xDFFF) || uni > 0x10FFFF)) {
+          s += continuations - 2;
+          continuations = 0;
+          goto _escape_char;
+        }
       }
-      if (valid) {
-        luaL_addchar(b, *s);
-      }
-      else {
-        char buff[10];
-        if (!isdigit(uchar(*(s+1))))
-          l_sprintf(buff, sizeof(buff), "\\%d", (int)uchar(*s));
-        else
-          l_sprintf(buff, sizeof(buff), "\\%03d", (int)uchar(*s));
-        luaL_addstring(b, buff);
-      }
+      luaL_addchar(b, *s);
     }
     else
       luaL_addchar(b, *s);

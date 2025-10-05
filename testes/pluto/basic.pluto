@@ -3007,9 +3007,14 @@ do
     assert(exportvar(-1/0) == "-math.huge")
     assert(exportvar(0/0) == "0/0")
 
+    -- dumpvar/exportvar produce valid UTF-8
+    assert(exportvar("ABC") == [["ABC"]])
+    assert(exportvar("これ") == [["これ"]])
     assert(exportvar("\147") == [["\147"]])
     assert(exportvar("\25\147\13") == [["\25\147\13"]])
     assert(exportvar("\xc3\xa4") == '"\xc3\xa4"')
+    assert(exportvar("\x19\xED\xA0\x80\x0D") == [["\25\237\160\128\13"]])
+    assert(exportvar("\xE2(\xAC") == [["\226(\172"]])
 end
 
 print "Testing default table metatable."
