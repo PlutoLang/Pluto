@@ -24,6 +24,7 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "llimits.h"
 #include "lstate.h"
 
 
