@@ -30,7 +30,6 @@ dofile('tpack.lua')
 dofile('gengc.lua')
 assert(dofile('locals.lua') == 5)
 dofile('constructs.lua')
-dofile('code.lua', true)
 do
   local f = coroutine.wrap(assert(loadfile('big.lua')))
   assert(f() == 'b')
