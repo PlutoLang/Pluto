@@ -217,21 +217,6 @@ inline void* pluto_setupgcmt(lua_State* L, void* ret, const char* tname, lua_CFu
 #define luaL_pushfail(L)	lua_pushnil(L)
 
 
-/*
-** Internal assertions for in-house debugging
-*/
-#if !defined(lua_assert)
-
-#if defined LUAI_ASSERT
-  #include <assert.h>
-  #define lua_assert(c)		assert(c)
-#else
-  #define lua_assert(c)		((void)0)
-#endif
-
-#endif
-
-
 
 /*
 ** {======================================================
