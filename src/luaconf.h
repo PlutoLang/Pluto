@@ -67,15 +67,26 @@
 #endif
 
 
+/*
+** When Posix DLL ('LUA_USE_DLOPEN') is enabled, the Lua stand-alone
+** application will try to dynamically link a 'readline' facility
+** for its REPL.  In that case, LUA_READLINELIB is the name of the
+** library it will look for those facilities.  If lua.c cannot open
+** the specified library, it will generate a warning and then run
+** without 'readline'.  If that macro is not defined, lua.c will not
+** use 'readline'.
+*/
 #if defined(LUA_USE_LINUX)
 #define LUA_USE_POSIX
 #define LUA_USE_DLOPEN		/* needs an extra library: -ldl */
+#define LUA_READLINELIB		"libreadline.so"
 #endif
 
 
 #if defined(LUA_USE_MACOSX)
 #define LUA_USE_POSIX
 #define LUA_USE_DLOPEN		/* MacOS does not need -ldl */
+#define LUA_READLINELIB		"libedit.dylib"
 #endif
 
 
@@ -749,10 +760,7 @@
 @@ LUA_USE_APICHECK turns on several consistency checks on the C API.
 ** Define it as a help when debugging C code.
 */
-#if defined(LUA_USE_APICHECK)
-#include <assert.h>
-#define luai_apicheck(l,e)	assert(e)
-#endif
+/* #define LUA_USE_APICHECK */
 
 /* }================================================================== */
 
@@ -769,13 +777,13 @@
 @@ LUAI_MAXSTACK limits the size of the Lua stack.
 ** CHANGE it if you need a different limit. This limit is arbitrary;
 ** its only purpose is to stop Lua from consuming unlimited stack
-** space (and to reserve some numbers for pseudo-indices).
-** (It must fit into max(size_t)/32.)
+** space and to reserve some numbers for pseudo-indices.
+** (It must fit into max(int)/2.)
 */
-#if LUAI_IS32INT
+#if 1000000 < (INT_MAX / 2)
 #define LUAI_MAXSTACK		1000000
 #else
-#define LUAI_MAXSTACK		15000
+#define LUAI_MAXSTACK		(INT_MAX / 2u)
 #endif
 
 

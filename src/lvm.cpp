@@ -18,6 +18,7 @@
 
 #include "lua.h"
 
+#include "lapi.h"
 #include "ldebug.h"
 #include "ldo.h"
 #include "lfunc.h"
@@ -1196,6 +1197,14 @@ void luaV_finishOp (lua_State *L) {
 */
 #define halfProtect(exp)  (savestate(L,ci), (exp))
 
+/*
+** macro executed during Lua functions at points where the
+** function can yield.
+*/
+#if !defined(luai_threadyield)
+#define luai_threadyield(L)	{lua_unlock(L); lua_lock(L);}
+#endif
+
 /* 'c' is the limit of live values in the stack */
 #define checkGC(L,c)  \
     { luaC_condGC(L, (savepc(L), L->top.p = (c)), \
@@ -1355,8 +1364,8 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
     #endif
     lua_assert(base == ci->func.p + 1);
     lua_assert(base <= L->top.p && L->top.p <= L->stack_last.p);
-    /* invalidate top for instructions not expecting it - [Pluto] this is similar to a debug hook being active */
-    lua_assert(isIT(i) || (cast_void(L->top.p = base), 1));
+    /* for tests, invalidate top for instructions not expecting it - [Pluto] this is similar to a debug hook being active */
+    lua_assert(luaP_isIT(i) || (cast_void(L->top.p = base), 1));
     vmdispatch (GET_OPCODE(i)) {
       vmcase(OP_MOVE) {
         StkId ra = RA(i);
@@ -2323,10 +2332,10 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           trap = 1;
         }
         else {  /* do the 'poscall' here */
-          int nres;
+          int nres = get_nresults(ci->callstatus);
           L->ci = ci->previous;  /* back to caller */
           L->top.p = base - 1;
-          for (nres = ci->nresults; l_unlikely(nres > 0); nres--)
+          for (; l_unlikely(nres > 0); nres--)
             setnilvalue(s2v(L->top.p++));  /* all results are nil */
         }
         vmDumpInit();
@@ -2355,7 +2364,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           trap = 1;
         }
         else {  /* do the 'poscall' here */
-          int nres = ci->nresults;
+          int nres = get_nresults(ci->callstatus);
           L->ci = ci->previous;  /* back to caller */
           if (nres == 0)
             L->top.p = base - 1;  /* asked for no results */

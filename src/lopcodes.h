@@ -8,6 +8,7 @@
 #define lopcodes_h
 
 #include "llimits.h"
+#include "lobject.h"
 
 
 /*===========================================================================
@@ -23,9 +24,9 @@ iAsBx              sBx (signed)(17)      |     A(8)      |   Op(7)     |
 iAx                           Ax(25)                     |   Op(7)     |
 isJ                           sJ (signed)(25)            |   Op(7)     |
 
-  A signed argument is represented in excess K: the represented value is
-  the written unsigned value minus K, where K is half the maximum for the
-  corresponding unsigned argument.
+  A signed argument is represented in excess K: The represented value is
+  the written unsigned value minus K, where K is half (rounded down) the
+  maximum value for the corresponding unsigned argument.
 ===========================================================================*/
 
 
@@ -71,7 +72,7 @@ enum OpMode {iABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
 #if L_INTHASBITS(SIZE_Bx)
 #define MAXARG_Bx	((1<<SIZE_Bx)-1)
 #else
-#define MAXARG_Bx	MAX_INT
+#define MAXARG_Bx	INT_MAX
 #endif
 
 #define OFFSET_sBx	(MAXARG_Bx>>1)         /* 'sBx' is signed */
@@ -80,13 +81,13 @@ enum OpMode {iABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
 #if L_INTHASBITS(SIZE_Ax)
 #define MAXARG_Ax	((1<<SIZE_Ax)-1)
 #else
-#define MAXARG_Ax	MAX_INT
+#define MAXARG_Ax	INT_MAX
 #endif
 
 #if L_INTHASBITS(SIZE_sJ)
 #define MAXARG_sJ	((1 << SIZE_sJ) - 1)
 #else
-#define MAXARG_sJ	MAX_INT
+#define MAXARG_sJ	INT_MAX
 #endif
 
 #define OFFSET_sJ	(MAXARG_sJ >> 1)
@@ -177,9 +178,15 @@ enum OpMode {iABC, iABx, iAsBx, iAx, isJ};  /* basic instruction formats */
 
 
 /*
-** invalid register that fits in 8 bits
+** Maximum size for the stack of a Lua function. It must fit in 8 bits.
+** The highest valid register is one less than this value.
 */
-#define NO_REG		MAXARG_A
+#define MAX_FSTACK	MAXARG_A
+
+/*
+** Invalid register (one more than last valid register).
+*/
+#define NO_REG		MAX_FSTACK
 
 
 /*
@@ -393,19 +400,9 @@ LUAI_DDEC(const lu_byte luaP_opmodes[NUM_OPCODES];)
 #define testOTMode(m)	(luaP_opmodes[m] & (1 << 6))
 #define testMMMode(m)	(luaP_opmodes[m] & (1 << 7))
 
-/* "out top" (set top for next instruction) */
-#define isOT(i)  \
-    ((testOTMode(GET_OPCODE(i)) && GETARG_C(i) == 0) || \
-          GET_OPCODE(i) == OP_TAILCALL)
 
-/* "in top" (uses top from previous instruction) */
-#define isIT(i)		(testITMode(GET_OPCODE(i)) && GETARG_B(i) == 0)
+LUAI_FUNC int luaP_isOT (Instruction i);
+LUAI_FUNC int luaP_isIT (Instruction i);
 
-#define opmode(mm,ot,it,t,a,m)  \
-    (((mm) << 7) | ((ot) << 6) | ((it) << 5) | ((t) << 4) | ((a) << 3) | (m))
-
-
-/* number of list items to accumulate before a SETLIST instruction */
-#define LFIELDS_PER_FLUSH	50
 
 #endif

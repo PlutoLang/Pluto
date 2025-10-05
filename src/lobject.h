@@ -539,6 +539,9 @@ typedef struct Udata0 {
 #define LUA_VPROTO	makevariant(LUA_TPROTO, 0)
 
 
+typedef l_uint32 Instruction;
+
+
 /*
 ** Description of an upvalue for function prototypes
 */
