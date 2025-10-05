@@ -92,7 +92,7 @@ static size_t loadUnsigned (LoadState *S, size_t limit) {
 
 
 static size_t loadSize (LoadState *S) {
-  return loadUnsigned(S, MAX_SIZET);
+  return loadUnsigned(S, MAX_SIZE);
 }
 
 
