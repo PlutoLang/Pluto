@@ -3015,6 +3015,10 @@ do
     assert(exportvar("\xc3\xa4") == '"\xc3\xa4"')
     assert(exportvar("\x19\xED\xA0\x80\x0D") == [["\25\237\160\128\13"]])
     assert(exportvar("\xE2(\xAC") == [["\226(\172"]])
+    assert(exportvar("\xC0\xA1") == [["\192\161"]])
+    assert(exportvar("\xC1\xA1") == [["\193\161"]])
+    assert(exportvar("\xE0\x90") == [["\224\144"]])
+    assert(exportvar("\xF0\x80") == [["\240\128"]])
 end
 
 print "Testing default table metatable."
