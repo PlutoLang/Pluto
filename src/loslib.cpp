@@ -20,6 +20,7 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "llimits.h"
 #ifdef PLUTO_ETL_ENABLE
 #include "lstate.h"
 #endif

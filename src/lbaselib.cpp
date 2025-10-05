@@ -21,6 +21,7 @@
 #include "lprefix.h"
 #include "lauxlib.h"
 #include "lualib.h"
+#include "llimits.h"
 #include "lobject.h"
 #include "lstate.h"
 

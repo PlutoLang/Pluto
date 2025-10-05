@@ -16,6 +16,7 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "llimits.h"
 
 #include "vendor/Soup/soup/time.hpp"
 
