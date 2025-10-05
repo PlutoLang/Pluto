@@ -1,9 +1,11 @@
-#pragma once
 /*
 ** $Id: lstring.h $
 ** String table (keep all strings handled by Lua)
 ** See Copyright Notice in lua.h
 */
+
+#ifndef lstring_h
+#define lstring_h
 
 #include "lgc.h"
 #include "lobject.h"
@@ -62,3 +64,6 @@ LUAI_FUNC size_t luaS_sizelngstr (size_t len, int kind);
 
 LUAI_FUNC char *plutoS_prealloc (lua_State *L, char shrtbuf[LUAI_MAXSHORTLEN], size_t l);
 LUAI_FUNC void plutoS_commit (lua_State *L, char *prealloc, size_t l);
+
+
+#endif

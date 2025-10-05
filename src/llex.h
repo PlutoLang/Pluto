@@ -1,9 +1,11 @@
-#pragma once
 /*
 ** $Id: llex.h $
 ** Lexical Analyzer
 ** See Copyright Notice in lua.h
 */
+
+#ifndef llex_h
+#define llex_h
 
 #include <limits.h>
 
@@ -693,3 +695,6 @@ LUAI_FUNC l_noret luaX_syntaxerror (LexState *ls, const char *s);
 LUAI_FUNC const char *luaX_token2str (LexState *ls, const Token& t);
 LUAI_FUNC const char *luaX_token2str_noq (LexState *ls, const Token& t);
 LUAI_FUNC const char *luaX_reserved2str (int token);
+
+
+#endif

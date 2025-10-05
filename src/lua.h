@@ -1,10 +1,13 @@
-#pragma once
 /*
 ** $Id: lua.h $
 ** Lua - A Scripting Language
 ** Lua.org, PUC-Rio, Brazil (http://www.lua.org)
 ** See Copyright Notice at the end of this file
 */
+
+
+#ifndef lua_h
+#define lua_h
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -572,3 +575,6 @@ struct lua_Debug {
 * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
+
+
+#endif

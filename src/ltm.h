@@ -1,9 +1,12 @@
-#pragma once
 /*
 ** $Id: ltm.h $
 ** Tag methods
 ** See Copyright Notice in lua.h
 */
+
+#ifndef ltm_h
+#define ltm_h
+
 
 #include "lobject.h"
 
@@ -110,3 +113,6 @@ LUAI_FUNC void luaT_adjustvarargs (lua_State *L, int nfixparams,
                                    struct CallInfo *ci, const Proto *p);
 LUAI_FUNC void luaT_getvarargs (lua_State *L, struct CallInfo *ci,
                                               StkId where, int wanted);
+
+
+#endif

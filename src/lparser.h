@@ -1,9 +1,11 @@
-#pragma once
 /*
 ** $Id: lparser.h $
 ** Lua Parser
 ** See Copyright Notice in lua.h
 */
+
+#ifndef lparser_h
+#define lparser_h
 
 #include <cstdint> // int8_t
 
@@ -513,3 +515,6 @@ LUAI_FUNC LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuff
 inline Vardesc* getlocalvardesc(FuncState* fs, int vidx) {
   return &fs->ls->dyd->actvar.arr[fs->firstlocal + vidx];
 }
+
+
+#endif

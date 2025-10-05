@@ -1,12 +1,14 @@
-#pragma once
 /*
 ** $Id: lgc.h $
 ** Garbage Collector
 ** See Copyright Notice in lua.h
 */
 
-#include <stddef.h>
+#ifndef lgc_h
+#define lgc_h
 
+
+#include <stddef.h>
 
 #include "lobject.h"
 #include "lstate.h"
@@ -241,3 +243,6 @@ LUAI_FUNC void luaC_barrier_ (lua_State *L, GCObject *o, GCObject *v);
 LUAI_FUNC void luaC_barrierback_ (lua_State *L, GCObject *o);
 LUAI_FUNC void luaC_checkfinalizer (lua_State *L, GCObject *o, Table *mt);
 LUAI_FUNC void luaC_changemode (lua_State *L, int newmode);
+
+
+#endif

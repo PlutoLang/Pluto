@@ -1,9 +1,11 @@
-#pragma once
 /*
 ** $Id: ltable.h $
 ** Lua tables (hash)
 ** See Copyright Notice in lua.h
 */
+
+#ifndef ltable_h
+#define ltable_h
 
 #include "lobject.h"
 
@@ -176,4 +178,7 @@ LUAI_FUNC void luaH_clear (lua_State *L, Table *t);
 
 #if defined(LUA_DEBUG)
 LUAI_FUNC Node *luaH_mainposition (const Table *t, const TValue *key);
+#endif
+
+
 #endif

@@ -1,9 +1,11 @@
-#pragma once
 /*
 ** $Id: lundump.h $
 ** load precompiled Lua chunks
 ** See Copyright Notice in lua.h
 */
+
+#ifndef lundump_h
+#define lundump_h
 
 #include "llimits.h"
 #include "lobject.h"
@@ -30,3 +32,5 @@ LUAI_FUNC LClosure* luaU_undump (lua_State* L, ZIO* Z, const char* name,
 /* dump one chunk; from ldump.c */
 LUAI_FUNC int luaU_dump (lua_State* L, const Proto* f, lua_Writer w,
                          void* data, int strip);
+
+#endif
