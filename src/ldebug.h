@@ -1,9 +1,12 @@
-#pragma once
 /*
 ** $Id: ldebug.h $
 ** Auxiliary functions from Debug Interface module
 ** See Copyright Notice in lua.h
 */
+
+#ifndef ldebug_h
+#define ldebug_h
+
 
 #include "lstate.h"
 
@@ -59,3 +62,6 @@ LUAI_FUNC bool luaG_addsrcinfo (lua_State *L, const char *msg);
 LUAI_FUNC l_noret luaG_errormsg (lua_State *L);
 LUAI_FUNC int luaG_traceexec (lua_State *L, const Instruction *pc);
 LUAI_FUNC int luaG_tracecall (lua_State *L);
+
+
+#endif

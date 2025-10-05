@@ -1,9 +1,11 @@
-#pragma once
 /*
 ** $Id: lopnames.h $
 ** Opcode names
 ** See Copyright Notice in lua.h
 */
+
+#if !defined(lopnames_h)
+#define lopnames_h
 
 #include <stddef.h>
 
@@ -99,3 +101,6 @@ static const char *const opnames[] = {
   // end of pluto opcodes
   NULL
 };
+
+#endif
+

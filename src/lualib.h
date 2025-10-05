@@ -1,9 +1,12 @@
-#pragma once
 /*
 ** $Id: lualib.h $
 ** Lua standard libraries
 ** See Copyright Notice in lua.h
 */
+
+
+#ifndef lualib_h
+#define lualib_h
 
 #include "lua.h"
 #include "lauxlib.h" // Pluto::Preloaded
@@ -203,3 +206,6 @@ LUALIB_API void (luaL_openselectedlibs)(lua_State* L, int load, int preload);
   } \
   setlocale(LC_ALL, old); \
   return r;
+
+
+#endif

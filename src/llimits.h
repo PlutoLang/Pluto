@@ -1,9 +1,12 @@
-#pragma once
 /*
 ** $Id: llimits.h $
 ** Limits, basic types, and some other 'installation-dependent' definitions
 ** See Copyright Notice in lua.h
 */
+
+#ifndef llimits_h
+#define llimits_h
+
 
 #include <limits.h>
 #include <stddef.h>
@@ -374,4 +377,6 @@ typedef l_uint32 Instruction;
 #else
 #define condchangemem(L,pre,pos)  \
     { if (gcrunning(G(L))) { pre; luaC_fullgc(L, 0); pos; } }
+#endif
+
 #endif

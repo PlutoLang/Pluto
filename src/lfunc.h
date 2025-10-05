@@ -1,9 +1,12 @@
-#pragma once
 /*
 ** $Id: lfunc.h $
 ** Auxiliary functions to manipulate prototypes and closures
 ** See Copyright Notice in lua.h
 */
+
+#ifndef lfunc_h
+#define lfunc_h
+
 
 #include "lobject.h"
 
@@ -56,3 +59,6 @@ LUAI_FUNC void luaF_unlinkupval (UpVal *uv);
 LUAI_FUNC void luaF_freeproto (lua_State *L, Proto *f);
 LUAI_FUNC const char *luaF_getlocalname (const Proto *func, int local_number,
                                          int pc);
+
+
+#endif

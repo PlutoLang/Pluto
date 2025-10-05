@@ -1,9 +1,11 @@
-#pragma once
 /*
 ** $Id: lctype.h $
 ** 'ctype' functions for Lua
 ** See Copyright Notice in lua.h
 */
+
+#ifndef lctype_h
+#define lctype_h
 
 #include "lua.h"
 
@@ -94,3 +96,6 @@ LUAI_DDEC(const lu_byte luai_ctype_[UCHAR_MAX + 2];)
 #define ltolower(c)	(tolower(c))
 
 #endif			/* } */
+
+#endif
+
