@@ -13,6 +13,10 @@
 #include "lopcodes.h"
 
 
+#define opmode(mm,ot,it,t,a,m)  \
+    (((mm) << 7) | ((ot) << 6) | ((it) << 5) | ((t) << 4) | ((a) << 3) | (m))
+
+
 /* ORDER OP */
 
 LUAI_DDEF const lu_byte luaP_opmodes[NUM_OPCODES] = {
@@ -102,4 +106,28 @@ LUAI_DDEF const lu_byte luaP_opmodes[NUM_OPCODES] = {
  ,opmode(0, 0, 0, 0, 0, iAx)		/* OP_EXTRAARG */
  ,opmode(0, 0, 0, 0, 1, iABC)		/* OP_IN */
 };
+
+
+
+/*
+** Check whether instruction sets top for next instruction, that is,
+** it results in multiple values.
+*/
+int luaP_isOT (Instruction i) {
+  OpCode op = GET_OPCODE(i);
+  switch (op) {
+    case OP_TAILCALL: return 1;
+    default:
+      return testOTMode(op) && GETARG_C(i) == 0;
+  }
+}
+
+
+/*
+** Check whether instruction uses top from previous instruction, that is,
+** it accepts multiple results.
+*/
+int luaP_isIT (Instruction i) {
+  return testITMode(GET_OPCODE(i)) && GETARG_B(i) == 0;
+}
 
