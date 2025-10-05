@@ -66,6 +66,12 @@ static const char *getS (lua_State *L, void *ud, size_t *size) {
 #define check_condition(ls,c,msg)	{ if (!(c)) luaX_syntaxerror(ls, msg); }
 
 
+/* minimum size for string buffer */
+#if !defined(LUA_MINBUFFER)
+#define LUA_MINBUFFER   32
+#endif
+
+
 #define currIsNewline(ls)	(ls->current == '\n' || ls->current == '\r')
 
 
