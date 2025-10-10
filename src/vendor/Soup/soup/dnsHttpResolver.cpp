@@ -34,25 +34,29 @@ NAMESPACE_SOUP
 
 	struct dnsHttpLookupTask : public dnsLookupTask
 	{
-		Optional<HttpRequestTask> http;
+		HttpRequestTask http;
 
-		dnsHttpLookupTask(IpAddr&& server, dnsType qtype, const std::string& name)
+		[[nodiscard]] static Uri makeUri(const IpAddr& server, dnsType qtype, const std::string& name)
 		{
 			std::string url = ObfusString("https://");
 			url.append(server.toString());
 			url.append(ObfusString("/dns-query?dns=").str());
 			url.append(base64::urlEncode(dnsRawResolver::getQuery(qtype, name)));
+			return Uri(url);
+		}
 
-			http.emplace(Uri(url));
+		dnsHttpLookupTask(const IpAddr& server, dnsType qtype, const std::string& name)
+			: http(makeUri(server, qtype, name))
+		{
 		}
 
 		void onTick() final
 		{
-			if (http->tickUntilDone())
+			if (http.tickUntilDone())
 			{
-				if (http->result)
+				if (http.result)
 				{
-					result = dnsRawResolver::parseResponse(std::move(http->result->body));
+					result = dnsRawResolver::parseResponse(std::move(http.result->body));
 				}
 				setWorkDone();
 			}
@@ -63,7 +67,7 @@ NAMESPACE_SOUP
 			std::string str = ObfusString("dnsHttpLookupTask");
 			str.append(": ");
 			str.push_back('[');
-			str.append(http->toString());
+			str.append(http.toString());
 			str.push_back(']');
 			return str;
 		}
@@ -77,6 +81,6 @@ NAMESPACE_SOUP
 		}
 		IpAddr server;
 		SOUP_ASSERT(server.fromString(this->server));
-		return soup::make_unique<dnsHttpLookupTask>(std::move(server), qtype, name);
+		return soup::make_unique<dnsHttpLookupTask>(server, qtype, name);
 	}
 }
