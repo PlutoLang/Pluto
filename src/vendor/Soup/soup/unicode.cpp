@@ -1,17 +1,19 @@
 #include "unicode.hpp"
 
+#include <cstring> // memcmp
+
 #include "bitutil.hpp"
 
 NAMESPACE_SOUP
 {
-	char32_t unicode::utf8_to_utf32_char(std::string::const_iterator& it, const std::string::const_iterator end) noexcept
+	char32_t unicode::utf8_to_utf32_char(const char*& it, const char* end) noexcept
 	{
 		uint8_t ch = *it++;
 		if (!UTF8_HAS_CONTINUATION(ch))
 		{
 			return ch;
 		}
-		SOUP_IF_UNLIKELY (UTF8_IS_CONTINUATION(ch))
+		SOUP_IF_UNLIKELY (UTF8_IS_CONTINUATION(ch) || ch < 0xC2)
 		{
 			return REPLACEMENT_CHAR;
 		}
@@ -39,13 +41,21 @@ NAMESPACE_SOUP
 			uni <<= 6;
 			uni |= (ch & 0b111111);
 		}
-		/*SOUP_IF_UNLIKELY ((uni >= 0xD800 && uni <= 0xDFFF)
+		SOUP_IF_UNLIKELY ((uni >= 0xD800 && uni <= 0xDFFF)
 			|| uni > 0x10FFFF
 			)
 		{
 			return REPLACEMENT_CHAR;
-		}*/
+		}
 		return uni;
+	}
+
+	char32_t unicode::utf8_to_utf32_char(std::string::const_iterator& it, const std::string::const_iterator end) noexcept
+	{
+		const char* c_it = &*it;
+		const auto res = utf8_to_utf32_char(c_it, &*end);
+		it += (c_it - &*it);
+		return res;
 	}
 
 #if SOUP_CPP20
@@ -59,8 +69,8 @@ NAMESPACE_SOUP
 	{
 		std::u32string utf32{};
 		utf32.reserve(utf8_char_len(utf8));
-		auto it = utf8.cbegin();
-		const auto end = utf8.cend();
+		auto it = utf8.data();
+		const auto end = it + utf8.size();
 		while (it != end)
 		{
 			utf32.push_back(utf8_to_utf32_char(it, end));
@@ -204,7 +214,8 @@ NAMESPACE_SOUP
 		for (auto it = str.cbegin(); it != str.cend(); )
 		{
 			const auto char_begin = it;
-			SOUP_IF_UNLIKELY (utf8_to_utf32_char(it, str.cend()) == REPLACEMENT_CHAR)
+			const auto uni = utf8_to_utf32_char(it, str.cend());
+			SOUP_IF_UNLIKELY (uni == REPLACEMENT_CHAR)
 			{
 				const auto off = char_begin - str.cbegin();
 				str.erase(char_begin, it);
@@ -212,5 +223,24 @@ NAMESPACE_SOUP
 				it = str.cbegin() + off + 3;
 			}
 		}
+	}
+
+	bool unicode::utf8_validate(const char* it, const char* const end)
+	{
+		while (it != end)
+		{
+			const auto char_begin = it;
+			const auto uni = utf8_to_utf32_char(it, end);
+			SOUP_IF_UNLIKELY (uni == REPLACEMENT_CHAR)
+			{
+				const auto char_len = (it - char_begin);
+				if (char_len == 3 && memcmp(char_begin, "\xEF\xBF\xBD", 3) == 0)
+				{
+					continue;
+				}
+				return false;
+			}
+		}
+		return true;
 	}
 }

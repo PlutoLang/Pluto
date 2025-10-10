@@ -126,7 +126,7 @@ NAMESPACE_SOUP
 
 	void JsonString::encodeValue(std::string& str, const char* data, size_t size) SOUP_EXCAL
 	{
-#if !SOUP_LINUX // std::string::reserve is seemingly misimplemented (relative instead of absolute)
+#if !SOUP_LINUX // reversing is an optimisation on Windows but a pessimisation on Linux
 		str.reserve(str.size() + size + 2);
 #endif
 		str.push_back('"');
