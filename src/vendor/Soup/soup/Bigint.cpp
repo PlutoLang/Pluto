@@ -928,7 +928,7 @@ NAMESPACE_SOUP
 		if (nb != 0)
 		{
 			// add new chunks
-			for (size_t i = (b / getBitsPerChunk()) - getNumChunks(); i-- != 0; )
+			for (size_t i = (b / getBitsPerChunk()); i-- != 0; )
 			{
 				addChunk(0);
 			}
