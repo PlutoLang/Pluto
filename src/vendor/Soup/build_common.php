@@ -16,7 +16,7 @@ if (!defined("PHP_WINDOWS_VERSION_MAJOR"))
 {
 	if (PHP_OS_FAMILY == "Darwin")
 	{
-		$clanglink .= " -lc++";
+		$clanglink .= " -lc++ -framework IOKit -framework CoreFoundation";
 	}
 	else
 	{
