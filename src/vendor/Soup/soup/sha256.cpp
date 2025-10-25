@@ -68,7 +68,7 @@ NAMESPACE_SOUP
 	}
 
 #if SHA256_USE_INTRIN
-	[[nodiscard]] static bool sha256_can_use_intrin() noexcept
+	[[nodiscard]] static SOUP_FORCEINLINE bool sha256_can_use_intrin() noexcept
 	{
 	#if SOUP_X86
 		const CpuInfo& cpu_info = CpuInfo::get();
@@ -138,8 +138,7 @@ NAMESPACE_SOUP
 	void sha256::State::transform() noexcept
 	{
 #if SHA256_USE_INTRIN
-		static bool good_cpu = sha256_can_use_intrin();
-		if (good_cpu)
+		if (sha256_can_use_intrin())
 		{
 			return intrin::sha256_transform(this->state, this->buffer);
 		}

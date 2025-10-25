@@ -219,7 +219,7 @@ NAMESPACE_SOUP
 	}
 
 #if SHA1_USE_INTRIN
-	[[nodiscard]] static bool sha1_can_use_intrin() noexcept
+	[[nodiscard]] static SOUP_FORCEINLINE bool sha1_can_use_intrin() noexcept
 	{
 	#if SOUP_X86
 		const CpuInfo& cpu_info = CpuInfo::get();
@@ -246,8 +246,7 @@ NAMESPACE_SOUP
 	void sha1::State::transform() noexcept
 	{
 #if SHA1_USE_INTRIN
-		static bool good_cpu = sha1_can_use_intrin();
-		if (good_cpu)
+		if (sha1_can_use_intrin())
 		{
 	#if SOUP_X86
 			intrin::sha1_transform(state, buffer);
