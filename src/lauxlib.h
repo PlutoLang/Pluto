@@ -167,7 +167,7 @@ inline void* pluto_setupgcmt(lua_State* L, void* ret, const char* tname, lua_CFu
   lua_setmetatable(L, -2);
   return ret;
 }
-#define pluto_newclassinst(L, T, ...) (T*)pluto_setupgcmt(L, new (lua_newuserdata(L, sizeof(T))) T(__VA_ARGS__), #T, [](lua_State *L2) { std::destroy_at<>((T*)luaL_checkudata(L2, 1, #T)); return 0; });
+#define pluto_newclassinst(L, T, ...) (T*)pluto_setupgcmt(L, new (lua_newuserdata(L, sizeof(T))) T(__VA_ARGS__), #T, [](lua_State *L2) { std::destroy_at<>((T*)luaL_checkudata(L2, 1, #T)); return 0; })
 
 /*
 ** ===============================================================
