@@ -287,7 +287,7 @@ struct TypeHint {
       clear();  /* then now we also know nothing about this type. */
     for (auto& desc : b.descs) {
       if (desc.type != VT_NONE) {
-        emplaceTypeDesc(desc);
+        emplaceTypeDesc(desc.type == VT_NULL ? VT_NIL : desc);
       }
     }
   }

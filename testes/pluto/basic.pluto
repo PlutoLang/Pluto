@@ -258,6 +258,15 @@ if __newindex then end
         return cb("10")
     end
     assert(f(tonumber) == 10)]]
+
+    -- void becomes nil after assignment
+    assert_no_warn[[local function f(_: string|nil)
+    end
+    local a
+    if opaque then
+        a = ""
+    end
+    f(a)]]
 end
 do
     -- discarded-return basic test
