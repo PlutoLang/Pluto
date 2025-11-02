@@ -862,11 +862,18 @@ static int f_flush (lua_State *L) {
     f = luaL_checkstring(L, idx);
   }
 
+  std::filesystem::path& p = *pluto_newclassinst(L, std::filesystem::path);
+  try {
 #if SOUP_CPP20
-  return *pluto_newclassinst(L, std::filesystem::path, soup::string::toUtf8Type(f));
+    p = soup::string::toUtf8Type(f);
 #else
-  return *pluto_newclassinst(L, std::filesystem::path, std::filesystem::u8path(f));
+    p = std::filesystem::u8path(f);
 #endif
+  }
+  catch (const std::exception& e) {
+    luaL_error(L, "%s", e.what());
+  }
+  return p;
 }
 
 static void checkPathForRead (lua_State *L, std::filesystem::path& path) {
