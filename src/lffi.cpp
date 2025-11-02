@@ -255,7 +255,7 @@ static int ffi_funcwrapper_call (lua_State *L) {
   try {
     retval = soup::ffi::call(fw->addr, args, i);
   }
-  catch (std::exception& e) {
+  catch (const std::exception& e) {
     callback_L = nullptr;
     luaL_error(L, "C++ exception: %s", e.what());
   }

@@ -674,7 +674,7 @@ static int l_encrypt (lua_State *L) {
           rsa_priv_encrypt_raw(data, p, q);
         }
       }
-      catch (std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
+      catch (const std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
         data.clear(); data.shrink_to_fit();
         fail = true;
       }
@@ -887,7 +887,7 @@ static int l_decrypt (lua_State *L) {
           rsa_priv_decrypt_raw(data, p, q);
         }
       }
-      catch (std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
+      catch (const std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
         data.clear(); data.shrink_to_fit();
         invalidkey = true;
       }
@@ -952,7 +952,7 @@ static int l_sign (lua_State *L) {
           data = soup::RsaPrivateKey::fromPrimes(*p, *q).sign<soup::sha256>(data).toBinary();
         }
       }
-      catch (std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
+      catch (const std::exception&) {  /* Either "Assertion failed" or "Modular multiplicative inverse does not exist as the numbers are not coprime" */
         data.clear(); data.shrink_to_fit();
         fail = true;
       }

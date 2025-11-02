@@ -104,7 +104,7 @@ static int buffer_append (lua_State *L) {
   try {
     checkbuffer(L, 1)->buffer.append(data, size);
   }
-  catch (std::bad_alloc&) {
+  catch (const std::bad_alloc&) {
     fail = true;
   }
   if (l_unlikely(fail))
@@ -118,7 +118,7 @@ static int buffer_tostring (lua_State *L) {
   try {
     lua_pushlstring(L, (const char*)buf.data(), buf.size());
   }
-  catch (std::bad_alloc&) {
+  catch (const std::bad_alloc&) {
     fail = true;
   }
   if (l_unlikely(fail))
