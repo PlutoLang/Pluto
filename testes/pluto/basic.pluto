@@ -2709,6 +2709,8 @@ do
     data = cat.encode(t)
     t = cat.decode(data, "flat")
     assert(t["Text"] == "Look at this backslash: \\\r\nLook at this quote: \"")
+
+    assert(not pcall(cat.encode, nil))
 end
 do
     local { base64, bigint, crypto } = require"*"
