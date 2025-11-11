@@ -77,6 +77,7 @@ static void cat_encode_aux (lua_State *L, std::string& data, const std::string& 
 }
 
 static int cat_encode (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
   std::string data;
   lua_pushvalue(L, 1);
   cat_encode_aux(L, data);
