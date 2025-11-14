@@ -454,8 +454,7 @@ LUA_API int lua_toboolean (lua_State *L, int idx) {
 }
 
 
-LUA_API int lua_istrue(lua_State *L, int idx) noexcept
-{
+LUA_API int lua_istrue (lua_State *L, int idx) {
   const TValue *o = index2value(L, idx);
   return ttistrue(o);
 }
