@@ -26,6 +26,7 @@
 #include "lua.h"
 #include "lprefix.h"
 #include "lauxlib.h"
+#include "llimits.h"
 #if defined(PLUTO_MEMORY_LIMIT) || defined(PLUTO_PARSER_CACHE)
 #include "lstate.h"
 #endif
@@ -42,12 +43,6 @@
 
 #ifdef PLUTO_LUA_LINKABLE
 #error PLUTO_LUA_LINKABLE may not be defined when building Pluto, only when including the headers in your own software.
-#endif
-
-
-#if !defined(MAX_SIZET)
-/* maximum value for size_t */
-#define MAX_SIZET	((size_t)(~(size_t)0))
 #endif
 
 
@@ -574,10 +569,12 @@ static void newbox (lua_State *L) {
 */
 static size_t newbuffsize (luaL_Buffer *B, size_t sz) {
   size_t newsize = (B->size / 2) * 3;  /* buffer size * 1.5 */
-  if (l_unlikely(MAX_SIZET - sz - 1 < B->n))  /* overflow in (B->n + sz + 1)? */
-    return luaL_error(B->L, "buffer too large");
-  if (newsize < B->n + sz + 1)  /* not big enough? */
+  if (l_unlikely(sz > MAX_SIZE - B->n - 1))
+    return luaL_error(B->L, "resulting string too large");
+  if (newsize < B->n + sz + 1 || newsize > MAX_SIZE) {
+    /* newsize was not big enough or too big */
     newsize = B->n + sz + 1;
+  }
   return newsize;
 }
 

@@ -34,6 +34,7 @@
 
 #include "lualib.h"
 #include "lauxlib.h"
+#include "llimits.h"
 
 
 #ifdef PLUTO_NO_COROLIB

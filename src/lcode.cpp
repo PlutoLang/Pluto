@@ -28,10 +28,6 @@
 #include "lvm.h"
 
 
-/* Maximum number of registers in a Lua function (must fit in 8 bits) */
-#define MAXREGS		255
-
-
 /* (note that expressions VJMP also have jumps.) */
 #define hasjumps(e)	((e)->t != (e)->f)
 
@@ -329,14 +325,14 @@ static void savelineinfo (FuncState *fs, Proto *f, int line) {
   int pc = fs->pc - 1;  /* last instruction coded */
   if (abs(linedif) >= LIMLINEDIFF || fs->iwthabs++ >= MAXIWTHABS) {
     luaM_growvector(fs->ls->L, f->abslineinfo, fs->nabslineinfo,
-                    f->sizeabslineinfo, AbsLineInfo, MAX_INT, "lines");
+                    f->sizeabslineinfo, AbsLineInfo, INT_MAX, "lines");
     f->abslineinfo[fs->nabslineinfo].pc = pc;
     f->abslineinfo[fs->nabslineinfo++].line = line;
     linedif = ABSLINEINFO;  /* signal that there is absolute information */
     fs->iwthabs = 1;  /* restart counter */
   }
   luaM_growvector(fs->ls->L, f->lineinfo, pc, f->sizelineinfo, ls_byte,
-                  MAX_INT, "opcodes");
+                  INT_MAX, "opcodes");
   f->lineinfo[pc] = linedif;
   fs->previousline = line;  /* last line saved */
 }
@@ -381,7 +377,7 @@ int luaK_code (FuncState *fs, Instruction i) {
   Proto *f = fs->f;
   /* put new instruction in code array */
   luaM_growvector(fs->ls->L, f->code, fs->pc, f->sizecode, Instruction,
-                  MAX_INT, "opcodes");
+                  INT_MAX, "opcodes");
   f->code[fs->pc++] = i;
   savelineinfo(fs, f, fs->ls->lastline);
   return fs->pc - 1;  /* index of new instruction */
@@ -464,7 +460,7 @@ static int luaK_codek (FuncState *fs, int reg, int k) {
 void luaK_checkstack (FuncState *fs, int n) {
   int newstack = fs->freereg + n;
   if (newstack > fs->f->maxstacksize) {
-    if (newstack >= MAXREGS)
+    if (newstack > MAX_FSTACK)
       luaX_syntaxerror(fs->ls,
         "function or expression needs too many registers");
     fs->f->maxstacksize = cast_byte(newstack);
@@ -719,6 +715,8 @@ static void const2exp (TValue *v, expdesc *e) {
 */
 void luaK_setreturns (FuncState *fs, expdesc *e, int nresults) {
   Instruction *pc = &getinstruction(fs, e);
+  if (nresults + 1 > MAXARG_C)
+    luaX_syntaxerror(fs->ls, "too many multiple results");
   if (e->k == VCALL)  /* expression is an open function call? */
     SETARG_C(*pc, nresults + 1);
   else if (e->k == VSAFECALL) {
@@ -2020,7 +2018,7 @@ void luaK_settablesize (FuncState *fs, int pc, int ra, int asize, int hsize) {
 ** table (or LUA_MULTRET to add up to stack top).
 */
 void luaK_setlist (FuncState *fs, int base, int nelems, int tostore) {
-  lua_assert(tostore != 0 && tostore <= LFIELDS_PER_FLUSH);
+  lua_assert(tostore != 0);
   if (tostore == LUA_MULTRET)
     tostore = 0;
   if (nelems <= MAXARG_C)
@@ -2060,7 +2058,9 @@ void luaK_finish (FuncState *fs) {
   Proto *p = fs->f;
   for (i = 0; i < fs->pc; i++) {
     Instruction *pc = &p->code[i];
-    lua_assert(i == 0 || isOT(*(pc - 1)) == isIT(*pc));
+    /* avoid "not used" warnings when assert is off (for 'onelua.c') */
+    (void)luaP_isOT; (void)luaP_isIT;
+    lua_assert(i == 0 || luaP_isOT(*(pc - 1)) == luaP_isIT(*pc));
     switch (GET_OPCODE(*pc)) {
       case OP_RETURN0: case OP_RETURN1: {
         if (!(fs->needclose || (p->flag & PF_ISVARARG)))
