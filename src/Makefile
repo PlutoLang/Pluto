@@ -140,11 +140,11 @@ Darwin macos macosx:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX -DLUA_USE_READLINE" SYSLIBS="-lresolv -lreadline"
 
 mingw:
-	$(MAKE) "LUA_T=pluto.exe" "SYSLDFLAGS=-static-libstdc++ -municode" "SYSLIBS=-lws2_32 -lbcrypt" pluto.exe
-	$(MAKE) "LUAC_T=plutoc.exe" "SYSLDFLAGS=-static-libstdc++ -municode" "SYSLIBS=-lws2_32 -lbcrypt" plutoc.exe
+	$(MAKE) "LUA_T=pluto.exe" "SYSLDFLAGS=-static-libstdc++ -municode" "SYSLIBS=-lws2_32 -lbcrypt -ldnsapi" pluto.exe
+	$(MAKE) "LUAC_T=plutoc.exe" "SYSLDFLAGS=-static-libstdc++ -municode" "SYSLIBS=-lws2_32 -lbcrypt -ldnsapi" plutoc.exe
 
 mingwdll:
-	$(MAKE) "LUA_SO=pluto.dll" "SYSCFLAGS=-DLUA_BUILD_AS_DLL" "SYSLIBS=-static-libstdc++ -lws2_32 -lbcrypt -ldnsapi" pluto.dll
+	$(MAKE) "LUA_SO=pluto.dll" "SYSCFLAGS=-DLUA_BUILD_AS_DLL" "SYSLIBS=-static-libstdc++ -lws2_32 -lbcrypt -ldnsapi -ldnsapi" pluto.dll
 
 posix:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX"
