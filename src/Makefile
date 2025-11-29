@@ -35,7 +35,7 @@ CMCFLAGS=
 
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
-PLATS= guess aix bsd freebsd generic linux linux-readline termux termux-readline macosx mingw mingwdll posix solaris
+PLATS= guess aix bsd freebsd generic linux termux macosx mingw mingwdll posix solaris
 
 LUA_A=	libplutostatic.a
 LUA_SO= libpluto.so
@@ -116,28 +116,18 @@ bsd:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-Wl,-E"
 
 FreeBSD NetBSD OpenBSD freebsd:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE -I/usr/include/edit" SYSLIBS="-ledit" CC="cc"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -I/usr/include/edit" SYSLIBS="-ledit" CC="cc"
 
 generic: $(ALL)
 
-Linux linux:	linux-noreadline
-
-linux-noreadline:
+Linux linux:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX" SYSLIBS="-ldl -lresolv"
 
-linux-readline:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE" SYSLIBS="-ldl -lresolv -lreadline"
-
-termux:	termux-noreadline
-
-termux-noreadline:
+termux:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX" SYSLIBS="-ldl"
 
-termux-readline:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE" SYSLIBS="-ldl -lreadline"
-
 Darwin macos macosx:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX -DLUA_USE_READLINE" SYSLIBS="-lresolv -lreadline"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX" SYSLIBS="-lresolv"
 
 mingw:
 	$(MAKE) "LUA_T=pluto.exe" "SYSLDFLAGS=-static-libstdc++ -municode" "SYSLIBS=-lws2_32 -lbcrypt -ldnsapi" pluto.exe

@@ -23,6 +23,7 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "llimits.h"
 
 #include "vendor/Soup/soup/filesystem.hpp"
 #include "vendor/Soup/soup/string.hpp"
