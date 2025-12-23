@@ -675,10 +675,10 @@ static void exchangehashpart (Table *t1, Table *t2) {
   int bitdummy1 = t1->flags & BITDUMMY;
   t1->lsizenode = t2->lsizenode;
   t1->node = t2->node;
-  t1->flags = cast_byte((t1->flags & NOTBITDUMMY) | (t2->flags & BITDUMMY));
+  t1->flags = (t1->flags & NOTBITDUMMY) | (t2->flags & BITDUMMY);
   t2->lsizenode = lsizenode;
   t2->node = node;
-  t2->flags = cast_byte((t2->flags & NOTBITDUMMY) | bitdummy1);
+  t2->flags = (t2->flags & NOTBITDUMMY) | bitdummy1;
 }
 
 
