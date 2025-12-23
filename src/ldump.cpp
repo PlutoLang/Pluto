@@ -108,7 +108,8 @@ static void dumpString (DumpState *D, TString *ts) {
     dumpSize(D, 0);
   else {
     TValue idx;
-    if (luaH_getstr(D->h, ts, &idx) == HOK) {  /* string already saved? */
+    int tag = luaH_getstr(D->h, ts, &idx);
+    if (!tagisempty(tag)) {  /* string already saved? */
       dumpSize(D, 1);  /* reuse a saved string */
       dumpInt(D, ivalue(&idx));  /* index of saved string */
     }
