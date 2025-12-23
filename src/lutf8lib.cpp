@@ -112,7 +112,7 @@ static int utflen (lua_State *L) {
       lua_pushinteger(L, posi + 1);  /* ... and current position */
       return 2;
     }
-    posi = s1 - s;
+    posi = ct_diff2S(s1 - s);
     n++;
   }
   lua_pushinteger(L, n);
@@ -146,7 +146,7 @@ static int codepoint (lua_State *L) {
     s = utf8_decode(s, &code, !lax);
     if (s == NULL)
       luaL_error(L, MSGInvalid);
-    lua_pushinteger(L, code);
+    lua_pushinteger(L, l_castU2S(code));
     n++;
   }
   return n;
@@ -250,7 +250,7 @@ static int iter_aux (lua_State *L, int strict) {
     if (next == NULL || iscontp(next))
       luaL_error(L, MSGInvalid);
     lua_pushinteger(L, l_castU2S(n + 1));
-    lua_pushinteger(L, code);
+    lua_pushinteger(L, l_castU2S(code));
     return 2;
   }
 }
