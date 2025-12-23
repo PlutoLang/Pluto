@@ -1967,7 +1967,7 @@ static void constructor (LexState *ls, expdesc *t, TypeDesc *td) {
      sep -> ',' | ';' */
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
-  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  int pc = luaK_codevABCk(fs, OP_NEWTABLE, 0, 0, 0, 0);
   ls->constructorfieldsets.emplace();
   ConsControl cc;
   luaK_code(fs, 0);  /* space for extra arg. */
@@ -2004,7 +2004,7 @@ static void constructor (LexState *ls, expdesc *t, TypeDesc *td) {
 
 static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc*)>& gen) {
   FuncState* fs = ls->fs;
-  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  int pc = luaK_codevABCk(fs, OP_NEWTABLE, 0, 0, 0, 0);
   ConsControl cc;
   luaK_code(fs, 0);  /* space for extra arg. */
   cc.na = cc.nh = cc.tostore = 0;
@@ -2022,7 +2022,7 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
 
 static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc *key, expdesc *val)>& gen) {
   FuncState* fs = ls->fs;
-  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  int pc = luaK_codevABCk(fs, OP_NEWTABLE, 0, 0, 0, 0);
   ConsControl cc;
   luaK_code(fs, 0);  /* space for extra arg. */
   cc.na = cc.nh = cc.tostore = 0;
@@ -2205,7 +2205,7 @@ static void classexpr (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
   int line = ls->getLineNumber();
   testnext2(ls, TK_BEGIN, TK_DO);
-  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  int pc = luaK_codevABCk(fs, OP_NEWTABLE, 0, 0, 0, 0);
   ls->constructorfieldsets.emplace();
   ConsControl cc;
   luaK_code(fs, 0);  /* space for extra arg. */
@@ -2585,7 +2585,7 @@ static void namedvararg (LexState *ls, TString *varargname) {
   luaX_next(ls);
 
   FuncState *fs = ls->fs;
-  int pc = luaK_codeABC(fs, OP_NEWTABLE, 0, 0, 0);
+  int pc = luaK_codevABCk(fs, OP_NEWTABLE, 0, 0, 0, 0);
   luaK_code(fs, 0);
   expdesc t;
   init_exp(&t, VNONRELOC, fs->freereg);
