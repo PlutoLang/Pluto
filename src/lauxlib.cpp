@@ -570,7 +570,7 @@ static void newbox (lua_State *L) {
 static size_t newbuffsize (luaL_Buffer *B, size_t sz) {
   size_t newsize = (B->size / 2) * 3;  /* buffer size * 1.5 */
   if (l_unlikely(sz > MAX_SIZE - B->n - 1))
-    return luaL_error(B->L, "resulting string too large");
+    return cast_sizet(luaL_error(B->L, "resulting string too large"));
   if (newsize < B->n + sz + 1 || newsize > MAX_SIZE) {
     /* newsize was not big enough or too big */
     newsize = B->n + sz + 1;
@@ -756,7 +756,7 @@ LUALIB_API void luaL_unref (lua_State *L, int t, int ref) {
 */
 
 typedef struct LoadF {
-  int n;  /* number of pre-read characters */
+  unsigned n;  /* number of pre-read characters */
   FILE *f;  /* file being read */
   char buff[BUFSIZ];  /* area for reading file */
 } LoadF;
@@ -947,7 +947,7 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
   }
 #endif
   if (c != EOF)
-    lf.buff[lf.n++] = c;  /* 'c' is the first character of the stream */
+    lf.buff[lf.n++] = cast_char(c);  /* 'c' is the first character */
   errno = 0;
 #ifdef PLUTO_PARSER_CACHE
   parser_emitted_warnings = false;
@@ -1156,7 +1156,7 @@ LUALIB_API void luaL_addgsub (luaL_Buffer *b, const char *s,
   const char *wild;
   size_t l = strlen(p);
   while ((wild = strstr(s, p)) != NULL) {
-    luaL_addlstring(b, s, wild - s);  /* push prefix */
+    luaL_addlstring(b, s, ct_diff2sz(wild - s));  /* push prefix */
     luaL_addstring(b, r);  /* push replacement in place of pattern */
     s = wild + l;  /* continue after 'p' */
   }
