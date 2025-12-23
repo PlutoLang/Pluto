@@ -323,8 +323,8 @@ static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
 }
 
 
-static void checklimit (FuncState *fs, int v, int l, const char *what) {
-  if (v > l) errorlimit(fs, l, what);
+void luaY_checklimit (FuncState *fs, int v, int l, const char *what) {
+  if (l_unlikely(v > l)) errorlimit(fs, l, what);
 }
 
 
@@ -1036,7 +1036,7 @@ static int searchupvalue (FuncState *fs, TString *name) {
 static Upvaldesc *allocupvalue (FuncState *fs) {
   Proto *f = fs->f;
   int oldsize = f->sizeupvalues;
-  checklimit(fs, fs->nups + 1, MAXUPVAL, "upvalues");
+  luaY_checklimit(fs, fs->nups + 1, MAXUPVAL, "upvalues");
   luaM_growvector(fs->ls->L, f->upvalues, fs->nups, f->sizeupvalues,
                   Upvaldesc, MAXUPVAL, "upvalues");
   while (oldsize < f->sizeupvalues)
@@ -1774,7 +1774,7 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   }
   else  /* ls->t.token == '[' */
     yindex(ls, &key);
-  checklimit(fs, cc->nh, INT_MAX, "items in a constructor");
+  luaY_checklimit(fs, cc->nh, INT_MAX, "items in a constructor");
   if (for_class)
     UNUSED(gettypehint(ls));
   cc->nh++;
