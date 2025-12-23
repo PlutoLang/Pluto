@@ -949,18 +949,15 @@ static void init_var (FuncState *fs, expdesc *e, int vidx) {
 static void check_readonly (LexState *ls, expdesc *e) {
   FuncState *fs = ls->fs;
   TString *varname = NULL;  /* to be set if variable is const */
-  bool warn;
   switch (e->k) {
     case VCONST: {
       varname = ls->dyd->actvar.arr[e->u.info].vd.name;
-      warn = false;
       break;
     }
     case VLOCAL: {
       Vardesc *vardesc = getlocalvardesc(fs, e->u.var.vidx);
       if (vardesc->vd.kind != VDKREG) {  /* not a regular variable? */
         varname = vardesc->vd.name;
-        warn = (vardesc->vd.kind == RDKWOW);
       }
       break;
     }
@@ -968,7 +965,6 @@ static void check_readonly (LexState *ls, expdesc *e) {
       Upvaldesc *up = &fs->f->upvalues[e->u.info];
       if (up->kind != VDKREG) {
         varname = up->name;
-        warn = (up->kind == RDKWOW);
       }
       break;
     }
@@ -976,14 +972,9 @@ static void check_readonly (LexState *ls, expdesc *e) {
       return;  /* other cases cannot be read-only */
   }
   if (varname) {
-    if (warn) {
-      throw_warn(ls, "reassignment of for loop control variable is deprecated", WT_DEPRECATED);
-    }
-    else {
-      const char *msg = luaO_fmt(ls->L, "attempt to reassign constant '%s'", getstr(varname));
-      const char *here = "this variable is constant, and cannot be reassigned.";
-      throwerr(ls, luaO_fmt(ls->L, msg, getstr(varname)), here);
-    }
+    const char *msg = luaO_fmt(ls->L, "attempt to reassign constant '%s'", getstr(varname));
+    const char *here = "this variable is constant, and cannot be reassigned.";
+    throwerr(ls, luaO_fmt(ls->L, msg, getstr(varname)), here);
   }
 }
 
@@ -5071,7 +5062,7 @@ static void fornum (LexState *ls, TString *varname, tdn_t *nprop, TypeHint *prop
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
-  new_localvarkind(ls, varname, RDKWOW);  /* [Pluto] warn on write in preparation for Lua 5.5 */
+  new_localvarkind(ls, varname, RDKCONST);  /* control variable */
   checknext(ls, '=');
   exp1(ls);  /* initial value */
   checknext(ls, ',');
@@ -5100,7 +5091,7 @@ static void forlist (LexState *ls, TString *indexname, tdn_t *nprop, TypeHint *p
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
   /* create declared variables */
-  new_localvarkind(ls, indexname, RDKWOW);  /* [Pluto] warn on write in preparation for Lua 5.5 */
+  new_localvarkind(ls, indexname, RDKCONST);  /* control variable */
   while (testnext(ls, ',')) {
     new_localvar(ls, str_checkname(ls));
     nvars++;
@@ -5127,8 +5118,7 @@ static void forvlist (LexState *ls, tdn_t *nprop, TypeHint *prop) {
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
-  /* create variable for key */
-  new_localvar(ls, luaS_newliteral(ls->L, "(for state)"), {}, true);
+  new_localvarkind(ls, luaS_newliteral(ls->L, "(for state)"), RDKCONST, ls->getLineNumber(), {}, true, true);  /* control variable */
   /* create variable for value */
   int vidx = new_localvar(ls, luaS_newliteral(ls->L, "(for state)"));
   nvars++;
@@ -5581,7 +5571,7 @@ static void localstat (LexState *ls, bool isexport = false) {
   FuncState *fs = ls->fs;
   int toclose = -1;  /* index of to-be-closed variable (if any) */
   Vardesc *var;  /* last variable */
-  int vidx, kind;  /* index and kind of last variable */
+  int vidx;  /* index of last variable */
   int nvars = 0;
   int nexps;
   expdesc e;
@@ -5592,7 +5582,7 @@ static void localstat (LexState *ls, bool isexport = false) {
     TString* name = str_checkname(ls, N_OVERRIDABLE);
     vidx = new_localvar(ls, name, line, gettypehint(ls), false);
     st.variable_names.emplace(name);
-    kind = isexport ? RDKCONST : getlocalattribute(ls);
+    int kind = isexport ? RDKCONST : getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
