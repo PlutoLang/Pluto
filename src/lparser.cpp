@@ -513,7 +513,8 @@ static void codename (LexState *ls, expdesc *e, int flags = 0) {
 ** Register a new local variable in the active 'Proto' (for debug
 ** information).
 */
-static int registerlocalvar (LexState *ls, FuncState *fs, TString *varname) {
+static short registerlocalvar (LexState *ls, FuncState *fs,
+                               TString *varname) {
   Proto *f = fs->f;
   int oldsize = f->sizelocvars;
   luaM_growvector(ls->L, f->locvars, fs->ndebugvars, f->sizelocvars,
@@ -804,11 +805,11 @@ static TypeHint& get_global_prop(LexState* ls, const TString* name) {
 ** register. For that, search for the highest variable below that level
 ** that is in a register and uses its register index ('ridx') plus one.
 */
-static int reglevel (FuncState *fs, int nvar) {
+static lu_byte reglevel (FuncState *fs, int nvar) {
   while (nvar-- > 0) {
     Vardesc *vd = getlocalvardesc(fs, nvar);  /* get previous variable */
     if (vd->vd.kind != RDKCTC && vd->vd.kind != RDKENUM)  /* is in a register? */
-      return vd->vd.ridx + 1;
+      return cast_byte(vd->vd.ridx + 1);
   }
   return 0;  /* no variables in registers */
 }
@@ -818,7 +819,7 @@ static int reglevel (FuncState *fs, int nvar) {
 ** Return the number of variables in the register stack for the given
 ** function.
 */
-int luaY_nvarstack (FuncState *fs) {
+lu_byte luaY_nvarstack (FuncState *fs) {
   return reglevel(fs, fs->nactvar);
 }
 
@@ -893,7 +894,7 @@ static void checkforshadowing (LexState *ls, FuncState *fs, const std::unordered
 ** Create a new local variable with the given 'name' and given 'kind'.
 ** Return its index in the function.
 */
-static int new_localvarkind (LexState *ls, TString *name, int kind, int line, TypeHint hint = {}, bool check_globals = true, bool used = false) {
+static int new_localvarkind (LexState* ls, TString* name, lu_byte kind, int line, TypeHint hint = {}, bool check_globals = true, bool used = false) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -913,7 +914,7 @@ static int new_localvarkind (LexState *ls, TString *name, int kind, int line, Ty
   return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
-static int new_localvarkind (LexState *ls, TString *name, int kind) {
+static int new_localvarkind (LexState *ls, TString *name, lu_byte kind) {
   return new_localvarkind(ls, name, kind, ls->getLineNumber());
 }
 
@@ -989,7 +990,7 @@ static void adjustlocalvars (LexState *ls, int nvars) {
   for (i = 0; i < nvars; i++) {
     int vidx = fs->nactvar++;
     Vardesc *var = getlocalvardesc(fs, vidx);
-    var->vd.ridx = reglevel++;
+    var->vd.ridx = cast_byte(reglevel++);
     var->vd.pidx = registerlocalvar(ls, fs, var->vd.name);
   }
 }
@@ -1173,7 +1174,7 @@ static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
   if (needed > 0)
     luaK_reserveregs(fs, needed);  /* registers for extra values */
   else  /* adding 'needed' is actually a subtraction */
-    fs->freereg += needed;  /* remove extra values */
+    fs->freereg = cast_byte(fs->freereg + needed);  /* remove extra values */
 }
 
 
@@ -1382,7 +1383,7 @@ static void leaveblock (FuncState *fs) {
   BlockCnt *bl = fs->bl;
   LexState *ls = fs->ls;
   int hasclose = 0;
-  int stklevel = reglevel(fs, bl->nactvar);  /* level outside the block */
+  lu_byte stklevel = reglevel(fs, bl->nactvar);  /* level outside the block */
   removevars(fs, bl->nactvar);  /* remove block locals */
   lua_assert(bl->nactvar == fs->nactvar);  /* back to level on entry */
   if (bl->type != BlockType::BT_DEFAULT)  /* has to fix pending breaks / continues? */
@@ -1751,7 +1752,7 @@ static void expr_propagate (LexState *ls, expdesc *v, TypeHint& t);
 static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   /* recfield -> (NAME | '['exp']') = exp */
   FuncState *fs = ls->fs;
-  auto reg = ls->fs->freereg;
+  lu_byte reg = ls->fs->freereg;
   expdesc tab, key, val;
   TString *name = nullptr;
   if (ls->t.token == TK_NAME) {
@@ -1954,7 +1955,7 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
 static int maxtostore (FuncState *fs) {
   int numfreeregs = MAX_FSTACK - fs->freereg;
   if (numfreeregs >= 160)  /* "lots" of registers? */
-    return numfreeregs / 5u;  /* use up to 1/5 of them */
+    return numfreeregs / 5;  /* use up to 1/5 of them */
   else if (numfreeregs >= 80)  /* still "enough" registers? */
     return 10;  /* one 'SETLIST' instruction for each 10 values */
   else  /* save registers for potential more nesting */
@@ -3001,8 +3002,9 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
   }
   init_exp(f, VCALL, luaK_codeABC(fs, OP_CALL, base, nparams+1, 2));
   luaK_fixline(fs, line);
-  fs->freereg = base+1;  /* call remove function and arguments and leaves
-                            (unless changed) one result */
+  /* call removes function and arguments and leaves one result (unless
+     changed later) */
+  fs->freereg = cast_byte(base + 1);
   ls->funcargsstates.pop();
 }
 
@@ -4664,7 +4666,7 @@ struct LHS_assign {
 */
 static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
   FuncState *fs = ls->fs;
-  int extra = fs->freereg;  /* eventual position to save local variable */
+  lu_byte extra = fs->freereg;  /* eventual position to save local variable */
   int conflict = 0;
   for (; lh; lh = lh->prev) {  /* check all previous assignments */
     if (vkisindexed(lh->v.k)) {  /* assignment to table field? */
@@ -5434,7 +5436,7 @@ static void localfunc (LexState *ls, bool isexport = false) {
 }
 
 
-static int getlocalattribute (LexState *ls) {
+static lu_byte getlocalattribute (LexState *ls) {
   /* ATTRIB -> ['<' Name '>'] */
   if (testnext(ls, '<')) {
     TString *ts = str_checkname(ls);
@@ -5576,7 +5578,7 @@ static void localstat (LexState *ls, bool isexport = false) {
     TString* name = str_checkname(ls, N_OVERRIDABLE);
     vidx = new_localvar(ls, name, line, gettypehint(ls), false);
     st.variable_names.emplace(name);
-    int kind = isexport ? RDKCONST : getlocalattribute(ls);
+    lu_byte kind = isexport ? RDKCONST : getlocalattribute(ls);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
