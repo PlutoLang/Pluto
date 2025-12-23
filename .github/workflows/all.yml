@@ -44,8 +44,8 @@ jobs:
         with:
           name: "Linux (X64) - .deb Package"
           path: pluto.deb
-  macos:
-    runs-on: macos-13
+  macos-x64:
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - run: php scripts/compile.php clang
