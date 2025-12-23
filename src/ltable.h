@@ -20,7 +20,7 @@
 ** may have any of these metamethods. (First access that fails after the
 ** clearing will set the bit again.)
 */
-#define invalidateTMcache(t)	((t)->flags &= cast_byte(~maskflags))
+#define invalidateTMcache(t)	((t)->flags &= ~maskflags)
 
 
 /*
