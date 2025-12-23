@@ -595,16 +595,11 @@ TValue *index2value (lua_State *L, int idx);
 void addquoted (luaL_Buffer *b, const char *s, size_t len, bool must_be_valid_utf8);
 
 struct FuncDumpWriter {
-  int init;
-  luaL_Buffer B;
+  std::string& buf;
 
   static int write (lua_State *L, const void *b, size_t size, void *ud) {
     auto state = (FuncDumpWriter*)ud;
-    if (!state->init) {
-      state->init = 1;
-      luaL_buffinit(L, &state->B);
-    }
-    luaL_addlstring(&state->B, (const char *)b, size);
+    state->buf.append((const char*)b, size);
     return 0;
   }
 };
@@ -661,33 +656,36 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
     }
 
     case LUA_TFUNCTION: {
-      /* collect function dump */
-      FuncDumpWriter state;
-      state.init = 0;
-      if (l_likely(lua_dump(L, FuncDumpWriter::write, &state, 0) == 0)) {
-        luaL_pushresult(&state.B);
-        size_t l;
-        const char *s = lua_tolstring(L, -1, &l);
-        lua_pop(L, 1);
-        /* we have it as a single string now */
+      lua_checkstack(L, 3);
+      /* stack: function */
+      FuncDumpWriter state{ *pluto_newclassinst(L, std::string) };
+      /* stack: function, std::string */
+      lua_pushvalue(L, -2);
+      /* stack: function, std::string, function */
+      if (!lua_iscfunction(L, -1) && lua_dump(L, FuncDumpWriter::write, &state, 0) == 0) {
+        /* stack: function, std::string, function */
         luaL_Buffer b;
         luaL_buffinit(L, &b);
+        /* stack: function, std::string, function, buffer */
         if (!is_export) {
           luaL_addstring(&b, "function ");
         }
         else {
           luaL_addstring(&b, "load");
         }
-        addquoted(&b, s, l, true);
+        addquoted(&b, state.buf.data(), state.buf.size(), true);
         luaL_pushresult(&b);
+        /* stack: function, std::string, function, string */
         dump.append(lua_tostring(L, -1));
-        lua_pop(L, 1);
+        lua_pop(L, 3);
         return;
       }
       else if (is_export)
         luaL_error(L, "Can't export C function");
+      /* stack: function, std::string, function */
       dump.append(luaL_tolstring(L, -1, NULL));
-      lua_pop(L, 1);
+      /* stack: function, std::string, function, string */
+      lua_pop(L, 3);
       return;
     }
 
