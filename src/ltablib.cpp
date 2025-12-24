@@ -703,7 +703,7 @@ static int tsize (lua_State *L) {
 
   unsigned int size = luaH_gethsize(t);
   if (!hashonly)
-    size += luaH_realasize(t);
+    size += t->asize;
 
   lua_pushinteger(L, size);
   return 1;
