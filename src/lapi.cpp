@@ -1119,9 +1119,6 @@ LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {
 */
 
 
-#define MAXRESULTS	250
-
-
 #define checkresults(L,na,nr) \
      (api_check(L, (nr) == LUA_MULTRET \
                || (L->ci->top.p - L->top.p >= (nr) - (na)), \
