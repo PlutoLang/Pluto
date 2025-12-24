@@ -1370,9 +1370,15 @@ lua_Unsigned luaH_getn (Table *t) {
 ** Returns the size of the table's hash part.
 */
 LUAI_FUNC unsigned luaH_gethsize (const Table *t) {
-  unsigned int nums[MAXABITS + 1];
-  unsigned int na;
-  return numusehash(t, nums, &na);
+  unsigned totaluse = 0;
+  unsigned i = sizenode(t);
+  while (i--) {
+    Node *n = &t->node[i];
+    if (!isempty(gval(n))) {
+      totaluse++;
+    }
+  }
+  return totaluse;
 }
 
 
