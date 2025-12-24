@@ -1776,7 +1776,7 @@ do
         end
         local function test_func_with_callonce()
             local t = { func_with_callonce() }
-            assert(#t == 2)
+            assert(t:size() == 2)
             assert(t[1] == nil)
             assert(t[2] == 2)
         end
