@@ -760,17 +760,16 @@ typedef union Node {
 
 
 /* copy a value into a key */
-#define setnodekey(L,node,obj) \
-    { Node *n_=(node); const TValue *io_=(obj); \
-      n_->u.key_val = io_->value_; n_->u.key_tt = io_->tt_; \
-      checkliveness(L,io_); }
+#define setnodekey(node,obj) \
+	{ Node *n_=(node); const TValue *io_=(obj); \
+	  n_->u.key_val = io_->value_; n_->u.key_tt = io_->tt_; }
 
 
 /* copy a value from a key */
 #define getnodekey(L,obj,node) \
-    { TValue *io_=(obj); const Node *n_=(node); \
-      io_->value_ = n_->u.key_val; io_->tt_ = n_->u.key_tt; \
-      checkliveness(L,io_); }
+	{ TValue *io_=(obj); const Node *n_=(node); \
+	  io_->value_ = n_->u.key_val; io_->tt_ = n_->u.key_tt; \
+	  checkliveness(L,io_); }
 
 
 
