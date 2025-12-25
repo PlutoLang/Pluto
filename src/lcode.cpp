@@ -1418,7 +1418,7 @@ void luaK_self (FuncState *fs, expdesc *e, expdesc *key) {
   else {  /* cannot use 'self' opcode; use move+gettable */
     luaK_exp2anyreg(fs, key);  /* put method name in a register */
     luaK_codeABC(fs, OP_MOVE, base + 1, ereg, 0);  /* copy self to base+1 */
-    luaK_codeABC(fs, OP_GETTABLE, base, ereg, key->u.info);  /* get method */
+    luaK_codeABCk(fs, OP_GETTABLE, base, ereg, key->u.info, 1);  /* get method */
   }
   freeexp(fs, key);
 }
