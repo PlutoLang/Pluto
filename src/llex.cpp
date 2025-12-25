@@ -227,21 +227,20 @@ l_noret luaX_syntaxerror (LexState *ls, const char *msg) {
 
 
 /*
-** Creates a new string and anchors it in scanner's table so that it
-** will not be collected until the end of the compilation; by that time
-** it should be anchored somewhere. It also internalizes long strings,
-** ensuring there is only one copy of each unique string.
+** Anchors a string in scanner's table so that it will not be collected
+** until the end of the compilation; by that time it should be anchored
+** somewhere. It also internalizes long strings, ensuring there is only
+** one copy of each unique string.
 */
-TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
+static TString *anchorstr (LexState *ls, TString *ts) {
   lua_State *L = ls->L;
-  TString *ts = luaS_newlstr(L, str, l);  /* create new string */
   TValue oldts;
   int tag = luaH_getstr(ls->h, ts, &oldts);
   if (!tagisempty(tag))  /* string already present? */
     return tsvalue(&oldts);  /* use stored value */
   else {  /* create a new entry */
     TValue *stv = s2v(L->top.p++);  /* reserve stack space for string */
-    setsvalue(L, stv, ts);  /* temporarily anchor the string */
+    setsvalue(L, stv, ts);  /* push (anchor) the string on the stack */
     luaH_set(L, ls->h, stv, stv);  /* t[string] = string */
     /* table is not a metatable, so it does not need to invalidate cache */
     luaC_checkGC(L);
@@ -253,6 +252,14 @@ TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
 
 LUAI_FUNC TString* luaX_newstring (LexState *ls, const char *str) {
   return luaX_newstring(ls, str, strlen(str));
+}
+
+
+/*
+** Creates a new string and anchors it in scanner's table.
+*/
+TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
+  return anchorstr(ls, luaS_newlstr(ls->L, str, l));
 }
 
 
@@ -1117,13 +1124,14 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           do {
             save_and_next(ls);
           } while (lislalnum(ls->current));
-          ts = luaX_newstring(ls, luaZ_buffer(ls->buff),
-                                  luaZ_bufflen(ls->buff));
-          seminfo->ts = ts;
+          /* find or create string */
+          ts = luaS_newlstr(ls->L, luaZ_buffer(ls->buff),
+              luaZ_bufflen(ls->buff));
           ls->appendLineBuff(getstr(ts));
-          if (isreserved(ts))
+          if (isreserved(ts))   /* reserved word? */
             return ts->extra - 1 + FIRST_RESERVED;
           else {
+            seminfo->ts = anchorstr(ls, ts);
             return TK_NAME;
           }
         } else {  /* needed to emulate default check because _ is fairly multi-purpose. */
