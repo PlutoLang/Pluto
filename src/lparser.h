@@ -456,7 +456,7 @@ typedef struct Labeldesc {
   int pc;  /* position in code */
   int line;  /* line where it appeared */
   lu_byte nactvar;  /* number of active variables in that position */
-  lu_byte close : 1; /* goto that escapes upvalues */
+  lu_byte close : 1; /* true for goto that escapes upvalues */
   lu_byte special : 1; /* This is a special value for break or continue, the name is then a pointer to a BlockCnt */
 } Labeldesc;
 
@@ -505,9 +505,7 @@ typedef struct FuncState {
   lu_byte nups;  /* number of upvalues */
   lu_byte freereg;  /* first free register */
   lu_byte iwthabs;  /* instructions issued since last absolute line info */
-  lu_byte needclose : 1;  /* function needs to close upvalues when returning */
-  lu_byte istrybody : 1; /* This is a function handling the try body */
-  lu_byte seenrets : 4; /* Type of returns the function has seen */
+  lu_byte needclose;  /* function needs to close upvalues when returning */
   short pinnedreg;  /* [Pluto] index of register that may not be free'd or -1 */
 } FuncState;
 
