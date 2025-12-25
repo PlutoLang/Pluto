@@ -937,8 +937,6 @@
     #define PLUTO_COMPATIBLE_CLASS
     #define PLUTO_COMPATIBLE_PARENT
     #define PLUTO_COMPATIBLE_EXPORT
-    #define PLUTO_COMPATIBLE_TRY
-    #define PLUTO_COMPATIBLE_CATCH
 #endif
 
 // If defined, Pluto's automatic keyword detection will more aggressively disable keywords if they're not used exactly as expected.

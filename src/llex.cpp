@@ -82,8 +82,8 @@ static const char *const luaX_tokens [] = {
     "in", "local", "nil", "not", "or", "repeat",
     "case", "default", "as", "begin", "extends", "instanceof",
     "pluto_use",
-    "pluto_switch", "pluto_continue", "pluto_enum", "pluto_new", "pluto_class", "pluto_parent", "pluto_export", "pluto_try", "pluto_catch",
-          "switch",       "continue",       "enum",       "new",       "class",       "parent",       "export",       "try",       "catch",
+    "pluto_switch", "pluto_continue", "pluto_enum", "pluto_new", "pluto_class", "pluto_parent", "pluto_export",
+          "switch",       "continue",       "enum",       "new",       "class",       "parent",       "export",
     "global",
 #ifdef PLUTO_PARSER_SUGGESTIONS
     "pluto_suggest_0", "pluto_suggest_1",

@@ -109,11 +109,12 @@ local pointed_at = ffi.new("PointedAt")
 local points_at = ffi.new("PointsAt")
 points_at.target = pointed_at
 
-try
-    lib:cdef[[void non_existent();]]
-    assert(false) -- unreachable, cdef should throw
-catch e then
-    assert("could not find" in e)
+do
+    local ok, err = pcall(|| -> do
+        lib:cdef[[void non_existent();]]
+    end)
+    assert(not ok)
+    assert("could not find" in err)
 end
 
 ffi.cdef[[
@@ -171,13 +172,13 @@ assert(ffi.read(pOut) == "Hello, world!")
 if ffi.callback then
     print "Testing FFI callbacks."
     local cb
-    try
+    xpcall(|| -> do
         cb = ffi.callback("i32", "i32", function(val)
             return val + 69
         end)
-    catch _ then
+    end, || -> do
         print("Failed to allocate FFI callback. This is okay-ish, we'll just not test this functionality.")
-    end
+    end)
     if cb then
         lib:wrap("void", "set_cb", "ptr")(cb)
         assert(lib:wrap("i32", "call_cb", "i32")(42) == 42 + 69)
@@ -207,12 +208,11 @@ if ffi.callback then
         end)
         lib:wrap("void", "set_cb", "ptr")(cb)
         assert(cb:callcount() == 0)
-        try
+        local ok, err = pcall(|| -> do
             lib:wrap("i32", "call_cb", "i32")(42)
-            error()
-        catch e then
-            assert("oops" in e)
-        end
+        end)
+        assert(not ok)
+        assert("oops" in err)
         assert(cb:callcount() == 1)
     end
 else
