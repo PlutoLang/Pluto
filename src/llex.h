@@ -45,8 +45,8 @@ enum RESERVED {
   TK_GOTO, TK_IF, TK_IN, TK_LOCAL, TK_NIL, TK_NOT, TK_OR, TK_REPEAT,
   TK_CASE, TK_DEFAULT, TK_AS, TK_BEGIN, TK_EXTENDS, TK_INSTANCEOF, // New narrow keywords.
   TK_PUSE, // New compatibility keywords.
-  TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT, TK_PTRY, TK_PCATCH,
-  TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, TK_TRY, TK_CATCH, // New non-compatible keywords.
+  TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT,
+  TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, // New non-compatible keywords.
   TK_GLOBAL, // New optional keywords.
 #ifdef PLUTO_PARSER_SUGGESTIONS
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
@@ -74,7 +74,7 @@ enum RESERVED {
 #define LAST_RESERVED TK_WHILE
 
 static_assert(TK_PNEW + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_NEW);
-static_assert(TK_PCATCH + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_CATCH);
+static_assert(TK_PEXPORT + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_EXPORT);
 static_assert(TK_PSWITCH + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_SWITCH);
 
 #define END_COMPAT FIRST_NON_COMPAT
@@ -522,7 +522,6 @@ struct LexState {
   KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
   bool nodiscard = false;
   bool used_walrus = false;
-  bool used_try = false;
   std::unordered_map<int, int> uninformed_reserved{}; // When a reserved word is intelligently disabled for compatibility, it is added to this map. (token, line)
   std::unordered_map<const TString*, Macro> macros{};  /* used during preprocessor pass */
   std::unordered_map<const TString*, std::vector<Token>> macro_args{};  /* used during preprocessor pass */

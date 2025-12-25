@@ -2053,6 +2053,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_CLOSE) {
         StkId ra = RA(i);
+        lua_assert(!GETARG_B(i));  /* 'close must be alive */
         vmDumpInit();
         vmDumpAddA();
         vmDumpOut ("; close TBC upvalues");

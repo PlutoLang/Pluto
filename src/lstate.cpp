@@ -456,18 +456,6 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, unsigned seed) {
 #else
   g->have_preference_export = false;
 #endif
-#ifdef PLUTO_COMPATIBLE_TRY
-  g->have_preference_try = true;
-  g->preference_try = false;
-#else
-  g->have_preference_try = false;
-#endif
-#ifdef PLUTO_COMPATIBLE_CATCH
-  g->have_preference_catch = true;
-  g->preference_catch = false;
-#else
-  g->have_preference_catch = false;
-#endif
 #ifdef PLUTO_ETL_ENABLE
   g->deadline = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() + PLUTO_ETL_NANOS;
 #endif

@@ -356,10 +356,6 @@ typedef struct global_State {
   bool preference_parent : 1;
   bool have_preference_export : 1;
   bool preference_export : 1;
-  bool have_preference_try : 1;
-  bool preference_try : 1;
-  bool have_preference_catch : 1;
-  bool preference_catch : 1;
 #endif
 #ifdef PLUTO_ETL_ENABLE
   std::time_t deadline;  /* internal use only; do not use this in your own code. */
@@ -383,10 +379,6 @@ typedef struct global_State {
     preference_parent = !b;
     have_preference_export = true;
     preference_export = !b;
-    have_preference_try = true;
-    preference_try = !b;
-    have_preference_catch = true;
-    preference_catch = !b;
   }
 } global_State;
 
