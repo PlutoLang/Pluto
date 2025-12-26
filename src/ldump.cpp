@@ -257,13 +257,12 @@ static void dumpFunction (DumpState *D, const Proto *f) {
 
 static void dumpHeader (DumpState *D) {
   dumpLiteral(D, LUA_SIGNATURE);
+  dumpByte(D, LUAC_VERSION);
   if (D->lua_vm_compatible) {
-    dumpByte(D, LUAC_VERSION);
     dumpByte(D, LUAC_FORMAT);
   }
   else {
-    dumpByte(D, D->min_required_version);
-    dumpByte(D, 'P');
+    dumpByte(D, 'P' | D->min_required_version);
   }
   dumpLiteral(D, LUAC_DATA);
   dumpByte(D, sizeof(Instruction));
