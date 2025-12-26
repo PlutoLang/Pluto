@@ -1684,7 +1684,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         setobj2s(L, ra + 1, rb);
         luaV_fastget(rb, key, s2v(ra), luaH_getshortstr, tag);
         if (tagisempty(tag))
-          Protect(luaV_finishget(L, rb, rc, ra, tag, true));
+          Protect(luaV_finishget(L, rb, rc, ra, tag, GETARG_k(i)));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddB();
