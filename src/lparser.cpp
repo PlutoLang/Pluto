@@ -5914,6 +5914,8 @@ static void ret_int(FuncState* fs, lua_Integer val) {
 }
 
 static void trystat (LexState *ls) {
+  throw_warn(ls, "try/catch is deprecated", "use pcall or xpcall instead", WT_DEPRECATED);
+
   BlockCnt trybl;
   expdesc ex;
   FuncState new_fs;
