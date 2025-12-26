@@ -364,14 +364,14 @@ static void fchecksize (LoadState *S, size_t size, const char *tname) {
 static void checkHeader (LoadState *S) {
   /* skip 1st char (already read and checked) */
   checkliteral(S, &LUA_SIGNATURE[1], "not a binary chunk");
-  auto version = loadByte(S);
+  if (loadByte(S) != LUAC_VERSION)
+   error(S, "version mismatch");
   auto format = loadByte(S);
   if (format == LUAC_FORMAT) {
-    if (version != LUAC_VERSION)
-     error(S, "version mismatch");
+    /* plain lua */
   }
-  else if (format == 'P') {
-    if (version > 0)
+  else if ((format & 0xF0) == 'P') {
+    if ((format & 0x0F) > 0)
       error(S, "version mismatch");
   }
   else
