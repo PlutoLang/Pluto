@@ -1500,10 +1500,11 @@ static void close_func (LexState *ls) {
 }
 
 
-
-/*============================================================*/
-/* GRAMMAR RULES */
-/*============================================================*/
+/*
+** {======================================================================
+** GRAMMAR RULES
+** =======================================================================
+*/
 
 
 /*
@@ -1982,19 +1983,19 @@ static void constructor (LexState *ls, expdesc *t, TypeDesc *td) {
   init_exp(t, VNONRELOC, fs->freereg);  /* table will be at stack top */
   luaK_reserveregs(fs, 1);
   init_exp(&cc.v, VVOID, 0);  /* no value (yet) */
-  checknext(ls, '{');
+  checknext(ls, '{' /*}*/);
   cc.maxtostore = maxtostore(fs);
   do {
     lua_assert(cc.v.k == VVOID || cc.tostore > 0);
-    if (ls->t.token == '}') break;
+    if (ls->t.token == /*{*/ '}') break;
     closelistfield(fs, &cc);
     field(ls, &cc);
   } while (testnext(ls, ',') || testnext(ls, ';'));
   if (ls->t.token == TK_NAME || ls->t.token == TK_FUNCTION || ls->t.token == '[' || ls->t.isSimple()) {
-    check_match(ls, '}', '{', line, "Ensure that you've delimited the previous field with ',' or ';'.");
+    check_match(ls, /*{*/ '}', '{' /*}*/, line, "Ensure that you've delimited the previous field with ',' or ';'.");
   }
   else {
-    check_match(ls, '}', '{', line);
+    check_match(ls, /*{*/ '}', '{' /*}*/, line);
   }
   lastlistfield(fs, &cc);
   luaK_settablesize(fs, pc, t->u.reg, cc.na, cc.nh);
@@ -2617,6 +2618,8 @@ static bool arereturnscompatible (tdn_t nhint, TypeHint rethint[MAX_TYPED_RETURN
   return true;
 }
 
+/* }====================================================================== */
+
 
 static void hintarraytostring (std::string& str, tdn_t nhint, TypeHint hints[MAX_TYPED_RETURNS]) {
   lua_assert(nhint != TDN_NOINFO);
@@ -2923,7 +2926,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
       check_match(ls, ')', '(', line);
       break;
     }
-    case '{': {  /* funcargs -> constructor */
+    case '{' /*}*/: {  /* funcargs -> constructor */
       auto hint = new_typehint(ls);
       hint->descs[0].type = VT_TABLE;
       constructor(ls, &args, &hint->descs[0]);
@@ -3783,7 +3786,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, tdn_t *npr
         method_call_funcargs(ls, v);
         break;
       }
-      case '(': case TK_STRING: case '{': {  /* funcargs */
+      case '(': case TK_STRING: case '{' /*}*/: {  /* funcargs */
         if (flags & E_NO_CALL) {
           return;
         }
@@ -4247,7 +4250,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, tdn_t *nprop, TypeHi
       luaX_next(ls);
       break;
     }
-    case '{': {  /* constructor */
+    case '{' /*}*/: {  /* constructor */
       if (prop) {
         TypeDesc td = VT_TABLE;
         constructor(ls, v, &td);
