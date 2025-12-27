@@ -255,6 +255,10 @@ static void dumpFunction (DumpState *D, const Proto *f) {
 }
 
 
+#define dumpNumInfo(D, tvar, value)  \
+  { tvar i = value; dumpByte(D, sizeof(tvar)); dumpVar(D, i); }
+
+
 static void dumpHeader (DumpState *D) {
   dumpLiteral(D, LUA_SIGNATURE);
   dumpByte(D, LUAC_VERSION);
@@ -265,11 +269,10 @@ static void dumpHeader (DumpState *D) {
     dumpByte(D, 'P' | D->min_required_version);
   }
   dumpLiteral(D, LUAC_DATA);
-  dumpByte(D, sizeof(Instruction));
-  dumpByte(D, sizeof(lua_Integer));
-  dumpByte(D, sizeof(lua_Number));
-  dumpInteger(D, LUAC_INT);
-  dumpNumber(D, LUAC_NUM);
+  dumpNumInfo(D, int, LUAC_INT);
+  dumpNumInfo(D, Instruction, LUAC_INST);
+  dumpNumInfo(D, lua_Integer, LUAC_INT);
+  dumpNumInfo(D, lua_Number, LUAC_NUM);
 }
 
 
