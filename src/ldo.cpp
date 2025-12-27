@@ -107,6 +107,10 @@ void luaD_seterrorobj (lua_State *L, int errcode, StkId oldtop) {
       setsvalue2s(L, oldtop, G(L)->memerrmsg); /* reuse preregistered msg. */
       break;
     }
+    case LUA_ERRERR: {
+      setsvalue2s(L, oldtop, luaS_newliteral(L, "error in error handling"));
+      break;
+    }
     case LUA_OK: {  /* special case only for closing upvalues */
       setnilvalue(s2v(oldtop));  /* no error message */
       break;
@@ -231,15 +235,6 @@ static void correctstack (lua_State *L, StkId oldstack) {
   }
 }
 
-
-/* raise an error while running the message handler */
-l_noret luaD_errerr (lua_State *L) {
-  TString *msg = luaS_newliteral(L, "error in error handling");
-  setsvalue2s(L, L->top.p, msg);
-  L->top.p++;  /* assume EXTRA_STACK */
-  luaD_throw(L, LUA_ERRERR);
-}
-
 #else
 /*
 ** Alternatively, we can use the old address after the deallocation.
@@ -313,7 +308,7 @@ int luaD_growstack (lua_State *L, int n, int raiseerror) {
        a stack error; cannot grow further than that. */
     lua_assert(stacksize(L) == ERRORSTACKSIZE);
     if (raiseerror)
-      luaD_errerr(L);  /* error inside message handler */
+      luaD_throw(L, LUA_ERRERR);  /* error inside message handler */
     return 0;  /* if not 'raiseerror', just signal it */
   }
   else if (n < MAXSTACK) {  /* avoids arithmetic overflows */
