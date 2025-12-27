@@ -970,11 +970,9 @@ static void check_readonly (LexState *ls, expdesc *e) {
       }
       break;
     }
-    case VINDEXUP: case VINDEXSTR: case VINDEXED: {
-      int vidx = e->u.ind.vidx;
-      /* is it a read-only declared global? */
-      if (vidx != -1 && ls->dyd->actvar.arr[vidx].vd.kind == GDKCONST)
-        varname = ls->dyd->actvar.arr[vidx].vd.name;
+    case VINDEXUP: case VINDEXSTR: case VINDEXED: {  /* global variable */
+      if (e->u.ind.ro)  /* read-only? */
+        varname = tsvalue(&fs->f->k[e->u.ind.keystr]);
       break;
     }
     default:
@@ -1198,8 +1196,6 @@ static void buildvar (LexState *ls, TString *varname, expdesc *var, bool localon
   if (var->k == VGLOBAL && !localonly) {  /* global name? */
     expdesc key;
     int info = var->u.info;
-    lua_assert(info == -1 ||
-               eqstr(ls->dyd->actvar.arr[info].vd.name, varname));
     /* global by default in the scope of a global declaration? */
     if (info == -1 && fs->bl->globdec)
       luaK_semerror(ls, "variable '%s' not declared", getstr(varname));
@@ -1210,7 +1206,10 @@ static void buildvar (LexState *ls, TString *varname, expdesc *var, bool localon
     luaK_exp2anyregup(fs, var);  /* but could be a constant */
     codestring(&key, varname);  /* key is variable name */
     luaK_indexed(fs, var, &key);  /* env[varname] */
-    var->u.ind.vidx = cast_short(info);  /* mark it as a declared global */
+    if (info != -1 && ls->dyd->actvar.arr[info].vd.kind == GDKCONST)
+      var->u.ind.ro = 1;  /* mark variable as read-only */
+    else  /* anyway must be a global */
+      lua_assert(info == -1 || ls->dyd->actvar.arr[info].vd.kind == GDKREG);
   }
 }
 
