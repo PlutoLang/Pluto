@@ -342,6 +342,13 @@ do
     global foo <const>;
     function foo (x) return end   -- ERROR: foo is read-only
   ]], "attempt to reassign constant 'foo'") -- [Pluto] updated error message
+
+  checkerr([[
+    global foo <const>;
+    function foo (x)    -- ERROR: foo is read-only
+      return
+    end
+  ]], "%:2%:")   -- correct line in error message
   
 end
 
