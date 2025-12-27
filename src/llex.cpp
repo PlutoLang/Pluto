@@ -74,12 +74,17 @@ static const char *getS (lua_State *L, void *ud, size_t *size) {
 
 #define currIsNewline(ls)	(ls->current == '\n' || ls->current == '\r')
 
+#if defined(LUA_COMPAT_GLOBAL)
+#define GLOBALLEX	".g"	/* not recognizable by the scanner */
+#else
+#define GLOBALLEX	"global"
+#endif
 
 /* ORDER RESERVED */
 static const char *const luaX_tokens [] = {
     "and", "break", "do", "else", "elseif",
-    "end", "false", "for", "function", "goto", "if",
-    "in", "local", "nil", "not", "or", "repeat",
+    "end", "false", "for", "function", GLOBALLEX, "goto", "if",
+    "in", "local", "nil", "not", "or",
     "case", "default", "as", "begin", "extends", "instanceof",
     "pluto_use",
     "pluto_switch", "pluto_continue", "pluto_enum", "pluto_new", "pluto_class", "pluto_parent", "pluto_export",
@@ -87,7 +92,7 @@ static const char *const luaX_tokens [] = {
 #ifdef PLUTO_PARSER_SUGGESTIONS
     "pluto_suggest_0", "pluto_suggest_1",
 #endif
-    "return", "then", "true", "until", "while",
+    "repeat", "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=", "!=", "<=>",
     "<<", ">>", "::", "<eof>",
     "<number>", "<integer>", "<name>", "<string>",
