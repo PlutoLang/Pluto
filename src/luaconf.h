@@ -884,6 +884,9 @@
 // If defined, the "non-portable-name" warning is enabled by default.
 //#define PLUTO_WARN_NON_PORTABLE_NAME
 
+// If defined, the "implicit-global" warning is enabled by default.
+//#define PLUTO_WARN_IMPLICIT_GLOBAL
+
 // If defined, the "var-shadow" warning is disabled by default.
 //#define PLUTO_NO_WARN_VAR_SHADOW
 
@@ -946,15 +949,6 @@
 // If defined, Pluto disables optimisations of Lua macros that would make your code unable to be linked
 // against Lua if your code is using these macros with Pluto's definitions.
 //#define PLUTO_LUA_LINKABLE
-
-/*
-** {====================================================================
-** Pluto Configuration: Optional keywords
-** =====================================================================}
-*/
-
-// If defined, Pluto will imply 'pluto_use global' at the beginning of every script.
-//#define PLUTO_USE_GLOBAL
 
 /*
 ** {====================================================================
