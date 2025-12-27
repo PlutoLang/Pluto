@@ -1384,10 +1384,9 @@ static void enterblock (FuncState *fs, BlockCnt *bl, BlockType type) {
 */
 static l_noret undefgoto (LexState *ls, Labeldesc *gt) {
   lua_assert(!gt->special); // Should be checked by lbreak & continuestat before creating the label
-  const char *msg = "no visible label '%s' for <goto> at line %d";
-  msg = luaO_pushfstring(ls->L, msg, getstr((TString*)gt->name), gt->line);
   ls->setLineNumber(gt->line);
-  luaK_semerror(ls, msg);
+  luaK_semerror(ls, "no visible label '%s' for <goto> at line %d",
+                    getstr((TString*)gt->name), gt->line);
 }
 
 
@@ -2536,8 +2535,7 @@ static bool getfunctionattribute (LexState *ls) {
     else {
       luaX_prev(ls); // back to '>'
       luaX_prev(ls); // back to attribute
-      luaK_semerror(ls,
-        luaO_pushfstring(ls->L, "unknown attribute '%s'", attr));
+      luaK_semerror(ls, "unknown attribute '%s'", attr);
     }
   }
   return false;
@@ -4048,9 +4046,7 @@ static void switchimpl (LexState *ls, int tk, void(*caselist)(LexState*,void*), 
     auto case_line = ls->getLineNumber();
     if (fs->nactvar != nactvar) {
       Vardesc *var = getlocalvardesc(ls->fs, nactvar);
-      const char *msg = "this case jumps into the scope of local '%s' defined on line %d";
-      msg = luaO_pushfstring(ls->L, msg, getstr(var->vd.name), var->vd.line);
-      luaK_semerror(ls, msg);  /* raise the error */
+      luaK_semerror(ls, "this case jumps into the scope of local '%s' defined on line %d", getstr(var->vd.name), var->vd.line);
     }
     if (gett(ls) == TK_DEFAULT) {
       luaX_next(ls); /* Skip 'default' */
@@ -4912,11 +4908,9 @@ static void enumstat (LexState *ls) {
 */
 static void checkrepeated (LexState *ls, TString *name) {
   Labeldesc *lb = findlabel(ls, name, ls->fs->firstlabel);
-  if (l_unlikely(lb != NULL)) {  /* already defined? */
-    const char *msg = "label '%s' already defined on line %d";
-    msg = luaO_pushfstring(ls->L, msg, getstr(name), lb->line);
-    luaK_semerror(ls, msg);  /* error */
-  }
+  if (l_unlikely(lb != NULL))  /* already defined? */
+    luaK_semerror(ls, "label '%s' already defined on line %d",
+                      getstr(name), lb->line);  /* error */
 }
 
 
@@ -5418,8 +5412,7 @@ static lu_byte getlocalattribute (LexState *ls) {
     else {
       luaX_prev(ls); // back to '>'
       luaX_prev(ls); // back to attribute
-      luaK_semerror(ls,
-        luaO_pushfstring(ls->L, "unknown attribute '%s'", attr));
+      luaK_semerror(ls, "unknown attribute '%s'", attr);
     }
   }
   return VDKREG;  /* regular variable */
