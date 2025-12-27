@@ -1087,7 +1087,7 @@ static int searchvar (FuncState *fs, TString *n, expdesc *var) {
       }
       else  /* real variable */
         init_var(fs, var, i);
-      return var->k;
+      return cast_int(var->k);
     }
   }
   return -1;  /* not found */
