@@ -6177,6 +6177,7 @@ static void statement (LexState *ls, tdn_t *nprop, TypeHint *prop) {
       expsuffix(ls, &v, line, 0, nprop, prop);
       break;
     }
+#if defined(LUA_COMPAT_GLOBAL)
     case TK_NAME: {
       /* compatibility code to parse global keyword when "global"
          is not reserved */
@@ -6188,7 +6189,9 @@ static void statement (LexState *ls, tdn_t *nprop, TypeHint *prop) {
           break;
         }
       }  /* else... */
-    }  /* FALLTHROUGH */
+    }
+#endif
+    /* FALLTHROUGH */
     default: {  /* stat -> func | assignment */
       exprstat(ls);
       break;
