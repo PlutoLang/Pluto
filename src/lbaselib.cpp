@@ -101,21 +101,22 @@ static int luaB_wcall (lua_State *L) {
 
 #define SPACECHARS	" \f\n\r\t\v"
 
-static const char *b_str2int (const char *s, int base, lua_Integer *pn) {
+static const char *b_str2int (const char *s, unsigned base, lua_Integer *pn) {
   lua_Unsigned n = 0;
   int neg = 0;
   s += strspn(s, SPACECHARS);  /* skip initial spaces */
   if (*s == '-') { s++; neg = 1; }  /* handle sign */
   else if (*s == '+') s++;
-  if (!isalnum((unsigned char)*s))  /* no digit? */
+  if (!isalnum(cast_uchar(*s)))  /* no digit? */
     return NULL;
   do {
-    int digit = (isdigit((unsigned char)*s)) ? *s - '0'
-                   : (toupper((unsigned char)*s) - 'A') + 10;
+    unsigned digit = cast_uint(isdigit(cast_uchar(*s))
+                               ? *s - '0'
+                               : (toupper(cast_uchar(*s)) - 'A') + 10);
     if (digit >= base) return NULL;  /* invalid numeral */
     n = n * base + digit;
     s++;
-  } while (isalnum((unsigned char)*s));
+  } while (isalnum(cast_uchar(*s)));
   s += strspn(s, SPACECHARS);  /* skip trailing spaces */
   *pn = (lua_Integer)((neg) ? (0u - n) : n);
   return s;
@@ -145,7 +146,7 @@ int luaB_tonumber (lua_State *L) {
     luaL_checktype(L, 1, LUA_TSTRING);  /* no numbers as strings */
     s = lua_tolstring(L, 1, &l);
     luaL_argcheck(L, 2 <= base && base <= 36, 2, "base out of range");
-    if (b_str2int(s, (int)base, &n) == s + l) {
+    if (b_str2int(s, cast_uint(base), &n) == s + l) {
       lua_pushinteger(L, n);
       return 1;
     }  /* else not a number */
@@ -207,7 +208,7 @@ static int luaB_rawlen (lua_State *L) {
   int t = lua_type(L, 1);
   luaL_argexpected(L, t == LUA_TTABLE || t == LUA_TSTRING, 1,
                       "table or string");
-  lua_pushinteger(L, lua_rawlen(L, 1));
+  lua_pushinteger(L, l_castU2S(lua_rawlen(L, 1)));
   return 1;
 }
 
@@ -266,7 +267,7 @@ static int luaB_collectgarbage (lua_State *L) {
     }
     case LUA_GCSTEP: {
       lua_Integer n = luaL_optinteger(L, 2, 0);
-      int res = lua_gc(L, o, (int)n);
+      int res = lua_gc(L, o, cast_sizet(n));
       checkvalres(res);
       lua_pushboolean(L, res);
       return 1;
@@ -595,16 +596,11 @@ TValue *index2value (lua_State *L, int idx);
 void addquoted (luaL_Buffer *b, const char *s, size_t len, bool must_be_valid_utf8);
 
 struct FuncDumpWriter {
-  int init;
-  luaL_Buffer B;
+  std::string& buf;
 
   static int write (lua_State *L, const void *b, size_t size, void *ud) {
     auto state = (FuncDumpWriter*)ud;
-    if (!state->init) {
-      state->init = 1;
-      luaL_buffinit(L, &state->B);
-    }
-    luaL_addlstring(&state->B, (const char *)b, size);
+    state->buf.append((const char*)b, size);
     return 0;
   }
 };
@@ -661,33 +657,36 @@ static void luaB_dumpvar_impl (lua_State *L, std::string& dump, int indents, con
     }
 
     case LUA_TFUNCTION: {
-      /* collect function dump */
-      FuncDumpWriter state;
-      state.init = 0;
-      if (l_likely(lua_dump(L, FuncDumpWriter::write, &state, 0) == 0)) {
-        luaL_pushresult(&state.B);
-        size_t l;
-        const char *s = lua_tolstring(L, -1, &l);
-        lua_pop(L, 1);
-        /* we have it as a single string now */
+      lua_checkstack(L, 3);
+      /* stack: function */
+      FuncDumpWriter state{ *pluto_newclassinst(L, std::string) };
+      /* stack: function, std::string */
+      lua_pushvalue(L, -2);
+      /* stack: function, std::string, function */
+      if (!lua_iscfunction(L, -1) && lua_dump(L, FuncDumpWriter::write, &state, 0) == 0) {
+        /* stack: function, std::string, function */
         luaL_Buffer b;
         luaL_buffinit(L, &b);
+        /* stack: function, std::string, function, buffer */
         if (!is_export) {
           luaL_addstring(&b, "function ");
         }
         else {
           luaL_addstring(&b, "load");
         }
-        addquoted(&b, s, l, true);
+        addquoted(&b, state.buf.data(), state.buf.size(), true);
         luaL_pushresult(&b);
+        /* stack: function, std::string, function, string */
         dump.append(lua_tostring(L, -1));
-        lua_pop(L, 1);
+        lua_pop(L, 3);
         return;
       }
       else if (is_export)
         luaL_error(L, "Can't export C function");
+      /* stack: function, std::string, function */
       dump.append(luaL_tolstring(L, -1, NULL));
-      lua_pop(L, 1);
+      /* stack: function, std::string, function, string */
+      lua_pop(L, 3);
       return;
     }
 

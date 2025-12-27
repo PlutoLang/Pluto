@@ -96,6 +96,11 @@
 #endif
 
 
+#if defined(LUA_USE_C89) && defined(LUA_USE_POSIX)
+#error "Posix is not compatible with C89"
+#endif
+
+
 /*
 @@ LUAI_IS32INT is true iff 'int' has (at least) 32 bits.
 */
@@ -378,6 +383,12 @@
 */
 
 /*
+@@ LUA_COMPAT_GLOBAL avoids 'global' being a reserved word
+*/
+#define LUA_COMPAT_GLOBAL
+
+
+/*
 @@ LUA_COMPAT_5_3 controls other macros for compatibility with Lua 5.3.
 ** You can define it to get all options, or change specific options
 ** to fit your specific needs.
@@ -443,8 +454,13 @@
 @@ l_floatatt(x) corrects float attribute 'x' to the proper float type
 ** by prefixing it with one of FLT/DBL/LDBL.
 @@ LUA_NUMBER_FRMLEN is the length modifier for writing floats.
-@@ LUA_NUMBER_FMT is the format for writing floats.
-@@ lua_number2str converts a float to a string.
+@@ LUA_NUMBER_FMT is the format for writing floats with the maximum
+** number of digits that respects tostring(tonumber(numeral)) == numeral.
+** (That would be floor(log10(2^n)), where n is the number of bits in
+** the float mantissa.)
+@@ LUA_NUMBER_FMT_N is the format for writing floats with the minimum
+** number of digits that ensures tonumber(tostring(number)) == number.
+** (That would be LUA_NUMBER_FMT+2.)
 @@ l_mathop allows the addition of an 'l' or 'f' to all math operations.
 @@ l_floor takes the floor of a float.
 @@ lua_str2number converts a decimal numeral to a number.
@@ -454,9 +470,6 @@
 /* The following definitions are good for most cases here */
 
 #define l_floor(x)		(l_mathop(floor)(x))
-
-#define lua_number2str(s,sz,n)  \
-    l_sprintf((s), sz, LUA_NUMBER_FMT, (LUAI_UACNUMBER)(n))
 
 /*
 @@ lua_numbertointeger converts a float number with an integral value
@@ -485,6 +498,7 @@
 
 #define LUA_NUMBER_FRMLEN	""
 #define LUA_NUMBER_FMT		"%.7g"
+#define LUA_NUMBER_FMT_N	"%.9g"
 
 #define l_mathop(op)		op##f
 
@@ -501,6 +515,7 @@
 
 #define LUA_NUMBER_FRMLEN	"L"
 #define LUA_NUMBER_FMT		"%.19Lg"
+#define LUA_NUMBER_FMT_N	"%.21Lg"
 
 #define l_mathop(op)		op##l
 
@@ -515,7 +530,8 @@
 #define LUAI_UACNUMBER	double
 
 #define LUA_NUMBER_FRMLEN	""
-#define LUA_NUMBER_FMT		"%.14g"
+#define LUA_NUMBER_FMT		"%.15g"
+#define LUA_NUMBER_FMT_N	"%.17g"
 
 #define l_mathop(op)		op
 
@@ -874,6 +890,9 @@
 // If defined, the "non-portable-name" warning is enabled by default.
 //#define PLUTO_WARN_NON_PORTABLE_NAME
 
+// If defined, the "implicit-global" warning is enabled by default.
+//#define PLUTO_WARN_IMPLICIT_GLOBAL
+
 // If defined, the "var-shadow" warning is disabled by default.
 //#define PLUTO_NO_WARN_VAR_SHADOW
 
@@ -927,8 +946,6 @@
     #define PLUTO_COMPATIBLE_CLASS
     #define PLUTO_COMPATIBLE_PARENT
     #define PLUTO_COMPATIBLE_EXPORT
-    #define PLUTO_COMPATIBLE_TRY
-    #define PLUTO_COMPATIBLE_CATCH
 #endif
 
 // If defined, Pluto's automatic keyword detection will more aggressively disable keywords if they're not used exactly as expected.
@@ -938,15 +955,6 @@
 // If defined, Pluto disables optimisations of Lua macros that would make your code unable to be linked
 // against Lua if your code is using these macros with Pluto's definitions.
 //#define PLUTO_LUA_LINKABLE
-
-/*
-** {====================================================================
-** Pluto Configuration: Optional keywords
-** =====================================================================}
-*/
-
-// If defined, Pluto will imply 'pluto_use global' at the beginning of every script.
-//#define PLUTO_USE_GLOBAL
 
 /*
 ** {====================================================================

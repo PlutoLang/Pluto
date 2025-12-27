@@ -35,25 +35,31 @@ typedef enum {
   VKFLT,  /* floating constant; nval = numerical float value */
   VKINT,  /* integer constant; ival = numerical integer value */
   VKSTR,  /* string constant; strval = TString address;
-             (string is fixed by the lexer) */
+             (string is fixed by the scanner) */
   VNONRELOC,  /* expression has its value in a fixed register */
   VLOCAL,  /* local variable; var.ridx = register index;
               var.vidx = relative index in 'actvar.arr'  */
+  VGLOBAL,  /* global variable;
+               info = relative index in 'actvar.arr' (or -1 for
+                      implicit declaration) */
   VUPVAL,  /* upvalue variable; info = index of upvalue in 'upvalues' */
   VCONST,  /* compile-time <const> variable;
               info = absolute index in 'actvar.arr'  */
   VINDEXED,  /* indexed variable;
                 ind.t = table register;
-                ind.idx = key's R index */
+                ind.idx = key's R index;
+                ind.ro = true if it represents a read-only global;
+                ind.keystr = if key is a string, index in 'k' of that string;
+                             -1 if key is not a string */
   VINDEXUP,  /* indexed upvalue;
-                ind.t = table upvalue;
-                ind.idx = key's K index */
+                ind.idx = key's K index;
+                ind.* as in VINDEXED */
   VINDEXI, /* indexed variable with constant integer;
                 ind.t = table register;
                 ind.idx = key's value */
   VINDEXSTR, /* indexed variable with literal string;
-                ind.t = table register;
-                ind.idx = key's K index */
+                ind.idx = key's K index;
+                ind.* as in VINDEXED */
   VJMP,  /* expression is a test/comparison */
   VRELOC,  /* expression can put result in any register */
   VCALL,  /* expression is a function call */
@@ -123,10 +129,12 @@ typedef struct expdesc {
     struct {  /* for indexed variables */
       short idx;  /* index (R or "long" K) */
       lu_byte t;  /* table (register or upvalue) */
+      lu_byte ro;  /* true if variable is read-only */
+      int keystr;  /* index in 'k' of string key, or -1 if not a string */
     } ind;
     struct {  /* for local variables */
       lu_byte ridx;  /* register holding the variable */
-      unsigned short vidx;  /* compiler index (in 'actvar.arr')  */
+      short vidx;  /* index in 'actvar.arr' */
     } var;
   } u;
   int t;  /* patch list of 'exit when true' */
@@ -139,12 +147,17 @@ typedef struct expdesc {
 } expdesc;
 
 /* kinds of variables */
-#define VDKREG		0   /* regular */
-#define RDKCONST	1   /* constant */
+#define VDKREG		0   /* regular local */
+#define RDKCONST	1   /* local constant */
 #define RDKTOCLOSE	2   /* to-be-closed */
-#define RDKCTC		3   /* compile-time constant */
-#define RDKENUM		4   /* [Pluto] named enum */
-#define RDKWOW		5   /* [Pluto] warn on write */
+#define RDKCTC		3   /* local compile-time constant */
+#define GDKREG		4   /* regular global */
+#define GDKCONST	5   /* global constant */
+#define RDKENUM		6   /* [Pluto] named enum */
+
+/* variables that live in registers */
+#define varinreg(v)	((v)->vd.kind <= RDKTOCLOSE)
+
 
 struct TypeHint;
 
@@ -433,7 +446,7 @@ struct TypeHint {
   }
 };
 
-/* description of an active local variable */
+/* description of an active variable */
 typedef union Vardesc {
   struct {
     TValuefields;  /* constant value (if it is a compile-time constant) */
@@ -457,7 +470,7 @@ typedef struct Labeldesc {
   int pc;  /* position in code */
   int line;  /* line where it appeared */
   lu_byte nactvar;  /* number of active variables in that position */
-  lu_byte close : 1; /* goto that escapes upvalues */
+  lu_byte close : 1; /* true for goto that escapes upvalues */
   lu_byte special : 1; /* This is a special value for break or continue, the name is then a pointer to a BlockCnt */
 } Labeldesc;
 
@@ -492,6 +505,7 @@ typedef struct FuncState {
   struct FuncState *prev;  /* enclosing function */
   struct LexState *ls;  /* lexical state */
   struct BlockCnt *bl;  /* chain of current blocks */
+  Table* kcache;  /* cache for reusing constants */
   int pc;  /* next position to code (equivalent to 'ncode') */
   int lasttarget;   /* 'label' of last 'jump label' */
   int previousline;  /* last line that was saved in 'lineinfo' */
@@ -505,14 +519,14 @@ typedef struct FuncState {
   lu_byte nups;  /* number of upvalues */
   lu_byte freereg;  /* first free register */
   lu_byte iwthabs;  /* instructions issued since last absolute line info */
-  lu_byte needclose : 1;  /* function needs to close upvalues when returning */
-  lu_byte istrybody : 1; /* This is a function handling the try body */
-  lu_byte seenrets : 4; /* Type of returns the function has seen */
+  lu_byte needclose;  /* function needs to close upvalues when returning */
   short pinnedreg;  /* [Pluto] index of register that may not be free'd or -1 */
 } FuncState;
 
 
-LUAI_FUNC int luaY_nvarstack (FuncState *fs);
+LUAI_FUNC lu_byte luaY_nvarstack (FuncState *fs);
+LUAI_FUNC void luaY_checklimit (FuncState *fs, int v, int l,
+                                const char *what);
 LUAI_FUNC LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
                                  Dyndata *dyd, const char *name, int firstchar);
 

@@ -1,5 +1,5 @@
 -- $Id: testes/gc.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
 
 print('testing incremental garbage collection')
 
@@ -446,8 +446,8 @@ do   -- tests for string keys in weak tables
   local m = collectgarbage("count")         -- current memory
   local a = setmetatable({}, {__mode = "kv"})
   a[string.rep("a", 2^22)] = 25   -- long string key -> number value
-  a[string.rep("b", 2^22)] = {}   -- long string key -> colectable value
-  a[{}] = 14                     -- colectable key
+  a[string.rep("b", 2^22)] = {}   -- long string key -> collectable value
+  a[{}] = 14                     -- collectable key
   collectgarbage()
   local k, v = next(a)   -- string key with number value preserved
   assert(k == string.rep("a", 2^22) and v == 25)
@@ -459,7 +459,7 @@ do   -- tests for string keys in weak tables
   assert(next(a) == nil)
   -- make sure will not try to compare with dead key
   assert(a[string.rep("b", 100)] == undef)
-  assert(collectgarbage("count") <= m + 1)   -- eveything collected
+  assert(collectgarbage("count") <= m + 1)   -- everything collected
 end
 
 
@@ -524,7 +524,7 @@ do
     local co = coroutine.create(f)
     assert(coroutine.resume(co, co))
   end
-  -- Now, thread and closure are not reacheable any more.
+  -- Now, thread and closure are not reachable any more.
   collectgarbage()
   assert(collected)
   collectgarbage("restart")
@@ -560,8 +560,8 @@ if T then   -- tests for weird cases collecting upvalues
   -- create coroutine in a weak table, so it will never be marked
   t.co = coroutine.wrap(foo)
   local f = t.co()   -- create function to access local 'a'
-  T.gcstate("atomic")   -- ensure all objects are traversed
-  assert(T.gcstate() == "atomic")
+  T.gcstate("enteratomic")   -- ensure all objects are traversed
+  assert(T.gcstate() == "enteratomic")
   assert(t.co() == 100)   -- resume coroutine, creating new table for 'a'
   assert(T.gccolor(t.co) == "white")  -- thread was not traversed
   T.gcstate("pause")   -- collect thread, but should mark 'a' before that
@@ -574,7 +574,7 @@ if T then   -- tests for weird cases collecting upvalues
   collectgarbage()
   collectgarbage"stop"
   local a = {}     -- avoid 'u' as first element in 'allgc'
-  T.gcstate"atomic"
+  T.gcstate"enteratomic"
   T.gcstate"sweepallgc"
   local x = {}
   assert(T.gccolor(u) == "black")   -- userdata is "old" (black)
@@ -596,6 +596,21 @@ if T then
   debug.setmetatable(x, {__gc = nop})   -- ...the old one
   assert(T.gccolor(y) == "white")
   T.checkmemory()
+  collectgarbage("restart")
+end
+
+
+if T then
+  collectgarbage("stop")
+  T.gcstate("pause")
+  local sup = {x = 0}
+  local a = setmetatable({}, {__newindex = sup})
+  T.gcstate("enteratomic")
+  assert(T.gccolor(sup) == "black")
+  a.x = {}   -- should not break the invariant
+  assert(not (T.gccolor(sup) == "black" and T.gccolor(sup.x) == "white"))
+  T.gcstate("pause")  -- complete the GC cycle
+  sup.x.y = 10
   collectgarbage("restart")
 end
 
@@ -629,7 +644,7 @@ do
     assert(getmetatable(o) == tt)
     -- create new objects during GC
     local a = 'xuxu'..(10+3)..'joao', {}
-    ___Glob = o  -- ressurrect object!
+    ___Glob = o  -- resurrect object!
     setmetatable({}, tt)  -- creates a new one with same metatable
     print(">>> closing state " .. "<<<\n")
   end

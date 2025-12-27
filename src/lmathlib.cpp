@@ -135,7 +135,7 @@ static int math_round (lua_State *L) {
 
 static int math_ceil (lua_State *L) {
   if (lua_isinteger(L, 1))
-    lua_settop(L, 1);  /* integer is its own ceil */
+    lua_settop(L, 1);  /* integer is its own ceiling */
   else {
     lua_Number d = l_mathop(ceil)(luaL_checknumber(L, 1));
     pushnumint(L, d);
@@ -574,7 +574,7 @@ typedef struct {
 ** Project the random integer 'ran' into the interval [0, n].
 ** Because 'ran' has 2^B possible values, the projection can only be
 ** uniform when the size of the interval is a power of 2 (exact
-** division). Otherwise, to get a uniform projection into [0, n], we
+** division). So, to get a uniform projection into [0, n], we
 ** first compute 'lim', the smallest Mersenne number not smaller than
 ** 'n'. We then project 'ran' into the interval [0, lim].  If the result
 ** is inside [0, n], we are done. Otherwise, we try with another 'ran',
@@ -582,26 +582,14 @@ typedef struct {
 */
 static lua_Unsigned project (lua_Unsigned ran, lua_Unsigned n,
                              RanState *state) {
-  if ((n & (n + 1)) == 0)  /* is 'n + 1' a power of 2? */
-    return ran & n;  /* no bias */
-  else {
-    lua_Unsigned lim = n;
-    /* compute the smallest (2^b - 1) not smaller than 'n' */
-    lim |= (lim >> 1);
-    lim |= (lim >> 2);
-    lim |= (lim >> 4);
-    lim |= (lim >> 8);
-    lim |= (lim >> 16);
-#if (LUA_MAXUNSIGNED >> 31) >= 3
-    lim |= (lim >> 32);  /* integer type has more than 32 bits */
-#endif
-    lua_assert((lim & (lim + 1)) == 0  /* 'lim + 1' is a power of 2, */
-      && lim >= n  /* not smaller than 'n', */
-      && (lim >> 1) < n);  /* and it is the smallest one */
-    while ((ran &= lim) > n)  /* project 'ran' into [0..lim] */
-      ran = I2UInt(nextrand(state->s));  /* not inside [0..n]? try again */
-    return ran;
-  }
+  lua_Unsigned lim = n;  /* to compute the Mersenne number */
+  int sh;  /* how much to spread bits to the right in 'lim' */
+  /* spread '1' bits in 'lim' until it becomes a Mersenne number */
+  for (sh = 1; (lim & (lim + 1)) != 0; sh *= 2)
+    lim |= (lim >> sh);  /* spread '1's to the right */
+  while ((ran &= lim) > n)  /* project 'ran' into [0..lim] and test */
+    ran = I2UInt(nextrand(state->s));  /* not inside [0..n]? try again */
+  return ran;
 }
 
 
@@ -619,7 +607,7 @@ static int math_random (lua_State *L) {
       low = 1;
       up = luaL_checkinteger(L, 1);
       if (up == 0) {  /* single 0 as argument? */
-        lua_pushinteger(L, I2UInt(rv));  /* full random integer */
+        lua_pushinteger(L, l_castU2S(I2UInt(rv)));  /* full random integer */
         return 1;
       }
       break;
@@ -634,8 +622,8 @@ static int math_random (lua_State *L) {
   /* random integer in the interval [low, up] */
   luaL_argcheck(L, low <= up, 1, "interval is empty");
   /* project random integer into the interval [0, up - low] */
-  p = project(I2UInt(rv), (lua_Unsigned)up - (lua_Unsigned)low, state);
-  lua_pushinteger(L, p + (lua_Unsigned)low);
+  p = project(I2UInt(rv), l_castS2U(up) - l_castS2U(low), state);
+  lua_pushinteger(L, l_castU2S(p + l_castS2U(low)));
   return 1;
 }
 
@@ -649,8 +637,8 @@ static void setseed (lua_State *L, Rand64 *state,
   state[3] = Int2I(0);
   for (i = 0; i < 16; i++)
     nextrand(state);  /* discard initial values to "spread" seed */
-  lua_pushinteger(L, n1);
-  lua_pushinteger(L, n2);
+  lua_pushinteger(L, l_castU2S(n1));
+  lua_pushinteger(L, l_castU2S(n2));
 }
 
 
@@ -662,8 +650,8 @@ static int math_randomseed (lua_State *L) {
     n2 = I2UInt(nextrand(state->s));  /* in case seed is not that random... */
   }
   else {
-    n1 = luaL_checkinteger(L, 1);
-    n2 = luaL_optinteger(L, 2, 0);
+    n1 = l_castS2U(luaL_checkinteger(L, 1));
+    n2 = l_castS2U(luaL_optinteger(L, 2, 0));
   }
   setseed(L, state->s, n1, n2);
   return 2;  /* return seeds */

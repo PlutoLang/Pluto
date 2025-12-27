@@ -1,5 +1,5 @@
 -- $Id: testes/errors.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
 
 print("testing errors")
 
@@ -45,8 +45,8 @@ end
 -- test error message with no extra info
 assert(doit("error('hi', 0)") == 'hi')
 
--- test error message with no info
-assert(doit("error()") == nil)
+-- test nil error message
+assert(doit("error()") == "<no error object>")
 
 
 -- test common errors/errors that crashed in the past
@@ -118,6 +118,31 @@ else
     return 1
   ]]
   assert(string.find(res, "xuxu.-main chunk"))
+
+  do   -- tests for error messages about extra arguments from __call
+    local function createobj (n)
+      -- function that raises an error on its n-th argument
+      local code = string.format("argerror %d 'msg'", n)
+      local func = T.makeCfunc(code)
+      -- create a chain of 2 __call objects
+      local M = setmetatable({}, {__call = func})
+      M = setmetatable({}, {__call = M})
+      -- put it as a method for a new object
+      return {foo = M}
+    end
+
+  _G.a = createobj(1)   -- error in first (extra) argument
+  checkmessage("a:foo()", "bad extra argument #1")
+
+  _G.a = createobj(2)   -- error in second (extra) argument
+  checkmessage("a:foo()", "bad extra argument #2")
+
+  _G.a = createobj(3)   -- error in self (after two extra arguments)
+  checkmessage("a:foo()", "bad self")
+
+  _G.a = createobj(4)  -- error in first regular argument (after self)
+  checkmessage("a:foo()", "bad argument #1")
+  end
 end
 
 
@@ -138,9 +163,8 @@ checkmessage("aaa=(1)..{}", "a table value")
 -- bug in 5.4.6
 checkmessage("a = {_ENV = {}}; print(a._ENV.x + 1)", "field 'x'")
 
--- a similar bug in 5.4.7, since 5.4.0
+-- a similar bug, since 5.4.0
 checkmessage("print(('_ENV').x + 1)", "field 'x'")
-
 
 _G.aaa, _G.bbbb = nil
 
@@ -280,14 +304,14 @@ do
   local f = function (a) return a + 1 end
   f = assert(load(string.dump(f, true)))
   assert(f(3) == 4)
-  checkerr("^%?:%-1:", f, {})
+  checkerr("^%?:%?:", f, {})
 
   -- code with a move to a local var ('OP_MOV A B' with A<B)
   f = function () local a; a = {}; return a + 2 end
   -- no debug info (so that 'a' is unknown)
   f = assert(load(string.dump(f, true)))
   -- symbolic execution should not get lost
-  checkerr("^%?:%-1:.*table value", f)
+  checkerr("^%?:%?:.*table value", f)
 end
 
 
@@ -301,7 +325,8 @@ t = nil
 checkmessage(s.."; aaa = bbb + 1", "global 'bbb'")
 checkmessage("local _ENV=_ENV;"..s.."; aaa = bbb + 1", "global 'bbb'")
 checkmessage(s.."; local t = {}; aaa = t.bbb + 1", "field 'bbb'")
-checkmessage(s.."; local t = {}; t:bbb()", "method 'bbb'")
+-- cannot use 'self' opcode
+checkmessage(s.."; local t = {}; t:bbb()", "field 'bbb'")
 
 checkmessage([[aaa=9
 repeat until 3==3
@@ -465,6 +490,14 @@ if not b then
   end
 end]], 5)
 
+lineerror([[
+_ENV = 1
+global function foo ()
+  local a = 10
+  return a
+end
+]], 2)
+
 
 -- bug in 5.4.0
 lineerror([[
@@ -483,7 +516,7 @@ end
 
 
 if not _soft then
-  -- several tests that exaust the Lua stack
+  -- several tests that exhaust the Lua stack
   collectgarbage()
   print"testing stack overflow"
   local C = 0
@@ -534,7 +567,7 @@ if not _soft then
 
   -- error in error handling
   local res, msg = xpcall(error, error)
-  assert(not res and type(msg) == 'string')
+  assert(not res and msg == 'error in error handling')
   print('+')
 
   local function f (x)
@@ -565,6 +598,27 @@ if not _soft then
 end
 
 
+do  -- errors in error handle that not necessarily go forever
+  local function err (n)   -- function to be used as message handler
+    -- generate an error unless n is zero, so that there is a limited
+    -- loop of errors
+    if type(n) ~= "number" then   -- some other error?
+      return n   -- report it
+    elseif n == 0 then
+      return "END"   -- that will be the final message
+    else error(n - 1)   -- does the loop
+    end
+  end
+
+  local res, msg = xpcall(error, err, 170)
+  assert(not res and msg == "END")
+
+  -- too many levels
+  local res, msg = xpcall(error, err, 300)
+  assert(not res and msg == "C stack overflow")
+end
+
+
 do
   -- non string messages
   local t = {}
@@ -572,7 +626,7 @@ do
   assert(not res and msg == t)
 
   res, msg = pcall(function () error(nil) end)
-  assert(not res and msg == nil)
+  assert(not res and msg == "<no error object>")
 
   local function f() error{msg='x'} end
   res, msg = xpcall(f, function (r) return {msg=r.msg..'y'} end)
@@ -592,7 +646,7 @@ do
   assert(not res and msg == t)
 
   res, msg = pcall(assert, nil, nil)
-  assert(not res and msg == nil)
+  assert(not res and type(msg) == "string")
 
   -- 'assert' without arguments
   res, msg = pcall(assert)

@@ -83,9 +83,11 @@ typedef enum UnOpr { OPR_MINUS, OPR_BNOT, OPR_NOT, OPR_LEN, OPR_NOUNOPR } UnOpr;
 
 
 LUAI_FUNC int luaK_code (FuncState *fs, Instruction i);
-LUAI_FUNC int luaK_codeABx (FuncState *fs, OpCode o, int A, unsigned Bx);
-LUAI_FUNC int luaK_codeABCk (FuncState *fs, OpCode o, int A,
-                                            int B, int C, int k);
+LUAI_FUNC int luaK_codeABx (FuncState *fs, OpCode o, int A, int Bx);
+LUAI_FUNC int luaK_codeABCk (FuncState *fs, OpCode o, int A, int B, int C,
+                                            int k);
+LUAI_FUNC int luaK_codevABCk (FuncState *fs, OpCode o, int A, int B, int C,
+                                             int k);
 LUAI_FUNC int luaK_exp2const (FuncState *fs, const expdesc *e, TValue *v);
 LUAI_FUNC void luaK_fixline (FuncState *fs, int line);
 LUAI_FUNC void luaK_nil (FuncState *fs, int from, int n);
@@ -122,7 +124,7 @@ LUAI_FUNC void luaK_settablesize (FuncState *fs, int pc,
                                   int ra, int asize, int hsize);
 LUAI_FUNC void luaK_setlist (FuncState *fs, int base, int nelems, int tostore);
 LUAI_FUNC void luaK_finish (FuncState *fs);
-LUAI_FUNC l_noret luaK_semerror (LexState *ls, const char *msg);
+LUAI_FUNC l_noret luaK_semerror (LexState *ls, const char *fmt, ...);
 LUAI_FUNC void luaK_exp2reg (FuncState *fs, expdesc *e, int reg);
 LUAI_FUNC void luaK_freeexp (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_invertcond (FuncState *fs, int list);

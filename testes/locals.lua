@@ -1,5 +1,7 @@
 -- $Id: testes/locals.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
+
+global * <const>
 
 print('testing local variables and environments')
 
@@ -39,9 +41,11 @@ f = nil
 local f
 local x = 1
 
-a = nil
-load('local a = {}')()
-assert(a == nil)
+do
+  global a; a = nil
+  load('local a = {}')()
+  assert(a == nil)
+end
 
 function f (a)
   local _1, _2, _3, _4, _5
@@ -154,7 +158,7 @@ local _ENV = (function (...) return ... end)(_G, dummy)   -- {
 do local _ENV = {assert=assert}; assert(true) end
 local mt = {_G = _G}
 local foo,x
-A = false    -- "declare" A
+global A; A = false    -- "declare" A
 do local _ENV = mt
   function foo (x)
     A = x
@@ -178,6 +182,8 @@ A = nil
 
 
 do   -- constants
+  global assert<const>, load, string, X
+  X = 1   -- not a constant
   local a<const>, b, c<const> = 10, 20, 30
   b = a + c + b    -- 'b' is not constant
   assert(a == 10 and b == 60 and c == 30)
@@ -191,6 +197,9 @@ do   -- constants
   checkro("z", "local x <const>, y, z <const> = 10, 20, 30; y = 10; z = 11")
   checkro("foo", "local foo <const> = 10; function foo() end")
   checkro("foo", "local foo <const> = {}; function foo() end")
+  checkro("foo", "global foo <const>; function foo() end")
+  checkro("XX", "global XX <const>; XX = 10")
+  checkro("XX", "local _ENV; global XX <const>; XX = 10")
 
   checkro("z", [[
     local a, z <const>, b = 10;
@@ -200,6 +209,11 @@ do   -- constants
   checkro("var1", [[
     local a, var1 <const> = 10;
     function foo() a = 20; z = function () var1 = 12; end  end
+  ]])
+
+  checkro("var1", [[
+    global a, var1 <const>, z;
+    local function foo() a = 20; z = function () var1 = 12; end  end
   ]])
 end
 
@@ -277,6 +291,32 @@ do
 
   assert(foo() == closescope and X == true)
 
+end
+
+
+do  -- testing presence of second argument
+  local function foo (howtoclose, obj, n)
+    local ca   -- copy of 'a' visible inside its close metamethod
+    do
+      local a <close> = func2close(function (...)
+        local t = table.pack(...)
+        assert(select("#", ...) == n)
+        assert(t.n == n and t[1] == ca and (t.n < 2 or t[2] == obj))
+        ca = 15   -- final value to be returned if howtoclose=="scope"
+      end)
+      ca = a
+      if howtoclose == "ret" then return obj  -- 'a' closed by return
+      elseif howtoclose == "err" then error(obj)  -- 'a' closed by error
+      end
+    end   -- 'a' closed by end of scope
+    return ca   -- ca now should be 15
+  end
+  -- with no errors, closing methods receive no extra argument
+  assert(foo("scope", nil, 1) == 15)  -- close by end of scope
+  assert(foo("ret", 32, 1) == 32)     -- close by return
+  -- with errors, they do
+  local st, msg = pcall(foo, "err", 23, 2)   -- close by error
+  assert(not st and msg == 23)
 end
 
 
@@ -865,8 +905,10 @@ do
     if extra then
       extrares = co()    -- runs until first (extra) yield
     end
-    local res = table.pack(co())   -- runs until yield inside '__close'
-    assert(res.n == 2 and res[2] == nil)
+    local res = table.pack(co())   -- runs until "regular" yield
+    -- regular yield will yield all values passed to the close function;
+    -- without errors, that is only the object being closed.
+    assert(res.n == 1 and type(res[1]) == "table")
     local res2 = table.pack(co())   -- runs until end of function
     assert(res2.n == t.n)
     for i = 1, #t do
@@ -879,10 +921,10 @@ do
   end
 
   local function foo ()
-    local x <close> = func2close(coroutine.yield)
+    local x <close> = func2close(coroutine.yield)   -- "regular" yield
     local extra <close> = func2close(function (self)
       assert(self == extrares)
-      coroutine.yield(100)
+      coroutine.yield(100)    -- first (extra) yield
     end)
     extrares = extra
     return table.unpack{10, x, 30}
@@ -891,21 +933,21 @@ do
   assert(extrares == 100)
 
   local function foo ()
-    local x <close> = func2close(coroutine.yield)
+    local x <close> = func2close(coroutine.yield)   -- "regular" yield
     return
   end
   check(foo, false)
 
   local function foo ()
-    local x <close> = func2close(coroutine.yield)
+    local x <close> = func2close(coroutine.yield)   -- "regular" yield
     local y, z = 20, 30
     return x
   end
   check(foo, false, "x")
 
   local function foo ()
-    local x <close> = func2close(coroutine.yield)
-    local extra <close> = func2close(coroutine.yield)
+    local x <close> = func2close(coroutine.yield)   -- "regular" yield
+    local extra <close> = func2close(coroutine.yield)  -- extra yield
     return table.unpack({}, 1, 100)   -- 100 nils
   end
   check(foo, true, table.unpack({}, 1, 100))
@@ -1134,7 +1176,7 @@ do
   local function open (x)
     numopen = numopen + 1
     return
-      function ()   -- iteraction function
+      function ()   -- iteration function
         x = x - 1
         if x > 0 then return x end
       end,

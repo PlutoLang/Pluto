@@ -112,7 +112,7 @@ static int utflen (lua_State *L) {
       lua_pushinteger(L, posi + 1);  /* ... and current position */
       return 2;
     }
-    posi = s1 - s;
+    posi = ct_diff2S(s1 - s);
     n++;
   }
   lua_pushinteger(L, n);
@@ -146,7 +146,7 @@ static int codepoint (lua_State *L) {
     s = utf8_decode(s, &code, !lax);
     if (s == NULL)
       luaL_error(L, MSGInvalid);
-    lua_pushinteger(L, code);
+    lua_pushinteger(L, l_castU2S(code));
     n++;
   }
   return n;
@@ -189,7 +189,7 @@ static int byteoffset (lua_State *L) {
   size_t len;
   const char *s = luaL_checklstring(L, 1, &len);
   lua_Integer n  = luaL_checkinteger(L, 2);
-  lua_Integer posi = (n >= 0) ? 1 : len + 1;
+  lua_Integer posi = (n >= 0) ? 1 : cast_st2S(len) + 1;
   posi = u_posrelat(luaL_optinteger(L, 3, posi), len);
   luaL_argcheck(L, 1 <= posi && --posi <= (lua_Integer)len, 3,
                    "position out of bounds");
@@ -201,22 +201,22 @@ static int byteoffset (lua_State *L) {
     if (iscontp(s + posi))
       luaL_error(L, "initial position is a continuation byte");
     if (n < 0) {
-       while (n < 0 && posi > 0) {  /* move back */
-         do {  /* find beginning of previous character */
-           posi--;
-         } while (posi > 0 && iscontp(s + posi));
-         n++;
-       }
-     }
-     else {
-       n--;  /* do not move for 1st character */
-       while (n > 0 && posi < (lua_Integer)len) {
-         do {  /* find beginning of next character */
-           posi++;
-         } while (iscontp(s + posi));  /* (cannot pass final '\0') */
-         n--;
-       }
-     }
+      while (n < 0 && posi > 0) {  /* move back */
+        do {  /* find beginning of previous character */
+          posi--;
+        } while (posi > 0 && iscontp(s + posi));
+        n++;
+      }
+    }
+    else {
+      n--;  /* do not move for 1st character */
+      while (n > 0 && posi < (lua_Integer)len) {
+        do {  /* find beginning of next character */
+          posi++;
+        } while (iscontp(s + posi));  /* (cannot pass final '\0') */
+        n--;
+      }
+    }
   }
   if (n != 0) {  /* did not find given character? */
     luaL_pushfail(L);
@@ -249,8 +249,8 @@ static int iter_aux (lua_State *L, int strict) {
     const char *next = utf8_decode(s + n, &code, strict);
     if (next == NULL || iscontp(next))
       luaL_error(L, MSGInvalid);
-    lua_pushinteger(L, n + 1);
-    lua_pushinteger(L, code);
+    lua_pushinteger(L, l_castU2S(n + 1));
+    lua_pushinteger(L, l_castU2S(code));
     return 2;
   }
 }

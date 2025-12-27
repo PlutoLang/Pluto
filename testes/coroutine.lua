@@ -1,5 +1,5 @@
 -- $Id: testes/coroutine.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
 
 pluto_use * = false
 
@@ -127,6 +127,18 @@ end
 
 assert(#a == 22 and a[#a] == 79)
 x, a = nil
+
+
+do   -- "bug" in 5.4.2
+  local function foo () foo () end    -- just create a stack overflow
+  local co = coroutine.create(foo)
+  -- running this coroutine would overflow the unsigned short 'nci', the
+  -- counter of CallInfo structures available to the thread.
+  -- (The issue only manifests in an 'assert'.)
+  local st, msg = coroutine.resume(co)
+  assert(string.find(msg, "stack overflow"))
+  assert(coroutine.status(co) == "dead")
+end
 
 
 print("to-be-closed variables in coroutines")
@@ -536,7 +548,7 @@ else
   print "testing yields inside hooks"
 
   local turn
-  
+
   local function fact (t, x)
     assert(turn == t)
     if x == 0 then return 1
@@ -662,7 +674,7 @@ else
 
 
   print "testing coroutine API"
-  
+
   -- reusing a thread
   assert(T.testC([[
     newthread      # create thread
@@ -940,7 +952,7 @@ do   -- a few more tests for comparison operators
     until res ~= 10
     return res
   end
-  
+
   local function test ()
     local a1 = setmetatable({x=1}, mt1)
     local a2 = setmetatable({x=2}, mt2)
@@ -952,7 +964,7 @@ do   -- a few more tests for comparison operators
     assert(2 >= a2)
     return true
   end
-  
+
   run(test)
 
 end
@@ -1057,6 +1069,31 @@ f = T.makeCfunc([[
 	return *
 ]], 23, "huu")
 
+
+do  -- testing bug introduced in commit f407b3c4a
+  local X = false   -- flag "to be closed"
+  local coro = coroutine.wrap(T.testC)
+  -- runs it until 'pcallk' (that yields)
+  -- 4th argument (at index 4): object to be closed
+  local res1, res2 = coro(
+    [[
+      toclose 3   # this could break the next 'pcallk'
+      pushvalue 2   # push function 'yield' to call it
+      pushint 22; pushint 33    # arguments to yield
+      # calls 'yield' (2 args; 2 results; continuation function at index 4)
+      pcallk 2 2 4
+      invalid command (should not arrive here)
+    ]],   -- 1st argument (at index 1): code;
+    coroutine.yield,  -- (at index 2): function to be called
+    func2close(function () X = true end),   -- (index 3): TBC slot
+    "pushint 43; return 3"   -- (index 4): code for continuation function
+  )
+
+  assert(res1 == 22 and res2 == 33 and not X)
+  local res1, res2, res3 = coro(34, "hi")  -- runs continuation function
+  assert(res1 == 34 and res2 == "hi" and res3 == 43 and X)
+end
+
 x = coroutine.wrap(f)
 assert(x() == 102)
 eqtab({x()}, {23, "huu"})
@@ -1114,11 +1151,11 @@ co = coroutine.wrap(function (...) return
           cannot be here!
        ]],
        [[  # 1st continuation
-         yieldk 0 3 
+         yieldk 0 3
          cannot be here!
        ]],
        [[  # 2nd continuation
-         yieldk 0 4 
+         yieldk 0 4
          cannot be here!
        ]],
        [[  # 3th continuation

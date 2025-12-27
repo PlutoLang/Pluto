@@ -112,14 +112,14 @@ static int pushglobalfuncname (lua_State *L, lua_Debug *ar) {
 
 
 static void pushfuncname (lua_State *L, lua_Debug *ar) {
-  if (pushglobalfuncname(L, ar)) {  /* try first a global name */
-    lua_pushfstring(L, "function '%s'", lua_tostring(L, -1));
-    lua_remove(L, -2);  /* remove name */
-  }
-  else if (*ar->namewhat != '\0')  /* is there a name from code? */
+  if (*ar->namewhat != '\0')  /* is there a name from code? */
     lua_pushfstring(L, "%s '%s'", ar->namewhat, ar->name);  /* use it */
   else if (*ar->what == 'm')  /* main? */
       lua_pushliteral(L, "main chunk");
+  else if (pushglobalfuncname(L, ar)) {  /* try a global name */
+    lua_pushfstring(L, "function '%s'", lua_tostring(L, -1));
+    lua_remove(L, -2);  /* remove name */
+  }
   else if (*ar->what != 'C')  /* for Lua functions, use <file:line> */
     lua_pushfstring(L, "function <%s:%d>", ar->short_src, ar->linedefined);
   else  /* nothing left... */
@@ -188,19 +188,27 @@ LUALIB_API void luaL_traceback (lua_State *L, lua_State *L1,
 
 LUALIB_API_NORETURN int luaL_argerror (lua_State *L, int arg, const char *extramsg) {
   lua_Debug ar;
+  const char *argword;
   if (!lua_getstack(L, 0, &ar))  /* no stack frame? */
-    luaL_error(L, "bad argument #%d (%s)", arg, extramsg);
-  lua_getinfo(L, "n", &ar);
-  if (strcmp(ar.namewhat, "method") == 0) {
-    arg--;  /* do not count 'self' */
-    if (arg == 0)  /* error is in the self argument itself? */
-      luaL_error(L, "calling '%s' on bad self (%s)",
-                           ar.name, extramsg);
+    return luaL_error(L, "bad argument #%d (%s)", arg, extramsg);
+  lua_getinfo(L, "nt", &ar);
+  if (arg <= ar.extraargs)  /* error in an extra argument? */
+    argword =  "extra argument";
+  else {
+    arg -= ar.extraargs;  /* do not count extra arguments */
+    if (strcmp(ar.namewhat, "method") == 0) {  /* colon syntax? */
+      arg--;  /* do not count (extra) self argument */
+      if (arg == 0)  /* error in self argument? */
+        return luaL_error(L, "calling '%s' on bad self (%s)",
+                               ar.name, extramsg);
+      /* else go through; error in a regular argument */
+    }
+    argword = "argument";
   }
   if (ar.name == NULL)
     ar.name = (pushglobalfuncname(L, &ar)) ? lua_tostring(L, -1) : "?";
-  luaL_error(L, "bad argument #%d to '%s' (%s)",
-                        arg, ar.name, extramsg);
+  return luaL_error(L, "bad %s #%d to '%s' (%s)",
+                       argword, arg, ar.name, extramsg);
 }
 
 
@@ -243,7 +251,7 @@ LUALIB_API void luaL_where (lua_State *L, int level) {
 /*
 ** Again, the use of 'lua_pushvfstring' ensures this function does
 ** not need reserved stack space when called. (At worst, it generates
-** an error with "stack overflow" instead of the given message.)
+** a memory error instead of the given message.)
 */
 LUALIB_API_NORETURN int luaL_error (lua_State *L, const char *fmt, ...) {
   va_list argp;
@@ -564,17 +572,17 @@ static void newbox (lua_State *L) {
 
 /*
 ** Compute new size for buffer 'B', enough to accommodate extra 'sz'
-** bytes plus one for a terminating zero. (The test for "not big enough"
-** also gets the case when the computation of 'newsize' overflows.)
+** bytes plus one for a terminating zero.
 */
 static size_t newbuffsize (luaL_Buffer *B, size_t sz) {
-  size_t newsize = (B->size / 2) * 3;  /* buffer size * 1.5 */
-  if (l_unlikely(sz > MAX_SIZE - B->n - 1))
-    return luaL_error(B->L, "resulting string too large");
-  if (newsize < B->n + sz + 1 || newsize > MAX_SIZE) {
-    /* newsize was not big enough or too big */
+  size_t newsize = B->size;
+  if (l_unlikely(sz >= MAX_SIZE - B->n))
+    return cast_sizet(luaL_error(B->L, "resulting string too large"));
+  /* else  B->n + sz + 1 <= MAX_SIZE */
+  if (newsize <= MAX_SIZE/3 * 2)  /* no overflow? */
+    newsize += (newsize >> 1);  /* new size *= 1.5 */
+  if (newsize < B->n + sz + 1)  /* not big enough? */
     newsize = B->n + sz + 1;
-  }
   return newsize;
 }
 
@@ -645,10 +653,11 @@ LUALIB_API void luaL_pushresult (luaL_Buffer *B) {
     resizebox(L, -1, len + 1);  /* adjust box size to content size */
     s = (char*)box->box;  /* final buffer address */
     s[len] = '\0';  /* add ending zero */
-    /* clear box, as 'lua_pushextlstring' will take control over buffer */
+    /* clear box, as Lua will take control of the buffer */
     box->bsize = 0;  box->box = NULL;
-    lua_pushextlstring(L, s, len, allocf, ud);
+    lua_pushexternalstring(L, s, len, allocf, ud);
     lua_closeslot(L, -2);  /* close the box */
+    lua_gc(L, LUA_GCSTEP, len);
   }
   lua_remove(L, -2);  /* remove box or placeholder from the stack */
 }
@@ -756,7 +765,7 @@ LUALIB_API void luaL_unref (lua_State *L, int t, int ref) {
 */
 
 typedef struct LoadF {
-  int n;  /* number of pre-read characters */
+  unsigned n;  /* number of pre-read characters */
   FILE *f;  /* file being read */
   char buff[BUFSIZ];  /* area for reading file */
 } LoadF;
@@ -947,7 +956,7 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
   }
 #endif
   if (c != EOF)
-    lf.buff[lf.n++] = c;  /* 'c' is the first character of the stream */
+    lf.buff[lf.n++] = cast_char(c);  /* 'c' is the first character */
   errno = 0;
 #ifdef PLUTO_PARSER_CACHE
   parser_emitted_warnings = false;
@@ -1055,10 +1064,9 @@ LUALIB_API const char *luaL_tolstring (lua_State *L, int idx, size_t *len) {
   else {
     switch (lua_type(L, idx)) {
       case LUA_TNUMBER: {
-        if (lua_isinteger(L, idx))
-          lua_pushfstring(L, "%I", (LUAI_UACINT)lua_tointeger(L, idx));
-        else
-          lua_pushfstring(L, "%f", (LUAI_UACNUMBER)lua_tonumber(L, idx));
+        char buff[LUA_N2SBUFFSZ];
+        lua_numbertocstring(L, idx, buff);
+        lua_pushstring(L, buff);
         break;
       }
       case LUA_TSTRING:
@@ -1156,7 +1164,7 @@ LUALIB_API void luaL_addgsub (luaL_Buffer *b, const char *s,
   const char *wild;
   size_t l = strlen(p);
   while ((wild = strstr(s, p)) != NULL) {
-    luaL_addlstring(b, s, wild - s);  /* push prefix */
+    luaL_addlstring(b, s, ct_diff2sz(wild - s));  /* push prefix */
     luaL_addstring(b, r);  /* push replacement in place of pattern */
     s = wild + l;  /* continue after 'p' */
   }
