@@ -136,6 +136,7 @@ typedef struct BlockCnt {
   lu_byte upval;  /* true if some variable in the block is an upvalue */
   BlockType type;  /* one of block types */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
+  lu_byte globdec;  /* true if inside the scope of any global declaration */
   std::vector<TString*> export_symbols{};
   TypeHint *var_override_th = nullptr;
   unsigned short var_override_vidx;
@@ -808,7 +809,7 @@ static TypeHint& get_global_prop(LexState* ls, const TString* name) {
 static lu_byte reglevel (FuncState *fs, int nvar) {
   while (nvar-- > 0) {
     Vardesc *vd = getlocalvardesc(fs, nvar);  /* get previous variable */
-    if (vd->vd.kind != RDKCTC && vd->vd.kind != RDKENUM)  /* is in a register? */
+    if (varinreg(vd))  /* is in a register? */
       return cast_byte(vd->vd.ridx + 1);
   }
   return 0;  /* no variables in registers */
@@ -829,8 +830,8 @@ lu_byte luaY_nvarstack (FuncState *fs) {
 */
 static LocVar *localdebuginfo (FuncState *fs, int vidx) {
   Vardesc *vd = getlocalvardesc(fs, vidx);
-  if (vd->vd.kind == RDKCTC || vd->vd.kind == RDKENUM)
-    return NULL;  /* no debug info. for constants [Pluto] and named enums */
+  if (!varinreg(vd))
+    return NULL;  /* no debug info. for constants */
   else {
     int idx = vd->vd.pidx;
     lua_assert(idx < fs->ndebugvars);
@@ -891,10 +892,10 @@ static void checkforshadowing (LexState *ls, FuncState *fs, const std::unordered
 
 
 /*
-** Create a new local variable with the given 'name' and given 'kind'.
+** Create a new variable with the given 'name' and given 'kind'.
 ** Return its index in the function.
 */
-static int new_localvarkind (LexState* ls, TString* name, lu_byte kind, int line, TypeHint hint = {}, bool check_globals = true, bool used = false) {
+static int new_varkind (LexState* ls, TString* name, lu_byte kind, int line, TypeHint hint = {}, bool check_globals = true, bool used = false) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -914,8 +915,8 @@ static int new_localvarkind (LexState* ls, TString* name, lu_byte kind, int line
   return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
-static int new_localvarkind (LexState *ls, TString *name, lu_byte kind) {
-  return new_localvarkind(ls, name, kind, ls->getLineNumber());
+static int new_varkind (LexState *ls, TString *name, lu_byte kind) {
+  return new_varkind(ls, name, kind, ls->getLineNumber());
 }
 
 
@@ -923,11 +924,11 @@ static int new_localvarkind (LexState *ls, TString *name, lu_byte kind) {
 ** Create a new local variable with the given 'name' and regular kind.
 */
 static int new_localvar (LexState *ls, TString *name, int line, TypeHint hint = {}, bool used = false) {
-  return new_localvarkind(ls, name, VDKREG, line, std::move(hint), true, used);
+  return new_varkind(ls, name, VDKREG, line, std::move(hint), true, used);
 }
 
 static int new_localvar (LexState *ls, TString *name, TypeHint hint = {}, bool used = false) {
-  return new_localvarkind(ls, name, VDKREG, ls->getLineNumber(), std::move(hint), true, used);
+  return new_varkind(ls, name, VDKREG, ls->getLineNumber(), std::move(hint), true, used);
 }
 
 
@@ -1085,7 +1086,9 @@ static int searchvar (FuncState *fs, TString *n, expdesc *var) {
         init_exp(var, VENUM, 0);
         var->u.ival = ivalue(&vd->k);
       }
-      else  /* real variable */
+      else if (vd->vd.kind == GDKREG || vd->vd.kind == GDKCONST)
+        init_exp(var, VGLOBAL, i);
+      else  /* local variable */
         init_var(fs, var, i);
       return cast_int(var->k);
     }
@@ -1124,25 +1127,24 @@ static void marktobeclosed (FuncState *fs) {
 ** 'var' as 'void' as a flag.
 */
 static void singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
-  if (fs == NULL)  /* no more levels? */
-    init_exp(var, VVOID, 0);  /* default is global */
-  else {
-    int v = searchvar(fs, n, var);  /* look up locals at current level */
-    if (v >= 0) {  /* found? */
-      if (v == VLOCAL && !base)
-        markupval(fs, var->u.var.vidx);  /* local will be used as an upval */
-    }
-    else {  /* not found as local at current level; try upvalues */
-      int idx = searchupvalue(fs, n);  /* try existing upvalues */
-      if (idx < 0) {  /* not found? */
+  int v = searchvar(fs, n, var);  /* look up locals at current level */
+  if (v >= 0) {  /* found? */
+    if (v == VLOCAL && !base)
+      markupval(fs, var->u.var.vidx);  /* local will be used as an upval */
+  }
+  else {  /* not found as local at current level; try upvalues */
+    int idx = searchupvalue(fs, n);  /* try existing upvalues */
+    if (idx < 0) {  /* not found? */
+      if (fs->prev != NULL)  /* more levels? */
         singlevaraux(fs->prev, n, var, 0);  /* try upper levels */
-        if (var->k == VLOCAL || var->k == VUPVAL)  /* local or upvalue? */
-          idx  = newupvalue(fs, n, var);  /* will be a new upvalue */
-        else  /* it is a global or a constant */
-          return;  /* don't need to do anything at this level */
-      }
-      init_exp(var, VUPVAL, idx);  /* new or old upvalue */
+      else  /* no more levels */
+        init_exp(var, VGLOBAL, -1);  /* global by default */
+      if (var->k == VLOCAL || var->k == VUPVAL)  /* local or upvalue? */
+        idx  = newupvalue(fs, n, var);  /* will be a new upvalue */
+      else  /* it is a global or a constant */
+        return;  /* don't need to do anything at this level */
     }
+    init_exp(var, VUPVAL, idx);  /* new or old upvalue */
   }
 }
 
@@ -1185,10 +1187,15 @@ static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
 static void singlevarinner (LexState *ls, TString *varname, expdesc *var, bool localonly = false) {
   FuncState *fs = ls->fs;
   singlevaraux(fs, varname, var, 1);
-  if (var->k == VVOID && !localonly) {  /* global name? */
+  if (var->k == VGLOBAL && !localonly) {  /* global name? */
     expdesc key;
+    /* global by default in the scope of a global declaration? */
+    if (var->u.info == -1 && fs->bl->globdec)
+      luaK_semerror(ls, "variable '%s' not declared", getstr(varname));
     singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
-    lua_assert(var->k != VVOID);  /* this one must exist */
+    if (var->k == VGLOBAL)
+      luaK_semerror(ls, "_ENV is global when accessing variable '%s'",
+                        getstr(varname));
     luaK_exp2anyregup(fs, var);  /* but could be a constant */
     codestring(&key, varname);  /* key is variable name */
     luaK_indexed(fs, var, &key);  /* env[varname] */
@@ -1372,8 +1379,13 @@ static void enterblock (FuncState *fs, BlockCnt *bl, BlockType type) {
   bl->firstlabel = fs->ls->dyd->label.n;
   bl->firstgoto = fs->ls->dyd->gt.n;
   bl->upval = 0;
+  /* inherit 'insidetbc' from enclosing block */
   bl->insidetbc = static_cast<lu_byte>(fs->bl != NULL && fs->bl->insidetbc);
-  bl->previous = fs->bl;
+  /* inherit 'globdec' from enclosing block or enclosing function */
+  bl->globdec = fs->bl != NULL ? fs->bl->globdec
+              : fs->prev != NULL ? fs->prev->bl->globdec
+              : 0;  /* chunk's first block */
+  bl->previous = fs->bl;  /* link block in function's block list */
   fs->bl = bl;
   lua_assert(fs->freereg == luaY_nvarstack(fs));
 }
@@ -3551,7 +3563,7 @@ static void primaryexp (LexState *ls, expdesc *v, int flags = 0) {
     if (v->k == VENUM) {
       enumexp(ls, v, varname);
     }
-    if (is_overridable && v->k == VVOID)
+    if (is_overridable && v->k == VGLOBAL)
       luaX_prev(ls);
     else
       return;
@@ -3817,7 +3829,7 @@ static void expsuffix (LexState *ls, expdesc *v, int line, int flags, tdn_t *npr
             if (uv->instack) {
               for (int i = 0; i != efs->nactvar; ++i) {
                 vd = getlocalvardesc(efs, i);
-                if (vd->vd.kind != RDKCTC && vd->vd.kind != RDKENUM  /* is in a register? */
+                if (varinreg(vd)  /* is in a register? */
                   && vd->vd.ridx == idx) {
                   goto _funcdesc_from_vd;
                 }
@@ -5038,7 +5050,7 @@ static void fornum (LexState *ls, TString *varname, tdn_t *nprop, TypeHint *prop
   int base = fs->freereg;
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
-  new_localvarkind(ls, varname, RDKCONST);  /* control variable */
+  new_varkind(ls, varname, RDKCONST);  /* control variable */
   checknext(ls, '=');
   exp1(ls);  /* initial value */
   checknext(ls, ',');
@@ -5065,7 +5077,7 @@ static void forlist (LexState *ls, TString *indexname, tdn_t *nprop, TypeHint *p
   new_localvarliteral(ls, "(for state)");  /* iterator function */
   new_localvarliteral(ls, "(for state)");  /* state */
   new_localvarliteral(ls, "(for state)");  /* closing var. (after swap) */
-  new_localvarkind(ls, indexname, RDKCONST);  /* control variable */
+  new_varkind(ls, indexname, RDKCONST);  /* control variable */
   while (testnext(ls, ',')) {
     new_localvar(ls, str_checkname(ls));
     nvars++;
@@ -5091,7 +5103,7 @@ static void forvlist (LexState *ls, tdn_t *nprop, TypeHint *prop) {
   new_localvarliteral(ls, "(for state)");  /* iterator function */
   new_localvarliteral(ls, "(for state)");  /* state */
   new_localvarliteral(ls, "(for state)");  /* closing var. (after swap) */
-  new_localvarkind(ls, luaS_newliteral(ls->L, "(for state)"), RDKCONST);  /* control variable */
+  new_varkind(ls, luaS_newliteral(ls->L, "(for state)"), RDKCONST);  /* control variable */
   /* create variable for value */
   int vidx = new_localvar(ls, luaS_newliteral(ls->L, "(for state)"));
   nvars++;
@@ -5399,7 +5411,7 @@ static void localfunc (LexState *ls, bool isexport = false) {
 }
 
 
-static lu_byte getlocalattribute (LexState *ls) {
+static lu_byte getvarattribute (LexState *ls) {
   /* ATTRIB -> ['<' Name '>'] */
   if (testnext(ls, '<')) {
     TString *ts = str_checkname(ls);
@@ -5540,7 +5552,7 @@ static void localstat (LexState *ls, bool isexport = false) {
     TString* name = str_checkname(ls, N_OVERRIDABLE);
     vidx = new_localvar(ls, name, line, gettypehint(ls), false);
     st.variable_names.emplace(name);
-    lu_byte kind = isexport ? RDKCONST : getlocalattribute(ls);
+    lu_byte kind = isexport ? RDKCONST : getvarattribute(ls);
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
@@ -5610,6 +5622,24 @@ static void localstat (LexState *ls, bool isexport = false) {
   }
   checktoclose(fs, toclose);
   ls->localstatstates.pop();
+}
+
+
+static void globalstat (LexState *ls) {
+  FuncState *fs = ls->fs;
+  luaX_next(ls);  /* skip 'global' */
+  do {
+    TString *vname = str_checkname(ls);
+    lu_byte kind = getvarattribute(ls);
+    if (kind == RDKTOCLOSE)
+      luaK_semerror(ls, "global variable ('%s') cannot be to-be-closed",
+                        getstr(vname));
+    /* adjust kind for global variable */
+    kind = (kind == VDKREG) ? GDKREG : GDKCONST;
+    new_varkind(ls, vname, kind);
+    fs->nactvar++;  /* activate declaration */
+  } while (testnext(ls, ','));
+  fs->bl->globdec = 1;  /* code is in the scope of a global declaration */
 }
 
 
@@ -6035,6 +6065,10 @@ static void statement (LexState *ls, tdn_t *nprop, TypeHint *prop) {
       }
       break;
     }
+    case TK_GLOBAL: {  /* stat -> globalstat */
+      globalstat(ls);
+      break;
+    }
     case TK_DBCOLON: {  /* stat -> label */
       luaX_next(ls);  /* skip double colon */
       labelstat(ls, str_checkname(ls, N_RESERVED), line);
@@ -6090,6 +6124,17 @@ static void statement (LexState *ls, tdn_t *nprop, TypeHint *prop) {
       expsuffix(ls, &v, line, 0, nprop, prop);
       break;
     }
+    case TK_NAME: {
+      /* compatibility code to parse global keyword when "global"
+         is not reserved */
+      if (eqstr(ls->t.seminfo.ts, luaS_newliteral(ls->L, "global"))) {
+        int lk = luaX_lookahead(ls);
+        if (lk == TK_NAME) {  /* 'global name'? */
+          globalstat(ls);
+          break;
+        }
+      }  /* else... */
+    }  /* FALLTHROUGH */
     default: {  /* stat -> func | assignment */
       exprstat(ls);
       break;
