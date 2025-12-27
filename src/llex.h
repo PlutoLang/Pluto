@@ -47,7 +47,6 @@ enum RESERVED {
   TK_PUSE, // New compatibility keywords.
   TK_PSWITCH, TK_PCONTINUE, TK_PENUM, TK_PNEW, TK_PCLASS, TK_PPARENT, TK_PEXPORT,
   TK_SWITCH, TK_CONTINUE, TK_ENUM, TK_NEW, TK_CLASS, TK_PARENT, TK_EXPORT, // New non-compatible keywords.
-  TK_GLOBAL, // New optional keywords.
 #ifdef PLUTO_PARSER_SUGGESTIONS
   TK_SUGGEST_0, TK_SUGGEST_1, // New special keywords.
 #endif
@@ -69,7 +68,6 @@ enum RESERVED {
 
 #define FIRST_COMPAT TK_PUSE
 #define FIRST_NON_COMPAT TK_SWITCH
-#define FIRST_OPTIONAL TK_GLOBAL
 #define FIRST_SPECIAL TK_SUGGEST_0
 #define LAST_RESERVED TK_WHILE
 
@@ -78,12 +76,11 @@ static_assert(TK_PEXPORT + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_EXPORT);
 static_assert(TK_PSWITCH + (FIRST_NON_COMPAT - FIRST_COMPAT - 1) == TK_SWITCH);
 
 #define END_COMPAT FIRST_NON_COMPAT
-#define END_NON_COMPAT FIRST_OPTIONAL
 #ifdef PLUTO_PARSER_SUGGESTIONS
-#define END_OPTIONAL FIRST_SPECIAL
+#define END_NON_COMPAT FIRST_SPECIAL
 #define END_SPECIAL TK_RETURN
 #else
-#define END_OPTIONAL TK_RETURN
+#define END_NON_COMPAT TK_RETURN
 #endif
 
 /* number of reserved words */
@@ -155,10 +152,6 @@ struct Token {
 
   [[nodiscard]] bool IsNonCompatible() const noexcept {
       return (token >= FIRST_NON_COMPAT && token < END_NON_COMPAT);
-  }
-
-  [[nodiscard]] bool IsOptional() const noexcept {
-      return (token >= FIRST_OPTIONAL && token < END_OPTIONAL);
   }
 
 #ifdef PLUTO_PARSER_SUGGESTIONS
@@ -250,7 +243,6 @@ enum WarningState : lu_byte {
   WS_OFF,
   WS_ON,
   WS_ERROR,
-  WS_UNSPECIFIED,
 };
 
 
@@ -275,6 +267,9 @@ private:
 #endif
 #ifndef PLUTO_WARN_NON_PORTABLE_NAME
     case WT_NON_PORTABLE_NAME:
+#endif
+#ifndef PLUTO_WARN_IMPLICIT_GLOBAL
+    case WT_IMPLICIT_GLOBAL:
 #endif
     /* on by default */
 #ifdef PLUTO_NO_WARN_VAR_SHADOW
@@ -312,8 +307,6 @@ private:
 #endif
     case NUM_WARNING_TYPES:  /* dummy case so compiler doesn't cry when all macros are set */
       return WS_OFF;
-    case WT_IMPLICIT_GLOBAL:
-      return WS_UNSPECIFIED;
     default:
       return WS_ON;
     }
@@ -519,7 +512,7 @@ struct LexState {
   std::unordered_set<TString*> explicit_globals{};
   std::unordered_map<const TString*, void*> global_props{};
   std::unordered_map<const TString*, void*> named_types{};
-  KeywordState keyword_states[END_OPTIONAL - FIRST_NON_COMPAT];
+  KeywordState keyword_states[END_NON_COMPAT - FIRST_NON_COMPAT];
   bool nodiscard = false;
   bool used_walrus = false;
   std::unordered_map<int, int> uninformed_reserved{}; // When a reserved word is intelligently disabled for compatibility, it is added to this map. (token, line)
@@ -532,9 +525,6 @@ struct LexState {
     parser_context_stck.push(PARCTX_NONE);  /* ensure there is at least 1 item on the parser context stack */
     for (int i = FIRST_NON_COMPAT; i != END_NON_COMPAT; ++i) {
       setKeywordState(i, KS_ENABLED_BY_PLUTO_UNINFORMED);
-    }
-    for (int i = FIRST_OPTIONAL; i != END_OPTIONAL; ++i) {
-      setKeywordState(i, KS_DISABLED_BY_ENV);  /* optional keywords are not applicable for auto-detection */
     }
   }
 
@@ -665,11 +655,11 @@ struct LexState {
   }
 
   [[nodiscard]] KeywordState getKeywordState(int t) const noexcept {
-    return t >= FIRST_NON_COMPAT && t < END_OPTIONAL ? keyword_states[t - FIRST_NON_COMPAT] : KS_INVALID;
+    return t >= FIRST_NON_COMPAT && t < END_NON_COMPAT ? keyword_states[t - FIRST_NON_COMPAT] : KS_INVALID;
   }
 
   void setKeywordState(int t, KeywordState ks) noexcept {
-    lua_assert(t >= FIRST_NON_COMPAT && t < END_OPTIONAL);
+    lua_assert(t >= FIRST_NON_COMPAT && t < END_NON_COMPAT);
     keyword_states[t - FIRST_NON_COMPAT] = ks;
   }
 
