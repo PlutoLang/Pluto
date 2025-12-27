@@ -35,7 +35,7 @@
 
 
 
-#define errorstatus(s)	((s) > LUA_YIELD)
+#define errorstatus(s)  ((s) > LUA_YIELD)
 
 
 /*
@@ -43,11 +43,11 @@
 ** resumed/yielded.
 */
 #if !defined(luai_userstateresume)
-#define luai_userstateresume(L,n)	((void)L)
+#define luai_userstateresume(L,n) ((void)L)
 #endif
 
 #if !defined(luai_userstateyield)
-#define luai_userstateyield(L,n)	((void)L)
+#define luai_userstateyield(L,n)  ((void)L)
 #endif
 
 
@@ -63,33 +63,33 @@
 ** C++ code, with _longjmp/_setjmp when asked to use them, and with
 ** longjmp/setjmp otherwise.
 */
-#if !defined(LUAI_THROW)				/* { */
+#if !defined(LUAI_THROW)        /* { */
 
-#if defined(__cplusplus) && !defined(LUA_USE_LONGJMP)	/* { */
+#if defined(__cplusplus) && !defined(LUA_USE_LONGJMP) /* { */
 
 /* C++ exceptions */
-#define LUAI_THROW(L,c)		throw(c)
+#define LUAI_THROW(L,c)   throw(c)
 #define LUAI_TRY(L,c,f,ud) \
     try { (f)(L, ud); } catch(...) { if ((c)->status == 0) (c)->status = -1; }
-#define luai_jmpbuf		int  /* dummy field */
+#define luai_jmpbuf   int  /* dummy field */
 
-#elif defined(LUA_USE_POSIX)				/* }{ */
+#elif defined(LUA_USE_POSIX)        /* }{ */
 
 /* in POSIX, try _longjmp/_setjmp (more efficient) */
-#define LUAI_THROW(L,c)		_longjmp((c)->b, 1)
-#define LUAI_TRY(L,c,f,ud)	if (_setjmp((c)->b) == 0) ((f)(L, ud))
-#define luai_jmpbuf		jmp_buf
+#define LUAI_THROW(L,c)   _longjmp((c)->b, 1)
+#define LUAI_TRY(L,c,f,ud)  if (_setjmp((c)->b) == 0) ((f)(L, ud))
+#define luai_jmpbuf   jmp_buf
 
-#else							/* }{ */
+#else             /* }{ */
 
 /* ISO C handling with long jumps */
-#define LUAI_THROW(L,c)		longjmp((c)->b, 1)
-#define LUAI_TRY(L,c,f,ud)	if (setjmp((c)->b) == 0) ((f)(L, ud))
-#define luai_jmpbuf		jmp_buf
+#define LUAI_THROW(L,c)   longjmp((c)->b, 1)
+#define LUAI_TRY(L,c,f,ud)  if (setjmp((c)->b) == 0) ((f)(L, ud))
+#define luai_jmpbuf   jmp_buf
 
-#endif							/* } */
+#endif              /* } */
 
-#endif							/* } */
+#endif              /* } */
 
 
 
@@ -171,7 +171,7 @@ int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
 */
 
 /* some stack space for error handling */
-#define STACKERRSPACE	200
+#define STACKERRSPACE 200
 
 
 /* maximum stack size that respects size_t */
@@ -181,12 +181,12 @@ int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
 ** Minimum between LUAI_MAXSTACK and MAXSTACK_BYSIZET
 ** (Maximum size for the stack must respect size_t.)
 */
-#define MAXSTACK	cast_int(LUAI_MAXSTACK < MAXSTACK_BYSIZET  \
-			        ? LUAI_MAXSTACK : MAXSTACK_BYSIZET)
+#define MAXSTACK  cast_int(LUAI_MAXSTACK < MAXSTACK_BYSIZET  \
+              ? LUAI_MAXSTACK : MAXSTACK_BYSIZET)
 
 
 /* stack size with extra space for error handling */
-#define ERRORSTACKSIZE	(MAXSTACK + STACKERRSPACE)
+#define ERRORSTACKSIZE  (MAXSTACK + STACKERRSPACE)
 
 
 /*
@@ -876,7 +876,6 @@ static void resume (lua_State *L, void *ud) {
          executed yet */
       lua_assert(ci->callstatus & CIST_HOOKYIELD);
       ci->u.l.savedpc--;
-
       L->top.p = firstArg;  /* discard arguments */
       luaV_execute(L, ci);  /* just continue running Lua code */
     }
