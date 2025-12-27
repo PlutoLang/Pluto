@@ -2238,7 +2238,7 @@ static void classexpr (LexState *ls, expdesc *t) {
 static void check_assignment (LexState *ls, const expdesc *v) {
   const auto line = ls->getLineNumber();
   if (v->k == VINDEXUP
-    && (ls->getWarningConfig().states[WT_IMPLICIT_GLOBAL] == WS_UNSPECIFIED ? ls->isKeywordEnabled(TK_GLOBAL) : ls->shouldEmitWarning(line, WT_IMPLICIT_GLOBAL))
+    && ls->shouldEmitWarning(line, WT_IMPLICIT_GLOBAL)
     ) {
     luaX_prev(ls);
     if (isnametkn(ls, N_RESERVED_NON_VALUE | N_OVERRIDABLE)) {
@@ -5740,14 +5740,14 @@ static void retstat (LexState *ls, tdn_t *nprop, TypeHint *prop) {
 
 static int checkkeyword (LexState *ls) {
   if (ls->t.token == TK_NAME) {
-    for (int i = FIRST_NON_COMPAT; i != END_OPTIONAL; ++i) {
+    for (int i = FIRST_NON_COMPAT; i != END_NON_COMPAT; ++i) {
       if (strcmp(luaX_reserved2str(i), getstr(ls->t.seminfo.ts)) == 0) {
         luaX_next(ls);
         return i;
       }
     }
   }
-  if (!ls->t.IsNonCompatible() && !ls->t.IsOptional()) {
+  if (!ls->t.IsNonCompatible()) {
     if (ls->t.IsCompatible())
       luaX_syntaxerror(ls, "expected non-compatible keyword");
     luaX_syntaxerror(ls, "expected keyword");
@@ -5796,7 +5796,7 @@ static void usestat (LexState *ls) {
     auto& tokens = *pluto_newclassinst(ls->L, std::vector<int>);
     if (ls->t.token == '*') {
       is_all = true;
-      for (int i = FIRST_NON_COMPAT; i != END_OPTIONAL; ++i) {
+      for (int i = FIRST_NON_COMPAT; i != END_NON_COMPAT; ++i) {
         tokens.emplace_back(i);
       }
       luaX_next(ls);
@@ -5812,19 +5812,11 @@ static void usestat (LexState *ls) {
       else if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.2.0") >= 0) {
         tokens = { TK_SWITCH, TK_CONTINUE };
       }
-      else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", getstr(ls->t.seminfo.ts)), "did you mean \"0.8.0\", \"0.6.0\", \"0.5.0\" or \"0.2.0\"?");
-      if (getstr(ls->t.seminfo.ts)[ls->t.seminfo.ts->size() - 1] == '+') {
-        if (soup::version_compare(getstr(ls->t.seminfo.ts), "0.9.0") >= 0 && soup::version_compare(getstr(ls->t.seminfo.ts), "0.12.0") < 0) {
-          tokens.emplace_back(TK_GLOBAL);
-        }
-      }
+      else throwerr(ls, luaO_fmt(ls->L, "'pluto_use \"%s\"' is not valid", getstr(ls->t.seminfo.ts)), R"(did you mean "0.6.0", "0.5.0" or "0.2.0"?)");
       luaX_next(ls);
     }
     else {
       tokens = { checkkeyword(ls) };
-      if (tokens[0] == TK_GLOBAL) {
-        throw_warn(ls, "'pluto_use global' is deprecated", "use '--@pluto_warnings enable-implicit-global' instead", WT_DEPRECATED);
-      }
     }
 
     /* check if enable or disable */
@@ -5845,7 +5837,7 @@ static void usestat (LexState *ls) {
     if (is_all || is_version) {
       if (is_version) {
         /* disable all non-compatible keywords as of this Pluto version, then enable those from the elected Pluto version. */
-        for (int i = FIRST_NON_COMPAT; i != END_OPTIONAL; ++i) {
+        for (int i = FIRST_NON_COMPAT; i != END_NON_COMPAT; ++i) {
           if (ls->isKeywordEnabled(i)) {
             ls->setKeywordState(i, KS_DISABLED_BY_SCRIPTER);
             disablekeyword(ls, i);
@@ -5887,41 +5879,6 @@ static void ret_int(FuncState* fs, lua_Integer val) {
   v.u.ival = val;
   luaK_exp2anyreg(fs, &v);
   luaK_ret(fs, v.u.reg, 1);
-}
-
-
-static void globalstat (LexState *ls) {
-  const auto line = ls->getLineNumber();
-  throw_warn(ls, "the 'global' keyword is deprecated", "use the '_G.' prefix instead", WT_DEPRECATED);
-  luaX_next(ls);  /* skip GLOBAL */
-  if (ls->t.token == TK_FUNCTION) {
-    luaX_next(ls);  /* skip FUNCTION */
-    ls->explicit_globals.emplace(str_checkname(ls));
-    check(ls, '(');
-    luaX_prev(ls);
-    funcstat(ls, line, true);
-  }
-  else if (ls->t.token == TK_CLASS) {
-    luaX_next(ls);  /* skip CLASS */
-    ls->explicit_globals.emplace(str_checkname(ls));
-    luaX_prev(ls);
-    classstat(ls, line, true);
-  }
-  else {
-    size_t tidx = luaX_getpos(ls);
-    do {
-      ls->explicit_globals.emplace(str_checkname(ls));
-    } while (testnext(ls, ','));
-    if (ls->t.token == '=') {
-      luaX_setpos(ls, tidx);
-      struct LHS_assign v;
-      primaryexp(ls, &v.v);
-      if (ls->t.token != ',')
-        check(ls, '=');
-      v.prev = NULL;
-      restassign(ls, &v, 1);
-    }
-  }
 }
 
 
@@ -6131,10 +6088,6 @@ static void statement (LexState *ls, tdn_t *nprop, TypeHint *prop) {
       expdesc v;
       newexpr(ls, &v);
       expsuffix(ls, &v, line, 0, nprop, prop);
-      break;
-    }
-    case TK_GLOBAL: {
-      globalstat(ls);
       break;
     }
     default: {  /* stat -> func | assignment */
@@ -6676,9 +6629,6 @@ LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
     applyenvkeywordpreference(&lexstate, TK_PARENT, L->l_G->preference_parent);
   if (L->l_G->have_preference_export)
     applyenvkeywordpreference(&lexstate, TK_EXPORT, L->l_G->preference_export);
-#ifndef PLUTO_USE_GLOBAL
-  disablekeyword(&lexstate, TK_GLOBAL);
-#endif
   mainfunc(&lexstate, &funcstate);
   lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
   /* all scopes should be correctly finished */
