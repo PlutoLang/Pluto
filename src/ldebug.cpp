@@ -33,12 +33,11 @@
 
 #define LuaClosure(f)		((f) != NULL && (f)->c.tt == LUA_VLCL)
 
+static const char strlocal[] = "local";
+static const char strupval[] = "upvalue";
 
 static const char *funcnamefromcall (lua_State *L, CallInfo *ci,
                                                    const char **name);
-
-static const char strlocal[] = "local";
-static const char strupval[] = "upvalue";
 
 
 static int currentpc (CallInfo *ci) {
@@ -564,10 +563,7 @@ static void rname (const Proto *p, int pc, int c, const char **name) {
 
 /*
 ** Check whether table being indexed by instruction 'i' is the
-** environment '_ENV'. If the table is an upvalue, get its name;
-** otherwise, find some "name" for the table and check whether
-** that name is the name of a local variable (and not, for instance,
-** a string). Then check that, if there is a name, it is '_ENV'.
+** environment '_ENV'
 */
 static const char *isEnv (const Proto *p, int pc, Instruction i, int isup) {
   int t = GETARG_B(i);  /* table index */
@@ -576,6 +572,8 @@ static const char *isEnv (const Proto *p, int pc, Instruction i, int isup) {
     name = upvalname(p, t);
   else {  /* 't' is a register */
     const char *what = basicgetobjname(p, &pc, t, &name);
+    /* 'name' must be the name of a local variable (at the current
+       level or an upvalue) */
     if (what != strlocal && what != strupval)
       name = NULL;  /* cannot be the variable _ENV */
   }
