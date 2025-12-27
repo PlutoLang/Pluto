@@ -344,6 +344,11 @@ lu_byte luaV_finishget (lua_State *L, const TValue *t, TValue *key,
 
 /*
 ** Finish a table assignment 't[key] = val'.
+** About anchoring the table before the call to 'luaH_finishset':
+** This call may trigger an emergency collection. When loop>0,
+** the table being acessed is a field in some metatable. If this
+** metatable is weak and the table is not anchored, this collection
+** could collect that table while it is being updated.
 */
 void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
                       TValue *val, int hres) {
