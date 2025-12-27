@@ -149,8 +149,7 @@ static void loadString (LoadState *S, Proto *p, TString **sl) {
     return;
   }
   else if (size == 1) {  /* previously saved string? */
-    /* get its index */
-    lua_Unsigned idx = cast(lua_Unsigned, loadSize(S));
+    lua_Integer idx = cast_st2S(loadSize(S));  /* get its index */
     TValue stv;
     luaH_getint(S->h, idx, &stv);  /* get its value */
     *sl = ts = tsvalue(&stv);
