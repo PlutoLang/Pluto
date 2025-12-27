@@ -242,7 +242,7 @@ l_noret luaD_errerr (lua_State *L) {
 
 #else
 /*
-** Alternatively, we can use the old address after the dealocation.
+** Alternatively, we can use the old address after the deallocation.
 ** That is not strict ISO C, but seems to work fine everywhere.
 */
 
@@ -491,7 +491,7 @@ static unsigned tryfuncTM (lua_State *L, StkId func, unsigned status) {
 }
 
 
-/* Generic case for 'moveresult */
+/* Generic case for 'moveresult' */
 l_sinline void genmoveresults (lua_State *L, StkId res, int nres,
                                              int wanted) {
   StkId firstresult = L->top.p - nres;  /* index of first result */
