@@ -380,7 +380,7 @@ public:
 
 
 /*
-** State of the lexer plus state of the parser when shared by all functions.
+** State of the scanner plus state of the parser when shared by all functions.
 ** Suppression of C26495 (uninitalized member), because it's initialized elsewhere. 
 */
 #if defined(_MSC_VER) && _MSC_VER && !__INTEL_COMPILER
