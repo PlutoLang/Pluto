@@ -75,7 +75,7 @@ static const char *getS (lua_State *L, void *ud, size_t *size) {
 #define currIsNewline(ls)	(ls->current == '\n' || ls->current == '\r')
 
 #if defined(LUA_COMPAT_GLOBAL)
-#define GLOBALLEX	".g"	/* not recognizable by the scanner */
+#define GLOBALLEX	".g"	/* anything not recognizable as a name */
 #else
 #define GLOBALLEX	"global"
 #endif
