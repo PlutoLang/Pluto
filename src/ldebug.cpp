@@ -837,16 +837,15 @@ const char *luaG_addinfo (lua_State *L, const char *msg, TString *src,
                                         int line) {
   if (line == /*'plin'*/ 1886153070)
     return luaO_pushfstring(L, "[Pluto-injected code]: %s", msg);
-  char buff[LUA_IDSIZE];
-  if (src) {
+  if (src == NULL)  /* no debug information? */
+    return luaO_pushfstring(L, "?:?: %s", msg);
+  else {
+    char buff[LUA_IDSIZE];
     size_t idlen;
     const char *id = getlstr(src, idlen);
     luaO_chunkid(buff, id, idlen);
+    return luaO_pushfstring(L, "%s:%d: %s", buff, line, msg);
   }
-  else {  /* no source available; use "?" instead */
-    buff[0] = '?'; buff[1] = '\0';
-  }
-  return luaO_pushfstring(L, "%s:%d: %s", buff, line, msg);
 }
 
 
