@@ -74,16 +74,10 @@ static const char *getS (lua_State *L, void *ud, size_t *size) {
 
 #define currIsNewline(ls)	(ls->current == '\n' || ls->current == '\r')
 
-#if defined(LUA_COMPAT_GLOBAL)
-#define GLOBALLEX	".g"	/* anything not recognizable as a name */
-#else
-#define GLOBALLEX	"global"
-#endif
-
 /* ORDER RESERVED */
 static const char *const luaX_tokens [] = {
     "and", "break", "do", "else", "elseif",
-    "end", "false", "for", "function", GLOBALLEX, "goto", "if",
+    "end", "false", "for", "function", "global", "goto", "if",
     "in", "local", "nil", "not", "or",
     "case", "default", "as", "begin", "extends", "instanceof",
     "pluto_use",
@@ -291,7 +285,12 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
   ls->z = z;
   ls->fs = NULL;
   ls->source = source;
-  ls->envn = luaS_newliteral(L, LUA_ENV);  /* get env name */
+  ls->envn = luaS_newliteral(L, LUA_ENV);  /* get env string */
+#if defined(LUA_COMPAT_GLOBAL)
+  /* compatibility mode: "global" is not a reserved word */
+  ls->glbn = luaS_newliteral(L, "global");  /* get "global" string */
+  ls->glbn->extra = 0;  /* mark it as not reserved */
+#endif
   luaZ_resizebuffer(ls->L, ls->buff, LUA_MINBUFFER);  /* initialize buffer */
 
   while (true) {  /* perform lexer pass */

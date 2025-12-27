@@ -490,6 +490,7 @@ struct LexState {
   struct Dyndata *dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
+  TString *glbn;  /* "global" name (when not a reserved word) */
 
   bool uses_new = false;
   bool uses_extends = false;
