@@ -5698,6 +5698,7 @@ static void funcstat (LexState *ls, int line, const bool global) {
   ismethod = funcname(ls, &v);
   if (!global)
     check_assignment(ls, &v);
+  check_readonly(ls, &v);
   TypeDesc td;
   body(ls, &b, ismethod, line, &td);
   if (v.k == VINDEXUP) {
@@ -5706,7 +5707,6 @@ static void funcstat (LexState *ls, int line, const bool global) {
     th.clear();
     th.emplaceTypeDesc(std::move(td));
   }
-  check_readonly(ls, &v);
   luaK_storevar(ls->fs, &v, &b);
   luaK_fixline(ls->fs, line);  /* definition "happens" in the first line */
 }
