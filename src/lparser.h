@@ -125,11 +125,12 @@ typedef struct expdesc {
     };
     struct {  /* for indexed variables */
       short idx;  /* index (R or "long" K) */
+      short vidx;  /* index in 'actvar.arr' or -1 if not a declared global */
       lu_byte t;  /* table (register or upvalue) */
     } ind;
     struct {  /* for local variables */
       lu_byte ridx;  /* register holding the variable */
-      unsigned short vidx;  /* compiler index (in 'actvar.arr')  */
+      short vidx;  /* index in 'actvar.arr' */
     } var;
   } u;
   int t;  /* patch list of 'exit when true' */
@@ -441,7 +442,7 @@ struct TypeHint {
   }
 };
 
-/* description of an active local variable */
+/* description of an active variable */
 typedef union Vardesc {
   struct {
     TValuefields;  /* constant value (if it is a compile-time constant) */
