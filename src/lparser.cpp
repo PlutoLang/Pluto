@@ -938,7 +938,7 @@ static int new_localvar (LexState *ls, TString *name, TypeHint hint = {}, bool u
 static void init_var (FuncState *fs, expdesc *e, int vidx) {
   e->f = e->t = NO_JUMP;
   e->k = VLOCAL;
-  e->u.var.vidx = cast(short, vidx);
+  e->u.var.vidx = cast_short(vidx);
   Vardesc *vd = getlocalvardesc(fs, vidx);
   e->u.var.ridx = vd->vd.ridx;
   vd->vd.used = true;
@@ -1210,7 +1210,7 @@ static void buildvar (LexState *ls, TString *varname, expdesc *var, bool localon
     luaK_exp2anyregup(fs, var);  /* but could be a constant */
     codestring(&key, varname);  /* key is variable name */
     luaK_indexed(fs, var, &key);  /* env[varname] */
-    var->u.ind.vidx = cast(short, info);  /* mark it as a declared global */
+    var->u.ind.vidx = cast_short(info);  /* mark it as a declared global */
   }
 }
 
