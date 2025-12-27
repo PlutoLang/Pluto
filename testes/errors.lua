@@ -508,7 +508,7 @@ end
 
 
 if not _soft then
-  -- several tests that exaust the Lua stack
+  -- several tests that exhaust the Lua stack
   collectgarbage()
   print"testing stack overflow"
   local C = 0
