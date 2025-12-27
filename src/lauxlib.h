@@ -214,7 +214,11 @@ inline void* pluto_setupgcmt(lua_State* L, void* ret, const char* tname, lua_CFu
 
 
 /* push the value used to represent failure/error */
+#if defined(LUA_FAILISFALSE)
+#define luaL_pushfail(L)	lua_pushboolean(L, 0)
+#else
 #define luaL_pushfail(L)	lua_pushnil(L)
+#endif
 
 
 
