@@ -523,8 +523,8 @@ static void rethook (lua_State *L, CallInfo *ci, int nres) {
 static unsigned tryfuncTM (lua_State *L, StkId func, unsigned status) {
   const TValue *tm;
   StkId p;
-  tm = luaT_gettmbyobj(L, s2v(func), TM_CALL);
-  if (l_unlikely(ttisnil(tm)))  /* no metamethod? */
+  tm = luaT_getfasttmbyobj(L, s2v(func), TM_CALL);
+  if (l_unlikely(!tm))  /* no metamethod? */
     luaG_callerror(L, s2v(func));
   for (p = L->top.p; p > func; p--)  /* open space for metamethod */
     setobjs2s(L, p, p-1);
