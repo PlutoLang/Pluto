@@ -181,7 +181,7 @@ assert(x==20)
 A = nil
 
 
-do   -- constants
+do   print("testing local constants")
   global assert<const>, load, string, X
   X = 1   -- not a constant
   local a<const>, b, c<const> = 10, 20, 30
@@ -190,7 +190,7 @@ do   -- constants
 
   local function checkro (name, code)
     local st, msg = load(code)
-    local gab = string.format("attempt to reassign constant '%s'", name) -- [Pluto] updated error message
+    local gab = string.format("attempt to assign to const variable '%s'", name)
     assert(not st and string.find(msg, gab))
   end
 

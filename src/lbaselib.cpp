@@ -7,6 +7,9 @@
 #define lbaselib_c
 #define LUA_LIB
 
+#include "lprefix.h"
+
+
 #include <ctype.h>
 #include <locale.h>
 #include <math.h> // HUGE_VAL
@@ -18,7 +21,7 @@
 #include <unordered_set>
 
 #include "lua.h"
-#include "lprefix.h"
+
 #include "lauxlib.h"
 #include "lualib.h"
 #include "llimits.h"
@@ -169,7 +172,7 @@ int luaB_utonumber(lua_State *L) {
     lua_pushvalue(L, 1);
     lua_concat(L, 2);
   }
-  lua_error(L);
+  return lua_error(L);
 }
 
 
@@ -189,7 +192,7 @@ static int luaB_setmetatable (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_argexpected(L, t == LUA_TNIL || t == LUA_TTABLE, 2, "nil or table");
   if (l_unlikely(luaL_getmetafield(L, 1, "__metatable") != LUA_TNIL))
-    luaL_error(L, "cannot change a protected metatable");
+    return luaL_error(L, "cannot change a protected metatable");
   lua_settop(L, 2);
   lua_setmetatable(L, 1);
   return 1;
@@ -493,7 +496,7 @@ static int luaB_dofile (lua_State *L) {
   const char *fname = luaL_optstring(L, 1, NULL);
   lua_settop(L, 1);
   if (l_unlikely(luaL_loadfile(L, fname) != LUA_OK))
-    lua_error(L);
+    return lua_error(L);
   lua_callk(L, 0, LUA_MULTRET, 0, dofilecont);
   return dofilecont(L, 0, 0);
 }
@@ -507,7 +510,7 @@ int luaB_assert (lua_State *L) {
     lua_remove(L, 1);  /* remove it */
     lua_pushliteral(L, "assertion failed!");  /* default message */
     lua_settop(L, 1);  /* leave only message (default if no other one) */
-    luaB_error(L);  /* call 'error' */
+    return luaB_error(L);  /* call 'error' */
   }
 }
 
