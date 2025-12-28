@@ -149,11 +149,12 @@ typedef struct expdesc {
 /* kinds of variables */
 #define VDKREG		0   /* regular local */
 #define RDKCONST	1   /* local constant */
-#define RDKTOCLOSE	2   /* to-be-closed */
-#define RDKCTC		3   /* local compile-time constant */
-#define RDKENUM		4   /* [Pluto] named enum */
-#define GDKREG		5   /* regular global */
-#define GDKCONST	6   /* global constant */
+#define RDKVATAB	2   /* vararg table */
+#define RDKTOCLOSE	3   /* to-be-closed */
+#define RDKCTC		4   /* local compile-time constant */
+#define RDKENUM		5   /* [Pluto] named enum */
+#define GDKREG		6   /* regular global */
+#define GDKCONST	7   /* global constant */
 
 /* variables that live in registers */
 #define varinreg(v)	((v)->vd.kind <= RDKTOCLOSE)
