@@ -160,6 +160,11 @@ do
 
   local main = coroutine.running()
 
+  -- cannot close 'main'
+  local st, msg = pcall(coroutine.close, main);
+  assert(not st and string.find(msg, "main"))
+
+
   -- cannot close a "normal" coroutine
   ;(coroutine.wrap(function ()
     local st, msg = pcall(coroutine.close, main)
