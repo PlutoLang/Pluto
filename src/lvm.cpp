@@ -2604,8 +2604,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_VARARG) {
         StkId ra = RA(i);
-        int n = GETARG_C(i) - 1;  /* required results */
-        Protect(luaT_getvarargs(L, ci, ra, n));
+        int n = GETARG_C(i) - 1;  /* required results (-1 means all) */
+        int vatab = GETARG_k(i) ? GETARG_B(i) : -1;
+        Protect(luaT_getvarargs(L, ci, ra, n, vatab));
         vmDumpInit();
         vmDumpAddA();
         vmDumpAddC();
