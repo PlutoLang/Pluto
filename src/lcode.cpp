@@ -794,6 +794,15 @@ void luaK_setoneret (FuncState *fs, expdesc *e) {
   }
 }
 
+/*
+** Change a vararg parameter into a regular local variable
+*/
+void luaK_vapar2local (FuncState *fs, expdesc *var) {
+  fs->f->flag |= PF_VATAB;  /* function will need a vararg table */
+  /* now a vararg parameter is equivalent to a regular local variable */
+  var->k = VLOCAL;
+}
+
 
 /*
 ** Ensure that expression 'e' is not a variable (nor a <const>).
@@ -806,6 +815,9 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
       e->code_primitive = VT_ANY;
       break;
     }
+    case VVARGVAR: {
+      luaK_vapar2local(fs, e);  /* turn it into a local variable */
+    }  /* FALLTHROUGH */
     case VLOCAL: {  /* already in a register */
       e->code_primitive = getlocalvardesc(fs, e->u.var.vidx)->vd.prop->toPrimitive();
       int temp = e->u.var.ridx;
