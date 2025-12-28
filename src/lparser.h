@@ -158,6 +158,9 @@ typedef struct expdesc {
 /* variables that live in registers */
 #define varinreg(v)	((v)->vd.kind <= RDKTOCLOSE)
 
+/* test for global variables */
+#define varglobal(v)	((v)->vd.kind >= GDKREG && (v)->vd.kind < RDKENUM)
+
 
 struct TypeHint;
 
