@@ -220,7 +220,7 @@ lassertlib.o: lassertlib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h
 lvector3lib.o: lvector3lib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h
 lvm.o: lvm.cpp lprefix.h lua.h luaconf.h ldebug.h lstate.h lobject.h \
  llimits.h ltm.h lzio.h lmem.h ldo.h lfunc.h lgc.h lopcodes.h lstring.h \
- ltable.h lvm.h ljumptab.h ljumptabgcc.h
+ ltable.h lvm.h ljumptab.h ljumptabportable.h
 lzio.o: lzio.cpp lprefix.h lua.h luaconf.h llimits.h lmem.h lstate.h \
  lobject.h ltm.h lzio.h
 
