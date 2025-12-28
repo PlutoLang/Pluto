@@ -151,15 +151,15 @@ typedef struct expdesc {
 #define RDKCONST	1   /* local constant */
 #define RDKTOCLOSE	2   /* to-be-closed */
 #define RDKCTC		3   /* local compile-time constant */
-#define GDKREG		4   /* regular global */
-#define GDKCONST	5   /* global constant */
-#define RDKENUM		6   /* [Pluto] named enum */
+#define RDKENUM		4   /* [Pluto] named enum */
+#define GDKREG		5   /* regular global */
+#define GDKCONST	6   /* global constant */
 
 /* variables that live in registers */
 #define varinreg(v)	((v)->vd.kind <= RDKTOCLOSE)
 
 /* test for global variables */
-#define varglobal(v)	((v)->vd.kind >= GDKREG && (v)->vd.kind < RDKENUM)
+#define varglobal(v)	((v)->vd.kind >= GDKREG)
 
 
 struct TypeHint;
