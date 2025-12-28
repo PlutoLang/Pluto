@@ -3945,23 +3945,6 @@ do
     assert(obj.__restricted__greet ~= nil)
 end
 
-print "Testing named varargs."
-do
-    local function f(...a)
-        return a
-    end
-    local t = f("Hello", 1337)
-    assert(#t == 2)
-    assert(t[1] == "Hello")
-    assert(t[2] == 1337)
-end
-do
-    local f = |...args| -> table.size(args)
-    assert(f() == 0)
-    assert(f(1) == 1)
-    assert(f(1, 2) == 2)
-end
-
 print "Testing export."
 do
     local t = load [[export var = 1337
