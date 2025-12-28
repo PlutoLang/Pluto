@@ -697,8 +697,8 @@
     <ClInclude Include="src\lfunc.h" />
     <ClInclude Include="src\lgc.h" />
     <ClInclude Include="src\ljson.hpp" />
+    <ClInclude Include="src\ljumptabportable.h" />
     <ClInclude Include="src\ljumptab.h" />
-    <ClInclude Include="src\ljumptabgcc.h" />
     <ClInclude Include="src\llex.h" />
     <ClInclude Include="src\llimits.h" />
     <ClInclude Include="src\lmem.h" />
