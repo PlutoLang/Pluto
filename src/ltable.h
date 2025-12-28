@@ -28,7 +28,7 @@
 ** for its hash part.
 */
 
-#define BITDUMMY		(1 << 14)
+#define BITDUMMY		(1 << 7)
 #define NOTBITDUMMY		(short)(~BITDUMMY)
 #define isdummy(t)		((t)->flags & BITDUMMY)
 

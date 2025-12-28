@@ -786,7 +786,7 @@ typedef union Node {
 
 typedef struct Table {
   CommonHeader;
-  short flags;  /* 1<<p means tagmethod(p) is not present [Pluto] 2 bits are reserved for BITRAS and BITDUMMY so we extended it to short to cache more metamethods */
+  lu_byte flags;  /* 1<<p means tagmethod(p) is not present [Pluto] Lua also uses this for BITDUMMY */
   lu_byte lsizenode;  /* log2 of number of slots of 'node' array */
   unsigned int asize;  /* number of slots in 'array' array */
   Value *array;  /* array part */
