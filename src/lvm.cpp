@@ -2599,6 +2599,16 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpOut ("; get " << n << " varargs");
         vmbreak;
       }
+      vmcase(OP_GETVARG) {
+        StkId ra = RA(i);
+        TValue *rc = vRC(i);
+        luaT_getvararg(ci, ra, rc);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddC();
+        vmDumpOut("; get vararg");
+        vmbreak;
+      }
       vmcase(OP_VARARGPREP) {
         ProtectNT(luaT_adjustvarargs(L, ci, cl->p));
         if (l_unlikely(trap)) {  /* previous "Protect" updated trap */
