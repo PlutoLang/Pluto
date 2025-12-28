@@ -89,8 +89,10 @@ LUAI_FUNC const char *luaT_objtypename (lua_State *L, const TValue *o);
 LUAI_FUNC const TValue *luaT_gettm (Table *events, TMS event, TString *ename);
 LUAI_FUNC const TValue *luaT_gettmbyobj (lua_State *L, const TValue *o,
                                                        TMS event);
+#ifndef PLUTO_LUA_LINKABLE
 LUAI_FUNC const TValue *luaT_getfasttmbyobj (lua_State *L, const TValue *o,
                                                            TMS event);
+#endif
 LUAI_FUNC void luaT_init (lua_State *L);
 
 LUAI_FUNC void luaT_callTM (lua_State *L, const TValue *f, const TValue *p1,

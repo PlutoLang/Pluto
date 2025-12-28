@@ -392,8 +392,6 @@ do
   for i=1, 10 do t[i] = 1 end
 end
 
-
-
 -- concat metamethod x numbers (bug in 5.1.1)
 c = {}
 local x

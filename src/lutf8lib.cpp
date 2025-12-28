@@ -126,7 +126,7 @@ static int codepoint (lua_State *L) {
   luaL_argcheck(L, pose <= (lua_Integer)len, 3, "out of bounds");
   if (posi > pose) return 0;  /* empty interval; return no values */
   if (pose - posi >= INT_MAX)  /* (lua_Integer -> int) overflow? */
-    luaL_error(L, "string slice too long");
+    return luaL_error(L, "string slice too long");
   n = (int)(pose -  posi) + 1;  /* upper bound for number of returns */
   luaL_checkstack(L, n, "string slice too long");
   n = 0;  /* count the number of returns */
@@ -135,7 +135,7 @@ static int codepoint (lua_State *L) {
     l_uint32 code;
     s = utf8_decode(s, &code, !lax);
     if (s == NULL)
-      luaL_error(L, MSGInvalid);
+      return luaL_error(L, MSGInvalid);
     lua_pushinteger(L, l_castU2S(code));
     n++;
   }
@@ -189,7 +189,7 @@ static int byteoffset (lua_State *L) {
   }
   else {
     if (iscontp(s + posi))
-      luaL_error(L, "initial position is a continuation byte");
+      return luaL_error(L, "initial position is a continuation byte");
     if (n < 0) {
       while (n < 0 && posi > 0) {  /* move back */
         do {  /* find beginning of previous character */
@@ -238,7 +238,7 @@ static int iter_aux (lua_State *L, int strict) {
     l_uint32 code;
     const char *next = utf8_decode(s + n, &code, strict);
     if (next == NULL || iscontp(next))
-      luaL_error(L, MSGInvalid);
+      return luaL_error(L, MSGInvalid);
     lua_pushinteger(L, l_castU2S(n + 1));
     lua_pushinteger(L, l_castU2S(code));
     return 2;

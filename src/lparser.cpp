@@ -132,7 +132,7 @@ typedef struct BlockCnt {
   struct BlockCnt *previous;  /* chain */
   int firstlabel;  /* index of first label in this block */
   int firstgoto;  /* index of first pending goto in this block */
-  short nactvar;  /* # active locals outside the block */
+  short nactvar;  /* number of active declarations at block entry */
   lu_byte upval;  /* true if some variable in the block is an upvalue */
   BlockType type;  /* one of block types */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
@@ -961,16 +961,14 @@ static void check_readonly (LexState *ls, expdesc *e) {
     }
     case VLOCAL: case VVARGVAR: {
       Vardesc *vardesc = getlocalvardesc(fs, e->u.var.vidx);
-      if (vardesc->vd.kind != VDKREG) {  /* not a regular variable? */
+      if (vardesc->vd.kind != VDKREG)  /* not a regular variable? */
         varname = vardesc->vd.name;
-      }
       break;
     }
     case VUPVAL: {
       Upvaldesc *up = &fs->f->upvalues[e->u.info];
-      if (up->kind != VDKREG) {
+      if (up->kind != VDKREG)
         varname = up->name;
-      }
       break;
     }
     case VVARGIND: {
@@ -986,11 +984,9 @@ static void check_readonly (LexState *ls, expdesc *e) {
       lua_assert(e->k == VINDEXI);  /* this one doesn't need any check */
       return;  /* integer index cannot be read-only */
   }
-  if (varname) {
-    const char *msg = luaO_fmt(ls->L, "attempt to reassign constant '%s'", getstr(varname));
-    const char *here = "this variable is constant, and cannot be reassigned.";
-    throwerr(ls, luaO_fmt(ls->L, msg, getstr(varname)), here);
-  }
+  if (varname)
+    luaK_semerror(ls, "attempt to assign to const variable '%s'",
+                      getstr(varname));
 }
 
 
@@ -1270,7 +1266,7 @@ static void singlevar (LexState *ls, expdesc *var) {
 
 /*
 ** Generates an error that a goto jumps into the scope of some
-** local variable.
+** variable declaration.
 */
 static l_noret jumpscopeerror (LexState *ls, Labeldesc *gt) {
   TString *tsname = getlocalvardesc(ls->fs, gt->nactvar)->vd.name;

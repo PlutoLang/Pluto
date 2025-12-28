@@ -317,7 +317,7 @@ static void f_newext (lua_State *L, void *ud) {
 
 
 TString *luaS_newextlstr (lua_State *L,
-              const char *s, size_t len, lua_Alloc falloc, void *ud) {
+	          const char *s, size_t len, lua_Alloc falloc, void *ud) {
   struct NewExt ne;
   if (!falloc) {
     ne.kind = LSTRFIX;

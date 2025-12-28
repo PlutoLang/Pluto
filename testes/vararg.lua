@@ -198,14 +198,14 @@ end
 
 do  -- vararg parameter is read-only
   local st, msg = load("return function (... t) t = 10 end")
-  assert(string.find(msg, "attempt to reassign constant 't'")) -- [Pluto] updated message
+  assert(string.find(msg, "const variable 't'"))
 
   local st, msg = load[[
-    local function foo (... extra)
+    local function foo (...extra)
       return function (...) extra = nil end
     end
   ]]
-  assert(string.find(msg, "attempt to reassign constant 'extra'")) -- [Pluto] updated message
+  assert(string.find(msg, "const variable 'extra'"))
 end
 
 
@@ -215,9 +215,9 @@ do  -- _ENV as vararg parameter
       global <const> a
       a = 10
     end ]]
-  assert(string.find(msg, "attempt to reassign constant 'a'")) -- [Pluto] updated message
+  assert(string.find(msg, "const variable 'a'"))
 
-  local function aux (... _ENV)
+  local function aux (..._ENV)
     global a; a = 10
     return a
   end
@@ -229,6 +229,7 @@ do  -- _ENV as vararg parameter
   end
   assert(aux() == 10)
 end
+
 
 do   -- access to vararg parameter
   local function notab (keys, t, ...v)

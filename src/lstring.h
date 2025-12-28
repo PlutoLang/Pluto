@@ -41,6 +41,7 @@
 #define luaS_newliteral(L, s)	(luaS_newlstr(L, "" s, \
                                  (sizeof(s)/sizeof(char))-1))
 
+// [Pluto]
 #define luaX_newliteral(ls, s)	(luaX_newstring(ls, "" s, \
                                  (sizeof(s)/sizeof(char))-1))
 
@@ -58,7 +59,9 @@
 #define eqshrstr(a,b)	check_exp((a)->tt == LUA_VSHRSTR, (a) == (b))
 
 
+#ifndef PLUTO_LUA_LINKABLE
 LUAI_FUNC unsigned luaS_hash (const char *str, size_t l, unsigned seed);
+#endif
 LUAI_FUNC unsigned luaS_hashlongstr (TString *ts);
 LUAI_FUNC int luaS_eqstr (TString *a, TString *b);
 LUAI_FUNC void luaS_resize (lua_State *L, int newsize);
@@ -75,8 +78,10 @@ LUAI_FUNC TString *luaS_newextlstr (lua_State *L,
 LUAI_FUNC size_t luaS_sizelngstr (size_t len, int kind);
 LUAI_FUNC TString *luaS_normstr (lua_State *L, TString *ts);
 
+#ifndef PLUTO_LUA_LINKABLE
 LUAI_FUNC char *plutoS_prealloc (lua_State *L, char shrtbuf[LUAI_MAXSHORTLEN], size_t l);
 LUAI_FUNC void plutoS_commit (lua_State *L, char *prealloc, size_t l);
+#endif
 
 
 #endif

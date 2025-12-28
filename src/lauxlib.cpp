@@ -7,6 +7,9 @@
 #define lauxlib_c
 #define LUA_LIB
 
+#include "lprefix.h"
+
+
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -24,7 +27,7 @@
 */
 
 #include "lua.h"
-#include "lprefix.h"
+
 #include "lauxlib.h"
 #include "llimits.h"
 #if defined(PLUTO_MEMORY_LIMIT) || defined(PLUTO_PARSER_CACHE)
@@ -222,7 +225,7 @@ LUALIB_API_NORETURN int luaL_typeerror (lua_State *L, int arg, const char *tname
   else
     typearg = luaL_typename(L, arg);  /* standard name */
   msg = lua_pushfstring(L, "%s expected, got %s", tname, typearg);
-  luaL_argerror(L, arg, msg);
+  return luaL_argerror(L, arg, msg);
 }
 
 
@@ -260,7 +263,7 @@ LUALIB_API_NORETURN int luaL_error (lua_State *L, const char *fmt, ...) {
   lua_pushvfstring(L, fmt, argp);
   va_end(argp);
   lua_concat(L, 2);
-  lua_error(L);
+  return lua_error(L);
 }
 
 
@@ -389,7 +392,8 @@ LUALIB_API int luaL_checkoption (lua_State *L, int arg, const char *def,
   for (i=0; lst[i]; i++)
     if (strcmp(lst[i], name) == 0)
       return i;
-  luaL_argerror(L, arg, lua_pushfstring(L, "invalid option '%s'", name));
+  return luaL_argerror(L, arg,
+                       lua_pushfstring(L, "invalid option '%s'", name));
 }
 
 
@@ -957,12 +961,12 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
 #endif
   if (c != EOF)
     lf.buff[lf.n++] = cast_char(c);  /* 'c' is the first character */
-  errno = 0;
 #ifdef PLUTO_PARSER_CACHE
   parser_emitted_warnings = false;
 #endif
   status = lua_load(L, getF, &lf, lua_tostring(L, -1), mode);
   readstatus = ferror(lf.f);
+  errno = 0;  /* no useful error number until here */
   if (filename) fclose(lf.f);  /* close file (even in case of errors) */
   if (readstatus) {
     lua_settop(L, fnameindex);  /* ignore results from 'lua_load' */
@@ -1212,7 +1216,6 @@ static int panic (lua_State *L) {
   const char *msg = (lua_type(L, -1) == LUA_TSTRING)
                   ? lua_tostring(L, -1)
                   : "error object is not a string";
-  if (msg == NULL) msg = "error object is not a string";
   lua_writestringerror("PANIC: unprotected error in call to Lua API (%s)\n",
                         msg);
   return 0;  /* return to Lua to abort */
@@ -1271,6 +1274,7 @@ static void warnfcont (void *ud, const char *message, int tocont) {
 static void warnfon (void *ud, const char *message, int tocont) {
   if (checkcontrol((lua_State *)ud, message, tocont))  /* control message? */
     return;  /* nothing else to be done */
+  lua_writestringerror("%s", "Lua warning: ");  /* start a new warning */
   warnfcont(ud, message, tocont);  /* finish processing */
 }
 
@@ -1291,7 +1295,6 @@ static void warnfon (void *ud, const char *message, int tocont) {
 
 /* Size for the buffer in int's, rounded up */
 #define BUFSEED		((BUFSEEDB + sizeof(int) - 1) / sizeof(int))
-
 
 /*
 ** Copy the contents of variable 'v' into the buffer pointed by 'b'.

@@ -94,7 +94,7 @@ static int tinsert (lua_State *L) {
       break;
     }
     default: {
-      luaL_error(L, "wrong number of arguments to 'insert'");
+      return luaL_error(L, "wrong number of arguments to 'insert'");
     }
   }
   lua_seti(L, 1, pos);  /* t[pos] = v */
@@ -235,7 +235,7 @@ static int tunpack (lua_State *L) {
   n = l_castS2U(e) - l_castS2U(i);  /* number of elements minus 1 */
   if (l_unlikely(n >= (unsigned int)INT_MAX  ||
                  !lua_checkstack(L, (int)(++n))))
-    luaL_error(L, "too many results to unpack");
+    return luaL_error(L, "too many results to unpack");
   for (; i < e; i++) {  /* push arg[i..e - 1] (to avoid overflows) */
     lua_geti(L, 1, i);
   }
@@ -329,7 +329,7 @@ typedef unsigned int IdxT;
 */
 #if !defined(l_randomizePivot)
 #define l_randomizePivot(L)	luaL_makeseed(L)
-#endif
+#endif					/* } */
 
 
 /* arrays larger than 'RANLIMIT' may use randomized pivots */

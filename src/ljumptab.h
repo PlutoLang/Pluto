@@ -16,7 +16,7 @@
 #define vmbreak		vmfetch(); vmdispatch(GET_OPCODE(i));
 
 
-static const void *const disptab[NUM_OPCODES + 1] = {
+static const void *const disptab[NUM_OPCODES] = {
 
 #if 0
 ** you can update the following list with this command:
@@ -111,5 +111,4 @@ static const void *const disptab[NUM_OPCODES + 1] = {
 &&L_OP_VARARGPREP,
 &&L_OP_EXTRAARG,
 &&L_OP_IN,
-&&L_NUM_OPCODES,
 };

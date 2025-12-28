@@ -35,7 +35,7 @@
 
 
 
-#define errorstatus(s)  ((s) > LUA_YIELD)
+#define errorstatus(s)	((s) > LUA_YIELD)
 
 
 /*
@@ -43,11 +43,11 @@
 ** resumed/yielded.
 */
 #if !defined(luai_userstateresume)
-#define luai_userstateresume(L,n) ((void)L)
+#define luai_userstateresume(L,n)	((void)L)
 #endif
 
 #if !defined(luai_userstateyield)
-#define luai_userstateyield(L,n)  ((void)L)
+#define luai_userstateyield(L,n)	((void)L)
 #endif
 
 
@@ -71,12 +71,12 @@ typedef struct lua_longjmp {
 ** C++ code, with _longjmp/_setjmp when available (POSIX), and with
 ** longjmp/setjmp otherwise.
 */
-#if !defined(LUAI_THROW)        /* { */
+#if !defined(LUAI_THROW)				/* { */
 
-#if defined(__cplusplus) && !defined(LUA_USE_LONGJMP) /* { */
+#if defined(__cplusplus) && !defined(LUA_USE_LONGJMP)	/* { */
 
 /* C++ exceptions */
-#define LUAI_THROW(L,c)   throw(c)
+#define LUAI_THROW(L,c)		throw(c)
 
 static void LUAI_TRY (lua_State *L, lua_longjmp *c, Pfunc f, void *ud) {
   try {
@@ -92,21 +92,21 @@ static void LUAI_TRY (lua_State *L, lua_longjmp *c, Pfunc f, void *ud) {
 }
 
 
-#elif defined(LUA_USE_POSIX)        /* }{ */
+#elif defined(LUA_USE_POSIX)				/* }{ */
 
 /* in POSIX, use _longjmp/_setjmp (more efficient) */
-#define LUAI_THROW(L,c)   _longjmp((c)->b, 1)
-#define LUAI_TRY(L,c,f,ud)  if (_setjmp((c)->b) == 0) ((f)(L, ud))
+#define LUAI_THROW(L,c)		_longjmp((c)->b, 1)
+#define LUAI_TRY(L,c,f,ud)	if (_setjmp((c)->b) == 0) ((f)(L, ud))
 
-#else             /* }{ */
+#else							/* }{ */
 
 /* ISO C handling with long jumps */
-#define LUAI_THROW(L,c)   longjmp((c)->b, 1)
-#define LUAI_TRY(L,c,f,ud)  if (setjmp((c)->b) == 0) ((f)(L, ud))
+#define LUAI_THROW(L,c)		longjmp((c)->b, 1)
+#define LUAI_TRY(L,c,f,ud)	if (setjmp((c)->b) == 0) ((f)(L, ud))
 
-#endif              /* } */
+#endif							/* } */
 
-#endif              /* } */
+#endif							/* } */
 
 
 void luaD_seterrorobj (lua_State *L, TStatus errcode, StkId oldtop) {
@@ -179,7 +179,7 @@ TStatus luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
 */
 
 /* some stack space for error handling */
-#define STACKERRSPACE 200
+#define STACKERRSPACE	200
 
 
 /*
@@ -203,12 +203,12 @@ TStatus luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
 ** Minimum between LUAI_MAXSTACK and MAXSTACK_BYSIZET
 ** (Maximum size for the stack must respect size_t.)
 */
-#define MAXSTACK  cast_int(LUAI_MAXSTACK < MAXSTACK_BYSIZET  \
-              ? LUAI_MAXSTACK : MAXSTACK_BYSIZET)
+#define MAXSTACK	cast_int(LUAI_MAXSTACK < MAXSTACK_BYSIZET  \
+			        ? LUAI_MAXSTACK : MAXSTACK_BYSIZET)
 
 
 /* stack size with extra space for error handling */
-#define ERRORSTACKSIZE  (MAXSTACK + STACKERRSPACE)
+#define ERRORSTACKSIZE	(MAXSTACK + STACKERRSPACE)
 
 
 /* raise a stack error while running the message handler */
