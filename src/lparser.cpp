@@ -2413,9 +2413,10 @@ static void localclass (LexState *ls, bool isexport = false) {
 /* }====================================================================== */
 
 
-static void setvararg (FuncState *fs, int nparams) {
-  fs->f->flag |= PF_ISVARARG;
-  luaK_codeABC(fs, OP_VARARGPREP, nparams, 0, 0);
+static void setvararg (FuncState *fs, int kind) {
+  lua_assert(kind & PF_ISVARARG);
+  fs->f->flag |= cast_byte(kind);
+  luaK_codeABC(fs, OP_VARARGPREP, 0, 0, 0);
 }
 
 
@@ -2514,12 +2515,12 @@ static void skip_over_simpleexp_within_lambdaparlist (LexState *ls) {
   }
 }
 
-static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* promotions, std::vector<size_t>* fallbacks, TString** varargname, bool lambda) {
+static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* promotions, std::vector<size_t>* fallbacks, bool lambda) {
   /* parlist -> [ {NAME ','} (NAME | '...') ] */
   FuncState *fs = ls->fs;
   Proto *f = fs->f;
   int nparams = 0;
-  int isvararg = 0;
+  int varargk = 0;
   if (ls->t.token != ')' && ls->t.token != '|') {  /* is 'parlist' not empty? */
     while (true) {
       if (isnametkn(ls, N_OVERRIDABLE) || (ls->t.IsNonCompatible() && trydisablekeyword(ls) && isnametkn(ls, N_OVERRIDABLE))) {
@@ -2569,15 +2570,15 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
         nparams++;
       }
       else if (ls->t.token == TK_DOTS) {
+        varargk |= PF_ISVARARG;
         luaX_next(ls);
-        isvararg = 1;
-        if (varargname && ls->t.token == TK_NAME) {
-          *varargname = ls->t.seminfo.ts;
-          luaX_next(ls);
+        if (testnext(ls, '=')) {
+          new_varkind(ls, str_checkname(ls), RDKVATAB);
+          varargk |= PF_VATAB;
         }
       }
       else luaX_syntaxerror(ls, "<name> or '...' expected");
-      if (isvararg || !testnext(ls, ','))
+      if (varargk || !testnext(ls, ','))
         break;
       if (ls->t.token == ')')  /* allow trailing comma */
         break;
@@ -2585,9 +2586,13 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
   }
   adjustlocalvars(ls, nparams);
   f->numparams = cast_byte(fs->nactvar);
-  if (isvararg)
-    setvararg(fs, f->numparams);  /* declared vararg */
-  luaK_reserveregs(fs, fs->nactvar);  /* reserve registers for parameters */
+  if (varargk != 0) {
+    setvararg(fs, varargk);  /* declared vararg */
+    if (varargk & PF_VATAB)
+      adjustlocalvars(ls, 1);  /* vararg table */
+  }
+  /* reserve registers for parameters (and vararg variable, if present) */
+  luaK_reserveregs(fs, fs->nactvar);
 }
 
 
@@ -2640,34 +2645,6 @@ static void defaultarguments (LexState *ls, int ismethod, const std::vector<size
     ++fallback_idx;
   }
   luaX_setpos(ls, saved_pos);
-}
-
-
-static void namedvararg (LexState *ls, TString *varargname) {
-  enterlevel(ls);
-  luaX_prev(ls);  /* in case we need to raise a var-shadow warning, ensure we're on the right line */
-  new_localvar(ls, varargname);
-  luaX_next(ls);
-
-  FuncState *fs = ls->fs;
-  int pc = luaK_codevABCk(fs, OP_NEWTABLE, 0, 0, 0, 0);
-  luaK_code(fs, 0);
-  expdesc t;
-  init_exp(&t, VNONRELOC, fs->freereg);
-  ConsControl cc;
-  cc.na = cc.nh = cc.tostore = 0;
-  cc.t = &t;
-  luaK_reserveregs(fs, 1);
-  cc.maxtostore = maxtostore(fs);
-  lua_assert(fs->f->flag & PF_ISVARARG);
-  init_exp(&cc.v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, 0, 1));
-  cc.tostore++;
-  lastlistfield(fs, &cc);
-  luaK_settablesize(fs, pc, t.u.reg, cc.na, cc.nh);
-
-  adjust_assign(ls, 1, 1, &t);
-  adjustlocalvars(ls, 1);
-  leavelevel(ls);
 }
 
 
@@ -2757,8 +2734,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     adjustlocalvars(ls, 1);
   }
   BodyState& bs = ls->bodystates.emplace();
-  TString *varargname = nullptr;
-  parlist(ls, (ismethod == 2 ? &bs.promotions : nullptr), &bs.fallbacks, &varargname, false);
+  parlist(ls, (ismethod == 2 ? &bs.promotions : nullptr), &bs.fallbacks, false);
   if (ls->t.token != ')' && ismethod != 2 && luaX_lookbehind(ls).token == TK_NAME) {
     const char *str = getstr(luaX_lookbehind(ls).seminfo.ts);
     if (strcmp(str, "private") == 0 || strcmp(str, "protected") == 0 || strcmp(str, "public") == 0) {
@@ -2781,8 +2757,6 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line, TypeDesc *fu
     singlevaraux(fs, e.first, &val, 0);
     luaK_storevar(fs, &tab, &val);
   }
-  if (varargname)
-    namedvararg(ls, varargname);
   TypeHint rethint[MAX_TYPED_RETURNS];
   auto nrethint = getfuncrethint(ls, rethint);
   const bool nodiscard = getfunctionattribute(ls);
@@ -2817,16 +2791,13 @@ static void lambdabody (LexState *ls, expdesc *e, int line, TypeDesc *funcdesc =
   new_fs.f->linedefined = line;
   open_func(ls, &new_fs, &bl);
   BodyState& bs = ls->bodystates.emplace();
-  TString *varargname = nullptr;
-  parlist(ls, nullptr, &bs.fallbacks, &varargname, true);
+  parlist(ls, nullptr, &bs.fallbacks, true);
   checknext(ls, '|');
   TypeHint rethint[MAX_TYPED_RETURNS];
   auto nrethint = getfuncrethint(ls, rethint);
   const bool nodiscard = getfunctionattribute(ls);
   checknext(ls, TK_ARROW);
   defaultarguments(ls, 0, bs.fallbacks, E_NO_BOR);
-  if (varargname)
-    namedvararg(ls, varargname);
   tdn_t nret = 0;
   TypeHint retprop[MAX_TYPED_RETURNS];
   if (testnext(ls, TK_DO)) {
@@ -6741,7 +6712,7 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   BlockCnt bl;
   Upvaldesc *env;
   open_func(ls, fs, &bl);
-  setvararg(fs, 0);  /* main function is always declared vararg */
+  setvararg(fs, PF_ISVARARG);  /* main function is always vararg */
   env = allocupvalue(fs);  /* ...set environment upvalue */
   env->instack = 1;
   env->idx = 0;
