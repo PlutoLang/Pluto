@@ -974,7 +974,7 @@ static void check_readonly (LexState *ls, expdesc *e) {
       break;
     }
     case VVARGIND: {
-      fs->f->flag |= PF_VATAB;  /* function will need a vararg table */
+      needvatab(fs->f);  /* function will need a vararg table */
       e->k = VINDEXED;
     }  /* FALLTHROUGH */
     case VINDEXUP: case VINDEXSTR: case VINDEXED: {  /* global variable */
@@ -2431,7 +2431,7 @@ static void localclass (LexState *ls, bool isexport = false) {
 
 
 static void setvararg (FuncState *fs) {
-  fs->f->flag |= PF_ISVARARG;
+  fs->f->flag |= PF_VAHID;  /* by default, use hidden vararg arguments */
   luaK_codeABC(fs, OP_VARARGPREP, 0, 0, 0);
 }
 
@@ -2718,7 +2718,7 @@ static void propfuncdesc (LexState *ls, FuncState& new_fs, tdn_t nret, TypeHint 
   funcdesc->proto = new_fs.f;
   funcdesc->nparam = new_fs.f->numparams;
   funcdesc->nret = nret;
-  funcdesc->vararg = (new_fs.f->flag & PF_ISVARARG) ? 1 : 0;
+  funcdesc->vararg = (isvararg(new_fs.f)) ? 1 : 0;
   lua_assert(nret != TDN_NOINFO);
   for (tdn_t i = 0; i != nret; ++i) {
     funcdesc->returns[i] = new_typehint(ls);
@@ -4293,7 +4293,7 @@ static void simpleexp (LexState *ls, expdesc *v, int flags, tdn_t *nprop, TypeHi
     }
     case TK_DOTS: {  /* vararg */
       FuncState *fs = ls->fs;
-      check_condition(ls, fs->f->flag & PF_ISVARARG,
+      check_condition(ls, isvararg(fs->f),
                       "cannot use '...' outside a vararg function");
       init_exp(v, VVARARG, luaK_codeABC(fs, OP_VARARG, 0, fs->f->numparams, 1));
       luaX_next(ls);
