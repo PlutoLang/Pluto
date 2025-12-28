@@ -773,7 +773,7 @@ typedef struct LoadF {
 
 static const char *getF (lua_State *L, void *ud, size_t *size) {
   LoadF *lf = (LoadF *)ud;
-  (void)L;  /* not used */
+  UNUSED(L);
   if (lf->n > 0) {  /* are there pre-read characters to be read? */
     *size = lf->n;  /* return them (chars already in buffer) */
     lf->n = 0;  /* no more pre-read characters */
@@ -992,7 +992,7 @@ typedef struct LoadS {
 
 static const char *getS (lua_State *L, void *ud, size_t *size) {
   LoadS *ls = (LoadS *)ud;
-  (void)L;  /* not used */
+  UNUSED(L);
   if (ls->size == 0) return NULL;
   *size = ls->size;
   ls->size = 0;
@@ -1182,9 +1182,9 @@ LUALIB_API const char *luaL_gsub (lua_State *L, const char *s,
 }
 
 
-static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
+void *luaL_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
 #ifndef PLUTO_MEMORY_LIMIT
-  (void)ud; (void)osize;  /* not used */
+  UNUSED(ud); UNUSED(osize);
 #endif
   if (nsize == 0) {
     free(ptr);
@@ -1320,7 +1320,7 @@ static unsigned int luai_makeseed (void) {
 
 
 LUALIB_API unsigned int luaL_makeseed (lua_State *L) {
-  (void)L;  /* unused */
+  UNUSED(L);
   return luai_makeseed();
 }
 
@@ -1330,7 +1330,7 @@ LUALIB_API unsigned int luaL_makeseed (lua_State *L) {
 ** as a macro.
 */
 LUALIB_API lua_State *(luaL_newstate) (void) {
-  lua_State *L = lua_newstate(l_alloc, NULL, luai_makeseed());
+  lua_State *L = lua_newstate(luaL_alloc, NULL, luaL_makeseed(NULL));
   if (l_likely(L)) {
 #ifdef PLUTO_MEMORY_LIMIT
     G(L)->ud = G(L);
