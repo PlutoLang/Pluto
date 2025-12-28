@@ -1356,7 +1356,7 @@ static const std::vector<OpCode> allowOps = { vmDumpAllow };
 #elif defined(PLUTO_ETL_ENABLE)
 #pragma message("PLUTO_FORCE_JUMPTABLE ignored due to PLUTO_ETL_ENABLE")
 #elif !defined(__GNUC__) && !defined(__clang__)
-#include "ljumptab.h"
+#include "ljumptabportable.h"
 #endif
 #endif
 
@@ -1371,7 +1371,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
   int sequentialTailCalls = 0;
 #endif
 #if (defined(__GNUC__) || defined(__clang__)) && !defined(PLUTO_VMDUMP) && !defined(PLUTO_ETL_ENABLE)
-#include "ljumptabgcc.h"
+#include "ljumptab.h"
 #endif
  startfunc:
   trap = L->hookmask;
