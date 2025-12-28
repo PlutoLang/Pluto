@@ -1826,21 +1826,6 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         op_bitwiseK(L, l_bxor);
         vmbreak;
       }
-      vmcase(OP_SHRI) {
-        vmDumpInit();
-        vmDumpAddA();
-        vmDumpAddB();
-        vmDumpAdd (GETARG_sC(i));
-        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " >> " << GETARG_sC(i));
-        StkId ra = RA(i);
-        TValue *rb = vRB(i);
-        int ic = GETARG_sC(i);
-        lua_Integer ib;
-        if (tointegerns(rb, &ib)) {
-          pc++; setivalue(s2v(ra), luaV_shiftl(ib, -ic));
-        }
-        vmbreak;
-      }
       vmcase(OP_SHLI) {
         vmDumpInit();
         vmDumpAddA();
@@ -1853,6 +1838,21 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         lua_Integer ib;
         if (tointegerns(rb, &ib)) {
           pc++; setivalue(s2v(ra), luaV_shiftl(ic, ib));
+        }
+        vmbreak;
+      }
+      vmcase(OP_SHRI) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAdd (GETARG_sC(i));
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " >> " << GETARG_sC(i));
+        StkId ra = RA(i);
+        TValue *rb = vRB(i);
+        int ic = GETARG_sC(i);
+        lua_Integer ib;
+        if (tointegerns(rb, &ib)) {
+          pc++; setivalue(s2v(ra), luaV_shiftl(ib, -ic));
         }
         vmbreak;
       }
@@ -1948,15 +1948,6 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         op_bitwise(L, l_bxor);
         vmbreak;
       }
-      vmcase(OP_SHR) {
-        vmDumpInit();
-        vmDumpAddA();
-        vmDumpAddB();
-        vmDumpAddC();
-        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " >> " << stringify_tvalue(vRC(i)));
-        op_bitwise(L, luaV_shiftr);
-        vmbreak;
-      }
       vmcase(OP_SHL) {
         vmDumpInit();
         vmDumpAddA();
@@ -1964,6 +1955,15 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddC();
         vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " << " << stringify_tvalue(vRC(i)));
         op_bitwise(L, luaV_shiftl);
+        vmbreak;
+      }
+      vmcase(OP_SHR) {
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpAddB();
+        vmDumpAddC();
+        vmDumpOut ("; push " << stringify_tvalue(vRB(i)) << " >> " << stringify_tvalue(vRC(i)));
+        op_bitwise(L, luaV_shiftr);
         vmbreak;
       }
       vmcase(OP_MMBIN) {
