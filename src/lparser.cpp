@@ -903,7 +903,7 @@ static int new_varkind (LexState* ls, TString* name, lu_byte kind, int line, Typ
   Vardesc *var;
   checkforshadowing(ls, fs, name, line, check_globals, true);
   luaM_growvector(L, dyd->actvar.arr, dyd->actvar.n + 1,
-             dyd->actvar.size, Vardesc, SHRT_MAX, "variable declarationss");
+             dyd->actvar.size, Vardesc, SHRT_MAX, "variable declarations");
   var = &dyd->actvar.arr[dyd->actvar.n++];
   var->vd.kind = kind;
   var->vd.hint = new_typehint(ls);
@@ -1203,6 +1203,20 @@ static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
 }
 
 
+static void buildglobal (LexState *ls, TString *varname, expdesc *var) {
+  FuncState *fs = ls->fs;
+  expdesc key;
+  init_exp(var, VGLOBAL, -1);  /* global by default */
+  singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
+  if (var->k == VGLOBAL)
+    luaK_semerror(ls, "_ENV is global when accessing variable '%s'",
+                      getstr(varname));
+  luaK_exp2anyregup(fs, var);  /* _ENV could be a constant */
+  codestring(&key, varname);  /* key is variable name */
+  luaK_indexed(fs, var, &key);  /* 'var' represents _ENV[varname] */
+}
+
+
 /*
 ** Find a variable with the given name 'n', handling global variables
 ** too.
@@ -1212,18 +1226,11 @@ static void buildvar (LexState *ls, TString *varname, expdesc *var, bool localon
   init_exp(var, VGLOBAL, -1);  /* global by default */
   singlevaraux(fs, varname, var, 1);
   if (var->k == VGLOBAL && !localonly) {  /* global name? */
-    expdesc key;
     int info = var->u.info;
     /* global by default in the scope of a global declaration? */
     if (info == -2)
       luaK_semerror(ls, "variable '%s' not declared", getstr(varname));
-    singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
-    if (var->k == VGLOBAL)
-      luaK_semerror(ls, "_ENV is global when accessing variable '%s'",
-                        getstr(varname));
-    luaK_exp2anyregup(fs, var);  /* but could be a constant */
-    codestring(&key, varname);  /* key is variable name */
-    luaK_indexed(fs, var, &key);  /* env[varname] */
+    buildglobal(ls, varname, var);
     if (info != -1 && ls->dyd->actvar.arr[info].vd.kind == GDKCONST)
       var->u.ind.ro = 1;  /* mark variable as read-only */
     else  /* anyway must be a global */
@@ -1371,7 +1378,7 @@ static void createlabel (LexState *ls, void *name, int line,
 
 
 /*
-** Traverse the pending goto's of the finishing block checking whether
+** Traverse the pending gotos of the finishing block checking whether
 ** each match some label of that block. Those that do not match are
 ** "exported" to the outer block, to be solved there. In particular,
 ** its 'nactvar' is updated with the level of the inner block,
@@ -1978,6 +1985,15 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
       break;
     }
   }
+}
+
+
+
+/* Create code to store the "top" register in 'var' */
+static void storevartop (FuncState *fs, expdesc *var) {
+  expdesc e;
+  init_exp(&e, VNONRELOC, fs->freereg - 1);
+  luaK_storevar(fs, var, &e);  /* will also free the top register */
 }
 
 
@@ -4851,8 +4867,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       return;  /* avoid default */
     }
   }
-  init_exp(&e, VNONRELOC, ls->fs->freereg-1);  /* default assignment */
-  luaK_storevar(ls->fs, &lh->v, &e);
+  storevartop(ls->fs, &lh->v);  /* default assignment */
 }
 
 static int cond (LexState *ls, bool for_while_loop) {
@@ -5664,24 +5679,44 @@ static lu_byte getglobalattribute (LexState *ls, lu_byte df) {
 }
 
 
+static void globalnames (LexState *ls, lu_byte defkind) {
+  FuncState *fs = ls->fs;
+  int nvars = 0;
+  int lastidx;  /* index of last registered variable */
+  do {  /* for each name */
+    TString *vname = str_checkname(ls);
+    lu_byte kind = getglobalattribute(ls, defkind);
+    lastidx = new_varkind(ls, vname, kind);
+    nvars++;
+  } while (testnext(ls, ','));
+  if (testnext(ls, '=')) {  /* initialization? */
+    expdesc e;
+    int i;
+    int nexps = explist(ls, &e);  /* read list of expressions */
+    adjust_assign(ls, nvars, nexps, &e);
+    for (i = 0; i < nvars; i++) {  /* for each variable */
+      expdesc var;
+      TString *varname = getlocalvardesc(fs, lastidx - i)->vd.name;
+      buildglobal(ls, varname, &var);  /* create global variable in 'var' */
+      storevartop(fs, &var);
+    }
+  }
+  fs->nactvar = cast_short(fs->nactvar + nvars);  /* activate declaration */
+}
+
+
 static void globalstat (LexState *ls) {
   /* globalstat -> (GLOBAL) attrib '*'
      globalstat -> (GLOBAL) attrib NAME attrib {',' NAME attrib} */
   FuncState *fs = ls->fs;
   /* get prefixed attribute (if any); default is regular global variable */
   lu_byte defkind = getglobalattribute(ls, GDKREG);
-  if (testnext(ls, '*')) {
+  if (!testnext(ls, '*'))
+    globalnames(ls, defkind);
+  else {
     /* use NULL as name to represent '*' entries */
     new_varkind(ls, NULL, defkind);
     fs->nactvar++;  /* activate declaration */
-  }
-  else {
-    do {  /* list of names */
-      TString *vname = str_checkname(ls);
-      lu_byte kind = getglobalattribute(ls, defkind);
-      new_varkind(ls, vname, kind);
-      fs->nactvar++;  /* activate declaration */
-    } while (testnext(ls, ','));
   }
 }
 
