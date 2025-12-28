@@ -744,7 +744,7 @@ assert(c > 255 and string.find(b, "too many upvalues") and
 -- local variables
 -- [Pluto] we have different limits here
 --[[s = "\nfunction foo ()\n  local "
-for j = 1,300 do
+for j = 1,200 do
   s = s.."a"..j..", "
 end
 s = s.."b\n"
