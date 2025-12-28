@@ -338,14 +338,6 @@ LUA_API int lua_closethread (lua_State *L, lua_State *from) {
 }
 
 
-/*
-** Deprecated! Use 'lua_closethread' instead.
-*/
-LUA_API int lua_resetthread (lua_State *L) {
-  return lua_closethread(L, NULL);
-}
-
-
 LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, unsigned seed) {
   int i;
   lua_State *L;
