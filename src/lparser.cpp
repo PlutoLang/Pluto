@@ -185,7 +185,7 @@ inline thread_local bool parser_emitted_warnings;
 static void throw_warn(LexState* ls, const char* err, const char* here, const char* note, intptr_t line_or_tidx, WarningType warningType) {
   int line = Pluto::ErrorMessage::decodeLine(ls, line_or_tidx);
   if (ls->shouldEmitWarning(line, warningType)) {
-    auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, YEL "warning: " BWHT, ls->source, line) };
+    auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, BWHT, ls->source, line) };
     msg->addMsg(err)
       .addMsg(" [")
       .addMsg(luaX_getwarnname(warningType))
