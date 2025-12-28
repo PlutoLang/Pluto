@@ -364,7 +364,23 @@ do
     print(X)    -- Ok to use
     Y = 1   -- ERROR
   ]], "attempt to reassign constant 'Y'") -- [Pluto] updated error message
-  
+
+  checkerr([[
+    global *;
+    Y = X    -- Ok to use
+    global<const> *;
+    Y = 1   -- ERROR
+  ]], "attempt to reassign constant 'Y'") -- [Pluto] updated error message
+
+  global *
+  Y = 10
+  assert(_ENV.Y == 10)
+  global<const> *
+  local x = Y
+  global *
+  Y = x + Y
+  assert(_ENV.Y == 20)
+
 end
 
 print'OK'
