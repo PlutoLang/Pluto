@@ -419,6 +419,7 @@ struct TString {
 
 
 #define strisshr(ts)	((ts)->shrlen >= 0)
+#define isextstr(ts)	(ttislngstring(ts) && tsvalue(ts)->shrlen != LSTRREG)
 
 
 /*
