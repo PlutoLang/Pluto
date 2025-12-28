@@ -63,9 +63,6 @@ static const char *getS (lua_State *L, void *ud, size_t *size) {
 #define next(ls)	(ls->current = zgetc(ls->z))
 
 
-#define check_condition(ls,c,msg)	{ if (!(c)) luaX_syntaxerror(ls, msg); }
-
-
 /* minimum size for string buffer */
 #if !defined(LUA_MINBUFFER)
 #define LUA_MINBUFFER   32
@@ -545,7 +542,7 @@ static int read_numeral (LexState *ls, SemInfo *seminfo) {
   for (;;) {
     if (check_next2(ls, expo))  /* exponent mark? */
       check_next2(ls, "-+");  /* optional exponent sign */
-    else if (lisxdigit(ls->current) || ls->current == '.' || ls->current == 'o') /* '%x|%.' */
+    else if (lisxdigit(ls->current) || ls->current == '.' || ls->current == 'o')  /* '%x|%.' */
       save_and_next(ls);
     else if (ls->current == '_')
       next(ls);
@@ -768,7 +765,7 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
   luaZ_resetbuffer(ls->buff);
   for (;;) {
     switch (ls->current) {
-      case '\n': case '\r': {  /* Line breaks. */
+      case '\n': case '\r': {  /* line breaks */
         if (column)
           *column = 0;
         inclinenumber(ls);
@@ -1134,7 +1131,7 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           } while (lislalnum(ls->current));
           /* find or create string */
           ts = luaS_newlstr(ls->L, luaZ_buffer(ls->buff),
-              luaZ_bufflen(ls->buff));
+                                   luaZ_bufflen(ls->buff));
           ls->appendLineBuff(getstr(ts));
           if (isreserved(ts))   /* reserved word? */
             return ts->extra - 1 + FIRST_RESERVED;

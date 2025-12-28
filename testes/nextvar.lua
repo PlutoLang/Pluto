@@ -736,10 +736,10 @@ end
 
 do   -- attempt to change the control variable
   local st, msg = load "for i = 1, 10 do i = 10 end"
-  assert(not st and string.find(msg, "attempt to reassign constant 'i'")) -- [Pluto] updated error message
+  assert(not st and string.find(msg, "assign to const variable 'i'"))
 
   local st, msg = load "for v, k in pairs{} do v = 10 end"
-  assert(not st and string.find(msg, "attempt to reassign constant 'v'")) -- [Pluto] updated error message
+  assert(not st and string.find(msg, "assign to const variable 'v'"))
 end
 
 -- conversion

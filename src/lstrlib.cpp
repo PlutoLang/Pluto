@@ -226,7 +226,7 @@ static int str_byte (lua_State *L) {
   int n, i;
   if (posi > pose) return 0;  /* empty interval; return no values */
   if (l_unlikely(pose - posi >= (size_t)INT_MAX))  /* arithmetic overflow? */
-    luaL_error(L, "string slice too long");
+    return luaL_error(L, "string slice too long");
   n = (int)(pose -  posi) + 1;
   luaL_checkstack(L, n, "string slice too long");
   for (i=0; i<n; i++)
@@ -443,7 +443,7 @@ static int check_capture (MatchState *ms, int l) {
   l -= '1';
   if (l_unlikely(l < 0 || l >= ms->level ||
                  ms->capture[l].len == CAP_UNFINISHED))
-    luaL_error(ms->L, "invalid capture index %%%d", l + 1);
+    return luaL_error(ms->L, "invalid capture index %%%d", l + 1);
   return l;
 }
 
@@ -452,7 +452,7 @@ static int capture_to_close (MatchState *ms) {
   int level = ms->level;
   for (level--; level>=0; level--)
     if (ms->capture[level].len == CAP_UNFINISHED) return level;
-  luaL_error(ms->L, "invalid pattern capture");
+  return luaL_error(ms->L, "invalid pattern capture");
 }
 
 
@@ -626,7 +626,7 @@ static const char *match_capture (MatchState *ms, const char *s, int l) {
 static const char *match (MatchState *ms, const char *s, const char *p) {
   if (l_unlikely(ms->matchdepth-- == 0))
     luaL_error(ms->L, "pattern too complex");
-  init: /* using gotos to optimize tail recursion */
+  init: /* using goto to optimize tail recursion */
   if (p != ms->p_end) {  /* end of pattern? */
     switch (*p) {
       case '(': {  /* start capture */
@@ -993,7 +993,8 @@ static int add_value (MatchState *ms, luaL_Buffer *b, const char *s,
     return 0;  /* no changes */
   }
   else if (l_unlikely(!lua_isstring(L, -1)))
-    luaL_error(L, "invalid replacement value (a %s)", luaL_typename(L, -1));
+    return luaL_error(L, "invalid replacement value (a %s)",
+                         luaL_typename(L, -1));
   else {
     luaL_addvalue(b);  /* add result to accumulator */
     return 1;  /* something changed */
@@ -1125,7 +1126,7 @@ static int lua_number2strx (lua_State *L, char *buff, unsigned sz,
       buff[i] = cast_char(toupper(cast_uchar(buff[i])));
   }
   else if (l_unlikely(fmt[SIZELENMOD] != 'a'))
-    luaL_error(L, "modifiers for format '%%a'/'%%A' not implemented");
+    return luaL_error(L, "modifiers for format '%%a'/'%%A' not implemented");
   return n;
 }
 
@@ -1321,13 +1322,7 @@ static void addliteral (lua_State *L, luaL_Buffer *b, int arg, bool must_be_vali
   }
 }
 
-/*
-** This is to guard against more serious errors in C implementations of sprintf.
-** They don't handle large field widths well. Lua used to pass the format as-is.
-** But if the host didn't support the format it would give incorrect results without raising an error.
-** Or worse, could cause data corruption or out-of-bounds memory writes. That's a recipe for security exploits.
-** Lua validates the format string then to permit only a limited and "safer" subset of what sprintf may do.
-*/
+
 static const char *get2digits (const char *s) {
   if (isdigit(cast_uchar(*s))) {
     s++;
@@ -1411,7 +1406,7 @@ static int str_format (lua_State *L) {
       char *buff = luaL_prepbuffsize(&b, maxitem);  /* to put result */
       int nb = 0;  /* number of bytes in result */
       if (++arg > top)
-        luaL_argerror(L, arg, "no value");
+        return luaL_argerror(L, arg, "no value");
       strfrmt = getformat(L, strfrmt, form);
       switch (*strfrmt++) {
         case 'c': {
@@ -1463,7 +1458,7 @@ static int str_format (lua_State *L) {
         }
         case 'q': {
           if (form[2] != '\0')  /* modifiers? */
-            luaL_error(L, "specifier '%%q' cannot have modifiers");
+            return luaL_error(L, "specifier '%%q' cannot have modifiers");
           addliteral(L, &b, arg);
           break;
         }
@@ -1493,7 +1488,7 @@ static int str_format (lua_State *L) {
           break;
         }
         default: {  /* also treat cases 'pnLlh' */
-          luaL_error(L, "invalid conversion '%s' to 'format'", form);
+          return luaL_error(L, "invalid conversion '%s' to 'format'", form);
         }
       }
       lua_assert(cast_uint(nb) < maxitem);
@@ -1692,7 +1687,6 @@ static KOption getdetails (Header *h, size_t totalsize, const char **fmt,
       unsigned szmoda = cast_uint(totalsize & (align - 1));
       *ntoalign = cast_uint((align - szmoda) & (align - 1));
     }
-    *ntoalign = (align - (int)(totalsize & (align - 1))) & (align - 1);
   }
   return opt;
 }

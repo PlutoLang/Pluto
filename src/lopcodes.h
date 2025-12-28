@@ -165,13 +165,13 @@ enum OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};
 #define SETARG_Ax(i,v)	setarg(i, v, POS_Ax, SIZE_Ax)
 
 #define GETARG_sBx(i)  \
-    check_exp(checkopm(i, iAsBx), getarg(i, POS_Bx, SIZE_Bx) - OFFSET_sBx)
+	check_exp(checkopm(i, iAsBx), getarg(i, POS_Bx, SIZE_Bx) - OFFSET_sBx)
 #define SETARG_sBx(i,b)	SETARG_Bx((i),cast_uint((b)+OFFSET_sBx))
 
 #define GETARG_sJ(i)  \
-    check_exp(checkopm(i, isJ), getarg(i, POS_sJ, SIZE_sJ) - OFFSET_sJ)
+	check_exp(checkopm(i, isJ), getarg(i, POS_sJ, SIZE_sJ) - OFFSET_sJ)
 #define SETARG_sJ(i,j) \
-    setarg(i, cast_uint((j)+OFFSET_sJ), POS_sJ, SIZE_sJ)
+	setarg(i, cast_uint((j)+OFFSET_sJ), POS_sJ, SIZE_sJ)
 
 
 #define CREATE_ABCk(o,a,b,c,k)	((cast_Inst(o)<<POS_OP) \
@@ -215,6 +215,7 @@ enum OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};
 #define NO_REG		MAX_FSTACK
 
 
+
 /*
 ** R[x] - register
 ** K[x] - constant (in constant table)
@@ -243,7 +244,7 @@ OP_LOADNIL,/*	A B	R[A], R[A+1], ..., R[A+B] := nil		*/
 OP_GETUPVAL,/*	A B	R[A] := UpValue[B]				*/
 OP_SETUPVAL,/*	A B	UpValue[B] := R[A]				*/
 
-OP_GETTABUP,/*	A B C	R[A] := UpValue[B][K[C]:shortstring]			*/
+OP_GETTABUP,/*	A B C	R[A] := UpValue[B][K[C]:shortstring]		*/
 OP_GETTABLE,/*	A B C	R[A] := R[B][R[C]]				*/
 OP_GETI,/*	A B C	R[A] := R[B][C]					*/
 OP_GETFIELD,/*	A B C	R[A] := R[B][K[C]:shortstring]			*/

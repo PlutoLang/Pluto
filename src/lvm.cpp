@@ -64,7 +64,7 @@
 ** sizeof(long) == 32.)
 */
 #if ((((LUA_MAXINTEGER >> (NBM / 4)) >> (NBM / 4)) >> (NBM / 4)) \
-    >> (NBM - (3 * (NBM / 4))))  >  0
+	>> (NBM - (3 * (NBM / 4))))  >  0
 
 /* limit for integers that fit in a float */
 #define MAXINTFITSF	((lua_Unsigned)1 << NBM)
@@ -680,7 +680,7 @@ int luaV_equalobj (lua_State *L, const TValue *t1, const TValue *t2) {
 
 /* macro used by 'luaV_concat' to ensure that element at 'o' is a string */
 #define tostring(L,o)  \
-    (ttisstring(o) || ((cvt2str(o) || ttisboolean(o)) && (luaO_tostring(L, o), 1)))
+	(ttisstring(o) || ((cvt2str(o) || ttisboolean(o)) && (luaO_tostring(L, o), 1)))
 
 /*
 ** Check whether object is a short empty string to optimize concatenation.
@@ -1030,7 +1030,7 @@ void luaV_finishOp (lua_State *L) {
 
 /*
 ** Auxiliary function for arithmetic operations over floats and others
-** with two register operands.
+** with two operands.
 */
 #define op_arithf_aux(L,v1,v2,fop) {  \
   lua_Number n1; lua_Number n2;  \
@@ -1189,7 +1189,7 @@ void luaV_finishOp (lua_State *L) {
 
 
 #define updatestack(ci)  \
-    { if (l_unlikely(trap)) { updatebase(ci); ra = RA(i); } }
+	{ if (l_unlikely(trap)) { updatebase(ci); ra = RA(i); } }
 
 
 /*
@@ -1248,7 +1248,7 @@ void luaV_finishOp (lua_State *L) {
 
 /* 'c' is the limit of live values in the stack */
 #define checkGC(L,c)  \
-    { luaC_condGC(L, (savepc(ci), L->top.p = (c)), \
+	{ luaC_condGC(L, (savepc(ci), L->top.p = (c)), \
                          updatetrap(ci)); \
            luai_threadyield(L); }
 

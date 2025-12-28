@@ -644,7 +644,7 @@ static int math_random (lua_State *L) {
       up = luaL_checkinteger(L, 2);
       break;
     }
-    default: luaL_error(L, "wrong number of arguments");
+    default: return luaL_error(L, "wrong number of arguments");
   }
   /* random integer in the interval [low, up] */
   luaL_argcheck(L, low <= up, 1, "interval is empty");
@@ -701,7 +701,7 @@ static void setrandfunc (lua_State *L) {
   lua_pop(L, 2);  /* remove pushed seeds */
   luaL_setfuncs(L, randfuncs, 1);
 
-  // Provide "rand" as an alias to "random"
+  // [Pluto] Provide "rand" as an alias to "random"
   lua_getfield(L, -1, "random");
   lua_setfield(L, -2, "rand");
 }

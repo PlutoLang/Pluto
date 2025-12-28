@@ -550,6 +550,10 @@ static const char *get_prompt (lua_State *L, int firstline) {
   }
 }
 
+/* mark in error messages for incomplete statements */
+#define EOFMARK		"<eof>"
+#define marklen		(sizeof(EOFMARK)/sizeof(char) - 1)
+
 
 /*
 ** Check whether 'status' signals a syntax error and the error
@@ -564,8 +568,9 @@ static const char *get_prompt (lua_State *L, int firstline) {
 */
 static int incomplete (lua_State *L, int status) {
   if (status == LUA_ERRSYNTAX) {
-    const char *msg = lua_tostring(L, -1);
-    if (strstr(msg, "near '<eof>'") != nullptr)
+    size_t lmsg;
+    const char *msg = lua_tolstring(L, -1, &lmsg);
+    if (lmsg >= marklen && strcmp(msg + lmsg - marklen, EOFMARK) == 0)
       return 1;
   }
   return 0;  /* else... */
@@ -580,9 +585,9 @@ static int pushline (lua_State *L, int firstline) {
   size_t l;
   const char *prmt = get_prompt(L, firstline);
   char *b = lua_readline(buffer, prmt);
-  if (b == NULL)
-    return 0;  /* no input (prompt will be popped by caller) */
   lua_pop(L, 1);  /* remove prompt */
+  if (b == NULL)
+    return 0;  /* no input */
   l = strlen(b);
   if (l > 0 && b[l-1] == '\n')  /* line ends with newline? */
     b[--l] = '\0';  /* remove it */
@@ -600,11 +605,8 @@ static int addreturn (lua_State *L) {
   const char *line = lua_tostring(L, -1);  /* original line */
   const char *retline = lua_pushfstring(L, "return %s;", line);
   int status = luaL_loadbuffer(L, retline, strlen(retline), "=stdin");
-  if (status == LUA_OK) {
+  if (status == LUA_OK)
     lua_remove(L, -2);  /* remove modified line */
-    if (line[0] != '\0')  /* non empty? */
-      lua_saveline(line);  /* keep history */
-  }
   else
     lua_pop(L, 2);  /* pop result from 'luaL_loadbuffer' and modified line */
   return status;
@@ -624,7 +626,9 @@ static void checklocal (const char *line) {
 
 
 /*
-** Read multiple lines until a complete Lua statement
+** Read multiple lines until a complete Lua statement or an error not
+** for an incomplete statement. Start with first line already read in
+** the stack.
 */
 static int multiline (lua_State *L) {
   size_t len;
@@ -632,10 +636,8 @@ static int multiline (lua_State *L) {
   checklocal(line);
   for (;;) {  /* repeat until gets a complete statement */
     int status = luaL_loadbuffer(L, line, len, "=stdin");  /* try it */
-    if (!incomplete(L, status) || !pushline(L, 0)) {
-      lua_saveline(line);  /* keep history */
+    if (!incomplete(L, status) || !pushline(L, 0))
       return status;  /* should not or cannot try to add continuation line */
-    }
     lua_remove(L, -2);  /* remove error message (from incomplete line) */
     lua_pushliteral(L, "\n");  /* add newline... */
     lua_insert(L, -2);  /* ...between the two lines */
@@ -652,12 +654,16 @@ static int multiline (lua_State *L) {
 ** in the top of the stack.
 */
 static int loadline (lua_State *L) {
+  const char *line;
   int status;
   lua_settop(L, 0);
   if (!pushline(L, 1))
     return -1;  /* no input */
   if ((status = addreturn(L)) != LUA_OK)  /* 'return ...' did not work? */
     status = multiline(L);  /* try as command, maybe with continuation lines */
+  line = lua_tostring(L, 1);
+  if (line[0] != '\0')  /* non empty? */
+    lua_saveline(line);  /* keep history */
   lua_remove(L, 1);  /* remove line from the stack */
   lua_assert(lua_gettop(L) == 1);
   return status;
