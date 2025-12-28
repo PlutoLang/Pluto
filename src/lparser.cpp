@@ -5430,7 +5430,7 @@ static void localfunc (LexState *ls, bool isexport = false) {
 }
 
 
-static lu_byte getvarattribute (LexState *ls) {
+static lu_byte getvarattribute (LexState *ls, lu_byte df) {
   /* attrib -> ['<' NAME '>'] */
   if (testnext(ls, '<')) {
     TString *ts = str_checkname(ls);
@@ -5446,7 +5446,7 @@ static lu_byte getvarattribute (LexState *ls) {
       luaK_semerror(ls, "unknown attribute '%s'", attr);
     }
   }
-  return VDKREG;  /* regular variable */
+  return df;  /* return default value */
 }
 
 
@@ -5567,11 +5567,13 @@ static void localstat (LexState *ls, bool isexport = false) {
   auto line = ls->getLineNumber(); /* in case we need to emit a warning */
   size_t starting_tidx = ls->tidx; /* code snippets on tuple assignments can have inaccurate line readings because the parser skips lines until it can close the statement */
   auto& st = ls->localstatstates.emplace();
+  /* get prefixed attribute (if any); default is regular local variable */
+  lu_byte defkind = getvarattribute(ls, VDKREG);
   do {
-    TString* name = str_checkname(ls, N_OVERRIDABLE);
-    vidx = new_localvar(ls, name, line, gettypehint(ls), false);
-    st.variable_names.emplace(name);
-    lu_byte kind = isexport ? RDKCONST : getvarattribute(ls);
+    TString *vname = str_checkname(ls, N_OVERRIDABLE);  /* get its name */
+    vidx = new_localvar(ls, vname, line, gettypehint(ls), false);  /* predeclare it */
+    st.variable_names.emplace(vname);
+    lu_byte kind = isexport ? RDKCONST : getvarattribute(ls, defkind);  /* postfixed attribute */
     var = getlocalvardesc(fs, vidx);
     var->vd.kind = kind;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
@@ -5594,7 +5596,7 @@ static void localstat (LexState *ls, bool isexport = false) {
     }
     nvars++;
   } while (testnext(ls, ','));
-  if (testnext(ls, '=')) {
+  if (testnext(ls, '=')) {  /* initialization? */
     ParserContext ctx = ((nvars == 1) ? PARCTX_CREATE_VAR : PARCTX_CREATE_VARS);
     ls->pushContext(ctx);
     nexps = 1;
@@ -5644,29 +5646,35 @@ static void localstat (LexState *ls, bool isexport = false) {
 }
 
 
-static lu_byte getglobalattribute (LexState *ls) {
-  lu_byte kind = getvarattribute(ls);
-  if (kind == RDKTOCLOSE)
-    luaK_semerror(ls, "global variables cannot be to-be-closed");
-  /* adjust kind for global variable */
-  return (kind == VDKREG) ? GDKREG : GDKCONST;
+static lu_byte getglobalattribute (LexState *ls, lu_byte df) {
+  lu_byte kind = getvarattribute(ls, df);
+  switch (kind) {
+    case RDKTOCLOSE:
+      luaK_semerror(ls, "global variables cannot be to-be-closed");
+      break;  /* to avoid warnings */
+    case RDKCONST:
+      return GDKCONST;  /* adjust kind for global variable */
+    default:
+      return kind;
+  }
 }
 
 
 static void globalstat (LexState *ls) {
-  /* globalstat -> (GLOBAL) '*' attrib
-     globalstat -> (GLOBAL) NAME attrib {',' NAME attrib} */
+  /* globalstat -> (GLOBAL) attrib '*'
+     globalstat -> (GLOBAL) attrib NAME attrib {',' NAME attrib} */
   FuncState *fs = ls->fs;
+  /* get prefixed attribute (if any); default is regular global variable */
+  lu_byte defkind = getglobalattribute(ls, GDKREG);
   if (testnext(ls, '*')) {
-    lu_byte kind = getglobalattribute(ls);
     /* use NULL as name to represent '*' entries */
-    new_varkind(ls, NULL, kind);
+    new_varkind(ls, NULL, defkind);
     fs->nactvar++;  /* activate declaration */
   }
   else {
-    do {
+    do {  /* list of names */
       TString *vname = str_checkname(ls);
-      lu_byte kind = getglobalattribute(ls);
+      lu_byte kind = getglobalattribute(ls, defkind);
       new_varkind(ls, vname, kind);
       fs->nactvar++;  /* activate declaration */
     } while (testnext(ls, ','));
@@ -6186,8 +6194,9 @@ static void statement (LexState *ls, tdn_t *nprop, TypeHint *prop) {
          is not reserved */
       if (ls->t.seminfo.ts == ls->glbn) {  /* current = "global"? */
         int lk = luaX_lookahead(ls);
-        if (lk == TK_NAME || lk == '*' || lk == TK_FUNCTION) {
-          /* 'global name' or 'global *' or 'global function' */
+        if (lk == '<' || lk == TK_NAME || lk == '*' || lk == TK_FUNCTION) {
+          /* 'global <attrib>' or 'global name' or 'global *' or
+             'global function' */
           globalstatfunc(ls, line);
           break;
         }
