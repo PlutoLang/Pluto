@@ -92,6 +92,7 @@ case OP_SETLIST: goto L_OP_SETLIST; \
 case OP_CLOSURE: goto L_OP_CLOSURE; \
 case OP_VARARG: goto L_OP_VARARG; \
 case OP_GETVARG: goto L_OP_GETVARG; \
+case OP_ERRNNIL: goto L_OP_ERRNNIL; \
 case OP_VARARGPREP: goto L_OP_VARARGPREP; \
 case OP_EXTRAARG: goto L_OP_EXTRAARG; \
 case OP_IN: goto L_OP_IN; \
