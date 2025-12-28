@@ -136,7 +136,6 @@ typedef struct BlockCnt {
   lu_byte upval;  /* true if some variable in the block is an upvalue */
   BlockType type;  /* one of block types */
   lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
-  lu_byte globdec;  /* true if inside the scope of any global declaration */
   std::vector<TString*> export_symbols{};
   TypeHint *var_override_th = nullptr;
   unsigned short var_override_vidx;
@@ -1081,15 +1080,30 @@ static int newupvalue (FuncState *fs, TString *name, expdesc *v) {
 /*
 ** Look for an active variable with the name 'n' in the
 ** function 'fs'. If found, initialize 'var' with it and return
-** its expression kind; otherwise return -1.
+** its expression kind; otherwise return -1. While searching,
+** var->u.info==-1 means that the preambular global declaration is
+** active (the default while there is no other global declaration);
+** var->u.info==-2 means there is no active collective declaration
+** (some previous global declaration but no collective declaration);
+** and var->u.info>=0 points to the inner-most (the first one found)
+** collective declaration, if there is one.
 */
 static int searchvar (FuncState *fs, TString *n, expdesc *var) {
   int i;
-  for (i = fs->nactvar - 1; i >= 0; i--) {
+  for (i = cast_int(fs->nactvar) - 1; i >= 0; i--) {
     Vardesc *vd = getlocalvardesc(fs, i);
-    if (vd->vd.name == NULL) {  /* 'global *'? */
-      if (var->u.info == -1) {  /* no previous collective declaration? */
-        var->u.info = fs->firstlocal + i;  /* will use this one as default */
+    if (varglobal(vd)) {  /* global declaration? */
+      if (vd->vd.name == NULL) {  /* collective declaration? */
+        if (var->u.info < 0)  /* no previous collective declaration? */
+          var->u.info = fs->firstlocal + i;  /* this is the first one */
+      }
+      else {  /* global name */
+        if (eqstr(n, vd->vd.name)) {  /* found? */
+          init_exp(var, VGLOBAL, fs->firstlocal + i);
+          return VGLOBAL;
+        }
+        else if (var->u.info == -1)  /* active preambular declaration? */
+          var->u.info = -2;  /* invalidate preambular declaration */
       }
     }
     else if (eqstr(n, vd->vd.name)) {  /* found? */
@@ -1099,8 +1113,6 @@ static int searchvar (FuncState *fs, TString *n, expdesc *var) {
         init_exp(var, VENUM, 0);
         var->u.ival = ivalue(&vd->k);
       }
-      else if (vd->vd.kind == GDKREG || vd->vd.kind == GDKCONST)
-        init_exp(var, VGLOBAL, fs->firstlocal + i);
       else  /* local variable */
         init_var(fs, var, i);
       return cast_int(var->k);
@@ -1203,7 +1215,7 @@ static void buildvar (LexState *ls, TString *varname, expdesc *var, bool localon
     expdesc key;
     int info = var->u.info;
     /* global by default in the scope of a global declaration? */
-    if (info == -1 && fs->bl->globdec)
+    if (info == -2)
       luaK_semerror(ls, "variable '%s' not declared", getstr(varname));
     singlevaraux(fs, ls->envn, var, 1);  /* get environment variable */
     if (var->k == VGLOBAL)
@@ -1397,10 +1409,6 @@ static void enterblock (FuncState *fs, BlockCnt *bl, BlockType type) {
   bl->upval = 0;
   /* inherit 'insidetbc' from enclosing block */
   bl->insidetbc = static_cast<lu_byte>(fs->bl != NULL && fs->bl->insidetbc);
-  /* inherit 'globdec' from enclosing block or enclosing function */
-  bl->globdec = fs->bl != NULL ? fs->bl->globdec
-              : fs->prev != NULL ? fs->prev->bl->globdec
-              : 0;  /* chunk's first block */
   bl->previous = fs->bl;  /* link block in function's block list */
   fs->bl = bl;
   lua_assert(fs->freereg == luaY_nvarstack(fs));
@@ -5696,7 +5704,6 @@ static void globalfunc (LexState *ls, int line) {
 static void globalstatfunc (LexState *ls, int line) {
   /* stat -> GLOBAL globalfunc | GLOBAL globalstat */
   luaX_next(ls);  /* skip 'global' */
-  ls->fs->bl->globdec = 1;  /* in the scope of a global declaration */
   if (testnext(ls, TK_FUNCTION))
     globalfunc(ls, line);
   else
