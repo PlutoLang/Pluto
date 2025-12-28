@@ -17,13 +17,13 @@
 */
 typedef enum {
   TM_INDEX,
-  TM_MINDEX,
   TM_NEWINDEX,
   TM_GC,
   TM_MODE,
   TM_LEN,
   TM_CALL,
   TM_EQ,  /* last tag method with fast access */
+  TM_MINDEX,
   TM_ADD,
   TM_SUB,
   TM_MUL,
@@ -47,8 +47,9 @@ typedef enum {
 
 
 inline const char *const luaT_eventname[] = {  /* ORDER TM */
-  "__index", "__mindex", "__newindex",
+  "__index", "__newindex",
   "__gc", "__mode", "__len", "__call", "__eq",
+  "__mindex",
   "__add", "__sub", "__mul", "__mod", "__pow",
   "__div", "__idiv",
   "__band", "__bor", "__bxor", "__shl", "__shr",
