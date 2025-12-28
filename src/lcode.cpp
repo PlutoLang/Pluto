@@ -1321,7 +1321,7 @@ void luaK_goiftrue (FuncState *fs, expdesc *e) {
 /*
 ** Emit code to go through if 'e' is false, jump otherwise.
 */
-void luaK_goiffalse (FuncState *fs, expdesc *e) {
+static void luaK_goiffalse (FuncState *fs, expdesc *e) {
   int pc;  /* pc of new jump */
   luaK_dischargevars(fs, e);
   if (luaK_isalwaysfalse(fs->ls, e, true)) {

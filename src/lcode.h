@@ -107,7 +107,6 @@ LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e, bool jumps_are_ok = f
 LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e, bool jumps_are_ok = false);
 LUAI_FUNC bool luaK_isalwaysfalse (LexState *ls, expdesc *e, bool jumps_are_ok = false);
 LUAI_FUNC void luaK_goiftrue (FuncState *fs, expdesc *e);
-LUAI_FUNC void luaK_goiffalse (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_storevar (FuncState *fs, expdesc *var, expdesc *e);
 LUAI_FUNC void luaK_setreturns (FuncState *fs, expdesc *e, int nresults);
 LUAI_FUNC void luaK_setoneret (FuncState *fs, expdesc *e);
