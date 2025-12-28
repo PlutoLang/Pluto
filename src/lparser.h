@@ -472,7 +472,7 @@ typedef struct Labeldesc {
   void *name;  /* label identifier or block */
   int pc;  /* position in code */
   int line;  /* line where it appeared */
-  lu_byte nactvar;  /* number of active variables in that position */
+  short nactvar;  /* number of active variables in that position */
   lu_byte close : 1; /* true for goto that escapes upvalues */
   lu_byte special : 1; /* This is a special value for break or continue, the name is then a pointer to a BlockCnt */
 } Labeldesc;
@@ -518,7 +518,7 @@ typedef struct FuncState {
   int firstlocal;  /* index of first local var (in Dyndata array) */
   int firstlabel;  /* index of first label (in 'dyd->label->arr') */
   short ndebugvars;  /* number of elements in 'f->locvars' */
-  int nactvar;  /* number of active local variables */
+  short nactvar;  /* number of active local variables */
   lu_byte nups;  /* number of upvalues */
   lu_byte freereg;  /* first free register */
   lu_byte iwthabs;  /* instructions issued since last absolute line info */
