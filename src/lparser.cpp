@@ -1809,7 +1809,6 @@ static void recfield (LexState *ls, ConsControl *cc, bool for_class) {
   }
   else  /* ls->t.token == '[' */
     yindex(ls, &key);
-  luaY_checklimit(fs, cc->nh, INT_MAX, "items in a constructor");
   if (for_class)
     UNUSED(gettypehint(ls));
   cc->nh++;
