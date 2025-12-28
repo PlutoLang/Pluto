@@ -1240,14 +1240,14 @@ static void singlevar (LexState *ls, expdesc *var) {
 */
 static l_noret jumpscopeerror (LexState *ls, Labeldesc *gt) {
   TString *tsname = getlocalvardesc(ls->fs, gt->nactvar)->vd.name;
-  const char *varname = getstr(tsname);
+  const char *varname = (tsname != NULL) ? getstr(tsname) : "*";
   const char *msg;
   if (!gt->special) {
-    msg = luaO_pushfstring(ls->L, "<goto %s> at line %d jumps into the scope of local '%s'", getstr((TString*)gt->name), gt->line, varname);
+    msg = luaO_pushfstring(ls->L, "<goto %s> at line %d jumps into the scope of '%s'", getstr((TString*)gt->name), gt->line, varname);
   } else {
     BlockCnt* bt = (BlockCnt*)gt->name;
     const char *type = bt->type == BlockType::BT_BREAK ? "break" : bt->type == BlockType::BT_CONTINUE ? "continue" : "?";
-    msg = luaO_pushfstring(ls->L, "%s at line %d jumps into the scope of local '%s'", type, gt->line, varname);
+    msg = luaO_pushfstring(ls->L, "%s at line %d jumps into the scope of '%s'", type, gt->line, varname);
   }
   luaK_semerror(ls, msg);  /* raise the error */
 }
