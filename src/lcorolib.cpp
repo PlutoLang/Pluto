@@ -101,7 +101,7 @@ static int luaB_auxwrap (lua_State *L) {
       lua_insert(L, -2);
       lua_concat(L, 2);
     }
-    lua_error(L);  /* propagate error */
+    return lua_error(L);  /* propagate error */
   }
   return r;
 }

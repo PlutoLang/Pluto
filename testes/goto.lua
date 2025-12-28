@@ -351,7 +351,7 @@ do
   checkerr([[
     global<const> foo;
     function foo (x) return end   -- ERROR: foo is read-only
-  ]], "attempt to reassign constant 'foo'") -- [Pluto] updated error message
+  ]], "assign to const variable 'foo'")
 
   checkerr([[
     global foo <const>;
@@ -364,14 +364,14 @@ do
     global<const> *;
     print(X)    -- Ok to use
     Y = 1   -- ERROR
-  ]], "attempt to reassign constant 'Y'") -- [Pluto] updated error message
+  ]], "assign to const variable 'Y'")
 
   checkerr([[
     global *;
     Y = X    -- Ok to use
     global<const> *;
     Y = 1   -- ERROR
-  ]], "attempt to reassign constant 'Y'") -- [Pluto] updated error message
+  ]], "assign to const variable 'Y'")
 
   global *
   Y = 10

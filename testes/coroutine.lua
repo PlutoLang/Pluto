@@ -692,6 +692,7 @@ else
     -- (bug in 5.2/5.3)
     c = coroutine.create(function (a, ...)
       T.sethook("yield 0", "l")   -- will yield on next two lines
+      local b = a
       return ...
     end)
 

@@ -43,6 +43,7 @@ typedef enum BinOpr {
   OPR_NOBINOPR,
 } BinOpr;
 
+
 /* true if operation is foldable (that is, it is arithmetic or bitwise) */
 #define foldbinop(op)	((op) <= OPR_SHR)
 
@@ -103,11 +104,11 @@ LUAI_FUNC void luaK_exp2anyregup (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_exp2nextreg (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_exp2val (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_self (FuncState *fs, expdesc *e, expdesc *key);
-LUAI_FUNC void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func);
+LUAI_FUNC void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func); // [Pluto]
 LUAI_FUNC void luaK_indexed (FuncState *fs, expdesc *t, expdesc *k);
-LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e, bool jumps_are_ok = false);
-LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e, bool jumps_are_ok = false);
-LUAI_FUNC bool luaK_isalwaysfalse (LexState *ls, expdesc *e, bool jumps_are_ok = false);
+LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e, bool jumps_are_ok = false); // [Pluto]
+LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e, bool jumps_are_ok = false); // [Pluto]
+LUAI_FUNC bool luaK_isalwaysfalse (LexState *ls, expdesc *e, bool jumps_are_ok = false); // [Pluto]
 LUAI_FUNC void luaK_goiftrue (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_storevar (FuncState *fs, expdesc *var, expdesc *e);
 LUAI_FUNC void luaK_setreturns (FuncState *fs, expdesc *e, int nresults);
@@ -127,9 +128,9 @@ LUAI_FUNC void luaK_settablesize (FuncState *fs, int pc,
 LUAI_FUNC void luaK_setlist (FuncState *fs, int base, int nelems, int tostore);
 LUAI_FUNC void luaK_finish (FuncState *fs);
 LUAI_FUNC l_noret luaK_semerror (LexState *ls, const char *fmt, ...);
-LUAI_FUNC void luaK_exp2reg (FuncState *fs, expdesc *e, int reg);
-LUAI_FUNC void luaK_freeexp (FuncState *fs, expdesc *e);
-LUAI_FUNC void luaK_invertcond (FuncState *fs, int list);
+LUAI_FUNC void luaK_exp2reg (FuncState *fs, expdesc *e, int reg); // [Pluto]
+LUAI_FUNC void luaK_freeexp (FuncState *fs, expdesc *e); // [Pluto]
+LUAI_FUNC void luaK_invertcond (FuncState *fs, int list); // [Pluto]
 
 
 #endif
