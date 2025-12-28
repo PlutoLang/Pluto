@@ -957,7 +957,7 @@ static void check_readonly (LexState *ls, expdesc *e) {
       varname = ls->dyd->actvar.arr[e->u.info].vd.name;
       break;
     }
-    case VLOCAL: {
+    case VLOCAL: case VVARGVAR: {
       Vardesc *vardesc = getlocalvardesc(fs, e->u.var.vidx);
       if (vardesc->vd.kind != VDKREG) {  /* not a regular variable? */
         varname = vardesc->vd.name;
@@ -1113,8 +1113,11 @@ static int searchvar (FuncState *fs, TString *n, expdesc *var) {
         init_exp(var, VENUM, 0);
         var->u.ival = ivalue(&vd->k);
       }
-      else  /* local variable */
+      else {  /* local variable */
         init_var(fs, var, i);
+        if (vd->vd.kind == RDKVAVAR)  /* vararg parameter? */
+          var->k = VVARGVAR;
+      }
       return cast_int(var->k);
     }
   }
@@ -1154,8 +1157,13 @@ static void marktobeclosed (FuncState *fs) {
 static void singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
   int v = searchvar(fs, n, var);  /* look up variables at current level */
   if (v >= 0) {  /* found? */
-    if (v == VLOCAL && !base)
-      markupval(fs, var->u.var.vidx);  /* local will be used as an upval */
+    if (!base) {
+      if (var->k == VVARGVAR)  /* vararg parameter? */
+        luaK_vapar2local(fs, var);  /* change it to a regular local */
+      if (var->k == VLOCAL)
+        markupval(fs, var->u.var.vidx);  /* will be used as an upvalue */
+    }
+    /* else nothing else to be done */
   }
   else {  /* not found at current level; try upvalues */
     int idx = searchupvalue(fs, n);  /* try existing upvalues */
@@ -2573,8 +2581,8 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
         varargk |= PF_ISVARARG;
         luaX_next(ls);
         if (testnext(ls, '=')) {
-          new_varkind(ls, str_checkname(ls), RDKVATAB);
-          varargk |= PF_VATAB;
+          new_varkind(ls, str_checkname(ls), RDKVAVAR);
+          varargk |= PF_VAVAR;
         }
       }
       else luaX_syntaxerror(ls, "<name> or '...' expected");
@@ -2588,10 +2596,10 @@ static void parlist (LexState *ls, std::vector<std::pair<TString*, TString*>>* p
   f->numparams = cast_byte(fs->nactvar);
   if (varargk != 0) {
     setvararg(fs, varargk);  /* declared vararg */
-    if (varargk & PF_VATAB)
-      adjustlocalvars(ls, 1);  /* vararg table */
+    if (varargk & PF_VAVAR)
+      adjustlocalvars(ls, 1);  /* vararg parameter */
   }
-  /* reserve registers for parameters (and vararg variable, if present) */
+  /* reserve registers for parameters (plus vararg parameter, if present) */
   luaK_reserveregs(fs, fs->nactvar);
 }
 
