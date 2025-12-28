@@ -2107,7 +2107,8 @@ static void newtable (LexState *ls, expdesc *v, const std::function<bool(expdesc
   init_exp(&cc.v, VVOID, 0);
   cc.maxtostore = maxtostore(fs);
   while (true) {
-    closelistfield(fs, &cc);
+    if (cc.v.k != VVOID)  /* is there a previous list item? */
+      closelistfield(fs, &cc);
     auto reg = ls->fs->freereg;
     expdesc tab, key, val;
     if (!gen(&key, &val))
@@ -2292,7 +2293,8 @@ static void classexpr (LexState *ls, expdesc *t) {
   const auto finish = preprocessclass(ls);
   while (ls->t.token != TK_END) {
     lua_assert(cc.v.k == VVOID || cc.tostore > 0);
-    closelistfield(fs, &cc);
+    if (cc.v.k != VVOID)  /* is there a previous list item? */
+      closelistfield(fs, &cc);
     field(ls, &cc, true);
     (testnext(ls, ',') || testnext(ls, ';'));
   }
