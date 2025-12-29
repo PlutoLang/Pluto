@@ -22,29 +22,48 @@ NAMESPACE_SOUP
 
 			uint8_t buffer[BLOCK_BYTES];
 			uint32_t state[8];
-			uint8_t buffer_counter;
-			uint64_t n_bits;
+			uint64_t n_bytes;
 
 			State() noexcept;
 
 			void append(const void* data, size_t size) noexcept
 			{
-				for (size_t i = 0; i != size; ++i)
+				if (!size)
 				{
-					appendByte(reinterpret_cast<const uint8_t*>(data)[i]);
+					return;
+				}
+
+				auto left = n_bytes % BLOCK_BYTES;
+				auto fill = BLOCK_BYTES - left;
+
+				n_bytes += size;
+
+				if (left && size >= fill)
+				{
+					memcpy(buffer + left, data, fill);
+					transform();
+					data = (uint8_t*)data + fill;
+					size -= fill;
+					left = 0;
+				}
+
+				while (size >= BLOCK_BYTES)
+				{
+					memcpy(buffer, data, BLOCK_BYTES);
+					transform();
+					data = (uint8_t*)data + BLOCK_BYTES;
+					size -= BLOCK_BYTES;
+				}
+
+				if (size)
+				{
+					memcpy(buffer + left, data, size);
 				}
 			}
 
 			void appendByte(uint8_t byte) noexcept
 			{
-				buffer[buffer_counter++] = byte;
-				n_bits += 8;
-
-				if (buffer_counter == BLOCK_BYTES)
-				{
-					buffer_counter = 0;
-					transform();
-				}
+				append(&byte, 1);
 			}
 
 			void transform() noexcept;
