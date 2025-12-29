@@ -256,8 +256,13 @@ NAMESPACE_SOUP
 		return p.getNumBytes();
 	}
 
-	std::pair<Bigint, Bigint> EccCurve::sign(const Bigint& d, const std::string& e) const SOUP_EXCAL
+	std::pair<Bigint, Bigint> EccCurve::sign(const Bigint& d, const std::string& e) const
 	{
+		SOUP_IF_UNLIKELY (e.size() > getBytesPerAxis())
+		{
+			SOUP_THROW(Exception(ObfusString("String provided to EccCurve::sign is too long").str()));
+		}
+
 		const auto z = e2z(e);
 
 		Bigint k, r, s;

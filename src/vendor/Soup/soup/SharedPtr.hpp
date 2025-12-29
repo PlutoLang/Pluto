@@ -133,9 +133,9 @@ NAMESPACE_SOUP
 		SharedPtr(const SharedPtr<T2>& b) noexcept
 			: data(reinterpret_cast<Data*>(b.data.load()))
 		{
-			if (data != nullptr)
+			if (Data* d = data.load(); d != nullptr)
 			{
-				data.load()->incref();
+				d->incref();
 			}
 		}
 
@@ -148,8 +148,8 @@ NAMESPACE_SOUP
 
 		void operator=(const SharedPtr<T>& b) noexcept
 		{
-			Data* const prev_data = this->data;
-			Data* const new_data = b.data;
+			Data* const prev_data = this->data.load();
+			Data* const new_data = b.data.load();
 			this->data = new_data;
 			if (new_data != nullptr)
 			{
@@ -166,7 +166,7 @@ NAMESPACE_SOUP
 
 		void operator=(SharedPtr<T>&& b) noexcept
 		{
-			Data* const prev_data = this->data;
+			Data* const prev_data = this->data.load();
 			this->data = b.data.load();
 			b.data = nullptr;
 			if (prev_data != nullptr)
@@ -188,7 +188,7 @@ NAMESPACE_SOUP
 
 		void reset() noexcept
 		{
-			Data* const data = this->data;
+			Data* const data = this->data.load();
 			if (data != nullptr)
 			{
 				this->data = nullptr;
@@ -208,7 +208,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] T* get() const noexcept
 		{
-			Data* const data = this->data;
+			Data* const data = this->data.load();
 			if (data)
 			{
 				return data->inst;
@@ -233,7 +233,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] T* release()
 		{
-			Data* const data = this->data;
+			Data* const data = this->data.load();
 			this->data = nullptr;
 			if (data->refcount.load() != 1)
 			{
@@ -252,6 +252,21 @@ NAMESPACE_SOUP
 				::operator delete(reinterpret_cast<void*>(data));
 			}
 			return inst;
+		}
+
+		[[nodiscard]] void* toDumb() const noexcept
+		{
+			Data* d = data.load();
+			if (d != nullptr)
+			{
+				d->incref();
+			}
+			return reinterpret_cast<void*>(d);
+		}
+
+		[[nodiscard]] static SharedPtr<T> fromDumb(void* ptr) noexcept
+		{
+			return SharedPtr<T>(reinterpret_cast<Data*>(ptr));
 		}
 	};
 

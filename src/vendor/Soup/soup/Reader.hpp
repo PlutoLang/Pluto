@@ -6,6 +6,8 @@
 
 #include "fwd.hpp"
 
+#include "bitutil.hpp"
+
 NAMESPACE_SOUP
 {
 	class Reader : public ioBase<true>
@@ -14,7 +16,7 @@ NAMESPACE_SOUP
 		using ioBase::ioBase;
 
 		[[nodiscard]] virtual bool hasMore() noexcept = 0;
-		virtual void seek(size_t pos) = 0;
+		virtual void seek(std::streamoff pos) = 0;
 		void seekBegin() { seek(0); }
 		virtual void seekEnd() = 0;
 
@@ -35,25 +37,25 @@ NAMESPACE_SOUP
 
 		virtual const void* getMemoryView(size_t size) const noexcept { return nullptr; }
 
-		// An unsigned 64-bit integer encoded in 1..9 bytes. The most significant bit of bytes 1 to 8 is used to indicate if another byte follows.
-		// https://github.com/calamity-inc/u64_dyn
+		// Variable-length 64-bit integer codings that take at most 9 bytes. (https://github.com/calamity-inc/u64_dyn)
 		bool u64_dyn(uint64_t& v) noexcept;
+		bool u64_dyn_b(uint64_t& v) noexcept;
+		bool u64_dyn_p(uint64_t& v) noexcept;
+		bool u64_dyn_bp(uint64_t& v) noexcept;
+		bool i64_dyn_a(int64_t& v) noexcept;
+		bool i64_dyn_b(int64_t& v) noexcept;
+		bool i64_dyn_p(int64_t& v) noexcept;
+		bool i64_dyn_bp(int64_t& v) noexcept;
+		[[deprecated("Renamed to i64_dyn_a")]] bool i64_dyn(int64_t& v) noexcept { return i64_dyn_a(v); }
+		[[deprecated("Renamed to u64_dyn_b")]] bool u64_dyn_v2(uint64_t& v) noexcept { return u64_dyn_b(v); }
+		[[deprecated("Renamed to i64_dyn_b")]] bool i64_dyn_v2(int64_t& v) noexcept { return i64_dyn_b(v); }
 
-		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn.)
-		// https://github.com/calamity-inc/u64_dyn
-		bool i64_dyn(int64_t& v) noexcept;
-
-		// An unsigned 64-bit integer encoded in 1..9 bytes. This is a slightly more efficient version of u64_dyn, e.g. 0x4000..0x407f are encoded in 2 bytes instead of 3.
-		// https://github.com/calamity-inc/u64_dyn
-		bool u64_dyn_v2(uint64_t& v) noexcept;
-
-		// A signed 64-bit integer encoded in 1..9 bytes. (Specialisation of u64_dyn_v2. This revision also simplifies how negative integers are handled.)
-		// https://github.com/calamity-inc/u64_dyn
-		bool i64_dyn_v2(int64_t& v) noexcept;
+		template <typename Int>
+		[[deprecated("Renamed to omb")]] bool om(Int& v) noexcept { return omb(v); }
 
 		// An integer where every byte's most significant bit is used to indicate if another byte follows, most significant byte first.
 		template <typename Int>
-		bool om(Int& v) noexcept
+		bool omb(Int& v) noexcept
 		{
 			v = {};
 			uint8_t byte;
@@ -71,6 +73,9 @@ NAMESPACE_SOUP
 
 		// An integer where every byte's most significant bit is used to indicate if another byte follows, least significant byte first. This is compatible with unsigned LEB128.
 		template <typename Int>
+#if SOUP_X86 && SOUP_BITS == 64
+		SOUP_NOINLINE // Must not be inlined into the "bmi2" target because Clang might elect to use 'shlx'
+#endif
 		bool oml(Int& v) noexcept
 		{
 			v = {};
@@ -87,6 +92,10 @@ NAMESPACE_SOUP
 			}
 			return false;
 		}
+#if SOUP_X86 && SOUP_BITS == 64
+		bool oml(uint32_t& v) noexcept;
+		bool oml(uint64_t& v) noexcept;
+#endif
 
 		// Signed LEB128.
 		template <typename Int>
@@ -98,6 +107,7 @@ NAMESPACE_SOUP
 			while (u8(byte))
 			{
 				v |= (static_cast<Int>(byte & 0x7F) << shift);
+				shift += 7;
 				if (!(byte & 0x80))
 				{
 					if (shift < (sizeof(Int) * 8) && (byte & 0x40))
@@ -106,7 +116,6 @@ NAMESPACE_SOUP
 					}
 					return true;
 				}
-				shift += 7;
 			}
 			return false;
 		}
@@ -186,11 +195,11 @@ NAMESPACE_SOUP
 			return u64_dyn(len) && str((size_t)len, v);
 		}
 
-		// Length-prefixed string, using u64_dyn_v2 for the length prefix.
-		bool str_lp_u64_dyn_v2(std::string& v) SOUP_EXCAL
+		// Length-prefixed string, using u64_dyn_b for the length prefix.
+		bool str_lp_u64_dyn_b(std::string& v) SOUP_EXCAL
 		{
 			uint64_t len;
-			return u64_dyn_v2(len) && str((size_t)len, v);
+			return u64_dyn_b(len) && str((size_t)len, v);
 		}
 
 		// Length-prefixed string, using mysql_lenenc for the length prefix.

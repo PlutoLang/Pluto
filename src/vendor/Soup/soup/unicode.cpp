@@ -59,13 +59,13 @@ NAMESPACE_SOUP
 	}
 
 #if SOUP_CPP20
-	std::u32string unicode::utf8_to_utf32(const char8_t* utf8) noexcept
+	std::u32string unicode::utf8_to_utf32(const char8_t* utf8) SOUP_EXCAL
 	{
 		return utf8_to_utf32(reinterpret_cast<const char*>(utf8));
 	}
 #endif
 
-	std::u32string unicode::utf8_to_utf32(const std::string& utf8) noexcept
+	std::u32string unicode::utf8_to_utf32(const std::string& utf8) SOUP_EXCAL
 	{
 		std::u32string utf32{};
 		utf32.reserve(utf8_char_len(utf8));
@@ -79,13 +79,13 @@ NAMESPACE_SOUP
 	}
 
 #if SOUP_CPP20
-	UTF16_STRING_TYPE unicode::utf8_to_utf16(const char8_t* utf8) noexcept
+	UTF16_STRING_TYPE unicode::utf8_to_utf16(const char8_t* utf8) SOUP_EXCAL
 	{
 		return utf8_to_utf16(reinterpret_cast<const char*>(utf8));
 	}
 #endif
 
-	UTF16_STRING_TYPE unicode::utf8_to_utf16(const std::string& utf8) noexcept
+	UTF16_STRING_TYPE unicode::utf8_to_utf16(const std::string& utf8) SOUP_EXCAL
 	{
 #if SOUP_WINDOWS
 		std::wstring utf16;
@@ -110,7 +110,7 @@ NAMESPACE_SOUP
 	}
 
 #if SOUP_WINDOWS
-	UTF16_STRING_TYPE unicode::acp_to_utf16(const std::string& acp) noexcept
+	UTF16_STRING_TYPE unicode::acp_to_utf16(const std::string& acp) SOUP_EXCAL
 	{
 		std::wstring utf16;
 		const int sizeRequired = MultiByteToWideChar(CP_ACP, 0, acp.data(), (int)acp.size(), nullptr, 0);
@@ -123,7 +123,7 @@ NAMESPACE_SOUP
 	}
 #endif
 
-	UTF16_STRING_TYPE unicode::utf32_to_utf16(const std::u32string& utf32) noexcept
+	UTF16_STRING_TYPE unicode::utf32_to_utf16(const std::u32string& utf32) SOUP_EXCAL
 	{
 		UTF16_STRING_TYPE utf16{};
 		utf16.reserve(utf32.size());
@@ -134,7 +134,7 @@ NAMESPACE_SOUP
 		return utf16;
 	}
 
-	void unicode::utf32_to_utf16_char(UTF16_STRING_TYPE& utf16, char32_t c) noexcept
+	void unicode::utf32_to_utf16_char(UTF16_STRING_TYPE& utf16, char32_t c) SOUP_EXCAL
 	{
 		if (c <= 0xFFFF)
 		{
@@ -148,7 +148,7 @@ NAMESPACE_SOUP
 		}
 	}
 
-	std::string unicode::utf32_to_utf8(char32_t utf32) noexcept
+	std::string unicode::utf32_to_utf8(char32_t utf32) SOUP_EXCAL
 	{
 		// 1
 		if (utf32 < 0b10000000)
@@ -178,7 +178,7 @@ NAMESPACE_SOUP
 		return utf8;
 	}
 
-	std::string unicode::utf32_to_utf8(const std::u32string& utf32) noexcept
+	std::string unicode::utf32_to_utf8(const std::u32string& utf32) SOUP_EXCAL
 	{
 		std::string utf8{};
 		utf8.reserve(utf32.size());
@@ -209,7 +209,7 @@ NAMESPACE_SOUP
 		return char_len;
 	}
 
-	void unicode::utf8_sanitise(std::string& str)
+	void unicode::utf8_sanitise(std::string& str) SOUP_EXCAL
 	{
 		for (auto it = str.cbegin(); it != str.cend(); )
 		{
@@ -225,7 +225,7 @@ NAMESPACE_SOUP
 		}
 	}
 
-	bool unicode::utf8_validate(const char* it, const char* const end)
+	bool unicode::utf8_validate(const char* it, const char* const end) noexcept
 	{
 		while (it != end)
 		{

@@ -223,11 +223,13 @@ NAMESPACE_SOUP
 	void Regex::replaceAll(std::string& str, const std::string& replacement) const
 	{
 		RegexMatchResult m;
-		while (m = search(str), m.isSuccess())
+		size_t i = 0;
+		while (m = search(&str.data()[i], &str.data()[str.size()]), m.isSuccess())
 		{
 			const size_t offset = (m.groups.at(0).value().begin - str.data());
 			str.erase(offset, m.length());
 			str.insert(offset, replacement);
+			i = offset + replacement.length();
 		}
 	}
 
@@ -240,7 +242,7 @@ NAMESPACE_SOUP
 		{
 			const size_t offset = (m.groups.at(0).value().begin - str.data());
 			res.append(str.data() + i, offset - i);
-			i = offset + m.groups.at(0).value().length();
+			i = offset + m.length();
 
 			bool dollar = false;
 			for (const auto& c : substitution)

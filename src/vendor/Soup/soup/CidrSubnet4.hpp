@@ -49,11 +49,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] uint8_t getSize() const noexcept
 		{
-			if (mask == 0)
-			{
-				return 0;
-			}
-			return static_cast<uint8_t>(32 - bitutil::getLeastSignificantSetBit(mask));
+			return static_cast<uint8_t>(32 - bitutil::getNumTrailingZeros(mask));
 		}
 
 		[[nodiscard]] native_u32_t getLower() const noexcept

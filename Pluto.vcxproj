@@ -725,6 +725,7 @@
     <ClCompile Include="src\vendor\Soup\soup\base32.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base64.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Bigint.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\bitutil.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Canvas.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Capture.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\cat.cpp" />
@@ -764,6 +765,7 @@
     <ClCompile Include="src\vendor\Soup\soup\LangDesc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\LexemeParser.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\log.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\md5.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\memGuard.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\MimeMessage.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Mixed.cpp" />
@@ -774,6 +776,7 @@
     <ClCompile Include="src\vendor\Soup\soup\os.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ParserState.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\parse_tree.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\Pattern.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\pem.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Process.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ProcessHandle.cpp" />
@@ -782,6 +785,7 @@
     <ClCompile Include="src\vendor\Soup\soup\rand.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Range.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\RasterFont.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\Rc4State.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Reader.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Regex.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\RegexGroup.cpp" />
@@ -885,6 +889,8 @@
     <ClInclude Include="src\vendor\Soup\soup\CidrSubnet4.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CidrSubnet6.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CidrSupernet.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\CompiletimePatternBase.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\CompiletimePatternWithOptBytesBase.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\console.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ConstString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CpuInfo.hpp" />
@@ -953,6 +959,7 @@
     <ClInclude Include="src\vendor\Soup\soup\logStdSink.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\macros.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\math.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\md5.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memAllocating.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memCAllocator.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memGuard.hpp" />
@@ -992,6 +999,7 @@
     <ClInclude Include="src\vendor\Soup\soup\QrCode.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rand.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Range.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\Rc4State.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Reader.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\RecursiveMutex.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Regex.hpp" />

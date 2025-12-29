@@ -18,7 +18,7 @@ NAMESPACE_SOUP
 			first |= 31;
 			ret.push_back(first);
 			StringWriter w{};
-			w.om(type);
+			w.omb(type);
 			ret.append(w.data);
 		}
 		return ret;

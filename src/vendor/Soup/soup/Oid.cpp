@@ -26,7 +26,7 @@ NAMESPACE_SOUP
 			while (r.hasMore())
 			{
 				uint32_t comp;
-				r.om<uint32_t>(comp);
+				r.omb<uint32_t>(comp);
 				if (ret.len < MAX_SIZE)
 				{
 					ret.rest[ret.len - 2] = comp;
@@ -57,7 +57,7 @@ NAMESPACE_SOUP
 		sw.data.push_back((char)((first * 40) | second));
 		for (uint32_t i = 2; i < len; ++i)
 		{
-			sw.om<uint32_t>(rest[i - 2]);
+			sw.omb<uint32_t>(rest[i - 2]);
 		}
 		SOUP_MOVE_RETURN(sw.data);
 	}

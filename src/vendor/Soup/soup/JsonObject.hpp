@@ -34,6 +34,7 @@ NAMESPACE_SOUP
 
 		bool msgpackEncode(Writer& w) const final;
 
+		[[nodiscard]] JsonNode* find(const char* data, size_t size) const noexcept;
 		[[nodiscard]] JsonNode* find(std::string k) const noexcept;
 		[[nodiscard]] JsonNode* find(const JsonNode& k) const noexcept;
 		[[nodiscard]] UniquePtr<JsonNode>* findUp(std::string k) noexcept;
@@ -70,5 +71,7 @@ NAMESPACE_SOUP
 		{
 			add(soup::make_unique<JsonString>(std::move(k)), std::move(v));
 		}
+
+		[[nodiscard]] JsonNode* query(const char* q) noexcept;
 	};
 }

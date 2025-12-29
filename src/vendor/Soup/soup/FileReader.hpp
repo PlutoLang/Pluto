@@ -74,12 +74,12 @@ NAMESPACE_SOUP
 			return false;
 		}
 
-		[[nodiscard]] size_t getPosition() final
+		[[nodiscard]] std::streamoff getPosition() final
 		{
 			return static_cast<size_t>(s.tellg());
 		}
 
-		void seek(size_t pos) final
+		void seek(std::streamoff pos) final
 		{
 			s.seekg(pos);
 			s.clear();
