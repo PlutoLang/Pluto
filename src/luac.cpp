@@ -30,6 +30,8 @@
 #include "lstate.h"
 #include "lundump.h"
 
+#include "vendor/Soup/soup/base.hpp" // SOUP_UNREACHABLE
+
 static void PrintFunction(const Proto* f, int full);
 #define luaU_print	PrintFunction
 
@@ -685,6 +687,7 @@ static void PrintCode(const Proto* f)
    case OP_EXTRAARG:
 	printf("%d",ax);
 	break;
+   case NUM_OPCODES: SOUP_UNREACHABLE;
 #if 0
    default:
 	printf("%d %d %d",a,b,c);

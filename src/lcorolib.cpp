@@ -226,7 +226,7 @@ static int luaB_close (lua_State *L) {
       if (lua_tothread(L, -1) == co)
         return luaL_error(L, "cannot close main thread");
       lua_closethread(co, L);  /* close itself */
-      /* previous call does not return *//* FALLTHROUGH */
+      /* previous call does not return */SOUP_UNREACHABLE;
     default:
       lua_assert(0);
       return 0;
