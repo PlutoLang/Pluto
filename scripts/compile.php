@@ -7,6 +7,6 @@ build_soup();
 for_each_obj(function($file)
 {
 	global $compiler;
-	run_command_async($compiler." -o int/{$file}.o -c src/{$file}.cpp");
+	run_command_async($compiler." -Wno-invalid-noreturn -o int/{$file}.o -c src/{$file}.cpp");
 });
 await_commands();

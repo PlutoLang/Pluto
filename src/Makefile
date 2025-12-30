@@ -7,7 +7,7 @@
 PLAT=
 
 CXX= g++ -std=c++17 -O3 -flto -fvisibility=hidden -fPIC
-CXXFLAGS= -Wno-multichar $(SYSCFLAGS) $(MYCFLAGS)
+CXXFLAGS= -Wno-multichar -Wno-invalid-noreturn $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm -Lvendor/Soup/soup -lsoup $(SYSLIBS) $(MYLIBS)
 
