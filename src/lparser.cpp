@@ -974,7 +974,7 @@ static void check_readonly (LexState *ls, expdesc *e) {
     case VVARGIND: {
       needvatab(fs->f);  /* function will need a vararg table */
       e->k = VINDEXED;
-    }  /* FALLTHROUGH */
+    } [[fallthrough]];
     case VINDEXUP: case VINDEXSTR: case VINDEXED: {  /* global variable */
       if (e->u.ind.ro)  /* read-only? */
         varname = tsvalue(&fs->f->k[e->u.ind.keystr]);
@@ -6272,7 +6272,7 @@ static void statement (LexState *ls, tdn_t *nprop, TypeHint *prop) {
       }  /* else... */
     }
 #endif
-    /* FALLTHROUGH */
+    [[fallthrough]];
     default: {  /* stat -> func | assignment */
       exprstat(ls);
       break;
