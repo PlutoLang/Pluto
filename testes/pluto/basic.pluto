@@ -2619,6 +2619,19 @@ do
     assert(math.isnan(0 / 0) == true)
     assert(math.isnan(69) == false)
 
+    assert(math.popcnt(0) == 0)
+    assert(math.popcnt(1) == 1)
+    assert(math.popcnt(0b101) == 2)
+    local bitwidth <const> = math.popcnt(~0)
+    assert(math.clz(0) == bitwidth)
+    assert(math.ctz(0) == bitwidth)
+    assert(math.clz(1) == bitwidth - 1)
+    assert(math.ctz(1) == 0)
+    assert(math.clz(1 << (bitwidth - 1)) == 0)
+    assert(math.ctz(1 << (bitwidth - 1)) == bitwidth - 1)
+    assert(math.clz(1 << (bitwidth - 2)) == 1)
+    assert(math.ctz(1 << (bitwidth - 2)) == bitwidth - 2)
+
     -- Lua: Round to smallest adjacent integer
     assert(math.floor(10.5) == 10)
     assert(math.floor(-10.5) == -11)
