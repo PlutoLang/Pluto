@@ -2663,9 +2663,6 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpOut ("; " << old << " in " << stringify_tvalue(b) << " (" << stringify_tvalue(s2v(ra)) << ")");
         vmbreak;
       }
-      vmcase(NUM_OPCODES) {
-        vmbreak;
-      }
     }
     L->checkEtl();
   }
