@@ -314,19 +314,37 @@ static int math_isnan (lua_State *L) {
 
 
 static int math_clz (lua_State *L) {
-  lua_pushinteger(L, soup::bitutil::getNumLeadingZeros(static_cast<lua_Unsigned>(luaL_checkinteger(L, 1))));
+  static_assert(sizeof(lua_Integer) == 8 || sizeof(lua_Integer) == 4);
+  if constexpr (sizeof(lua_Integer) == 8) {
+    lua_pushinteger(L, soup::bitutil::getNumLeadingZeros(static_cast<uint64_t>(luaL_checkinteger(L, 1))));
+  }
+  else {
+    lua_pushinteger(L, soup::bitutil::getNumLeadingZeros(static_cast<uint32_t>(luaL_checkinteger(L, 1))));
+  }
   return 1;
 }
 
 
 static int math_ctz (lua_State *L) {
-  lua_pushinteger(L, soup::bitutil::getNumTrailingZeros(static_cast<lua_Unsigned>(luaL_checkinteger(L, 1))));
+  static_assert(sizeof(lua_Integer) == 8 || sizeof(lua_Integer) == 4);
+  if constexpr (sizeof(lua_Integer) == 8) {
+    lua_pushinteger(L, soup::bitutil::getNumTrailingZeros(static_cast<uint64_t>(luaL_checkinteger(L, 1))));
+  }
+  else {
+    lua_pushinteger(L, soup::bitutil::getNumTrailingZeros(static_cast<uint32_t>(luaL_checkinteger(L, 1))));
+  }
   return 1;
 }
 
 
 static int math_popcnt (lua_State *L) {
-  lua_pushinteger(L, soup::bitutil::getNumSetBits(static_cast<lua_Unsigned>(luaL_checkinteger(L, 1))));
+  static_assert(sizeof(lua_Integer) == 8 || sizeof(lua_Integer) == 4);
+  if constexpr (sizeof(lua_Integer) == 8) {
+    lua_pushinteger(L, soup::bitutil::getNumSetBits(static_cast<uint64_t>(luaL_checkinteger(L, 1))));
+  }
+  else {
+    lua_pushinteger(L, soup::bitutil::getNumSetBits(static_cast<uint32_t>(luaL_checkinteger(L, 1))));
+  }
   return 1;
 }
 
