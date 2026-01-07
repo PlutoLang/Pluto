@@ -2111,16 +2111,23 @@ static size_t preprocessclass (LexState *ls) {
 
     // This is only checking *inside* our current class body, the parser has already skipped the class declaration.
     switch (ls->t.normalizedToken()) {
-    case TK_CLASS:  /* 'class' or 'enum class' */
     case TK_IF:
+    case TK_ENUM:
     case TK_CATCH:
-      expect_block_opener = true;
-      ++allowed_ends;
-      break;
-
+    case TK_CLASS: /* class or enum class */
     case TK_FUNCTION:
-      expect_block_opener = false;
-      ++allowed_ends;
+      /* ensure this keyword isn't being used in a goto label, call, type hint, or table key assignment (issue #1410) */
+      if (luaX_lookahead(ls) != '='
+        && luaX_lookbehind(ls).token != ':'
+        && luaX_lookbehind(ls).token != '.'
+        && luaX_lookbehind(ls).token != TK_GOTO
+        && (luaX_lookbehind(ls).token != TK_DBCOLON || luaX_lookahead(ls) != TK_DBCOLON)  /* allow keyword immediately after goto label */
+        ) {
+        expect_block_opener = ls->t.token != TK_FUNCTION;
+        if (ls->t.token != TK_ENUM || luaX_lookahead(ls) != TK_CLASS) {  /* 'enum class' would already be counted */
+          ++allowed_ends;
+        }
+      }
       break;
 
     case TK_THEN:
@@ -2133,13 +2140,6 @@ static size_t preprocessclass (LexState *ls) {
         expect_block_opener = false;
       else
         ++allowed_ends;  /* forstat, whilestat, switchstat, dostat, '-> do' */
-      break;
-
-    case TK_ENUM:
-      expect_block_opener = true;
-      if (luaX_lookahead(ls) != TK_CLASS) {  /* 'enum class' would already be counted */
-        ++allowed_ends;
-      }
       break;
     }
 

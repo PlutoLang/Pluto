@@ -3875,6 +3875,36 @@ do
     assert(var.__restricted__var3 == "3")
     assert(var:doSwitch(1) == "One")
     assert(var:doSwitch(2) == "Two")
+
+    -- @pluto_warnings: disable-next
+    local class smth -- https://github.com/PlutoLang/Pluto/issues/1410
+        function __construct(func1 : function, func2:function)
+            -- @pluto_warnings: disable-next
+            local var1: function = func1
+            -- @pluto_warnings: disable-next
+            local var2:function = func2
+            local obj1 = { function = || -> 5, class = || -> 6, if = || -> 7, enum = || -> 8, catch = || -> 9 }
+            assert(obj1:function(function () end) == 5)
+            assert(obj1:class(class begin end) == 6)
+            assert(obj1:if() == 7)
+            assert(obj1:enum() == 8)
+            assert(obj1:catch() == 9)
+            _G.function = nil
+            _G.class = nil
+            goto enum
+            goto class;
+            class a begin end
+            goto function
+            ::enum::
+            ::class::
+            class a begin end
+            ::function::function a() end
+            local _ = function () end
+            a = nil
+        end
+        func3 : function
+        func4:function
+    end
 end
 
 print "Testing protected fields."
