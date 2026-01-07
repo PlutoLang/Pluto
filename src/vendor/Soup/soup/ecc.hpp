@@ -47,7 +47,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] size_t getBytesPerAxis() const noexcept;
 
 		// ECDSA
-		[[nodiscard]] std::pair<Bigint, Bigint> sign(const Bigint& d, const std::string& hash) const SOUP_EXCAL; // (r, s)
+		[[nodiscard]] std::pair<Bigint, Bigint> sign(const Bigint& d, const std::string& hash) const; // (r, s)
 		[[nodiscard]] bool verify(const EccPoint& pub, const std::string& hash, const Bigint& r, const Bigint& s) const;
 		[[nodiscard]] Bigint deriveD(const std::string& e1, const std::string& e2, const Bigint& r, const Bigint& s1, const Bigint& s2) const;
 		[[nodiscard]] Bigint e2z(const std::string& e) const SOUP_EXCAL;

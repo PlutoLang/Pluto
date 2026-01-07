@@ -6,6 +6,7 @@
 
 #if SOUP_WINDOWS
 	#pragma comment(lib, "gdi32.lib")
+	#pragma comment(lib, "user32.lib") // OpenClipboard, ..., GetDC, ReleaseDC
 	#pragma comment(lib, "winmm.lib") // timeBeginPeriod, timeEndPeriod
 
 	#include <psapi.h>

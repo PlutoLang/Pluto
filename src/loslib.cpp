@@ -20,6 +20,7 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "llimits.h"
 #ifdef PLUTO_ETL_ENABLE
 #include "lstate.h"
 #endif
@@ -40,7 +41,7 @@
 #if defined(LUA_USE_WINDOWS)
 #define LUA_STRFTIMEOPTIONS  "aAbBcdHIjmMpSUwWxXyYzZ%" \
     "||" "#c#x#d#H#I#j#m#M#S#U#w#W#y#Y"  /* two-char options */
-#elif defined(LUA_USE_C89)  /* ANSI C 89 (only 1-char options) */
+#elif defined(LUA_USE_C89)  /* C89 (only 1-char options) */
 #define LUA_STRFTIMEOPTIONS  "aAbBcdHIjmMpSUwWxXyYZ%"
 #else  /* C99 specification */
 #define LUA_STRFTIMEOPTIONS  "aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ%" \
@@ -169,7 +170,7 @@ static int os_tmpname (lua_State *L) {
   int err;
   lua_tmpnam(buff, err);
   if (l_unlikely(err))
-    luaL_error(L, "unable to generate a unique filename");
+    return luaL_error(L, "unable to generate a unique filename");
   lua_pushstring(L, buff);
   return 1;
 }
@@ -252,14 +253,14 @@ static int getfield (lua_State *L, const char *key, int d, int delta) {
   lua_Integer res = lua_tointegerx(L, -1, &isnum);
   if (!isnum) {  /* field is not an integer? */
     if (l_unlikely(t != LUA_TNIL))  /* some other value? */
-      luaL_error(L, "field '%s' is not an integer", key);
+      return luaL_error(L, "field '%s' is not an integer", key);
     else if (l_unlikely(d < 0))  /* absent field; no default? */
-      luaL_error(L, "field '%s' missing in date table", key);
+      return luaL_error(L, "field '%s' missing in date table", key);
     res = d;
   }
   else {
     if (!(res >= 0 ? res - delta <= INT_MAX : INT_MIN + delta <= res))
-      luaL_error(L, "field '%s' is out-of-bound", key);
+      return luaL_error(L, "field '%s' is out-of-bound", key);
     res -= delta;
   }
   lua_pop(L, 1);
@@ -268,9 +269,9 @@ static int getfield (lua_State *L, const char *key, int d, int delta) {
 
 
 static const char *checkoption (lua_State *L, const char *conv,
-                                ptrdiff_t convlen, char *buff) {
+                                size_t convlen, char *buff) {
   const char *option = LUA_STRFTIMEOPTIONS;
-  int oplen = 1;  /* length of options being checked */
+  unsigned oplen = 1;  /* length of options being checked */
   for (; *option != '\0' && oplen <= convlen; option += oplen) {
     if (*option == '|')  /* next block? */
       oplen++;  /* will check options with next length (+1) */
@@ -310,7 +311,8 @@ static int os_date (lua_State *L) {
   else
     stm = l_localtime(&t, &tmr);
   if (stm == NULL)  /* invalid date? */
-    luaL_error(L, "date result cannot be represented in this installation");
+    return luaL_error(L,
+                 "date result cannot be represented in this installation");
   if (strcmp(s, "*t") == 0) {
     lua_createtable(L, 0, 9);  /* 9 = number of fields */
     setallfields(L, stm);
@@ -327,7 +329,8 @@ static int os_date (lua_State *L) {
         size_t reslen;
         char *buff = luaL_prepbuffsize(&b, SIZETIMEFMT);
         s++;  /* skip '%' */
-        s = checkoption(L, s, se - s, cc + 1);  /* copy specifier to 'cc' */
+        /* copy specifier to 'cc' */
+        s = checkoption(L, s, ct_diff2sz(se - s), cc + 1);
         reslen = strftime(buff, SIZETIMEFMT, cc, stm);
         luaL_addsize(&b, reslen);
       }
@@ -357,7 +360,8 @@ static int os_time (lua_State *L) {
     setallfields(L, &ts);  /* update fields with normalized values */
   }
   if (t != (time_t)(l_timet)t || t == (time_t)(-1))
-    luaL_error(L, "time result cannot be represented in this installation");
+    return luaL_error(L,
+                  "time result cannot be represented in this installation");
   l_pushtime(L, t);
   return 1;
 }
@@ -447,7 +451,7 @@ int l_os_remove(lua_State* L);
 int l_os_rename(lua_State* L);
 
 
-#if !SOUP_ANDROID && !SOUP_WASM
+#if SOUP_WINDOWS || SOUP_LINUX
 static int os_dnsresolve (lua_State *L) {
   const char *qtypestr = luaL_checkstring(L, 1);
   const char *qname = luaL_checkstring(L, 2);
@@ -503,7 +507,7 @@ static const luaL_Reg syslib[] = {
   {"millis",      os_millis},
   {"micros",      os_micros},
   {"nanos",       os_nanos},
-#if !SOUP_ANDROID && !SOUP_WASM
+#if SOUP_WINDOWS || SOUP_LINUX
   {"dnsresolve",  os_dnsresolve},
 #endif
   {NULL, NULL}
