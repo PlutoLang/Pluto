@@ -3390,6 +3390,11 @@ do
     local t = { a = 1 }
     assert(++t.a == 2)
     assert(t.a == 2)
+
+    local function f()
+        assert(type(++a) == "number")
+    end
+    f()
 end
 do
     -- statement

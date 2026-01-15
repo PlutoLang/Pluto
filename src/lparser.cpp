@@ -3599,9 +3599,6 @@ static void prefixplusplusaux (LexState *ls, expdesc *v) {
 static void prefixplusplus (LexState *ls, expdesc *v, int flags) {
   const auto tidx = ls->tidx;
   primaryexp(ls, v, flags);
-  if (gett(ls) != '.')
-    return prefixplusplusaux(ls, v);
-  /* it's an indexed prefix expression; we need to switch to a lambda now */
 
   FuncState new_fs;
   BlockCnt bl;
