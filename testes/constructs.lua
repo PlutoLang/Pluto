@@ -1,5 +1,5 @@
 -- $Id: testes/constructs.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
 
 ;;print "testing syntax";;
 
@@ -60,7 +60,7 @@ assert((x>y) and x or y == 2);
 
 assert(1234567890 == tonumber('1234567890') and 1234567890+1 == 1234567891)
 
-do   -- testing operators with diffent kinds of constants
+do   -- testing operators with different kinds of constants
   -- operands to consider:
   --  * fit in register
   --  * constant doesn't fit in register
@@ -242,7 +242,7 @@ do   -- testing constants
   checkload(prog, "unknown attribute 'XXX'")
 
   checkload([[local xxx <const> = 20; xxx = 10]],
-             ":1: attempt to reassign constant 'xxx'") -- [Pluto] updated error message
+             ":1: attempt to assign to const variable 'xxx'")
 
   checkload([[
     local xx;
@@ -252,12 +252,12 @@ do   -- testing constants
       local abc = xx + yyy + xxx;
       return function () return function () xxx = yyy end end
     end
-  ]], ":6: attempt to reassign constant 'xxx'") -- [Pluto] updated error message
+  ]], ":6: attempt to assign to const variable 'xxx'")
 
   checkload([[
     local x <close> = nil
     x = io.open()
-  ]], ":2: attempt to reassign constant 'x'") -- [Pluto] updated error message
+  ]], ":2: attempt to assign to const variable 'x'")
 end
 
 f = [[

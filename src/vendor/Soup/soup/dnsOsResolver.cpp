@@ -1,6 +1,6 @@
 #include "dnsOsResolver.hpp"
 
-#if !SOUP_ANDROID && !SOUP_WASM
+#if SOUP_WINDOWS || SOUP_LINUX
 
 #if SOUP_WINDOWS
 #undef UNICODE
@@ -69,7 +69,7 @@ NAMESPACE_SOUP
 			DnsRecordListFree(pDnsRecord, DnsFreeRecordListDeep);
 			return res;
 		}
-#else
+#elif SOUP_LINUX
 		unsigned char query_buffer[1024];
 		auto ret = res_query(name.c_str(), DNS_IN, qtype, query_buffer, sizeof(query_buffer));
 		if (ret > 0)

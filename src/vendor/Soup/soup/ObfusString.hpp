@@ -1,7 +1,7 @@
 #pragma once
 
-#include <algorithm> // swap
 #include <string>
+#include <utility> // std::swap
 
 #include "base.hpp"
 #include "LcgRng.hpp"

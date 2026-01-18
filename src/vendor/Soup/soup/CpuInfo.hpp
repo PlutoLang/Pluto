@@ -108,6 +108,11 @@ NAMESPACE_SOUP
 			return (extended_features_0_ebx >> 5) & 1;
 		}
 
+		[[nodiscard]] bool supportsBMI2() const noexcept
+		{
+			return (extended_features_0_ebx >> 8) & 1;
+		}
+
 		[[nodiscard]] bool supportsAVX512F() const noexcept
 		{
 			return (extended_features_0_ebx >> 16) & 1;

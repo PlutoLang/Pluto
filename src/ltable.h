@@ -28,7 +28,7 @@
 ** for its hash part.
 */
 
-#define BITDUMMY		(1 << 14)
+#define BITDUMMY		(1 << 7)
 #define NOTBITDUMMY		(short)(~BITDUMMY)
 #define isdummy(t)		((t)->flags & BITDUMMY)
 
@@ -48,7 +48,7 @@
 
 #define luaH_fastgeti(t,k,res,tag) \
   { Table *h = t; lua_Unsigned u = l_castS2U(k) - 1u; \
-    if ((u < h->alimit)) { \
+    if ((u < h->asize)) { \
       tag = *getArrTag(h, u); \
       if (!tagisempty(tag)) { farr2val(h, u, tag, res); }} \
     else { tag = luaH_getint(h, (k), res); }}
@@ -56,10 +56,11 @@
 
 #define luaH_fastseti(t,k,val,hres) \
   { Table *h = t; lua_Unsigned u = l_castS2U(k) - 1u; \
-    if ((u < h->alimit)) { \
+    if ((u < h->asize)) { \
       lu_byte *tag = getArrTag(h, u); \
-      if (tagisempty(*tag)) hres = ~cast_int(u); \
-      else { fval2arr(h, u, tag, val); hres = HOK; }} \
+      if (checknoTM(h->metatable, TM_NEWINDEX) || !tagisempty(*tag)) \
+        { fval2arr(h, u, tag, val); hres = HOK; } \
+      else hres = ~cast_int(u); } \
     else { hres = luaH_psetint(h, k, val); }}
 
 
@@ -94,25 +95,33 @@
 /*
 ** The array part of a table is represented by an inverted array of
 ** values followed by an array of tags, to avoid wasting space with
-** padding.  The 'array' pointer points to the junction of the two
-** arrays, so that values are indexed with negative indices and tags
-** with non-negative indices.
+** padding. In between them there is an unsigned int, explained later.
+** The 'array' pointer points between the two arrays, so that values are
+** indexed with negative indices and tags with non-negative indices.
 
-                     Values                      Tags
-        --------------------------------------------------------
-         ...  |   Value 1     |   Value 0     |0|1|...
-        --------------------------------------------------------
-                                               ^ t->array
+             Values                              Tags
+  --------------------------------------------------------
+  ...  |   Value 1     |   Value 0     |unsigned|0|1|...
+  --------------------------------------------------------
+                                       ^ t->array
 
 ** All accesses to 't->array' should be through the macros 'getArrTag'
 ** and 'getArrVal'.
 */
 
 /* Computes the address of the tag for the abstract C-index 'k' */
-#define getArrTag(t,k)	(cast(lu_byte*, (t)->array) + (k))
+#define getArrTag(t,k)	(cast(lu_byte*, (t)->array) + sizeof(unsigned) + (k))
 
 /* Computes the address of the value for the abstract C-index 'k' */
 #define getArrVal(t,k)	((t)->array - 1 - (k))
+
+
+/*
+** The unsigned between the two arrays is used as a hint for #t;
+** see luaH_getn. It is stored there to avoid wasting space in
+** the structure Table for tables with no array part.
+*/
+#define lenhint(t)	cast(unsigned*, (t)->array)
 
 
 /*
@@ -137,15 +146,13 @@
   (*tag = (val)->tt_, *getArrVal(h,(k)) = (val)->value_)
 
 
-LUAI_FUNC int luaH_get (Table *t, const TValue *key, TValue *res);
-LUAI_FUNC int luaH_getshortstr (Table *t, TString *key, TValue *res);
-LUAI_FUNC int luaH_getstr (Table *t, TString *key, TValue *res);
-LUAI_FUNC int luaH_getint (Table *t, lua_Integer key, TValue *res);
+LUAI_FUNC lu_byte luaH_get (Table *t, const TValue *key, TValue *res);
+LUAI_FUNC lu_byte luaH_getshortstr (Table *t, TString *key, TValue *res);
+LUAI_FUNC lu_byte luaH_getstr (Table *t, TString *key, TValue *res);
+LUAI_FUNC lu_byte luaH_getint (Table *t, lua_Integer key, TValue *res);
 
 /* Special get for metamethods */
 LUAI_FUNC const TValue *luaH_Hgetshortstr (Table *t, TString *key);
-
-LUAI_FUNC TString *luaH_getstrkey (Table *t, TString *key);
 
 LUAI_FUNC int luaH_psetint (Table *t, lua_Integer key, TValue *val);
 LUAI_FUNC int luaH_psetshortstr (Table *t, TString *key, TValue *val);
@@ -164,10 +171,10 @@ LUAI_FUNC void luaH_initmetatable (lua_State *L, Table *t);
 LUAI_FUNC void luaH_resize (lua_State *L, Table *t, unsigned nasize,
                                                     unsigned nhsize);
 LUAI_FUNC void luaH_resizearray (lua_State *L, Table *t, unsigned nasize);
+LUAI_FUNC lu_mem luaH_size (Table *t);
 LUAI_FUNC void luaH_free (lua_State *L, Table *t);
 LUAI_FUNC int luaH_next (lua_State *L, Table *t, StkId key);
-LUAI_FUNC lua_Unsigned luaH_getn (Table *t);
-LUAI_FUNC unsigned luaH_realasize (const Table *t);
+LUAI_FUNC lua_Unsigned luaH_getn (lua_State *L, Table *t);
 
 
 #ifndef PLUTO_LUA_LINKABLE

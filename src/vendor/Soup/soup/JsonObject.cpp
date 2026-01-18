@@ -91,6 +91,11 @@ NAMESPACE_SOUP
 		return true;
 	}
 
+	JsonNode* JsonObject::find(const char* data, size_t size) const noexcept
+	{
+		return find(JsonString(data, size));
+	}
+
 	JsonNode* JsonObject::find(std::string k) const noexcept
 	{
 		return find(JsonString(std::move(k)));
@@ -244,5 +249,23 @@ NAMESPACE_SOUP
 	void JsonObject::add(std::string k, double v)
 	{
 		add(soup::make_unique<JsonString>(std::move(k)), soup::make_unique<JsonFloat>(v));
+	}
+
+	JsonNode* JsonObject::query(const char* q) noexcept
+	{
+		size_t l = 0;
+		if (*q == '.')
+		{
+			++q;
+		}
+		while (q[l] && q[l] != '.')
+		{
+			++l;
+		}
+		if (auto n = find(q, l))
+		{
+			return n->query(&q[l]);
+		}
+		return nullptr;
 	}
 }

@@ -1,7 +1,9 @@
 -- $Id: testes/utf8.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
 
 -- UTF-8 file
+
+global <const> *
 
 print "testing UTF-8 library"
 
@@ -134,7 +136,7 @@ do
   errorcodes("\xbfinvalid")
   errorcodes("αλφ\xBFα")
 
-  -- calling interation function with invalid arguments
+  -- calling iteration function with invalid arguments
   local f = utf8.codes("")
   assert(f("", 2) == nil)
   assert(f("", -1) == nil)

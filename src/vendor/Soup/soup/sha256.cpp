@@ -131,8 +131,7 @@ NAMESPACE_SOUP
 		state[5] = 0x9b05688c;
 		state[6] = 0x1f83d9ab;
 		state[7] = 0x5be0cd19;
-		buffer_counter = 0;
-		n_bits = 0;
+		n_bytes = 0;
 	}
 
 	void sha256::State::transform() noexcept
@@ -190,11 +189,11 @@ NAMESPACE_SOUP
 
 	void sha256::State::finalise() noexcept
 	{
-		uint64_t n_bits = this->n_bits;
+		uint64_t n_bits = this->n_bytes * 8;
 
 		appendByte(0x80);
 
-		while (buffer_counter != 56)
+		while ((this->n_bytes % BLOCK_BYTES) != 56)
 		{
 			appendByte(0);
 		}

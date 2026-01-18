@@ -35,25 +35,35 @@ typedef enum {
   VKFLT,  /* floating constant; nval = numerical float value */
   VKINT,  /* integer constant; ival = numerical integer value */
   VKSTR,  /* string constant; strval = TString address;
-             (string is fixed by the lexer) */
+             (string is fixed by the scanner) */
   VNONRELOC,  /* expression has its value in a fixed register */
   VLOCAL,  /* local variable; var.ridx = register index;
               var.vidx = relative index in 'actvar.arr'  */
+  VVARGVAR,  /* vararg parameter; var.ridx = register index;
+              var.vidx = relative index in 'actvar.arr'  */
+  VGLOBAL,  /* global variable;
+               info = relative index in 'actvar.arr' (or -1 for
+                      implicit declaration) */
   VUPVAL,  /* upvalue variable; info = index of upvalue in 'upvalues' */
   VCONST,  /* compile-time <const> variable;
               info = absolute index in 'actvar.arr'  */
   VINDEXED,  /* indexed variable;
                 ind.t = table register;
-                ind.idx = key's R index */
+                ind.idx = key's R index;
+                ind.ro = true if it represents a read-only global;
+                ind.keystr = if key is a string, index in 'k' of that string;
+                             -1 if key is not a string */
+  VVARGIND,  /* indexed vararg parameter;
+                ind.* as in VINDEXED */
   VINDEXUP,  /* indexed upvalue;
-                ind.t = table upvalue;
-                ind.idx = key's K index */
+                ind.idx = key's K index;
+                ind.* as in VINDEXED */
   VINDEXI, /* indexed variable with constant integer;
                 ind.t = table register;
                 ind.idx = key's value */
   VINDEXSTR, /* indexed variable with literal string;
-                ind.t = table register;
-                ind.idx = key's K index */
+                ind.idx = key's K index;
+                ind.* as in VINDEXED */
   VJMP,  /* expression is a test/comparison */
   VRELOC,  /* expression can put result in any register */
   VCALL,  /* expression is a function call */
@@ -123,10 +133,12 @@ typedef struct expdesc {
     struct {  /* for indexed variables */
       short idx;  /* index (R or "long" K) */
       lu_byte t;  /* table (register or upvalue) */
+      lu_byte ro;  /* true if variable is read-only */
+      int keystr;  /* index in 'k' of string key, or -1 if not a string */
     } ind;
     struct {  /* for local variables */
       lu_byte ridx;  /* register holding the variable */
-      unsigned short vidx;  /* compiler index (in 'actvar.arr')  */
+      short vidx;  /* index in 'actvar.arr' */
     } var;
   } u;
   int t;  /* patch list of 'exit when true' */
@@ -139,44 +151,59 @@ typedef struct expdesc {
 } expdesc;
 
 /* kinds of variables */
-#define VDKREG		0   /* regular */
-#define RDKCONST	1   /* constant */
-#define RDKTOCLOSE	2   /* to-be-closed */
-#define RDKCTC		3   /* compile-time constant */
-#define RDKENUM		4   /* [Pluto] named enum */
-#define RDKWOW		5   /* [Pluto] warn on write */
+#define VDKREG		0   /* regular local */
+#define RDKCONST	1   /* local constant */
+#define RDKVAVAR	2   /* vararg parameter */
+#define RDKTOCLOSE	3   /* to-be-closed */
+#define RDKCTC		4   /* local compile-time constant */
+#define RDKENUM		5   /* [Pluto] named enum */
+#define GDKREG		6   /* regular global */
+#define GDKCONST	7   /* global constant */
+
+/* variables that live in registers */
+#define varinreg(v)	((v)->vd.kind <= RDKTOCLOSE)
+
+/* test for global variables */
+#define varglobal(v)	((v)->vd.kind >= GDKREG)
+
 
 struct TypeHint;
 
 inline constexpr int MAX_TYPED_RETURNS = 3;
-inline constexpr int MAX_TYPED_PARAMS = 7;
-inline constexpr int MAX_TYPED_FIELDS = 5;
+
+using tdn_t = int8_t;
+#define TDN_NOINFO -1
+#define TDN_LIMIT 127
 
 union TypeDesc {
   struct {
     ValType type;
     /* function info */
-    int8_t nparam;
-    int8_t nret;
-    bool nodiscard;
+    tdn_t nparam;
+    tdn_t nret;
+    uint8_t nodiscard : 1;
+    uint8_t vararg : 1;
     Proto* proto;
     TypeHint* returns[MAX_TYPED_RETURNS];
-    TypeHint* params[MAX_TYPED_PARAMS];
+    TypeHint** params;
+    TString** pnames;
   };
   struct {
     ValType type_;
     /* table info */
-    int8_t nfields;
-    TString* names[MAX_TYPED_FIELDS];
-    TypeHint* hints[MAX_TYPED_FIELDS];
+    tdn_t nfields;
+    TString** names;
+    TypeHint** hints;
   };
 
   TypeDesc(ValType type = VT_NONE)
     : type(type) {
-    nparam = -1;  /* also sets nfields to -1 */
-    nret = -1;
-    nodiscard = false;
+    nparam = TDN_NOINFO;  /* also sets nfields to TDN_NOINFO */
+    nret = TDN_NOINFO;
+    nodiscard = 0;
+    vararg = 0;
     proto = nullptr;
+    pnames = nullptr;
   }
 
   void clear() noexcept {
@@ -185,8 +212,15 @@ union TypeDesc {
 
   [[nodiscard]] int findParamByName(TString* name) noexcept {
     if (proto != nullptr) {
-      for (lu_byte i = 0; i != nparam; ++i) {
+      for (tdn_t i = 0; i != nparam; ++i) {
         if (name == proto->locvars[i].varname) {
+          return i;
+        }
+      }
+    }
+    else if (pnames != nullptr) {
+      for (tdn_t i = 0; i != nparam; ++i) {
+        if (name == pnames[i]) {
           return i;
         }
       }
@@ -194,12 +228,9 @@ union TypeDesc {
     return -1;
   }
 
-  [[nodiscard]] lu_byte getNumTypedParams() noexcept {
-    if (nparam > 0) {
-      auto p = nparam;
-      if (p >= MAX_TYPED_PARAMS)
-        p = MAX_TYPED_PARAMS;
-      return p;
+  [[nodiscard]] tdn_t getNumTypedParams() noexcept {
+    if (nparam != TDN_NOINFO) {
+      return nparam;
     }
     return 0;
   }
@@ -324,11 +355,11 @@ struct TypeHint {
     for (const auto& desc : descs) {
       if (desc.type == td.type) {
         if (desc.type == VT_TABLE) {
-          if (desc.nfields != -1 &&
-            td.nfields != -1 && td.nfields < MAX_TYPED_FIELDS) {  /* know all fields of 'td'? */
-            for (lu_byte i = 0; i != desc.nfields && i != MAX_TYPED_FIELDS; ++i) {
+          if (desc.nfields != TDN_NOINFO &&
+            td.nfields != TDN_NOINFO && td.nfields != TDN_LIMIT) {  /* know all fields of 'td'? */
+            for (tdn_t i = 0; i != desc.nfields; ++i) {
               bool field_exists_compatibly = false;
-              for (lu_byte j = 0; j != td.nfields && j != MAX_TYPED_FIELDS; ++j) {
+              for (tdn_t j = 0; j != td.nfields; ++j) {
                 if (desc.names[i] == td.names[j]) {
                   field_exists_compatibly = desc.hints[i]->isCompatibleWith(*td.hints[j]);
                   break;
@@ -341,20 +372,20 @@ struct TypeHint {
           }
         }
         else if (desc.type == VT_FUNC) {
-          if ((desc.nparam != -1 && desc.nparam != td.nparam) || desc.nret > td.nret) {
+          if ((desc.nparam != TDN_NOINFO && desc.nparam != td.nparam) || desc.nret > td.nret) {
             continue;
           }
-          if (desc.nparam != -1) {
+          if (desc.nparam != TDN_NOINFO) {
             /* desc.nparam == td.nparam */
-            for (lu_byte i = 0; i != desc.nparam && i != MAX_TYPED_PARAMS; ++i) {
+            for (tdn_t i = 0; i != desc.nparam; ++i) {
               if (!desc.params[i]->isCompatibleWith(*td.params[i])) {
                 goto _contains_next_union_alternative;
               }
             }
           }
-          if (desc.nret != -1) {
+          if (desc.nret != TDN_NOINFO) {
             /* desc.nret <= td.nret */
-            for (lu_byte i = 0; i != desc.nret && i != MAX_TYPED_RETURNS; ++i) {
+            for (tdn_t i = 0; i != desc.nret && i != MAX_TYPED_RETURNS; ++i) {
               if (!desc.returns[i]->isCompatibleWith(*td.returns[i])) {
                 goto _contains_next_union_alternative;
               }
@@ -423,7 +454,7 @@ struct TypeHint {
   }
 };
 
-/* description of an active local variable */
+/* description of an active variable */
 typedef union Vardesc {
   struct {
     TValuefields;  /* constant value (if it is a compile-time constant) */
@@ -446,8 +477,8 @@ typedef struct Labeldesc {
   void *name;  /* label identifier or block */
   int pc;  /* position in code */
   int line;  /* line where it appeared */
-  lu_byte nactvar;  /* number of active variables in that position */
-  lu_byte close : 1; /* goto that escapes upvalues */
+  short nactvar;  /* number of active variables in that position */
+  lu_byte close : 1; /* true for goto that escapes upvalues */
   lu_byte special : 1; /* This is a special value for break or continue, the name is then a pointer to a BlockCnt */
 } Labeldesc;
 
@@ -482,6 +513,7 @@ typedef struct FuncState {
   struct FuncState *prev;  /* enclosing function */
   struct LexState *ls;  /* lexical state */
   struct BlockCnt *bl;  /* chain of current blocks */
+  Table *kcache;  /* cache for reusing constants */
   int pc;  /* next position to code (equivalent to 'ncode') */
   int lasttarget;   /* 'label' of last 'jump label' */
   int previousline;  /* last line that was saved in 'lineinfo' */
@@ -491,18 +523,18 @@ typedef struct FuncState {
   int firstlocal;  /* index of first local var (in Dyndata array) */
   int firstlabel;  /* index of first label (in 'dyd->label->arr') */
   short ndebugvars;  /* number of elements in 'f->locvars' */
-  int nactvar;  /* number of active local variables */
+  short nactvar;  /* number of active variable declarations */
   lu_byte nups;  /* number of upvalues */
   lu_byte freereg;  /* first free register */
   lu_byte iwthabs;  /* instructions issued since last absolute line info */
-  lu_byte needclose : 1;  /* function needs to close upvalues when returning */
-  lu_byte istrybody : 1; /* This is a function handling the try body */
-  lu_byte seenrets : 4; /* Type of returns the function has seen */
+  lu_byte needclose;  /* function needs to close upvalues when returning */
   short pinnedreg;  /* [Pluto] index of register that may not be free'd or -1 */
 } FuncState;
 
 
-LUAI_FUNC int luaY_nvarstack (FuncState *fs);
+LUAI_FUNC lu_byte luaY_nvarstack (FuncState *fs);
+LUAI_FUNC void luaY_checklimit (FuncState *fs, int v, int l,
+                                const char *what);
 LUAI_FUNC LClosure *luaY_parser (lua_State *L, LexState& lexstate, ZIO *z, Mbuffer *buff,
                                  Dyndata *dyd, const char *name, int firstchar);
 

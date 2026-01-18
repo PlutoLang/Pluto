@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base.hpp"
-#if !SOUP_ANDROID && !SOUP_WASM
+#if SOUP_WINDOWS || SOUP_LINUX
 #include "dnsResolver.hpp"
 
 NAMESPACE_SOUP

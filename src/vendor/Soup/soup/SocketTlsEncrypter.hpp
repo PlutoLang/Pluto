@@ -19,8 +19,11 @@ NAMESPACE_SOUP
 		uint8_t cipher_key_len = 0;
 		uint8_t mac_key_len = 0;
 		uint8_t implicit_iv_len = 0;
+		// we have 1 byte here due to alignment
+		void* state = nullptr;
 
 		[[nodiscard]] bool isActive() const noexcept { return cipher_key_len != 0; }
+		[[nodiscard]] bool isRc4() const noexcept { return mac_key_len == 16; }
 		[[nodiscard]] bool isAead() const noexcept { return implicit_iv_len != 0; }
 		[[nodiscard]] size_t getMacLength() const noexcept { return mac_key_len; }
 		[[nodiscard]] std::string calculateMacBytes(TlsContentType_t content_type, size_t content_length) SOUP_EXCAL;
@@ -30,5 +33,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] Buffer<> encrypt(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL;
 
 		void reset() noexcept;
+
+		~SocketTlsEncrypter() noexcept;
 	};
 }

@@ -58,6 +58,23 @@ NAMESPACE_SOUP
 		return json::decode(encode());
 	}
 
+	JsonNode* JsonNode::query(const char* q) noexcept
+	{
+		if (!*q)
+		{
+			return this;
+		}
+		if (isObj())
+		{
+			return reinterpretAsObj().query(q);
+		}
+		if (isArr())
+		{
+			return reinterpretAsArr().query(q);
+		}
+		return nullptr;
+	}
+
 	void JsonNode::throwTypeError()
 	{
 		SOUP_THROW(Exception("JsonNode has unexpected type"));
