@@ -14,7 +14,7 @@
 
 
 #if !defined(LUA_NOCVTN2S)
-#define cvt2str(o)	(ttisnumber(o))
+#define cvt2str(o)	ttisnumber(o)
 #else
 #define cvt2str(o)	0	/* no conversion from numbers to strings */
 #endif
@@ -43,19 +43,19 @@
 typedef enum {
   F2Ieq,     /* no rounding; accepts only integral values */
   F2Ifloor,  /* takes the floor of the number */
-  F2Iceil    /* takes the ceil of the number */
+  F2Iceil    /* takes the ceiling of the number */
 } F2Imod;
 
 
 /* convert an object to a float (including string coercion) */
 #define tonumber(o,n) \
-    (ttisfloat(o) ? (*(n) = fltvalue(o), 1) : luaV_tonumber_(o,n))
+	(ttisfloat(o) ? (*(n) = fltvalue(o), 1) : luaV_tonumber_(o,n))
 
 
 /* convert an object to a float (without string coercion) */
 #define tonumberns(o,n) \
-    (ttisfloat(o) ? ((n) = fltvalue(o), 1) : \
-    (ttisinteger(o) ? ((n) = cast_num(ivalue(o)), 1) : 0))
+	(ttisfloat(o) ? ((n) = fltvalue(o), 1) : \
+	(ttisinteger(o) ? ((n) = cast_num(ivalue(o)), 1) : 0))
 
 
 /* convert an object to an integer (including string coercion) */
@@ -120,8 +120,8 @@ LUAI_FUNC int luaV_tointeger (const TValue *obj, lua_Integer *p, F2Imod mode);
 LUAI_FUNC int luaV_tointegerns (const TValue *obj, lua_Integer *p,
                                 F2Imod mode);
 LUAI_FUNC int luaV_flttointeger (lua_Number n, lua_Integer *p, F2Imod mode);
-LUAI_FUNC int luaV_finishget (lua_State *L, const TValue *t, TValue *key,
-                                            StkId val, int tag, bool mindex = false);
+LUAI_FUNC lu_byte luaV_finishget (lua_State *L, const TValue *t, TValue *key,
+                                                StkId val, lu_byte tag, bool mindex = false);
 LUAI_FUNC void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
                                              TValue *val, int aux);
 LUAI_FUNC void luaV_finishOp (lua_State *L);
@@ -131,7 +131,8 @@ LUAI_FUNC lua_Integer luaV_idiv (lua_State *L, lua_Integer x, lua_Integer y);
 LUAI_FUNC lua_Integer luaV_mod (lua_State *L, lua_Integer x, lua_Integer y);
 LUAI_FUNC lua_Number luaV_modf (lua_State *L, lua_Number x, lua_Number y);
 LUAI_FUNC lua_Integer luaV_shiftl (lua_Integer x, lua_Integer y);
+#ifndef PLUTO_LUA_LINKABLE
 LUAI_FUNC void luaV_objlen (lua_State *L, StkId ra, const TValue *rb);
-LUAI_FUNC bool luaV_searchelement(lua_State* L, const Table* t, const TValue* element);
+#endif
 
 #endif

@@ -18,6 +18,8 @@
 
 #include "lauxlib.h"
 #include "lualib.h"
+#include "llimits.h"
+#include "ljson.hpp" // isIndexBasedTable
 #include "lstate.h"
 #include "ltable.h"
 
@@ -63,9 +65,9 @@ static void checktab (lua_State *L, int arg, int what) {
 static int tcreate (lua_State *L) {
   lua_Unsigned sizeseq = (lua_Unsigned)luaL_checkinteger(L, 1);
   lua_Unsigned sizerest = (lua_Unsigned)luaL_optinteger(L, 2, 0);
-  luaL_argcheck(L, sizeseq <= UINT_MAX, 1, "out of range");
-  luaL_argcheck(L, sizerest <= UINT_MAX, 2, "out of range");
-  lua_createtable(L, (unsigned)sizeseq, (unsigned)sizerest);
+  luaL_argcheck(L, sizeseq <= cast_uint(INT_MAX), 1, "out of range");
+  luaL_argcheck(L, sizerest <= cast_uint(INT_MAX), 2, "out of range");
+  lua_createtable(L, cast_int(sizeseq), cast_int(sizerest));
   return 1;
 }
 
@@ -92,7 +94,7 @@ static int tinsert (lua_State *L) {
       break;
     }
     default: {
-      luaL_error(L, "wrong number of arguments to 'insert'");
+      return luaL_error(L, "wrong number of arguments to 'insert'");
     }
   }
   lua_seti(L, 1, pos);  /* t[pos] = v */
@@ -230,10 +232,10 @@ static int tunpack (lua_State *L) {
   lua_Integer i = luaL_optinteger(L, 2, 1);
   lua_Integer e = luaL_opt(L, luaL_checkinteger, 3, luaL_len(L, 1));
   if (i > e) return 0;  /* empty range */
-  n = (lua_Unsigned)e - i;  /* number of elements minus 1 (avoid overflows) */
+  n = l_castS2U(e) - l_castS2U(i);  /* number of elements minus 1 */
   if (l_unlikely(n >= (unsigned int)INT_MAX  ||
                  !lua_checkstack(L, (int)(++n))))
-    luaL_error(L, "too many results to unpack");
+    return luaL_error(L, "too many results to unpack");
   for (; i < e; i++) {  /* push arg[i..e - 1] (to avoid overflows) */
     lua_geti(L, 1, i);
   }
@@ -307,8 +309,16 @@ static int clone (lua_State *L) {
 */
 
 
-/* type for array indices */
+/*
+** Type for array indices. These indices are always limited by INT_MAX,
+** so it is safe to cast them to lua_Integer even for Lua 32 bits.
+*/
 typedef unsigned int IdxT;
+
+
+/* Versions of lua_seti/lua_geti specialized for IdxT */
+#define geti(L,idt,idx)	lua_geti(L, idt, l_castU2S(idx))
+#define seti(L,idt,idx)	lua_seti(L, idt, l_castU2S(idx))
 
 
 /*
@@ -319,7 +329,7 @@ typedef unsigned int IdxT;
 */
 #if !defined(l_randomizePivot)
 #define l_randomizePivot(L)	luaL_makeseed(L)
-#endif
+#endif					/* } */
 
 
 /* arrays larger than 'RANLIMIT' may use randomized pivots */
@@ -327,8 +337,8 @@ typedef unsigned int IdxT;
 
 
 static void set2 (lua_State *L, IdxT i, IdxT j) {
-  lua_seti(L, 1, i);
-  lua_seti(L, 1, j);
+  seti(L, 1, i);
+  seti(L, 1, j);
 }
 
 
@@ -365,15 +375,15 @@ static IdxT partition (lua_State *L, IdxT lo, IdxT up) {
   /* loop invariant: a[lo .. i] <= P <= a[j .. up] */
   for (;;) {
     /* next loop: repeat ++i while a[i] < P */
-    while ((void)lua_geti(L, 1, ++i), sort_comp(L, -1, -2)) {
-      if (l_unlikely(i == up - 1))  /* a[i] < P  but a[up - 1] == P  ?? */
+    while ((void)geti(L, 1, ++i), sort_comp(L, -1, -2)) {
+      if (l_unlikely(i == up - 1))  /* a[up - 1] < P == a[up - 1] */
         luaL_error(L, "invalid order function for sorting");
       lua_pop(L, 1);  /* remove a[i] */
     }
-    /* after the loop, a[i] >= P and a[lo .. i - 1] < P */
+    /* after the loop, a[i] >= P and a[lo .. i - 1] < P  (a) */
     /* next loop: repeat --j while P < a[j] */
-    while ((void)lua_geti(L, 1, --j), sort_comp(L, -3, -1)) {
-      if (l_unlikely(j < i))  /* j < i  but  a[j] > P ?? */
+    while ((void)geti(L, 1, --j), sort_comp(L, -3, -1)) {
+      if (l_unlikely(j < i))  /* j <= i - 1 and a[j] > P, contradicts (a) */
         luaL_error(L, "invalid order function for sorting");
       lua_pop(L, 1);  /* remove a[j] */
     }
@@ -411,8 +421,8 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up, unsigned rnd) {
     IdxT p;  /* Pivot index */
     IdxT n;  /* to be used later */
     /* sort elements 'lo', 'p', and 'up' */
-    lua_geti(L, 1, lo);
-    lua_geti(L, 1, up);
+    geti(L, 1, lo);
+    geti(L, 1, up);
     if (sort_comp(L, -1, -2))  /* a[up] < a[lo]? */
       set2(L, lo, up);  /* swap a[lo] - a[up] */
     else
@@ -423,13 +433,13 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up, unsigned rnd) {
       p = (lo + up)/2;  /* middle element is a good pivot */
     else  /* for larger intervals, it is worth a random pivot */
       p = choosePivot(lo, up, rnd);
-    lua_geti(L, 1, p);
-    lua_geti(L, 1, lo);
+    geti(L, 1, p);
+    geti(L, 1, lo);
     if (sort_comp(L, -2, -1))  /* a[p] < a[lo]? */
       set2(L, p, lo);  /* swap a[p] - a[lo] */
     else {
       lua_pop(L, 1);  /* remove a[lo] */
-      lua_geti(L, 1, up);
+      geti(L, 1, up);
       if (sort_comp(L, -1, -2))  /* a[up] < a[p]? */
         set2(L, p, up);  /* swap a[up] - a[p] */
       else
@@ -437,9 +447,9 @@ static void auxsort (lua_State *L, IdxT lo, IdxT up, unsigned rnd) {
     }
     if (up - lo == 2)  /* only 3 elements? */
       return;  /* already sorted */
-    lua_geti(L, 1, p);  /* get middle element (Pivot) */
+    geti(L, 1, p);  /* get middle element (Pivot) */
     lua_pushvalue(L, -1);  /* push Pivot */
-    lua_geti(L, 1, up - 1);  /* push a[up - 1] */
+    geti(L, 1, up - 1);  /* push a[up - 1] */
     set2(L, p, up - 1);  /* swap Pivot (a[p]) with a[up - 1] */
     p = partition(L, lo, up);
     /* a[lo .. p - 1] <= a[p] == P <= a[p + 1 .. up] */
@@ -693,7 +703,7 @@ static int tsize (lua_State *L) {
 
   unsigned int size = luaH_gethsize(t);
   if (!hashonly)
-    size += luaH_realasize(t);
+    size += t->asize;
 
   lua_pushinteger(L, size);
   return 1;
@@ -1031,10 +1041,29 @@ static int tinvert (lua_State *L) {
 }
 
 
+static int tisarray (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  if (const auto n = isIndexBasedTable(L, 1)) {
+    for (lua_Integer k = 1; k != n; ++k) {
+      if (l_unlikely(lua_geti(L, 1, k) == LUA_TNIL)) {
+        lua_pop(L, 1);
+        lua_pushboolean(L, false);
+        return 1;
+      }
+      lua_pop(L, 1);
+    }
+    lua_pushboolean(L, true);
+  }
+  else lua_pushboolean(L, false);
+  return 1;
+}
+
+
 /* }====================================================== */
 
 
 static const luaL_Reg tab_funcs[] = {
+  {"isarray", tisarray},
   {"invert", tinvert},
   {"chunk", tchunk},
   {"slice", tslice},

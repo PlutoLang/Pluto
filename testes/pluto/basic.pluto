@@ -898,6 +898,12 @@ do
     tracker[item.key] ??= true
     assert(tracker[item.key] == false)
 end
+do
+    -- Dead code elimination
+    assert(not "off" in string.dump(function()
+        print("on" ?? "off")
+    end))
+end
 
 print "Testing safe navigation."
 do
@@ -980,8 +986,6 @@ end
 
 print "Testing ternary expression."
 do
-    -- @pluto_warnings: disable-unreachable-code
-
     local a = 3
     assert((true ? "yes" : "no") == "yes")
     assert((false ? "yes" : "no") == "no")
@@ -1008,7 +1012,10 @@ do
         "no"
     end == "yes")
 
-    -- @pluto_warnings: enable-unreachable-code
+    -- Dead code elimination
+    assert(not "off" in string.dump(function()
+        print(true ? "on" : "off")
+    end))
 end
 do
     local t = {}
@@ -1769,7 +1776,7 @@ do
         end
         local function test_func_with_callonce()
             local t = { func_with_callonce() }
-            assert(#t == 2)
+            assert(t:size() == 2)
             assert(t[1] == nil)
             assert(t[2] == 2)
         end
@@ -2578,6 +2585,29 @@ do
     assert(i[2] == nil)
 end
 do
+    assert(table.isarray{})
+    assert(table.isarray{ 1, 2, 3 })
+    assert(table.isarray{ [1] = 1, [2] = 2, [3] = 3 })
+    assert(not table.isarray{ 1, 2, nil, 4 })
+    assert(not table.isarray{ [1] = 1, [2] = 2, [4] = 4 })
+    do
+        local t = {}
+        t[4] = 4
+        t[5] = 5
+        t[10] = 10
+        t[1] = 1
+        t[7] = 7
+        t[2] = 2
+        t[9] = 9
+        t[6] = 6
+        t[3] = 3
+        t[8] = 8
+        assert(table.isarray(t))
+    end
+    assert(not table.isarray{ [-1] = -1, [0] = 0, [1] = 1 })
+    assert(not table.isarray{ [10] = "a", [20] = "b", [30] = "c" })
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
@@ -2588,6 +2618,19 @@ end
 do
     assert(math.isnan(0 / 0) == true)
     assert(math.isnan(69) == false)
+
+    assert(math.popcnt(0) == 0)
+    assert(math.popcnt(1) == 1)
+    assert(math.popcnt(0b101) == 2)
+    local bitwidth <const> = math.popcnt(~0)
+    assert(math.clz(0) == bitwidth)
+    assert(math.ctz(0) == bitwidth)
+    assert(math.clz(1) == bitwidth - 1)
+    assert(math.ctz(1) == 0)
+    assert(math.clz(1 << (bitwidth - 1)) == 0)
+    assert(math.ctz(1 << (bitwidth - 1)) == bitwidth - 1)
+    assert(math.clz(1 << (bitwidth - 2)) == 1)
+    assert(math.ctz(1 << (bitwidth - 2)) == bitwidth - 2)
 
     -- Lua: Round to smallest adjacent integer
     assert(math.floor(10.5) == 10)
@@ -3494,6 +3537,17 @@ do
         local function foo(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) end
         foo(1, a = 2)
     ]]))
+
+    -- Parameter names in type hints are propagated
+    local function caller(f: function(a: ?number, b: ?string))
+        f(b = "hello from caller")
+    end
+    local a_, b_
+    caller(function(a, b)
+        a_, b_ = a, b
+    end)
+    assert(a_ == nil)
+    assert(b_ == "hello from caller")
 end
 
 print "Testing classes."
@@ -3937,23 +3991,6 @@ do
     assert(obj.greet == nil)
     assert(obj.__restricted__foo == "bar")
     assert(obj.__restricted__greet ~= nil)
-end
-
-print "Testing named varargs."
-do
-    local function f(...a)
-        return a
-    end
-    local t = f("Hello", 1337)
-    assert(#t == 2)
-    assert(t[1] == "Hello")
-    assert(t[2] == 1337)
-end
-do
-    local f = |...args| -> table.size(args)
-    assert(f() == 0)
-    assert(f(1) == 1)
-    assert(f(1, 2) == 2)
 end
 
 print "Testing export."
@@ -4485,16 +4522,6 @@ do
         1,
         2,
     ) == 3)
-end
-
-print "Testing deprecation warnings."
-do
-    assert_warn[[for k, v in { a = 1 } do
-        k = v
-    end]]
-    assert_warn[[for i = 1, 10 do
-        i = 99999
-    end]]
 end
 
 print "Testing $object."

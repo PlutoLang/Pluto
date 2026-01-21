@@ -1,5 +1,7 @@
 -- $Id: testes/nextvar.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
+
+global <const> *
 
 print('testing tables, next, and for')
 
@@ -7,6 +9,28 @@ local function checkerror (msg, f, ...)
   local s, err = pcall(f, ...)
   assert(not s and string.find(err, msg))
 end
+
+
+
+----------------------------------------------------------------
+local function printTable (t)
+  local a, h = T.querytab(t)
+  print("array:")
+  for i = 1, a do
+    print("", T.querytab(t, i - 1))
+  end
+  print("hash:")
+  for i = 1, h do
+    print("", T.querytab(t, a + i - 1))
+  end
+end
+----------------------------------------------------------------
+local function countentries (t)
+  local e = 0
+  for _ in pairs(t) do e = e + 1 end
+  return e
+end
+----------------------------------------------------------------
 
 
 local function check (t, na, nh)
@@ -39,13 +63,32 @@ do   -- rehash moving elements from array to hash
   for i = 5, 95 do a[i] = nil end
   check(a, 128, 0)
 
-  a.x = 1     -- force a re-hash
-  check(a, 4, 8)
+  a[129] = 1     -- force a re-hash
+  check(a, 4, 8)   -- keys larger than 4 go to the hash part
 
   for i = 1, 4 do assert(a[i] == i) end
   for i = 5, 95 do assert(a[i] == nil) end
   for i = 96, 100 do assert(a[i] == i) end
-  assert(a.x == 1)
+  assert(a[129] == 1)
+end
+
+
+do    -- growing hash part keeping array part
+  local a = table.create(1000)
+  check(a, 1000, 0)
+  a.x = 10
+  check(a, 1000, 1)   -- array part keeps its elements
+end
+
+
+do   -- "growing" length of a prebuilt table
+  local N = 100
+  local a = table.create(N)
+  for i = 1, N do
+    a[#a + 1] = true
+    assert(#a == i)
+  end
+  check(a, N, 0)
 end
 
 
@@ -80,6 +123,24 @@ do   -- overflow (must wrap-around)
   assert(k == nil)
 end
 
+
+do
+  -- alternate insertions and deletions in an almost full hash.
+  -- In versions pre-5.5, that causes constant rehashings and
+  -- takes a long time to complete.
+  local a = {}
+  for i = 1, 2^11 - 1 do
+    a[i .. ""] = true
+  end
+
+  for i = 1, 1e5 do
+    local key = i .. "."
+    a[key] = true
+    a[key] = nil
+  end
+  assert(countentries(a) == 2^11 - 1)
+end
+
 if not T then
   (Message or print)
     ('\n >>> testC not active: skipping tests for table sizes <<<\n')
@@ -87,9 +148,10 @@ else --[
 -- testing table sizes
 
 
-local function mp2 (n)   -- minimum power of 2 >= n
+-- minimum power of 2 (or zero) >= n
+local function mp2 (n)
   local mp = 2^math.ceil(math.log(n, 2))
-  assert(n == 0 or (mp/2 < n and n <= mp))
+  assert((mp == 0 or mp/2 < n) and n <= mp)
   return mp
 end
 
@@ -104,7 +166,7 @@ end
 
 -- testing constructor sizes
 local sizes = {0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17,
-  30, 31, 32, 33, 34, 254, 255, 256, 500, 1000}
+  30, 31, 32, 33, 34, 254, 255, 256, 257, 500, 1001}
 
 for _, sa in ipairs(sizes) do    -- 'sa' is size of the array part
   local arr = {"return {"}
@@ -148,8 +210,9 @@ end
 
 -- testing tables dynamically built
 local lim = 130
-local a = {}; a[2] = 1; check(a, 0, 1)
-a = {}; a[0] = 1; check(a, 0, 1); a[2] = 1; check(a, 0, 2)
+local a = {}; a[2] = 1; check(a, 2, 0)
+a = {}; a[0] = 1; check(a, 0, 1);
+a[2] = 1; check(a, 2, 1)
 a = {}; a[0] = 1; a[1] = 1; check(a, 1, 1)
 a = {}
 for i = 1,lim do
@@ -165,27 +228,81 @@ for i = 1,lim do
   check(a, 0, mp2(i))
 end
 
-a = {}
-for i=1,16 do a[i] = i end
-check(a, 16, 0)
+
+-- insert and delete elements until a rehash occur. Caller must ensure
+-- that a rehash will change the shape of the table. Must repeat because
+-- the insertion may collide with the deleted element, and then there is
+-- no rehash.
+local function forcerehash (t)
+  local na, nh = T.querytab(t)
+  local i = 10000
+  repeat
+    i = i + 1
+    t[i] = true
+    t[i] = undef
+    local nna, nnh = T.querytab(t)
+  until nna ~= na or nnh ~= nh
+end
+
+
 do
+  local a = {}
+  for i=1,16 do a[i] = i end
+  check(a, 16, 0)
   for i=1,11 do a[i] = undef end
-  for i=30,50 do a[i] = true; a[i] = undef end   -- force a rehash (?)
-  check(a, 0, 8)   -- 5 elements in the table
+  check(a, 16, 0)
+  a[30] = true    -- force a rehash
+  a[30] = undef
+  check(a, 0, 8)   -- 5 elements in the hash part: [12]-[16]
   a[10] = 1
-  for i=30,50 do a[i] = true; a[i] = undef end   -- force a rehash (?)
-  check(a, 0, 8)   -- only 6 elements in the table
+  forcerehash(a)
+  check(a, 16, 1)
   for i=1,14 do a[i] = true; a[i] = undef end
-  for i=18,50 do a[i] = true; a[i] = undef end   -- force a rehash (?)
-  check(a, 0, 4)   -- only 2 elements ([15] and [16])
+  check(a, 16, 1)   -- no rehash...
+  a[31] = true; a[32] = true   -- force a rehash
+  check(a, 0, 4)   -- [15], [16], [31], [32]
 end
 
 -- reverse filling
-for i=1,lim do
+do
+  local N = 2^10
   local a = {}
-  for i=i,1,-1 do a[i] = i end   -- fill in reverse
-  check(a, mp2(i), 0)
+  for i = N, 1, -1 do a[i] = i end   -- fill in reverse
+  check(a, mp2(N), 0)
 end
+
+
+do     -- "almost sparse" arrays
+  -- create table with holes in 1/3 of its entries; all its
+  -- elements are always in the array part
+  local a = {}
+  for i = 1, 257 do
+    if i % 3 ~= 1 then
+      a[i] = true
+      check(a, mp2(i), 0)
+    end
+  end
+end
+
+
+do
+  -- alternate insertions and deletions should give some extra
+  -- space for the hash part. Otherwise, a mix of insertions/deletions
+  -- could cause too many rehashes. (See the other test for "alternate
+  -- insertions and deletions" in this file.)
+  local a = {}
+  for i = 1, 256 do
+    a[i .. ""] = true
+  end
+  check(a, 0, 256)    -- hash part is full
+  a["256"] = nil    -- delete a key
+  forcerehash(a)
+  -- table has only 255 elements, but it got some extra space;
+  -- otherwise, almost each delete-insert would rehash the table again.
+  assert(countentries(a) == 255)
+  check(a, 0, 512)
+end
+
 
 -- size tests for vararg
 lim = 35
@@ -201,21 +318,6 @@ end
 local a = {}
 for i=1,lim do a[i] = true; foo(i, table.unpack(a)) end
 
-
--- Table length with limit smaller than maximum value at array
-local a = {}
-for i = 1,64 do a[i] = true end    -- make its array size 64
-for i = 1,64 do a[i] = nil end     -- erase all elements
-assert(T.querytab(a) == 64)    -- array part has 64 elements
-a[32] = true; a[48] = true;    -- binary search will find these ones
-a[51] = true                   -- binary search will miss this one
-assert(#a == 48)               -- this will set the limit
-assert(select(3, T.querytab(a)) == 48)  -- this is the limit now
-a[50] = true                   -- this will set a new limit
-assert(select(3, T.querytab(a)) == 50)  -- this is the limit now
--- but the size is larger (and still inside the array part)
-assert(#a == 51)
-
 end  --]
 
 
@@ -229,13 +331,36 @@ assert(#{1, 2, 3, nil, nil} == 3)
 print'+'
 
 
+do
+  local s1, s2 = math.randomseed()
+  print(string.format(
+    "testing length for some random tables (seeds 0X%x:%x)", s1, s2))
+  local N = 130
+  for i = 1, 1e3 do   -- create that many random tables
+    local a = table.create(math.random(N))   -- initiate with random size
+    for j = 1, math.random(N) do   -- add random number of random entries
+      a[math.random(N)] = true
+    end
+    assert(#a == 0 or a[#a] and not a[#a + 1])
+  end
+end
+
+
+do  print("testing attack on table length")
+  local t = {}
+  local lim = math.floor(math.log(math.maxinteger, 2)) - 1
+  for i = lim, 0, -1 do
+    t[2^i] = true
+  end
+  assert(t[1 << lim])
+  -- next loop should not take forever
+  for i = 1, #t do end
+end
+
 local nofind = {}
 
-a,b,c = 1,2,3
-a,b,c = nil
 
-
--- next uses always the same iteraction function
+-- next uses always the same iteration function
 assert(next{} == next{})
 
 local function find (name)
@@ -282,7 +407,7 @@ for i=0,10000 do
   end
 end
 
-n = {n=0}
+local n = {n=0}
 for i,v in pairs(a) do
   n.n = n.n+1
   assert(i and v and a[i] == v)
@@ -609,10 +734,12 @@ do
   a = 0; for i=1.0, 0.99999, -1 do a=a+1 end; assert(a==1)
 end
 
-do   -- changing the control variable
-  local a
-  a = 0; for i = 1, 10 do a = a + 1; i = "x" end; assert(a == 10)
-  a = 0; for i = 10.0, 1, -1 do a = a + 1; i = "x" end; assert(a == 10)
+do   -- attempt to change the control variable
+  local st, msg = load "for i = 1, 10 do i = 10 end"
+  assert(not st and string.find(msg, "assign to const variable 'i'"))
+
+  local st, msg = load "for v, k in pairs{} do v = 10 end"
+  assert(not st and string.find(msg, "assign to const variable 'v'"))
 end
 
 -- conversion
@@ -778,13 +905,18 @@ local function foo1 (e,i)
   if i <= e.n then return i,a[i] end
 end
 
-setmetatable(a, {__pairs = function (x) return foo, x, 0 end})
+local closed = false
+setmetatable(a, {__pairs = function (x)
+  local tbc = setmetatable({}, {__close = function () closed = true end})
+  return foo, x, 0, tbc
+ end})
 
 local i = 0
 for k,v in pairs(a) do
   i = i + 1
   assert(k == i and v == k+1)
 end
+assert(closed)   -- 'tbc' has been closed
 
 a.n = 5
 a[3] = 30
@@ -819,7 +951,7 @@ do
   co()     -- start coroutine
   co(1)    -- continue after yield
   assert(res[1] == 30 and res[2] == 20 and res[3] == 10 and #res == 3)
-  
+
 end
 
 print"OK"

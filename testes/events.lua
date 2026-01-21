@@ -1,5 +1,5 @@
 -- $Id: testes/events.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
 
 pluto_use * = false
 
@@ -382,7 +382,7 @@ assert(x.val == "0abcdefg")
 
 
 do
-  -- bug since 5.4.1
+  -- bug since 5.4.1 (test needs T)
   local mt = setmetatable({__newindex={}}, {__mode='v'})
   local t = setmetatable({}, mt)
 
@@ -391,8 +391,6 @@ do
   -- seg. fault
   for i=1, 10 do t[i] = 1 end
 end
-
-
 
 -- concat metamethod x numbers (bug in 5.1.1)
 c = {}
@@ -496,7 +494,7 @@ assert(not pcall(function (a,b) return a[b] end, a, 10))
 assert(not pcall(function (a,b,c) a[b] = c end, a, 10, true))
 
 -- bug in 5.1
-T, K, V = nil
+local T, K, V = nil
 grandparent = {}
 grandparent.__newindex = function(t,k,v) T=t; K=k; V=v end
 

@@ -1,7 +1,7 @@
 /*
 ** $Id: lua.h $
 ** Lua - A Scripting Language
-** Lua.org, PUC-Rio, Brazil (http://www.lua.org)
+** Lua.org, PUC-Rio, Brazil (www.lua.org)
 ** See Copyright Notice at the end of this file
 */
 
@@ -17,17 +17,18 @@
 #endif
 
 
-#define LUA_COPYRIGHT	LUA_RELEASE "  Copyright (C) 1994-2023 Lua.org, PUC-Rio"
+#define LUA_COPYRIGHT	LUA_RELEASE "  Copyright (C) 1994-2025 Lua.org, PUC-Rio"
 #define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
 
+
 #define LUA_VERSION_MAJOR_N	5
-#define LUA_VERSION_MINOR_N	4
-#define LUA_VERSION_RELEASE_N	8
+#define LUA_VERSION_MINOR_N	5
+#define LUA_VERSION_RELEASE_N	0
 
 #define LUA_VERSION_NUM  (LUA_VERSION_MAJOR_N * 100 + LUA_VERSION_MINOR_N)
 #define LUA_VERSION_RELEASE_NUM  (LUA_VERSION_NUM * 100 + LUA_VERSION_RELEASE_N)
 
-#define PLUTO_VERSION "Pluto 0.12.2"
+#define PLUTO_VERSION "Pluto 0.13.0"
 #define PLUTO_COPYRIGHT_NO_BASED PLUTO_VERSION ", Copyright (C) 2022-2025 PlutoLang.org, PlutoLang (https://github.com/PlutoLang)"
 #define PLUTO_COPYRIGHT PLUTO_COPYRIGHT_NO_BASED "\r\nBased on " LUA_COPYRIGHT
 
@@ -44,10 +45,10 @@
 
 /*
 ** Pseudo-indices
-** (-LUAI_MAXSTACK is the minimum valid index; we keep some free empty
-** space after that to help overflow detection)
+** (The stack size is limited to INT_MAX/2; we keep some free empty
+** space after that to help overflow detection.)
 */
-#define LUA_REGISTRYINDEX	(-LUAI_MAXSTACK - 1000)
+#define LUA_REGISTRYINDEX	(-(INT_MAX/2 + 1000))
 #define lua_upvalueindex(i)	(LUA_REGISTRYINDEX - (i))
 
 
@@ -171,7 +172,6 @@ LUA_API lua_State *(lua_newstate) (lua_Alloc f, void *ud, unsigned seed);
 LUA_API void       (lua_close) (lua_State *L);
 LUA_API lua_State *(lua_newthread) (lua_State *L);
 LUA_API int        (lua_closethread) (lua_State *L, lua_State *from);
-LUA_API int        (lua_resetthread) (lua_State *L);  /* Deprecated! */
 
 LUA_API lua_CFunction (lua_atpanic) (lua_State *L, lua_CFunction panicf);
 
@@ -255,7 +255,7 @@ LUA_API void        (lua_pushnil) (lua_State *L);
 LUA_API void        (lua_pushnumber) (lua_State *L, lua_Number n);
 LUA_API void        (lua_pushinteger) (lua_State *L, lua_Integer n);
 LUA_API const char *(lua_pushlstring) (lua_State *L, const char *s, size_t len);
-LUA_API const char *(lua_pushextlstring) (lua_State *L,
+LUA_API const char *(lua_pushexternalstring) (lua_State *L,
 		const char *s, size_t len, lua_Alloc falloc, void *ud);
 LUA_API const char *(lua_pushstring) (lua_State *L, const char *s);
 #ifdef __cplusplus
@@ -282,7 +282,7 @@ LUA_API int (lua_rawget) (lua_State *L, int idx);
 LUA_API int (lua_rawgeti) (lua_State *L, int idx, lua_Integer n);
 LUA_API int (lua_rawgetp) (lua_State *L, int idx, const void *p);
 
-LUA_API void  (lua_createtable) (lua_State *L, unsigned narr, unsigned nrec);
+LUA_API void  (lua_createtable) (lua_State *L, int narr, int nrec);
 LUA_API void *(lua_newuserdatauv) (lua_State *L, size_t sz, int nuvalue);
 LUA_API int   (lua_getmetatable) (lua_State *L, int objindex);
 LUA_API int  (lua_getiuservalue) (lua_State *L, int idx, int n);
@@ -394,7 +394,9 @@ LUA_API int   (lua_next) (lua_State *L, int idx);
 LUA_API void  (lua_concat) (lua_State *L, int n);
 LUA_API void  (lua_len)    (lua_State *L, int idx);
 
-LUA_API size_t   (lua_stringtonumber) (lua_State *L, const char *s);
+#define LUA_N2SBUFFSZ	64
+LUA_API unsigned  (lua_numbertocstring) (lua_State *L, int idx, char *buff);
+LUA_API size_t  (lua_stringtonumber) (lua_State *L, const char *s);
 
 LUA_API lua_Alloc (lua_getallocf) (lua_State *L, void **ud);
 LUA_API void      (lua_setallocf) (lua_State *L, lua_Alloc f, void *ud);
@@ -434,7 +436,7 @@ LUA_API void (lua_closeslot) (lua_State *L, int idx);
 #define lua_pushliteral(L, s)	lua_pushstring(L, "" s)
 
 #define lua_pushglobaltable(L)  \
-    ((void)lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS))
+	((void)lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS))
 
 #define lua_tostring(L,i)	lua_tolstring(L, (i), NULL)
 
@@ -462,17 +464,12 @@ LUA_API void (lua_replace) (lua_State *L, int idx);
 ** compatibility macros
 ** ===============================================================
 */
-#if defined(LUA_COMPAT_APIINTCASTS)
-
-#define lua_pushunsigned(L,n)	lua_pushinteger(L, (lua_Integer)(n))
-#define lua_tounsignedx(L,i,is)	((lua_Unsigned)lua_tointegerx(L,i,is))
-#define lua_tounsigned(L,i)	lua_tounsignedx(L,(i),NULL)
-
-#endif
 
 #define lua_newuserdata(L,s)	lua_newuserdatauv(L,s,1)
 #define lua_getuservalue(L,idx)	lua_getiuservalue(L,idx,1)
 #define lua_setuservalue(L,idx)	lua_setiuservalue(L,idx,1)
+
+#define lua_resetthread(L)	lua_closethread(L,NULL)
 
 /* }============================================================== */
 
@@ -532,9 +529,10 @@ struct lua_Debug {
   unsigned char nups;	/* (u) number of upvalues */
   unsigned char nparams;/* (u) number of parameters */
   char isvararg;        /* (u) */
+  unsigned char extraargs;  /* (t) number of extra arguments */
   char istailcall;	/* (t) */
-  unsigned short ftransfer;   /* (r) index of first value transferred */
-  unsigned short ntransfer;   /* (r) number of transferred values */
+  int ftransfer;   /* (r) index of first value transferred */
+  int ntransfer;   /* (r) number of transferred values */
   char short_src[LUA_IDSIZE]; /* (S) */
   /* private part */
   struct CallInfo *i_ci;  /* active function */

@@ -363,6 +363,17 @@ NAMESPACE_SOUP
 				return spW;
 			}
 		}
+
+		// Iterating over the AtomicDeque is fine here because this function should only be called on the scheduler thread, which is the same one that would pop.
+		for (auto node = pending_workers.head.load(); node != nullptr; node = node->next.load())
+		{
+			const SharedPtr<Worker>& spW = node->data;
+			if (spW.get() == &w)
+			{
+				return spW;
+			}
+		}
+
 		return {};
 	}
 
@@ -385,7 +396,7 @@ NAMESPACE_SOUP
 		// Iterating over the AtomicDeque is fine here because this function should only be called on the scheduler thread, which is the same one that would pop.
 		for (auto node = pending_workers.head.load(); node != nullptr; node = node->next.load())
 		{
-			const SharedPtr<Socket>& w = node->data;
+			const SharedPtr<Worker>& w = node->data;
 			if (w->type == WORKER_TYPE_SOCKET
 				&& static_cast<Socket*>(w.get())->custom_data.isStructInMap(netReuseTag)
 				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(netReuseTag).host == host

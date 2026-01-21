@@ -1,7 +1,9 @@
 #include "SocketTlsEncrypter.hpp"
 
 #include "aes.hpp"
+#include "md5.hpp"
 #include "rand.hpp"
+#include "Rc4State.hpp"
 #include "sha1.hpp"
 #include "sha256.hpp"
 #include "TlsMac.hpp"
@@ -28,9 +30,17 @@ NAMESPACE_SOUP
 			st.finalise();
 			return st.getDigest();
 		}
-		//else if (mac_key_len == 32)
+		else if (mac_key_len == 32)
 		{
 			sha256::HmacState st(mac_key, mac_key_len);
+			st.append(msg.data(), msg.size());
+			st.append(data, size);
+			st.finalise();
+			return st.getDigest();
+		}
+		//else if (mac_key_len == 16)
+		{
+			md5::HmacState st(mac_key, mac_key_len);
 			st.append(msg.data(), msg.size());
 			st.append(data, size);
 			st.finalise();
@@ -40,13 +50,28 @@ NAMESPACE_SOUP
 
 	Buffer<> SocketTlsEncrypter::encrypt(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL
 	{
-		constexpr auto cipher_bytes = 16;
+		constexpr auto cipher_bytes = 16; // AES = 16, RC4 = 1
 
 		if (!isAead()) // AES-CBC
 		{
+			auto mac = calculateMac(content_type, data, size);
+
+			SOUP_IF_UNLIKELY (isRc4())
+			{
+				Buffer buf;
+				buf.reserve(size + mac.size());
+				buf.append(data, size);
+				buf.append(mac.data(), mac.size());
+				if (!state)
+				{
+					state = new Rc4State(cipher_key, cipher_key_len);
+				}
+				reinterpret_cast<Rc4State*>(state)->transform(buf.data(), buf.size());
+				return buf;
+			}
+
 			constexpr auto record_iv_length = 16;
 
-			auto mac = calculateMac(content_type, data, size);
 			auto cont_with_mac_size = (size + mac.size());
 			auto aligned_in_len = ((((cont_with_mac_size + 1) / cipher_bytes) + 1) * cipher_bytes);
 			auto pad_len = static_cast<char>(aligned_in_len - cont_with_mac_size);
@@ -105,5 +130,13 @@ NAMESPACE_SOUP
 		seq_num = 0;
 		cipher_key_len = 0;
 		mac_key_len = 0;
+	}
+
+	SocketTlsEncrypter::~SocketTlsEncrypter() noexcept
+	{
+		//if (state != nullptr)
+		{
+			delete reinterpret_cast<Rc4State*>(state);
+		}
 	}
 }

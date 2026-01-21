@@ -129,7 +129,7 @@ NAMESPACE_SOUP
 			{
 				uint8_t b = OP_PUSH_INT;
 				w.u8(b);
-				w.i64_dyn(lexeme.val.getInt());
+				w.i64_dyn_a(lexeme.val.getInt());
 				return;
 			}
 			if (lexeme.val.isUInt())

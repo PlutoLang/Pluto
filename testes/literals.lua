@@ -1,7 +1,9 @@
 -- $Id: testes/literals.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
 
 print('testing scanner')
+
+global <const> *
 
 local debug = require "debug"
 
