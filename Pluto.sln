@@ -16,6 +16,9 @@ Global
 		plutoc|ARM64 = plutoc|ARM64
 		plutoc|x64 = plutoc|x64
 		plutoc|x86 = plutoc|x86
+		static lib (LTO)|ARM64 = static lib (LTO)|ARM64
+		static lib (LTO)|x64 = static lib (LTO)|x64
+		static lib (LTO)|x86 = static lib (LTO)|x86
 		static lib|ARM64 = static lib|ARM64
 		static lib|x64 = static lib|x64
 		static lib|x86 = static lib|x86
@@ -39,6 +42,12 @@ Global
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.plutoc|x64.Build.0 = plutoc|x64
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.plutoc|x86.ActiveCfg = plutoc|Win32
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.plutoc|x86.Build.0 = plutoc|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib (LTO)|ARM64.ActiveCfg = static lib (LTO)|ARM64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib (LTO)|ARM64.Build.0 = static lib (LTO)|ARM64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib (LTO)|x64.ActiveCfg = static lib (LTO)|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib (LTO)|x64.Build.0 = static lib (LTO)|x64
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib (LTO)|x86.ActiveCfg = static lib (LTO)|Win32
+		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib (LTO)|x86.Build.0 = static lib (LTO)|Win32
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib|ARM64.ActiveCfg = static lib|ARM64
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib|ARM64.Build.0 = static lib|ARM64
 		{9E471705-98E3-4DF5-855C-E624805A9FEB}.static lib|x64.ActiveCfg = static lib|x64
