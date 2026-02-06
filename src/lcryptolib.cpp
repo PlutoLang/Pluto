@@ -999,7 +999,7 @@ static int l_adler32 (lua_State *L) {
 
 
 size_t posrelatI (lua_Integer pos, size_t len);
-static int l_decompress (lua_State *L) {
+static int l_inflate (lua_State *L) {
   size_t size;
   const char *data = luaL_checklstring(L, 1, &size);
   soup::deflate::DecompressResult res;
@@ -1041,6 +1041,12 @@ static int l_decompress (lua_State *L) {
   lua_pushboolean(L, res.checksum_mismatch);
   lua_settable(L, -3);
   return 2;
+}
+
+
+static int l_decompress (lua_State *L) {
+  lua_warning(L, "crypto.decompress is deprecated, replace the call with crypto.inflate.", 0);
+  return l_inflate(L);
 }
 
 
@@ -1093,6 +1099,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"verify", l_verify},
   {"x25519", l_x25519},
   {"adler32", l_adler32},
+  {"inflate", l_inflate},
   {"decompress", l_decompress},
   {"ripemd160", l_ripemd160},
   {NULL, NULL}
