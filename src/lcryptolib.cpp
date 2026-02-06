@@ -26,6 +26,7 @@
 #include "vendor/Soup/soup/sha384.hpp"
 #include "vendor/Soup/soup/sha512.hpp"
 #include "vendor/Soup/soup/string.hpp"
+#include "vendor/Soup/soup/whirlpool.hpp"
 
 
 static int fnv1(lua_State *L)
@@ -1069,6 +1070,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"crc32c", crc32c},
   {"lookup3", lookup3},
   {"md5", l_hashwithdigest<soup::md5>},
+  {"whirlpool", l_hashwithdigest<soup::whirlpool>},
   {"sdbm", sdbm},
   {"djb2", djb2},
   {"superfasthash", superfasthash},
