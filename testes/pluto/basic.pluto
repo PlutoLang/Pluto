@@ -3024,6 +3024,11 @@ do
     assert(match[2] == "5")
 
     assert(select(2, pcall(regex.new, "/+/")) == "Invalid modifier")
+
+    pattern = new regex [[/[A-Z]/]]
+    assert(pattern:search("Hello World") == 1)
+    assert(pattern:search("Hello World", 2) == 7)
+    assert(pattern:search("Hello World", 8) == nil)
 end
 do
     assert(io.part("/deez/nuts", "parent") == "/deez")
