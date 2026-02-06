@@ -3507,6 +3507,8 @@ do
     local t = $url.parse("https://google.com")
     assert(t.scheme == "https")
     assert(t.host == "google.com")
+
+    assert($math.popcnt(0b101) == 2)
 end
 
 print "Testing named arguments."
