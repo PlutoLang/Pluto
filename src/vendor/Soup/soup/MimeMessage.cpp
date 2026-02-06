@@ -281,4 +281,10 @@ NAMESPACE_SOUP
 
 		return cbody;
 	}
+
+	void MimeMessage::clear() noexcept
+	{
+		headers.clear();
+		body.clear();
+	}
 }

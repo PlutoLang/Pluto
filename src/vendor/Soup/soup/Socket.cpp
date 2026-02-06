@@ -41,6 +41,7 @@
 #include "TlsServerHello.hpp"
 #include "TlsServerKeyExchange.hpp"
 #include "TlsSignatureScheme.hpp"
+#include "TlsSsl2CompatibleClientHello.hpp"
 #include "TrustStore.hpp"
 
 #define LOGGING false
@@ -984,6 +985,67 @@ NAMESPACE_SOUP
 			on_client_hello,
 			alpn_select_protocol
 		);
+
+		transport_recv([](Socket& s, std::string&& data, Capture&& cap)
+		{
+			auto& handshaker = cap.get<UniquePtr<SocketTlsHandshaker>>();
+			SOUP_IF_LIKELY(data.size() > 2 && data[0] == 22 && data[1] == 3) // TLS?
+			{
+				s.transport_unrecv(std::move(data));
+				s.enableCryptoServerRecvTlsClientHello(std::move(handshaker));
+			}
+			else
+			{
+				// RFC 5246 Appendix E.2
+
+				MemoryRefReader r(data);
+				TlsSsl2CompatibleClientHello hello;
+				if (!hello.read(r)
+					|| (hello.msg_length & 0x8000) == 0
+					|| hello.msg_type != 1
+					|| hello.session_id_length != 0
+					)
+				{
+					s.tls_close(TlsAlertDescription::decode_error);
+					return;
+				}
+
+				handshaker->layer_bytes.append(data.substr(2)); // "For the purposes of calculating Finished and CertificateVerify, the msg_length field is not considered to be a part of the handshake message."
+
+				for (const auto& val : hello.cipher_suites)
+				{
+					if (val <= 0xffff)
+					{
+						TlsCipherSuite_t cs = val;
+						if (tls_serverSupportsCipherSuite(cs))
+						{
+							handshaker->cipher_suite = cs;
+							break;
+						}
+					}
+				}
+
+				const CertStoreEntry* rsa_data = static_cast<SocketTlsHandshakerServer*>(handshaker.get())->certstore->findEntryForDomain({});
+				if (!rsa_data)
+				{
+					s.tls_close(TlsAlertDescription::unrecognized_name);
+					return;
+				}
+
+				handshaker->client_random = std::move(hello.challenge);
+
+				if (static_cast<SocketTlsHandshakerServer*>(handshaker.get())->on_client_hello)
+				{
+					// Meh
+				}
+
+				s.enableCryptoServerAfterClientHello(std::move(handshaker), rsa_data, {});
+			}
+		}, std::move(handshaker));
+	}
+
+	void Socket::enableCryptoServerRecvTlsClientHello(UniquePtr<SocketTlsHandshaker>&& handshaker)
+	{
 		tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data)
 		{
 			if (handshake_type != TlsHandshake::client_hello)
@@ -992,7 +1054,7 @@ NAMESPACE_SOUP
 				return;
 			}
 
-			const CertStore::Entry* rsa_data;
+			const CertStoreEntry* rsa_data;
 			std::string alpn_selection;
 
 			{
@@ -1082,103 +1144,108 @@ NAMESPACE_SOUP
 				}
 			}
 
+			s.enableCryptoServerAfterClientHello(std::move(handshaker), rsa_data, std::move(alpn_selection));
+		});
+	}
+
+	void Socket::enableCryptoServerAfterClientHello(UniquePtr<SocketTlsHandshaker>&& handshaker, const CertStoreEntry* rsa_data, std::string&& alpn_selection)
+	{
+		{
+			TlsServerHello shello{};
+			shello.random.time = static_cast<uint32_t>(time::unixSeconds());
+			rand.fill(shello.random.random);
+			handshaker->server_random = shello.random.toBinaryString();
+			shello.cipher_suite = handshaker->cipher_suite;
+			shello.compression_method = 0;
+
+			if (handshaker->extended_master_secret)
 			{
-				TlsServerHello shello{};
-				shello.random.time = static_cast<uint32_t>(time::unixSeconds());
-				rand.fill(shello.random.random);
-				handshaker->server_random = shello.random.toBinaryString();
-				shello.cipher_suite = handshaker->cipher_suite;
-				shello.compression_method = 0;
-
-				if (handshaker->extended_master_secret)
-				{
-					shello.extensions.add(TlsExtensionType::extended_master_secret, {});
-				}
-
-				if (!alpn_selection.empty())
-				{
-					TlsExtAlpn ext_alpn;
-					ext_alpn.protocol_names.emplace_back(std::move(alpn_selection));
-					shello.extensions.add(TlsExtensionType::application_layer_protocol_negotiation, ext_alpn);
-				}
-
-				if (!s.tls_sendHandshake(handshaker, TlsHandshake::server_hello, shello.toBinaryString()))
-				{
-					return;
-				}
+				shello.extensions.add(TlsExtensionType::extended_master_secret, {});
 			}
 
+			if (!alpn_selection.empty())
 			{
-				TlsCertificate tcert;
-				tcert.asn1_certs.reserve(rsa_data->chain.certs.size());
-				for (const auto& cert : rsa_data->chain.certs)
-				{
-					tcert.asn1_certs.emplace_back(cert.toDer());
-				}
-				if (!s.tls_sendHandshake(handshaker, TlsHandshake::certificate, tcert.toBinaryString()))
-				{
-					return;
-				}
+				TlsExtAlpn ext_alpn;
+				ext_alpn.protocol_names.emplace_back(std::move(alpn_selection));
+				shello.extensions.add(TlsExtensionType::application_layer_protocol_negotiation, ext_alpn);
 			}
 
-			static_cast<SocketTlsHandshakerServer*>(handshaker.get())->private_key = &rsa_data->private_key;
-
-			if (tls_cipherSuiteIsEcdhe(handshaker->cipher_suite))
-			{
-				std::string pub{};
-				if (handshaker->ecdhe_curve == NamedCurves::x25519)
-				{
-					uint8_t priv[Curve25519::KEY_SIZE];
-					Curve25519::generatePrivate(priv);
-					uint8_t my_pub[Curve25519::KEY_SIZE];
-					Curve25519::derivePublic(my_pub, priv);
-					static_cast<SocketTlsHandshakerServer*>(handshaker.get())->ecdhe_private_key.assign((char*)priv, Curve25519::KEY_SIZE);
-					pub.assign((char*)my_pub, Curve25519::KEY_SIZE);
-				}
-				else
-				{
-					const EccCurve* curve;
-					if (handshaker->ecdhe_curve != NamedCurves::secp384r1)
-					{
-						curve = &EccCurve::secp256r1();
-					}
-					else
-					{
-						curve = &EccCurve::secp384r1();
-					}
-					auto priv = curve->generatePrivate();
-					static_cast<SocketTlsHandshakerServer*>(handshaker.get())->ecdhe_private_key = priv.toBinary();
-					auto pub_point = curve->derivePublic(priv);
-					pub = curve->encodePointUncompressed(pub_point);
-				}
-
-				TlsServerKeyExchange ske{};
-				ske.params.curve_type = 3;
-				ske.params.named_curve = handshaker->ecdhe_curve;
-				ske.params.point = pub;
-				ske.signature_scheme = TlsSignatureScheme::rsa_pkcs1_sha256;
-				std::string msg = handshaker->client_random + handshaker->server_random + ske.params.toBinaryString();
-				ske.signature = static_cast<SocketTlsHandshakerServer*>(handshaker.get())->private_key->sign<sha256>(msg).toBinary();
-				if (!s.tls_sendHandshake(handshaker, TlsHandshake::server_key_exchange, ske.toBinaryString()))
-				{
-					return;
-				}
-			}
-
-			if (!s.tls_sendHandshake(handshaker, TlsHandshake::server_hello_done, {}))
+			if (!tls_sendHandshake(handshaker, TlsHandshake::server_hello, shello.toBinaryString()))
 			{
 				return;
 			}
+		}
 
-			if (tls_cipherSuiteIsEcdhe(handshaker->cipher_suite))
+		{
+			TlsCertificate tcert;
+			tcert.asn1_certs.reserve(rsa_data->chain.certs.size());
+			for (const auto& cert : rsa_data->chain.certs)
 			{
-				s.enableCryptoServerRecvClientKeyExchangeEcdhe(std::move(handshaker));
+				tcert.asn1_certs.emplace_back(cert.toDer());
+			}
+			if (!tls_sendHandshake(handshaker, TlsHandshake::certificate, tcert.toBinaryString()))
+			{
+				return;
+			}
+		}
+
+		static_cast<SocketTlsHandshakerServer*>(handshaker.get())->private_key = &rsa_data->private_key;
+
+		if (tls_cipherSuiteIsEcdhe(handshaker->cipher_suite))
+		{
+			std::string pub{};
+			if (handshaker->ecdhe_curve == NamedCurves::x25519)
+			{
+				uint8_t priv[Curve25519::KEY_SIZE];
+				Curve25519::generatePrivate(priv);
+				uint8_t my_pub[Curve25519::KEY_SIZE];
+				Curve25519::derivePublic(my_pub, priv);
+				static_cast<SocketTlsHandshakerServer*>(handshaker.get())->ecdhe_private_key.assign((char*)priv, Curve25519::KEY_SIZE);
+				pub.assign((char*)my_pub, Curve25519::KEY_SIZE);
 			}
 			else
 			{
-				s.enableCryptoServerRecvClientKeyExchangeRsa(std::move(handshaker));
+				const EccCurve* curve;
+				if (handshaker->ecdhe_curve != NamedCurves::secp384r1)
+				{
+					curve = &EccCurve::secp256r1();
+				}
+				else
+				{
+					curve = &EccCurve::secp384r1();
+				}
+				auto priv = curve->generatePrivate();
+				static_cast<SocketTlsHandshakerServer*>(handshaker.get())->ecdhe_private_key = priv.toBinary();
+				auto pub_point = curve->derivePublic(priv);
+				pub = curve->encodePointUncompressed(pub_point);
 			}
-		});
+
+			TlsServerKeyExchange ske{};
+			ske.params.curve_type = 3;
+			ske.params.named_curve = handshaker->ecdhe_curve;
+			ske.params.point = pub;
+			ske.signature_scheme = TlsSignatureScheme::rsa_pkcs1_sha256;
+			std::string msg = handshaker->client_random + handshaker->server_random + ske.params.toBinaryString();
+			ske.signature = static_cast<SocketTlsHandshakerServer*>(handshaker.get())->private_key->sign<sha256>(msg).toBinary();
+			if (!tls_sendHandshake(handshaker, TlsHandshake::server_key_exchange, ske.toBinaryString()))
+			{
+				return;
+			}
+		}
+
+		if (!tls_sendHandshake(handshaker, TlsHandshake::server_hello_done, {}))
+		{
+			return;
+		}
+
+		if (tls_cipherSuiteIsEcdhe(handshaker->cipher_suite))
+		{
+			enableCryptoServerRecvClientKeyExchangeEcdhe(std::move(handshaker));
+		}
+		else
+		{
+			enableCryptoServerRecvClientKeyExchangeRsa(std::move(handshaker));
+		}
 	}
 
 	void Socket::enableCryptoServerRecvClientKeyExchangeRsa(UniquePtr<SocketTlsHandshaker>&& handshaker)
@@ -1475,8 +1542,6 @@ NAMESPACE_SOUP
 		holdup_type = SOCKET;
 		holdup_callback.set([](Worker& w, Capture&& _cap) SOUP_EXCAL
 		{
-			w.holdup_type = Worker::NONE;
-
 			auto& cap = _cap.get<CaptureSocketUdpRecv>();
 
 			std::string data(0x1000, '\0');
@@ -1484,7 +1549,7 @@ NAMESPACE_SOUP
 			sockaddr_in6 sa;
 			socklen_t sal = sizeof(sa);
 			int res = ::recvfrom(static_cast<Socket&>(w).fd, data.data(), 0x1000, 0, (sockaddr*)&sa, &sal);
-			SOUP_IF_UNLIKELY (res < 0)
+			SOUP_IF_UNLIKELY (res < 0 || res > data.size())
 			{
 				return;
 			}
@@ -1502,6 +1567,7 @@ NAMESPACE_SOUP
 				sender.port = network_u16_t(reinterpret_cast<sockaddr_in*>(&sa)->sin_port);
 			}
 
+			w.holdup_type = Worker::NONE;
 			cap.callback(static_cast<Socket&>(w), std::move(sender), std::move(data), std::move(cap.cap));
 		}, CaptureSocketUdpRecv{ callback, std::move(cap) });
 	}
@@ -1547,19 +1613,28 @@ NAMESPACE_SOUP
 
 	bool Socket::tls_sendRecordEncrypted(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL
 	{
-		auto body = tls_encrypter_send.encrypt(content_type, data, size);
+		size_t chunk_size;
+		do
+		{
+			chunk_size = size > 16384 ? 16384 : size;
+			auto body = tls_encrypter_send.encrypt(content_type, data, chunk_size);
 
-		TlsRecord record{};
-		record.content_type = content_type;
-		record.length = static_cast<uint16_t>(body.size());
+			TlsRecord record{};
+			record.content_type = content_type;
+			record.length = static_cast<uint16_t>(body.size());
 
-		Buffer header;
-		header.reserve(5);
-		BufferRefWriter bw(header);
-		record.write(bw);
+			Buffer header;
+			header.reserve(5);
+			BufferRefWriter bw(header);
+			record.write(bw);
 
-		body.prepend(header.data(), header.size());
-		return transport_send(body);
+			body.prepend(header.data(), header.size());
+			SOUP_RETHROW_FALSE(transport_send(body));
+
+			data = (const uint8_t*)data + chunk_size;
+			size -= chunk_size;
+		} while (size != 0);
+		return true;
 	}
 
 	struct CaptureSocketTlsRecvHandshake

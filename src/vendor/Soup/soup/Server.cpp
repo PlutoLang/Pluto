@@ -83,7 +83,7 @@ NAMESPACE_SOUP
 				{
 					s.transport_unrecv(data);
 					CaptureServerPortOptCrypto& cap = *_cap.get<CaptureServerPortOptCrypto*>();
-					if (data.size() > 2 && data.at(0) == 22 && data.at(1) == 3) // TLS?
+					if (data.size() > 2 && data[0] == 22 && data[1] == 3) // TLS?
 					{
 						s.enableCryptoServer(cap.certstore, [](Socket& s, Capture&& _cap)
 						{

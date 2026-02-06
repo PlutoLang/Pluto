@@ -12,6 +12,10 @@ else
 }
 
 $clanglink = $clang;
+if (PHP_OS_FAMILY != "Darwin")
+{
+	$clanglink .= " -fuse-ld=lld";
+}
 if (!defined("PHP_WINDOWS_VERSION_MAJOR"))
 {
 	if (PHP_OS_FAMILY == "Darwin")

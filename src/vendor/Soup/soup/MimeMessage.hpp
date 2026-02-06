@@ -40,5 +40,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::string toString() const SOUP_EXCAL;
 
 		[[nodiscard]] std::string getCanonicalisedBody(bool relaxed) const;
+
+		void clear() noexcept;
 	};
 }

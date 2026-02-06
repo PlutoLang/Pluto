@@ -6,6 +6,10 @@
 
 #include "base.hpp"
 
+#if SOUP_CPP20
+#include <bit>
+#endif
+
 NAMESPACE_SOUP
 {
 	struct bitutil
@@ -221,7 +225,9 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] static auto getNumSetBits(uint16_t i) noexcept
 		{
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
+			return std::popcount(i); // MSVC on ARM doesn't have __popcnt, but does support C++20.
+#elif defined(_MSC_VER)
 			return __popcnt16(i);
 #else
 			return __builtin_popcount(i);
@@ -231,7 +237,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] static auto getNumSetBits(uint32_t i) noexcept
 		{
 #if defined(_MSC_VER) && !defined(__clang__)
-			return __popcnt(i);
+			return std::popcount(i);
 #else
 			return __builtin_popcount(i);
 #endif
@@ -241,7 +247,7 @@ NAMESPACE_SOUP
 		{
 #if defined(_MSC_VER) && !defined(__clang__)
 	#if SOUP_BITS >= 64
-			return __popcnt64(mask);
+			return std::popcount(mask);
 	#else
 			auto hi = static_cast<uint32_t>(mask >> 32);
 			auto lo = static_cast<uint32_t>(mask);

@@ -7,27 +7,27 @@
 
 NAMESPACE_SOUP
 {
+	struct CertStoreEntry
+	{
+		X509Certchain chain;
+		RsaPrivateKey private_key;
+
+		CertStoreEntry(X509Certchain&& chain, RsaPrivateKey&& private_key)
+			: chain(std::move(chain)), private_key(std::move(private_key))
+		{
+		}
+	};
+
 	struct CertStore
 	{
-		struct Entry
-		{
-			X509Certchain chain;
-			RsaPrivateKey private_key;
-
-			Entry(X509Certchain&& chain, RsaPrivateKey&& private_key)
-				: chain(std::move(chain)), private_key(std::move(private_key))
-			{
-			}
-		};
-
-		std::vector<Entry> entries{};
+		std::vector<CertStoreEntry> entries{};
 
 		void add(X509Certchain&& certchain, RsaPrivateKey&& private_key)
 		{
 			entries.emplace_back(std::move(certchain), std::move(private_key));
 		}
 
-		[[nodiscard]] const Entry* findEntryForDomain(const std::string& domain) const
+		[[nodiscard]] const CertStoreEntry* findEntryForDomain(const std::string& domain) const
 		{
 			// In the very likely case we only have a single entry, just use that one.
 			SOUP_IF_LIKELY (entries.size() == 1)
