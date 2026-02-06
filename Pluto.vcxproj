@@ -817,6 +817,7 @@
     <ClCompile Include="src\vendor\Soup\soup\Uri.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\urlenc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\version_compare.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\whirlpool.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Worker.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Writer.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\X509Certchain.cpp" />
@@ -1111,6 +1112,7 @@
     <ClInclude Include="src\vendor\Soup\soup\version_compare.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\VirtualHandleRaii.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\WeakRef.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\whirlpool.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Worker.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Writer.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\X509Certchain.hpp" />
