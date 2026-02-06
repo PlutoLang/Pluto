@@ -3951,7 +3951,9 @@ do
             _G.function = nil
             _G.class = nil
             goto enum
+            -- @pluto_warnings: disable-next
             goto class;
+            -- @pluto_warnings: disable-next
             class a begin end
             goto function
             ::enum::
