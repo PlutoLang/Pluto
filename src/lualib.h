@@ -126,9 +126,13 @@ LUAMOD_API int (luaopen_canvas)	(lua_State *L);
 #define PLUTO_BUFFERLIBK (PLUTO_CANVASLIBK << 1)
 LUAMOD_API int (luaopen_buffer)	(lua_State *L);
 
+#define PLUTO_LZFLIBNAME "lzf"
+#define PLUTO_LZFLIBK (PLUTO_BUFFERLIBK << 1)
+LUAMOD_API int (luaopen_lzf)	(lua_State *L);
+
 #ifndef __EMSCRIPTEN__
 #define PLUTO_SOCKETLIBNAME "socket"
-#define PLUTO_SOCKETLIBK (PLUTO_BUFFERLIBK << 1)
+#define PLUTO_SOCKETLIBK (PLUTO_LZFLIBK << 1)
 LUAMOD_API int (luaopen_socket)(lua_State* L);
 #endif
 
@@ -151,6 +155,7 @@ namespace Pluto {
   extern const PreloadedLibrary preloaded_ffi;
   extern const PreloadedLibrary preloaded_canvas;
   extern const PreloadedLibrary preloaded_buffer;
+  extern const PreloadedLibrary preloaded_lzf;
 #ifndef __EMSCRIPTEN__
   extern const PreloadedLibrary preloaded_socket;
 #endif
@@ -173,6 +178,7 @@ namespace Pluto {
     &preloaded_ffi,
     &preloaded_canvas,
     &preloaded_buffer,
+    &preloaded_lzf,
 #ifndef __EMSCRIPTEN__
     &preloaded_socket,
 #endif

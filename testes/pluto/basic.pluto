@@ -3076,6 +3076,17 @@ do
     assert(exportvar("\xE0\x90") == [["\224\144"]])
     assert(exportvar("\xF0\x80") == [["\240\128"]])
 end
+do
+    local lzf = require "pluto:lzf"
+    for {
+        "abc",
+        "abcdefghijklmnopqrstuvwxyz",
+        "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
+        range(0, 255):map(string.char):concat(""),
+    } as str do
+        assert(lzf.decompress(lzf.compress(str)) == str, str)
+    end
+end
 
 print "Testing default table metatable."
 do
