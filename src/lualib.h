@@ -179,9 +179,11 @@ namespace Pluto {
   };
 
   extern const ConstexprLibrary constexpr_io;
+  extern const ConstexprLibrary constexpr_math;
 
   inline const ConstexprLibrary* const all_constexpr[] = {
     &constexpr_io,
+    &constexpr_math,
   };
 }
 

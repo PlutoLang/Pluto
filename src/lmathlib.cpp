@@ -838,6 +838,7 @@ static const luaL_Reg mathlib[] = {
   {NULL, NULL}
 };
 
+const Pluto::ConstexprLibrary Pluto::constexpr_math{ "math", mathlib };
 
 /*
 ** Open math library
