@@ -16,6 +16,7 @@ NAMESPACE_SOUP
 
 	// crypto
 	struct CertStore;
+	struct CertStoreEntry;
 	struct RsaKeypair;
 	struct RsaPrivateKey;
 	class TrustStore;

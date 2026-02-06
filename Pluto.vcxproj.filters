@@ -1189,6 +1189,9 @@
     <ClInclude Include="src\vendor\Soup\soup\CompiletimePatternBase.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\TlsSsl2CompatibleClientHello.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="vendor">

@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "base.hpp"
+#include "UniquePtr.hpp"
 
 NAMESPACE_SOUP
 {
