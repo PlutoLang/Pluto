@@ -1841,6 +1841,8 @@ do
     assert(crypto.md5("hello world") == "5eb63bbbe01eeed093cb22bb8f5acdc3")
     assert(crypto.md5("BEMjYxMTUxNDkx") == "e3bae1422755829a92440f1d044767ff")
 
+    assert(crypto.whirlpool("Pluto") == "b2be8fa753bd00ad25d9c6e5bd176d44ff086dd480432bc5284ce9aa52f382be2a24972bb91c8f67a53705a8ae11bd01bd56ff588176603317c51cfffa2fafc3")
+
     assert(crypto.ripemd160("Pluto") == "c2072a85f4a691803b8942709036072086fd9550")
     assert(crypto.ripemd160("Pluto", true) == "\xc2\x07\x2a\x85\xf4\xa6\x91\x80\x3b\x89\x42\x70\x90\x36\x07\x20\x86\xfd\x95\x50")
 
