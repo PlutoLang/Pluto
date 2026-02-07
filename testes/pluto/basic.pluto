@@ -3026,8 +3026,12 @@ do
     assert(select(2, pcall(regex.new, "/+/")) == "Invalid modifier")
 
     pattern = new regex [[/[A-Z]/]]
-    assert(pattern:search("Hello World") == 1)
-    assert(pattern:search("Hello World", 2) == 7)
+    local b, e = pattern:search("Hello World")
+    assert(b == 1)
+    assert(e == 2)
+    b, e = pattern:search("Hello World", 2)
+    assert(b == 7)
+    assert(e == 8)
     assert(pattern:search("Hello World", 8) == nil)
 end
 do
