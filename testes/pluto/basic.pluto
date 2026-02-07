@@ -3085,6 +3085,30 @@ do
     assert(exportvar("\xE0\x90") == [["\224\144"]])
     assert(exportvar("\xF0\x80") == [["\240\128"]])
 end
+do
+    local { base64, wasm } = require "*"
+    do
+        local module = wasm.instantiate(base64.decode("AGFzbQEAAAABCAFgAn9/An9/AwIBAAcLAQdldWNfZGl2AAAKDgEMACAAIAFuIAAgAXALAAoEbmFtZQIDAQAA"))
+        local Q, R = module:call("euc_div", 21, 5)
+        assert(Q == 4)
+        assert(R == 1)
+    end
+    do
+        local logged_value
+        local module = wasm.instantiate(base64.decode("AGFzbQEAAAABDAJgAX8Cf39gAAJ/fwIPAQdjb25zb2xlA2xvZwAAAwIBAQcLAQdsb2dfbnVtAAEKCQEHAEHFABAACwAoBG5hbWUBDwIAA2xvZwEHbG9nX251bQIFAgAAAQAECQIAAnQwAQJ0MQ=="), {
+            console = {
+                log = |val| -> do
+                    logged_value = val
+                    return 1, 2
+                end
+            }
+        })
+        local a, b = module:call("log_num")
+        assert(logged_value == 69)
+        assert(a == 1)
+        assert(b == 2)
+    end
+end
 
 print "Testing default table metatable."
 do

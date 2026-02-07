@@ -714,6 +714,7 @@
     <ClCompile Include="src\lutf8lib.cpp" />
     <ClCompile Include="src\lvector3lib.cpp" />
     <ClCompile Include="src\lvm.cpp" />
+    <ClCompile Include="src\lwasmlib.cpp" />
     <ClCompile Include="src\lxml.cpp" />
     <ClCompile Include="src\lzio.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\adler32.cpp" />
@@ -817,6 +818,7 @@
     <ClCompile Include="src\vendor\Soup\soup\Uri.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\urlenc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\version_compare.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\wasm.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\whirlpool.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Worker.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Writer.cpp" />
@@ -1112,6 +1114,7 @@
     <ClInclude Include="src\vendor\Soup\soup\utility.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\version_compare.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\VirtualHandleRaii.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\wasm.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\WeakRef.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\whirlpool.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Worker.hpp" />
