@@ -76,6 +76,29 @@ static int call (lua_State *L) {
   return static_cast<int>(type->results.size());
 }
 
+static int wasm_module_read (lua_State *L) {
+  auto& inst = *checkmodule(L, 1);
+  lua_Unsigned base = luaL_checkinteger(L, 2);
+  lua_Unsigned size = luaL_checkinteger(L, 3);
+  if (l_unlikely(base + size > inst.memory_size)) {
+    luaL_error(L, "attempt to read past end of memory");
+  }
+  lua_pushlstring(L, (const char*)&inst.memory[base], size);
+  return 1;
+}
+
+static int wasm_module_write (lua_State *L) {
+  auto& inst = *checkmodule(L, 1);
+  lua_Unsigned base = luaL_checkinteger(L, 2);
+  size_t size;
+  const char *data = luaL_checklstring(L, 3, &size);
+  if (l_unlikely(base + size > inst.memory_size)) {
+    luaL_error(L, "attempt to write past end of memory");
+  }
+  memcpy(&inst.memory[base], data, size);
+  return 0;
+}
+
 static soup::WasmScript *pushmodule (lua_State *L) {
   auto ptr = new (lua_newuserdata(L, sizeof(soup::WasmScript))) soup::WasmScript();
   if (l_unlikely(luaL_newmetatable(L, "pluto:wasm-module"))) {
@@ -86,10 +109,20 @@ static soup::WasmScript *pushmodule (lua_State *L) {
     });
     lua_settable(L, -3);
     lua_pushliteral(L, "__index");
+    lua_newtable(L);
     {
-      lua_newtable(L);
       lua_pushliteral(L, "call");
       lua_pushcfunction(L, &call);
+      lua_settable(L, -3);
+    }
+    {
+      lua_pushliteral(L, "read");
+      lua_pushcfunction(L, &wasm_module_read);
+      lua_settable(L, -3);
+    }
+    {
+      lua_pushliteral(L, "write");
+      lua_pushcfunction(L, &wasm_module_write);
       lua_settable(L, -3);
     }
     lua_settable(L, -3);
