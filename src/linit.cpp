@@ -63,6 +63,7 @@ static const luaL_Reg stdlibs[] = {
   {PLUTO_FFILIBNAME, luaopen_ffi},
   {PLUTO_CANVASLIBNAME, luaopen_canvas},
   {PLUTO_BUFFERLIBNAME, luaopen_buffer},
+  {PLUTO_WASMLIBNAME, luaopen_wasm},
 #ifndef __EMSCRIPTEN__
   {PLUTO_SOCKETLIBNAME, luaopen_socket},
 #endif
