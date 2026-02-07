@@ -96,7 +96,6 @@ case OP_ERRNNIL: goto L_OP_ERRNNIL; \
 case OP_VARARGPREP: goto L_OP_VARARGPREP; \
 case OP_EXTRAARG: goto L_OP_EXTRAARG; \
 case OP_IN: goto L_OP_IN; \
-case NUM_OPCODES: goto L_NUM_OPCODES; \
 }
 
 #define vmcase(l)     L_##l:
