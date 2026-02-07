@@ -69,10 +69,10 @@ static int regex_search (lua_State *L) {
   auto res = checkregex(L, 1)->search(str + offset, str + len);
   if (res.isSuccess()) {
     lua_pushinteger(L, 1 + (res.groups.at(0).value().begin - str));
+    lua_pushinteger(L, 1 + (res.groups.at(0).value().end - str));
+    return 2;
   }
-  else {
-    luaL_pushfail(L);
-  }
+  luaL_pushfail(L);
   return 1;
 }
 
