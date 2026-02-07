@@ -3108,6 +3108,12 @@ do
         assert(a == 1)
         assert(b == 2)
     end
+    do
+        local module = wasm.instantiate(base64.decode("AGFzbQEAAAABBgFgAX8BfwMCAQAFAwEAAQcTAgZtZW1vcnkCAAZsb2FkMzIAAAoJAQcAIAAoAgALAAoEbmFtZQIDAQAA"))
+        assert(module:call("load32", 1) == 0)
+        module:write(1, string.pack("I4", 69))
+        assert(module:call("load32", 1) == 69)
+    end
 end
 
 print "Testing default table metatable."
