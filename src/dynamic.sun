@@ -9,6 +9,8 @@ require vendor/Soup/soup include_dir=.
 -lua.cpp
 -luac.cpp
 
+arg -Wno-invalid-noreturn
+
 if linux
 	arg -DLUA_USE_LINUX
 endif
