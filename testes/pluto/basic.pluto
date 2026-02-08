@@ -2875,6 +2875,17 @@ do
     assert(info.compressed_size == 17)
 end
 do
+    local crypto = require "pluto:crypto"
+    for {
+        "abc",
+        "abcdefghijklmnopqrstuvwxyz",
+        "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
+        range(0, 255):map(string.char):concat(""),
+    } as str do
+        assert(str |> crypto.compress|"lzf"| |> crypto.decompress|"lzf"| == str, str)
+    end
+end
+do
     local bigint = require "pluto:bigint"
 
     do
