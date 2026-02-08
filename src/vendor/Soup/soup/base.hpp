@@ -129,6 +129,9 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 
 #ifdef _MSVC_LANG
 	#define SOUP_CPP_VERSION _MSVC_LANG
+	#if SOUP_CPP_VERSION < 2020'00L && !defined(__clang__)
+		#error When building with MSVC, Soup requires C++ 20 or above.
+	#endif
 #else
 	#define SOUP_CPP_VERSION __cplusplus
 #endif

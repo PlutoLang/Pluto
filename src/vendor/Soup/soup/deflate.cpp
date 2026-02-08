@@ -775,7 +775,7 @@ NAMESPACE_SOUP
 
 	DecompressResult deflate::decompress(const void* compressed_data, size_t compressed_data_size)
 	{
-		return decompress(compressed_data, compressed_data_size, compressed_data_size * 29);
+		return decompress(compressed_data, compressed_data_size, getMaxDecompressedSize(compressed_data, compressed_data_size));
 	}
 
 	DecompressResult deflate::decompress(const void* compressed_data, size_t compressed_data_size, size_t max_decompressed_size)

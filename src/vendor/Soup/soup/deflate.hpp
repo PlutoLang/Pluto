@@ -22,5 +22,10 @@ NAMESPACE_SOUP
 		static DecompressResult decompress(const std::string& compressed_data, size_t max_decompressed_size);
 		static DecompressResult decompress(const void* compressed_data, size_t compressed_data_size);
 		static DecompressResult decompress(const void* compressed_data, size_t compressed_data_size, size_t max_decompressed_size);
+
+		[[nodiscard]] static size_t getMaxDecompressedSize(const void* compressed_data, size_t compressed_data_size)
+		{
+			return compressed_data_size * 29;
+		}
 	};
 }

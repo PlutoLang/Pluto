@@ -395,17 +395,6 @@ NAMESPACE_SOUP
 				IntT prev_max = 0;
 				while (true)
 				{
-					if constexpr (std::is_unsigned_v<IntT>)
-					{
-						max *= Base;
-						max += (Base - 1);
-						SOUP_IF_UNLIKELY (!(max > prev_max))
-						{
-							break;
-						}
-						prev_max = max;
-					}
-
 					const CharT c = *it;
 					if (isNumberChar(c))
 					{
@@ -429,16 +418,13 @@ NAMESPACE_SOUP
 					++it;
 					had_number_char = true;
 
-					if constexpr (std::is_signed_v<IntT>)
+					max *= Base;
+					max += (Base - 1);
+					SOUP_IF_UNLIKELY (max <= prev_max)
 					{
-						max *= Base;
-						max += (Base - 1);
-						SOUP_IF_UNLIKELY (max < prev_max)
-						{
-							break;
-						}
-						prev_max = max;
+						break;
 					}
+					prev_max = max;
 				}
 				if (!had_number_char)
 				{
