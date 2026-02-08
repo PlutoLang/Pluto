@@ -4,11 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "base.hpp"
-
-#if SOUP_CPP20
-#include <bit>
-#endif
+#include "bit.hpp" // popcount, countl_zero, countr_zero
 
 NAMESPACE_SOUP
 {
@@ -78,86 +74,17 @@ NAMESPACE_SOUP
 #endif
 		}
 
-		[[nodiscard]] static unsigned long getLeastSignificantSetBit(uint16_t mask) noexcept
+		template <typename T>
+		[[nodiscard]] static unsigned int getLeastSignificantSetBit(T mask) noexcept
 		{
 			SOUP_DEBUG_ASSERT(mask != 0);
 			return getNumTrailingZeros(mask);
 		}
 
-		[[nodiscard]] static unsigned long getLeastSignificantSetBit(uint32_t mask) noexcept
+		template <typename T>
+		[[nodiscard]] static unsigned int getNumTrailingZeros(T mask) noexcept
 		{
-			SOUP_DEBUG_ASSERT(mask != 0);
-			return getNumTrailingZeros(mask);
-		}
-
-		[[nodiscard]] static unsigned long getLeastSignificantSetBit(uint64_t mask) noexcept
-		{
-			SOUP_DEBUG_ASSERT(mask != 0);
-			return getNumTrailingZeros(mask);
-		}
-
-		[[nodiscard]] static unsigned int getNumTrailingZeros(uint16_t mask) noexcept
-		{
-#if defined(_MSC_VER)
-			unsigned long ret;
-			if (_BitScanForward(&ret, static_cast<uint32_t>(mask)) == 0)
-			{
-				ret = sizeof(mask) * 8;
-			}
-			return ret;
-#else
-			if (mask != 0)
-			{
-				return __builtin_ctz(mask);
-			}
-			return sizeof(mask) * 8;
-#endif
-		}
-
-		[[nodiscard]] static unsigned int getNumTrailingZeros(uint32_t mask) noexcept
-		{
-#if defined(_MSC_VER)
-			unsigned long ret;
-			if (_BitScanForward(&ret, mask) == 0)
-			{
-				ret = sizeof(mask) * 8;
-			}
-			return ret;
-#else
-			if (mask != 0)
-			{
-				return __builtin_ctz(mask);
-			}
-			return sizeof(mask) * 8;
-#endif
-		}
-
-		[[nodiscard]] static unsigned int getNumTrailingZeros(uint64_t mask) noexcept
-		{
-#if defined(_MSC_VER) && (!defined(__clang__) || SOUP_BITS >= 64)
-	#if SOUP_BITS < 64
-			auto hi = static_cast<uint32_t>(mask >> 32);
-			auto lo = static_cast<uint32_t>(mask);
-			if (lo)
-			{
-				return getNumTrailingZeros(lo);
-			}
-			return 32 + getNumTrailingZeros(hi);
-	#else
-			unsigned long ret;
-			if (_BitScanForward64(&ret, mask) == 0)
-			{
-				ret = sizeof(mask) * 8;
-			}
-			return ret;
-	#endif
-#else
-			if (mask != 0)
-			{
-				return __builtin_ctzll(mask);
-			}
-			return sizeof(mask) * 8;
-#endif
+			return soup::countr_zero<T>(mask);
 		}
 
 		template <typename T>
@@ -166,48 +93,10 @@ NAMESPACE_SOUP
 			val &= (val - 1);
 		}
 
-		[[nodiscard]] static unsigned int getNumLeadingZeros(uint32_t mask) noexcept
+		template <typename T>
+		[[nodiscard]] static unsigned int getNumLeadingZeros(T mask) noexcept
 		{
-#if defined(_MSC_VER)
-			unsigned long ret;
-			if (_BitScanReverse(&ret, mask))
-			{
-				return 31 - ret;
-			}
-#else
-			if (mask != 0)
-			{
-				return __builtin_clz(mask);
-			}
-#endif
-			return 32;
-		}
-
-		[[nodiscard]] static unsigned int getNumLeadingZeros(uint64_t mask) noexcept
-		{
-#if defined(_MSC_VER) && (!defined(__clang__) || SOUP_BITS >= 64)
-	#if SOUP_BITS < 64
-			auto hi = static_cast<uint32_t>(mask >> 32);
-			auto lo = static_cast<uint32_t>(mask);
-			if (hi)
-			{
-				return getNumLeadingZeros(hi);
-			}
-			return 32 + getNumLeadingZeros(lo);
-	#else
-			unsigned long ret;
-			if (_BitScanReverse64(&ret, mask))
-			{
-				return 63 - ret;
-			}
-	#endif
-#else
-			if (mask != 0)
-			{
-				return __builtin_clzll(mask);
-			}
-#endif
-			return 64;
+			return soup::countl_zero<T>(mask);
 		}
 
 		[[nodiscard]] static unsigned int getMostSignificantSetBit(uint32_t mask) noexcept
@@ -223,39 +112,10 @@ NAMESPACE_SOUP
 #endif
 		}
 
-		[[nodiscard]] static auto getNumSetBits(uint16_t i) noexcept
+		template <typename T>
+		[[nodiscard]] static auto getNumSetBits(const T val) noexcept
 		{
-#if defined(_MSC_VER) && !defined(__clang__)
-			return std::popcount(i); // MSVC on ARM doesn't have __popcnt, but does support C++20.
-#elif defined(_MSC_VER)
-			return __popcnt16(i);
-#else
-			return __builtin_popcount(i);
-#endif
-		}
-
-		[[nodiscard]] static auto getNumSetBits(uint32_t i) noexcept
-		{
-#if defined(_MSC_VER) && !defined(__clang__)
-			return std::popcount(i);
-#else
-			return __builtin_popcount(i);
-#endif
-		}
-
-		[[nodiscard]] static auto getNumSetBits(uint64_t mask) noexcept
-		{
-#if defined(_MSC_VER) && !defined(__clang__)
-	#if SOUP_BITS >= 64
-			return std::popcount(mask);
-	#else
-			auto hi = static_cast<uint32_t>(mask >> 32);
-			auto lo = static_cast<uint32_t>(mask);
-			return getNumSetBits(hi) + getNumSetBits(lo);
-	#endif
-#else
-			return __builtin_popcountll(mask);
-#endif
+			return soup::popcount<T>(val);
 		}
 
 		// https://stackoverflow.com/a/2602885
