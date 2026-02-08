@@ -18,6 +18,7 @@
 #include "vendor/Soup/soup/Curve25519.hpp"
 #include "vendor/Soup/soup/deflate.hpp"
 #include "vendor/Soup/soup/HardwareRng.hpp"
+#include "vendor/Soup/soup/lzf.hpp"
 #include "vendor/Soup/soup/md5.hpp"
 #include "vendor/Soup/soup/ripemd160.hpp"
 #include "vendor/Soup/soup/rsa.hpp"
@@ -1003,33 +1004,63 @@ size_t posrelatI (lua_Integer pos, size_t len);
 static int l_decompress (lua_State *L) {
   size_t size;
   const char *data = luaL_checklstring(L, 1, &size);
-  soup::deflate::DecompressResult res;
+  const char *algo = "deflate";
+  size_t offset = 0;
+  size_t max_decompressed_size = -1;
   switch (lua_gettop(L)) {
     case 1: {  /* (data) */
-      res = soup::deflate::decompress(data, size);
       break;
     }
-    case 2: {  /* (data, decompressed_size) */
-      res = soup::deflate::decompress(data, size, luaL_checkinteger(L, 2));
-      break;
-    }
-    case 3: {  /* (data, offset, decompressed_size) */
-      size_t offset = posrelatI(luaL_checkinteger(L, 2), size) - 1;
-      if (l_unlikely(offset > size)) {
-        luaL_error(L, "offset out of range");
-      }
-      data += offset;
-      size -= offset;
-      if (lua_isnil(L, 3)) {
-        res = soup::deflate::decompress(data, size);
+    case 2: {  /* (data, max_decompressed_size) or (data, algorithm) */
+      if (lua_type(L, 2) == LUA_TSTRING) {
+        algo = lua_tostring(L, 2);
       }
       else {
-        res = soup::deflate::decompress(data, size, luaL_checkinteger(L, 3));
+        max_decompressed_size = luaL_optinteger(L, 3, -1);
       }
       break;
+    }
+    case 3: {  /* (data, offset, max_decompressed_size) or (data, algorithm, max_decompressed_size) */
+      if (lua_type(L, 2) == LUA_TSTRING) {
+        algo = lua_tostring(L, 2);
+        max_decompressed_size = luaL_optinteger(L, 3, -1);
+      }
+      else {
+        offset = posrelatI(luaL_checkinteger(L, 2), size) - 1;
+        max_decompressed_size = luaL_optinteger(L, 3, -1);
+      }
+      break;
+    }
+    case 4: {  /* (data, algorithm, offset, max_decompressed_size) */
+      algo = luaL_checkstring(L, 2);
+      offset = posrelatI(luaL_checkinteger(L, 3), size) - 1;
+      max_decompressed_size = luaL_optinteger(L, 4, -1);
     }
     default: luaL_error(L, "wrong number of arguments");
   }
+
+  if (l_unlikely(offset > size)) {
+    luaL_error(L, "offset out of range");
+  }
+  data += offset;
+  size -= offset;
+
+  if (strcmp(algo, "lzf") == 0) {
+    if (max_decompressed_size == -1) {
+      max_decompressed_size = soup::lzf::getMaxDecompressedSize(data, static_cast<unsigned int>(size));
+    }
+    auto buffer_size = soup::lzf::getMaxDecompressedSize(data, static_cast<unsigned int>(size));
+    auto buffer = lua_newuserdata(L, buffer_size);
+    if (auto compressed_size = soup::lzf::decompress(data, static_cast<unsigned int>(size), buffer, buffer_size)) {
+      lua_pushlstring(L, static_cast<char*>(buffer), compressed_size);
+      return 1;
+    }
+    return luaL_error(L, "failed to decompress string");
+  }
+  if (max_decompressed_size == -1) {
+    max_decompressed_size = soup::deflate::getMaxDecompressedSize(data, size);
+  }
+  auto res = soup::deflate::decompress(data, size, max_decompressed_size);
   pluto_pushstring(L, res.decompressed);
   lua_newtable(L);
   lua_pushliteral(L, "compressed_size");
@@ -1042,6 +1073,23 @@ static int l_decompress (lua_State *L) {
   lua_pushboolean(L, res.checksum_mismatch);
   lua_settable(L, -3);
   return 2;
+}
+
+
+static int l_compress (lua_State *L) {
+  size_t size;
+  const char *data = luaL_checklstring(L, 1, &size);
+  const char *algo = luaL_checkstring(L, 2);
+  if (l_unlikely(strcmp(algo, "lzf") != 0)) {
+    return luaL_error(L, "crypto.compress currently only supports 'lzf' algorithm");
+  }
+  auto buffer_size = soup::lzf::getMaxCompressedSize(data, static_cast<unsigned int>(size));
+  auto buffer = lua_newuserdata(L, buffer_size);
+  if (auto compressed_size = soup::lzf::compress(data, static_cast<unsigned int>(size), buffer, static_cast<unsigned int>(buffer_size))) {
+    lua_pushlstring(L, static_cast<char*>(buffer), compressed_size);
+    return 1;
+  }
+  return luaL_error(L, "failed to compress string");
 }
 
 
@@ -1096,6 +1144,7 @@ static const luaL_Reg funcs_crypto[] = {
   {"x25519", l_x25519},
   {"adler32", l_adler32},
   {"decompress", l_decompress},
+  {"compress", l_compress},
   {"ripemd160", l_ripemd160},
   {NULL, NULL}
 };

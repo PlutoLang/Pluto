@@ -766,6 +766,7 @@
     <ClCompile Include="src\vendor\Soup\soup\LangDesc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\LexemeParser.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\log.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\lzf.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\md5.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\memGuard.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\MimeMessage.cpp" />
@@ -961,6 +962,7 @@
     <ClInclude Include="src\vendor\Soup\soup\log.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\logSink.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\logStdSink.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\lzf.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\macros.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\math.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\md5.hpp" />
