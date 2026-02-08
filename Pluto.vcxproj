@@ -874,6 +874,7 @@
     <ClInclude Include="src\vendor\Soup\soup\BCanvas.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\BigBitset.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Bigint.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\bit.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\bitmask.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Bitset.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\bitutil.hpp" />

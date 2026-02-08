@@ -1198,6 +1198,9 @@
     <ClInclude Include="src\vendor\Soup\soup\whirlpool.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\bit.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="vendor">
