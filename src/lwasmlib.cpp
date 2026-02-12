@@ -69,7 +69,9 @@ static int call (lua_State *L) {
         break;
     }
   }
-  if (l_unlikely(!vm.run(*code) || vm.stack.size() != type->results.size())) {
+  if (!vm.run(*code)
+    || vm.stack.size() < type->results.size() // Not using != because the VM stack is over-filled due to implicit drops only happening on internal calls.
+    ) {
     return luaL_error(L, "wasm vm error");
   }
   vm.wasm_to_lua_stack(type->results);
