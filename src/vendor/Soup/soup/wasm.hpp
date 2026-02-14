@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "StructMap.hpp"
+
 NAMESPACE_SOUP
 {
 	class WasmVm;
@@ -61,6 +63,9 @@ NAMESPACE_SOUP
 		uint8_t* memory = nullptr;
 		size_t memory_size = 0;
 		size_t last_alloc = -1;
+		uint32_t memory_page_limit : 31;
+		uint32_t memory64 : 1;
+		uint32_t start_func_idx = -1;
 		std::vector<uint32_t> functions{}; // (function_index - function_imports.size()) -> type_index
 		std::vector<FunctionType> types{};
 		std::vector<FunctionImport> function_imports{};
@@ -68,13 +73,24 @@ NAMESPACE_SOUP
 		std::unordered_map<std::string, uint32_t> export_map{};
 		std::vector<std::string> code{};
 		std::vector<uint32_t> elements{};
-		uint32_t memory_page_limit = 0x10'000;
-		bool memory64 = false;
+		StructMap custom_data;
 
+		WasmScript() noexcept
+			: memory_page_limit(0x10'000), memory64(0)
+		{
+		}
+
+		WasmScript(WasmScript&&) noexcept = default;
+		WasmScript(const WasmScript&) = delete;
+		WasmScript& operator = (WasmScript&&) noexcept = default;
+		WasmScript& operator = (const WasmScript&) = delete;
 		~WasmScript() noexcept;
 
-		bool load(const std::string& data);
-		bool load(Reader& r);
+		bool load(const std::string& data) SOUP_EXCAL;
+		bool load(Reader& r) SOUP_EXCAL;
+
+		// Runs the start function of the script, if defined. Throws if imported functions throw.
+		bool instantiate();
 
 		[[nodiscard]] FunctionImport* getImportedFunction(const std::string& module_name, const std::string& function_name) noexcept;
 		[[nodiscard]] const std::string* getExportedFuntion(const std::string& name, const FunctionType** optOutType = nullptr) const noexcept;
@@ -104,7 +120,8 @@ NAMESPACE_SOUP
 		bool setMemory(size_t ptr, const void* src, size_t len) noexcept;
 		bool setMemory(WasmValue ptr, const void* src, size_t len) noexcept;
 
-		void linkWasiPreview1() noexcept;
+		void linkWasiPreview1(std::vector<std::string> args = {}) noexcept;
+		void linkSpectestShim() noexcept;
 
 		[[nodiscard]] size_t readUPTR(Reader& r) const noexcept;
 	};
@@ -121,20 +138,21 @@ NAMESPACE_SOUP
 		{
 		}
 
-		bool run(const std::string& data);
-		bool run(Reader& r);
+		// Throws if imported functions throw.
+		bool run(const std::string& data, unsigned depth = 0);
+		bool run(Reader& r, unsigned depth = 0);
 
 	private:
 		struct CtrlFlowEntry
 		{
-			std::streamoff position;
+			std::streamoff position; // -1 for forward jumps
 			size_t stack_size;
-			size_t num_results;
+			uint32_t num_values; // Number of values to keep on the stack top after branching. num_results for forward jumps; num_params for backward jumps.
 		};
 
 		bool skipOverBranch(Reader& r, uint32_t depth = 0) SOUP_EXCAL;
 		[[nodiscard]] bool doBranch(Reader& r, uint32_t depth, std::stack<CtrlFlowEntry>& ctrlflow) SOUP_EXCAL;
-		[[nodiscard]] bool doCall(uint32_t type_index, uint32_t function_index);
+		[[nodiscard]] bool doCall(uint32_t type_index, uint32_t function_index, unsigned depth);
 		void pushIPTR(size_t ptr) SOUP_EXCAL;
 		[[nodiscard]] size_t popIPTR();
 	};

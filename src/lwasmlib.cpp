@@ -184,6 +184,9 @@ static int instantiate (lua_State *L) {
       }
     };
   }
+  if (l_unlikely(!inst.instantiate())) {
+    return luaL_error(L, "failed to instantiate wasm module");
+  }
   return 1;
 }
 
