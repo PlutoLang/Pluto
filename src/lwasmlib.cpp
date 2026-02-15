@@ -80,24 +80,26 @@ static int call (lua_State *L) {
 
 static int wasm_module_read (lua_State *L) {
   auto& inst = *checkmodule(L, 1);
-  lua_Unsigned base = luaL_checkinteger(L, 2);
+  lua_Unsigned addr = luaL_checkinteger(L, 2);
   lua_Unsigned size = luaL_checkinteger(L, 3);
-  if (l_unlikely(base + size > inst.memory_size)) {
+  auto ptr = inst.memory.getView(addr, size);
+  if (l_unlikely(!ptr)) {
     luaL_error(L, "attempt to read past end of memory");
   }
-  lua_pushlstring(L, (const char*)&inst.memory[base], size);
+  lua_pushlstring(L, (const char*)ptr, size);
   return 1;
 }
 
 static int wasm_module_write (lua_State *L) {
   auto& inst = *checkmodule(L, 1);
-  lua_Unsigned base = luaL_checkinteger(L, 2);
+  lua_Unsigned addr = luaL_checkinteger(L, 2);
   size_t size;
   const char *data = luaL_checklstring(L, 3, &size);
-  if (l_unlikely(base + size > inst.memory_size)) {
+  auto ptr = inst.memory.getView(addr, size);
+  if (l_unlikely(!ptr)) {
     luaL_error(L, "attempt to write past end of memory");
   }
-  memcpy(&inst.memory[base], data, size);
+  memcpy(ptr, data, size);
   return 0;
 }
 
