@@ -7,38 +7,34 @@
 #include "vendor/Soup/soup/MemoryRefReader.hpp"
 #include "vendor/Soup/soup/wasm.hpp"
 
+static thread_local lua_State* callback_L = nullptr;
+
 static soup::WasmScript *checkmodule (lua_State *L, int i) {
   return (soup::WasmScript*)luaL_checkudata(L, i, "pluto:wasm-module");
 }
 
-struct PlutoWasmVm : public soup::WasmVm {
-  lua_State *L;
-
-  using soup::WasmVm::WasmVm;
-
-  void wasm_to_lua_stack(const std::vector<soup::WasmType>& types) {
-    lua_checkstack(L, static_cast<int>(types.size()) + 1);
-    const auto base = lua_gettop(L);
-    for (auto i = static_cast<int>(types.size()); i-- != 0; ) {
-      switch (types[i]) {
-        case soup::WASM_I32: default:
-          lua_pushinteger(L, this->stack.top().i32);
-          break;
-        case soup::WASM_I64:
-          lua_pushinteger(L, this->stack.top().i64);
-          break;
-        case soup::WASM_F32:
-          lua_pushnumber(L, this->stack.top().f32);
-          break;
-        case soup::WASM_F64:
-          lua_pushnumber(L, this->stack.top().f64);
-          break;
-      }
-      lua_insert(L, base + 1);
-      this->stack.pop();
+static void wasm_to_lua_stack(lua_State *L, soup::WasmVm& vm, const std::vector<soup::WasmType>& types) {
+  lua_checkstack(L, static_cast<int>(types.size()) + 1);
+  const auto base = lua_gettop(L);
+  for (auto i = static_cast<int>(types.size()); i-- != 0; ) {
+    switch (types[i]) {
+      case soup::WASM_I32: default:
+        lua_pushinteger(L, vm.stack.top().i32);
+        break;
+      case soup::WASM_I64:
+        lua_pushinteger(L, vm.stack.top().i64);
+        break;
+      case soup::WASM_F32:
+        lua_pushnumber(L, vm.stack.top().f32);
+        break;
+      case soup::WASM_F64:
+        lua_pushnumber(L, vm.stack.top().f64);
+        break;
     }
+    lua_insert(L, base + 1);
+    vm.stack.pop();
   }
-};
+}
 
 static int call (lua_State *L) {
   auto& inst = *checkmodule(L, 1);
@@ -51,8 +47,7 @@ static int call (lua_State *L) {
   while (lua_gettop(L) < 2 + type->parameters.size()) {
     lua_pushnil(L);
   }
-  auto& vm = *pluto_newclassinst(L, PlutoWasmVm, inst);
-  vm.L = L;
+  auto& vm = *pluto_newclassinst(L, soup::WasmVm, inst);
   for (int i = 0; i != type->parameters.size(); ++i) {
     switch (type->parameters[i]) {
       case soup::WASM_I32: default:
@@ -69,12 +64,13 @@ static int call (lua_State *L) {
         break;
     }
   }
+  callback_L = L;
   if (!vm.run(*code)
     || vm.stack.size() < type->results.size() // Not using != because the VM stack is over-filled due to implicit drops only happening on internal calls.
     ) {
     return luaL_error(L, "wasm vm error");
   }
-  vm.wasm_to_lua_stack(type->results);
+  wasm_to_lua_stack(L, vm, type->results);
   return static_cast<int>(type->results.size());
 }
 
@@ -161,12 +157,13 @@ static int instantiate (lua_State *L) {
     lua_settable(L, LUA_REGISTRYINDEX);
     lua_pop(L, 2);
     imp.ptr = [](soup::WasmVm& vm, uint32_t func_index) {
+      lua_assert(callback_L);
       auto& func = vm.script.function_imports[func_index];
       auto& type = vm.script.types[func.type_index];
-      const auto L = static_cast<PlutoWasmVm&>(vm).L;
+      const auto L = callback_L;
       lua_pushinteger(L, reinterpret_cast<uintptr_t>(&vm.script) + func_index);
       lua_gettable(L, LUA_REGISTRYINDEX);
-      static_cast<PlutoWasmVm&>(vm).wasm_to_lua_stack(type.parameters);
+      wasm_to_lua_stack(L, vm, type.parameters);
       lua_call(L, static_cast<int>(type.parameters.size()), static_cast<int>(type.results.size()));
       for (int i = 0; i != type.results.size(); ++i) {
         switch (type.results[i]) {
@@ -186,6 +183,7 @@ static int instantiate (lua_State *L) {
       }
     };
   }
+  callback_L = L;
   if (l_unlikely(!inst.instantiate())) {
     return luaL_error(L, "failed to instantiate wasm module");
   }
