@@ -9,13 +9,12 @@
 #include <unordered_map>
 #include <vector>
 
+#include "SharedPtr.hpp"
 #include "StructMap.hpp"
 
 NAMESPACE_SOUP
 {
-	class WasmVm;
-
-	using wasm_ffi_func_t = void(*)(WasmVm&, uint32_t func_index);
+	struct WasmVm;
 
 	enum WasmType : uint8_t
 	{
@@ -27,9 +26,16 @@ NAMESPACE_SOUP
 		WASM_FUNCREF = 0x70,
 		WASM_EXTERNREF = 0x6F,
 	};
-
 	[[nodiscard]] WasmType wasm_type_from_string(const std::string& str) noexcept;
 	[[nodiscard]] std::string wasm_type_to_string(WasmType type) SOUP_EXCAL;
+
+	struct WasmFunctionType
+	{
+		std::vector<WasmType> parameters;
+		std::vector<WasmType> results;
+	};
+
+	using wasm_ffi_func_t = void(*)(WasmVm&, uint32_t func_index, const WasmFunctionType&);
 
 	struct WasmValue
 	{
@@ -51,19 +57,21 @@ NAMESPACE_SOUP
 		WasmValue(float f32) : f32(f32), type(WASM_F32) {}
 		WasmValue(double f64) : f64(f64), type(WASM_F64) {}
 		WasmValue(void* ptr) : i64(reinterpret_cast<uintptr_t>(ptr)), type(WASM_EXTERNREF) {}
-
-		template <typename T, SOUP_RESTRICT(std::is_same_v<T, size_t>)>
-		WasmValue(T ptr) : i32(static_cast<int32_t>(ptr)) {}
 	};
 
 	struct WasmScript
 	{
 		struct Memory
 		{
-			uint8_t* data = nullptr;
-			size_t size = 0;
-			uint32_t page_limit = 0x10'000;
-			bool memory64 = false;
+			uint8_t* data;
+			size_t size;
+			uint64_t page_limit : 48;
+			uint64_t memory64 : 1;
+
+			Memory() noexcept
+				: data(nullptr), size(0), page_limit(0x10'000), memory64(0)
+			{
+			}
 
 			~Memory() noexcept;
 
@@ -101,30 +109,45 @@ NAMESPACE_SOUP
 
 			bool write(size_t addr, const void* src, size_t size) noexcept;
 			bool write(const WasmValue& addr, const void* src, size_t size) noexcept;
-		};
 
-		struct FunctionType
-		{
-			std::vector<WasmType> parameters;
-			std::vector<WasmType> results;
+			//[[nodiscard]] intptr_t decodeIPTR(const WasmValue& in) noexcept;
+			[[nodiscard]] size_t decodeUPTR(const WasmValue& in) noexcept;
+			//void encodeIPTR(WasmValue& out, intptr_t in) noexcept;
+			void encodeUPTR(WasmValue& out, size_t in) noexcept;
+
+			size_t grow(size_t delta_pages) noexcept;
 		};
 
 		struct FunctionImport
 		{
 			std::string module_name;
 			std::string function_name;
+
 			wasm_ffi_func_t ptr;
-			uint32_t type_index;
+			SharedPtr<WasmScript> source;
+			uint32_t type_index; // an index in WasmScript::types of the importing WasmScript
+			uint32_t func_index; // to be used with `source` for WASM imports
+		};
+
+		struct Table
+		{
+			const WasmType type;
+			std::vector<uint64_t> values;
+
+			Table(WasmType type) noexcept
+				: type(type)
+			{
+			}
 		};
 
 		Memory memory;
 		std::vector<uint32_t> functions{}; // (function_index - function_imports.size()) -> type_index
-		std::vector<FunctionType> types{};
+		std::vector<WasmFunctionType> types{};
 		std::vector<FunctionImport> function_imports{};
 		std::vector<WasmValue> globals{};
 		std::unordered_map<std::string, uint32_t> export_map{};
 		std::vector<std::string> code{};
-		std::vector<uint32_t> elements{};
+		std::vector<Table> tables{};
 		StructMap custom_data;
 		uint32_t start_func_idx = -1;
 
@@ -138,19 +161,24 @@ NAMESPACE_SOUP
 		bool load(Reader& r) SOUP_EXCAL;
 		static bool readConstant(Reader& r, WasmValue& out) noexcept;
 
-		// Runs the start function of the script, if defined. Throws if imported functions throw.
+		// Runs the start function of the script, if defined. May throw if an imported C++ function throws.
 		bool instantiate();
 
 		[[nodiscard]] FunctionImport* getImportedFunction(const std::string& module_name, const std::string& function_name) noexcept;
-		[[nodiscard]] const std::string* getExportedFuntion(const std::string& name, const FunctionType** optOutType = nullptr) const noexcept;
+		void importFromModule(const std::string& module_name, const SharedPtr<WasmScript>& other);
+		[[nodiscard]] const std::string* getExportedFuntion(const std::string& name, const WasmFunctionType** optOutType = nullptr) const noexcept;
+		[[nodiscard]] uint32_t getExportedFuntion2(const std::string& name) const noexcept;
+		[[nodiscard]] uint32_t getTypeIndexForFunction(uint32_t func_index) const noexcept;
 
 		void linkWasiPreview1(std::vector<std::string> args = {}) noexcept;
 		void linkSpectestShim() noexcept;
+
+		// May throw if an imported C++ function throws.
+		bool call(uint32_t func_index, std::vector<WasmValue>&& args = {}, std::stack<WasmValue>* out = nullptr);
 	};
 
-	class WasmVm
+	struct WasmVm
 	{
-	public:
 		std::stack<WasmValue> stack;
 		std::vector<WasmValue> locals;
 		WasmScript& script;
@@ -160,11 +188,10 @@ NAMESPACE_SOUP
 		{
 		}
 
-		// Throws if imported functions throw.
+		// May throw if an imported C++ function throws.
 		bool run(const std::string& data, unsigned depth = 0);
 		bool run(Reader& r, unsigned depth = 0);
 
-	private:
 		struct CtrlFlowEntry
 		{
 			std::streamoff position; // -1 for forward jumps
@@ -174,9 +201,9 @@ NAMESPACE_SOUP
 
 		bool skipOverBranch(Reader& r, uint32_t depth = 0) SOUP_EXCAL;
 		[[nodiscard]] bool doBranch(Reader& r, uint32_t depth, std::stack<CtrlFlowEntry>& ctrlflow) SOUP_EXCAL;
-		[[nodiscard]] bool doCall(uint32_t type_index, uint32_t function_index, unsigned depth);
-		void pushIPTR(size_t ptr) SOUP_EXCAL;
-		[[nodiscard]] size_t popIPTR();
+		[[nodiscard]] bool doCall(uint32_t type_index, uint32_t function_index, unsigned depth = 0);
+		//[[nodiscard]] intptr_t popIPTR() noexcept;
+		[[nodiscard]] size_t popUPTR() noexcept;
 		[[nodiscard]] static size_t readUPTR(Reader& r) noexcept;
 	};
 

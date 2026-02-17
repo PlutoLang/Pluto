@@ -38,7 +38,7 @@ static void wasm_to_lua_stack(lua_State *L, soup::WasmVm& vm, const std::vector<
 
 static int call (lua_State *L) {
   auto& inst = *checkmodule(L, 1);
-  const soup::WasmScript::FunctionType* type;
+  const soup::WasmFunctionType* type;
   auto code = inst.getExportedFuntion(pluto_checkstring(L, 2), &type);
   if (l_unlikely(!code)) {
     return luaL_error(L, "function export not found");
@@ -156,10 +156,8 @@ static int instantiate (lua_State *L) {
     lua_pushvalue(L, -2);
     lua_settable(L, LUA_REGISTRYINDEX);
     lua_pop(L, 2);
-    imp.ptr = [](soup::WasmVm& vm, uint32_t func_index) {
+    imp.ptr = [](soup::WasmVm& vm, uint32_t func_index, const soup::WasmFunctionType& type) {
       lua_assert(callback_L);
-      auto& func = vm.script.function_imports[func_index];
-      auto& type = vm.script.types[func.type_index];
       const auto L = callback_L;
       lua_pushinteger(L, reinterpret_cast<uintptr_t>(&vm.script) + func_index);
       lua_gettable(L, LUA_REGISTRYINDEX);
