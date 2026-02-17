@@ -165,15 +165,15 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 #endif
 
 #if SOUP_CPP23
-	#define SOUP_ASSUME(...) [[assume(__VA_ARGS__)]];
-	#define SOUP_UNREACHABLE std::unreachable();
+	#define SOUP_ASSUME(...) [[assume(__VA_ARGS__)]]
+	#define SOUP_UNREACHABLE std::unreachable()
 #else
 	#if defined(_MSC_VER) && !defined(__clang__)
-		#define SOUP_ASSUME(...) __assume(__VA_ARGS__);
-		#define SOUP_UNREACHABLE SOUP_ASSUME(false);
+		#define SOUP_ASSUME(...) __assume(__VA_ARGS__)
+		#define SOUP_UNREACHABLE SOUP_ASSUME(false)
 	#else
-		#define SOUP_ASSUME(...) ;
-		#define SOUP_UNREACHABLE __builtin_unreachable();
+		#define SOUP_ASSUME(...)
+		#define SOUP_UNREACHABLE __builtin_unreachable()
 	#endif
 #endif
 
