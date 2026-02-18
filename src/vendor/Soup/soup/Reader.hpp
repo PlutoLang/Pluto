@@ -73,9 +73,6 @@ NAMESPACE_SOUP
 
 		// An integer where every byte's most significant bit is used to indicate if another byte follows, least significant byte first. This is compatible with unsigned LEB128.
 		template <typename Int>
-#if SOUP_X86 && SOUP_BITS == 64
-		SOUP_NOINLINE // Must not be inlined into the "bmi2" target because Clang might elect to use 'shlx'
-#endif
 		bool oml(Int& v) noexcept
 		{
 			v = {};
@@ -93,8 +90,13 @@ NAMESPACE_SOUP
 			return false;
 		}
 #if SOUP_X86 && SOUP_BITS == 64
-		bool oml(uint32_t& v) noexcept;
-		bool oml(uint64_t& v) noexcept;
+		// OFB = Optimised for big numbers. Prefer the above function if you don't wanna do benchmarking.
+		bool oml_ofb(uint32_t& v) noexcept;
+		bool oml_ofb(uint64_t& v) noexcept;
+	protected:
+		bool oml_bmi2(uint32_t& v) noexcept;
+		bool oml_bmi2_sse41(uint64_t& v) noexcept;
+	public:
 #endif
 
 		// Signed LEB128.

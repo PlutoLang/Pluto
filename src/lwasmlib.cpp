@@ -19,20 +19,20 @@ static void wasm_to_lua_stack(lua_State *L, soup::WasmVm& vm, const std::vector<
   for (auto i = static_cast<int>(types.size()); i-- != 0; ) {
     switch (types[i]) {
       case soup::WASM_I32: default:
-        lua_pushinteger(L, vm.stack.top().i32);
+        lua_pushinteger(L, vm.stack.back().i32);
         break;
       case soup::WASM_I64:
-        lua_pushinteger(L, vm.stack.top().i64);
+        lua_pushinteger(L, vm.stack.back().i64);
         break;
       case soup::WASM_F32:
-        lua_pushnumber(L, vm.stack.top().f32);
+        lua_pushnumber(L, vm.stack.back().f32);
         break;
       case soup::WASM_F64:
-        lua_pushnumber(L, vm.stack.top().f64);
+        lua_pushnumber(L, vm.stack.back().f64);
         break;
     }
     lua_insert(L, base + 1);
-    vm.stack.pop();
+    vm.stack.pop_back();
   }
 }
 
@@ -166,16 +166,16 @@ static int instantiate (lua_State *L) {
       for (int i = 0; i != type.results.size(); ++i) {
         switch (type.results[i]) {
           case soup::WASM_I32: default:
-            vm.stack.emplace(static_cast<int32_t>(luaL_optinteger(L, (static_cast<int>(type.results.size()) - i) * -1, 0)));
+            vm.stack.emplace_back(static_cast<int32_t>(luaL_optinteger(L, (static_cast<int>(type.results.size()) - i) * -1, 0)));
             break;
           case soup::WASM_I64:
-            vm.stack.emplace(static_cast<int64_t>(luaL_optinteger(L, (static_cast<int>(type.results.size()) - i) * -1, 0)));
+            vm.stack.emplace_back(static_cast<int64_t>(luaL_optinteger(L, (static_cast<int>(type.results.size()) - i) * -1, 0)));
             break;
           case soup::WASM_F32:
-            vm.stack.emplace(static_cast<float>(luaL_optnumber(L, (static_cast<int>(type.results.size()) - i) * -1, 0.0)));
+            vm.stack.emplace_back(static_cast<float>(luaL_optnumber(L, (static_cast<int>(type.results.size()) - i) * -1, 0.0)));
             break;
           case soup::WASM_F64:
-            vm.stack.emplace(static_cast<double>(luaL_optnumber(L, (static_cast<int>(type.results.size()) - i) * -1, 0.0)));
+            vm.stack.emplace_back(static_cast<double>(luaL_optnumber(L, (static_cast<int>(type.results.size()) - i) * -1, 0.0)));
             break;
         }
       }

@@ -76,6 +76,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] std::streamoff getPosition() final
 		{
+			s.clear(); // tellg will return -1 if rdstate() != 0
 			return static_cast<size_t>(s.tellg());
 		}
 
