@@ -14,7 +14,7 @@
 
 NAMESPACE_SOUP
 {
-	struct WasmVm;
+	class WasmVm;
 
 	enum WasmType : uint8_t
 	{
@@ -41,22 +41,32 @@ NAMESPACE_SOUP
 	{
 		union
 		{
-			int32_t i32;
+			struct
+			{
+				union
+				{
+					int32_t i32;
+					float f32;
+				};
+				int32_t hi32;
+			};
 			int64_t i64;
-			float f32;
 			double f64;
 		};
 		WasmType type;
 
 		WasmValue() = default;
 		WasmValue(WasmType type) : i64(0), type(type) {}
-		WasmValue(int32_t i32) : i32(i32), type(WASM_I32) {}
+		WasmValue(int32_t i32) : i32(i32), hi32(0), type(WASM_I32) {}
 		WasmValue(uint32_t u32) : WasmValue(static_cast<int32_t>(u32)) {}
 		WasmValue(int64_t i64) : i64(i64), type(WASM_I64) {}
 		WasmValue(uint64_t u64) : WasmValue(static_cast<int64_t>(u64)) {}
-		WasmValue(float f32) : f32(f32), type(WASM_F32) {}
+		WasmValue(float f32) : f32(f32), hi32(0), type(WASM_F32) {}
 		WasmValue(double f64) : f64(f64), type(WASM_F64) {}
 		WasmValue(void* ptr) : i64(reinterpret_cast<uintptr_t>(ptr)), type(WASM_EXTERNREF) {}
+
+		[[nodiscard]] bool operator==(const WasmValue& b) const noexcept { return i64 == b.i64 && type == b.type; }
+		[[nodiscard]] bool operator!=(const WasmValue& b) const noexcept { return !operator==(b); }
 	};
 
 	struct WasmScript
@@ -147,6 +157,7 @@ NAMESPACE_SOUP
 		std::vector<WasmValue> globals{};
 		std::unordered_map<std::string, uint32_t> export_map{};
 		std::vector<std::string> code{};
+		std::unordered_map<uint64_t, std::vector<uint32_t>> _internal_branch_hints{};
 		std::vector<Table> tables{};
 		StructMap custom_data;
 		uint32_t start_func_idx = -1;
@@ -174,12 +185,13 @@ NAMESPACE_SOUP
 		void linkSpectestShim() noexcept;
 
 		// May throw if an imported C++ function throws.
-		bool call(uint32_t func_index, std::vector<WasmValue>&& args = {}, std::stack<WasmValue>* out = nullptr);
+		bool call(uint32_t func_index, std::vector<WasmValue>&& args = {}, std::vector<WasmValue>* out = nullptr);
 	};
 
-	struct WasmVm
+	class WasmVm
 	{
-		std::stack<WasmValue> stack;
+	public:
+		std::vector<WasmValue> stack;
 		std::vector<WasmValue> locals;
 		WasmScript& script;
 
@@ -189,9 +201,10 @@ NAMESPACE_SOUP
 		}
 
 		// May throw if an imported C++ function throws.
-		bool run(const std::string& data, unsigned depth = 0);
-		bool run(Reader& r, unsigned depth = 0);
+		bool run(const std::string& data, unsigned depth = 0, uint32_t func_index = -1);
+		bool run(Reader& r, unsigned depth = 0, uint32_t func_index = -1);
 
+	protected:
 		struct CtrlFlowEntry
 		{
 			std::streamoff position; // -1 for forward jumps
@@ -199,8 +212,8 @@ NAMESPACE_SOUP
 			uint32_t num_values; // Number of values to keep on the stack top after branching. num_results for forward jumps; num_params for backward jumps.
 		};
 
-		bool skipOverBranch(Reader& r, uint32_t depth = 0) SOUP_EXCAL;
-		[[nodiscard]] bool doBranch(Reader& r, uint32_t depth, std::stack<CtrlFlowEntry>& ctrlflow) SOUP_EXCAL;
+		bool skipOverBranch(Reader& r, uint32_t depth, uint32_t func_index) SOUP_EXCAL;
+		[[nodiscard]] bool doBranch(Reader& r, uint32_t depth, uint32_t func_index, std::stack<CtrlFlowEntry>& ctrlflow) SOUP_EXCAL;
 		[[nodiscard]] bool doCall(uint32_t type_index, uint32_t function_index, unsigned depth = 0);
 		//[[nodiscard]] intptr_t popIPTR() noexcept;
 		[[nodiscard]] size_t popUPTR() noexcept;
