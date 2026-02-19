@@ -1035,6 +1035,7 @@ static int l_decompress (lua_State *L) {
       algo = luaL_checkstring(L, 2);
       offset = posrelatI(luaL_checkinteger(L, 3), size) - 1;
       max_decompressed_size = luaL_optinteger(L, 4, -1);
+      break;
     }
     default: luaL_error(L, "wrong number of arguments");
   }
