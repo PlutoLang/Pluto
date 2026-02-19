@@ -19,19 +19,22 @@ foreach (scandir(".") as $f)
 {
 	if (substr($f, -4) == ".cpp" || substr($f, -4) == ".hpp")
 	{
+		$expected_conts = file_get_contents("$dir/$f");
 		if ($f == "base.hpp")
 		{
-			file_put_contents($f,
-				str_replace("\r\n#define NAMESPACE_SOUP namespace soup", "\r\nnamespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };\r\n#define NAMESPACE_SOUP namespace soup::pluto_vendored",
-					str_replace("#define SOUP_EXCAL throw()", "#define SOUP_EXCAL",
-						file_get_contents("$dir/$f")
-					)
+			$expected_conts = str_replace(
+				"\r\n#define NAMESPACE_SOUP namespace soup",
+				"\r\nnamespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };\r\n#define NAMESPACE_SOUP namespace soup::pluto_vendored",
+				str_replace(
+					"#define SOUP_EXCAL throw()",
+					"#define SOUP_EXCAL",
+					$expected_conts
 				)
 			);
 		}
-		else
+		if (file_get_contents($f) != $expected_conts)
 		{
-			copy("$dir/$f", $f);
+			file_put_contents($f, $expected_conts);
 		}
 	}
 }
