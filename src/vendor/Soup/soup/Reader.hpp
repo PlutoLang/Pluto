@@ -72,7 +72,7 @@ NAMESPACE_SOUP
 		}
 
 		// An integer where every byte's most significant bit is used to indicate if another byte follows, least significant byte first. This is compatible with unsigned LEB128.
-		template <typename Int>
+		template <typename Int, bool reject_overlong = false, bool reject_overflow = false>
 		bool oml(Int& v) noexcept
 		{
 			v = {};
@@ -83,9 +83,26 @@ NAMESPACE_SOUP
 				v |= (static_cast<Int>(byte & 0x7F) << shift);
 				if (!(byte & 0x80))
 				{
+					if constexpr (reject_overflow)
+					{
+						//if (shift >= (sizeof(Int) * 8))
+						{
+							SOUP_IF_UNLIKELY (((static_cast<std::make_unsigned_t<Int>>(byte) << shift) >> shift) != byte)
+							{
+								return false;
+							}
+						}
+					}
 					return true;
 				}
 				shift += 7;
+				if constexpr (reject_overlong)
+				{
+					SOUP_IF_UNLIKELY (shift >= sizeof(Int) * 8)
+					{
+						return false;
+					}
+				}
 			}
 			return false;
 		}
@@ -100,7 +117,7 @@ NAMESPACE_SOUP
 #endif
 
 		// Signed LEB128.
-		template <typename Int>
+		template <typename Int, bool reject_overlong = false, bool reject_overflow = false>
 		bool soml(Int& v) noexcept
 		{
 			v = {};
@@ -112,11 +129,32 @@ NAMESPACE_SOUP
 				shift += 7;
 				if (!(byte & 0x80))
 				{
+					if constexpr (reject_overflow)
+					{
+						if (shift >= sizeof(Int) * 8)
+						{
+							const uint8_t used_bits = 8 - ((shift - 7) % 8);
+							const uint8_t mask = (0x7F << used_bits) & 0x7F;
+							const bool sign = v < 0;
+							const uint8_t expected = sign ? mask : 0;
+							SOUP_IF_UNLIKELY((byte & mask) != expected)
+							{
+								return false;
+							}
+						}
+					}
 					if (shift < (sizeof(Int) * 8) && (byte & 0x40))
 					{
 						v |= (~0 << shift);
 					}
 					return true;
+				}
+				if constexpr (reject_overlong)
+				{
+					SOUP_IF_UNLIKELY (shift >= sizeof(Int) * 8)
+					{
+						return false;
+					}
 				}
 			}
 			return false;

@@ -225,7 +225,7 @@ NAMESPACE_SOUP
 
 template <typename T> SOUP_FORCEINLINE void SOUP_UNUSED(T&&) {}
 
-#define SOUP_RETHROW_FALSE(x) SOUP_IF_UNLIKELY (!(x)) { return {}; }
+#define SOUP_RETHROW_FALSE(...) SOUP_IF_UNLIKELY (!(__VA_ARGS__)) { return {}; }
 
 // Enable compiler warning for unannotated fallthroughs
 #if defined(__clang__)

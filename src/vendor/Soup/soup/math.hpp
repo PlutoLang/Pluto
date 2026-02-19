@@ -11,17 +11,18 @@
 #define RAD_TO_DEG(rad) ((rad) / (float(M_PI) / 180.0f))
 
 #include "base.hpp"
+#include "type_traits.hpp"
 
 NAMESPACE_SOUP
 {
 	template <typename T = float>
-	[[nodiscard]] constexpr T lerp(T a, T b, float t)
+	[[nodiscard]] constexpr T lerp(T a, T b, float t) noexcept
 	{
 		return (T)(a + (b - a) * t);
 	}
 
 	template <typename T>
-	[[nodiscard]] constexpr T pow(T x, T p) // p must be >= 0
+	[[nodiscard]] constexpr T pow(T x, T p) noexcept // p must be >= 0
 	{
 		// Stolen from https://stackoverflow.com/a/1505791
 		// Could be better: https://stackoverflow.com/a/101613 (also see comments)
@@ -40,5 +41,11 @@ NAMESPACE_SOUP
 			return tmp * tmp;
 		}
 		return x * tmp * tmp;
+	}
+
+	template <typename T, SOUP_RESTRICT(std::is_unsigned_v<T>)>
+	[[nodiscard]] constexpr T can_add_without_overflow(T a, T b) noexcept
+	{
+		return a + b >= a;
 	}
 }
