@@ -40,39 +40,43 @@ static void wasm_to_lua_stack(lua_State *L, soup::WasmVm& vm, const std::vector<
   }
 }
 
+static void opt_wasm_value (lua_State *L, int i, soup::WasmValue& value) {
+  switch (value.type) {
+    case soup::WASM_I32: default:
+      value.i32 = static_cast<int32_t>(luaL_optinteger(L, i, 0));
+      break;
+    case soup::WASM_I64:
+      value.i64 = static_cast<int64_t>(luaL_optinteger(L, i, 0));
+      break;
+    case soup::WASM_F32:
+      value.f32 = static_cast<float>(luaL_optnumber(L, i, 0.0));
+      break;
+    case soup::WASM_F64:
+      value.f64 = static_cast<double>(luaL_optnumber(L, i, 0.0));
+      break;
+  }
+}
+
 static int call (lua_State *L) {
   auto& inst = checkmodule(L, 1);
   const soup::WasmFunctionType* type;
   auto code = inst.getExportedFuntion(pluto_checkstring(L, 2), &type);
   if (l_unlikely(!code)) {
-    return luaL_error(L, "function export not found");
+    luaL_error(L, "function export not found");
   }
   lua_checkstack(L, static_cast<int>(3 + type->parameters.size()));  /* ensure enough space for parameters + vm */
   while (lua_gettop(L) < 2 + type->parameters.size()) {
     lua_pushnil(L);
   }
   auto& vm = *pluto_newclassinst(L, soup::WasmVm, inst);
-  for (int i = 0; i != type->parameters.size(); ++i) {
-    switch (type->parameters[i]) {
-      case soup::WASM_I32: default:
-        vm.locals.emplace_back(static_cast<int32_t>(luaL_optinteger(L, 3 + i, 0)));
-        break;
-      case soup::WASM_I64:
-        vm.locals.emplace_back(static_cast<int64_t>(luaL_optinteger(L, 3 + i, 0)));
-        break;
-      case soup::WASM_F32:
-        vm.locals.emplace_back(static_cast<float>(luaL_optnumber(L, 3 + i, 0.0)));
-        break;
-      case soup::WASM_F64:
-        vm.locals.emplace_back(static_cast<double>(luaL_optnumber(L, 3 + i, 0.0)));
-        break;
-    }
+  for (uint32_t i = 0; i != type->parameters.size(); ++i) {
+    opt_wasm_value(L, 3 + i, vm.locals.emplace_back(type->parameters[i]));
   }
   callback_L = L;
   if (!vm.run(*code)
     || vm.stack.size() < type->results.size() // Not using != because the VM stack is over-filled due to implicit drops only happening on internal calls.
     ) {
-    return luaL_error(L, "wasm vm error");
+    luaL_error(L, "wasm vm error");
   }
   wasm_to_lua_stack(L, vm, type->results);
   return static_cast<int>(type->results.size());
@@ -157,17 +161,17 @@ static int instantiate (lua_State *L) {
   soup::MemoryRefReader r(data, size);
   auto& inst = pushmodule(L);
   if (l_unlikely(!inst.load(r))) {
-    return luaL_error(L, "failed to load wasm module");
+    luaL_error(L, "failed to load wasm module");
   }
   for (size_t i = 0; i != inst.function_imports.size(); ++i) {
     auto& imp = inst.function_imports[i];
     pluto_pushstring(L, imp.module_name);
     if (l_unlikely(lua_gettable(L, 2) <= LUA_TNIL)) {
-      return luaL_error(L, "missing import module: %s", imp.module_name.c_str());
+      luaL_error(L, "missing import module: %s", imp.module_name.c_str());
     }
     pluto_pushstring(L, imp.function_name);
     if (l_unlikely(lua_gettable(L, -2) <= LUA_TNIL)) {
-      return luaL_error(L, R"(missing import function "%s" in module "%s")", imp.function_name.c_str(), imp.module_name.c_str());
+      luaL_error(L, R"(missing import function "%s" in module "%s")", imp.function_name.c_str(), imp.module_name.c_str());
     }
     lua_pushinteger(L, reinterpret_cast<uintptr_t>(&inst) + i);
     lua_pushvalue(L, -2);
@@ -181,26 +185,30 @@ static int instantiate (lua_State *L) {
       wasm_to_lua_stack(L, vm, type.parameters);
       lua_call(L, static_cast<int>(type.parameters.size()), static_cast<int>(type.results.size()));
       for (int i = 0; i != type.results.size(); ++i) {
-        switch (type.results[i]) {
-          case soup::WASM_I32: default:
-            vm.stack.emplace_back(static_cast<int32_t>(luaL_optinteger(L, (static_cast<int>(type.results.size()) - i) * -1, 0)));
-            break;
-          case soup::WASM_I64:
-            vm.stack.emplace_back(static_cast<int64_t>(luaL_optinteger(L, (static_cast<int>(type.results.size()) - i) * -1, 0)));
-            break;
-          case soup::WASM_F32:
-            vm.stack.emplace_back(static_cast<float>(luaL_optnumber(L, (static_cast<int>(type.results.size()) - i) * -1, 0.0)));
-            break;
-          case soup::WASM_F64:
-            vm.stack.emplace_back(static_cast<double>(luaL_optnumber(L, (static_cast<int>(type.results.size()) - i) * -1, 0.0)));
-            break;
-        }
+        opt_wasm_value(L, (static_cast<int>(type.results.size()) - i) * -1, vm.stack.emplace_back(type.results[i]));
       }
     };
   }
+  for (size_t i = 0; i != inst.global_imports.size(); ++i) {
+    const auto& imp = inst.global_imports[i];
+    pluto_pushstring(L, imp.module_name);
+    if (l_unlikely(lua_gettable(L, 2) <= LUA_TNIL)) {
+      luaL_error(L, "missing import module: %s", imp.module_name.c_str());
+    }
+    pluto_pushstring(L, imp.field_name);
+    if (l_unlikely(lua_gettable(L, -2) <= LUA_TNIL)) {
+      luaL_error(L, R"(missing import global "%s" in module "%s")", imp.field_name.c_str(), imp.module_name.c_str());
+    }
+    auto& g = *(soup::SharedPtr<soup::WasmValue>*)luaL_checkudata(L, -1, "soup::SharedPtr<soup::WasmValue>");
+    if (imp.type != g->type || imp.mut != g->mut) {
+      luaL_error(L, R"(type mismatch for import global "%s" in module "%s")", imp.field_name.c_str(), imp.module_name.c_str());
+    }
+    inst.globals[i] = g;
+    lua_pop(L, 2);
+  }
   callback_L = L;
   if (l_unlikely(!inst.instantiate())) {
-    return luaL_error(L, "failed to instantiate wasm module");
+    luaL_error(L, "failed to instantiate wasm module");
   }
   return 1;
 }
@@ -210,4 +218,55 @@ static const luaL_Reg funcs_wasm[] = {
   {nullptr, nullptr}
 };
 
-PLUTO_NEWLIB(wasm)
+static int global_new (lua_State *L) {
+  size_t len;
+  const char *data = luaL_checklstring(L, 1, &len);
+  bool mut = false;
+  if (len >= 4 && memcmp(data, "mut ", 4) == 0) {
+    mut = true;
+    data += 4;
+    len -= 4;
+  }
+  soup::WasmType type{};
+  if (len == 3) {
+    if (memcmp(data, "i32", 3) == 0) {
+      type = soup::WASM_I32;
+    }
+    else if (memcmp(data, "i64", 3) == 0) {
+      type = soup::WASM_I64;
+    }
+    else if (memcmp(data, "f32", 3) == 0) {
+      type = soup::WASM_F32;
+    }
+    else if (memcmp(data, "f64", 3) == 0) {
+      type = soup::WASM_F64;
+    }
+  }
+  if (!type) {
+    luaL_error(L, "invalid wasm type name (%s). expected i32, i64, f32, or f64.", data);
+  }
+  const bool init_value = lua_gettop(L) >= 2;
+  auto& g = **pluto_newclassinst(L, soup::SharedPtr<soup::WasmValue>, soup::make_shared<soup::WasmValue>(type));
+  g.mut = mut;
+  if (init_value) {
+    opt_wasm_value(L, 2, g);
+  }
+  return 1;
+}
+
+static const luaL_Reg funcs_wasm_global[] = {
+  {"new", global_new},
+  {nullptr, nullptr}
+};
+
+int luaopen_wasm (lua_State *L) {
+  luaL_newlib(L, funcs_wasm);
+
+  lua_pushliteral(L, "global");
+  luaL_newlib(L, funcs_wasm_global);
+  lua_settable(L, -3);
+
+  return 1;
+}
+
+const Pluto::PreloadedLibrary Pluto::preloaded_wasm{ PLUTO_WASMLIBNAME, funcs_wasm, &luaopen_wasm};
