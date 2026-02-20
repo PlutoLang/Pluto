@@ -121,6 +121,7 @@ static soup::WasmScript& pushmodule (lua_State *L) {
   if (l_unlikely(luaL_newmetatable(L, "pluto:wasm-module"))) {
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State* L) {
+      pluto_errorifnotgc(L);
       std::destroy_at<>(checkmoduleraw(L, 1));
       return 0;
     });

@@ -19,6 +19,7 @@ static void pushcanvas (lua_State *L, soup::Canvas&& canvas) {
     lua_settable(L, -3);
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State *L) {
+      pluto_errorifnotgc(L);
       std::destroy_at<>(checkcanvas(L, 1));
       return 0;
     });

@@ -161,6 +161,9 @@ LUALIB_API void (luaL_traceback) (lua_State *L, lua_State *L1,
 LUALIB_API void (luaL_requiref) (lua_State *L, const char *modname,
                                  lua_CFunction openf, int glb);
 
+#ifndef PLUTO_LUA_LINKABLE
+PLUTOLIB_API void (pluto_errorifnotgc) (lua_State *L);
+#endif
 inline void* pluto_setupgcmt(lua_State* L, void* ret, const char* tname, lua_CFunction gcfunc) {
   if (luaL_newmetatable(L, tname)) {
     lua_pushliteral(L, "__gc");
@@ -170,7 +173,7 @@ inline void* pluto_setupgcmt(lua_State* L, void* ret, const char* tname, lua_CFu
   lua_setmetatable(L, -2);
   return ret;
 }
-#define pluto_newclassinst(L, T, ...) (T*)pluto_setupgcmt(L, new (lua_newuserdata(L, sizeof(T))) T(__VA_ARGS__), #T, [](lua_State *L2) { std::destroy_at<>((T*)luaL_checkudata(L2, 1, #T)); return 0; })
+#define pluto_newclassinst(L, T, ...) (T*)pluto_setupgcmt(L, new (lua_newuserdata(L, sizeof(T))) T(__VA_ARGS__), #T, [](lua_State *L2) { pluto_errorifnotgc(L2); std::destroy_at<>((T*)luaL_checkudata(L2, 1, #T)); return 0; })
 
 /*
 ** ===============================================================
