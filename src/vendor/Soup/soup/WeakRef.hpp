@@ -19,6 +19,11 @@ NAMESPACE_SOUP
 		{
 		}
 
+		WeakRef(T& inst)
+			: WeakRef(inst.transient_token, &inst)
+		{
+		}
+
 		WeakRef(T* ptr)
 			: WeakRef(ptr->transient_token, ptr)
 		{

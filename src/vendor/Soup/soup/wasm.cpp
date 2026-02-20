@@ -10,16 +10,18 @@
 #include "Exception.hpp"
 #include "MemoryRefReader.hpp"
 #include "Reader.hpp"
+#include "StringRefWriter.hpp"
 #if SOUP_WASM_PEDANTIC
 #include "unicode.hpp"
 #endif
 
 #define DEBUG_LOAD false
+#define DEBUG_LINK false
 #define DEBUG_VM false
 #define DEBUG_BRANCHING false
 #define DEBUG_API false
 
-#if DEBUG_LOAD || DEBUG_VM || DEBUG_BRANCHING || DEBUG_API
+#if DEBUG_LOAD || DEBUG_LINK || DEBUG_VM || DEBUG_BRANCHING || DEBUG_API
 #include <iostream>
 #include "string.hpp"
 #endif
@@ -28,31 +30,32 @@
 // - https://webassembly.github.io/wabt/demo/wat2wasm/
 // - https://github.com/sunfishcode/wasm-reference-manual/blob/master/WebAssembly.md
 // - https://pengowray.github.io/wasm-ops/
-// - https://webassembly.github.io/spec/versions/core/WebAssembly-2.0.pdf (not the latest version, but "WASM 2.0 minus SIMD plus Memory64" seems like a reasonable target for Soup right now)
+// - https://webassembly.github.io/spec/versions/core/WebAssembly-2.0.pdf
 
 /*
 Spec tests (https://github.com/Sainan/wasm-spec/tree/wast2json/test/core)
 > Use wast2json from wabt then run `soup wast [jsonfile]`
 > Results:
 - address: pass
-- align: FAIL (Soup doesn't fail on some malformed modules)
-- binary: FAIL (Soup doesn't fail on some malformed modules)
-- binary-leb128: pass_pedantic
+- align: pedantic_pass (assumes multi-memory is not supported)
+- binary: pedantic_pass (assumes multi-memory is not supported)
+- binary-leb128: pedantic_pass
 - block: pass
 - br: pass
 - br_if: pass
 - br_table: pass
 - bulk: pass
 - call: pass
-- call_indirect: pass_pedantic
+- call_indirect: pedantic_pass
 - comments: pass
 - const: pass
 - conversions: pass
-- custom: pass_pedantic
-- data: FAIL (missing support for memory imports)
-- elem: FAIL (missing support for table imports)
+- custom: pedantic_pass
+- data: pass
+- elem: pass
 - endianness: pass
 - exports: pass
+- extended-const: pass
 - f32: pass
 - f32_bitwise: pass
 - f32_cmp: pass
@@ -67,17 +70,17 @@ Spec tests (https://github.com/Sainan/wasm-spec/tree/wast2json/test/core)
 - forward: pass
 - func: pass
 - func_ptrs: pass
-- global: FAIL (missing support for global.get in constants)
+- global: pass
 - i32: pass
 - i64: pass
 - if: pass
-- imports: FAIL (missing support for assert_unlinkable/imports are not type-checked; missing support for table imports)
+- imports: pass
 - inline-module: pass
 - int_exprs: pass
 - int_literals: pass
 - labels: pass
 - left-to-right: pass
-- linking: FAIL (missing support for assert_unlinkable/imports are not type-checked; missing support for table imports)
+- linking: pass
 - load: pass
 - local_get: pass
 - local_set: pass
@@ -104,7 +107,7 @@ Spec tests (https://github.com/Sainan/wasm-spec/tree/wast2json/test/core)
 - start: pass
 - store: pass
 - switch: pass
-- table: FAIL (missing support for table imports)
+- table: pass
 - table-sub: pass (Soup doesn't do static validation)
 - table_copy: pass
 - table_fill: pass
@@ -120,27 +123,27 @@ Spec tests (https://github.com/Sainan/wasm-spec/tree/wast2json/test/core)
 - unreached-invalid: pass (Soup doesn't do static validation)
 - unreached-valid: pass
 - unwind: pass
-- utf8-custom-section-id: pass_pedantic
-- utf8-import-field: pass_pedantic
-- utf8-import-module: pass_pedantic
+- utf8-custom-section-id: pedantic_pass
+- utf8-import-field: pedantic_pass
+- utf8-import-module: pedantic_pass
 - utf8-invalid-encoding: pass (due to Soup not parsing .wat files)
 - memory64/address64: pass
 - memory64/align64: pass
-- memory64/binary_leb128_64: pass_pedantic
+- memory64/binary_leb128_64: pedantic_pass
 - memory64/bulk64: pass
 - memory64/call_indirect64: pass
 - memory64/endianness64: pass
 - memory64/float_memory64: pass
 - memory64/load64: pass
 - memory64/memory64: pass
-- memory64/memory64-imports: FAIL (missing support for memory & table imports & exports)
+- memory64/memory64-imports: pass
 - memory64/memory_copy64: pass
 - memory64/memory_fill64: pass
 - memory64/memory_grow64: pass
 - memory64/memory_init64: pass
 - memory64/memory_redundancy64: pass
 - memory64/memory_trap64: pass
-- memory64/table64: FAIL (missing support for table imports)
+- memory64/table64: pass
 - memory64/table_copy64: pass
 - memory64/table_copy_mixed: pass
 - memory64/table_fill64: pass
@@ -149,6 +152,47 @@ Spec tests (https://github.com/Sainan/wasm-spec/tree/wast2json/test/core)
 - memory64/table_init64: pass
 - memory64/table_set64: pass
 - memory64/table_size64: pass
+- multi-memory/address0: pass
+- multi-memory/address1: pass
+- multi-memory/align0: pass
+- multi-memory/binary0: pedantic_pass
+- multi-memory/data0: pass
+- multi-memory/data1: pass
+- multi-memory/data_drop0: pass
+- multi-memory/exports0: pass
+- multi-memory/float_exprs0: pass
+- multi-memory/float_exprs1: pass
+- multi-memory/float_memory0: pass
+- multi-memory/imports0: pass
+- multi-memory/imports1: pass
+- multi-memory/imports2: pass
+- multi-memory/imports3: pass
+- multi-memory/imports4: pass
+- multi-memory/linking0: pass
+- multi-memory/linking1: pass
+- multi-memory/linking2: pass
+- multi-memory/linking3: pass
+- multi-memory/load0: pass
+- multi-memory/load1: pass
+- multi-memory/load2: pass
+- multi-memory/memory-multi: pass
+- multi-memory/memory_copy0: pass
+- multi-memory/memory_copy1: pass
+- multi-memory/memory_fill0: pass
+- multi-memory/memory_grow: pass
+- multi-memory/memory_init0: pass
+- multi-memory/memory_size0: pass
+- multi-memory/memory_size1: pass
+- multi-memory/memory_size2: pass
+- multi-memory/memory_size3: pass
+- multi-memory/memory_size_import: pass
+- multi-memory/memory_trap0: pass
+- multi-memory/memory_trap1: pass
+- multi-memory/start0: pass
+- multi-memory/store0: pass
+- multi-memory/store1: pass
+- multi-memory/store2: pass
+- multi-memory/traps0: pass
 */
 
 NAMESPACE_SOUP
@@ -199,6 +243,20 @@ NAMESPACE_SOUP
 	}
 
 	// WasmScript::Memory
+
+	WasmScript::Memory::Memory(wasm_uptr_t pages, wasm_uptr_t max_pages, bool _64bit) SOUP_EXCAL
+	: data(nullptr), size(0), page_limit(max_pages)
+#if SOUP_WASM_MEMORY64
+			, memory64(_64bit)
+#endif
+	{
+#if !SOUP_WASM_MEMORY64
+		SOUP_UNUSED(_64bit);
+#endif
+		this->data = pages != 0 ? (uint8_t*)soup::malloc(pages * 0x10'000) : nullptr;
+		this->size = pages * 0x10'000;
+		memset(this->data, 0, this->size);
+	}
 
 	WasmScript::Memory::~Memory() noexcept
 	{
@@ -263,20 +321,88 @@ NAMESPACE_SOUP
 
 	size_t WasmScript::Memory::grow(size_t delta_pages) noexcept
 	{
-		const auto delta_bytes = delta_pages * 0x10'000;
-		auto nmem = (((this->size + delta_bytes) / 0x10'000) <= this->page_limit)
-			? (uint8_t*)::realloc(this->data, this->size + delta_bytes)
-			: nullptr
-			;
 		size_t old_size_pages = -1;
-		if (nmem != nullptr)
+		const auto delta_bytes = delta_pages * 0x10'000;
+		if ((delta_pages == 0 || delta_bytes / delta_pages == 0x10'000) // Multiplication didn't overflow?
+			&& can_add_without_overflow(this->size, delta_bytes)
+			)
 		{
-			memset(&nmem[this->size], 0, delta_bytes);
-			old_size_pages = this->size / 0x10'000;
-			this->data = nmem;
-			this->size += delta_bytes;
+			auto nmem = (((this->size + delta_bytes) / 0x10'000) <= this->page_limit)
+				? (uint8_t*)::realloc(this->data, this->size + delta_bytes)
+				: nullptr
+				;
+			if (nmem != nullptr)
+			{
+				memset(&nmem[this->size], 0, delta_bytes);
+				old_size_pages = this->size / 0x10'000;
+				this->data = nmem;
+				this->size += delta_bytes;
+			}
 		}
 		return old_size_pages;
+	}
+
+	// WasmScript::MemoryImport
+
+	bool WasmScript::MemoryImport::isCompatibleWith(const Memory& mem) const noexcept
+	{
+#if SOUP_WASM_MEMORY64
+		if ((bool)memory64 != (bool)mem.memory64)
+		{
+#if DEBUG_LOAD
+			std::cout << "type mismatch for memory " << module_name << ":" << field_name << " - export addr type " << wasm_type_to_string(mem.getAddrType()) << "; import addr type " << wasm_type_to_string(memory64 ? WASM_I64 : WASM_I32) << "\n";
+#endif
+			return false;
+		}
+#endif
+		if (min_pages > (mem.size / 0x10'000))
+		{
+			return false;
+		}
+		if (max_pages != 0x10'000) // Import has a page limit?
+		{
+			if (mem.page_limit == 0x10'000) // Memory has no page limit?
+			{
+				return false;
+			}
+			if (max_pages < mem.page_limit)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	// WasmScript::TableImport
+
+	bool WasmScript::TableImport::isCompatibleWith(const Table& tbl) const noexcept
+	{
+		if (type != tbl.type)
+		{
+			return false;
+		}
+#if SOUP_WASM_MEMORY64
+		if (table64 != tbl.table64)
+		{
+			return false;
+		}
+#endif
+		if (min_size > tbl.values.size())
+		{
+			return false;
+		}
+		if (max_size != 0x10'000) // Import has a size limit?
+		{
+			if (tbl.limit == 0x10'000) // Table has no size limit?
+			{
+				return false;
+			}
+			if (max_size < tbl.limit)
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	// WasmScript::Table
@@ -294,6 +420,47 @@ NAMESPACE_SOUP
 			}
 		}
 		return old_size;
+	}
+
+	bool WasmScript::Table::init(WasmScript& scr, const ElemSegment& src, size_t dst_offset, size_t src_offset, size_t size) noexcept
+	{
+		SOUP_IF_UNLIKELY (this->type != src.type)
+		{
+#if DEBUG_LOAD
+			std::cout << "WasmScript::Table::init: different element types\n";
+#endif
+			return false;
+		}
+		SOUP_IF_UNLIKELY (!can_add_without_overflow(dst_offset, size) || dst_offset + size > this->values.size() || !can_add_without_overflow(src_offset, size) || src_offset + size > src.values.size())
+		{
+#if DEBUG_LOAD
+			std::cout << "out-of-bounds WasmScript::Table::init: dst_offset=" << dst_offset << ", dst_size=" << this->values.size() << ", src_offset=" << src_offset << ", src_size=" << src.values.size() << ", size=" << size << "\n";
+#endif
+			return false;
+		}
+		if (src.flags & 0b100)
+		{
+			while (size--)
+			{
+				const uint64_t& buf = src.values[src_offset++];
+#if DEBUG_LOAD
+				std::cout << "evaluating elem value: " << string::bin2hex((const char*)&buf, sizeof(buf)) << "\n";
+#endif
+				MemoryRefReader r(&buf, sizeof(buf));
+				WasmValue value;
+				SOUP_RETHROW_FALSE(scr.evaluateConstantExpression(r, value));
+				SOUP_RETHROW_FALSE(value.type == this->type);
+				this->values[dst_offset++] = value.i64;
+			}
+		}
+		else
+		{
+			while (size--)
+			{
+				this->values[dst_offset++] = src.values[src_offset++];
+			}
+		}
+		return true;
 	}
 
 	bool WasmScript::Table::copy(const Table& src, size_t dst_offset, size_t src_offset, size_t size) noexcept
@@ -339,64 +506,26 @@ NAMESPACE_SOUP
 #define WASM_READ_SOML(v) r.soml(v);
 #endif
 
+#if SOUP_WASM_PEDANTIC
+#define WASM_READ_MEMALIGN uint32_t align; WASM_READ_OML(align)
+#define WASM_READ_MEMOFFSET uint64_t offset; WASM_READ_OML(offset)
+#else
+#define WASM_READ_MEMALIGN uint8_t align; r.u8(align)
+#define WASM_READ_MEMOFFSET size_t offset; WASM_READ_OML(offset)
+#endif
+
+#if SOUP_WASM_MULTI_MEMORY
+#define WASM_READ_MEMARG uint32_t memidx = 0; WASM_READ_MEMALIGN; if (align & 0x40) { WASM_READ_OML(memidx); } WASM_READ_MEMOFFSET
+#else
+#define WASM_READ_MEMARG constexpr uint32_t memidx = 0; WASM_READ_MEMALIGN; WASM_READ_MEMOFFSET
+#endif
+
+	using WasmInternalStartCode = std::string;
+
 	bool WasmScript::load(const std::string& data) SOUP_EXCAL
 	{
 		MemoryRefReader r(data);
 		return load(r);
-	}
-
-	bool WasmScript::readConstant(Reader& r, WasmValue& out) noexcept
-	{
-		uint8_t op;
-		r.u8(op);
-		switch (op)
-		{
-		case 0x41: // i32.const
-			WASM_READ_SOML(out.i32);
-			out.type = WASM_I32;
-			break;
-
-		case 0x42: // i64.const
-			WASM_READ_SOML(out.i64);
-			out.type = WASM_I64;
-			break;
-
-		case 0x43: // f32.const
-			r.f32(out.f32);
-			out.type = WASM_F32;
-			break;
-
-		case 0x44: // f64.const
-			r.f64(out.f64);
-			out.type = WASM_F64;
-			break;
-
-		case 0xd0: // ref.null
-			out.i64 = 0;
-			r.u8(reinterpret_cast<uint8_t&>(out.type)); static_assert(sizeof(WasmType) == sizeof(uint8_t));
-			break;
-
-		case 0xd2: // ref.func
-			WASM_READ_OML(out.i32);
-			out.hi32 = 1;
-			out.type = WASM_FUNCREF;
-			break;
-
-		default:
-#if DEBUG_LOAD
-			std::cout << "unexpected op for constant/initialisation: " << string::hex(op) << "\n";
-#endif
-			return false;
-		}
-		r.u8(op);
-		SOUP_IF_UNLIKELY (op != 0x0b) // end
-		{
-#if DEBUG_LOAD
-			std::cout << "missing end for constant/initialisation\n";
-#endif
-			return false;
-		}
-		return true;
 	}
 
 	bool WasmScript::load(Reader& r) SOUP_EXCAL
@@ -412,15 +541,14 @@ NAMESPACE_SOUP
 		{
 			return false;
 		}
-#if SOUP_WASM_PEDANTIC
 		uint32_t data_count = -1;
-#endif
 		while (r.hasMore())
 		{
 			uint8_t section_type;
 			r.u8(section_type);
 			uint32_t section_size;
 			WASM_READ_OML(section_size);
+			const auto section_end = r.getPosition() + section_size;
 			switch (section_type)
 			{
 			default:
@@ -433,14 +561,13 @@ NAMESPACE_SOUP
 				{
 					return false;
 				}
-				r.skip(section_size);
+				r.seek(section_end);
 				break;
 
 #if SOUP_WASM_PEDANTIC
 			case 0: // Custom
 				{
 					SOUP_RETHROW_FALSE(section_size != 0);
-					const auto section_end = r.getPosition() + section_size;
 					uint32_t name_len;
 					WASM_READ_OML(name_len);
 					//std::cout << "custom section: name_len = " << name_len << "\n";
@@ -545,28 +672,66 @@ NAMESPACE_SOUP
 						}
 #endif
 						uint8_t kind; r.u8(kind);
-						if (kind == 0) // function
+						if (kind == IE_kFunction)
 						{
 							uint32_t type_index; WASM_READ_OML(type_index);
 							SOUP_RETHROW_FALSE(type_index < types.size());
 							function_imports.emplace_back(FunctionImport{ std::move(module_name), std::move(field_name), nullptr, {}, type_index, (uint32_t)-1 });
 						}
-						/*else if (kind == 1) // table
+						else if (kind == IE_kTable)
 						{
 							uint8_t type; r.u8(type);
 							uint8_t flags; r.u8(flags);
-							size_t size; WASM_READ_OML(size);
+#if SOUP_WASM_MEMORY64
+							SOUP_RETHROW_FALSE((flags & 0xfa) == 0);
+#else
+							SOUP_RETHROW_FALSE((flags & 0xfe) == 0);
+#endif
+							wasm_uptr_t min_size;
+							WASM_READ_OML(min_size);
+							wasm_uptr_t max_size = 0x10'000;
 							if (flags & 1)
 							{
-								WASM_READ_OML(size);
+								WASM_READ_OML(max_size);
 							}
-						}*/
-						// 2 - memory
-						else if (kind == 3) // global
+							tables.emplace_back();
+							table_imports.emplace_back(TableImport{ { std::move(module_name), std::move(field_name) }, static_cast<WasmType>(type), (bool)(flags & 4), min_size, max_size });
+						}
+						else if (kind == IE_kMemory)
+						{
+							uint8_t flags; r.u8(flags);
+#if SOUP_WASM_MEMORY64
+							SOUP_RETHROW_FALSE((flags & 0xfa) == 0);
+#else
+							SOUP_RETHROW_FALSE((flags & 0xfe) == 0);
+#endif
+							wasm_uptr_t min_pages;
+							WASM_READ_OML(min_pages);
+							wasm_uptr_t max_pages = 0x10'000;
+							if (flags & 1)
+							{
+								WASM_READ_OML(max_pages);
+							}
+#if SOUP_WASM_MULTI_MEMORY
+							memories.emplace_back();
+							memory_imports.emplace_back(std::move(module_name), std::move(field_name), min_pages, max_pages, flags & 4);
+#else
+							SOUP_IF_UNLIKELY (memory || memory_import)
+							{
+#if DEBUG_LOAD
+								std::cout << "Too many memories\n";
+#endif
+								return false;
+							}
+							memory_import.emplace(std::move(module_name), std::move(field_name), min_pages, max_pages, flags & 4);
+#endif
+						}
+						else if (kind == IE_kGlobal)
 						{
 							uint8_t type; r.u8(type);
-							r.skip(1); // mutability
-							global_imports.emplace_back(Import{ std::move(module_name), std::move(field_name) });
+							uint8_t flags; r.u8(flags);
+							SOUP_RETHROW_FALSE((flags & 0xfe) == 0);
+							global_imports.emplace_back(GlobalImport{ { std::move(module_name), std::move(field_name) }, static_cast<WasmType>(type), (bool)(flags & 1)});
 							globals.emplace_back();
 						}
 						else
@@ -609,27 +774,21 @@ NAMESPACE_SOUP
 					{
 						uint8_t type;
 						r.u8(type);
-						auto& tbl = tables.emplace_back(static_cast<WasmType>(type));
 						uint8_t flags;
 						r.u8(flags);
 #if SOUP_WASM_MEMORY64
-						if (flags & 4)
-						{
-							tbl.table64 = true;
-						}
+						SOUP_RETHROW_FALSE((flags & 0xfa) == 0);
 #else
 						SOUP_RETHROW_FALSE((flags & 0xfe) == 0);
 #endif
-						size_t initial;
+						wasm_uptr_t initial;
 						WASM_READ_OML(initial);
+						wasm_uptr_t limit = 0x10'000;
 						if (flags & 1)
 						{
-							WASM_READ_OML(tbl.limit);
+							WASM_READ_OML(limit);
 						}
-						while (initial != tbl.values.size())
-						{
-							tbl.values.emplace_back();
-						}
+						tables.emplace_back(soup::make_shared<Table>(static_cast<WasmType>(type), initial, limit, flags & 4));
 					}
 				}
 				break;
@@ -637,80 +796,60 @@ NAMESPACE_SOUP
 			case 5: // Memory
 				{
 					uint32_t num_memories; WASM_READ_OML(num_memories);
-					if (num_memories != 0)
+#if SOUP_WASM_MULTI_MEMORY
+					memories.reserve(memories.size() + num_memories);
+#endif
+					while (num_memories--)
 					{
-						SOUP_IF_UNLIKELY (memory || num_memories != 1)
+#if !SOUP_WASM_MULTI_MEMORY
+						SOUP_IF_UNLIKELY (memory || memory_import)
 						{
 #if DEBUG_LOAD
 							std::cout << "Too many memories\n";
 #endif
 							return false;
 						}
+#endif
 						uint8_t flags; r.u8(flags);
-						size_t pages;
-#if !SOUP_WASM_PEDANTIC
-						WASM_READ_OML(pages);
+#if SOUP_WASM_MEMORY64
+						SOUP_RETHROW_FALSE((flags & 0xfa) == 0);
 #else
-	#if SOUP_WASM_MEMORY64
+						SOUP_RETHROW_FALSE((flags & 0xfe) == 0);
+#endif
+						uint64_t pages;
+						uint64_t page_limit = 0x10'000;
+#if SOUP_WASM_MEMORY64
 						if (flags & 4)
 						{
-							uint64_t pages_u64;
-							WASM_READ_OML(pages_u64);
-							pages = pages_u64;
+							WASM_READ_OML(pages);
 						}
-	#endif
 						else
+#endif
 						{
 							uint32_t pages_u32;
 							WASM_READ_OML(pages_u32);
 							pages = pages_u32;
 						}
-#endif
-						this->memory = soup::make_shared<Memory>();
-						auto& memory = *this->memory;
 						if (flags & 1)
 						{
 #if SOUP_WASM_MEMORY64
 							if (flags & 4)
 							{
-								uint64_t page_limit;
 								WASM_READ_OML(page_limit);
-								memory.page_limit = page_limit;
 							}
 							else
+#endif
 							{
-								uint32_t page_limit;
-								WASM_READ_OML(page_limit);
-								memory.page_limit = page_limit;
+								uint32_t page_limit_u32;
+								WASM_READ_OML(page_limit_u32);
+								page_limit = page_limit_u32;
 							}
+						}
+						SOUP_RETHROW_FALSE(pages <= page_limit);
+#if SOUP_WASM_MULTI_MEMORY
+						this->memories.emplace_back(soup::make_shared<Memory>(pages, page_limit, flags & 4));
 #else
-							WASM_READ_OML(memory.page_limit);
-#endif
-						}
-#if SOUP_WASM_MEMORY64
-						if (flags & 4)
-						{
-							memory.memory64 = true;
-						}
-#else
-						SOUP_RETHROW_FALSE((flags & 0xfe) == 0);
-#endif
-						//std::cout << "pages = " << pages << "\n";
-						//std::cout << "page_limit = " << memory.page_limit << "\n";
-						if (pages == 0)
-						{
-							memory.data = (uint8_t*)soup::malloc(1);
-							memory.size = 1;
-						}
-						else
-						{
-							SOUP_RETHROW_FALSE(pages <= memory.page_limit);
-							memory.data = (uint8_t*)soup::malloc(pages * 0x10'000);
-							memory.size = pages * 0x10'000;
-						}
-						memset(memory.data, 0, memory.size);
-#if DEBUG_LOAD
-						std::cout << "Memory consists of " << pages << " pages, totalling " << memory.size << " bytes\n";
+						this->memory = soup::make_shared<Memory>(pages, page_limit, flags & 4);
 #endif
 					}
 				}
@@ -726,17 +865,19 @@ NAMESPACE_SOUP
 					globals.reserve(globals.size() + num_globals);
 					while (num_globals--)
 					{
+						const uint32_t global_index = static_cast<uint32_t>(globals.size());
 						uint8_t type; r.u8(type);
-						r.skip(1); // mutability
-						WasmValue& value = *globals.emplace_back(soup::make_shared<WasmValue>());
-						SOUP_RETHROW_FALSE(readConstant(r, value));
-						SOUP_IF_UNLIKELY (value.type != type)
-						{
-#if DEBUG_LOAD
-							std::cout << "constant's type differs from global's type\n";
-#endif
-							return false;
-						}
+						uint8_t flags; r.u8(flags);
+						SOUP_RETHROW_FALSE((flags & 0xfe) == 0);
+						WasmValue& value = *globals.emplace_back(soup::make_shared<WasmValue>(static_cast<WasmType>(type)));
+						value.mut = (flags & 1);
+
+						std::string initexpr;
+						SOUP_RETHROW_FALSE(readConstantExpression(r, initexpr));
+						StringRefWriter w(custom_data.getStructFromMap(WasmInternalStartCode));
+						w.raw(initexpr.data(), initexpr.size() - 1);
+						{ uint8_t global_set_op = 0x24; w.u8(global_set_op); }
+						w.oml(global_index);
 					}
 				}
 				break;
@@ -793,116 +934,87 @@ NAMESPACE_SOUP
 #if DEBUG_LOAD
 						std::cout << "elem flags: " << flags << "\n";
 #endif
+						uint32_t tblidx;
+						uint8_t type;
+						std::string base;
 						if (flags & 1)
 						{
-							uint8_t type = WASM_FUNCREF;
+							tblidx = -1;
+
 							if (flags & 0b100)
 							{
 								r.u8(type);
 							}
 							else
 							{
+								type = WASM_FUNCREF;
 								r.skip(1);
-							}
-#if DEBUG_LOAD
-							std::cout << "passive elem segment of type " << (int)type << "\n";
-#endif
-							Table& vtbl = passive_elem_segments.emplace(i, static_cast<WasmType>(type)).first->second;
-							uint32_t num_elements;
-							WASM_READ_OML(num_elements);
-							vtbl.values.reserve(num_elements);
-							while (num_elements--)
-							{
-								if (flags & 0b100)
-								{
-									WasmValue value;
-									readConstant(r, value);
-									vtbl.values.emplace_back(/*vtbl.type == WASM_FUNCREF &&*/ value.type == vtbl.type ? value.i64 : 0);
-								}
-								else
-								{
-									uint32_t function_index;
-									WASM_READ_OML(function_index);
-									vtbl.values.emplace_back(vtbl.type == WASM_FUNCREF ? 0x1'0000'0000 | function_index : 0);
-								}
 							}
 						}
 						else
 						{
-							uint32_t tblidx = 0;
 							if (flags & 0b10)
 							{
 								WASM_READ_OML(tblidx);
 							}
-#if DEBUG_LOAD
-							std::cout << "- elements for table " << tblidx << "\n";
-#endif
-							Table scrap(WASM_FUNCREF);
-							// an out-of-bounds table index is apparently valid...
-							auto& table = tblidx >= tables.size() ? scrap : tables[tblidx];
-							WasmValue base;
-							SOUP_RETHROW_FALSE(readConstant(r, base));
+							else
 							{
-								WasmType index_type = WASM_I32;
-#if SOUP_WASM_MEMORY64
-								if (table.table64)
-								{
-									index_type = WASM_I64;
-								}
-#endif
-								SOUP_IF_UNLIKELY (base.type != index_type)
-								{
-#if DEBUG_LOAD
-									std::cout << "unexpected type for element initialisation: " << string::hex(static_cast<uint8_t>(base.type)) << "\n";
-#endif
-									return false;
-								}
+								tblidx = 0;
 							}
-							auto index = base.uptr();
-							if (flags & 2)
+
+							type = getTableElemType(tblidx);
+
+							SOUP_RETHROW_FALSE(readConstantExpression(r, base));
+#if !SOUP_WASM_EXTENDED_CONST
+							SOUP_RETHROW_FALSE(base.size() <= sizeof(ElemSegment::base));
+#endif
+
+							if (flags & 0b10)
 							{
 								r.skip(1); // reserved
 							}
-							uint32_t num_elements;
-							WASM_READ_OML(num_elements);
-							SOUP_IF_UNLIKELY (index + num_elements > table.values.size())
-							{
-#if DEBUG_LOAD
-								std::cout << "elem: " << index << " + " << num_elements << " > " << table.values.size() << "\n";
+						}
+
+#if SOUP_WASM_PEDANTIC
+						SOUP_RETHROW_FALSE(type == WASM_FUNCREF || type == WASM_EXTERNREF);
 #endif
-								return false;
-							}
-							while (num_elements--)
+
+						ElemSegment& es = elem_segments.emplace_back(ElemSegment{ static_cast<WasmType>(type), static_cast<uint8_t>(flags) });
+#if SOUP_WASM_EXTENDED_CONST
+						es.base = std::move(base);
+#else
+						memcpy(es.base, base.data(), base.size());
+#endif
+						es.tblidx = tblidx;
+						uint32_t num_elements;
+						WASM_READ_OML(num_elements);
+						es.values.reserve(num_elements);
+						while (num_elements--)
+						{
+							if (flags & 0b100)
 							{
-								if (flags & 0b100)
-								{
-									WasmValue value;
-									readConstant(r, value);
-									if (/*table.type == WASM_FUNCREF &&*/ value.type == table.type)
-									{
-										table.values[index++] = value.i64;
-									}
-								}
-								else
-								{
-									uint32_t function_index;
-									WASM_READ_OML(function_index);
-									if (table.type == WASM_FUNCREF)
-									{
-										table.values[index++] = 0x1'0000'0000 | function_index;
-									}
-								}
+								std::string code;
+								SOUP_RETHROW_FALSE(readConstantExpression(r, code));
+								SOUP_RETHROW_FALSE(code.size() <= 8);
+								uint64_t u = 0;
+								memcpy(&u, code.data(), code.size());
+								es.values.emplace_back(u);
+							}
+							else
+							{
+								uint32_t function_index;
+								WASM_READ_OML(function_index);
+								es.values.emplace_back(es.type == WASM_FUNCREF && shared_env ? shared_env->createFuncRef(*this, function_index) : 0);
 							}
 						}
 					}
 				}
 				break;
 
-#if SOUP_WASM_PEDANTIC
 			case 12: // DataCount
 				WASM_READ_OML(data_count);
+				has_data_count_section = true;
 				break;
-#endif
 
 			case 10: // Code
 				{
@@ -911,7 +1023,6 @@ NAMESPACE_SOUP
 #if DEBUG_LOAD
 					std::cout << num_functions << " function(s)\n";
 #endif
-					SOUP_RETHROW_FALSE(num_functions == functions.size());
 					code.reserve(num_functions);
 					while (num_functions--)
 					{
@@ -944,12 +1055,11 @@ NAMESPACE_SOUP
 #if DEBUG_LOAD
 					std::cout << num_segments << " data segment(s)\n";
 #endif
-#if SOUP_WASM_PEDANTIC
 					if (data_count != -1)
 					{
 						SOUP_RETHROW_FALSE(data_count == num_segments);
 					}
-#endif
+					data_segments.reserve(num_segments);
 					for (uint32_t i = 0; i != num_segments; ++i)
 					{
 						uint32_t flags;
@@ -957,52 +1067,35 @@ NAMESPACE_SOUP
 #if DEBUG_LOAD
 						std::cout << "data flags: " << flags << "\n";
 #endif
+						auto& data_segment = data_segments.emplace_back();
 						if (flags & 1)
 						{
-							size_t size;
-							WASM_READ_OML(size);
-							std::string data;
-							r.str(size, data);
-							passive_data_segments.emplace(i, std::move(data));
+							data_segment.memidx = -1;
 						}
 						else
 						{
-							SOUP_RETHROW_FALSE(memory);
-
 							if (flags & 0b10)
 							{
-								size_t memidx; WASM_READ_OML(memidx);
+								WASM_READ_OML(data_segment.memidx);
+							}
+							else
+							{
+								data_segment.memidx = 0;
 							}
 
-							WasmValue base;
-							SOUP_RETHROW_FALSE(readConstant(r, base));
-							{
-								WasmType addr_type = WASM_I32;
-#if SOUP_WASM_MEMORY64
-								if (memory->memory64)
-								{
-									addr_type = WASM_I64;
-								}
+#if SOUP_WASM_EXTENDED_CONST
+							SOUP_RETHROW_FALSE(readConstantExpression(r, data_segment.base));
+#else
+							std::string base;
+							SOUP_RETHROW_FALSE(readConstantExpression(r, base));
+							SOUP_RETHROW_FALSE(base.size() <= sizeof(data_segment.base));
+							memcpy(data_segment.base, base.data(), base.size());
 #endif
-								SOUP_IF_UNLIKELY (base.type != addr_type)
-								{
-#if DEBUG_LOAD
-									std::cout << "unexpected type for data initialisation: " << string::hex(static_cast<uint8_t>(base.type)) << "\n";
-#endif
-									return false;
-								}
-							}
-							size_t size; WASM_READ_OML(size);
-							auto ptr = memory->getView(base.uptr(), size);
-							SOUP_IF_UNLIKELY (!ptr)
-							{
-#if DEBUG_LOAD
-								std::cout << "data segment exceeds memory range: " << base.uptr() << " + " << size << " > " << memory.size << "\n";
-#endif
-								return false;
-							}
-							r.raw(ptr, size);
 						}
+
+						uint32_t size;
+						WASM_READ_OML(size);
+						SOUP_RETHROW_FALSE(r.str(size, data_segment.data));
 					}
 				}
 				break;
@@ -1014,37 +1107,175 @@ NAMESPACE_SOUP
 				std::cout << "FIXUP section_size=" << section_size << "\n";
 #endif
 			}
+			else
+			{
+				SOUP_IF_UNLIKELY (r.getPosition() != section_end)
+				{
+#if DEBUG_LOAD
+					std::cout << "section did not end where it was supposed to\n";
+#endif
+					return false;
+				}
+			}
+		}
+		SOUP_RETHROW_FALSE(functions.size() == code.size());
+		return true;
+	}
+
+	bool WasmScript::readConstantExpression(Reader& r, std::string& out) SOUP_EXCAL
+	{
+		const auto constexpr_start_pos = r.getPosition();
+		SOUP_RETHROW_FALSE(WasmVm::skipOverBranch(r, 0, *this, -1) == WasmVm::END_REACHED); // guarantees constexpr_size != 0
+		const size_t constexpr_size = r.getPosition() - constexpr_start_pos;
+		r.seek(constexpr_start_pos);
+		r.str(constexpr_size, out);
+		switch (static_cast<uint8_t>(out.front()))
+		{
+		case 0x23: // global.get
+		case 0x41: // i32.const
+		case 0x42: // i64.const
+		case 0x43: // f32.const
+		case 0x44: // f64.const
+		case 0xd0: // ref.null
+		case 0xd2: // ref.func
+#if SOUP_WASM_EXTENDED_CONST
+		case 0x6a: // i32.add
+		case 0x6b: // i32.sub
+		case 0x6c: // i32.mul
+		case 0x7c: // i64.add
+		case 0x7d: // i64.sub
+		case 0x7e: // i64.mul
+#endif
+			break;
+
+		default:
+			return false;
 		}
 		return true;
 	}
 
+	bool WasmScript::evaluateConstantExpression(Reader& r, WasmValue& out) noexcept
+	{
+		uint8_t op;
+		r.u8(op);
+		switch (op)
+		{
+		case 0x23: // global.get
+			{
+				uint32_t global_index;
+				WASM_READ_SOML(global_index);
+				SOUP_IF_UNLIKELY (global_index >= global_imports.size())
+				{
+#if DEBUG_LOAD
+					std::cout << "evaluteConstantExpression: global.get: not an imported global index\n";
+#endif
+					return false;
+				}
+				SOUP_IF_UNLIKELY (!globals[global_index])
+				{
+#if DEBUG_LOAD
+					std::cout << "evaluteConstantExpression: global.get: unresolved import\n";
+#endif
+					return false;
+				}
+				out = *globals[global_index];
+			}
+			break;
+
+		case 0x41: // i32.const
+			WASM_READ_SOML(out.i32);
+			out.type = WASM_I32;
+			break;
+
+		case 0x42: // i64.const
+			WASM_READ_SOML(out.i64);
+			out.type = WASM_I64;
+			break;
+
+		case 0x43: // f32.const
+			r.f32(out.f32);
+			out.type = WASM_F32;
+			break;
+
+		case 0x44: // f64.const
+			r.f64(out.f64);
+			out.type = WASM_F64;
+			break;
+
+		case 0xd0: // ref.null
+			out.i64 = 0;
+			r.u8(reinterpret_cast<uint8_t&>(out.type)); static_assert(sizeof(WasmType) == sizeof(uint8_t));
+			break;
+
+		case 0xd2: // ref.func
+			SOUP_IF_UNLIKELY (!shared_env)
+			{
+#if DEBUG_LOAD
+				std::cout << "cannot use ref.func without a shared env\n";
+#endif
+				return false;
+			}
+			{
+				uint32_t func_index;
+				WASM_READ_OML(func_index);
+				out.i64 = shared_env->createFuncRef(*this, func_index);
+				out.type = WASM_FUNCREF;
+			}
+			break;
+
+		default:
+#if DEBUG_LOAD
+			std::cout << "unexpected op for constant/initialisation: " << string::hex(op) << "\n";
+#endif
+			return false;
+		}
+		r.u8(op);
+		SOUP_IF_UNLIKELY (op != 0x0b) // end
+		{
+#if DEBUG_LOAD
+			std::cout << "missing end for constant/initialisation\n";
+#endif
+			return false;
+		}
+		return true;
+	}
+
+#if SOUP_WASM_EXTENDED_CONST
+	bool WasmScript::evaluateExtendedConstantExpression(std::string&& code, WasmValue& out) noexcept
+	{
+		code.insert(0, 1, '\0'); // local decl count
+		MemoryRefReader r(code);
+		WasmVm vm(*this);
+		SOUP_RETHROW_FALSE(vm.run(r, 0, -1));
+		SOUP_RETHROW_FALSE(vm.stack.size() == 1);
+		out = vm.stack.back();
+		code.clear();
+		code.shrink_to_fit();
+		return true;
+	}
+#endif
+
 	bool WasmScript::validateFunctionBody(Reader& r) noexcept
 	{
-		size_t local_decl_count;
+		uint32_t local_decl_count;
 		WASM_READ_OML(local_decl_count);
+		uint32_t total_locals = 0;
 		while (local_decl_count--)
 		{
-			size_t type_count;
+			uint32_t type_count;
 			WASM_READ_OML(type_count);
+			SOUP_RETHROW_FALSE(can_add_without_overflow(total_locals, type_count));
+			total_locals += type_count;
 			r.skip(1); // type
 		}
 
-		WasmVm::skipOverBranch(r, 0x8000'0000, *this, -1);
+		SOUP_RETHROW_FALSE(WasmVm::skipOverBranch(r, 0, *this, -1) == WasmVm::END_REACHED);
 		const auto pos_after_branching = r.getPosition();
 		r.seekEnd();
 		SOUP_IF_UNLIKELY (r.getPosition() != pos_after_branching)
 		{
 #if DEBUG_LOAD
 			std::cout << "load(pedantic): skipOverBranch bailed early\n";
-#endif
-			return false;
-		}
-
-		r.seek(r.getPosition() - 1);
-		SOUP_IF_UNLIKELY (uint8_t byte; !r.u8(byte) || byte != 0x0b)
-		{
-#if DEBUG_LOAD
-			std::cout << "load(pedantic): function body does not end on 'end' opcode\n";
 #endif
 			return false;
 		}
@@ -1068,6 +1299,27 @@ NAMESPACE_SOUP
 				return true;
 			}
 		}
+		for (uint32_t i = 0; i != table_imports.size(); ++i)
+		{
+			if (!tables[i])
+			{
+				return true;
+			}
+		}
+#if SOUP_WASM_MULTI_MEMORY
+		for (uint32_t i = 0; i != memory_imports.size(); ++i)
+		{
+			if (!memories[i])
+			{
+				return true;
+			}
+		}
+#else
+		if (memory_import && !memory)
+		{
+			return true;
+		}
+#endif
 		return false;
 	}
 
@@ -1128,6 +1380,55 @@ NAMESPACE_SOUP
 		}
 	}
 
+	void WasmScript::provideImportedTables(const std::string& module_name, const std::unordered_map<std::string, SharedPtr<Table>>& map) noexcept
+	{
+		for (size_t i = 0; i != table_imports.size(); ++i)
+		{
+			const auto& ti = table_imports[i];
+			if (ti.module_name == module_name)
+			{
+				if (auto e = map.find(ti.field_name); e != map.end())
+				{
+					if (e->second && ti.isCompatibleWith(*e->second))
+					{
+						tables[i] = e->second;
+					}
+				}
+			}
+		}
+	}
+
+	void WasmScript::provideImportedMemory(const std::string& module_name, const std::string& field_name, SharedPtr<Memory> value) noexcept
+	{
+		SOUP_IF_UNLIKELY (!value)
+		{
+			return;
+		}
+
+#if SOUP_WASM_MULTI_MEMORY
+		for (size_t i = 0; i != memory_imports.size(); ++i)
+		{
+			const auto& mi = memory_imports[i];
+			if (mi.field_name == field_name
+				&& mi.module_name == module_name
+				&& mi.isCompatibleWith(*value)
+				)
+			{
+				memories[i] = value;
+			}
+		}
+#else
+		if (memory_import
+			&& memory_import->module_name == module_name
+			&& memory_import->field_name == field_name
+			&& memory_import->isCompatibleWith(*value)
+			)
+		{
+			memory = value;
+		}
+#endif
+	}
+
 	void WasmScript::importFromModule(const std::string& module_name, SharedPtr<WasmScript> other) noexcept
 	{
 		for (auto& fi : function_imports)
@@ -1136,10 +1437,20 @@ NAMESPACE_SOUP
 			{
 				if (auto e = other->export_map.find(fi.function_name); e != other->export_map.end())
 				{
-					if (e->second.kind == Export::kFunction)
+					if (e->second.kind == IE_kFunction
+						&& e->second.index < other->functions.size()
+						)
 					{
-						fi.source = other;
-						fi.func_index = e->second.index;
+						auto& import_type = types[fi.type_index];
+						auto& export_type = other->types[other->getTypeIndexForFunction(e->second.index)];
+#if DEBUG_LINK
+						std::cout << "importing " << fi.module_name << ":" << fi.function_name << " as " << import_type.toString() << " from " << export_type.toString() << "\n";
+#endif
+						if (import_type == export_type)
+						{
+							fi.source = other;
+							fi.func_index = e->second.index;
+						}
 					}
 				}
 			}
@@ -1151,30 +1462,168 @@ NAMESPACE_SOUP
 			{
 				if (auto e = other->export_map.find(gi.field_name); e != other->export_map.end())
 				{
-					if (e->second.kind == Export::kGlobal)
+					if (e->second.kind == IE_kGlobal
+						&& e->second.index < other->globals.size()
+						&& other->globals[e->second.index]
+						)
 					{
-						if (auto value = other->getGlobalByIndex(e->second.index))
+						if (other->globals[e->second.index]->type == gi.type && other->globals[e->second.index]->mut == gi.mut)
 						{
-							globals[i] = value;
+							globals[i] = other->globals[e->second.index];
 						}
+#if DEBUG_LINK
+						else
+						{
+							std::cout << "type mismatch for global " << gi.module_name << ":" << gi.field_name << ": export is " << (other->globals[e->second.index]->mut ? "mut " : "") << wasm_type_to_string(other->globals[e->second.index]->type) << "; import is " << (gi.mut ? "mut " : "") << wasm_type_to_string(gi.type) << "\n";
+						}
+#endif
 					}
 				}
 			}
 		}
+		for (size_t i = 0; i != table_imports.size(); ++i)
+		{
+			const auto& ti = table_imports[i];
+			if (ti.module_name == module_name)
+			{
+				if (auto e = other->export_map.find(ti.field_name); e != other->export_map.end())
+				{
+					if (e->second.kind == IE_kTable
+						&& e->second.index < other->tables.size()
+						&& other->tables[e->second.index]
+						&& ti.isCompatibleWith(*other->tables[e->second.index])
+						)
+					{
+						tables[i] = other->tables[e->second.index];
+					}
+				}
+			}
+		}
+#if SOUP_WASM_MULTI_MEMORY
+		for (size_t i = 0; i != memory_imports.size(); ++i)
+		{
+			const auto& mi = memory_imports[i];
+			if (mi.module_name == module_name)
+			{
+				if (auto e = other->export_map.find(mi.field_name); e != other->export_map.end())
+				{
+					if (e->second.kind == IE_kMemory
+						&& e->second.index < other->memories.size()
+						&& other->memories[e->second.index]
+						&& mi.isCompatibleWith(*other->memories[e->second.index])
+						)
+					{
+						memories[i] = other->memories[e->second.index];
+					}
+				}
+			}
+		}
+#else
+		if (memory_import && memory_import->module_name == module_name)
+		{
+			if (auto e = other->export_map.find(memory_import->field_name); e != other->export_map.end())
+			{
+				if (e->second.kind == IE_kMemory
+					&& e->second.index == 0
+					&& other->memory
+					&& memory_import->isCompatibleWith(*other->memory)
+					)
+				{
+					this->memory = other->memory;
+				}
+			}
+		}
+#endif
 	}
 
 	bool WasmScript::instantiate()
 	{
+		for (auto& es : elem_segments)
+		{
+			if (es.isPassive())
+			{
+				continue;
+			}
+			if (auto table = getTableByIndex(es.tblidx))
+			{
+#if DEBUG_LOAD
+				std::cout << "instantiate: processing elem segment\n";
+#endif
+				WasmValue base;
+				{
+#if SOUP_WASM_EXTENDED_CONST
+					SOUP_RETHROW_FALSE(evaluateExtendedConstantExpression(std::move(es.base), base));
+#else
+					MemoryRefReader r(es.base, sizeof(es.base));
+					SOUP_RETHROW_FALSE(evaluateConstantExpression(r, base));
+#endif
+				}
+				SOUP_IF_UNLIKELY (base.type != table->getAddrType())
+				{
+#if DEBUG_LOAD
+					std::cout << "elem segment base offset type doesn't match table's address type\n";
+#endif
+					return false;
+				}
+				SOUP_RETHROW_FALSE(table->init(*this, es, base.uptr(), 0, es.values.size()));
+			}
+			es.values.clear();
+			es.values.shrink_to_fit();
+		}
+
+		for (auto& ds : data_segments)
+		{
+			if (auto memory = getMemoryByIndex(ds.memidx))
+			{
+#if DEBUG_LOAD
+				std::cout << "instantiate: processing data segment\n";
+#endif
+				WasmValue base;
+				{
+#if SOUP_WASM_EXTENDED_CONST
+#if DEBUG_LOAD
+					std::cout << "instantiate: ds.base = " << string::bin2hex(ds.base) << "\n";
+#endif
+					SOUP_RETHROW_FALSE(evaluateExtendedConstantExpression(std::move(ds.base), base));
+#else
+					MemoryRefReader r(ds.base, sizeof(ds.base));
+					SOUP_RETHROW_FALSE(evaluateConstantExpression(r, base));
+#endif
+				}
+				SOUP_RETHROW_FALSE(base.type == memory->getAddrType());
+				auto view = memory->getView(base.uptr(), ds.data.size());
+				SOUP_RETHROW_FALSE(view || (base.uptr() == 0 && ds.data.size() == 0));
+				memcpy(view, ds.data.data(), ds.data.size());
+				ds.data.clear();
+				ds.data.shrink_to_fit();
+			}
+		}
+
+		if (custom_data.isStructInMap(WasmInternalStartCode))
+		{
+			custom_data.getStructFromMapConst(WasmInternalStartCode).insert(0, 1, '\0'); // local decl count
+#if DEBUG_LOAD
+			std::cout << "instantiate: initialising globals by running " << string::bin2hex(custom_data.getStructFromMapConst(WasmInternalStartCode)) << "\n";
+#endif
+			WasmVm vm(*this);
+			SOUP_RETHROW_FALSE(vm.run(custom_data.getStructFromMapConst(WasmInternalStartCode)));
+			custom_data.removeStructFromMap(WasmInternalStartCode);
+		}
+
 		if (start_func_idx != -1)
 		{
-			return this->call(start_func_idx);
+#if DEBUG_LOAD
+			std::cout << "instantiate: running start function\n";
+#endif
+			SOUP_RETHROW_FALSE(this->call(start_func_idx));
 		}
+
 		return true;
 	}
 
 	const std::string* WasmScript::getExportedFuntion(const std::string& name, const WasmFunctionType** optOutType) const noexcept
 	{
-		if (auto e = export_map.find(name); e != export_map.end() && e->second.kind == Export::kFunction)
+		if (auto e = export_map.find(name); e != export_map.end() && e->second.kind == IE_kFunction)
 		{
 			const size_t i = (e->second.index - function_imports.size());
 			if (i < code.size()
@@ -1202,7 +1651,7 @@ NAMESPACE_SOUP
 
 	uint32_t WasmScript::getExportedFuntion2(const std::string& name) const noexcept
 	{
-		if (auto e = export_map.find(name); e != export_map.end() && e->second.kind == Export::kFunction)
+		if (auto e = export_map.find(name); e != export_map.end() && e->second.kind == IE_kFunction)
 		{
 			return e->second.index;
 		}
@@ -1224,20 +1673,48 @@ NAMESPACE_SOUP
 		return -1;
 	}
 
-	WasmValue* WasmScript::getGlobalByIndex(uint32_t global_index) noexcept
+	WasmValue* WasmScript::getExportedGlobal(const std::string& name) noexcept
 	{
-		if (global_index < globals.size())
+		if (auto e = export_map.find(name); e != export_map.end() && e->second.kind == IE_kGlobal)
 		{
-			return globals[global_index].get();
+			return getGlobalByIndex(e->second.index);
 		}
 		return nullptr;
 	}
 
-	WasmValue* WasmScript::getExportedGlobal(const std::string& name) noexcept
+	WasmType WasmScript::getTableElemType(uint32_t idx) noexcept
 	{
-		if (auto e = export_map.find(name); e != export_map.end() && e->second.kind == Export::kGlobal)
+		if (auto tbl = getTableByIndex(idx))
 		{
-			return getGlobalByIndex(e->second.index);
+			return tbl->type;
+		}
+		if (idx < table_imports.size())
+		{
+			return table_imports[idx].type;
+		}
+		return static_cast<WasmType>(0);
+	}
+
+	WasmScript::ElemSegment* WasmScript::getPassiveElemSegmentByIndex(uint32_t i) noexcept
+	{
+		if (i < elem_segments.size())
+		{
+			if (elem_segments[i].isPassive())
+			{
+				return &elem_segments[i];
+			}
+		}
+		return nullptr;
+	}
+
+	std::string* WasmScript::getPassiveDataSegmentByIndex(uint32_t i) noexcept
+	{
+		if (i < data_segments.size())
+		{
+			if (data_segments[i].isPassive())
+			{
+				return &data_segments[i].data;
+			}
 		}
 		return nullptr;
 	}
@@ -1272,7 +1749,8 @@ NAMESPACE_SOUP
 
 	void WasmScript::linkWasiPreview1(std::vector<std::string> args) noexcept
 	{
-		SOUP_IF_UNLIKELY (!memory)
+		// Note: Technically, WASI should use the memory exported under the name "memory".
+		SOUP_IF_UNLIKELY (!getMemoryByIndex(0))
 		{
 			return;
 		}
@@ -1294,7 +1772,7 @@ NAMESPACE_SOUP
 			auto plen = vm.stack.back().i32; vm.stack.pop_back();
 			auto pargc = vm.stack.back().i32; vm.stack.pop_back();
 			WasiData& wd = vm.script.custom_data.getStructFromMapConst(WasiData);
-			if (auto pLen = vm.script.memory->getPointer<int32_t>(plen))
+			if (auto pLen = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(plen))
 			{
 				*pLen = 0;
 				for (const auto& arg : wd.args)
@@ -1302,7 +1780,7 @@ NAMESPACE_SOUP
 					*pLen += arg.size() + 1;
 				}
 			}
-			if (auto pArgc = vm.script.memory->getPointer<int32_t>(pargc))
+			if (auto pArgc = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(pargc))
 			{
 				*pArgc = wd.args.size();
 			}
@@ -1317,13 +1795,13 @@ NAMESPACE_SOUP
 			std::string argstr;
 			for (uint32_t i = 0; i != wd.args.size(); ++i)
 			{
-				if (auto pArg = vm.script.memory->getPointer<int32_t>(pargv + i * 4))
+				if (auto pArg = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(pargv + i * 4))
 				{
 					*pArg = pstr + argstr.size();
 				}
 				argstr.append(wd.args[i].data(), wd.args[i].size() + 1);
 			}
-			vm.script.memory->write(pstr, argstr.data(), argstr.size());
+			vm.script.getMemoryByIndex(0)->write(pstr, argstr.data(), argstr.size());
 			vm.stack.emplace_back(WASI_ERRNO_SUCCESS);
 		});
 		provideImportedFunction("wasi_snapshot_preview1", "environ_sizes_get", [](WasmVm& vm, uint32_t func_index, const WasmFunctionType&)
@@ -1331,11 +1809,11 @@ NAMESPACE_SOUP
 			API_CHECK_STACK(2);
 			auto out_environ_buf_size = vm.stack.back().i32; vm.stack.pop_back();
 			auto out_environ_count = vm.stack.back().i32; vm.stack.pop_back();
-			if (auto ptr = vm.script.memory->getPointer<int32_t>(out_environ_count))
+			if (auto ptr = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(out_environ_count))
 			{
 				*ptr = 0;
 			}
-			if (auto ptr = vm.script.memory->getPointer<int32_t>(out_environ_buf_size))
+			if (auto ptr = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(out_environ_buf_size))
 			{
 				*ptr = 0;
 			}
@@ -1357,11 +1835,11 @@ NAMESPACE_SOUP
 #endif
 			if (fd == 3)
 			{
-				if (auto pTag = vm.script.memory->getPointer<uint32_t>(prestat + 0))
+				if (auto pTag = vm.script.getMemoryByIndex(0)->getPointer<uint32_t>(prestat + 0))
 				{
 					*pTag = 0; // __WASI_PREOPENTYPE_DIR
 				}
-				if (auto pDirNameLen = vm.script.memory->getPointer<uint32_t>(prestat + 4))
+				if (auto pDirNameLen = vm.script.getMemoryByIndex(0)->getPointer<uint32_t>(prestat + 4))
 				{
 					*pDirNameLen = 1;
 				}
@@ -1382,7 +1860,7 @@ NAMESPACE_SOUP
 			{
 				if (path_len >= 1)
 				{
-					vm.script.memory->write(path, ".", 1);
+					vm.script.getMemoryByIndex(0)->write(path, ".", 1);
 					vm.stack.emplace_back(WASI_ERRNO_SUCCESS);
 				}
 				else
@@ -1413,19 +1891,19 @@ NAMESPACE_SOUP
 #endif
 			if (fd == 3)
 			{
-				if (auto pFiletype = vm.script.memory->getPointer<uint8_t>(out + 0))
+				if (auto pFiletype = vm.script.getMemoryByIndex(0)->getPointer<uint8_t>(out + 0))
 				{
 					*pFiletype = 3; // directory, as per https://github.com/WebAssembly/wasi-libc/blob/d02bdc21afc4d835383b006c11e285c4a7c78439/libc-bottom-half/headers/public/wasi/wasip1.h#L785
 				}
-				if (auto pFlags = vm.script.memory->getPointer<uint16_t>(out + 2))
+				if (auto pFlags = vm.script.getMemoryByIndex(0)->getPointer<uint16_t>(out + 2))
 				{
 					*pFlags = 0;
 				}
-				if (auto pRightsBase = vm.script.memory->getPointer<uint64_t>(out + 8))
+				if (auto pRightsBase = vm.script.getMemoryByIndex(0)->getPointer<uint64_t>(out + 8))
 				{
 					*pRightsBase = -1;
 				}
-				if (auto pRightsInheriting = vm.script.memory->getPointer<uint64_t>(out + 16))
+				if (auto pRightsInheriting = vm.script.getMemoryByIndex(0)->getPointer<uint64_t>(out + 16))
 				{
 					*pRightsInheriting = -1;
 				}
@@ -1446,16 +1924,16 @@ NAMESPACE_SOUP
 			auto fd = vm.stack.back().i32; vm.stack.pop_back();
 			if (fd == 3)
 			{
-				auto path_str = vm.script.memory->readString(path, path_len);
+				auto path_str = vm.script.getMemoryByIndex(0)->readString(path, path_len);
 #if DEBUG_API
 				std::cout << "path_filestat_get: " << path_str << " (relative to .)\n";
 #endif
 				SOUP_UNUSED(flags);
-				if (auto pFiletype = vm.script.memory->getPointer<uint8_t>(buf + 16))
+				if (auto pFiletype = vm.script.getMemoryByIndex(0)->getPointer<uint8_t>(buf + 16))
 				{
 					*pFiletype = 4; // regular file, as per https://github.com/WebAssembly/wasi-libc/blob/d02bdc21afc4d835383b006c11e285c4a7c78439/libc-bottom-half/headers/public/wasi/wasip1.h#L785
 				}
-				if (auto pSize = vm.script.memory->getPointer<uint64_t>(buf + 32))
+				if (auto pSize = vm.script.getMemoryByIndex(0)->getPointer<uint64_t>(buf + 32))
 				{
 					*pSize = std::filesystem::file_size(path_str);
 #if DEBUG_API
@@ -1483,7 +1961,7 @@ NAMESPACE_SOUP
 			auto fd = vm.stack.back().i32; vm.stack.pop_back();
 			if (fd == 3)
 			{
-				auto path_str = vm.script.memory->readString(path, path_len);
+				auto path_str = vm.script.getMemoryByIndex(0)->readString(path, path_len);
 #if DEBUG_API
 				std::cout << "path_open: " << path_str << " (relative to .)\n";
 #endif
@@ -1495,7 +1973,7 @@ NAMESPACE_SOUP
 				if (auto f = fopen(path_str.c_str(), "rb"))
 				{
 					WasiData& wd = vm.script.custom_data.getStructFromMapConst(WasiData);
-					if (auto pOutFd = vm.script.memory->getPointer<uint32_t>(out_fd))
+					if (auto pOutFd = vm.script.getMemoryByIndex(0)->getPointer<uint32_t>(out_fd))
 					{
 						*pOutFd = WASI_FD_FILES_BASE + wd.files.size();
 					}
@@ -1527,7 +2005,7 @@ NAMESPACE_SOUP
 			{
 				auto f = wd.files[fd - WASI_FD_FILES_BASE];
 				fseek(f, delta, whence == 0 ? SEEK_SET : (whence == 1 ? SEEK_CUR : (whence == 2 ? SEEK_END : (SOUP_UNREACHABLE,SEEK_END))));
-				if (auto pOutOff = vm.script.memory->getPointer<uint64_t>(out_off))
+				if (auto pOutOff = vm.script.getMemoryByIndex(0)->getPointer<uint64_t>(out_off))
 				{
 					*pOutOff = ftell(f);
 #if DEBUG_API
@@ -1564,18 +2042,18 @@ NAMESPACE_SOUP
 				while (iovs_len--)
 				{
 					int32_t iov_base = 0;
-					if (auto ptr = vm.script.memory->getPointer<int32_t>(iovs))
+					if (auto ptr = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(iovs))
 					{
 						iov_base = *ptr;
 					}
 					iovs += 4;
 					int32_t iov_len = 0;
-					if (auto ptr = vm.script.memory->getPointer<int32_t>(iovs))
+					if (auto ptr = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(iovs))
 					{
 						iov_len = *ptr;
 					}
 					iovs += 4;
-					if (auto ptr = vm.script.memory->getView(iov_base, iov_len))
+					if (auto ptr = vm.script.getMemoryByIndex(0)->getView(iov_base, iov_len))
 					{
 						const auto ret = fread(ptr, 1, iov_len, f);
 						if (ret >= 0)
@@ -1584,7 +2062,7 @@ NAMESPACE_SOUP
 						}
 					}
 				}
-				if (auto pOut = vm.script.memory->getPointer<int32_t>(out_nread))
+				if (auto pOut = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(out_nread))
 				{
 #if DEBUG_API
 					std::cout << "read " << nread << " bytes from fd " << fd << "\n";
@@ -1621,18 +2099,18 @@ NAMESPACE_SOUP
 				while (iovs_len--)
 				{
 					int32_t iov_base = 0;
-					if (auto ptr = vm.script.memory->getPointer<int32_t>(iovs))
+					if (auto ptr = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(iovs))
 					{
 						iov_base = *ptr;
 					}
 					iovs += 4;
 					int32_t iov_len = 0;
-					if (auto ptr = vm.script.memory->getPointer<int32_t>(iovs))
+					if (auto ptr = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(iovs))
 					{
 						iov_len = *ptr;
 					}
 					iovs += 4;
-					if (auto ptr = vm.script.memory->getView(iov_base, iov_len))
+					if (auto ptr = vm.script.getMemoryByIndex(0)->getView(iov_base, iov_len))
 					{
 						const auto ret = fwrite(ptr, 1, iov_len, f);
 						if (ret >= 0)
@@ -1641,7 +2119,7 @@ NAMESPACE_SOUP
 						}
 					}
 				}
-				if (auto pOut = vm.script.memory->getPointer<int32_t>(out_nwritten))
+				if (auto pOut = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(out_nwritten))
 				{
 					*pOut = nwritten;
 				}
@@ -1728,6 +2206,40 @@ NAMESPACE_SOUP
 		return true;
 	}
 
+	// WasmSharedEnvironment
+
+	SharedPtr<WasmScript> WasmSharedEnvironment::createScript() SOUP_EXCAL
+	{
+		return scripts.emplace_back(soup::make_shared<WasmScript>(this));
+	}
+
+	void WasmSharedEnvironment::markScriptAsNoLongerUsed(WasmScript& scr) noexcept
+	{
+		if (!scr.has_created_funcrefs)
+		{
+			for (auto i = scripts.begin(); i != scripts.end(); ++i)
+			{
+				if (*i == &scr)
+				{
+					scripts.erase(i);
+					break;
+				}
+			}
+		}
+	}
+
+	uint64_t WasmSharedEnvironment::createFuncRef(WasmScript& scr, uint32_t func_index) SOUP_EXCAL
+	{
+		scr.has_created_funcrefs = true;
+		funcrefs.emplace_back(FuncRef{ &scr, func_index });
+		return funcrefs.size();
+	}
+
+	const WasmSharedEnvironment::FuncRef& WasmSharedEnvironment::getFuncRef(uint64_t value) const noexcept
+	{
+		return funcrefs[value - 1];
+	}
+
 	// WasmVm
 
 	bool WasmVm::run(const std::string& data, unsigned depth, uint32_t func_index)
@@ -1761,11 +2273,11 @@ NAMESPACE_SOUP
 
 	bool WasmVm::run(Reader& r, unsigned depth, uint32_t func_index)
 	{
-		size_t local_decl_count;
+		uint32_t local_decl_count;
 		WASM_READ_OML(local_decl_count);
 		while (local_decl_count--)
 		{
-			size_t type_count;
+			uint32_t type_count;
 			WASM_READ_OML(type_count);
 			uint8_t type;
 			r.u8(type);
@@ -1876,7 +2388,7 @@ NAMESPACE_SOUP
 					}
 					else
 					{
-						if (skipOverBranch(r, 0, script, func_index))
+						if (skipOverBranch(r, 0, script, func_index) == ELSE_REACHED)
 						{
 							// we're in the 'else' branch
 							ctrlflow.emplace(CtrlFlowEntry{ (std::streamoff)-1, stack_size, num_values });
@@ -1960,7 +2472,7 @@ NAMESPACE_SOUP
 					uint32_t function_index;
 					WASM_READ_OML(function_index);
 					uint32_t type_index = script.getTypeIndexForFunction(function_index);
-					SOUP_RETHROW_FALSE(doCall(type_index, function_index, depth));
+					SOUP_RETHROW_FALSE(doCall(&this->script, type_index, function_index, depth));
 				}
 				break;
 
@@ -1975,15 +2487,15 @@ NAMESPACE_SOUP
 						return false;
 					}
 					uint32_t table_index; WASM_READ_OML(table_index);
-					SOUP_IF_UNLIKELY (table_index >= script.tables.size())
+					auto table = script.getTableByIndex(table_index);
+					SOUP_IF_UNLIKELY (!table)
 					{
 #if DEBUG_VM
-						std::cout << "call: table is out-of-bounds\n";
+						std::cout << "call: invalid table index\n";
 #endif
 						return false;
 					}
-					const auto& table = script.tables[table_index];
-					SOUP_IF_UNLIKELY (table.type != WASM_FUNCREF)
+					SOUP_IF_UNLIKELY (table->type != WASM_FUNCREF)
 					{
 #if DEBUG_VM
 						std::cout << "call: indexing non-funcref table\n";
@@ -1992,22 +2504,22 @@ NAMESPACE_SOUP
 					}
 					WASM_CHECK_STACK(1);
 					auto element_index = static_cast<uint32_t>(stack.back().i32); stack.pop_back();
-					SOUP_IF_UNLIKELY (element_index >= table.values.size())
+					SOUP_IF_UNLIKELY (element_index >= table->values.size())
 					{
 #if DEBUG_VM
 						std::cout << "call: element is out-of-bounds\n";
 #endif
 						return false;
 					}
-					SOUP_IF_UNLIKELY (table.values[element_index] == 0)
+					SOUP_IF_UNLIKELY (table->values[element_index] == 0)
 					{
 #if DEBUG_VM
 						std::cout << "indirect call to null\n";
 #endif
 						return false;
 					}
-					uint32_t function_index = table.values[element_index] & 0xffff'ffff;
-					SOUP_RETHROW_FALSE(doCall(type_index, function_index, depth));
+					const auto& funcref = script.shared_env->getFuncRef(table->values[element_index]);
+					SOUP_RETHROW_FALSE(doCall(funcref.source, type_index, funcref.index, depth));
 				}
 				break;
 
@@ -2104,7 +2616,15 @@ NAMESPACE_SOUP
 						return false;
 					}
 					WASM_CHECK_STACK(1);
-					*global = stack.back(); stack.pop_back();
+					SOUP_IF_UNLIKELY (stack.back().type != global->type)
+					{
+#if DEBUG_VM
+						std::cout << "global.set: type mismatch\n";
+#endif
+						return false;
+					}
+					global->i64 = stack.back().i64;
+					stack.pop_back();
 				}
 				break;
 
@@ -2112,24 +2632,24 @@ NAMESPACE_SOUP
 				{
 					uint32_t table_index;
 					WASM_READ_OML(table_index);
-					SOUP_IF_UNLIKELY (table_index >= script.tables.size())
+					auto table = script.getTableByIndex(table_index);
+					SOUP_IF_UNLIKELY (!table)
 					{
 #if DEBUG_VM
-						std::cout << "table.get: table index " << table_index << " >= " << script.tables.size() << "\n";
+						std::cout << "table.get: invalid table index (" << table_index << ")\n";
 #endif
 						return false;
 					}
 					WASM_CHECK_STACK(1);
 					auto elem_index = stack.back().uptr(); stack.pop_back();
-					const auto& table = script.tables[table_index];
-					SOUP_IF_UNLIKELY (elem_index >= table.values.size())
+					SOUP_IF_UNLIKELY (elem_index >= table->values.size())
 					{
 #if DEBUG_VM
-						std::cout << "table.get: element index " << elem_index << " >= " << table.values.size() << "\n";
+						std::cout << "table.get: element index " << elem_index << " >= " << table->values.size() << "\n";
 #endif
 						return false;
 					}
-					stack.emplace_back(table.type).i64 = table.values[elem_index];
+					stack.emplace_back(table->type).i64 = table->values[elem_index];
 				}
 				break;
 
@@ -2137,32 +2657,32 @@ NAMESPACE_SOUP
 				{
 					uint32_t table_index;
 					WASM_READ_OML(table_index);
-					SOUP_IF_UNLIKELY (table_index >= script.tables.size())
+					auto table = script.getTableByIndex(table_index);
+					SOUP_IF_UNLIKELY (!table)
 					{
 #if DEBUG_VM
-						std::cout << "table.set: table index " << table_index << " >= " << script.tables.size() << "\n";
+						std::cout << "table.set: invalid table index (" << table_index << ")\n";
 #endif
 						return false;
 					}
 					WASM_CHECK_STACK(2);
 					auto value = stack.back(); stack.pop_back();
 					auto elem_index = stack.back().uptr(); stack.pop_back();
-					auto& table = script.tables[table_index];
-					SOUP_IF_UNLIKELY (elem_index >= table.values.size())
+					SOUP_IF_UNLIKELY (elem_index >= table->values.size())
 					{
 #if DEBUG_VM
-						std::cout << "table.set: element index " << elem_index << " >= " << table.values.size() << "\n";
+						std::cout << "table.set: element index " << elem_index << " >= " << table->values.size() << "\n";
 #endif
 						return false;
 					}
-					SOUP_IF_UNLIKELY (value.type != table.type)
+					SOUP_IF_UNLIKELY (value.type != table->type)
 					{
 #if DEBUG_VM
 						std::cout << "table.set: value type doesn't match table's element type\n";
 #endif
 						return false;
 					}
-					table.values[elem_index] = value.i64;
+					table->values[elem_index] = value.i64;
 				}
 				break;
 
@@ -2170,16 +2690,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int32_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int32_t>(base, offset))
 					{
 						stack.emplace_back(*ptr);
 					}
@@ -2197,16 +2717,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int64_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int64_t>(base, offset))
 					{
 						stack.emplace_back(*ptr);
 					}
@@ -2224,16 +2744,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<float>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<float>(base, offset))
 					{
 						stack.emplace_back(*ptr);
 					}
@@ -2251,16 +2771,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<double>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<double>(base, offset))
 					{
 						stack.emplace_back(*ptr);
 					}
@@ -2278,16 +2798,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int8_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int8_t>(base, offset))
 					{
 						stack.emplace_back(static_cast<int32_t>(*ptr));
 					}
@@ -2305,16 +2825,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<uint8_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<uint8_t>(base, offset))
 					{
 						stack.emplace_back(static_cast<uint32_t>(*ptr));
 					}
@@ -2332,16 +2852,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int16_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int16_t>(base, offset))
 					{
 						stack.emplace_back(static_cast<uint32_t>(*ptr));
 					}
@@ -2359,16 +2879,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<uint16_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<uint16_t>(base, offset))
 					{
 						stack.emplace_back(static_cast<uint32_t>(*ptr));
 					}
@@ -2386,16 +2906,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int8_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int8_t>(base, offset))
 					{
 						stack.emplace_back(static_cast<int64_t>(*ptr));
 					}
@@ -2413,16 +2933,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<uint8_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<uint8_t>(base, offset))
 					{
 						stack.emplace_back(static_cast<uint64_t>(*ptr));
 					}
@@ -2440,16 +2960,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int16_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int16_t>(base, offset))
 					{
 						stack.emplace_back(static_cast<int64_t>(*ptr));
 					}
@@ -2467,16 +2987,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<uint16_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<uint16_t>(base, offset))
 					{
 						stack.emplace_back(static_cast<uint64_t>(*ptr));
 					}
@@ -2494,16 +3014,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int32_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int32_t>(base, offset))
 					{
 						stack.emplace_back(static_cast<int64_t>(*ptr));
 					}
@@ -2521,16 +3041,16 @@ NAMESPACE_SOUP
 				{
 					WASM_CHECK_STACK(1);
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<uint32_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<uint32_t>(base, offset))
 					{
 						stack.emplace_back(static_cast<uint64_t>(*ptr));
 					}
@@ -2550,16 +3070,16 @@ NAMESPACE_SOUP
 					WASM_CHECK_STACK(2);
 					auto value = stack.back(); stack.pop_back();
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int32_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int32_t>(base, offset))
 					{
 						*ptr = value.i32;
 					}
@@ -2578,16 +3098,16 @@ NAMESPACE_SOUP
 					WASM_CHECK_STACK(2);
 					auto value = stack.back(); stack.pop_back();
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int64_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int64_t>(base, offset))
 					{
 						*ptr = value.i64;
 					}
@@ -2606,16 +3126,16 @@ NAMESPACE_SOUP
 					WASM_CHECK_STACK(2);
 					auto value = stack.back(); stack.pop_back();
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<float>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<float>(base, offset))
 					{
 						*ptr = value.f32;
 					}
@@ -2634,16 +3154,16 @@ NAMESPACE_SOUP
 					WASM_CHECK_STACK(2);
 					auto value = stack.back(); stack.pop_back();
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<double>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<double>(base, offset))
 					{
 						*ptr = value.f64;
 					}
@@ -2662,16 +3182,16 @@ NAMESPACE_SOUP
 					WASM_CHECK_STACK(2);
 					auto value = stack.back(); stack.pop_back();
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int8_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int8_t>(base, offset))
 					{
 						*ptr = static_cast<int8_t>(value.i32);
 					}
@@ -2690,16 +3210,16 @@ NAMESPACE_SOUP
 					WASM_CHECK_STACK(2);
 					auto value = stack.back(); stack.pop_back();
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int16_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int16_t>(base, offset))
 					{
 						*ptr = static_cast<int16_t>(value.i32);
 					}
@@ -2718,16 +3238,16 @@ NAMESPACE_SOUP
 					WASM_CHECK_STACK(2);
 					auto value = stack.back(); stack.pop_back();
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int8_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int8_t>(base, offset))
 					{
 						*ptr = static_cast<int8_t>(value.i64);
 					}
@@ -2746,16 +3266,16 @@ NAMESPACE_SOUP
 					WASM_CHECK_STACK(2);
 					auto value = stack.back(); stack.pop_back();
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int16_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int16_t>(base, offset))
 					{
 						*ptr = static_cast<int16_t>(value.i64);
 					}
@@ -2774,16 +3294,16 @@ NAMESPACE_SOUP
 					WASM_CHECK_STACK(2);
 					auto value = stack.back(); stack.pop_back();
 					auto base = stack.back(); stack.pop_back();
-					r.skip(1); // memflags
-					size_t offset; WASM_READ_OML(offset);
-					SOUP_IF_UNLIKELY (!script.memory)
+					WASM_READ_MEMARG;
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory access without a memory\n";
 #endif
 						return false;
 					}
-					SOUP_IF_LIKELY (auto ptr = script.memory->getPointer<int32_t>(base, offset))
+					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int32_t>(base, offset))
 					{
 						*ptr = static_cast<int32_t>(value.i64);
 					}
@@ -2799,22 +3319,26 @@ NAMESPACE_SOUP
 
 			case 0x3f: // memory.size
 				{
-					r.skip(1); // reserved
-					SOUP_IF_UNLIKELY (!script.memory)
+					uint32_t memidx;
+					WASM_READ_OML(memidx);
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory.size: no memory\n";
 #endif
 						return false;
 					}
-					script.memory->encodeUPTR(stack.emplace_back(), script.memory->size / 0x10'000);
+					memory->encodeUPTR(stack.emplace_back(), memory->size / 0x10'000);
 				}
 				break;
 
 			case 0x40: // memory.grow
 				{
-					r.skip(1); // reserved
-					SOUP_IF_UNLIKELY (!script.memory)
+					uint32_t memidx;
+					WASM_READ_OML(memidx);
+					auto memory = script.getMemoryByIndex(memidx);
+					SOUP_IF_UNLIKELY (!memory)
 					{
 #if DEBUG_VM
 						std::cout << "memory.grow: no memory\n";
@@ -2822,8 +3346,8 @@ NAMESPACE_SOUP
 						return false;
 					}
 					WASM_CHECK_STACK(1);
-					const auto old_size_pages = script.memory->grow(stack.back().uptr());
-					script.memory->encodeUPTR(stack.back(), old_size_pages);
+					const auto old_size_pages = memory->grow(stack.back().uptr());
+					memory->encodeUPTR(stack.back(), old_size_pages);
 				}
 				break;
 
@@ -3969,11 +4493,17 @@ NAMESPACE_SOUP
 				break;
 
 			case 0xd2: // ref.func
+				SOUP_IF_UNLIKELY (!script.shared_env)
+				{
+#if DEBUG_VM
+					std::cout << "cannot use ref.func without a shared env\n";
+#endif
+					return false;
+				}
 				{
 					uint32_t idx;
 					WASM_READ_OML(idx);
-					stack.emplace_back(WASM_FUNCREF);
-					stack.back().i64 = 0x1'0000'0000 | idx;
+					stack.emplace_back(WASM_FUNCREF).i64 = script.shared_env->createFuncRef(script, idx);
 				}
 				break;
 
@@ -4145,8 +4675,10 @@ NAMESPACE_SOUP
 					{
 						uint32_t segment_index;
 						WASM_READ_OML(segment_index);
-						r.skip(1); // memory index
-						SOUP_IF_UNLIKELY (!script.memory)
+						uint32_t memidx;
+						WASM_READ_OML(memidx);
+						auto memory = script.getMemoryByIndex(memidx);
+						SOUP_IF_UNLIKELY (!memory)
 						{
 #if DEBUG_VM
 							std::cout << "memory.init: no memory\n";
@@ -4157,8 +4689,8 @@ NAMESPACE_SOUP
 						auto size = stack.back().uptr(); stack.pop_back();
 						auto src_offset = stack.back().uptr(); stack.pop_back();
 						auto dst_offset = stack.back().uptr(); stack.pop_back();
-						auto e = script.passive_data_segments.find(segment_index);
-						SOUP_IF_UNLIKELY (e == script.passive_data_segments.end() && size != 0)
+						auto data = script.getPassiveDataSegmentByIndex(segment_index);
+						SOUP_IF_UNLIKELY (!data && size != 0)
 						{
 #if DEBUG_VM
 							std::cout << "memory.init: invalid segment index\n";
@@ -4166,16 +4698,19 @@ NAMESPACE_SOUP
 							return false;
 						}
 						std::string scrap;
-						const auto& data = e == script.passive_data_segments.end() ? scrap : e->second;
-						auto dst_ptr = script.memory->getView(dst_offset, size);
-						SOUP_IF_UNLIKELY (!dst_ptr || !can_add_without_overflow(src_offset, size) || src_offset + size > data.size())
+						if (!data)
+						{
+							data = &scrap;
+						}
+						auto dst_ptr = memory->getView(dst_offset, size);
+						SOUP_IF_UNLIKELY (!dst_ptr || !can_add_without_overflow(src_offset, size) || src_offset + size > data->size())
 						{
 #if DEBUG_VM
 							std::cout << "out-of-bounds memory.init\n";
 #endif
 							return false;
 						}
-						memcpy(dst_ptr, data.data() + src_offset, size);
+						memcpy(dst_ptr, data->data() + src_offset, size);
 					}
 					break;
 
@@ -4183,21 +4718,25 @@ NAMESPACE_SOUP
 					{
 						uint32_t segment_index;
 						WASM_READ_OML(segment_index);
-						if (auto e = script.passive_data_segments.find(segment_index); e != script.passive_data_segments.end())
+						if (auto data = script.getPassiveDataSegmentByIndex(segment_index))
 						{
-							e->second.clear();
-							e->second.shrink_to_fit();
+							data->clear();
+							data->shrink_to_fit();
 						}
 					}
 					break;
 
 				case 0x0a: // memory.copy
 					{
-						r.skip(2); // reserved
-						SOUP_IF_UNLIKELY (!script.memory)
+						uint32_t dst_memidx, src_memidx;
+						WASM_READ_OML(dst_memidx);
+						WASM_READ_OML(src_memidx);
+						auto dst_memory = script.getMemoryByIndex(dst_memidx);
+						auto src_memory = script.getMemoryByIndex(src_memidx);
+						SOUP_IF_UNLIKELY (!dst_memory || !src_memory)
 						{
 #if DEBUG_VM
-							std::cout << "memory.copy: no memory\n";
+							std::cout << "memory.copy: invalid memory index\n";
 #endif
 							return false;
 						}
@@ -4205,8 +4744,8 @@ NAMESPACE_SOUP
 						auto size = stack.back().uptr(); stack.pop_back();
 						auto src = stack.back().uptr(); stack.pop_back();
 						auto dst = stack.back().uptr(); stack.pop_back();
-						auto dst_ptr = script.memory->getView(dst, size);
-						auto src_ptr = script.memory->getView(src, size);
+						auto dst_ptr = dst_memory->getView(dst, size);
+						auto src_ptr = src_memory->getView(src, size);
 						SOUP_IF_UNLIKELY (!dst_ptr || !src_ptr)
 						{
 #if DEBUG_VM
@@ -4220,8 +4759,10 @@ NAMESPACE_SOUP
 
 				case 0x0b: // memory.fill
 					{
-						r.skip(1); // reserved
-						SOUP_IF_UNLIKELY (!script.memory)
+						uint32_t memidx;
+						WASM_READ_OML(memidx);
+						auto memory = script.getMemoryByIndex(memidx);
+						SOUP_IF_UNLIKELY (!memory)
 						{
 #if DEBUG_VM
 							std::cout << "memory.fill: no memory\n";
@@ -4232,7 +4773,7 @@ NAMESPACE_SOUP
 						auto size = stack.back().uptr(); stack.pop_back();
 						auto value = stack.back().i32; stack.pop_back();
 						auto addr = stack.back().uptr(); stack.pop_back();
-						auto ptr = script.memory->getView(addr, size);
+						auto ptr = memory->getView(addr, size);
 						SOUP_IF_UNLIKELY (!ptr)
 						{
 #if DEBUG_VM
@@ -4250,28 +4791,27 @@ NAMESPACE_SOUP
 						WASM_READ_OML(segment_index);
 						uint32_t table_index;
 						WASM_READ_OML(table_index);
-						SOUP_IF_UNLIKELY (table_index >= script.tables.size())
+						auto table = script.getTableByIndex(table_index);
+						SOUP_IF_UNLIKELY (!table)
 						{
 #if DEBUG_VM
-							std::cout << "table.init: table index " << table_index << " >= " << script.tables.size() << "\n";
+							std::cout << "table.init: invalid table index (" << table_index << ")\n";
 #endif
 							return false;
 						}
-						auto& table = script.tables[table_index];
 						WASM_CHECK_STACK(3);
 						auto size = stack.back().uptr(); stack.pop_back();
 						auto src_offset = stack.back().uptr(); stack.pop_back();
 						auto dst_offset = stack.back().uptr(); stack.pop_back();
-						auto e = script.passive_elem_segments.find(segment_index);
-						SOUP_IF_UNLIKELY (e == script.passive_elem_segments.end() && size != 0)
+						auto vtbl = script.getPassiveElemSegmentByIndex(segment_index);
+						SOUP_IF_UNLIKELY (!vtbl && size != 0)
 						{
 #if DEBUG_VM
 							std::cout << "table.init: invalid segment index\n";
 #endif
 							return false;
 						}
-						WasmScript::Table scrap(table.type);
-						SOUP_RETHROW_FALSE(table.copy(e == script.passive_elem_segments.end() ? scrap : e->second, dst_offset, src_offset, size));
+						SOUP_RETHROW_FALSE(table->init(script, vtbl ? *vtbl : WasmScript::ElemSegment{ table->type }, dst_offset, src_offset, size));
 					}
 					break;
 
@@ -4279,10 +4819,10 @@ NAMESPACE_SOUP
 					{
 						uint32_t segment_index;
 						WASM_READ_OML(segment_index);
-						if (auto e = script.passive_elem_segments.find(segment_index); e != script.passive_elem_segments.end())
+						if (auto vtbl = script.getPassiveElemSegmentByIndex(segment_index))
 						{
-							e->second.values.clear();
-							e->second.values.shrink_to_fit();
+							vtbl->values.clear();
+							vtbl->values.shrink_to_fit();
 						}
 					}
 					break;
@@ -4293,20 +4833,20 @@ NAMESPACE_SOUP
 						WASM_READ_OML(dst_table_index);
 						uint32_t src_table_index;
 						WASM_READ_OML(src_table_index);
-						SOUP_IF_UNLIKELY (dst_table_index >= script.tables.size() || src_table_index >= script.tables.size())
+						auto* const dst_table = script.getTableByIndex(dst_table_index);
+						const auto* const src_table = script.getTableByIndex(src_table_index);
+						SOUP_IF_UNLIKELY (!dst_table || !src_table)
 						{
 #if DEBUG_VM
-							std::cout << "table.copy: out-of bounds table index\n";
+							std::cout << "table.copy: invalid table index\n";
 #endif
 							return false;
 						}
-						auto& dst_table = script.tables[dst_table_index];
-						const auto& src_table = script.tables[src_table_index];
 						WASM_CHECK_STACK(3);
 						auto size = stack.back().uptr(); stack.pop_back();
 						auto src_offset = stack.back().uptr(); stack.pop_back();
 						auto dst_offset = stack.back().uptr(); stack.pop_back();
-						SOUP_RETHROW_FALSE(dst_table.copy(src_table, dst_offset, src_offset, size));
+						SOUP_RETHROW_FALSE(dst_table->copy(*src_table, dst_offset, src_offset, size));
 					}
 					break;
 
@@ -4314,27 +4854,27 @@ NAMESPACE_SOUP
 					{
 						uint32_t table_index;
 						WASM_READ_OML(table_index);
-						SOUP_IF_UNLIKELY (table_index >= script.tables.size())
+						auto table = script.getTableByIndex(table_index);
+						SOUP_IF_UNLIKELY (!table)
 						{
 #if DEBUG_VM
-							std::cout << "table.grow: table index " << table_index << " >= " << script.tables.size() << "\n";
+							std::cout << "table.grow: invalid table index (" << table_index << ")\n";
 #endif
 							return false;
 						}
-						auto& table = script.tables[table_index];
 						WASM_CHECK_STACK(2);
-						auto delta = stack.back().i32; stack.pop_back();
+						auto delta = stack.back().uptr(); stack.pop_back();
 						auto& value = stack.back();
-						SOUP_IF_UNLIKELY (value.type != table.type)
+						SOUP_IF_UNLIKELY (value.type != table->type)
 						{
 #if DEBUG_VM
-							std::cout << "table.grow: attempt to assign " << wasm_type_to_string(value.type) << " to a table of " << wasm_type_to_string(table.type) << "\n";
+							std::cout << "table.grow: attempt to assign " << wasm_type_to_string(value.type) << " to a table of " << wasm_type_to_string(table->type) << "\n";
 #endif
 							return false;
 						}
-						const auto old_size = table.grow(delta, value.i64);
+						const auto old_size = table->grow(delta, value.i64);
 #if SOUP_WASM_MEMORY64
-						if (table.table64)
+						if (table->table64)
 						{
 							stack.back() = static_cast<uint64_t>(old_size);
 						}
@@ -4350,23 +4890,23 @@ NAMESPACE_SOUP
 					{
 						uint32_t table_index;
 						WASM_READ_OML(table_index);
-						SOUP_IF_UNLIKELY (table_index >= script.tables.size())
+						auto table = script.getTableByIndex(table_index);
+						SOUP_IF_UNLIKELY (!table)
 						{
 #if DEBUG_VM
-							std::cout << "table.size: table index " << table_index << " >= " << script.tables.size() << "\n";
+							std::cout << "table.size: invalid table index (" << table_index << ")\n";
 #endif
 							return false;
 						}
-						const auto& table = script.tables[table_index];
 #if SOUP_WASM_MEMORY64
-						if (table.table64)
+						if (table->table64)
 						{
-							stack.emplace_back(static_cast<uint64_t>(table.values.size()));
+							stack.emplace_back(static_cast<uint64_t>(table->values.size()));
 						}
 						else
 #endif
 						{
-							stack.emplace_back(static_cast<uint32_t>(table.values.size()));
+							stack.emplace_back(static_cast<uint32_t>(table->values.size()));
 						}
 					}
 					break;
@@ -4375,26 +4915,26 @@ NAMESPACE_SOUP
 					{
 						uint32_t table_index;
 						WASM_READ_OML(table_index);
-						SOUP_IF_UNLIKELY (table_index >= script.tables.size())
+						auto table = script.getTableByIndex(table_index);
+						SOUP_IF_UNLIKELY (!table)
 						{
 #if DEBUG_VM
-							std::cout << "table.fill: table index " << table_index << " >= " << script.tables.size() << "\n";
+							std::cout << "table.fill: invalid table index (" << table_index << ")\n";
 #endif
 							return false;
 						}
-						auto& table = script.tables[table_index];
 						WASM_CHECK_STACK(3);
 						auto& size = stack[stack.size() - 1].i32;
 						auto& value = stack[stack.size() - 2];
 						auto& offset = stack[stack.size() - 3].i32;
-						SOUP_IF_UNLIKELY (value.type != table.type)
+						SOUP_IF_UNLIKELY (value.type != table->type)
 						{
 #if DEBUG_VM
-							std::cout << "table.fill: attempt to assign " << wasm_type_to_string(value.type) << " to a table of " << wasm_type_to_string(table.type) << "\n";
+							std::cout << "table.fill: attempt to assign " << wasm_type_to_string(value.type) << " to a table of " << wasm_type_to_string(table->type) << "\n";
 #endif
 							return false;
 						}
-						SOUP_IF_UNLIKELY (offset + size > table.values.size())
+						SOUP_IF_UNLIKELY (offset + size > table->values.size())
 						{
 #if DEBUG_VM
 							std::cout << "out-of-bounds table.fill\n";
@@ -4403,7 +4943,7 @@ NAMESPACE_SOUP
 						}
 						while (size--)
 						{
-							table.values[offset++] = value.i64;
+							table->values[offset++] = value.i64;
 						}
 						stack.erase(stack.end() - 3, stack.end());
 					}
@@ -4421,7 +4961,7 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	bool WasmVm::skipOverBranch(Reader& r, uint32_t target_depth, WasmScript& script, uint32_t func_index) SOUP_EXCAL
+	WasmVm::SkipOverBranchResult WasmVm::skipOverBranch(Reader& r, uint32_t target_depth, WasmScript& script, uint32_t func_index) SOUP_EXCAL
 	{
 		std::vector<uint32_t> scrap;
 		std::vector<uint32_t>* hints = &scrap;
@@ -4478,7 +5018,7 @@ NAMESPACE_SOUP
 				}
 				if (depth == target_depth)
 				{
-					return true;
+					return ELSE_REACHED;
 				}
 				break;
 
@@ -4492,7 +5032,7 @@ NAMESPACE_SOUP
 				}
 				if (depth == target_depth)
 				{
-					return false;
+					return END_REACHED;
 				}
 				++depth;
 				break;
@@ -4563,18 +5103,26 @@ NAMESPACE_SOUP
 			case 0x3d: // i64.store16
 			case 0x3e: // i64.store32
 				{
-#if SOUP_WASM_PEDANTIC
-					uint32_t memflags; WASM_READ_OML(memflags);
-#else
-					r.skip(1); // memflags
+					WASM_READ_MEMARG;
+					SOUP_UNUSED(memidx);
+#if SOUP_WASM_PEDANTIC && !SOUP_WASM_MULTI_MEMORY
+					SOUP_RETHROW_FALSE(align < 0x20);
 #endif
-					size_t offset; WASM_READ_OML(offset);
 				}
 				break;
 
 			case 0x3f: // memory.size
 			case 0x40: // memory.grow
-				r.skip(1);
+				{
+#if SOUP_WASM_PEDANTIC && !SOUP_WASM_MULTI_MEMORY
+					uint8_t memidx;
+					r.u8(memidx);
+					SOUP_RETHROW_FALSE(memidx == 0);
+#else
+					uint32_t memidx;
+					WASM_READ_OML(memidx);
+#endif
+				}
 				break;
 
 			case 0x41: // i32.const
@@ -4758,14 +5306,27 @@ NAMESPACE_SOUP
 				switch (op)
 				{
 				case 0x08: // memory.init
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE(script.has_data_count_section);
+					[[fallthrough]];
+#endif
+				case 0x0a: // memory.copy
+				case 0x0c: // table.init
+				case 0x0e: // table.copy
 					{
-						uint32_t imm;
-						WASM_READ_OML(imm);
-						r.skip(1);
+						uint32_t imm1;
+						WASM_READ_OML(imm1);
+						uint32_t imm2;
+						WASM_READ_OML(imm2);
 					}
 					break;
 
 				case 0x09: // data.drop
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE(script.has_data_count_section);
+					[[fallthrough]];
+#endif
+				case 0x0b: // memory.fill
 				case 0x0d: // elem.drop
 				case 0x0f: // table.grow
 				case 0x10: // table.size
@@ -4773,23 +5334,6 @@ NAMESPACE_SOUP
 					{
 						uint32_t imm;
 						WASM_READ_OML(imm);
-					}
-					break;
-
-				case 0x0a: // memory.copy
-					r.skip(2);
-					break;
-
-				case 0x0b: // memory.fill
-					r.skip(1);
-					break;
-
-				case 0x0c: // table.init
-					{
-						uint32_t segment_index;
-						WASM_READ_OML(segment_index);
-						uint32_t table_index;
-						WASM_READ_OML(table_index);
 					}
 					break;
 
@@ -4815,7 +5359,7 @@ NAMESPACE_SOUP
 #if DEBUG_VM
 		std::cout << "skipOverBranch: end of stream reached\n";
 #endif
-		return false;
+		return INSUFFICIENT_DATA;
 	}
 
 	bool WasmVm::doBranch(Reader& r, uint32_t depth, uint32_t func_index, std::stack<CtrlFlowEntry>& ctrlflow) SOUP_EXCAL
@@ -4848,7 +5392,7 @@ NAMESPACE_SOUP
 		if (ctrlflow.top().position == -1)
 		{
 			// branch forwards
-			if (skipOverBranch(r, depth, script, func_index))
+			if (skipOverBranch(r, depth, script, func_index) == ELSE_REACHED)
 			{
 				// also skip over 'else' branch
 				skipOverBranch(r, depth, script, func_index);
@@ -4881,7 +5425,7 @@ NAMESPACE_SOUP
 	}
 
 	// function_index will be range-checked. type_index is assumed to be in-bounds if function_index is in-bounds. (as guaranteed by getTypeIndexForFunction)
-	bool WasmVm::doCall(uint32_t type_index, uint32_t function_index, unsigned depth)
+	bool WasmVm::doCall(WasmScript* script, uint32_t type_index, uint32_t function_index, unsigned depth)
 	{
 		SOUP_IF_UNLIKELY (depth >= 200)
 		{
@@ -4892,7 +5436,6 @@ NAMESPACE_SOUP
 		}
 		++depth;
 
-		WasmScript* script = &this->script;
 	_doCall_other_script:
 
 #if SOUP_WASM_PEDANTIC
@@ -4901,7 +5444,7 @@ NAMESPACE_SOUP
 			uint32_t func_type_index = script->getTypeIndexForFunction(function_index);
 			if (type_index != func_type_index)
 			{
-				const auto& type = script->types[type_index];
+				const auto& type = this->script.types[type_index];
 #if false // already checked at load
 				SOUP_IF_UNLIKELY (func_type_index >= script->types.size())
 				{
@@ -4934,7 +5477,7 @@ NAMESPACE_SOUP
 #endif
 			if (imp.ptr)
 			{
-				const auto& type = script->types[type_index];
+				const auto& type = this->script.types[type_index];
 				imp.ptr(*this, function_index, type);
 				return true;
 			}
@@ -4947,7 +5490,6 @@ NAMESPACE_SOUP
 			}
 
 			script = imp.source.get();
-			type_index = imp.source->getTypeIndexForFunction(imp.func_index);
 			function_index = imp.func_index;
 			goto _doCall_other_script;
 		}
@@ -4959,7 +5501,7 @@ NAMESPACE_SOUP
 #endif
 			return false;
 		}
-		const auto& type = script->types[type_index];
+		const auto& type = this->script.types[type_index];
 
 		WasmVm callvm(*script);
 		for (uint32_t i = 0; i != type.parameters.size(); ++i)
