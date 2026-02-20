@@ -30,9 +30,7 @@
 
 #include "lauxlib.h"
 #include "llimits.h"
-#if defined(PLUTO_MEMORY_LIMIT) || defined(PLUTO_PARSER_CACHE)
 #include "lstate.h"
-#endif
 #ifdef PLUTO_PARSER_CACHE
 #include "lundump.h"
 
@@ -1159,6 +1157,13 @@ LUALIB_API void luaL_requiref (lua_State *L, const char *modname,
   if (glb) {
     lua_pushvalue(L, -1);  /* copy of module */
     lua_setglobal(L, modname);  /* _G[modname] = module */
+  }
+}
+
+
+PLUTOLIB_API void pluto_errorifnotgc (lua_State *L) {
+  if (!L->ci->previous || !(L->ci->previous->callstatus & CIST_FIN)) {
+    luaL_error(L, "this function is only for the garbage collector to call");
   }
 }
 
