@@ -9,8 +9,12 @@
 
 static thread_local lua_State* callback_L = nullptr;
 
-static soup::WasmScript *checkmodule (lua_State *L, int i) {
-  return (soup::WasmScript*)luaL_checkudata(L, i, "pluto:wasm-module");
+static soup::WasmSharedEnvironment::ScriptRaii *checkmoduleraw (lua_State *L, int i) {
+  return (soup::WasmSharedEnvironment::ScriptRaii*)luaL_checkudata(L, i, "pluto:wasm-module");
+}
+
+static soup::WasmScript& checkmodule (lua_State *L, int i) {
+  return **checkmoduleraw(L, i);
 }
 
 static void wasm_to_lua_stack(lua_State *L, soup::WasmVm& vm, const std::vector<soup::WasmType>& types) {
@@ -37,7 +41,7 @@ static void wasm_to_lua_stack(lua_State *L, soup::WasmVm& vm, const std::vector<
 }
 
 static int call (lua_State *L) {
-  auto& inst = *checkmodule(L, 1);
+  auto& inst = checkmodule(L, 1);
   const soup::WasmFunctionType* type;
   auto code = inst.getExportedFuntion(pluto_checkstring(L, 2), &type);
   if (l_unlikely(!code)) {
@@ -75,7 +79,7 @@ static int call (lua_State *L) {
 }
 
 static int wasm_module_read (lua_State *L) {
-  auto& inst = *checkmodule(L, 1);
+  auto& inst = checkmodule(L, 1);
   lua_Unsigned addr = luaL_checkinteger(L, 2);
   lua_Unsigned size = luaL_checkinteger(L, 3);
   if (l_unlikely(!inst.memory)) {
@@ -90,7 +94,7 @@ static int wasm_module_read (lua_State *L) {
 }
 
 static int wasm_module_write (lua_State *L) {
-  auto& inst = *checkmodule(L, 1);
+  auto& inst = checkmodule(L, 1);
   lua_Unsigned addr = luaL_checkinteger(L, 2);
   size_t size;
   const char *data = luaL_checklstring(L, 3, &size);
@@ -105,12 +109,19 @@ static int wasm_module_write (lua_State *L) {
   return 0;
 }
 
-static soup::WasmScript *pushmodule (lua_State *L) {
-  auto ptr = new (lua_newuserdata(L, sizeof(soup::WasmScript))) soup::WasmScript();
+static soup::WasmScript& pushmodule (lua_State *L) {
+  if (lua_getfield(L, LUA_REGISTRYINDEX, "pluto:statewasmenv") == LUA_TNIL) {
+    lua_pop(L, 1);
+    pluto_newclassinst(L, soup::WasmSharedEnvironment);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, LUA_REGISTRYINDEX, "pluto:statewasmenv");
+  }
+  auto env = reinterpret_cast<soup::WasmSharedEnvironment*>(lua_touserdata(L, -1));
+  auto ptr = new (lua_newuserdata(L, sizeof(soup::WasmSharedEnvironment::ScriptRaii))) soup::WasmSharedEnvironment::ScriptRaii(env->createScript());
   if (l_unlikely(luaL_newmetatable(L, "pluto:wasm-module"))) {
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State* L) {
-      std::destroy_at<>(checkmodule(L, 1));
+      std::destroy_at<>(checkmoduleraw(L, 1));
       return 0;
     });
     lua_settable(L, -3);
@@ -134,7 +145,7 @@ static soup::WasmScript *pushmodule (lua_State *L) {
     lua_settable(L, -3);
   }
   lua_setmetatable(L, -2);
-  return ptr;
+  return **ptr;
 }
 
 static int instantiate (lua_State *L) {
@@ -144,7 +155,7 @@ static int instantiate (lua_State *L) {
     lua_newtable(L);
   }
   soup::MemoryRefReader r(data, size);
-  auto& inst = *pushmodule(L);
+  auto& inst = pushmodule(L);
   if (l_unlikely(!inst.load(r))) {
     return luaL_error(L, "failed to load wasm module");
   }
