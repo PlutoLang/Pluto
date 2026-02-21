@@ -22,7 +22,7 @@ static void wasm_to_lua_stack(lua_State *L, soup::WasmVm& vm, const std::vector<
   const auto base = lua_gettop(L);
   for (auto i = static_cast<int>(types.size()); i-- != 0; ) {
     switch (types[i]) {
-      case soup::WASM_I32: default:
+      case soup::WASM_I32:
         lua_pushinteger(L, vm.stack.back().i32);
         break;
       case soup::WASM_I64:
@@ -34,6 +34,16 @@ static void wasm_to_lua_stack(lua_State *L, soup::WasmVm& vm, const std::vector<
       case soup::WASM_F64:
         lua_pushnumber(L, vm.stack.back().f64);
         break;
+      case soup::WASM_EXTERNREF:
+        if (vm.stack.back().i64) {
+          lua_rawgeti(L, LUA_REGISTRYINDEX, vm.stack.back().i64 & 0xffff'ffff);
+        }
+        else {
+          lua_pushnil(L);
+        }
+        break;
+      default:
+        luaL_error(L, "unexpected wasm value type at language boundary. can only convert i32, i64, f32, f64, and externref.\n");
     }
     lua_insert(L, base + 1);
     vm.stack.pop_back();
@@ -42,7 +52,7 @@ static void wasm_to_lua_stack(lua_State *L, soup::WasmVm& vm, const std::vector<
 
 static void opt_wasm_value (lua_State *L, int i, soup::WasmValue& value) {
   switch (value.type) {
-    case soup::WASM_I32: default:
+    case soup::WASM_I32:
       value.i32 = static_cast<int32_t>(luaL_optinteger(L, i, 0));
       break;
     case soup::WASM_I64:
@@ -54,6 +64,14 @@ static void opt_wasm_value (lua_State *L, int i, soup::WasmValue& value) {
     case soup::WASM_F64:
       value.f64 = static_cast<double>(luaL_optnumber(L, i, 0.0));
       break;
+    case soup::WASM_EXTERNREF:
+      if (lua_type(L, i) >= 0) {
+        lua_pushvalue(L, i);
+        value.i64 = luaL_ref(L, LUA_REGISTRYINDEX) | 0x1'0000'0000;
+      }
+      break;
+    default:
+      luaL_error(L, "unexpected wasm value type at language boundary. can only convert i32, i64, f32, f64, and externref.\n");
   }
 }
 
@@ -335,23 +353,24 @@ static int global_new (lua_State *L) {
     data += 4;
     len -= 4;
   }
-  soup::WasmType type{};
-  if (len == 3) {
-    if (memcmp(data, "i32", 3) == 0) {
-      type = soup::WASM_I32;
-    }
-    else if (memcmp(data, "i64", 3) == 0) {
-      type = soup::WASM_I64;
-    }
-    else if (memcmp(data, "f32", 3) == 0) {
-      type = soup::WASM_F32;
-    }
-    else if (memcmp(data, "f64", 3) == 0) {
-      type = soup::WASM_F64;
-    }
+  soup::WasmType type;
+  if (len == 3 && memcmp(data, "i32", 3) == 0) {
+    type = soup::WASM_I32;
   }
-  if (!type) {
-    luaL_error(L, "invalid wasm type name (%s). expected i32, i64, f32, or f64.", data);
+  else if (len == 3 && memcmp(data, "i64", 3) == 0) {
+    type = soup::WASM_I64;
+  }
+  else if (len == 3 && memcmp(data, "f32", 3) == 0) {
+    type = soup::WASM_F32;
+  }
+  else if (len == 3 && memcmp(data, "f64", 3) == 0) {
+    type = soup::WASM_F64;
+  }
+  else if (len == 9 && memcmp(data, "externref", 9) == 0) {
+    type = soup::WASM_EXTERNREF;
+  }
+  else {
+    luaL_error(L, "invalid wasm type name (%s). expected i32, i64, f32, f64, externref.", data);
   }
   const bool init_value = lua_gettop(L) >= 2;
   auto& g = **pluto_newclassinst(L, soup::SharedPtr<soup::WasmValue>, soup::make_shared<soup::WasmValue>(type));
