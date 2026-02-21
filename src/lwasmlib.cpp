@@ -205,8 +205,115 @@ static int instantiate (lua_State *L) {
   return 1;
 }
 
+const char* ie_kind_names[] = { "function", "table", "memory", "global" };
+
+static int describe (lua_State *L) {
+  soup::WasmScript *inst;
+  if (lua_type(L, 1) == LUA_TSTRING) {
+    size_t size;
+    const char *data = luaL_checklstring(L, 1, &size);
+    inst = pluto_newclassinst(L, soup::WasmScript);
+    soup::MemoryRefReader r(data, size);
+    if (l_unlikely(!inst->load(r))) {
+      luaL_error(L, "failed to load wasm module");
+    }
+  }
+  else {
+    inst = &checkmodule(L, 1);
+  }
+  lua_newtable(L);
+  {
+    lua_pushliteral(L, "imports");
+    lua_newtable(L);
+    lua_Integer i = 0;
+    for (const auto& e : inst->function_imports) {
+      lua_pushinteger(L, ++i);
+      lua_newtable(L); {
+        lua_pushliteral(L, "module");
+        pluto_pushstring(L, e.module_name);
+        lua_settable(L, -3);
+        lua_pushliteral(L, "name");
+        pluto_pushstring(L, e.function_name);
+        lua_settable(L, -3);
+        lua_pushliteral(L, "kind");
+        lua_pushliteral(L, "function");
+        lua_settable(L, -3);
+      }
+      lua_settable(L, -3);
+    }
+    for (const auto& e : inst->global_imports) {
+      lua_pushinteger(L, ++i);
+      lua_newtable(L); {
+        lua_pushliteral(L, "module");
+        pluto_pushstring(L, e.module_name);
+        lua_settable(L, -3);
+        lua_pushliteral(L, "name");
+        pluto_pushstring(L, e.field_name);
+        lua_settable(L, -3);
+        lua_pushliteral(L, "kind");
+        lua_pushliteral(L, "global");
+        lua_settable(L, -3);
+      }
+      lua_settable(L, -3);
+    }
+    for (const auto& e : inst->table_imports) {
+      lua_pushinteger(L, ++i);
+      lua_newtable(L); {
+        lua_pushliteral(L, "module");
+        pluto_pushstring(L, e.module_name);
+        lua_settable(L, -3);
+        lua_pushliteral(L, "name");
+        pluto_pushstring(L, e.field_name);
+        lua_settable(L, -3);
+        lua_pushliteral(L, "kind");
+        lua_pushliteral(L, "table");
+        lua_settable(L, -3);
+      }
+      lua_settable(L, -3);
+    }
+    if (inst->memory_import) {
+      lua_pushinteger(L, ++i);
+      lua_newtable(L); {
+        lua_pushliteral(L, "module");
+        pluto_pushstring(L, inst->memory_import->module_name);
+        lua_settable(L, -3);
+        lua_pushliteral(L, "name");
+        pluto_pushstring(L, inst->memory_import->field_name);
+        lua_settable(L, -3);
+        lua_pushliteral(L, "kind");
+        lua_pushliteral(L, "table");
+        lua_settable(L, -3);
+      }
+      lua_settable(L, -3);
+    }
+    lua_settable(L, -3);
+  }
+  {
+    lua_pushliteral(L, "exports");
+    lua_newtable(L);
+    lua_Integer i = 0;
+    for (const auto& e : inst->export_map) {
+      if (l_likely(e.second.kind <= soup::WasmScript::IE_kGlobal)) {
+        lua_pushinteger(L, ++i);
+        lua_newtable(L); {
+          lua_pushliteral(L, "name");
+          pluto_pushstring(L, e.first);
+          lua_settable(L, -3);
+          lua_pushliteral(L, "kind");
+          lua_pushstring(L, ie_kind_names[e.second.kind]);
+          lua_settable(L, -3);
+        }
+        lua_settable(L, -3);
+      }
+    }
+    lua_settable(L, -3);
+  }
+  return 1;
+}
+
 static const luaL_Reg funcs_wasm[] = {
   {"instantiate", instantiate},
+  {"describe", describe},
   {nullptr, nullptr}
 };
 
