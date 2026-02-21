@@ -3099,12 +3099,14 @@ end
 do
     local { base64, wasm } = require "*"
     do
+        -- multiple return values
         local module = wasm.instantiate(base64.decode("AGFzbQEAAAABCAFgAn9/An9/AwIBAAcLAQdldWNfZGl2AAAKDgEMACAAIAFuIAAgAXALAAoEbmFtZQIDAQAA"))
         local Q, R = module:call("euc_div", 21, 5)
         assert(Q == 4)
         assert(R == 1)
     end
     do
+        -- function imports
         local logged_value
         local module = wasm.instantiate(base64.decode("AGFzbQEAAAABDAJgAX8Cf39gAAJ/fwIPAQdjb25zb2xlA2xvZwAAAwIBAQcLAQdsb2dfbnVtAAEKCQEHAEHFABAACwAoBG5hbWUBDwIAA2xvZwEHbG9nX251bQIFAgAAAQAECQIAAnQwAQJ0MQ=="), {
             console = {
@@ -3120,12 +3122,14 @@ do
         assert(b == 2)
     end
     do
+        -- memory access
         local module = wasm.instantiate(base64.decode("AGFzbQEAAAABBgFgAX8BfwMCAQAFAwEAAQcTAgZtZW1vcnkCAAZsb2FkMzIAAAoJAQcAIAAoAgALAAoEbmFtZQIDAQAA"))
         assert(module:call("load32", 1) == 0)
         module:write(1, string.pack("I4", 69))
         assert(module:call("load32", 1) == 69)
     end
     do
+        -- global imports
         local g = new wasm.global("mut i32", 123)
         do
             local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABCQJgAX8AYAABfwIHAQABZwN/AQMDAgABBw0CA3NldAAAA2dldAABCg0CBgAgACQACwQAIwALAAwEbmFtZQIFAgAAAQA="), { [""] = $object(g) })
@@ -3137,6 +3141,15 @@ do
             local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABCQJgAX8AYAABfwIHAQABZwN/AQMDAgABBw0CA3NldAAAA2dldAABCg0CBgAgACQACwQAIwALAAwEbmFtZQIFAgAAAQA="), { [""] = $object(g) })
             assert(mod:call("get") == 456)
         end
+    end
+    do
+        -- externref
+        local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABCQJgAW8AYAABbwMDAgABBgYBbwHQbwsHDQIDc2V0AAADZ2V0AAEKDQIGACAAJAALBAAjAAsAEgRuYW1lAgUCAAABAAcEAQABZw=="))
+        assert(mod:call("get") == nil)
+        mod:call("set", { hello = "world" })
+        local t = mod:call("get")
+        assert(type(t) == "table")
+        assert(t.hello == "world")
     end
 end
 
