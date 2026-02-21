@@ -167,7 +167,7 @@ static int instantiate (lua_State *L) {
     auto& imp = inst.function_imports[i];
     pluto_pushstring(L, imp.module_name);
     if (l_unlikely(lua_gettable(L, 2) <= LUA_TNIL)) {
-      luaL_error(L, "missing import module: %s", imp.module_name.c_str());
+      luaL_error(L, "missing import module \"%s\"", imp.module_name.c_str());
     }
     pluto_pushstring(L, imp.function_name);
     if (l_unlikely(lua_gettable(L, -2) <= LUA_TNIL)) {
@@ -193,7 +193,7 @@ static int instantiate (lua_State *L) {
     const auto& imp = inst.global_imports[i];
     pluto_pushstring(L, imp.module_name);
     if (l_unlikely(lua_gettable(L, 2) <= LUA_TNIL)) {
-      luaL_error(L, "missing import module: %s", imp.module_name.c_str());
+      luaL_error(L, "missing import module \"%s\"", imp.module_name.c_str());
     }
     pluto_pushstring(L, imp.field_name);
     if (l_unlikely(lua_gettable(L, -2) <= LUA_TNIL)) {
