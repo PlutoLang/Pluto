@@ -70,7 +70,7 @@ NAMESPACE_SOUP
 		return res;
 	}
 
-	std::string urlenc::decode(const std::string::const_iterator begin, const std::string::const_iterator end)
+	std::string urlenc::decode(const std::string::const_iterator begin, const std::string::const_iterator end) SOUP_EXCAL
 	{
 		std::string res;
 		for (auto i = begin; i != end; )

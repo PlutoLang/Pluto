@@ -533,4 +533,11 @@ NAMESPACE_SOUP
 		receiver_cap.get<HttpResponseReceiver>().tick(s, std::move(receiver_cap));
 	}
 #endif
+
+	void HttpRequest::clear() noexcept
+	{
+		MimeMessage::clear();
+		method.clear();
+		path.clear();
+	}
 }

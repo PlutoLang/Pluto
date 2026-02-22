@@ -30,6 +30,8 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] UniquePtr<JsonNode> clone() const SOUP_EXCAL;
 
+		[[nodiscard]] JsonNode* query(const char* q) noexcept;
+
 		// Type casts; will throw if node is of different type.
 		[[nodiscard]] JsonArray& asArr();
 		[[nodiscard]] JsonBool& asBool();

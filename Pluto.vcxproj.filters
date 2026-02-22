@@ -362,6 +362,28 @@
     <ClCompile Include="src\vendor\Soup\soup\dnsType.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\Rc4State.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\md5.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\Pattern.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\bitutil.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\whirlpool.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\wasm.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lwasmlib.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\lzf.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -380,7 +402,7 @@
     <ClInclude Include="src\ldo.h" />
     <ClInclude Include="src\lfunc.h" />
     <ClInclude Include="src\lgc.h" />
-    <ClInclude Include="src\ljumptabgcc.h" />
+    <ClInclude Include="src\ljumptab.h" />
     <ClInclude Include="src\llex.h" />
     <ClInclude Include="src\llimits.h" />
     <ClInclude Include="src\lmem.h" />
@@ -392,7 +414,7 @@
     <ClInclude Include="src\lstate.h" />
     <ClInclude Include="src\lstring.h" />
     <ClInclude Include="src\ltable.h" />
-    <ClInclude Include="src\ljumptab.h" />
+    <ClInclude Include="src\ljumptabportable.h" />
     <ClInclude Include="src\lcryptolib.hpp" />
     <ClInclude Include="src\lerrormessage.hpp" />
     <ClInclude Include="src\ljson.hpp" />
@@ -1163,6 +1185,33 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\dnsOsResolver.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\Rc4State.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\md5.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\CompiletimePatternWithOptBytesBase.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\CompiletimePatternBase.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\TlsSsl2CompatibleClientHello.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\whirlpool.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\bit.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\wasm.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\lzf.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>

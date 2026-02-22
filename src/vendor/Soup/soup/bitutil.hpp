@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "base.hpp"
+#include "bit.hpp" // popcount, countl_zero, countr_zero
 
 NAMESPACE_SOUP
 {
@@ -74,78 +74,18 @@ NAMESPACE_SOUP
 #endif
 		}
 
-		[[nodiscard]] static unsigned long getLeastSignificantSetBit(uint16_t mask) noexcept
+		template <typename T>
+		[[nodiscard]] static unsigned int getLeastSignificantSetBit(T mask) noexcept
 		{
-			SOUP_DEBUG_ASSERT(mask != 0); // UB!
-
-			// These intrinsic functions just use the bsf instruction.
-#if defined(_MSC_VER) && !defined(__clang__)
-			unsigned long ret;
-			_BitScanForward(&ret, static_cast<uint32_t>(mask));
-			return ret;
-#else
-			return __builtin_ctz(mask);
-#endif
+			SOUP_DEBUG_ASSERT(mask != 0);
+			return getNumTrailingZeros(mask);
 		}
 
-		[[nodiscard]] static unsigned long getLeastSignificantSetBit(uint32_t mask) noexcept
+		template <typename T>
+		[[nodiscard]] static unsigned int getNumTrailingZeros(T mask) noexcept
 		{
-			SOUP_DEBUG_ASSERT(mask != 0); // UB!
-
-			// These intrinsic functions just use the bsf instruction.
-#if defined(_MSC_VER) && !defined(__clang__)
-			unsigned long ret;
-			_BitScanForward(&ret, mask);
-			return ret;
-#else
-			return __builtin_ctz(mask);
-#endif
+			return soup::countr_zero<T>(mask);
 		}
-
-#if SOUP_BITS >= 64
-		[[nodiscard]] static unsigned long getLeastSignificantSetBit(uint64_t mask) noexcept
-		{
-			SOUP_DEBUG_ASSERT(mask != 0); // UB!
-
-			// These intrinsic functions just use the bsf instruction.
-#if defined(_MSC_VER) && !defined(__clang__)
-			unsigned long ret;
-			_BitScanForward64(&ret, mask);
-			return ret;
-#else
-			return __builtin_ctzll(mask);
-#endif
-		}
-#endif
-
-		[[nodiscard]] static unsigned int getNumTrailingZeros(uint16_t mask) noexcept
-		{
-			if (mask != 0)
-			{
-				return getLeastSignificantSetBit(mask);
-			}
-			return sizeof(mask) * 8;
-		}
-
-		[[nodiscard]] static unsigned int getNumTrailingZeros(uint32_t mask) noexcept
-		{
-			if (mask != 0)
-			{
-				return getLeastSignificantSetBit(mask);
-			}
-			return sizeof(mask) * 8;
-		}
-
-#if SOUP_BITS >= 64
-		[[nodiscard]] static unsigned int getNumTrailingZeros(uint64_t mask) noexcept
-		{
-			if (mask != 0)
-			{
-				return getLeastSignificantSetBit(mask);
-			}
-			return sizeof(mask) * 8;
-		}
-#endif
 
 		template <typename T>
 		static constexpr void unsetLeastSignificantSetBit(T& val)
@@ -153,19 +93,10 @@ NAMESPACE_SOUP
 			val &= (val - 1);
 		}
 
-		[[nodiscard]] static unsigned int getNumLeadingZeros(uint32_t mask) noexcept
+		template <typename T>
+		[[nodiscard]] static unsigned int getNumLeadingZeros(T mask) noexcept
 		{
-			if (mask != 0)
-			{
-#if defined(_MSC_VER) && !defined(__clang__)
-				unsigned long idx;
-				_BitScanReverse(&idx, mask);
-				return 31 - idx;
-#else
-				return __builtin_clz(mask);
-#endif
-			}
-			return 32;
+			return soup::countl_zero<T>(mask);
 		}
 
 		[[nodiscard]] static unsigned int getMostSignificantSetBit(uint32_t mask) noexcept
@@ -181,34 +112,11 @@ NAMESPACE_SOUP
 #endif
 		}
 
-		[[nodiscard]] static auto getNumSetBits(uint16_t i) noexcept
+		template <typename T>
+		[[nodiscard]] static auto getNumSetBits(const T val) noexcept
 		{
-#if defined(_MSC_VER)
-			return __popcnt16(i);
-#else
-			return __builtin_popcount(i);
-#endif
+			return soup::popcount<T>(val);
 		}
-
-		[[nodiscard]] static auto getNumSetBits(uint32_t i) noexcept
-		{
-#if defined(_MSC_VER) && !defined(__clang__)
-			return __popcnt(i);
-#else
-			return __builtin_popcount(i);
-#endif
-		}
-
-#if SOUP_BITS >= 64
-		[[nodiscard]] static auto getNumSetBits(uint64_t i) noexcept
-		{
-#if defined(_MSC_VER) && !defined(__clang__)
-			return __popcnt64(i);
-#else
-			return __builtin_popcountll(i);
-#endif
-		}
-#endif
 
 		// https://stackoverflow.com/a/2602885
 		[[nodiscard]] static uint8_t reverse(uint8_t b) noexcept
@@ -218,6 +126,9 @@ NAMESPACE_SOUP
 			b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
 			return b;
 		}
+
+		[[nodiscard]] static uint32_t parallelDeposit(uint32_t src, uint32_t mask);
+		[[nodiscard]] static uint64_t parallelDeposit(uint64_t src, uint64_t mask);
 
 		[[nodiscard]] static std::vector<bool> interleave(const std::vector<std::vector<bool>>& data); // assumes that all inner vectors have the same size
 	};

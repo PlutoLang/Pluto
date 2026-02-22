@@ -46,12 +46,12 @@ NAMESPACE_SOUP
 			return true;
 		}
 
-		[[nodiscard]] size_t getPosition() noexcept final
+		[[nodiscard]] std::streamoff getPosition() noexcept final
 		{
 			return offset;
 		}
 
-		void seek(size_t pos) noexcept final
+		void seek(std::streamoff pos) noexcept final
 		{
 			offset = pos;
 		}

@@ -324,7 +324,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -345,7 +345,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>LUA_BUILD_AS_DLL;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -366,7 +366,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -388,7 +388,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -410,7 +410,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -431,7 +431,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -452,7 +452,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -473,7 +473,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>LUA_BUILD_AS_DLL;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -494,7 +494,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>LUA_BUILD_AS_DLL;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -515,7 +515,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -537,7 +537,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -559,7 +559,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -581,7 +581,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -603,7 +603,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -624,7 +624,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4646 %(AdditionalOptions)</AdditionalOptions>
@@ -714,6 +714,7 @@
     <ClCompile Include="src\lutf8lib.cpp" />
     <ClCompile Include="src\lvector3lib.cpp" />
     <ClCompile Include="src\lvm.cpp" />
+    <ClCompile Include="src\lwasmlib.cpp" />
     <ClCompile Include="src\lxml.cpp" />
     <ClCompile Include="src\lzio.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\adler32.cpp" />
@@ -725,6 +726,7 @@
     <ClCompile Include="src\vendor\Soup\soup\base32.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\base64.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Bigint.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\bitutil.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Canvas.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Capture.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\cat.cpp" />
@@ -764,6 +766,8 @@
     <ClCompile Include="src\vendor\Soup\soup\LangDesc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\LexemeParser.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\log.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\lzf.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\md5.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\memGuard.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\MimeMessage.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Mixed.cpp" />
@@ -774,6 +778,7 @@
     <ClCompile Include="src\vendor\Soup\soup\os.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ParserState.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\parse_tree.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\Pattern.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\pem.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Process.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ProcessHandle.cpp" />
@@ -782,6 +787,7 @@
     <ClCompile Include="src\vendor\Soup\soup\rand.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Range.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\RasterFont.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\Rc4State.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Reader.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Regex.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\RegexGroup.cpp" />
@@ -813,6 +819,8 @@
     <ClCompile Include="src\vendor\Soup\soup\Uri.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\urlenc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\version_compare.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\wasm.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\whirlpool.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Worker.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Writer.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\X509Certchain.cpp" />
@@ -832,8 +840,8 @@
     <ClInclude Include="src\lfunc.h" />
     <ClInclude Include="src\lgc.h" />
     <ClInclude Include="src\ljson.hpp" />
+    <ClInclude Include="src\ljumptabportable.h" />
     <ClInclude Include="src\ljumptab.h" />
-    <ClInclude Include="src\ljumptabgcc.h" />
     <ClInclude Include="src\llex.h" />
     <ClInclude Include="src\llimits.h" />
     <ClInclude Include="src\lmem.h" />
@@ -869,6 +877,7 @@
     <ClInclude Include="src\vendor\Soup\soup\BCanvas.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\BigBitset.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Bigint.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\bit.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\bitmask.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Bitset.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\bitutil.hpp" />
@@ -885,6 +894,8 @@
     <ClInclude Include="src\vendor\Soup\soup\CidrSubnet4.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CidrSubnet6.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CidrSupernet.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\CompiletimePatternBase.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\CompiletimePatternWithOptBytesBase.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\console.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ConstString.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CpuInfo.hpp" />
@@ -951,8 +962,10 @@
     <ClInclude Include="src\vendor\Soup\soup\log.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\logSink.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\logStdSink.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\lzf.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\macros.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\math.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\md5.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memAllocating.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memCAllocator.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memGuard.hpp" />
@@ -992,6 +1005,7 @@
     <ClInclude Include="src\vendor\Soup\soup\QrCode.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\rand.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Range.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\Rc4State.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Reader.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\RecursiveMutex.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Regex.hpp" />
@@ -1088,6 +1102,7 @@
     <ClInclude Include="src\vendor\Soup\soup\TlsServerHello.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsServerKeyExchange.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TlsSignatureScheme.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\TlsSsl2CompatibleClientHello.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Token.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TransientToken.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TreeNode.hpp" />
@@ -1101,7 +1116,9 @@
     <ClInclude Include="src\vendor\Soup\soup\utility.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\version_compare.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\VirtualHandleRaii.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\wasm.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\WeakRef.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\whirlpool.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Worker.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Writer.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\X509Certchain.hpp" />

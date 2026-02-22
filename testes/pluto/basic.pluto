@@ -898,6 +898,12 @@ do
     tracker[item.key] ??= true
     assert(tracker[item.key] == false)
 end
+do
+    -- Dead code elimination
+    assert(not "off" in string.dump(function()
+        print("on" ?? "off")
+    end))
+end
 
 print "Testing safe navigation."
 do
@@ -980,8 +986,6 @@ end
 
 print "Testing ternary expression."
 do
-    -- @pluto_warnings: disable-unreachable-code
-
     local a = 3
     assert((true ? "yes" : "no") == "yes")
     assert((false ? "yes" : "no") == "no")
@@ -1008,7 +1012,10 @@ do
         "no"
     end == "yes")
 
-    -- @pluto_warnings: enable-unreachable-code
+    -- Dead code elimination
+    assert(not "off" in string.dump(function()
+        print(true ? "on" : "off")
+    end))
 end
 do
     local t = {}
@@ -1769,7 +1776,7 @@ do
         end
         local function test_func_with_callonce()
             local t = { func_with_callonce() }
-            assert(#t == 2)
+            assert(t:size() == 2)
             assert(t[1] == nil)
             assert(t[2] == 2)
         end
@@ -1833,6 +1840,8 @@ do
 
     assert(crypto.md5("hello world") == "5eb63bbbe01eeed093cb22bb8f5acdc3")
     assert(crypto.md5("BEMjYxMTUxNDkx") == "e3bae1422755829a92440f1d044767ff")
+
+    assert(crypto.whirlpool("Pluto") == "b2be8fa753bd00ad25d9c6e5bd176d44ff086dd480432bc5284ce9aa52f382be2a24972bb91c8f67a53705a8ae11bd01bd56ff588176603317c51cfffa2fafc3")
 
     assert(crypto.ripemd160("Pluto") == "c2072a85f4a691803b8942709036072086fd9550")
     assert(crypto.ripemd160("Pluto", true) == "\xc2\x07\x2a\x85\xf4\xa6\x91\x80\x3b\x89\x42\x70\x90\x36\x07\x20\x86\xfd\x95\x50")
@@ -2578,6 +2587,29 @@ do
     assert(i[2] == nil)
 end
 do
+    assert(table.isarray{})
+    assert(table.isarray{ 1, 2, 3 })
+    assert(table.isarray{ [1] = 1, [2] = 2, [3] = 3 })
+    assert(not table.isarray{ 1, 2, nil, 4 })
+    assert(not table.isarray{ [1] = 1, [2] = 2, [4] = 4 })
+    do
+        local t = {}
+        t[4] = 4
+        t[5] = 5
+        t[10] = 10
+        t[1] = 1
+        t[7] = 7
+        t[2] = 2
+        t[9] = 9
+        t[6] = 6
+        t[3] = 3
+        t[8] = 8
+        assert(table.isarray(t))
+    end
+    assert(not table.isarray{ [-1] = -1, [0] = 0, [1] = 1 })
+    assert(not table.isarray{ [10] = "a", [20] = "b", [30] = "c" })
+end
+do
     assert(compareversions("0.1.0", "0.1.0") == 0)
     assert(compareversions("0.1.0", "0.2.0") ~= 0)
     assert(compareversions("0.2.0", "0.1.0") > 0)
@@ -2588,6 +2620,19 @@ end
 do
     assert(math.isnan(0 / 0) == true)
     assert(math.isnan(69) == false)
+
+    assert(math.popcnt(0) == 0)
+    assert(math.popcnt(1) == 1)
+    assert(math.popcnt(0b101) == 2)
+    local bitwidth <const> = math.popcnt(~0)
+    assert(math.clz(0) == bitwidth)
+    assert(math.ctz(0) == bitwidth)
+    assert(math.clz(1) == bitwidth - 1)
+    assert(math.ctz(1) == 0)
+    assert(math.clz(1 << (bitwidth - 1)) == 0)
+    assert(math.ctz(1 << (bitwidth - 1)) == bitwidth - 1)
+    assert(math.clz(1 << (bitwidth - 2)) == 1)
+    assert(math.ctz(1 << (bitwidth - 2)) == bitwidth - 2)
 
     -- Lua: Round to smallest adjacent integer
     assert(math.floor(10.5) == 10)
@@ -2830,6 +2875,17 @@ do
     assert(info.compressed_size == 17)
 end
 do
+    local crypto = require "pluto:crypto"
+    for {
+        "abc",
+        "abcdefghijklmnopqrstuvwxyz",
+        "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
+        range(0, 255):map(string.char):concat(""),
+    } as str do
+        assert(str |> crypto.compress|"lzf"| |> crypto.decompress|"lzf"| == str, str)
+    end
+end
+do
     local bigint = require "pluto:bigint"
 
     do
@@ -2981,6 +3037,15 @@ do
     assert(match[2] == "5")
 
     assert(select(2, pcall(regex.new, "/+/")) == "Invalid modifier")
+
+    pattern = new regex [[/[A-Z]/]]
+    local b, e = pattern:search("Hello World")
+    assert(b == 1)
+    assert(e == 2)
+    b, e = pattern:search("Hello World", 2)
+    assert(b == 7)
+    assert(e == 8)
+    assert(pattern:search("Hello World", 8) == nil)
 end
 do
     assert(io.part("/deez/nuts", "parent") == "/deez")
@@ -3030,6 +3095,62 @@ do
     assert(exportvar("\xC1\xA1") == [["\193\161"]])
     assert(exportvar("\xE0\x90") == [["\224\144"]])
     assert(exportvar("\xF0\x80") == [["\240\128"]])
+end
+do
+    local { base64, wasm } = require "*"
+    do
+        -- multiple return values
+        local module = wasm.instantiate(base64.decode("AGFzbQEAAAABCAFgAn9/An9/AwIBAAcLAQdldWNfZGl2AAAKDgEMACAAIAFuIAAgAXALAAoEbmFtZQIDAQAA"))
+        local Q, R = module:call("euc_div", 21, 5)
+        assert(Q == 4)
+        assert(R == 1)
+    end
+    do
+        -- function imports
+        local logged_value
+        local module = wasm.instantiate(base64.decode("AGFzbQEAAAABDAJgAX8Cf39gAAJ/fwIPAQdjb25zb2xlA2xvZwAAAwIBAQcLAQdsb2dfbnVtAAEKCQEHAEHFABAACwAoBG5hbWUBDwIAA2xvZwEHbG9nX251bQIFAgAAAQAECQIAAnQwAQJ0MQ=="), {
+            console = {
+                log = |val| -> do
+                    logged_value = val
+                    return 1, 2
+                end
+            }
+        })
+        local a, b = module:call("log_num")
+        assert(logged_value == 69)
+        assert(a == 1)
+        assert(b == 2)
+    end
+    do
+        -- memory access
+        local module = wasm.instantiate(base64.decode("AGFzbQEAAAABBgFgAX8BfwMCAQAFAwEAAQcTAgZtZW1vcnkCAAZsb2FkMzIAAAoJAQcAIAAoAgALAAoEbmFtZQIDAQAA"))
+        assert(module:call("load32", 1) == 0)
+        module:write(1, string.pack("I4", 69))
+        assert(module:call("load32", 1) == 69)
+    end
+    do
+        -- global imports
+        local g = new wasm.global("mut i32", 123)
+        do
+            local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABCQJgAX8AYAABfwIHAQABZwN/AQMDAgABBw0CA3NldAAAA2dldAABCg0CBgAgACQACwQAIwALAAwEbmFtZQIFAgAAAQA="), { [""] = $object(g) })
+            assert(mod:call("get") == 123)
+            mod:call("set", 456)
+            assert(mod:call("get") == 456)
+        end
+        do
+            local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABCQJgAX8AYAABfwIHAQABZwN/AQMDAgABBw0CA3NldAAAA2dldAABCg0CBgAgACQACwQAIwALAAwEbmFtZQIFAgAAAQA="), { [""] = $object(g) })
+            assert(mod:call("get") == 456)
+        end
+    end
+    do
+        -- externref
+        local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABCQJgAW8AYAABbwMDAgABBgYBbwHQbwsHDQIDc2V0AAADZ2V0AAEKDQIGACAAJAALBAAjAAsAEgRuYW1lAgUCAAABAAcEAQABZw=="))
+        assert(mod:call("get") == nil)
+        mod:call("set", { hello = "world" })
+        local t = mod:call("get")
+        assert(type(t) == "table")
+        assert(t.hello == "world")
+    end
 end
 
 print "Testing default table metatable."
@@ -3464,6 +3585,8 @@ do
     local t = $url.parse("https://google.com")
     assert(t.scheme == "https")
     assert(t.host == "google.com")
+
+    assert($math.popcnt(0b101) == 2)
 end
 
 print "Testing named arguments."
@@ -3494,6 +3617,17 @@ do
         local function foo(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) end
         foo(1, a = 2)
     ]]))
+
+    -- Parameter names in type hints are propagated
+    local function caller(f: function(a: ?number, b: ?string))
+        f(b = "hello from caller")
+    end
+    local a_, b_
+    caller(function(a, b)
+        a_, b_ = a, b
+    end)
+    assert(a_ == nil)
+    assert(b_ == "hello from caller")
 end
 
 print "Testing classes."
@@ -3939,23 +4073,6 @@ do
     assert(obj.greet == nil)
     assert(obj.__restricted__foo == "bar")
     assert(obj.__restricted__greet ~= nil)
-end
-
-print "Testing named varargs."
-do
-    local function f(...a)
-        return a
-    end
-    local t = f("Hello", 1337)
-    assert(#t == 2)
-    assert(t[1] == "Hello")
-    assert(t[2] == 1337)
-end
-do
-    local f = |...args| -> table.size(args)
-    assert(f() == 0)
-    assert(f(1) == 1)
-    assert(f(1, 2) == 2)
 end
 
 print "Testing export."
@@ -4487,16 +4604,6 @@ do
         1,
         2,
     ) == 3)
-end
-
-print "Testing deprecation warnings."
-do
-    assert_warn[[for k, v in { a = 1 } do
-        k = v
-    end]]
-    assert_warn[[for i = 1, 10 do
-        i = 99999
-    end]]
 end
 
 print "Testing $object."

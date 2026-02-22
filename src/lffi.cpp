@@ -272,6 +272,7 @@ static FfiFuncWrapper *newfuncwrapper (lua_State *L) {
   if (luaL_newmetatable(L, "pluto:ffi-funcwrapper")) {
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State *L) {
+      pluto_errorifnotgc(L);
       std::destroy_at<>(checkfuncwrapper(L, 1));
       return 0;
     });
@@ -486,6 +487,7 @@ static FfiStruct *ffi_new_struct_type (lua_State *L) {
   lua_settable(L, -3);
   lua_pushliteral(L, "__gc");
   lua_pushcfunction(L, [](lua_State *L) {
+    pluto_errorifnotgc(L);
     std::destroy_at<>((FfiStruct*)lua_touserdata(L, -1));
     return 0;
   });

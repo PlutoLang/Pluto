@@ -30,7 +30,7 @@ NAMESPACE_SOUP
 		virtual ~ioVirtualBase() = default;
 
 		virtual bool raw(void* data, size_t len) noexcept = 0;
-		[[nodiscard]] virtual size_t getPosition() = 0;
+		[[nodiscard]] virtual std::streamoff getPosition() = 0;
 
 		bool b(bool& v) noexcept
 		{

@@ -15,13 +15,13 @@
 /* version suffix for environment variable names */
 #define LUA_VERSUFFIX          "_" LUA_VERSION_MAJOR "_" LUA_VERSION_MINOR
 
-
 #define LUA_GLIBK		1
 LUAMOD_API int (luaopen_base) (lua_State *L);
 
 #define LUA_LOADLIBNAME	"package"
 #define LUA_LOADLIBK	(LUA_GLIBK << 1)
 LUAMOD_API int (luaopen_package) (lua_State *L);
+
 
 #define LUA_COLIBNAME	"coroutine"
 #define LUA_COLIBK	(LUA_LOADLIBK << 1)
@@ -126,9 +126,13 @@ LUAMOD_API int (luaopen_canvas)	(lua_State *L);
 #define PLUTO_BUFFERLIBK (PLUTO_CANVASLIBK << 1)
 LUAMOD_API int (luaopen_buffer)	(lua_State *L);
 
+#define PLUTO_WASMLIBNAME "wasm"
+#define PLUTO_WASMLIBK (PLUTO_BUFFERLIBK << 1)
+LUAMOD_API int (luaopen_wasm)	(lua_State *L);
+
 #ifndef __EMSCRIPTEN__
 #define PLUTO_SOCKETLIBNAME "socket"
-#define PLUTO_SOCKETLIBK (PLUTO_BUFFERLIBK << 1)
+#define PLUTO_SOCKETLIBK (PLUTO_WASMLIBK << 1)
 LUAMOD_API int (luaopen_socket)(lua_State* L);
 #endif
 
@@ -151,6 +155,7 @@ namespace Pluto {
   extern const PreloadedLibrary preloaded_ffi;
   extern const PreloadedLibrary preloaded_canvas;
   extern const PreloadedLibrary preloaded_buffer;
+  extern const PreloadedLibrary preloaded_wasm;
 #ifndef __EMSCRIPTEN__
   extern const PreloadedLibrary preloaded_socket;
 #endif
@@ -173,21 +178,24 @@ namespace Pluto {
     &preloaded_ffi,
     &preloaded_canvas,
     &preloaded_buffer,
+    &preloaded_wasm,
 #ifndef __EMSCRIPTEN__
     &preloaded_socket,
 #endif
   };
 
   extern const ConstexprLibrary constexpr_io;
+  extern const ConstexprLibrary constexpr_math;
 
   inline const ConstexprLibrary* const all_constexpr[] = {
     &constexpr_io,
+    &constexpr_math,
   };
 }
 
 
 /* open selected libraries */
-LUALIB_API void (luaL_openselectedlibs)(lua_State* L, int load, int preload);
+LUALIB_API void (luaL_openselectedlibs) (lua_State *L, int load, int preload);
 
 /* open all libraries */
 #define luaL_openlibs(L)	luaL_openselectedlibs(L, PLUTO_DEFAULTLOADLIBS, ~0)

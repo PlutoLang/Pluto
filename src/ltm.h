@@ -17,13 +17,13 @@
 */
 typedef enum {
   TM_INDEX,
-  TM_MINDEX,
   TM_NEWINDEX,
   TM_GC,
   TM_MODE,
   TM_LEN,
   TM_CALL,
   TM_EQ,  /* last tag method with fast access */
+  TM_MINDEX,
   TM_ADD,
   TM_SUB,
   TM_MUL,
@@ -47,8 +47,9 @@ typedef enum {
 
 
 inline const char *const luaT_eventname[] = {  /* ORDER TM */
-  "__index", "__mindex", "__newindex",
+  "__index", "__newindex",
   "__gc", "__mode", "__len", "__call", "__eq",
+  "__mindex",
   "__add", "__sub", "__mul", "__mod", "__pow",
   "__div", "__idiv",
   "__band", "__bor", "__bxor", "__shl", "__shr",
@@ -60,10 +61,10 @@ inline const char *const luaT_eventname[] = {  /* ORDER TM */
 /*
 ** Mask with 1 in all fast-access methods. A 1 in any of these bits
 ** in the flag of a (meta)table means the metatable does not have the
-** corresponding metamethod field. (Bit 14 of the flag indicates that
-** the table is using the dummy node; bit 15 is used for 'isrealasize'.)
+** corresponding metamethod field. (Bit 6 of the flag indicates that
+** the table is using the dummy node.)
 */
-#define maskflags	(~(~0u << (TM_EQ + 1)))
+#define maskflags	cast_byte(~(~0u << (TM_EQ + 1)))
 
 
 /*
@@ -89,14 +90,16 @@ LUAI_FUNC const char *luaT_objtypename (lua_State *L, const TValue *o);
 LUAI_FUNC const TValue *luaT_gettm (Table *events, TMS event, TString *ename);
 LUAI_FUNC const TValue *luaT_gettmbyobj (lua_State *L, const TValue *o,
                                                        TMS event);
+#ifndef PLUTO_LUA_LINKABLE
 LUAI_FUNC const TValue *luaT_getfasttmbyobj (lua_State *L, const TValue *o,
                                                            TMS event);
+#endif
 LUAI_FUNC void luaT_init (lua_State *L);
 
 LUAI_FUNC void luaT_callTM (lua_State *L, const TValue *f, const TValue *p1,
                             const TValue *p2, const TValue *p3);
-LUAI_FUNC int luaT_callTMres (lua_State *L, const TValue *f,
-                              const TValue *p1, const TValue *p2, StkId p3);
+LUAI_FUNC lu_byte luaT_callTMres (lua_State *L, const TValue *f,
+                               const TValue *p1, const TValue *p2, StkId p3);
 LUAI_FUNC void luaT_trybinTM (lua_State *L, const TValue *p1, const TValue *p2,
                               StkId res, TMS event);
 LUAI_FUNC void luaT_tryconcatTM (lua_State *L);
@@ -109,10 +112,11 @@ LUAI_FUNC int luaT_callorderTM (lua_State *L, const TValue *p1,
 LUAI_FUNC int luaT_callorderiTM (lua_State *L, const TValue *p1, int v2,
                                  int inv, int isfloat, TMS event);
 
-LUAI_FUNC void luaT_adjustvarargs (lua_State *L, int nfixparams,
-                                   struct CallInfo *ci, const Proto *p);
-LUAI_FUNC void luaT_getvarargs (lua_State *L, struct CallInfo *ci,
-                                              StkId where, int wanted);
+LUAI_FUNC void luaT_adjustvarargs (lua_State *L, struct CallInfo *ci,
+                                                 const Proto *p);
+LUAI_FUNC void luaT_getvararg (CallInfo *ci, StkId ra, TValue *rc);
+LUAI_FUNC void luaT_getvarargs (lua_State *L, struct CallInfo *ci, StkId where,
+                                              int wanted, int vatab);
 
 
 #endif

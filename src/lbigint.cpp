@@ -1,5 +1,6 @@
 #define LUA_LIB
 #include "lualib.h"
+#include "llimits.h" // l_unlikely
 
 #include "vendor/Soup/soup/Bigint.hpp"
 
@@ -149,6 +150,7 @@ void pushbigint (lua_State *L, soup::Bigint x) {
   if (l_unlikely(luaL_newmetatable(L, "pluto:bigint"))) {
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State* L) {
+      pluto_errorifnotgc(L);
       std::destroy_at<>(checkbigint(L, 1));
       return 0;
     });

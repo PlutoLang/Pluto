@@ -1,5 +1,7 @@
 -- $Id: testes/calls.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
+
+global <const> *
 
 print("testing functions and calls")
 
@@ -22,7 +24,7 @@ assert(not pcall(type))
 
 
 -- testing local-function recursion
-fact = false
+global fact = false
 do
   local res = 1
   local function fact (n)
@@ -63,7 +65,7 @@ a.b.c:f2('k', 12); assert(a.b.c.k == 12)
 
 print('+')
 
-t = nil   -- 'declare' t
+global t = nil   -- 'declare' t
 function f(a,b,c) local d = 'a'; t={a,b,c,d} end
 
 f(      -- this line change must be valid
@@ -75,7 +77,7 @@ assert(t[1] == 1 and t[2] == 2 and t[3] == 3 and t[4] == 'a')
 
 t = nil   -- delete 't'
 
-function fat(x)
+global function fat(x)
   if x <= 1 then return 1
   else return x*load("return fat(" .. x-1 .. ")", "")()
   end
@@ -107,7 +109,7 @@ end
 
 _G.deep = nil   -- "declaration"  (used by 'all.lua')
 
-function deep (n)
+global function deep (n)
   if n>0 then deep(n-1) end
 end
 deep(10)
@@ -178,7 +180,7 @@ do   -- tail calls x chain of __call
   end
 
   -- build a chain of __call metamethods ending in function 'foo'
-  for i = 1, 100 do
+  for i = 1, 15 do
     foo = setmetatable({}, {__call = foo})
   end
 
@@ -190,8 +192,8 @@ end
 print('+')
 
 
-do  -- testing chains of '__call'
-  local N = 20
+do   print"testing chains of '__call'"
+  local N = 15
   local u = table.pack
   for i = 1, N do
     u = setmetatable({i}, {__call = u})
@@ -204,8 +206,36 @@ do  -- testing chains of '__call'
     assert(Res[i][1] == i)
   end
   assert(Res[N + 1] == "a" and Res[N + 2] == "b" and Res[N + 3] == "c")
+
+  local function u (...)
+    local n = debug.getinfo(1, 't').extraargs
+    assert(select("#", ...) == n)
+    return n
+  end
+
+  for i = 0, N do
+    assert(u() == i)
+    u = setmetatable({}, {__call = u})
+  end
 end
 
+
+do    -- testing chains too long
+  local a = {}
+  for i = 1, 16 do    -- one too many
+    a = setmetatable({}, {__call = a})
+  end
+  local status, msg = pcall(a)
+  assert(not status and string.find(msg, "too long"))
+
+  setmetatable(a, {__call = a})   -- infinite chain
+  local status, msg = pcall(a)
+  assert(not status and string.find(msg, "too long"))
+
+  -- again, with a tail call
+  local status, msg = pcall(function () return a() end)
+  assert(not status and string.find(msg, "too long"))
+end
 
 a = nil
 (function (x) a=x end)(23)
@@ -325,7 +355,7 @@ a()  -- empty chunk
 
 -- small bug
 local t = {nil, "return ", "3"}
-f, msg = load(function () return table.remove(t, 1) end)
+local f, msg = load(function () return table.remove(t, 1) end)
 assert(f() == nil)   -- should read the empty chunk
 
 -- another small bug (in 5.2.1)
@@ -361,7 +391,8 @@ assert(load("return _ENV", nil, nil, 123)() == 123)
 
 
 -- load when _ENV is not first upvalue
-local x; XX = 123
+global XX; local x
+XX = 123
 local function h ()
   local y=x   -- use 'x', so that it becomes 1st upvalue
   return XX   -- global name
@@ -453,15 +484,22 @@ assert((function (a) return a end)() == nil)
 
 print("testing binary chunks")
 do
-  local header = string.pack("c4BBc6BBB",
-    "\27Lua",                                  -- signature
-    0x54,                                      -- version 5.4 (0x54)
-    0,                                         -- format
-    "\x19\x93\r\n\x1a\n",                      -- data
-    4,                                         -- size of instruction
-    string.packsize("j"),                      -- sizeof(lua integer)
-    string.packsize("n")                       -- sizeof(lua number)
-  )
+  local headformat = "c4BBc6BiBI4BjBn"
+  local header = {  -- header components
+    "\27Lua",               -- signature
+    0x55,                   -- version 5.5 (0x55)
+    0,                      -- format
+    "\x19\x93\r\n\x1a\n",   -- a binary string
+    string.packsize("i"),   -- size of an int
+    -0x5678,                -- an int
+    4,                      -- size of an instruction
+    0x12345678,             -- an instruction (4 bytes)
+    string.packsize("j"),   -- size of a Lua integer
+    -0x5678,                -- a Lua integer
+    string.packsize("n"),   -- size of a Lua float
+    -370.5,                 -- a Lua float
+  }
+
   local c = string.dump(function ()
     local a = 1; local b = 3;
     local f = function () return a + b + _ENV.c; end    -- upvalues
@@ -473,17 +511,23 @@ do
   assert(assert(load(c))() == 10)
 
   -- check header
-  assert(string.sub(c, 1, #header) == header)
-  -- check LUAC_INT and LUAC_NUM
-  local ci, cn = string.unpack("jn", c, #header + 1)
-  assert(ci == 0x5678 and cn == 370.5)
-
-  -- corrupted header
+  local t = {string.unpack(headformat, c)}
   for i = 1, #header do
+    assert(t[i] == header[i])
+  end
+
+  -- Testing corrupted header.
+  -- A single wrong byte in the head invalidates the chunk,
+  -- except for the Lua float check. (If numbers are long double,
+  -- the representation may need padding, and changing that padding
+  -- will not invalidate the chunk.)
+  local headlen = string.packsize(headformat)
+  headlen = headlen - string.packsize("n")     -- remove float check
+  for i = 1, headlen do
     local s = string.sub(c, 1, i - 1) ..
-              string.char(string.byte(string.sub(c, i, i)) + 1) ..
+              string.char((string.byte(string.sub(c, i, i)) + 1) & 0xFF) ..
               string.sub(c, i + 1, -1)
-    assert(#s == #c)
+    assert(#s == #c and s ~= c)
     assert(not load(s))
   end
 
@@ -492,6 +536,42 @@ do
     local st, msg = load(string.sub(c, 1, i))
     assert(not st and string.find(msg, "truncated"))
   end
+end
+
+
+do   -- check reuse of strings in dumps
+  local str = "|" .. string.rep("X", 50) .. "|"
+  local foo = load(string.format([[
+    local str <const> = "%s"
+    return {
+      function () return str end,
+      function () return str end,
+      function () return str end
+    }
+  ]], str))
+  -- count occurrences of 'str' inside the dump
+  local dump = string.dump(foo)
+  local _, count = string.gsub(dump, str, {})
+  -- there should be only two occurrences:
+  -- one inside the source, other the string itself.
+  assert(count == 2)
+
+  if T then  -- check reuse of strings in undump
+    local funcs = load(dump)()
+    assert(string.format("%p", T.listk(funcs[1])[1]) ==
+           string.format("%p", T.listk(funcs[3])[1]))
+  end
+end
+
+
+do   -- test limit of multiple returns (254 values)
+  local code = "return 10" .. string.rep(",10", 253)
+  local res = {assert(load(code))()}
+  assert(#res == 254 and res[254] == 10)
+
+  code = code .. ",10"
+  local status, msg = load(code)
+  assert(not status and string.find(msg, "too many returns"))
 end
 
 print('OK')

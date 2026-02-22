@@ -129,6 +129,9 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 
 #ifdef _MSVC_LANG
 	#define SOUP_CPP_VERSION _MSVC_LANG
+	#if SOUP_CPP_VERSION < 2020'00L && !defined(__clang__)
+		#error When building with MSVC, Soup requires C++ 20 or above.
+	#endif
 #else
 	#define SOUP_CPP_VERSION __cplusplus
 #endif
@@ -162,15 +165,15 @@ namespace soup { namespace pluto_vendored {}; using namespace pluto_vendored; };
 #endif
 
 #if SOUP_CPP23
-	#define SOUP_ASSUME(...) [[assume(__VA_ARGS__)]];
-	#define SOUP_UNREACHABLE std::unreachable();
+	#define SOUP_ASSUME(...) [[assume(__VA_ARGS__)]]
+	#define SOUP_UNREACHABLE std::unreachable()
 #else
 	#if defined(_MSC_VER) && !defined(__clang__)
-		#define SOUP_ASSUME(...) __assume(__VA_ARGS__);
-		#define SOUP_UNREACHABLE SOUP_ASSUME(false);
+		#define SOUP_ASSUME(...) __assume(__VA_ARGS__)
+		#define SOUP_UNREACHABLE SOUP_ASSUME(false)
 	#else
-		#define SOUP_ASSUME(...) ;
-		#define SOUP_UNREACHABLE __builtin_unreachable();
+		#define SOUP_ASSUME(...)
+		#define SOUP_UNREACHABLE __builtin_unreachable()
 	#endif
 #endif
 
@@ -222,7 +225,7 @@ NAMESPACE_SOUP
 
 template <typename T> SOUP_FORCEINLINE void SOUP_UNUSED(T&&) {}
 
-#define SOUP_RETHROW_FALSE(x) SOUP_IF_UNLIKELY (!(x)) { return {}; }
+#define SOUP_RETHROW_FALSE(...) SOUP_IF_UNLIKELY (!(__VA_ARGS__)) { return {}; }
 
 // Enable compiler warning for unannotated fallthroughs
 #if defined(__clang__)

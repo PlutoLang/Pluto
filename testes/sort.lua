@@ -1,5 +1,5 @@
 -- $Id: testes/sort.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
 
 print "testing (parts of) table library"
 
@@ -35,8 +35,10 @@ do print "testing 'table.create'"
   assert(memdiff > 1024 * 12)
   assert(not T or select(2, T.querytab(t)) == 1024)
 
-  checkerror("table overflow", table.create, (1<<31) + 1)
-  checkerror("table overflow", table.create, 0, (1<<31) + 1)
+  local maxint1 = 1 << (string.packsize("i") * 8 - 1)
+  checkerror("out of range", table.create, maxint1)
+  checkerror("out of range", table.create, 0, maxint1)
+  checkerror("table overflow", table.create, 0, maxint1 - 1)
 end
 
 
@@ -197,7 +199,7 @@ do
                 __index = function (_,k) pos1 = k end,
                 __newindex = function (_,k) pos2 = k; error() end, })
     local st, msg = pcall(table.move, a, f, e, t)
-    assert(not st and not msg and pos1 == x and pos2 == y)
+    assert(not st and pos1 == x and pos2 == y)
   end
   checkmove(1, maxI, 0, 1, 0)
   checkmove(0, maxI - 1, 1, maxI - 1, maxI)

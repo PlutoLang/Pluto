@@ -43,6 +43,7 @@ typedef enum BinOpr {
   OPR_NOBINOPR,
 } BinOpr;
 
+
 /* true if operation is foldable (that is, it is arithmetic or bitwise) */
 #define foldbinop(op)	((op) <= OPR_SHR)
 
@@ -61,29 +62,54 @@ typedef enum UnOpr { OPR_MINUS, OPR_BNOT, OPR_NOT, OPR_LEN, OPR_NOUNOPR } UnOpr;
 
 #define luaK_jumpto(fs,t)	luaK_patchlist(fs, luaK_jump(fs), t)
 
+#define luaK_checkpoint(fs, snap) \
+  struct { \
+    int pc; int lasttarget; int previousline; int nabslineinfo; \
+    int nk; int np; int sizek; int sizep; \
+    lu_byte iwthabs; lu_byte freereg; \
+  } snap { \
+    (fs)->pc, (fs)->lasttarget, (fs)->previousline, (fs)->nabslineinfo, \
+    (fs)->nk, (fs)->np, (fs)->f->sizek, (fs)->f->sizep, \
+    (fs)->iwthabs, (fs)->freereg \
+  }
+
+#define luaK_restore(fs, snap) \
+  do { \
+    (fs)->pc = (snap).pc; (fs)->lasttarget = (snap).lasttarget; \
+    (fs)->previousline = (snap).previousline; (fs)->nabslineinfo = (snap).nabslineinfo; \
+    (fs)->nk = (snap).nk; (fs)->np = (snap).np; \
+    (fs)->f->sizek = (snap).sizek; (fs)->f->sizep = (snap).sizep; \
+    (fs)->iwthabs = (snap).iwthabs; (fs)->freereg = (snap).freereg; \
+  } while (false)
+
+
 LUAI_FUNC int luaK_code (FuncState *fs, Instruction i);
-LUAI_FUNC int luaK_codeABx (FuncState *fs, OpCode o, int A, unsigned Bx);
-LUAI_FUNC int luaK_codeABCk (FuncState *fs, OpCode o, int A,
-                                            int B, int C, int k);
+LUAI_FUNC int luaK_codeABx (FuncState *fs, OpCode o, int A, int Bx);
+LUAI_FUNC int luaK_codeABCk (FuncState *fs, OpCode o, int A, int B, int C,
+                                            int k);
+LUAI_FUNC int luaK_codevABCk (FuncState *fs, OpCode o, int A, int B, int C,
+                                             int k);
 LUAI_FUNC int luaK_exp2const (FuncState *fs, const expdesc *e, TValue *v);
 LUAI_FUNC void luaK_fixline (FuncState *fs, int line);
 LUAI_FUNC void luaK_nil (FuncState *fs, int from, int n);
+LUAI_FUNC void luaK_codecheckglobal (FuncState *fs, expdesc *var, int k,
+                                                    int line);
 LUAI_FUNC void luaK_reserveregs (FuncState *fs, int n);
 LUAI_FUNC void luaK_checkstack (FuncState *fs, int n);
 LUAI_FUNC void luaK_int (FuncState *fs, int reg, lua_Integer n);
+LUAI_FUNC void luaK_vapar2local (FuncState *fs, expdesc *var);
 LUAI_FUNC void luaK_dischargevars (FuncState *fs, expdesc *e);
 LUAI_FUNC int luaK_exp2anyreg (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_exp2anyregup (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_exp2nextreg (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_exp2val (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_self (FuncState *fs, expdesc *e, expdesc *key);
-LUAI_FUNC void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func);
+LUAI_FUNC void luaK_prepcallfirstarg (FuncState *fs, expdesc *e, expdesc *func); // [Pluto]
 LUAI_FUNC void luaK_indexed (FuncState *fs, expdesc *t, expdesc *k);
-LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e, bool jumps_are_ok = false);
-LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e, bool jumps_are_ok = false);
-LUAI_FUNC bool luaK_isalwaysfalse (LexState *ls, expdesc *e, bool jumps_are_ok = false);
+LUAI_FUNC bool luaK_isalwaysnil (LexState *ls, expdesc *e, bool jumps_are_ok = false); // [Pluto]
+LUAI_FUNC bool luaK_isalwaystrue (LexState *ls, expdesc *e, bool jumps_are_ok = false); // [Pluto]
+LUAI_FUNC bool luaK_isalwaysfalse (LexState *ls, expdesc *e, bool jumps_are_ok = false); // [Pluto]
 LUAI_FUNC void luaK_goiftrue (FuncState *fs, expdesc *e);
-LUAI_FUNC void luaK_goiffalse (FuncState *fs, expdesc *e);
 LUAI_FUNC void luaK_storevar (FuncState *fs, expdesc *var, expdesc *e);
 LUAI_FUNC void luaK_setreturns (FuncState *fs, expdesc *e, int nresults);
 LUAI_FUNC void luaK_setoneret (FuncState *fs, expdesc *e);
@@ -101,10 +127,10 @@ LUAI_FUNC void luaK_settablesize (FuncState *fs, int pc,
                                   int ra, int asize, int hsize);
 LUAI_FUNC void luaK_setlist (FuncState *fs, int base, int nelems, int tostore);
 LUAI_FUNC void luaK_finish (FuncState *fs);
-LUAI_FUNC l_noret luaK_semerror (LexState *ls, const char *msg);
-LUAI_FUNC void luaK_exp2reg (FuncState *fs, expdesc *e, int reg);
-LUAI_FUNC void luaK_freeexp (FuncState *fs, expdesc *e);
-LUAI_FUNC void luaK_invertcond (FuncState *fs, int list);
+LUAI_FUNC l_noret luaK_semerror (LexState *ls, const char *fmt, ...);
+LUAI_FUNC void luaK_exp2reg (FuncState *fs, expdesc *e, int reg); // [Pluto]
+LUAI_FUNC void luaK_freeexp (FuncState *fs, expdesc *e); // [Pluto]
+LUAI_FUNC void luaK_invertcond (FuncState *fs, int list); // [Pluto]
 
 
 #endif

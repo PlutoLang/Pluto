@@ -7,7 +7,7 @@
 PLAT=
 
 CXX= g++ -std=c++17 -O3 -flto -fvisibility=hidden -fPIC
-CXXFLAGS= -Wno-multichar $(SYSCFLAGS) $(MYCFLAGS)
+CXXFLAGS= -Wno-multichar -Wno-invalid-noreturn $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm -Lvendor/Soup/soup -lsoup $(SYSLIBS) $(MYLIBS)
 
@@ -35,12 +35,12 @@ CMCFLAGS=
 
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
-PLATS= guess aix bsd freebsd generic linux linux-readline termux termux-readline macosx mingw mingwdll posix solaris
+PLATS= guess aix bsd freebsd generic linux termux macosx mingw mingwdll posix solaris
 
 LUA_A=	libplutostatic.a
 LUA_SO= libpluto.so
 CORE_O=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o
-LIB_O=	lauxlib.o lbaselib.o lcorolib.o ldblib.o liolib.o lmathlib.o loadlib.o loslib.o lstrlib.o lcryptolib.o ltablib.o lutf8lib.o lassertlib.o lvector3lib.o lbase32.o lbase64.o ljson.o lurllib.o linit.o lstarlib.o lcatlib.o lhttplib.o lschedulerlib.o lsocketlib.o lbigint.o lxml.o lregex.o lffi.o lcanvas.o lbufferlib.o
+LIB_O=	lauxlib.o lbaselib.o lcorolib.o ldblib.o liolib.o lmathlib.o loadlib.o loslib.o lstrlib.o lcryptolib.o ltablib.o lutf8lib.o lassertlib.o lvector3lib.o lbase32.o lbase64.o ljson.o lurllib.o linit.o lstarlib.o lcatlib.o lhttplib.o lschedulerlib.o lsocketlib.o lbigint.o lxml.o lregex.o lffi.o lcanvas.o lbufferlib.o lwasmlib.o
 BASE_O= $(CORE_O) $(LIB_O) $(MYOBJS)
 
 LUA_T=	pluto
@@ -116,28 +116,18 @@ bsd:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN" SYSLIBS="-Wl,-E"
 
 FreeBSD NetBSD OpenBSD freebsd:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE -I/usr/include/edit" SYSLIBS="-ledit" CC="cc"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -I/usr/include/edit" SYSLIBS="-ledit" CC="cc"
 
 generic: $(ALL)
 
-Linux linux:	linux-noreadline
-
-linux-noreadline:
+Linux linux:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX" SYSLIBS="-ldl -lresolv"
 
-linux-readline:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE" SYSLIBS="-ldl -lresolv -lreadline"
-
-termux:	termux-noreadline
-
-termux-noreadline:
+termux:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX" SYSLIBS="-ldl"
 
-termux-readline:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE" SYSLIBS="-ldl -lreadline"
-
 Darwin macos macosx:
-	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX -DLUA_USE_READLINE" SYSLIBS="-lresolv -lreadline"
+	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX" SYSLIBS="-lresolv"
 
 mingw:
 	$(MAKE) "LUA_T=pluto.exe" "SYSLDFLAGS=-static-libstdc++ -municode" "SYSLIBS=-lws2_32 -lbcrypt -ldnsapi" pluto.exe
@@ -230,7 +220,7 @@ lassertlib.o: lassertlib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h
 lvector3lib.o: lvector3lib.cpp lprefix.h lua.h luaconf.h lauxlib.h lualib.h
 lvm.o: lvm.cpp lprefix.h lua.h luaconf.h ldebug.h lstate.h lobject.h \
  llimits.h ltm.h lzio.h lmem.h ldo.h lfunc.h lgc.h lopcodes.h lstring.h \
- ltable.h lvm.h ljumptab.h ljumptabgcc.h
+ ltable.h lvm.h ljumptab.h ljumptabportable.h
 lzio.o: lzio.cpp lprefix.h lua.h luaconf.h llimits.h lmem.h lstate.h \
  lobject.h ltm.h lzio.h
 

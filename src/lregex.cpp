@@ -1,5 +1,6 @@
 #define LUA_LIB
 #include "lualib.h"
+#include "llimits.h"
 
 #include "vendor/Soup/soup/Regex.hpp"
 
@@ -22,6 +23,7 @@ static int regex_new (lua_State *L) {
     lua_settable(L, -3);
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State *L) {
+      pluto_errorifnotgc(L);
       std::destroy_at<>(checkregex(L, 1));
       return 0;
     });
@@ -31,6 +33,7 @@ static int regex_new (lua_State *L) {
   return 1;
 }
 
+/* This function is identical to JavaScript's String.prototype.match. */
 static int regex_match (lua_State *L) {
   size_t len;
   const char *str = luaL_checklstring(L, 2, &len);
@@ -54,9 +57,30 @@ static int regex_match (lua_State *L) {
   return 1;
 }
 
+size_t posrelatI (lua_Integer pos, size_t len);
+
+/* This function is similar to JavaScript's String.prototype.search. The optional offset parameter can not be found in JavaScript. */
+static int regex_search (lua_State *L) {
+  size_t len;
+  const char *str = luaL_checklstring(L, 2, &len);
+  const auto offset = posrelatI(luaL_optinteger(L, 3, 1), len) - 1;
+  if (l_unlikely(offset > len)) {
+    luaL_error(L, "offset out of range");
+  }
+  auto res = checkregex(L, 1)->search(str + offset, str + len);
+  if (res.isSuccess()) {
+    lua_pushinteger(L, 1 + (res.groups.at(0).value().begin - str));
+    lua_pushinteger(L, 1 + (res.groups.at(0).value().end - str));
+    return 2;
+  }
+  luaL_pushfail(L);
+  return 1;
+}
+
 static const luaL_Reg funcs_regex[] = {
   {"new", regex_new},
   {"match", regex_match},
+  {"search", regex_search},
   {nullptr, nullptr}
 };
 PLUTO_NEWLIB(regex);

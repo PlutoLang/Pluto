@@ -1,5 +1,11 @@
 -- $Id: testes/goto.lua $
--- See Copyright Notice in file all.lua
+-- See Copyright Notice in file lua.h
+
+global<const> require
+global<const> print, load, assert, string, setmetatable
+global<const> collectgarbage, error
+
+print("testing goto and global declarations")
 
 collectgarbage()
 
@@ -17,15 +23,18 @@ errmsg([[ ::l1:: ::l1:: ]], "label 'l1'")
 errmsg([[ ::l1:: do ::l1:: end]], "label 'l1'")
 
 
--- undefined label
-errmsg([[ goto l1; local aa ::l1:: ::l2:: print(3) ]], "local 'aa'")
 
--- jumping over variable definition
+-- jumping over variable declaration
+errmsg([[ goto l1; local aa ::l1:: ::l2:: print(3) ]], "scope of 'aa'")
+
+errmsg([[ goto l2; global *; ::l1:: ::l2:: print(3) ]], "scope of '*'")
+
 errmsg([[
 do local bb, cc; goto l1; end
 local aa
 ::l1:: print(3)
-]], "local 'aa'")
+]], "scope of 'aa'")
+
 
 -- jumping into a block
 errmsg([[ do ::l1:: end goto l1 ]], "label 'l1'")
@@ -38,7 +47,7 @@ errmsg([[
     local xuxu = 10
     ::cont::
   until xuxu < x
-]], "local 'xuxu'")
+]], "scope of 'xuxu'")
 
 -- simple gotos
 local x
@@ -250,22 +259,219 @@ assert(testG(3) == "3")
 assert(testG(4) == 5)
 assert(testG(5) == 10)
 
-do
-  -- if x back goto out of scope of upvalue
-  local X
-  goto L1
+do   -- test goto's around to-be-closed variable
 
-  ::L2:: goto L3
+  global *
 
-  ::L1:: do
-    local a <close> = setmetatable({}, {__close = function () X = true end})
-    assert(X == nil)
-    if a then goto L2 end   -- jumping back out of scope of 'a'
+  -- set 'var' and return an object that will reset 'var' when
+  -- it goes out of scope
+  local function newobj (var)
+    _ENV[var] = true
+    return setmetatable({}, {__close = function ()
+      _ENV[var] = nil
+    end})
   end
 
-  ::L3:: assert(X == true)   -- checks that 'a' was correctly closed
-end
---------------------------------------------------------------------------------
+  goto L1
 
+  ::L4:: assert(not varX); goto L5   -- varX dead here
+
+  ::L1::
+  local varX <close> = newobj("X")
+  assert(varX); goto L2   -- varX alive here
+
+  ::L3::
+  assert(varX); goto L4   -- varX alive here
+
+  ::L2:: assert(varX); goto L3  -- varX alive here
+
+  ::L5::   -- return
+end
+
+
+
+foo()
+--------------------------------------------------------------------------
+
+-- check for compilation errors
+local function checkerr (code, err)
+  local st, msg = load(code)
+  assert(not st and string.find(msg, err))
+end
+
+do
+  global T<const>
+
+  -- globals must be declared, after a global declaration
+  checkerr("global none; X = 1", "variable 'X'")
+  checkerr("global none; function XX() end", "variable 'XX'")
+
+  -- global variables cannot be to-be-closed
+  checkerr("global X<close>", "cannot be")
+  checkerr("global <close> *", "cannot be")
+
+  do
+    local X = 10
+    do global X; X = 20 end
+    assert(X == 10)   -- local X
+  end
+  assert(_ENV.X == 20)  -- global X
+
+  -- '_ENV' cannot be global
+  checkerr("global _ENV, a; a = 10", "variable 'a'")
+
+  -- global declarations inside functions
+  checkerr([[
+    global none
+    local function foo () XXX = 1 end   --< ERROR]], "variable 'XXX'")
+
+  if not T then  -- when not in "test mode", "global" isn't reserved
+    assert(load("global = 1; return global")() == 1)
+    print "  ('global' is not a reserved word)"
+  else
+    -- "global" reserved, cannot be used as a variable
+    assert(not load("global = 1; return global"))
+  end
+
+  local foo = 20
+  do
+    global function foo (x)
+      if x == 0 then return 1 else return 2 * foo(x - 1) end
+    end
+    assert(foo == _ENV.foo and foo(4) == 16)
+  end
+  assert(_ENV.foo(4) == 16)
+  assert(foo == 20)   -- local one is in context here
+
+  do
+    global foo;
+    function foo (x) return end   -- Ok after declaration
+  end
+
+  checkerr([[
+    global<const> foo;
+    function foo (x) return end   -- ERROR: foo is read-only
+  ]], "assign to const variable 'foo'")
+
+  checkerr([[
+    global foo <const>;
+    function foo (x)    -- ERROR: foo is read-only
+      return
+    end
+  ]], "%:2%:")   -- correct line in error message
+
+  checkerr([[
+    global<const> *;
+    print(X)    -- Ok to use
+    Y = 1   -- ERROR
+  ]], "assign to const variable 'Y'")
+
+  checkerr([[
+    global *;
+    Y = X    -- Ok to use
+    global<const> *;
+    Y = 1   -- ERROR
+  ]], "assign to const variable 'Y'")
+
+  global *
+  Y = 10
+  assert(_ENV.Y == 10)
+  global<const> *
+  local x = Y
+  global *
+  Y = x + Y
+  assert(_ENV.Y == 20)
+  Y = nil
+end
+
+
+do   -- Ok to declare hundreds of globals
+  global table
+  local code = {}
+  for i = 1, 1000 do
+    code[#code + 1] = ";global x" .. i
+  end
+  code[#code + 1] = "; return x990"
+  code = table.concat(code)
+  _ENV.x990 = 11
+  assert(load(code)() == 11)
+  _ENV.x990 = nil
+end
+
+do   -- mixing lots of global/local declarations
+  global table
+  local code = {}
+  for i = 1, 200 do
+    code[#code + 1] = ";global x" .. i
+    code[#code + 1] = ";local y" .. i .. "=" .. (2*i)
+  end
+  code[#code + 1] = "; return x200 + y200"
+  code = table.concat(code)
+  _ENV.x200 = 11
+  assert(assert(load(code))() == 2*200 + 11)
+  _ENV.x200 = nil
+end
+
+do  print "testing initialization in global declarations"
+  global<const> a, b, c = 10, 20, 30
+  assert(_ENV.a == 10 and b == 20 and c == 30)
+  _ENV.a = nil; _ENV.b = nil; _ENV.c = nil;
+
+  global<const> a, b, c = 10
+  assert(_ENV.a == 10 and b == nil and c == nil)
+  _ENV.a = nil; _ENV.b = nil; _ENV.c = nil;
+
+  global table
+  global a, b, c, d = table.unpack{1, 2, 3, 6, 5}
+  assert(_ENV.a == 1 and b == 2 and c == 3 and d == 6)
+  a = nil; b = nil; c = nil; d = nil
+
+  local a, b = 100, 200
+  do
+    global a, b = a, b
+  end
+  assert(_ENV.a == 100 and _ENV.b == 200)
+  _ENV.a = nil; _ENV.b = nil
+
+
+  assert(_ENV.a == nil and _ENV.b == nil and _ENV.c == nil and _ENV.d == nil)
+end
+
+do
+  global table, string
+  -- global initialization when names don't fit in K
+
+  -- to fill constant table
+  local code = {}
+  for i = 1, 300 do code[i] = "'" .. i .. "'" end
+  code = table.concat(code, ",")
+  code = string.format([[
+    return function (_ENV)
+      local dummy = {%s}  -- fill initial positions in constant table,
+      -- so that initialization must use registers for global names
+      global a, b, c = 10, 20, 30
+    end]], code)
+
+  local fun = assert(load(code))()
+
+  local env = {}
+  fun(env)
+  assert(env.a == 10 and env.b == 20 and env.c == 30)
+end
+
+
+do  -- testing global redefinitions
+  -- cannot use 'checkerr' as errors are not compile time
+  global pcall
+  local f = assert(load("global print = 10"))
+  local st, msg = pcall(f)
+  assert(string.find(msg, "global 'print' already defined"))
+
+  local f = assert(load("local _ENV = {AA = false}; global AA = 10"))
+  local st, msg = pcall(f)
+  assert(string.find(msg, "global 'AA' already defined"))
+
+end
 
 print'OK'
+
