@@ -36,6 +36,10 @@
 #define SOUP_WASM_EXTENDED_CONST false
 #endif
 
+#ifndef SOUP_WASM_TAIL_CALL
+#define SOUP_WASM_TAIL_CALL false
+#endif
+
 NAMESPACE_SOUP
 {
 	struct WasmSharedEnvironment;
@@ -65,7 +69,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::string toString() const SOUP_EXCAL;
 	};
 
-	using wasm_ffi_func_t = void(*)(WasmVm&, uint32_t func_index, const WasmFunctionType&);
+	using wasm_ffi_func_t = void(*)(WasmVm&, uint32_t user_data, const WasmFunctionType&);
 
 	struct WasmValue
 	{
@@ -115,8 +119,39 @@ NAMESPACE_SOUP
 	using wasm_uptr_t = uint32_t;
 #endif
 
-	struct WasmScript
+	class WasmScript
 	{
+	public:
+		struct DataSegment
+		{
+			uint32_t memidx;
+#if SOUP_WASM_EXTENDED_CONST
+			std::string base;
+#else
+			uint8_t base[12];
+#endif
+			std::string data;
+
+			[[nodiscard]] bool isPassive() const noexcept { return memidx == -1; }
+		};
+
+		struct ElemSegment
+		{
+			const WasmType type;
+			uint8_t flags;
+#if !SOUP_WASM_EXTENDED_CONST
+			uint8_t base[10];
+#endif
+			uint32_t tblidx;
+#if SOUP_WASM_EXTENDED_CONST
+			std::string base;
+#endif
+			std::vector<uint64_t> values;
+
+			[[nodiscard]] bool isActive() const noexcept { return (flags & 1) == 0; }
+			[[nodiscard]] bool isPassive() const noexcept { return !isActive() && (flags & 2) == 0; }
+		};
+
 		struct Memory
 		{
 			uint8_t* data;
@@ -179,110 +214,6 @@ NAMESPACE_SOUP
 			size_t grow(size_t delta_pages) noexcept;
 		};
 
-		struct FunctionImport
-		{
-			std::string module_name;
-			std::string function_name;
-
-			wasm_ffi_func_t ptr;
-			SharedPtr<WasmScript> source;
-			uint32_t type_index; // an index in WasmScript::types of the importing WasmScript
-			uint32_t func_index; // to be used with `source` for WASM imports
-		};
-
-		enum ImportExportKind : uint8_t
-		{
-			IE_kFunction = 0,
-			IE_kTable = 1,
-			IE_kMemory = 2,
-			IE_kGlobal = 3,
-		};
-
-		struct Import
-		{
-			std::string module_name;
-			std::string field_name;
-		};
-
-		struct MemoryImport : public Import
-		{
-#if SOUP_WASM_MEMORY64
-			uint64_t min_pages /*: 48*/;
-			uint64_t max_pages : 48;
-			uint64_t memory64 : 1;
-#else
-			uint32_t min_pages;
-			uint32_t max_pages;
-#endif
-
-			MemoryImport(std::string&& module_name, std::string&& field_name, wasm_uptr_t min_pages, wasm_uptr_t max_pages, bool _64bit) noexcept
-				: Import{ std::move(module_name), std::move(field_name) }, min_pages(min_pages), max_pages(max_pages)
-#if SOUP_WASM_MEMORY64
-				, memory64(_64bit)
-#endif
-			{
-#if !SOUP_WASM_MEMORY64
-				SOUP_UNUSED(_64bit);
-#endif
-			}
-
-			[[nodiscard]] bool isCompatibleWith(const Memory& mem) const noexcept;
-		};
-
-		struct GlobalImport : public Import
-		{
-			WasmType type;
-			bool mut;
-		};
-
-		struct Table;
-
-		struct TableImport : public Import
-		{
-			WasmType type;
-			bool table64;
-			wasm_uptr_t min_size;
-			wasm_uptr_t max_size;
-
-			[[nodiscard]] bool isCompatibleWith(const Table& tbl) const noexcept;
-		};
-
-		struct Export
-		{
-			uint8_t kind;
-			uint32_t index;
-		};
-
-		struct DataSegment
-		{
-			uint32_t memidx;
-#if SOUP_WASM_EXTENDED_CONST
-			std::string base;
-#else
-			uint8_t base[12];
-#endif
-			std::string data;
-
-			[[nodiscard]] bool isPassive() const noexcept { return memidx == -1; }
-		};
-
-		struct ElemSegment
-		{
-			const WasmType type;
-			uint8_t flags;
-#if !SOUP_WASM_EXTENDED_CONST
-			uint8_t base[10];
-#endif
-			uint32_t tblidx;
-#if SOUP_WASM_EXTENDED_CONST
-			std::string base;
-#endif
-			std::vector<uint64_t> values;
-
-			[[nodiscard]] bool isActive() const noexcept { return (flags & 1) == 0; }
-			[[nodiscard]] bool isPassive() const noexcept { return !isActive() && (flags & 2) == 0; }
-		};
-
 		struct Table
 		{
 			const WasmType type;
@@ -325,33 +256,115 @@ NAMESPACE_SOUP
 			bool copy(const Table& src, size_t dst_offset, size_t src_offset, size_t size) noexcept;
 		};
 
-#if SOUP_WASM_MULTI_MEMORY
-		std::vector<SharedPtr<Memory>> memories;
-		std::vector<MemoryImport> memory_imports;
+		struct Import
+		{
+			std::string module_name;
+			std::string field_name;
+		};
+
+		struct FunctionImport : public Import
+		{
+			wasm_ffi_func_t ptr;
+			WasmScript* source;
+			uint32_t type_index; // an index in WasmScript::types of the importing WasmScript
+			union
+			{
+				uint32_t func_index; // to be used with `source` for WASM imports
+				uint32_t user_data;
+			};
+
+			FunctionImport(std::string&& module_name, std::string&& function_name, uint32_t type_index)
+				: Import{ std::move(module_name), std::move(function_name) }, ptr(nullptr), source(nullptr), type_index(type_index), func_index(-1)
+			{
+			}
+		};
+
+		struct MemoryImport : public Import
+		{
+#if SOUP_WASM_MEMORY64
+			uint64_t min_pages /*: 48*/;
+			uint64_t max_pages : 48;
+			uint64_t memory64 : 1;
 #else
-		SharedPtr<Memory> memory;
-		Optional<MemoryImport> memory_import;
+			uint32_t min_pages;
+			uint32_t max_pages;
 #endif
-		std::vector<uint32_t> functions{}; // (function_index - function_imports.size()) -> type_index
-		std::vector<WasmFunctionType> types{};
+
+			MemoryImport(std::string&& module_name, std::string&& field_name, wasm_uptr_t min_pages, wasm_uptr_t max_pages, bool _64bit) noexcept
+				: Import{ std::move(module_name), std::move(field_name) }, min_pages(min_pages), max_pages(max_pages)
+#if SOUP_WASM_MEMORY64
+				, memory64(_64bit)
+#endif
+			{
+#if !SOUP_WASM_MEMORY64
+				SOUP_UNUSED(_64bit);
+#endif
+			}
+
+			[[nodiscard]] bool isCompatibleWith(const Memory& mem) const noexcept;
+		};
+
+		struct GlobalImport : public Import
+		{
+			WasmType type;
+			bool mut;
+		};
+
+		struct TableImport : public Import
+		{
+			WasmType type;
+			bool table64;
+			wasm_uptr_t min_size;
+			wasm_uptr_t max_size;
+
+			[[nodiscard]] bool isCompatibleWith(const Table& tbl) const noexcept;
+		};
+
+		enum ImportExportKind : uint8_t
+		{
+			IE_kFunction = 0,
+			IE_kTable = 1,
+			IE_kMemory = 2,
+			IE_kGlobal = 3,
+		};
+
+		struct Export
+		{
+			uint8_t kind;
+			uint32_t index;
+		};
+
 		std::vector<FunctionImport> function_imports{};
 		std::vector<GlobalImport> global_imports{};
-		std::vector<SharedPtr<WasmValue>> globals{};
+		std::vector<TableImport> table_imports{};
+#if SOUP_WASM_MULTI_MEMORY
+		std::vector<MemoryImport> memory_imports;
+		std::vector<SharedPtr<Memory>> memories;
+#else
+		Optional<MemoryImport> memory_import;
+		SharedPtr<Memory> memory;
+#endif
 		std::unordered_map<std::string, Export> export_map{};
+		std::vector<uint32_t> functions{}; // (function_index - function_imports.size()) -> type_index
+		std::vector<WasmFunctionType> types{};
+		std::vector<SharedPtr<WasmValue>> globals{};
 		std::vector<std::string> code{};
 		std::unordered_map<uint64_t, std::vector<uint32_t>> _internal_branch_hints{};
 		std::vector<SharedPtr<Table>> tables{};
-		std::vector<TableImport> table_imports{};
 		std::vector<DataSegment> data_segments{};
 		std::vector<ElemSegment> elem_segments{};
 		StructMap custom_data;
 		WasmSharedEnvironment* shared_env = nullptr;
 		uint32_t start_func_idx = -1;
-		bool has_data_count_section = false;
-		bool has_created_funcrefs = false;
+		uint32_t ref_count : 30;
+		uint32_t has_data_count_section : 1;
+		uint32_t has_created_funcrefs : 1;
 
-		WasmScript() noexcept { /* default */ }
-		WasmScript(WasmSharedEnvironment* shared_env) : shared_env(shared_env) {} // INTERNAL USAGE ONLY. WasmSharedEnvironment::createScript is for you!
+		WasmScript() noexcept : ref_count(0), has_data_count_section(0), has_created_funcrefs(0) {}
+	protected:
+		WasmScript(WasmSharedEnvironment* shared_env) : shared_env(shared_env), ref_count(0), has_data_count_section(0), has_created_funcrefs(0) {}
+		friend WasmSharedEnvironment;
+	public:
 		WasmScript(WasmScript&&) noexcept = default;
 		WasmScript(const WasmScript&) = delete;
 		WasmScript& operator = (WasmScript&&) noexcept = default;
@@ -367,13 +380,13 @@ NAMESPACE_SOUP
 		bool validateFunctionBody(Reader& r) noexcept;
 
 		[[nodiscard]] bool hasUnresolvedImports() const noexcept;
-		void provideImportedFunction(const std::string& module_name, const std::string& function_name, wasm_ffi_func_t ptr) noexcept;
+		void provideImportedFunction(const std::string& module_name, const std::string& function_name, wasm_ffi_func_t ptr, uint32_t user_data = 0) noexcept;
 		void provideImportedFunctions(const std::string& module_name, const std::unordered_map<std::string, wasm_ffi_func_t>& map) noexcept;
 		void provideImportedGlobal(const std::string& module_name, const std::string& field_name, SharedPtr<WasmValue> value) noexcept;
 		void provideImportedGlobals(const std::string& module_name, const std::unordered_map<std::string, SharedPtr<WasmValue>>& map) noexcept;
 		void provideImportedTables(const std::string& module_name, const std::unordered_map<std::string, SharedPtr<Table>>& map) noexcept;
 		void provideImportedMemory(const std::string& module_name, const std::string& field_name, SharedPtr<Memory> value) noexcept;
-		void importFromModule(const std::string& module_name, SharedPtr<WasmScript> other) noexcept;
+		void importFromModule(const std::string& module_name, WasmScript& other) noexcept; // both scripts must be part of the same WasmSharedEnvironment
 		void linkWasiPreview1(std::vector<std::string> args = {}) noexcept;
 
 		// Runs data, elem, and global intialisers, as well as the start function of the script, if defined, which may throw if an imported C++ function throws.
@@ -402,43 +415,70 @@ NAMESPACE_SOUP
 	{
 		struct FuncRef
 		{
-			WasmScript* source;
+			union
+			{
+				WasmScript* source;
+				//wasm_ffi_func_t ptr;
+			};
 			uint32_t index;
+			//uint32_t user_data;
+
+			FuncRef(WasmScript* source, uint32_t index)
+				: source(source), index(index)//, user_data(0)
+			{
+			}
+
+			/*FuncRef(wasm_ffi_func_t ptr, uint32_t user_data)
+				: ptr(ptr), index(-1), user_data(user_data)
+			{
+			}
+
+			[[nodiscard]] bool isC() const noexcept
+			{
+				return index == -1;
+			}*/
 		};
 
-		std::vector<SharedPtr<WasmScript>> scripts;
+		std::vector<WasmScript*> scripts;
 		std::vector<FuncRef> funcrefs;
 
-		SharedPtr<WasmScript> createScript() SOUP_EXCAL;
+		WasmScript& createScript() SOUP_EXCAL;
 		void markScriptAsNoLongerUsed(WasmScript& scr) noexcept;
 
+		//[[nodiscard]] uint64_t createFuncRef(wasm_ffi_func_t ptr, uint32_t user_data = 0) SOUP_EXCAL;
 		[[nodiscard]] uint64_t createFuncRef(WasmScript& scr, uint32_t func_index) SOUP_EXCAL;
 		[[nodiscard]] const FuncRef& getFuncRef(uint64_t value) const noexcept;
 
 		struct ScriptRaii
 		{
-			SharedPtr<WasmScript> spScript;
+			WasmScript& script;
 
-			ScriptRaii(SharedPtr<WasmScript>&& spScript) noexcept
-				: spScript(std::move(spScript))
+			ScriptRaii(WasmScript& script) noexcept
+				: script(script)
 			{
+				++script.ref_count;
 			}
 
 			~ScriptRaii() noexcept
 			{
-				spScript->shared_env->markScriptAsNoLongerUsed(*spScript);
+				if (--script.ref_count == 0)
+				{
+					script.shared_env->markScriptAsNoLongerUsed(script);
+				}
 			}
 
 			[[nodiscard]] WasmScript& operator*() const noexcept
 			{
-				return *spScript;
+				return script;
 			}
 
 			[[nodiscard]] WasmScript* operator->() const noexcept
 			{
-				return spScript.get();
+				return &script;
 			}
 		};
+
+		~WasmSharedEnvironment() noexcept;
 	};
 
 	struct WasmVm
@@ -455,6 +495,23 @@ NAMESPACE_SOUP
 		// May throw if an imported C++ function throws.
 		bool run(const std::string& data, unsigned depth = 0, uint32_t func_index = -1);
 		bool run(Reader& r, unsigned depth = 0, uint32_t func_index = -1);
+
+#if SOUP_WASM_TAIL_CALL
+		enum RunCodeResult
+		{
+			CODE_ERROR = 0,
+			CODE_RETURN,
+			CODE_RETURN_CALL,
+			CODE_RETURN_CALL_INDIRECT,
+		};
+#else
+		using RunCodeResult = bool;
+		static constexpr bool CODE_ERROR = false;
+		static constexpr bool CODE_RETURN = true;
+#endif
+
+		bool processLocalDecls(Reader& r) SOUP_EXCAL;
+		RunCodeResult runCode(Reader& r, unsigned depth = 0, uint32_t func_index = -1);
 
 		struct CtrlFlowEntry
 		{
@@ -476,6 +533,7 @@ NAMESPACE_SOUP
 		static SkipOverBranchResult skipOverBranch(Reader& r, uint32_t depth, WasmScript& script, uint32_t func_index) SOUP_EXCAL;
 		[[nodiscard]] bool doBranch(Reader& r, uint32_t depth, uint32_t func_index, std::stack<CtrlFlowEntry>& ctrlflow) SOUP_EXCAL;
 		[[nodiscard]] bool doCall(WasmScript* script, uint32_t type_index, uint32_t function_index, unsigned depth = 0);
+		bool moveArguments(WasmVm& callvm, const WasmFunctionType& type) SOUP_EXCAL;
 	};
 
 	struct WasmScrapAllocator
