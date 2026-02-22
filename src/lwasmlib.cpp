@@ -188,25 +188,22 @@ static int instantiate (lua_State *L) {
     if (l_unlikely(lua_gettable(L, 2) <= LUA_TNIL)) {
       luaL_error(L, "missing import module \"%s\"", imp.module_name.c_str());
     }
-    pluto_pushstring(L, imp.function_name);
+    pluto_pushstring(L, imp.field_name);
     if (l_unlikely(lua_gettable(L, -2) <= LUA_TNIL)) {
-      luaL_error(L, R"(missing import function "%s" in module "%s")", imp.function_name.c_str(), imp.module_name.c_str());
+      luaL_error(L, R"(missing import function "%s" in module "%s")", imp.field_name.c_str(), imp.module_name.c_str());
     }
-    lua_pushinteger(L, reinterpret_cast<uintptr_t>(&inst) + i);
-    lua_pushvalue(L, -2);
-    lua_settable(L, LUA_REGISTRYINDEX);
-    lua_pop(L, 2);
-    imp.ptr = [](soup::WasmVm& vm, uint32_t func_index, const soup::WasmFunctionType& type) {
+    imp.ptr = [](soup::WasmVm& vm, uint32_t user_data, const soup::WasmFunctionType& type) {
       lua_assert(callback_L);
       const auto L = callback_L;
-      lua_pushinteger(L, reinterpret_cast<uintptr_t>(&vm.script) + func_index);
-      lua_gettable(L, LUA_REGISTRYINDEX);
+      lua_rawgeti(L, LUA_REGISTRYINDEX, user_data);
       wasm_to_lua_stack(L, vm, type.parameters);
       lua_call(L, static_cast<int>(type.parameters.size()), static_cast<int>(type.results.size()));
       for (int i = 0; i != type.results.size(); ++i) {
         opt_wasm_value(L, (static_cast<int>(type.results.size()) - i) * -1, vm.stack.emplace_back(type.results[i]));
       }
     };
+    imp.user_data = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_pop(L, 1);
   }
   for (size_t i = 0; i != inst.global_imports.size(); ++i) {
     const auto& imp = inst.global_imports[i];
@@ -260,7 +257,7 @@ static int describe (lua_State *L) {
         pluto_pushstring(L, e.module_name);
         lua_settable(L, -3);
         lua_pushliteral(L, "name");
-        pluto_pushstring(L, e.function_name);
+        pluto_pushstring(L, e.field_name);
         lua_settable(L, -3);
         lua_pushliteral(L, "kind");
         lua_pushliteral(L, "function");
