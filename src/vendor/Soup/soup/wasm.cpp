@@ -1004,7 +1004,11 @@ NAMESPACE_SOUP
 							{
 								uint32_t function_index;
 								WASM_READ_OML(function_index);
-								es.values.emplace_back(es.type == WASM_FUNCREF && shared_env ? shared_env->createFuncRef(*this, function_index) : 0);
+								es.values.emplace_back(
+									es.type == WASM_FUNCREF && shared_env && function_index < function_imports.size() + functions.size()
+									? shared_env->createFuncRef(*this, function_index)
+									: 0
+								);
 							}
 						}
 					}
@@ -1208,16 +1212,10 @@ NAMESPACE_SOUP
 			break;
 
 		case 0xd2: // ref.func
-			SOUP_IF_UNLIKELY (!shared_env)
-			{
-#if DEBUG_LOAD
-				std::cout << "cannot use ref.func without a shared env\n";
-#endif
-				return false;
-			}
 			{
 				uint32_t func_index;
 				WASM_READ_OML(func_index);
+				SOUP_RETHROW_FALSE(shared_env && func_index < function_imports.size() + functions.size());
 				out.i64 = shared_env->createFuncRef(*this, func_index);
 				out.type = WASM_FUNCREF;
 			}
@@ -2543,6 +2541,7 @@ NAMESPACE_SOUP
 					uint32_t function_index;
 					WASM_READ_OML(function_index);
 					uint32_t type_index = script.getTypeIndexForFunction(function_index);
+					SOUP_RETHROW_FALSE(type_index != -1);
 					SOUP_RETHROW_FALSE(doCall(&this->script, type_index, function_index, depth));
 				}
 				break;
@@ -4579,16 +4578,10 @@ NAMESPACE_SOUP
 				break;
 
 			case 0xd2: // ref.func
-				SOUP_IF_UNLIKELY (!script.shared_env)
-				{
-#if DEBUG_VM
-					std::cout << "cannot use ref.func without a shared env\n";
-#endif
-					return CODE_ERROR;
-				}
 				{
 					uint32_t idx;
 					WASM_READ_OML(idx);
+					SOUP_RETHROW_FALSE(script.shared_env && idx < script.function_imports.size() + script.functions.size());
 					stack.emplace_back(WASM_FUNCREF).i64 = script.shared_env->createFuncRef(script, idx);
 				}
 				break;
@@ -5516,7 +5509,7 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	// function_index will be range-checked. type_index is assumed to be in-bounds if function_index is in-bounds. (as guaranteed by getTypeIndexForFunction)
+	// function_index and type_index must be in-bounds.
 	bool WasmVm::doCall(WasmScript* script, uint32_t type_index, uint32_t function_index, unsigned depth)
 	{
 		SOUP_IF_UNLIKELY (depth >= 200)
@@ -5586,6 +5579,7 @@ NAMESPACE_SOUP
 			goto _doCall_other_script;
 		}
 		function_index -= script->function_imports.size();
+#if false // already checked by caller
 		SOUP_IF_UNLIKELY (function_index >= script->code.size())
 		{
 #if DEBUG_VM
@@ -5593,6 +5587,7 @@ NAMESPACE_SOUP
 #endif
 			return false;
 		}
+#endif
 		const auto& type = this->script.types[type_index];
 
 		WasmVm callvm(*script);
