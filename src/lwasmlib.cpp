@@ -17,36 +17,45 @@ static soup::WasmScript& checkmodule (lua_State *L, int i) {
   return **checkmoduleraw(L, i);
 }
 
-static void wasm_to_lua_stack(lua_State *L, soup::WasmVm& vm, const std::vector<soup::WasmType>& types) {
+static void pushfuncref (lua_State *L, const soup::WasmSharedEnvironment::FuncRef& funcref);
+static void wasm_to_lua_stack (lua_State *L, soup::WasmSharedEnvironment& shared_env, std::vector<soup::WasmValue>& stack, const std::vector<soup::WasmType>& types) {
   lua_checkstack(L, static_cast<int>(types.size()) + 1);
   const auto base = lua_gettop(L);
   for (auto i = static_cast<int>(types.size()); i-- != 0; ) {
     switch (types[i]) {
       case soup::WASM_I32:
-        lua_pushinteger(L, vm.stack.back().i32);
+        lua_pushinteger(L, stack.back().i32);
         break;
       case soup::WASM_I64:
-        lua_pushinteger(L, vm.stack.back().i64);
+        lua_pushinteger(L, stack.back().i64);
         break;
       case soup::WASM_F32:
-        lua_pushnumber(L, vm.stack.back().f32);
+        lua_pushnumber(L, stack.back().f32);
         break;
       case soup::WASM_F64:
-        lua_pushnumber(L, vm.stack.back().f64);
+        lua_pushnumber(L, stack.back().f64);
+        break;
+      case soup::WASM_FUNCREF:
+        if (stack.back().i64) {
+          pushfuncref(L, shared_env.getFuncRef(stack.back().i64));
+        }
+        else {
+          lua_pushnil(L);
+        }
         break;
       case soup::WASM_EXTERNREF:
-        if (vm.stack.back().i64) {
-          lua_rawgeti(L, LUA_REGISTRYINDEX, vm.stack.back().i64 & 0xffff'ffff);
+        if (stack.back().i64) {
+          lua_rawgeti(L, LUA_REGISTRYINDEX, stack.back().i64 & 0xffff'ffff);
         }
         else {
           lua_pushnil(L);
         }
         break;
       default:
-        luaL_error(L, "unexpected wasm value type at language boundary. can only convert i32, i64, f32, f64, and externref.\n");
+        luaL_error(L, "unexpected wasm value type at language boundary. can only convert i32, i64, f32, f64, funcref, and externref.\n");
     }
     lua_insert(L, base + 1);
-    vm.stack.pop_back();
+    stack.pop_back();
   }
 }
 
@@ -75,6 +84,53 @@ static void opt_wasm_value (lua_State *L, int i, soup::WasmValue& value) {
   }
 }
 
+struct PlutoFuncRef {
+  soup::WasmSharedEnvironment::ScriptRaii script;
+  uint32_t index;
+};
+
+static PlutoFuncRef *checkfuncref (lua_State *L, int i) {
+  return (PlutoFuncRef*)luaL_checkudata(L, 1, "pluto:wasm-funcref");;
+}
+
+static int funcref_call (lua_State *L) {
+  auto ptr = checkfuncref(L, 1);
+  const auto& type = ptr->script->types[ptr->script->getTypeIndexForFunction(ptr->index)];
+  while (lua_gettop(L) < 2 + type.parameters.size()) {
+    lua_pushnil(L);
+  }
+  auto& args = *pluto_newclassinst(L, std::vector<soup::WasmValue>);
+  auto& out = *pluto_newclassinst(L, std::vector<soup::WasmValue>);
+  for (uint32_t i = 0; i != type.parameters.size(); ++i) {
+    opt_wasm_value(L, 2 + i, args.emplace_back());
+  }
+  callback_L = L;
+  if (!ptr->script->call(ptr->index, std::move(args), &out)
+    || out.size() < type.results.size() // Not using != because the VM stack may be over-filled as implicit drops only happen on internal calls.
+    ) {
+    luaL_error(L, "wasm vm error");
+  }
+  wasm_to_lua_stack(L, *ptr->script->shared_env, out, type.results);
+  return static_cast<int>(type.results.size());
+}
+
+static void pushfuncref (lua_State *L, const soup::WasmSharedEnvironment::FuncRef& funcref) {
+  auto ptr = new (lua_newuserdata(L, sizeof(PlutoFuncRef))) PlutoFuncRef{ *funcref.source, funcref.index };
+  if (l_unlikely(luaL_newmetatable(L, "pluto:wasm-funcref"))) {
+    lua_pushliteral(L, "__gc");
+    lua_pushcfunction(L, [](lua_State* L) {
+      pluto_errorifnotgc(L);
+      std::destroy_at<>(checkfuncref(L, 1));
+      return 0;
+    });
+    lua_settable(L, -3);
+    lua_pushliteral(L, "__call");
+    lua_pushcfunction(L, &funcref_call);
+    lua_settable(L, -3);
+  }
+  lua_setmetatable(L, -2);
+}
+
 static int call (lua_State *L) {
   auto& inst = checkmodule(L, 1);
   const soup::WasmFunctionType* type;
@@ -92,11 +148,11 @@ static int call (lua_State *L) {
   }
   callback_L = L;
   if (!vm.run(*code)
-    || vm.stack.size() < type->results.size() // Not using != because the VM stack is over-filled due to implicit drops only happening on internal calls.
+    || vm.stack.size() < type->results.size() // Not using != because the VM stack may be over-filled as implicit drops only happen on internal calls.
     ) {
     luaL_error(L, "wasm vm error");
   }
-  wasm_to_lua_stack(L, vm, type->results);
+  wasm_to_lua_stack(L, *inst.shared_env, vm.stack, type->results);
   return static_cast<int>(type->results.size());
 }
 
@@ -196,7 +252,7 @@ static int instantiate (lua_State *L) {
       lua_assert(callback_L);
       const auto L = callback_L;
       lua_rawgeti(L, LUA_REGISTRYINDEX, user_data);
-      wasm_to_lua_stack(L, vm, type.parameters);
+      wasm_to_lua_stack(L, *vm.script.shared_env, vm.stack, type.parameters);
       lua_call(L, static_cast<int>(type.parameters.size()), static_cast<int>(type.results.size()));
       for (int i = 0; i != type.results.size(); ++i) {
         opt_wasm_value(L, (static_cast<int>(type.results.size()) - i) * -1, vm.stack.emplace_back(type.results[i]));
