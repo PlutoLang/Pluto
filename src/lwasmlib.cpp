@@ -96,7 +96,9 @@ static PlutoFuncRef *checkfuncref (lua_State *L, int i) {
 static int funcref_call (lua_State *L) {
   auto ptr = checkfuncref(L, 1);
   const auto& type = ptr->script->types[ptr->script->getTypeIndexForFunction(ptr->index)];
-  while (lua_gettop(L) < 2 + type.parameters.size()) {
+  int expected_top = 1 + static_cast<int>(type.parameters.size());  /* self + parameters */
+  lua_checkstack(L, (expected_top - lua_gettop(L)) + 2);  /* parameters + 2 vectors */
+  while (lua_gettop(L) != expected_top) {
     lua_pushnil(L);
   }
   auto& args = *pluto_newclassinst(L, std::vector<soup::WasmValue>);
@@ -106,7 +108,7 @@ static int funcref_call (lua_State *L) {
   }
   callback_L = L;
   if (!ptr->script->call(ptr->index, std::move(args), &out)
-    || out.size() < type.results.size() // Not using != because the VM stack may be over-filled as implicit drops only happen on internal calls.
+    || out.size() < type.results.size() // Not using != because the stack may be over-filled as implicit drops only happen on internal calls.
     ) {
     luaL_error(L, "wasm vm error");
   }
@@ -133,27 +135,29 @@ static void pushfuncref (lua_State *L, const soup::WasmSharedEnvironment::FuncRe
 
 static int call (lua_State *L) {
   auto& inst = checkmodule(L, 1);
-  const soup::WasmFunctionType* type;
-  auto code = inst.getExportedFuntion(pluto_checkstring(L, 2), &type);
-  if (l_unlikely(!code)) {
+  auto func_idx = inst.getExportedFuntion2(pluto_checkstring(L, 2));
+  if (l_unlikely(func_idx >= inst.function_imports.size() + inst.functions.size())) {
     luaL_error(L, "function export not found");
   }
-  lua_checkstack(L, static_cast<int>(3 + type->parameters.size()));  /* ensure enough space for parameters + vm */
-  while (lua_gettop(L) < 2 + type->parameters.size()) {
+  const auto& type = inst.types[inst.getTypeIndexForFunction(func_idx)];
+  int expected_top = 2 + static_cast<int>(type.parameters.size());  /* self + funcname + parameters */
+  lua_checkstack(L, (expected_top - lua_gettop(L)) + 2);  /* parameters + 2 vectors */
+  while (lua_gettop(L) != expected_top) {
     lua_pushnil(L);
   }
-  auto& vm = *pluto_newclassinst(L, soup::WasmVm, inst);
-  for (uint32_t i = 0; i != type->parameters.size(); ++i) {
-    opt_wasm_value(L, 3 + i, vm.locals.emplace_back(type->parameters[i]));
+  auto& args = *pluto_newclassinst(L, std::vector<soup::WasmValue>);
+  auto& out = *pluto_newclassinst(L, std::vector<soup::WasmValue>);
+  for (uint32_t i = 0; i != type.parameters.size(); ++i) {
+    opt_wasm_value(L, 3 + i, args.emplace_back(type.parameters[i]));
   }
   callback_L = L;
-  if (!vm.run(*code)
-    || vm.stack.size() < type->results.size() // Not using != because the VM stack may be over-filled as implicit drops only happen on internal calls.
+  if (!inst.call(func_idx, std::move(args), &out)
+    || out.size() < type.results.size() // Not using != because the stack may be over-filled as implicit drops only happen on internal calls.
     ) {
     luaL_error(L, "wasm vm error");
   }
-  wasm_to_lua_stack(L, *inst.shared_env, vm.stack, type->results);
-  return static_cast<int>(type->results.size());
+  wasm_to_lua_stack(L, *inst.shared_env, out, type.results);
+  return static_cast<int>(type.results.size());
 }
 
 static int wasm_module_read (lua_State *L) {
