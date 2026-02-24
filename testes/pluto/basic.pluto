@@ -3162,6 +3162,13 @@ do
         local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABCQJgAAFwYAABfwMDAgABBw4BCmdldF9nZXR0ZXIAAAkFAQMAAQEKDAIEANIBCwUAQbkKCwAMBG5hbWUCBQIAAAEA"))
         assert(mod:call("get_getter")() == 1337)
     end
+    do
+        -- memory import
+        local m = new wasm.memory(1)
+        local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABBAFgAAACBwEAAW0CAAEDAgEABwcBA3NldAAACgwBCgBBAEGkAzYCAAsACgRuYW1lAgMBAAA="), { [""] = $object(m) })
+        mod:call("set")
+        assert(string.unpack("I4", mod:read(0, 4)) == 420)
+    end
 end
 
 print "Testing default table metatable."
