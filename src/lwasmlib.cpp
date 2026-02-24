@@ -282,6 +282,23 @@ static int instantiate (lua_State *L) {
     inst.globals[i] = g;
     lua_pop(L, 2);
   }
+  if (inst.memory_import) {
+    const auto& imp = *inst.memory_import;
+    pluto_pushstring(L, imp.module_name);
+    if (l_unlikely(lua_gettable(L, 2) <= LUA_TNIL)) {
+      luaL_error(L, "missing import module \"%s\"", imp.module_name.c_str());
+    }
+    pluto_pushstring(L, imp.field_name);
+    if (l_unlikely(lua_gettable(L, -2) <= LUA_TNIL)) {
+      luaL_error(L, R"(missing import global "%s" in module "%s")", imp.field_name.c_str(), imp.module_name.c_str());
+    }
+    auto& mem = *(soup::SharedPtr<soup::WasmScript::Memory>*)luaL_checkudata(L, -1, "soup::SharedPtr<soup::WasmScript::Memory>");
+    if (!imp.isCompatibleWith(*mem)) {
+      luaL_error(L, R"(type mismatch for import memory "%s" in module "%s")", imp.field_name.c_str(), imp.module_name.c_str());
+    }
+    inst.memory = mem;
+    lua_pop(L, 2);
+  }
   callback_L = L;
   if (l_unlikely(!inst.instantiate())) {
     luaL_error(L, "failed to instantiate wasm module");
@@ -443,11 +460,28 @@ static const luaL_Reg funcs_wasm_global[] = {
   {nullptr, nullptr}
 };
 
+static int memory_new (lua_State* L) {
+  const soup::wasm_uptr_t initial_pages = luaL_checkinteger(L, 1);
+  const soup::wasm_uptr_t max_pages = luaL_optinteger(L, 2, 0x10'000);
+  const bool _64bit = lua_istrue(L, 3);
+  pluto_newclassinst(L, soup::SharedPtr<soup::WasmScript::Memory>, soup::make_shared<soup::WasmScript::Memory>(initial_pages, max_pages, _64bit));
+  return 1;
+}
+
+static const luaL_Reg funcs_wasm_memory[] = {
+  {"new", memory_new},
+  {nullptr, nullptr}
+};
+
 int luaopen_wasm (lua_State *L) {
   luaL_newlib(L, funcs_wasm);
 
   lua_pushliteral(L, "global");
   luaL_newlib(L, funcs_wasm_global);
+  lua_settable(L, -3);
+
+  lua_pushliteral(L, "memory");
+  luaL_newlib(L, funcs_wasm_memory);
   lua_settable(L, -3);
 
   return 1;
