@@ -3122,6 +3122,12 @@ do
         assert(b == 2)
     end
     do
+        -- call imported function
+        local f = || -> 123
+        local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABBQFgAAF/AgYBAAFmAAAHEAEMcmVleHBvcnRlZF9mAAAACgRuYW1lAgMBAAA="), { [""] = $object(f) })
+        assert(mod:call("reexported_f") == 123)
+    end
+    do
         -- memory access
         local module = wasm.instantiate(base64.decode("AGFzbQEAAAABBgFgAX8BfwMCAQAFAwEAAQcTAgZtZW1vcnkCAAZsb2FkMzIAAAoJAQcAIAAoAgALAAoEbmFtZQIDAQAA"))
         assert(module:call("load32", 1) == 0)
