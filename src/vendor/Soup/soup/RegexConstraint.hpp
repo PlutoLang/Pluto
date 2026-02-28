@@ -5,6 +5,7 @@
 #include "fwd.hpp"
 
 #include "Exception.hpp"
+#include "UniquePtr.hpp"
 
 NAMESPACE_SOUP
 {
@@ -65,8 +66,8 @@ NAMESPACE_SOUP
 			SOUP_THROW(Exception("Constraint is not clonable"));
 		}
 
-		[[nodiscard]] virtual std::string toString() const noexcept = 0;
+		virtual void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL = 0;
 
-		virtual void getFlags(uint16_t& set, uint16_t& unset) const noexcept {}
+		static void updateFlags(std::string& str, uint16_t& flags, uint16_t set, uint16_t unset) SOUP_EXCAL;
 	};
 }

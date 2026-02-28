@@ -9,6 +9,7 @@ NAMESPACE_SOUP
 		return netConfig_inst;
 	}
 
+#if !SOUP_WASM || SOUP_EMSCRIPTEN
 	SharedPtr<dnsResolver>& netConfig::getDnsResolver() SOUP_EXCAL
 	{
 		if (!dns_resolver)
@@ -17,6 +18,7 @@ NAMESPACE_SOUP
 		}
 		return dns_resolver;
 	}
+#endif
 
 	netConfig::netConfig()
 	{

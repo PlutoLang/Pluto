@@ -32,9 +32,9 @@ NAMESPACE_SOUP
 	template <bool greedy>
 	struct RegexOpenEndedRangeQuantifierConstraint : public RegexOpenEndedRangeQuantifierConstraintBase
 	{
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			std::string str = constraints.at(0)->toString();
+			constraints.at(0)->toString(str, flags);
 			str.push_back('{');
 			str.append(std::to_string(constraints.size()));
 			str.append(",}");
@@ -42,7 +42,6 @@ NAMESPACE_SOUP
 			{
 				str.push_back('?');
 			}
-			return str;
 		}
 	};
 }

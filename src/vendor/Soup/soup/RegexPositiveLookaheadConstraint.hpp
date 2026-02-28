@@ -27,17 +27,11 @@ NAMESPACE_SOUP
 			return true;
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			auto str = group.toString();
-			str.insert(0, "(?=");
+			str.append("(?=");
+			group.toString(str, flags);
 			str.push_back(')');
-			return str;
-		}
-
-		void getFlags(uint16_t& set, uint16_t& unset) const noexcept final
-		{
-			group.getFlags(set, unset);
 		}
 
 		[[nodiscard]] size_t getCursorAdvancement() const final

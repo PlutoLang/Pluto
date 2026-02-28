@@ -42,11 +42,10 @@ NAMESPACE_SOUP
 			return matchesImpl(m, m.result.findGroupByIndex(i));
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			std::string str(1, '\\');
+			str.push_back('\\');
 			str.append(std::to_string(i));
-			return str;
 		}
 	};
 
@@ -64,9 +63,9 @@ NAMESPACE_SOUP
 			return matchesImpl(m, m.result.findGroupByName(name));
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			std::string str = "\\k";
+			str.append("\\k");
 			if (name.find('\'') != std::string::npos)
 			{
 				str.push_back('<');
@@ -79,7 +78,6 @@ NAMESPACE_SOUP
 				str.append(name);
 				str.push_back('\'');
 			}
-			return str;
 		}
 	};
 }

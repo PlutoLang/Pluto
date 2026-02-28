@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base.hpp"
+#if !SOUP_WASM
 #include "type.hpp" // pid_t
 
 #include <memory>
@@ -36,3 +37,5 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::shared_ptr<ProcessHandle> open() const;
 	};
 }
+
+#endif

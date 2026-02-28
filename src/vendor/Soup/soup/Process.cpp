@@ -1,4 +1,5 @@
 #include "Process.hpp"
+#if !SOUP_WASM
 
 #if SOUP_WINDOWS
 	#undef UNICODE
@@ -181,3 +182,5 @@ NAMESPACE_SOUP
 #endif
 	}
 }
+
+#endif

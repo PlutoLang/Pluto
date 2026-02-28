@@ -10,6 +10,7 @@
 #include "Exception.hpp"
 #include "MemoryRefReader.hpp"
 #include "Reader.hpp"
+#include "string.hpp"
 #include "StringRefWriter.hpp"
 #if SOUP_WASM_PEDANTIC
 #include "unicode.hpp"
@@ -20,10 +21,10 @@
 #define DEBUG_VM false
 #define DEBUG_BRANCHING false
 #define DEBUG_API false
+#define DEBUG_GC false
 
-#if DEBUG_LOAD || DEBUG_LINK || DEBUG_VM || DEBUG_BRANCHING || DEBUG_API
+#if DEBUG_LOAD || DEBUG_LINK || DEBUG_VM || DEBUG_BRANCHING || DEBUG_API || DEBUG_GC
 #include <iostream>
-#include "string.hpp"
 #endif
 
 // Useful resources:
@@ -37,8 +38,8 @@ Spec tests (https://github.com/Sainan/wasm-spec/tree/wast2json/test/core)
 > Use wast2json from wabt then run `soup wast [jsonfile]`
 > Results:
 - address: pass
-- align: pedantic_pass (assumes multi-memory is not supported)
-- binary: pedantic_pass (assumes multi-memory is not supported)
+- align: pedantic_pass
+- binary: pedantic_pass
 - binary-leb128: pedantic_pass
 - block: pass
 - br: pass
@@ -101,6 +102,8 @@ Spec tests (https://github.com/Sainan/wasm-spec/tree/wast2json/test/core)
 - ref_is_null: pass
 - ref_null: pass
 - return: pass
+- return_call: pass
+- return_call_indirect: pass
 - select: pass
 - skip-stack-guard-page: pass
 - stack: pass
@@ -127,6 +130,63 @@ Spec tests (https://github.com/Sainan/wasm-spec/tree/wast2json/test/core)
 - utf8-import-field: pedantic_pass
 - utf8-import-module: pedantic_pass
 - utf8-invalid-encoding: pass (due to Soup not parsing .wat files)
+- simd/simd_address: pass
+- simd/simd_align: pass
+- simd/simd_bit_shift: pass
+- simd/simd_bitwise: pass
+- simd/simd_boolean: pass
+- simd/simd_const: pass
+- simd/simd_conversions: pass
+- simd/simd_f32x4: pass
+- simd/simd_f32x4_arith: pass
+- simd/simd_f32x4_cmp: pass
+- simd/simd_f32x4_pmin_pmax: pass
+- simd/simd_f32x4_rounding: pass
+- simd/simd_f64x2: pass
+- simd/simd_f64x2_arith: pass
+- simd/simd_f64x2_cmp: pass
+- simd/simd_f64x2_pmin_pmax: apss
+- simd/simd_f64x2_rounding: pass
+- simd/simd_i16x8_arith: pass
+- simd/simd_i16x8_arith2: pass
+- simd/simd_i16x8_cmp: pass
+- simd/simd_i16x8_extadd_pairwise_i8x16: pass
+- simd/simd_i16x8_extmul_i8x16: pass
+- simd/simd_i16x8_q15mulr_sat_s: pass
+- simd/simd_i16x8_sat_arith: pass
+- simd/simd_i32x4_arith: pass
+- simd/simd_i32x4_arith2: pass
+- simd/simd_i32x4_cmp: pass
+- simd/simd_i32x4_dot_i16x8: pass
+- simd/simd_i32x4_extadd_pairwise_i16x8: pass
+- simd/simd_i32x4_extmul_i16x8: pass
+- simd/simd_i32x4_trunc_sat_f32x4: pass
+- simd/simd_i32x4_trunc_sat_f64x2: pass
+- simd/simd_i64x2_arith: pass
+- simd/simd_i64x2_arith2: pass
+- simd/simd_i64x2_cmp: pass
+- simd/simd_i64x2_extmul_i32x4: pass
+- simd/simd_i8x16_arith: pass
+- simd/simd_i8x16_arith2: pass
+- simd/simd_i8x16_cmp: pass
+- simd/simd_i8x16_sat_arith: pass
+- simd/simd_int_to_int_extend: pass
+- simd/simd_lane: pass
+- simd/simd_linking: pass
+- simd/simd_load: pass
+- simd/simd_load16_lane: pass
+- simd/simd_load32_lane: pass
+- simd/simd_load64_lane: pass
+- simd/simd_load8_lane: pass
+- simd/simd_load_extend: pass
+- simd/simd_load_splat: pass
+- simd/simd_load_zero: pass
+- simd/simd_splat: pass
+- simd/simd_store: pass
+- simd/simd_store16_lane: pass
+- simd/simd_store32_lane: pass
+- simd/simd_store64_lane: pass
+- simd/simd_store8_lane: pass
 - memory64/address64: pass
 - memory64/align64: pass
 - memory64/binary_leb128_64: pedantic_pass
@@ -193,6 +253,10 @@ Spec tests (https://github.com/Sainan/wasm-spec/tree/wast2json/test/core)
 - multi-memory/store1: pass
 - multi-memory/store2: pass
 - multi-memory/traps0: pass
+- exceptions/tag: pass
+- exceptions/throw: pass
+- exceptions/throw_ref: pass
+- exceptions/try_table: pass
 */
 
 NAMESPACE_SOUP
@@ -203,8 +267,14 @@ NAMESPACE_SOUP
 		if (str == "i64") { return WASM_I64; }
 		if (str == "f32") { return WASM_F32; }
 		if (str == "f64") { return WASM_F64; }
+#if SOUP_WASM_SIMD
+		if (str == "v128") { return WASM_V128; }
+#endif
 		if (str == "funcref") { return WASM_FUNCREF; }
 		if (str == "externref") { return WASM_EXTERNREF; }
+#if SOUP_WASM_EXCEPTIONS
+		if (str == "exnref") { return WASM_EXNREF; }
+#endif
 		return static_cast<WasmType>(0);
 	}
 
@@ -216,8 +286,14 @@ NAMESPACE_SOUP
 		case WASM_I64: return "i64";
 		case WASM_F32: return "f32";
 		case WASM_F64: return "f64";
+#if SOUP_WASM_SIMD
+		case WASM_V128: return "v128";
+#endif
 		case WASM_FUNCREF: return "funcref";
 		case WASM_EXTERNREF: return "externref";
+#if SOUP_WASM_EXCEPTIONS
+		case WASM_EXNREF: return "exnref";
+#endif
 		}
 		return std::to_string(type);
 	}
@@ -242,19 +318,33 @@ NAMESPACE_SOUP
 		return str;
 	}
 
+	// WasmValue
+
+	std::string WasmValue::toString() const SOUP_EXCAL
+	{
+		std::string str(1, '<');
+		str.append(wasm_type_to_string(type));
+		str.append("> ");
+		str.append(string::hex((uint64_t)i64));
+		if ((type == WASM_EXTERNREF || type == WASM_FUNCREF) && i64 == 0)
+		{
+			str.append(" (null)");
+		}
+#if SOUP_WASM_SIMD
+		if (type == WASM_V128)
+		{
+			str.append(", ");
+			str.append(string::hex((uint64_t)i64x2[1]));
+		}
+#endif
+		return str;
+	}
+
 	// WasmScript::Memory
 
-	WasmScript::Memory::Memory(wasm_uptr_t pages, wasm_uptr_t max_pages, bool _64bit) SOUP_EXCAL
-	: data(nullptr), size(0), page_limit(max_pages)
-#if SOUP_WASM_MEMORY64
-			, memory64(_64bit)
-#endif
+	WasmScript::Memory::Memory(size_t size, uint64_t limit, bool _64bit, bool one_byte_pages) SOUP_EXCAL
+		: data(size ? (uint8_t*)soup::malloc(size) : nullptr), size(size), limit(limit), memory64(_64bit), one_byte_pages(one_byte_pages)
 	{
-#if !SOUP_WASM_MEMORY64
-		SOUP_UNUSED(_64bit);
-#endif
-		this->data = pages != 0 ? (uint8_t*)soup::malloc(pages * 0x10'000) : nullptr;
-		this->size = pages * 0x10'000;
 		memset(this->data, 0, this->size);
 	}
 
@@ -322,21 +412,22 @@ NAMESPACE_SOUP
 	size_t WasmScript::Memory::grow(size_t delta_pages) noexcept
 	{
 		size_t old_size_pages = -1;
-		const auto delta_bytes = delta_pages * 0x10'000;
-		if ((delta_pages == 0 || delta_bytes / delta_pages == 0x10'000) // Multiplication didn't overflow?
+		const auto page_size = getPageSize();
+		const auto delta_bytes = delta_pages * page_size;
+		if ((delta_pages == 0 || delta_bytes / delta_pages == page_size) // Multiplication didn't overflow?
 			&& can_add_without_overflow(this->size, delta_bytes)
 			)
 		{
-			auto nmem = (((this->size + delta_bytes) / 0x10'000) <= this->page_limit)
-				? (uint8_t*)::realloc(this->data, this->size + delta_bytes)
-				: nullptr
-				;
-			if (nmem != nullptr)
+			const auto new_size_bytes = this->size + delta_bytes;
+			if (new_size_bytes <= this->limit)
 			{
-				memset(&nmem[this->size], 0, delta_bytes);
-				old_size_pages = this->size / 0x10'000;
-				this->data = nmem;
-				this->size += delta_bytes;
+				if (auto nmem = (uint8_t*)::realloc(this->data, new_size_bytes))
+				{
+					memset(&nmem[this->size], 0, delta_bytes);
+					old_size_pages = this->size / page_size;
+					this->data = nmem;
+					this->size = new_size_bytes;
+				}
 			}
 		}
 		return old_size_pages;
@@ -438,7 +529,7 @@ NAMESPACE_SOUP
 	bool WasmScript::MemoryImport::isCompatibleWith(const Memory& mem) const noexcept
 	{
 #if SOUP_WASM_MEMORY64
-		if ((bool)memory64 != (bool)mem.memory64)
+		if (memory64 != mem.memory64)
 		{
 #if DEBUG_LOAD
 			std::cout << "type mismatch for memory " << module_name << ":" << field_name << " - export addr type " << wasm_type_to_string(mem.getAddrType()) << "; import addr type " << wasm_type_to_string(memory64 ? WASM_I64 : WASM_I32) << "\n";
@@ -446,17 +537,23 @@ NAMESPACE_SOUP
 			return false;
 		}
 #endif
-		if (min_pages > (mem.size / 0x10'000))
+#if SOUP_WASM_CUSTOM_PAGE_SIZES
+		if (one_byte_pages != mem.one_byte_pages)
 		{
 			return false;
 		}
-		if (max_pages != 0x10'000) // Import has a page limit?
+#endif
+		if (min_bytes > mem.size)
 		{
-			if (mem.page_limit == 0x10'000) // Memory has no page limit?
+			return false;
+		}
+		if (max_bytes != 0x1'0000'0000) // Import has a page limit?
+		{
+			if (mem.limit == 0x1'0000'0000) // Memory has no page limit?
 			{
 				return false;
 			}
-			if (max_pages < mem.page_limit)
+			if (max_bytes < mem.limit)
 			{
 				return false;
 			}
@@ -528,6 +625,26 @@ NAMESPACE_SOUP
 		return load(r);
 	}
 
+	enum WasmSectionType : uint8_t
+	{
+		SEC_CUSTOM = 0,
+		SEC_TYPE = 1,
+		SEC_IMPORT = 2,
+		SEC_FUNCTION = 3,
+		SEC_TABLE = 4,
+		SEC_MEMORY = 5,
+#if SOUP_WASM_EXCEPTIONS
+		SEC_TAG = 13,
+#endif
+		SEC_GLOBAL = 6,
+		SEC_EXPORT = 7,
+		SEC_START = 8,
+		SEC_ELEM = 9,
+		SEC_DATA_COUNT = 12,
+		SEC_CODE = 10,
+		SEC_DATA = 11,
+	};
+
 	bool WasmScript::load(Reader& r) SOUP_EXCAL
 	{
 		uint32_t u;
@@ -542,10 +659,20 @@ NAMESPACE_SOUP
 			return false;
 		}
 		uint32_t data_count = -1;
+#if SOUP_WASM_PEDANTIC
+		uint32_t sections_set = 0;
+#endif
 		while (r.hasMore())
 		{
 			uint8_t section_type;
 			r.u8(section_type);
+#if SOUP_WASM_PEDANTIC
+			if (section_type != SEC_CUSTOM && section_type < 32)
+			{
+				SOUP_RETHROW_FALSE((sections_set & (1 << section_type)) == 0);
+				sections_set |= (1 << section_type);
+			}
+#endif
 			uint32_t section_size;
 			WASM_READ_OML(section_size);
 			const auto section_end = r.getPosition() + section_size;
@@ -565,7 +692,7 @@ NAMESPACE_SOUP
 				break;
 
 #if SOUP_WASM_PEDANTIC
-			case 0: // Custom
+			case SEC_CUSTOM:
 				{
 					SOUP_RETHROW_FALSE(section_size != 0);
 					uint32_t name_len;
@@ -584,12 +711,15 @@ NAMESPACE_SOUP
 				break;
 #endif
 
-			case 1: // Type
+			case SEC_TYPE:
 				{
 					uint32_t num_types;
 					WASM_READ_OML(num_types);
 #if DEBUG_LOAD
 					std::cout << num_types << " type(s)\n";
+#endif
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE((sections_set & (1 << SEC_IMPORT)) == 0);
 #endif
 					while (num_types--)
 					{
@@ -643,12 +773,15 @@ NAMESPACE_SOUP
 				}
 				break;
 
-			case 2: // Import
+			case SEC_IMPORT:
 				{
 					uint32_t num_imports;
 					WASM_READ_OML(num_imports);
 #if DEBUG_LOAD
 					std::cout << num_imports << " import(s)\n";
+#endif
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE((sections_set & (1 << SEC_FUNCTION)) == 0);
 #endif
 					while (num_imports--)
 					{
@@ -700,21 +833,39 @@ NAMESPACE_SOUP
 						else if (kind == IE_kMemory)
 						{
 							uint8_t flags; r.u8(flags);
+							uint8_t known_flags = 1;
 #if SOUP_WASM_MEMORY64
-							SOUP_RETHROW_FALSE((flags & 0xfa) == 0);
-#else
-							SOUP_RETHROW_FALSE((flags & 0xfe) == 0);
+							known_flags |= 4;
 #endif
-							wasm_uptr_t min_pages;
+#if SOUP_WASM_CUSTOM_PAGE_SIZES
+							known_flags |= 8;
+#endif
+#if SOUP_WASM_MEMORY64
+							SOUP_RETHROW_FALSE((flags & ~known_flags) == 0);
+#endif
+							uint64_t min_pages;
 							WASM_READ_OML(min_pages);
-							wasm_uptr_t max_pages = 0x10'000;
+							uint64_t max_pages = 0x10'000;
 							if (flags & 1)
 							{
 								WASM_READ_OML(max_pages);
 							}
+							uint32_t page_size = 0x10'000;
+#if SOUP_WASM_CUSTOM_PAGE_SIZES
+							if (flags & 8)
+							{
+								WASM_READ_OML(page_size);
+								page_size = (1 << page_size);
+								SOUP_RETHROW_FALSE(page_size == 1 || page_size == 0x10'000);
+								if (page_size == 1 && !(flags & 1))
+								{
+									max_pages = 0x1'0000'0000;
+								}
+							}
+#endif
 #if SOUP_WASM_MULTI_MEMORY
 							memories.emplace_back();
-							memory_imports.emplace_back(std::move(module_name), std::move(field_name), min_pages, max_pages, flags & 4);
+							memory_imports.emplace_back(std::move(module_name), std::move(field_name), min_pages * page_size, max_pages * page_size, flags & 4, page_size == 1);
 #else
 							SOUP_IF_UNLIKELY (memory || memory_import)
 							{
@@ -723,7 +874,7 @@ NAMESPACE_SOUP
 #endif
 								return false;
 							}
-							memory_import.emplace(std::move(module_name), std::move(field_name), min_pages, max_pages, flags & 4);
+							memory_import.emplace(std::move(module_name), std::move(field_name), min_pages * page_size, max_pages * page_size, flags & 4, page_size == 1);
 #endif
 						}
 						else if (kind == IE_kGlobal)
@@ -734,6 +885,16 @@ NAMESPACE_SOUP
 							global_imports.emplace_back(GlobalImport{ { std::move(module_name), std::move(field_name) }, static_cast<WasmType>(type), (bool)(flags & 1)});
 							globals.emplace_back();
 						}
+#if SOUP_WASM_EXCEPTIONS
+						else if (kind == IE_kTag)
+						{
+							uint8_t type; r.u8(type);
+							SOUP_RETHROW_FALSE(type == 0);
+							uint32_t typeidx; WASM_READ_OML(typeidx);
+							tag_imports.emplace_back(std::move(module_name), std::move(field_name));
+							tags.emplace_back();
+						}
+#endif
 						else
 						{
 #if DEBUG_LOAD
@@ -745,12 +906,15 @@ NAMESPACE_SOUP
 				}
 				break;
 
-			case 3: // Function
+			case SEC_FUNCTION:
 				{
 					uint32_t num_functions;
 					WASM_READ_OML(num_functions);
 #if DEBUG_LOAD
 					std::cout << num_functions << " function type(s)\n";
+#endif
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE((sections_set & (1 << SEC_TABLE)) == 0);
 #endif
 					functions.reserve(num_functions);
 					while (num_functions--)
@@ -763,11 +927,14 @@ NAMESPACE_SOUP
 				}
 				break;
 
-			case 4: // Table
+			case SEC_TABLE:
 				{
 					uint32_t num_tables; WASM_READ_OML(num_tables);
 #if DEBUG_LOAD
 					std::cout << num_tables << " table(s)\n";
+#endif
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE((sections_set & (1 << SEC_MEMORY)) == 0);
 #endif
 					tables.reserve(num_tables);
 					while (num_tables--)
@@ -793,11 +960,14 @@ NAMESPACE_SOUP
 				}
 				break;
 
-			case 5: // Memory
+			case SEC_MEMORY:
 				{
 					uint32_t num_memories; WASM_READ_OML(num_memories);
 #if SOUP_WASM_MULTI_MEMORY
 					memories.reserve(memories.size() + num_memories);
+#endif
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE((sections_set & (1 << SEC_GLOBAL)) == 0);
 #endif
 					while (num_memories--)
 					{
@@ -811,13 +981,19 @@ NAMESPACE_SOUP
 						}
 #endif
 						uint8_t flags; r.u8(flags);
+						uint8_t known_flags = 1;
 #if SOUP_WASM_MEMORY64
-						SOUP_RETHROW_FALSE((flags & 0xfa) == 0);
-#else
-						SOUP_RETHROW_FALSE((flags & 0xfe) == 0);
+						known_flags |= 4;
+#endif
+#if SOUP_WASM_CUSTOM_PAGE_SIZES
+						known_flags |= 8;
+#endif
+#if SOUP_WASM_MEMORY64
+						SOUP_RETHROW_FALSE((flags & ~known_flags) == 0);
 #endif
 						uint64_t pages;
 						uint64_t page_limit = 0x10'000;
+						uint32_t page_size = 0x10'000;
 #if SOUP_WASM_MEMORY64
 						if (flags & 4)
 						{
@@ -845,22 +1021,57 @@ NAMESPACE_SOUP
 								page_limit = page_limit_u32;
 							}
 						}
+#if SOUP_WASM_CUSTOM_PAGE_SIZES
+						if (flags & 8)
+						{
+							WASM_READ_OML(page_size);
+							page_size = (1 << page_size);
+							SOUP_RETHROW_FALSE(page_size == 1 || page_size == 0x10'000);
+							if (page_size == 1 && !(flags & 1))
+							{
+								page_limit = 0x1'0000'0000;
+							}
+						}
+#endif
 						SOUP_RETHROW_FALSE(pages <= page_limit);
 #if SOUP_WASM_MULTI_MEMORY
-						this->memories.emplace_back(soup::make_shared<Memory>(pages, page_limit, flags & 4));
+						this->memories.emplace_back(soup::make_shared<Memory>(pages * page_size, page_limit * page_size, flags & 4, page_size == 1));
 #else
-						this->memory = soup::make_shared<Memory>(pages, page_limit, flags & 4);
+						this->memory = soup::make_shared<Memory>(pages * page_size, page_limit * page_size, flags & 4, page_size == 1);
 #endif
 					}
 				}
 				break;
 
-			case 6: // Global
+#if SOUP_WASM_EXCEPTIONS
+			case SEC_TAG:
+				{
+					uint32_t num_tags;
+					WASM_READ_OML(num_tags);
+#if DEBUG_LOAD
+					std::cout << num_tags << " tag(s)\n";
+#endif
+					tags.reserve(tags.size() + num_tags);
+					while (num_tags--)
+					{
+						uint8_t type; r.u8(type);
+						SOUP_RETHROW_FALSE(type == 0);
+						uint32_t typeidx; WASM_READ_OML(typeidx);
+						tags.emplace_back(soup::make_shared<Tag>(/*typeidx*/));
+					}
+				}
+				break;
+#endif
+
+			case SEC_GLOBAL:
 				{
 					uint32_t num_globals;
 					WASM_READ_OML(num_globals);
 #if DEBUG_LOAD
 					std::cout << num_globals << " global(s)\n";
+#endif
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE((sections_set & (1 << SEC_EXPORT)) == 0);
 #endif
 					globals.reserve(globals.size() + num_globals);
 					while (num_globals--)
@@ -882,12 +1093,15 @@ NAMESPACE_SOUP
 				}
 				break;
 
-			case 7: // Export
+			case SEC_EXPORT:
 				{
 					uint32_t num_exports;
 					WASM_READ_OML(num_exports);
 #if DEBUG_LOAD
 					std::cout << num_exports << " export(s)\n";
+#endif
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE((sections_set & (1 << SEC_START)) == 0);
 #endif
 					export_map.reserve(num_exports);
 					while (num_exports--)
@@ -906,7 +1120,7 @@ NAMESPACE_SOUP
 				}
 				break;
 
-			case 8: // Start
+			case SEC_START:
 				SOUP_IF_UNLIKELY (start_func_idx != -1)
 				{
 #if DEBUG_LOAD
@@ -920,12 +1134,15 @@ NAMESPACE_SOUP
 #endif
 				break;
 
-			case 9: // Elem
+			case SEC_ELEM:
 				{
 					uint32_t num_segments;
 					WASM_READ_OML(num_segments);
 #if DEBUG_LOAD
 					std::cout << num_segments << " element segment(s)\n";
+#endif
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE((sections_set & (1 << SEC_DATA_COUNT)) == 0);
 #endif
 					for (uint32_t i = 0; i != num_segments; ++i)
 					{
@@ -1015,17 +1232,20 @@ NAMESPACE_SOUP
 				}
 				break;
 
-			case 12: // DataCount
+			case SEC_DATA_COUNT:
 				WASM_READ_OML(data_count);
 				has_data_count_section = true;
 				break;
 
-			case 10: // Code
+			case SEC_CODE:
 				{
 					uint32_t num_functions;
 					WASM_READ_OML(num_functions);
 #if DEBUG_LOAD
 					std::cout << num_functions << " function(s)\n";
+#endif
+#if SOUP_WASM_PEDANTIC
+					SOUP_RETHROW_FALSE((sections_set & (1 << SEC_DATA)) == 0);
 #endif
 					code.reserve(num_functions);
 					while (num_functions--)
@@ -1052,17 +1272,13 @@ NAMESPACE_SOUP
 				}
 				break;
 
-			case 11: // Data
+			case SEC_DATA:
 				{
 					uint32_t num_segments;
 					WASM_READ_OML(num_segments);
 #if DEBUG_LOAD
 					std::cout << num_segments << " data segment(s)\n";
 #endif
-					if (data_count != -1)
-					{
-						SOUP_RETHROW_FALSE(data_count == num_segments);
-					}
 					data_segments.reserve(num_segments);
 					for (uint32_t i = 0; i != num_segments; ++i)
 					{
@@ -1123,6 +1339,10 @@ NAMESPACE_SOUP
 			}
 		}
 		SOUP_RETHROW_FALSE(functions.size() == code.size());
+		if (data_count != -1)
+		{
+			SOUP_RETHROW_FALSE(data_count == data_segments.size());
+		}
 		return true;
 	}
 
@@ -1152,6 +1372,14 @@ NAMESPACE_SOUP
 #endif
 			break;
 
+#if SOUP_WASM_SIMD
+		case 0xfd:
+			if (out.c_str()[1] == 0x0c) // v128.const
+			{
+				return true;
+			}
+			[[fallthrough]];
+#endif
 		default:
 			return false;
 		}
@@ -1272,7 +1500,7 @@ NAMESPACE_SOUP
 		SOUP_IF_UNLIKELY (r.getPosition() != pos_after_branching)
 		{
 #if DEBUG_LOAD
-			std::cout << "load(pedantic): skipOverBranch bailed early\n";
+			std::cout << "load(pedantic): skipOverBranch bailed early at position " << pos_after_branching << "\n";
 #endif
 			return false;
 		}
@@ -1315,6 +1543,15 @@ NAMESPACE_SOUP
 		if (memory_import && !memory)
 		{
 			return true;
+		}
+#endif
+#if SOUP_WASM_EXCEPTIONS
+		for (uint32_t i = 0; i != tag_imports.size(); ++i)
+		{
+			if (!tags[i])
+			{
+				return true;
+			}
 		}
 #endif
 		return false;
@@ -1436,7 +1673,7 @@ NAMESPACE_SOUP
 				if (auto e = other.export_map.find(fi.field_name); e != other.export_map.end())
 				{
 					if (e->second.kind == IE_kFunction
-						&& e->second.index < other.functions.size()
+						&& e->second.index < other.function_imports.size() + other.functions.size()
 						)
 					{
 						auto& import_type = types[fi.type_index];
@@ -1528,6 +1765,25 @@ NAMESPACE_SOUP
 					)
 				{
 					this->memory = other.memory;
+				}
+			}
+		}
+#endif
+#if SOUP_WASM_EXCEPTIONS
+		for (size_t i = 0; i != tag_imports.size(); ++i)
+		{
+			const auto& ti = tag_imports[i];
+			if (ti.module_name == module_name)
+			{
+				if (auto e = other.export_map.find(ti.field_name); e != other.export_map.end())
+				{
+					if (e->second.kind == IE_kTag
+						&& e->second.index < other.tags.size()
+						&& other.tags[e->second.index]
+						)
+					{
+						tags[i] = other.tags[e->second.index];
+					}
 				}
 			}
 		}
@@ -2190,7 +2446,8 @@ NAMESPACE_SOUP
 		}
 		WasmVm vm(*script);
 		vm.locals = std::move(args);
-		SOUP_IF_UNLIKELY (!vm.run(script->code[func_index], 0, func_index))
+		//std::cout << "code: " << string::bin2hex(script->code[func_index]) << "\n";
+		SOUP_IF_UNLIKELY (vm.run(script->code[func_index], 0, func_index) != WasmVm::CODE_RETURN)
 		{
 #if DEBUG_LOAD || DEBUG_API
 			std::cout << "call: execution failed\n";
@@ -2208,17 +2465,29 @@ NAMESPACE_SOUP
 
 	WasmScript& WasmSharedEnvironment::createScript() SOUP_EXCAL
 	{
-		return *scripts.emplace_back(new WasmScript(this));
+		WasmScript* scr = new WasmScript(this);
+#if DEBUG_GC
+		std::cout << "createScript: " << (void*)scr << "\n";
+#endif
+		return *scripts.emplace_back(scr);
 	}
 
-	void WasmSharedEnvironment::markScriptAsNoLongerUsed(WasmScript& scr) noexcept
+	void WasmSharedEnvironment::onRefCountHitZero(WasmScript& scr) noexcept
 	{
 		if (!scr.has_created_funcrefs)
 		{
+			// We can bypass the GC because no funcrefs means gcMark will not reach this script, and gcSweep will not have to free any funcref slots.
+#if DEBUG_GC
+			std::cout << "onRefCountHitZero: sweeping " << (void*)&scr << "\n";
+#endif
 			for (auto i = scripts.begin(); i != scripts.end(); ++i)
 			{
 				if (*i == &scr)
 				{
+					if (on_pre_free_script)
+					{
+						on_pre_free_script(**i);
+					}
 					delete *i;
 					scripts.erase(i);
 					break;
@@ -2236,6 +2505,19 @@ NAMESPACE_SOUP
 	uint64_t WasmSharedEnvironment::createFuncRef(WasmScript& scr, uint32_t func_index) SOUP_EXCAL
 	{
 		scr.has_created_funcrefs = true;
+
+		// Check if there's a free slot to reuse
+		for (size_t i = 0; i != funcrefs.size(); ++i)
+		{
+			if (funcrefs[i].source == nullptr)
+			{
+				funcrefs[i].source = &scr;
+				funcrefs[i].index = func_index;
+				return i + 1;
+			}
+		}
+		
+		// Allocate a new slot
 		funcrefs.emplace_back(&scr, func_index);
 		return funcrefs.size();
 	}
@@ -2245,17 +2527,166 @@ NAMESPACE_SOUP
 		return funcrefs[value - 1];
 	}
 
-	WasmSharedEnvironment::~WasmSharedEnvironment() noexcept
+	void WasmSharedEnvironment::trackExternRef(uint64_t value) SOUP_EXCAL
+	{
+		tracked_externrefs.emplace(value, false);
+	}
+
+	void WasmSharedEnvironment::gcMark() noexcept
 	{
 		for (auto& scr : scripts)
 		{
+			for (const auto& g : scr->globals)
+			{
+				if (g->i64)
+				{
+					if (g->type == WASM_FUNCREF)
+					{
+						if (scripts.size() > 1)
+						{
+							const auto& fr = getFuncRef(g->i64);
+							if (fr.source != scr)
+							{
+#if DEBUG_GC
+								std::cout << "gcMark: " << (void*)fr.source << " is reachable via a global in " << scr << "\n";
+#endif
+								fr.source->_gc_reachable = true;
+							}
+						}
+					}
+					else if (g->type == WASM_EXTERNREF)
+					{
+						if (auto e = tracked_externrefs.find(g->i64); e != tracked_externrefs.end())
+						{
+							e->second = true;
+						}
+					}
+				}
+			}
+			for (const auto& t : scr->tables)
+			{
+				if (t->type == WASM_FUNCREF)
+				{
+					if (scripts.size() > 1)
+					{
+						for (const auto& fri : t->values)
+						{
+							if (fri)
+							{
+								const auto& fr = getFuncRef(fri);
+								if (fr.source != scr)
+								{
+#if DEBUG_GC
+									std::cout << "gcMark: " << (void*)fr.source << " is reachable via a table in " << scr << "\n";
+#endif
+									fr.source->_gc_reachable = true;
+								}
+							}
+						}
+					}
+				}
+				else if (t->type == WASM_EXTERNREF)
+				{
+					if (!tracked_externrefs.empty())
+					{
+						for (const auto& value : t->values)
+						{
+							if (value)
+							{
+								if (auto e = tracked_externrefs.find(value); e != tracked_externrefs.end())
+								{
+									e->second = true;
+								}
+							}
+						}
+					}
+				}
+			}
+			if (scr->ref_count > 0)
+			{
+#if DEBUG_GC
+				std::cout << "gcMark: " << (void*)scr << " is reachable via ScriptRaii\n";
+#endif
+				scr->_gc_reachable = true;
+			}
+		}
+	}
+
+	void WasmSharedEnvironment::gcSweep()
+	{
+#if DEBUG_GC
+		std::cout << "gcSweep\n";
+#endif
+		for (auto it = scripts.begin(); it != scripts.end(); )
+		{
+			WasmScript* scr = *it;
+			if (scr->_gc_reachable)
+			{
+#if DEBUG_GC
+				std::cout << "- " << (void*)scr << " is reachable\n";
+#endif
+				// Reset for next mark phase
+				scr->_gc_reachable = false;
+				++it;
+			}
+			else
+			{
+#if DEBUG_GC
+				std::cout << "- " << (void*)scr << " is unreachable; sweeping\n";
+#endif
+				if (on_pre_free_script)
+				{
+					on_pre_free_script(*scr);
+				}
+				for (auto& fr : funcrefs)
+				{
+					if (fr.source == scr)
+					{
+						fr.source = nullptr;
+					}
+				}
+				delete scr;
+				it = scripts.erase(it);
+			}
+		}
+		for (auto it = tracked_externrefs.begin(); it != tracked_externrefs.end(); )
+		{
+			if (it->second)
+			{
+				// Reset for next mark phase
+				it->second = false;
+				++it;
+			}
+			else
+			{
+				free_externref(it->first);
+				it = tracked_externrefs.erase(it);
+			}
+		}
+	}
+
+	WasmSharedEnvironment::~WasmSharedEnvironment() noexcept
+	{
+		for (WasmScript* scr : scripts)
+		{
+#if DEBUG_GC
+			std::cout << "dtor: sweeping " << (void*)scr << "\n";
+#endif
+			if (on_pre_free_script)
+			{
+				on_pre_free_script(*scr);
+			}
 			delete scr;
+		}
+		for (const auto& er : tracked_externrefs)
+		{
+			free_externref(er.first);
 		}
 	}
 
 	// WasmVm
 
-	bool WasmVm::run(const std::string& data, unsigned depth, uint32_t func_index)
+	WasmVm::RunCodeResult WasmVm::run(const std::string& data, unsigned depth, uint32_t func_index)
 	{
 		MemoryRefReader r(data);
 		return run(r, depth, func_index);
@@ -2267,7 +2698,7 @@ NAMESPACE_SOUP
 #define WASM_CHECK_STACK(x) SOUP_IF_UNLIKELY (stack.size() < x) { return {}; }
 #endif
 
-	bool WasmVm::run(Reader& _r, unsigned depth, uint32_t func_index)
+	WasmVm::RunCodeResult WasmVm::run(Reader& _r, unsigned depth, uint32_t func_index)
 	{
 #if SOUP_WASM_TAIL_CALL
 		Reader* pr = &_r;
@@ -2297,13 +2728,22 @@ NAMESPACE_SOUP
 				SOUP_RETHROW_FALSE(elem_index < table->values.size());
 				SOUP_RETHROW_FALSE(table->values[elem_index] != 0);
 				const auto& funcref = script.shared_env->getFuncRef(table->values[elem_index]);
-				SOUP_RETHROW_FALSE(funcref.source == &script);
+				SOUP_IF_UNLIKELY (funcref.source != &script)
+				{
+					return doCall(funcref.source, type_index, funcref.index, depth);
+				}
 				func_index = funcref.index;
+#if SOUP_WASM_PEDANTIC
+				SOUP_RETHROW_FALSE(this->script.types[type_index] == script.types[script.getTypeIndexForFunction(func_index)]);
+#endif
+			}
+			SOUP_IF_UNLIKELY (func_index < script.function_imports.size())
+			{
+				return doCall(&script, script.function_imports[func_index].type_index, func_index, depth);
 			}
 #if DEBUG_VM
 			std::cout << "tail-call, weee! going to " << func_index << "\n";
 #endif
-			SOUP_RETHROW_FALSE(func_index >= script.function_imports.size());
 			func_index -= script.function_imports.size();
 			SOUP_RETHROW_FALSE(func_index < script.code.size());
 			locals.clear();
@@ -2312,7 +2752,7 @@ NAMESPACE_SOUP
 			rr.emplace(script.code[func_index]);
 			pr = &*rr;
 		}
-		return result != CODE_ERROR;
+		return result;
 #else
 		SOUP_RETHROW_FALSE(processLocalDecls(_r));
 		return runCode(_r, depth, func_index);
@@ -2337,22 +2777,964 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	static constexpr float F32_I32_MIN = -2147483600.0f;
-	static constexpr float F32_I32_MAX = 2147483500.0f;
-	static constexpr float F32_U32_MIN = -0.99999994f;
-	static constexpr float F32_U32_MAX = 4294967000.0f;
-	static constexpr double F64_I32_MIN = -2147483648.9;
-	static constexpr double F64_I32_MAX = 2147483647.9;
-	static constexpr double F64_U32_MIN = -0.9999999999999999;
-	static constexpr double F64_U32_MAX = 4294967295.9;
-	static constexpr float F32_I64_MIN = -9223372000000000000.0f;
-	static constexpr float F32_I64_MAX = 9223371500000000000.0f;
-	static constexpr float F32_U64_MIN = -0.99999994f;
-	static constexpr float F32_U64_MAX = 18446743000000000000.0f;
-	static constexpr double F64_I64_MIN = -9223372036854776000.0;
-	static constexpr double F64_I64_MAX = 9223372036854775000.0;
-	static constexpr double F64_U64_MIN = -0.9999999999999999;
-	static constexpr double F64_U64_MAX = 18446744073709550000.0;
+	template <typename T>
+	[[nodiscard]] static T wasm_fmin(T a, T b)
+	{
+		if (std::isnan(a) || std::isnan(b))
+		{
+			return std::numeric_limits<T>::quiet_NaN();
+		}
+		else if (a < b || (std::signbit(a) && !std::signbit(b)))
+		{
+			return a;
+		}
+		else
+		{
+			return b;
+		}
+	}
+
+	template <typename T>
+	[[nodiscard]] static T wasm_fmax(T a, T b)
+	{
+		if (std::isnan(a) || std::isnan(b))
+		{
+			return std::numeric_limits<T>::quiet_NaN();
+		}
+		else if (a < b || (std::signbit(a) && !std::signbit(b)))
+		{
+			return b;
+		}
+		else
+		{
+			return a;
+		}
+	}
+
+	template <typename Float, typename Int>
+	struct float_to_int_traits;
+
+	template <>
+	struct float_to_int_traits<float, int32_t>
+	{
+		static constexpr float min = -2147483600.0f;
+		static constexpr float max = 2147483500.0f;
+	};
+
+	template <>
+	struct float_to_int_traits<float, uint32_t>
+	{
+		static constexpr float min = -0.99999994f;
+		static constexpr float max = 4294967000.0f;
+	};
+
+	template <>
+	struct float_to_int_traits<double, int32_t>
+	{
+		static constexpr double min = -2147483648.9;
+		static constexpr double max = 2147483647.9;
+	};
+
+	template <>
+	struct float_to_int_traits<double, uint32_t>
+	{
+		static constexpr double min = -0.9999999999999999;
+		static constexpr double max = 4294967295.9;
+	};
+
+	template <>
+	struct float_to_int_traits<float, int64_t>
+	{
+		static constexpr float min = -9223372000000000000.0f;
+		static constexpr float max = 9223371500000000000.0f;
+	};
+
+	template <>
+	struct float_to_int_traits<float, uint64_t>
+	{
+		static constexpr float min = -0.99999994f;
+		static constexpr float max = 18446743000000000000.0f;
+	};
+
+	template <>
+	struct float_to_int_traits<double, int64_t>
+	{
+		static constexpr double min = -9223372036854776000.0;
+		static constexpr double max = 9223372036854775000.0;
+	};
+
+	template <>
+	struct float_to_int_traits<double, uint64_t>
+	{
+		static constexpr double min = -0.9999999999999999;
+		static constexpr double max = 18446744073709550000.0;
+	};
+
+	template <typename Float, typename Int>
+	static bool float_to_int(Float in, Int& out)
+	{
+		static_assert(std::is_floating_point_v<Float>);
+		static_assert(std::is_integral_v<Int>);
+		SOUP_IF_UNLIKELY (std::isnan(in))
+		{
+			out = 0;
+			return false;
+		}
+		SOUP_IF_UNLIKELY (in < float_to_int_traits<Float, Int>::min)
+		{
+			out = std::numeric_limits<Int>::min();
+			return false;
+		}
+		SOUP_IF_UNLIKELY (in > float_to_int_traits<Float, Int>::max)
+		{
+			out = std::numeric_limits<Int>::max();
+			return false;
+		}
+		out = static_cast<Int>(in);
+		return true;
+	}
+
+#if SOUP_WASM_SIMD
+	template <typename T, typename OutT, size_t S>
+	[[nodiscard]] static bool simd_loadx(std::vector<WasmValue>& stack, Reader& r, WasmScript& script, OutT(WasmValue::* field)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		auto base = stack.back().uptr(); stack.pop_back();
+		WASM_READ_MEMARG;
+		auto memory = script.getMemoryByIndex(memidx);
+		SOUP_RETHROW_FALSE(memory);
+		auto ptr = (const T*)memory->getView(base + offset, sizeof(T) * S);
+		SOUP_RETHROW_FALSE(ptr);
+		auto& v = stack.emplace_back(WASM_V128);
+		for (size_t i = 0; i != S; ++i)
+		{
+			(v.*field)[i] = static_cast<OutT>(ptr[i]);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_load_splat(std::vector<WasmValue>& stack, Reader& r, WasmScript& script, T(WasmValue::* field)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		auto base = stack.back().uptr(); stack.pop_back();
+		WASM_READ_MEMARG;
+		auto memory = script.getMemoryByIndex(memidx);
+		SOUP_RETHROW_FALSE(memory);
+		auto ptr = memory->getPointer<T>(base, offset);
+		SOUP_RETHROW_FALSE(ptr);
+		auto& v = stack.emplace_back(WASM_V128);
+		for (size_t i = 0; i != S; ++i)
+		{
+			(v.*field)[i] = *ptr;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_splat(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		const auto value = stack.back().get<T>();
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane = value;
+		}
+		stack.back().type = WASM_V128;
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool extract_lane_s(std::vector<WasmValue>& stack, Reader& r, T(WasmValue::* ptr)[S]) noexcept
+	{
+		uint8_t idx; r.u8(idx);
+		SOUP_RETHROW_FALSE(idx < S);
+		WASM_CHECK_STACK(1);
+		stack.back().i32 = static_cast<int32_t>((stack.back().*ptr)[idx]);
+		stack.back().hi32 = 0;
+		stack.back().type = WASM_I32;
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool extract_lane_u(std::vector<WasmValue>& stack, Reader& r, T(WasmValue::* ptr)[S]) noexcept
+	{
+		uint8_t idx; r.u8(idx);
+		SOUP_RETHROW_FALSE(idx < S);
+		WASM_CHECK_STACK(1);
+		stack.back().i32 = static_cast<int32_t>(static_cast<uint32_t>(static_cast<std::make_unsigned_t<T>>((stack.back().*ptr)[idx])));
+		stack.back().hi32 = 0;
+		stack.back().type = WASM_I32;
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool extract_lane(std::vector<WasmValue>& stack, Reader& r, T(WasmValue::* ptr)[S]) noexcept
+	{
+		uint8_t idx; r.u8(idx);
+		SOUP_RETHROW_FALSE(idx < S);
+		WASM_CHECK_STACK(1);
+		stack.back() = (stack.back().*ptr)[idx];
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool replace_lane(std::vector<WasmValue>& stack, Reader& r, T(WasmValue::* ptr)[S]) noexcept
+	{
+		uint8_t idx; r.u8(idx);
+		SOUP_RETHROW_FALSE(idx < S);
+		WASM_CHECK_STACK(1);
+		const T value = stack.back().get<T>(); stack.pop_back();
+		(stack.back().*ptr)[idx] = value;
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S>
+	[[nodiscard]] static bool simd_eq(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		auto& a = stack.back().*ptr;
+		auto& out = stack.back().*outptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			out[i] = (a[i] == b[i]) ? -1 : 0;
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S>
+	[[nodiscard]] static bool simd_ne(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		auto& a = stack.back().*ptr;
+		auto& out = stack.back().*outptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			out[i] = (a[i] != b[i]) ? -1 : 0;
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S>
+	[[nodiscard]] static bool simd_lt(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		auto& a = stack.back().*ptr;
+		auto& out = stack.back().*outptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			out[i] = (a[i] < b[i]) ? -1 : 0;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_lt_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		auto& a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = (static_cast<std::make_unsigned_t<T>>(a[i]) < static_cast<std::make_unsigned_t<T>>(b[i])) ? -1 : 0;
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S>
+	[[nodiscard]] static bool simd_gt(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		auto& a = stack.back().*ptr;
+		auto& out = stack.back().*outptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			out[i] = (a[i] > b[i]) ? -1 : 0;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_gt_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		auto& a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = (static_cast<std::make_unsigned_t<T>>(a[i]) > static_cast<std::make_unsigned_t<T>>(b[i])) ? -1 : 0;
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S>
+	[[nodiscard]] static bool simd_le(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		auto& a = stack.back().*ptr;
+		auto& out = stack.back().*outptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			out[i] = (a[i] <= b[i]) ? -1 : 0;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_le_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		auto& a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = (static_cast<std::make_unsigned_t<T>>(a[i]) <= static_cast<std::make_unsigned_t<T>>(b[i])) ? -1 : 0;
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S>
+	[[nodiscard]] static bool simd_ge(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		auto& a = stack.back().*ptr;
+		auto& out = stack.back().*outptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			out[i] = (a[i] >= b[i]) ? -1 : 0;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_ge_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		auto& a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = (static_cast<std::make_unsigned_t<T>>(a[i]) >= static_cast<std::make_unsigned_t<T>>(b[i])) ? -1 : 0;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool load_lane(std::vector<WasmValue>& stack, Reader& r, WasmScript& script, T(WasmValue::* field)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		auto v = stack.back(); stack.pop_back();
+		auto base = stack.back().uptr(); stack.pop_back();
+		WASM_READ_MEMARG;
+		auto memory = script.getMemoryByIndex(memidx);
+		SOUP_RETHROW_FALSE(memory);
+		auto ptr = memory->getPointer<T>(base, offset);
+		SOUP_RETHROW_FALSE(ptr);
+		uint8_t laneidx; r.u8(laneidx);
+		SOUP_RETHROW_FALSE(laneidx < S);
+		(v.*field)[laneidx] = *ptr;
+		stack.emplace_back(v);
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool store_lane(std::vector<WasmValue>& stack, Reader& r, WasmScript& script, T(WasmValue::* field)[S]) noexcept
+	{
+		WASM_READ_MEMARG;
+		uint8_t laneidx; r.u8(laneidx);
+		SOUP_RETHROW_FALSE(laneidx < S);
+		WASM_CHECK_STACK(2);
+		auto value = (stack.back().*field)[laneidx]; stack.pop_back();
+		auto base = stack.back().uptr(); stack.pop_back();
+		auto memory = script.getMemoryByIndex(memidx);
+		SOUP_RETHROW_FALSE(memory);
+		auto ptr = memory->getPointer<T>(base, offset);
+		SOUP_RETHROW_FALSE(ptr);
+		*ptr = value;
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool load_zero(std::vector<WasmValue>& stack, Reader& r, WasmScript& script, T(WasmValue::* field)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		auto base = stack.back().uptr(); stack.pop_back();
+		WASM_READ_MEMARG;
+		auto memory = script.getMemoryByIndex(memidx);
+		SOUP_RETHROW_FALSE(memory);
+		auto ptr = memory->getPointer<T>(base, offset);
+		SOUP_RETHROW_FALSE(ptr);
+		memset(stack.emplace_back(WASM_V128).*field, 0, 16);
+		(stack.back().*field)[0] = *ptr;
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_abs(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane = std::abs(lane);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_neg(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane = -lane;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool all_true(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		stack.back().type = WASM_I32;
+		for (const auto& lane : stack.back().*ptr)
+		{
+			if (!lane)
+			{
+				stack.back().i64 = 0;
+				return true;
+			}
+		}
+		stack.back().i64 = 1;
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_bitmask(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		uint32_t mask = 0;
+		for (size_t i = 0; i != S; ++i)
+		{
+			if ((stack.back().*ptr)[i] < 0)
+			{
+				mask |= (1 << i);
+			}
+		}
+		stack.back().i32 = mask;
+		stack.back().hi32 = 0;
+		stack.back().type = WASM_I32;
+		return true;
+	}
+
+	template <typename OutT, typename T>
+	[[nodiscard]] static OutT saturate(T in)
+	{
+		if (in < std::numeric_limits<OutT>::min())
+		{
+			return std::numeric_limits<OutT>::min();
+		}
+		if (in > std::numeric_limits<OutT>::max())
+		{
+			return std::numeric_limits<OutT>::max();
+		}
+		return static_cast<OutT>(in);
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool simd_narrow_s(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(S * 2 == OutS);
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		const auto a = stack.back().*ptr;
+		OutT* out = stack.back().*outptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			out[i] = saturate<OutT>(a[i]);
+		}
+		for (size_t i = 0; i != S; ++i)
+		{
+			out[S + i] = saturate<OutT>(b[i]);
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool simd_narrow_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(S * 2 == OutS);
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		const auto a = stack.back().*ptr;
+		OutT* out = stack.back().*outptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			out[i] = saturate<std::make_unsigned_t<OutT>>(a[i]);
+		}
+		for (size_t i = 0; i != S; ++i)
+		{
+			out[S + i] = saturate<std::make_unsigned_t<OutT>>(b[i]);
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool simd_extend_low_s(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(OutS * 2 == S);
+		WASM_CHECK_STACK(1);
+		T in[S]; memcpy(in, stack.back().*ptr, 16);
+		OutT* out = stack.back().*outptr;
+		for (size_t i = 0; i != OutS; ++i)
+		{
+			out[i] = static_cast<OutT>(in[i]);
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool simd_extend_high_s(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(OutS * 2 == S);
+		WASM_CHECK_STACK(1);
+		T in[S]; memcpy(in, stack.back().*ptr, 16);
+		OutT* out = stack.back().*outptr;
+		for (size_t i = 0; i != OutS; ++i)
+		{
+			out[i] = static_cast<OutT>(in[OutS + i]);
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool simd_extend_low_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(OutS * 2 == S);
+		WASM_CHECK_STACK(1);
+		T in[S]; memcpy(in, stack.back().*ptr, 16);
+		OutT* out = stack.back().*outptr;
+		for (size_t i = 0; i != OutS; ++i)
+		{
+			out[i] = static_cast<std::make_unsigned_t<OutT>>(static_cast<std::make_unsigned_t<T>>(in[i]));
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool simd_extend_high_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(OutS * 2 == S);
+		WASM_CHECK_STACK(1);
+		T in[S]; memcpy(in, stack.back().*ptr, 16);
+		OutT* out = stack.back().*outptr;
+		for (size_t i = 0; i != OutS; ++i)
+		{
+			out[i] = static_cast<std::make_unsigned_t<OutT>>(static_cast<std::make_unsigned_t<T>>(in[OutS + i]));
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_shl(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		const auto b = static_cast<uint32_t>(stack.back().i32) % (sizeof(T) * 8); stack.pop_back();
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane <<= b;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_shr_s(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		const auto b = static_cast<uint32_t>(stack.back().i32) % (sizeof(T) * 8); stack.pop_back();
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane >>= b;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_shr_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		const auto b = static_cast<uint32_t>(stack.back().i32) % (sizeof(T) * 8); stack.pop_back();
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane = static_cast<std::make_unsigned_t<T>>(lane) >> b;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_add(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] += b[i];
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_add_sat_s(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = saturate<T>(static_cast<int32_t>(a[i]) + static_cast<int32_t>(b[i]));
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_add_sat_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = saturate<std::make_unsigned_t<T>>(static_cast<int32_t>(static_cast<std::make_unsigned_t<T>>(a[i])) + static_cast<int32_t>(static_cast<std::make_unsigned_t<T>>(b[i])));
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_sub(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] -= b[i];
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_sub_sat_s(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = saturate<T>(static_cast<int32_t>(a[i]) - static_cast<int32_t>(b[i]));
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_sub_sat_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = saturate<std::make_unsigned_t<T>>(static_cast<int32_t>(static_cast<std::make_unsigned_t<T>>(a[i])) - static_cast<int32_t>(static_cast<std::make_unsigned_t<T>>(b[i])));
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_pmin(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = std::min(a[i], b[i]);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_min_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = std::min(static_cast<std::make_unsigned_t<T>>(a[i]), static_cast<std::make_unsigned_t<T>>(b[i]));
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_pmax(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = std::max(a[i], b[i]);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_max_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = std::max(static_cast<std::make_unsigned_t<T>>(a[i]), static_cast<std::make_unsigned_t<T>>(b[i]));
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_avgr_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = (static_cast<std::make_unsigned_t<T>>(a[i]) + static_cast<std::make_unsigned_t<T>>(b[i]) + 1) >> 1;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_mul(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] *= b[i];
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_div(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] /= b[i]; static_assert(std::is_floating_point_v<T>);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_ceil(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane = std::ceil(lane);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_floor(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane = std::floor(lane);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_trunc(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane = std::trunc(lane);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_nearest(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane = std::nearbyint(lane);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_sqrt(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane = std::sqrt(lane);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_min(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		static_assert(std::is_floating_point_v<T>);
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = wasm_fmin(a[i], b[i]);
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_max(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		static_assert(std::is_floating_point_v<T>);
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T* a = stack.back().*ptr;
+		for (size_t i = 0; i != S; ++i)
+		{
+			a[i] = wasm_fmax(a[i], b[i]);
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool extmul_low_s(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(OutS * 2 == S);
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T a[S]; memcpy(a, stack.back().*ptr, 16);
+		OutT* out = stack.back().*outptr;
+		for (size_t i = 0; i != OutS; ++i)
+		{
+			auto av = static_cast<OutT>(a[i]);
+			auto bv = static_cast<OutT>(b[i]);
+			out[i] = av * bv;
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool extmul_low_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(OutS * 2 == S);
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T a[S]; memcpy(a, stack.back().*ptr, 16);
+		OutT* out = stack.back().*outptr;
+		for (size_t i = 0; i != OutS; ++i)
+		{
+			auto av = static_cast<std::make_unsigned_t<OutT>>(static_cast<std::make_unsigned_t<T>>(a[i]));
+			auto bv = static_cast<std::make_unsigned_t<OutT>>(static_cast<std::make_unsigned_t<T>>(b[i]));
+			out[i] = av * bv;
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool extmul_high_s(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(OutS * 2 == S);
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T a[S]; memcpy(a, stack.back().*ptr, 16);
+		OutT* out = stack.back().*outptr;
+		for (size_t i = 0; i != OutS; ++i)
+		{
+			auto av = static_cast<OutT>(a[OutS + i]);
+			auto bv = static_cast<OutT>(b[OutS + i]);
+			out[i] = av * bv;
+		}
+		return true;
+	}
+	
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool extmul_high_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(OutS * 2 == S);
+		WASM_CHECK_STACK(2);
+		T b[S]; memcpy(b, stack.back().*ptr, 16); stack.pop_back();
+		T a[S]; memcpy(a, stack.back().*ptr, 16);
+		auto& out = stack.back().*outptr;
+		for (size_t i = 0; i != OutS; ++i)
+		{
+			auto av = static_cast<std::make_unsigned_t<OutT>>(static_cast<std::make_unsigned_t<T>>(a[OutS + i]));
+			auto bv = static_cast<std::make_unsigned_t<OutT>>(static_cast<std::make_unsigned_t<T>>(b[OutS + i]));
+			out[i] = av * bv;
+		}
+		return true;
+	}
+
+	template <typename T, size_t S>
+	[[nodiscard]] static bool simd_popcnt(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S]) noexcept
+	{
+		WASM_CHECK_STACK(1);
+		for (auto& lane : stack.back().*ptr)
+		{
+			lane = bitutil::getNumSetBits(lane);
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool extadd_pairwise_s(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(OutS * 2 == S);
+		WASM_CHECK_STACK(1);
+		auto& in = stack.back().*ptr;
+		auto& out = stack.back().*outptr;
+		for (size_t i = 0; i != OutS; ++i)
+		{
+			out[i] = static_cast<OutT>(in[i * 2]) + static_cast<OutT>(in[i * 2 + 1]);
+		}
+		return true;
+	}
+
+	template <typename T, typename OutT, size_t S, size_t OutS>
+	[[nodiscard]] static bool extadd_pairwise_u(std::vector<WasmValue>& stack, T(WasmValue::* ptr)[S], OutT(WasmValue::* outptr)[OutS]) noexcept
+	{
+		static_assert(OutS * 2 == S);
+		WASM_CHECK_STACK(1);
+		auto& in = stack.back().*ptr;
+		auto& out = stack.back().*outptr;
+		for (size_t i = 0; i != OutS; ++i)
+		{
+			out[i] = static_cast<std::make_unsigned_t<OutT>>(static_cast<std::make_unsigned_t<T>>(in[i * 2])) + static_cast<std::make_unsigned_t<OutT>>(static_cast<std::make_unsigned_t<T>>(in[i * 2 + 1]));
+		}
+		return true;
+	}
+#endif
 
 	WasmVm::RunCodeResult WasmVm::runCode(Reader& r, unsigned depth, uint32_t func_index)
 	{
@@ -2381,7 +3763,7 @@ NAMESPACE_SOUP
 			case 0x02: // block
 				{
 					int32_t result_type; WASM_READ_SOML(result_type);
-					size_t stack_size = stack.size();
+					uint32_t stack_size = stack.size();
 					uint32_t num_values = 0;
 					if (result_type != -64)
 					{
@@ -2398,7 +3780,7 @@ NAMESPACE_SOUP
 							num_values = 1;
 						}
 					}
-					ctrlflow.emplace(CtrlFlowEntry{ (std::streamoff)-1, stack_size, num_values });
+					ctrlflow.emplace(CtrlFlowEntry{ (uint32_t)-1, stack_size, num_values });
 #if DEBUG_VM
 					std::cout << "block at position " << r.getPosition() << " with stack size " << stack.size() << " + " << num_values << "\n";
 #endif
@@ -2408,7 +3790,7 @@ NAMESPACE_SOUP
 			case 0x03: // loop
 				{
 					int32_t result_type; WASM_READ_SOML(result_type);
-					size_t stack_size = stack.size();
+					uint32_t stack_size = stack.size();
 					uint32_t num_values = 0;
 					if (result_type != -64)
 					{
@@ -2421,7 +3803,7 @@ NAMESPACE_SOUP
 							stack_size -= num_values;
 						}
 					}
-					ctrlflow.emplace(CtrlFlowEntry{ r.getPosition(), stack_size, num_values });
+					ctrlflow.emplace(CtrlFlowEntry{ (uint32_t)r.getPosition(), stack_size, num_values });
 #if DEBUG_VM
 					std::cout << "loop at position " << r.getPosition() << " with stack size " << stack.size() << " + " << num_values << "\n";
 #endif
@@ -2431,7 +3813,7 @@ NAMESPACE_SOUP
 			case 0x04: // if
 				{
 					int32_t result_type; WASM_READ_SOML(result_type);
-					size_t stack_size = stack.size();
+					uint32_t stack_size = stack.size();
 					uint32_t num_values = 0;
 					if (result_type != -64)
 					{
@@ -2453,14 +3835,14 @@ NAMESPACE_SOUP
 					//std::cout << "if: condition is " << (value.i32 ? "true" : "false") << "\n";
 					if (value.i32)
 					{
-						ctrlflow.emplace(CtrlFlowEntry{ (std::streamoff)-1, stack_size, num_values });
+						ctrlflow.emplace(CtrlFlowEntry{ (uint32_t)-1, stack_size, num_values });
 					}
 					else
 					{
 						if (skipOverBranch(r, 0, script, func_index) == ELSE_REACHED)
 						{
 							// we're in the 'else' branch
-							ctrlflow.emplace(CtrlFlowEntry{ (std::streamoff)-1, stack_size, num_values });
+							ctrlflow.emplace(CtrlFlowEntry{ (uint32_t)-1, stack_size, num_values });
 						}
 					}
 				}
@@ -2508,23 +3890,24 @@ NAMESPACE_SOUP
 
 			case 0x0e: // br_table
 				{
-					std::vector<uint32_t> table;
 					uint32_t num_branches;
 					WASM_READ_OML(num_branches);
-					table.reserve(num_branches);
-					while (num_branches--)
-					{
-						uint32_t depth;
-						WASM_READ_OML(depth);
-						table.emplace_back(depth);
-					}
-					uint32_t depth;
-					WASM_READ_OML(depth);
 					WASM_CHECK_STACK(1);
 					auto index = static_cast<uint32_t>(stack.back().i32); stack.pop_back();
-					if (index < table.size())
+					if (index >= num_branches)
 					{
-						depth = table.at(index);
+						index = num_branches;
+					}
+					uint32_t depth;
+					for (uint32_t i = 0; i != index; ++i)
+					{
+						WASM_READ_OML(depth);
+					}
+					WASM_READ_OML(depth);
+					uint32_t unused_depth;
+					for (uint32_t i = index; i != num_branches; ++i)
+					{
+						WASM_READ_OML(unused_depth);
 					}
 					SOUP_IF_UNLIKELY (!doBranch(r, depth, func_index, ctrlflow))
 					{
@@ -2542,7 +3925,16 @@ NAMESPACE_SOUP
 					WASM_READ_OML(function_index);
 					uint32_t type_index = script.getTypeIndexForFunction(function_index);
 					SOUP_RETHROW_FALSE(type_index != -1);
-					SOUP_RETHROW_FALSE(doCall(&this->script, type_index, function_index, depth));
+					const auto result = doCall(&this->script, type_index, function_index, depth);
+					SOUP_IF_UNLIKELY (result != CODE_RETURN)
+					{
+#if SOUP_WASM_EXCEPTIONS
+						if (result != CODE_THROW || !doThrow(r, func_index, ctrlflow))
+#endif
+						{
+							return result;
+						}
+					}
 				}
 				break;
 
@@ -2595,7 +3987,16 @@ NAMESPACE_SOUP
 					}
 					else*/
 					{
-						SOUP_RETHROW_FALSE(doCall(funcref.source, type_index, funcref.index, depth));
+						const auto result = doCall(funcref.source, type_index, funcref.index, depth);
+						SOUP_IF_UNLIKELY (result != CODE_RETURN)
+						{
+#if SOUP_WASM_EXCEPTIONS
+							if (result != CODE_THROW || !doThrow(r, func_index, ctrlflow))
+#endif
+							{
+								return result;
+							}
+						}
 					}
 				}
 				break;
@@ -2609,6 +4010,7 @@ NAMESPACE_SOUP
 #endif
 
 			case 0x1a: // drop
+				WASM_CHECK_STACK(1);
 				stack.pop_back();
 				break;
 
@@ -2624,6 +4026,71 @@ NAMESPACE_SOUP
 					stack.emplace_back(cond.i32 ? tvalue : fvalue);
 				}
 				break;
+
+#if SOUP_WASM_EXCEPTIONS
+			case 0x1f: // try_table
+				{
+					int32_t result_type; WASM_READ_SOML(result_type);
+					uint32_t stack_size = stack.size();
+					uint32_t num_values = 0;
+					if (result_type != -64)
+					{
+						if (result_type >= 0 && result_type < script.types.size())
+						{
+#if DEBUG_VM
+							std::cout << "result type is a type index: " << script.types[result_type].parameters.size() << " + " << script.types[result_type].results.size() << "\n";
+#endif
+							stack_size -= script.types[result_type].parameters.size();
+							num_values = script.types[result_type].results.size();
+						}
+						else
+						{
+							num_values = 1;
+						}
+					}
+					ctrlflow.emplace(CtrlFlowEntry{ (uint32_t)r.getPosition(), stack_size, num_values, true });
+					uint32_t num_catches; WASM_READ_OML(num_catches);
+#if DEBUG_VM
+					std::cout << "try_table: result_type=" << result_type << ", num_catches=" << num_catches << "\n";
+#endif
+					while (num_catches--)
+					{
+						uint8_t type; r.u8(type);
+#if DEBUG_VM
+						std::cout << "try_table: catch type: " << (int)type << "\n";
+#endif
+						if (type < 0x02) { uint32_t tagidx; WASM_READ_OML(tagidx); }
+						uint32_t labelidx; WASM_READ_OML(labelidx);
+					}
+				}
+				break;
+
+			case 0x08: // throw
+				{
+					uint32_t tagidx;
+					WASM_READ_OML(tagidx);
+#if DEBUG_VM
+					std::cout << "throw: tagidx=" << tagidx << "\n";
+#endif
+					SOUP_RETHROW_FALSE(tagidx < script.tags.size());
+					current_throw_tag = script.tags[tagidx].get();
+					if (!doThrow(r, func_index, ctrlflow))
+					{
+						return CODE_THROW;
+					}
+				}
+				break;
+
+			case 0x0a: // throw_ref
+				WASM_CHECK_STACK(1);
+				current_throw_tag = reinterpret_cast<WasmScript::Tag*>(stack.back().i64);
+				stack.pop_back();
+				if (!doThrow(r, func_index, ctrlflow))
+				{
+					return CODE_THROW;
+				}
+				break;
+#endif
 
 			case 0x20: // local.get
 				{
@@ -2708,7 +4175,11 @@ NAMESPACE_SOUP
 #endif
 						return CODE_ERROR;
 					}
+#if SOUP_WASM_SIMD
+					memcpy(global->i8x16, stack.back().i8x16, 16);
+#else
 					global->i64 = stack.back().i64;
+#endif
 					stack.pop_back();
 				}
 				break;
@@ -2774,7 +4245,7 @@ NAMESPACE_SOUP
 			case 0x28: // i32.load
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -2786,7 +4257,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int32_t>(base, offset))
 					{
-						stack.emplace_back(*ptr);
+						stack.back() = *ptr;
 					}
 					else
 					{
@@ -2801,7 +4272,7 @@ NAMESPACE_SOUP
 			case 0x29: // i64.load
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -2813,7 +4284,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int64_t>(base, offset))
 					{
-						stack.emplace_back(*ptr);
+						stack.back() = *ptr;
 					}
 					else
 					{
@@ -2828,7 +4299,7 @@ NAMESPACE_SOUP
 			case 0x2a: // f32.load
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -2840,7 +4311,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<float>(base, offset))
 					{
-						stack.emplace_back(*ptr);
+						stack.back() = *ptr;
 					}
 					else
 					{
@@ -2855,7 +4326,7 @@ NAMESPACE_SOUP
 			case 0x2b: // f64.load
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -2867,7 +4338,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<double>(base, offset))
 					{
-						stack.emplace_back(*ptr);
+						stack.back() = *ptr;
 					}
 					else
 					{
@@ -2882,7 +4353,7 @@ NAMESPACE_SOUP
 			case 0x2c: // i32.load8_s
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -2894,7 +4365,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int8_t>(base, offset))
 					{
-						stack.emplace_back(static_cast<int32_t>(*ptr));
+						stack.back() = static_cast<int32_t>(*ptr);
 					}
 					else
 					{
@@ -2909,7 +4380,7 @@ NAMESPACE_SOUP
 			case 0x2d: // i32.load8_u
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -2921,7 +4392,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<uint8_t>(base, offset))
 					{
-						stack.emplace_back(static_cast<uint32_t>(*ptr));
+						stack.back() = static_cast<uint32_t>(*ptr);
 					}
 					else
 					{
@@ -2936,7 +4407,7 @@ NAMESPACE_SOUP
 			case 0x2e: // i32.load16_s
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -2948,7 +4419,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int16_t>(base, offset))
 					{
-						stack.emplace_back(static_cast<uint32_t>(*ptr));
+						stack.back() = static_cast<uint32_t>(*ptr);
 					}
 					else
 					{
@@ -2963,7 +4434,7 @@ NAMESPACE_SOUP
 			case 0x2f: // i32.load16_u
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -2975,7 +4446,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<uint16_t>(base, offset))
 					{
-						stack.emplace_back(static_cast<uint32_t>(*ptr));
+						stack.back() = static_cast<uint32_t>(*ptr);
 					}
 					else
 					{
@@ -2990,7 +4461,7 @@ NAMESPACE_SOUP
 			case 0x30: // i64.load8_s
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3002,7 +4473,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int8_t>(base, offset))
 					{
-						stack.emplace_back(static_cast<int64_t>(*ptr));
+						stack.back() = static_cast<int64_t>(*ptr);
 					}
 					else
 					{
@@ -3017,7 +4488,7 @@ NAMESPACE_SOUP
 			case 0x31: // i64.load8_u
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3029,7 +4500,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<uint8_t>(base, offset))
 					{
-						stack.emplace_back(static_cast<uint64_t>(*ptr));
+						stack.back() = static_cast<uint64_t>(*ptr);
 					}
 					else
 					{
@@ -3044,7 +4515,7 @@ NAMESPACE_SOUP
 			case 0x32: // i64.load16_s
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3056,7 +4527,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int16_t>(base, offset))
 					{
-						stack.emplace_back(static_cast<int64_t>(*ptr));
+						stack.back() = static_cast<int64_t>(*ptr);
 					}
 					else
 					{
@@ -3071,7 +4542,7 @@ NAMESPACE_SOUP
 			case 0x33: // i64.load16_u
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3083,7 +4554,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<uint16_t>(base, offset))
 					{
-						stack.emplace_back(static_cast<uint64_t>(*ptr));
+						stack.back() = static_cast<uint64_t>(*ptr);
 					}
 					else
 					{
@@ -3098,7 +4569,7 @@ NAMESPACE_SOUP
 			case 0x34: // i64.load32_s
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3110,7 +4581,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int32_t>(base, offset))
 					{
-						stack.emplace_back(static_cast<int64_t>(*ptr));
+						stack.back() = static_cast<int64_t>(*ptr);
 					}
 					else
 					{
@@ -3125,7 +4596,7 @@ NAMESPACE_SOUP
 			case 0x35: // i64.load32_u
 				{
 					WASM_CHECK_STACK(1);
-					auto base = stack.back(); stack.pop_back();
+					auto base = stack.back().uptr();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3137,7 +4608,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<uint32_t>(base, offset))
 					{
-						stack.emplace_back(static_cast<uint64_t>(*ptr));
+						stack.back() = static_cast<uint64_t>(*ptr);
 					}
 					else
 					{
@@ -3153,8 +4624,8 @@ NAMESPACE_SOUP
 			case 0x36: // i32.store
 				{
 					WASM_CHECK_STACK(2);
-					auto value = stack.back(); stack.pop_back();
-					auto base = stack.back(); stack.pop_back();
+					auto value = stack.back().i32; stack.pop_back();
+					auto base = stack.back().uptr(); stack.pop_back();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3166,7 +4637,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int32_t>(base, offset))
 					{
-						*ptr = value.i32;
+						*ptr = value;
 					}
 					else
 					{
@@ -3181,8 +4652,8 @@ NAMESPACE_SOUP
 			case 0x37: // i64.store
 				{
 					WASM_CHECK_STACK(2);
-					auto value = stack.back(); stack.pop_back();
-					auto base = stack.back(); stack.pop_back();
+					auto value = stack.back().i64; stack.pop_back();
+					auto base = stack.back().uptr(); stack.pop_back();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3194,7 +4665,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int64_t>(base, offset))
 					{
-						*ptr = value.i64;
+						*ptr = value;
 					}
 					else
 					{
@@ -3209,8 +4680,8 @@ NAMESPACE_SOUP
 			case 0x38: // f32.store
 				{
 					WASM_CHECK_STACK(2);
-					auto value = stack.back(); stack.pop_back();
-					auto base = stack.back(); stack.pop_back();
+					auto value = stack.back().f32; stack.pop_back();
+					auto base = stack.back().uptr(); stack.pop_back();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3222,7 +4693,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<float>(base, offset))
 					{
-						*ptr = value.f32;
+						*ptr = value;
 					}
 					else
 					{
@@ -3237,8 +4708,8 @@ NAMESPACE_SOUP
 			case 0x39: // f64.store
 				{
 					WASM_CHECK_STACK(2);
-					auto value = stack.back(); stack.pop_back();
-					auto base = stack.back(); stack.pop_back();
+					auto value = stack.back().f64; stack.pop_back();
+					auto base = stack.back().uptr(); stack.pop_back();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3250,7 +4721,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<double>(base, offset))
 					{
-						*ptr = value.f64;
+						*ptr = value;
 					}
 					else
 					{
@@ -3265,8 +4736,8 @@ NAMESPACE_SOUP
 			case 0x3a: // i32.store8
 				{
 					WASM_CHECK_STACK(2);
-					auto value = stack.back(); stack.pop_back();
-					auto base = stack.back(); stack.pop_back();
+					auto value = static_cast<int8_t>(stack.back().i32); stack.pop_back();
+					auto base = stack.back().uptr(); stack.pop_back();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3278,7 +4749,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int8_t>(base, offset))
 					{
-						*ptr = static_cast<int8_t>(value.i32);
+						*ptr = value;
 					}
 					else
 					{
@@ -3293,8 +4764,8 @@ NAMESPACE_SOUP
 			case 0x3b: // i32.store16
 				{
 					WASM_CHECK_STACK(2);
-					auto value = stack.back(); stack.pop_back();
-					auto base = stack.back(); stack.pop_back();
+					auto value = static_cast<int16_t>(stack.back().i32); stack.pop_back();
+					auto base = stack.back().uptr(); stack.pop_back();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3306,7 +4777,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int16_t>(base, offset))
 					{
-						*ptr = static_cast<int16_t>(value.i32);
+						*ptr = value;
 					}
 					else
 					{
@@ -3321,8 +4792,8 @@ NAMESPACE_SOUP
 			case 0x3c: // i64.store8
 				{
 					WASM_CHECK_STACK(2);
-					auto value = stack.back(); stack.pop_back();
-					auto base = stack.back(); stack.pop_back();
+					auto value = static_cast<int8_t>(stack.back().i64); stack.pop_back();
+					auto base = stack.back().uptr(); stack.pop_back();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3334,7 +4805,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int8_t>(base, offset))
 					{
-						*ptr = static_cast<int8_t>(value.i64);
+						*ptr = value;
 					}
 					else
 					{
@@ -3349,8 +4820,8 @@ NAMESPACE_SOUP
 			case 0x3d: // i64.store16
 				{
 					WASM_CHECK_STACK(2);
-					auto value = stack.back(); stack.pop_back();
-					auto base = stack.back(); stack.pop_back();
+					auto value = static_cast<int16_t>(stack.back().i64); stack.pop_back();
+					auto base = stack.back().uptr(); stack.pop_back();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3362,7 +4833,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int16_t>(base, offset))
 					{
-						*ptr = static_cast<int16_t>(value.i64);
+						*ptr = value;
 					}
 					else
 					{
@@ -3377,8 +4848,8 @@ NAMESPACE_SOUP
 			case 0x3e: // i64.store32
 				{
 					WASM_CHECK_STACK(2);
-					auto value = stack.back(); stack.pop_back();
-					auto base = stack.back(); stack.pop_back();
+					auto value = static_cast<int32_t>(stack.back().i64); stack.pop_back();
+					auto base = stack.back().uptr(); stack.pop_back();
 					WASM_READ_MEMARG;
 					auto memory = script.getMemoryByIndex(memidx);
 					SOUP_IF_UNLIKELY (!memory)
@@ -3390,7 +4861,7 @@ NAMESPACE_SOUP
 					}
 					SOUP_IF_LIKELY (auto ptr = memory->getPointer<int32_t>(base, offset))
 					{
-						*ptr = static_cast<int32_t>(value.i64);
+						*ptr = value;
 					}
 					else
 					{
@@ -3414,7 +4885,7 @@ NAMESPACE_SOUP
 #endif
 						return CODE_ERROR;
 					}
-					memory->encodeUPTR(stack.emplace_back(), memory->size / 0x10'000);
+					memory->encodeUPTR(stack.emplace_back(), memory->size / memory->getPageSize());
 				}
 				break;
 
@@ -3790,72 +5261,68 @@ NAMESPACE_SOUP
 			case 0x6a: // i32.add
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i32 + b.i32);
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back().i32 += b;
 				}
 				break;
 
 			case 0x6b: // i32.sub
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i32 - b.i32);
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back().i32 -= b;
 				}
 				break;
 
 			case 0x6c: // i32.mul
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i32 * b.i32);
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back().i32 *= b;
 				}
 				break;
 
 			case 0x6d: // i32.div_s
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					SOUP_IF_UNLIKELY (b.i32 == 0 || (a.i32 == INT32_MIN && b.i32 == -1))
+					auto b = stack.back().i32; stack.pop_back();
+					auto a = stack.back().i32;
+					SOUP_IF_UNLIKELY (b == 0 || (a == INT32_MIN && b == -1))
 					{
 						return CODE_ERROR;
 					}
-					stack.emplace_back(a.i32 / b.i32);
+					stack.back().i32 = a / b;
 				}
 				break;
 
 			case 0x6e: // i32.div_u
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					SOUP_IF_UNLIKELY (b.i32 == 0)
+					auto b = stack.back().i32; stack.pop_back();
+					SOUP_IF_UNLIKELY (b == 0)
 					{
 						return CODE_ERROR;
 					}
-					stack.emplace_back(static_cast<uint32_t>(a.i32) / static_cast<uint32_t>(b.i32));
+					stack.back().i32 = static_cast<uint32_t>(stack.back().i32) / static_cast<uint32_t>(b);
 				}
 				break;
 
 			case 0x6f: // i32.rem_s
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					SOUP_IF_UNLIKELY (b.i32 == 0)
+					auto b = stack.back().i32; stack.pop_back();
+					auto a = stack.back().i32;
+					SOUP_IF_UNLIKELY (b == 0)
 					{
 						return CODE_ERROR;
 					}
-					if (a.i32 == INT32_MIN && b.i32 == -1)
+					if (a == INT32_MIN && b == -1)
 					{
-						stack.emplace_back(0);
+						stack.back().i32 = 0;
 					}
 					else
 					{
-						stack.emplace_back(a.i32 % b.i32);
+						stack.back().i32 = a % b;
 					}
 				}
 				break;
@@ -3863,85 +5330,76 @@ NAMESPACE_SOUP
 			case 0x70: // i32.rem_u
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					SOUP_IF_UNLIKELY (b.i32 == 0)
+					auto b = stack.back().i32; stack.pop_back();
+					SOUP_IF_UNLIKELY (b == 0)
 					{
 						return CODE_ERROR;
 					}
-					stack.emplace_back(static_cast<uint32_t>(a.i32) % static_cast<uint32_t>(b.i32));
+					stack.back().i32 = static_cast<uint32_t>(stack.back().i32) % static_cast<uint32_t>(b);
 				}
 				break;
 
 			case 0x71: // i32.and
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i32 & b.i32);
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back().i32 &= b;
 				}
 				break;
 
 			case 0x72: // i32.or
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i32 | b.i32);
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back().i32 |= b;
 				}
 				break;
 
 			case 0x73: // i32.xor
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i32 ^ b.i32);
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back().i32 ^= b;
 				}
 				break;
 
 			case 0x74: // i32.shl
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i32 << (static_cast<uint32_t>(b.i32) % (sizeof(uint32_t) * 8)));
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back().i32 <<= (static_cast<uint32_t>(b) % (sizeof(uint32_t) * 8));
 				}
 				break;
 
 			case 0x75: // i32.shr_s ("arithmetic right shift")
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i32 >> (static_cast<uint32_t>(b.i32) % (sizeof(uint32_t) * 8)));
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back().i32 >>= (static_cast<uint32_t>(b) % (sizeof(uint32_t) * 8));
 				}
 				break;
 
 			case 0x76: // i32.shr_u ("logical right shift")
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(static_cast<uint32_t>(a.i32) >> (static_cast<uint32_t>(b.i32) % (sizeof(uint32_t) * 8)));
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back().i32 = static_cast<uint32_t>(stack.back().i32) >> (static_cast<uint32_t>(b) % (sizeof(uint32_t) * 8));
 				}
 				break;
 
 			case 0x77: // i32.rotl
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(soup::rotl<uint32_t>(a.i32, b.i32));
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back() = soup::rotl<uint32_t>(stack.back().i32, b);
 				}
 				break;
 
 			case 0x78: // i32.rotr
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(soup::rotr<uint32_t>(a.i32, b.i32));
+					auto b = stack.back().i32; stack.pop_back();
+					stack.back() = soup::rotr<uint32_t>(stack.back().i32, b);
 				}
 				break;
 
@@ -3963,72 +5421,68 @@ NAMESPACE_SOUP
 			case 0x7c: // i64.add
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i64 + b.i64);
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 += b;
 				}
 				break;
 
 			case 0x7d: // i64.sub
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i64 - b.i64);
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 -= b;
 				}
 				break;
 
 			case 0x7e: // i64.mul
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i64 * b.i64);
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 *= b;
 				}
 				break;
 
 			case 0x7f: // i64.div_s
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					SOUP_IF_UNLIKELY (b.i64 == 0 || (a.i64 == INT64_MIN && b.i64 == -1))
+					auto b = stack.back().i64; stack.pop_back();
+					auto a = stack.back().i64;
+					SOUP_IF_UNLIKELY (b == 0 || (a == INT64_MIN && b == -1))
 					{
 						return CODE_ERROR;
 					}
-					stack.emplace_back(a.i64 / b.i64);
+					stack.back().i64 = a / b;
 				}
 				break;
 
 			case 0x80: // i64.div_u
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					SOUP_IF_UNLIKELY (b.i64 == 0)
+					auto b = stack.back().i64; stack.pop_back();
+					SOUP_IF_UNLIKELY (b == 0)
 					{
 						return CODE_ERROR;
 					}
-					stack.emplace_back(static_cast<uint64_t>(a.i64) / static_cast<uint64_t>(b.i64));
+					stack.back().i64 = static_cast<uint64_t>(stack.back().i64) / static_cast<uint64_t>(b);
 				}
 				break;
 
 			case 0x81: // i64.rem_s
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					SOUP_IF_UNLIKELY (b.i32 == 0)
+					auto b = stack.back().i64; stack.pop_back();
+					auto a = stack.back().i64;
+					SOUP_IF_UNLIKELY (b == 0)
 					{
 						return CODE_ERROR;
 					}
-					if (a.i64 == INT64_MIN && b.i64 == -1)
+					if (a == INT64_MIN && b == -1)
 					{
-						stack.emplace_back(static_cast<int64_t>(0));
+						stack.back().i64 = 0;
 					}
 					else
 					{
-						stack.emplace_back(a.i64 % b.i64);
+						stack.back().i64 = a % b;
 					}
 				}
 				break;
@@ -4036,85 +5490,76 @@ NAMESPACE_SOUP
 			case 0x82: // i64.rem_u
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					SOUP_IF_UNLIKELY (b.i32 == 0)
+					auto b = stack.back().i64; stack.pop_back();
+					SOUP_IF_UNLIKELY (b == 0)
 					{
 						return CODE_ERROR;
 					}
-					stack.emplace_back(static_cast<uint64_t>(a.i64) % static_cast<uint64_t>(b.i64));
+					stack.back().i64 = static_cast<uint64_t>(stack.back().i64) % static_cast<uint64_t>(b);
 				}
 				break;
 
 			case 0x83: // i64.and
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i64 & b.i64);
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 &= b;
 				}
 				break;
 
 			case 0x84: // i64.or
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i64 | b.i64);
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 |= b;
 				}
 				break;
 
 			case 0x85: // i64.xor
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i64 ^ b.i64);
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 ^= b;
 				}
 				break;
 
 			case 0x86: // i64.shl
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i64 << (static_cast<uint64_t>(b.i64) % (sizeof(uint64_t) * 8)));
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 <<= (static_cast<uint64_t>(b) % (sizeof(uint64_t) * 8));
 				}
 				break;
 
 			case 0x87: // i64.shr_s ("arithmetic right shift")
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.i64 >> (static_cast<uint64_t>(b.i64) % (sizeof(uint64_t) * 8)));
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 >>= (static_cast<uint64_t>(b) % (sizeof(uint64_t) * 8));
 				}
 				break;
 
 			case 0x88: // i64.shr_u ("logical right shift")
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(static_cast<uint64_t>(a.i64) >> (static_cast<uint64_t>(b.i64) % (sizeof(uint64_t) * 8)));
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 = static_cast<uint64_t>(stack.back().i64) >> (static_cast<uint64_t>(b) % (sizeof(uint64_t) * 8));
 				}
 				break;
 
 			case 0x89: // i64.rotl
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(soup::rotl<uint64_t>(a.i64, static_cast<int>(b.i64)));
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 = soup::rotl<uint64_t>(stack.back().i64, static_cast<int>(b));
 				}
 				break;
 
 			case 0x8a: // i64.rotr
 				{
 					WASM_CHECK_STACK(2);
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(soup::rotr<uint64_t>(a.i64, static_cast<int>(b.i64)));
+					auto b = stack.back().i64; stack.pop_back();
+					stack.back().i64 = soup::rotr<uint64_t>(stack.back().i64, static_cast<int>(b));
 				}
 				break;
 
@@ -4156,85 +5601,58 @@ NAMESPACE_SOUP
 			case 0x92: // f32.add
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.f32 + b.f32);
+					auto b = stack.back().f32; stack.pop_back();
+					stack.back().f32 += b;
 				}
 				break;
 
 			case 0x93: // f32.sub
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.f32 - b.f32);
+					auto b = stack.back().f32; stack.pop_back();
+					stack.back().f32 -= b;
 				}
 				break;
 
 			case 0x94: // f32.mul
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.f32 * b.f32);
+					auto b = stack.back().f32; stack.pop_back();
+					stack.back().f32 *= b;
 				}
 				break;
 
 			case 0x95: // f32.div
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.f32 / b.f32);
+					auto b = stack.back().f32; stack.pop_back();
+					stack.back().f32 /= b;
 				}
 				break;
 
 			case 0x96: // f32.min
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					if (std::isnan(a.f32) || std::isnan(b.f32))
-					{
-						stack.emplace_back(std::numeric_limits<float>::quiet_NaN());
-					}
-					else if (a.f32 < b.f32 || (std::signbit(a.f32) && !std::signbit(b.f32)))
-					{
-						stack.emplace_back(a.f32);
-					}
-					else
-					{
-						stack.emplace_back(b.f32);
-					}
+					auto b = stack.back().f32; stack.pop_back();
+					auto a = stack.back().f32;
+					stack.back().f32 = wasm_fmin(a, b);
 				}
 				break;
 
 			case 0x97: // f32.max
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					if (std::isnan(a.f32) || std::isnan(b.f32))
-					{
-						stack.emplace_back(std::numeric_limits<float>::quiet_NaN());
-					}
-					else if (a.f32 < b.f32 || (std::signbit(a.f32) && !std::signbit(b.f32)))
-					{
-						stack.emplace_back(b.f32);
-					}
-					else
-					{
-						stack.emplace_back(a.f32);
-					}
+					auto b = stack.back().f32; stack.pop_back();
+					auto a = stack.back().f32;
+					stack.back().f32 = wasm_fmax(a, b);
 				}
 				break;
 
 			case 0x98: // f32.copysign
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(std::copysign(a.f32, b.f32));
+					auto b = stack.back().f32; stack.pop_back();
+					stack.back().f32 = std::copysign(stack.back().f32, b);
 				}
 				break;
 
@@ -4276,85 +5694,58 @@ NAMESPACE_SOUP
 			case 0xa0: // f64.add
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.f64 + b.f64);
+					auto b = stack.back().f64; stack.pop_back();
+					stack.back().f64 += b;
 				}
 				break;
 
 			case 0xa1: // f64.sub
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.f64 - b.f64);
+					auto b = stack.back().f64; stack.pop_back();
+					stack.back().f64 -= b;
 				}
 				break;
 
 			case 0xa2: // f64.mul
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.f64 * b.f64);
+					auto b = stack.back().f64; stack.pop_back();
+					stack.back().f64 *= b;
 				}
 				break;
 
 			case 0xa3: // f64.div
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(a.f64 / b.f64);
+					auto b = stack.back().f64; stack.pop_back();
+					stack.back().f64 /= b;
 				}
 				break;
 
 			case 0xa4: // f64.min
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					if (std::isnan(a.f64) || std::isnan(b.f64))
-					{
-						stack.emplace_back(std::numeric_limits<double>::quiet_NaN());
-					}
-					else if (a.f64 < b.f64 || (std::signbit(a.f64) && !std::signbit(b.f64)))
-					{
-						stack.emplace_back(a.f64);
-					}
-					else
-					{
-						stack.emplace_back(b.f64);
-					}
+					auto b = stack.back().f64; stack.pop_back();
+					auto a = stack.back().f64;
+					stack.back().f64 = wasm_fmin(a, b);
 				}
 				break;
 
 			case 0xa5: // f64.max
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					if (std::isnan(a.f64) || std::isnan(b.f64))
-					{
-						stack.emplace_back(std::numeric_limits<double>::quiet_NaN());
-					}
-					else if (a.f64 < b.f64 || (std::signbit(a.f64) && !std::signbit(b.f64)))
-					{
-						stack.emplace_back(b.f64);
-					}
-					else
-					{
-						stack.emplace_back(a.f64);
-					}
+					auto b = stack.back().f64; stack.pop_back();
+					auto a = stack.back().f64;
+					stack.back().f64 = wasm_fmax(a, b);
 				}
 				break;
 
 			case 0xa6: // f64.copysign
 				WASM_CHECK_STACK(2);
 				{
-					auto b = stack.back(); stack.pop_back();
-					auto a = stack.back(); stack.pop_back();
-					stack.emplace_back(std::copysign(a.f64, b.f64));
+					auto b = stack.back().f64; stack.pop_back();
+					stack.back().f64 = std::copysign(stack.back().f64, b);
 				}
 				break;
 
@@ -4365,50 +5756,62 @@ NAMESPACE_SOUP
 
 			case 0xa8: // i32.trunc_f32_s
 				WASM_CHECK_STACK(1);
-				SOUP_IF_UNLIKELY (std::isnan(stack.back().f32) || stack.back().f32 < F32_I32_MIN || stack.back().f32 > F32_I32_MAX)
 				{
+					int32_t i;
+					SOUP_IF_UNLIKELY (!float_to_int(stack.back().f32, i))
+					{
 #if DEBUG_VM
-					std::cout << "float cannot be represented as int\n";
+						std::cout << "float cannot be represented as int\n";
 #endif
-					return CODE_ERROR;
+						return CODE_ERROR;
+					}
+					stack.back() = i;
 				}
-				stack.back() = static_cast<int32_t>(stack.back().f32);
 				break;
 
 			case 0xa9: // i32.trunc_f32_u
 				WASM_CHECK_STACK(1);
-				SOUP_IF_UNLIKELY (std::isnan(stack.back().f32) || stack.back().f32 < F32_U32_MIN || stack.back().f32 > F32_U32_MAX)
 				{
+					uint32_t i;
+					SOUP_IF_UNLIKELY (!float_to_int(stack.back().f32, i))
+					{
 #if DEBUG_VM
-					std::cout << "float cannot be represented as int\n";
+						std::cout << "float cannot be represented as int\n";
 #endif
-					return CODE_ERROR;
+						return CODE_ERROR;
+					}
+					stack.back() = i;
 				}
-				stack.back() = static_cast<uint32_t>(stack.back().f32);
 				break;
 
 			case 0xaa: // i32.trunc_f64_s
 				WASM_CHECK_STACK(1);
-				SOUP_IF_UNLIKELY (std::isnan(stack.back().f64) || stack.back().f64 < F64_I32_MIN || stack.back().f64 > F64_I32_MAX)
 				{
+					int32_t i;
+					SOUP_IF_UNLIKELY (!float_to_int(stack.back().f64, i))
+					{
 #if DEBUG_VM
-					std::cout << "float cannot be represented as int\n";
+						std::cout << "float cannot be represented as int\n";
 #endif
-					return CODE_ERROR;
+						return CODE_ERROR;
+					}
+					stack.back() = i;
 				}
-				stack.back() = static_cast<int32_t>(stack.back().f64);
 				break;
 
 			case 0xab: // i32.trunc_f64_u
 				WASM_CHECK_STACK(1);
-				SOUP_IF_UNLIKELY (std::isnan(stack.back().f64) || stack.back().f64 < F64_U32_MIN || stack.back().f64 > F64_U32_MAX)
 				{
+					uint32_t i;
+					SOUP_IF_UNLIKELY (!float_to_int(stack.back().f64, i))
+					{
 #if DEBUG_VM
-					std::cout << "invalid value for i32.trunc_f64_u\n";
+						std::cout << "float cannot be represented as int\n";
 #endif
-					return CODE_ERROR;
+						return CODE_ERROR;
+					}
+					stack.back() = i;
 				}
-				stack.back() = static_cast<uint32_t>(stack.back().f64);
 				break;
 
 			case 0xac: // i64.extend_i32_s
@@ -4423,50 +5826,62 @@ NAMESPACE_SOUP
 
 			case 0xae: // i64.trunc_f32_s
 				WASM_CHECK_STACK(1);
-				SOUP_IF_UNLIKELY (std::isnan(stack.back().f32) || stack.back().f32 < F32_I64_MIN || stack.back().f32 > F32_I64_MAX)
 				{
+					int64_t i;
+					SOUP_IF_UNLIKELY (!float_to_int(stack.back().f32, i))
+					{
 #if DEBUG_VM
-					std::cout << "float cannot be represented as int\n";
+						std::cout << "float cannot be represented as int\n";
 #endif
-					return CODE_ERROR;
+						return CODE_ERROR;
+					}
+					stack.back() = i;
 				}
-				stack.back() = static_cast<int64_t>(stack.back().f32);
 				break;
 
 			case 0xaf: // i64.trunc_f32_u
 				WASM_CHECK_STACK(1);
-				SOUP_IF_UNLIKELY (std::isnan(stack.back().f32) || stack.back().f32 < F32_U64_MIN || stack.back().f32 > F32_U64_MAX)
 				{
+					uint64_t i;
+					SOUP_IF_UNLIKELY (!float_to_int(stack.back().f32, i))
+					{
 #if DEBUG_VM
-					std::cout << "float cannot be represented as int\n";
+						std::cout << "float cannot be represented as int\n";
 #endif
-					return CODE_ERROR;
+						return CODE_ERROR;
+					}
+					stack.back() = i;
 				}
-				stack.back() = static_cast<uint64_t>(stack.back().f32);
 				break;
 
 			case 0xb0: // i64.trunc_f64_s
 				WASM_CHECK_STACK(1);
-				SOUP_IF_UNLIKELY (std::isnan(stack.back().f64) || stack.back().f64 < F64_I64_MIN || stack.back().f64 > F64_I64_MAX)
 				{
+					int64_t i;
+					SOUP_IF_UNLIKELY (!float_to_int(stack.back().f64, i))
+					{
 #if DEBUG_VM
-					std::cout << "float cannot be represented as int\n";
+						std::cout << "float cannot be represented as int\n";
 #endif
-					return CODE_ERROR;
+						return CODE_ERROR;
+					}
+					stack.back() = i;
 				}
-				stack.back() = static_cast<int64_t>(stack.back().f64);
 				break;
 
 			case 0xb1: // i64.trunc_f64_u
 				WASM_CHECK_STACK(1);
-				SOUP_IF_UNLIKELY (std::isnan(stack.back().f64) || stack.back().f64 < F64_U64_MIN || stack.back().f64 > F64_U64_MAX)
 				{
+					uint64_t i;
+					SOUP_IF_UNLIKELY (!float_to_int(stack.back().f64, i))
+					{
 #if DEBUG_VM
-					std::cout << "float cannot be represented as int\n";
+						std::cout << "float cannot be represented as int\n";
 #endif
-					return CODE_ERROR;
+						return CODE_ERROR;
+					}
+					stack.back() = i;
 				}
-				stack.back() = static_cast<uint64_t>(stack.back().f64);
 				break;
 
 			case 0xb2: // f32.convert_i32_s
@@ -4592,161 +6007,73 @@ NAMESPACE_SOUP
 				{
 				case 0x00: // i32.trunc_sat_f32_s
 					WASM_CHECK_STACK(1);
-					if (std::isnan(stack.back().f32))
 					{
-						stack.back() = 0;
-					}
-					else if (stack.back().f32 < F32_I32_MIN)
-					{
-						stack.back() = INT32_MIN;
-					}
-					else if (stack.back().f32 > F32_I32_MAX)
-					{
-						stack.back() = INT32_MAX;
-					}
-					else
-					{
-						stack.back() = static_cast<int32_t>(stack.back().f32);
+						int32_t i;
+						float_to_int(stack.back().f32, i);
+						stack.back() = i;
 					}
 					break;
 
 				case 0x01: // i32.trunc_sat_f32_u
 					WASM_CHECK_STACK(1);
-					if (std::isnan(stack.back().f32))
 					{
-						stack.back() = 0;
-					}
-					else if (stack.back().f32 < F32_U32_MIN)
-					{
-						stack.back() = 0;
-					}
-					else if (stack.back().f32 > F32_U32_MAX)
-					{
-						stack.back() = UINT32_MAX;
-					}
-					else
-					{
-						stack.back() = static_cast<uint32_t>(stack.back().f32);
+						uint32_t i;
+						float_to_int(stack.back().f32, i);
+						stack.back() = i;
 					}
 					break;
 
 				case 0x02: // i32.trunc_sat_f64_s
 					WASM_CHECK_STACK(1);
-					if (std::isnan(stack.back().f64))
 					{
-						stack.back() = 0;
-					}
-					else if (stack.back().f64 < F64_I32_MIN)
-					{
-						stack.back() = INT32_MIN;
-					}
-					else if (stack.back().f64 > F64_I32_MAX)
-					{
-						stack.back() = INT32_MAX;
-					}
-					else
-					{
-						stack.back() = static_cast<int32_t>(stack.back().f64);
+						int32_t i;
+						float_to_int(stack.back().f64, i);
+						stack.back() = i;
 					}
 					break;
 
 				case 0x03: // i32.trunc_sat_f64_u
 					WASM_CHECK_STACK(1);
-					if (std::isnan(stack.back().f64))
 					{
-						stack.back() = 0;
-					}
-					else if (stack.back().f64 < F64_U32_MIN)
-					{
-						stack.back() = 0;
-					}
-					else if (stack.back().f64 > F64_U32_MAX)
-					{
-						stack.back() = UINT32_MAX;
-					}
-					else
-					{
-						stack.back() = static_cast<uint32_t>(stack.back().f64);
+						uint32_t i;
+						float_to_int(stack.back().f64, i);
+						stack.back() = i;
 					}
 					break;
 
 				case 0x04: // i64.trunc_sat_f32_s
 					WASM_CHECK_STACK(1);
-					if (std::isnan(stack.back().f32))
 					{
-						stack.back() = static_cast<int64_t>(0);
-					}
-					else if (stack.back().f32 < F32_I64_MIN)
-					{
-						stack.back() = INT64_MIN;
-					}
-					else if (stack.back().f32 > F32_I64_MAX)
-					{
-						stack.back() = INT64_MAX;
-					}
-					else
-					{
-						stack.back() = static_cast<int64_t>(stack.back().f32);
+						int64_t i;
+						float_to_int(stack.back().f32, i);
+						stack.back() = i;
 					}
 					break;
 
 				case 0x05: // i64.trunc_sat_f32_u
 					WASM_CHECK_STACK(1);
-					if (std::isnan(stack.back().f32))
 					{
-						stack.back() = static_cast<int64_t>(0);
-					}
-					else if (stack.back().f32 < F32_U64_MIN)
-					{
-						stack.back() = static_cast<int64_t>(0);
-					}
-					else if (stack.back().f32 > F32_U64_MAX)
-					{
-						stack.back() = UINT64_MAX;
-					}
-					else
-					{
-						stack.back() = static_cast<uint64_t>(stack.back().f32);
+						uint64_t i;
+						float_to_int(stack.back().f32, i);
+						stack.back() = i;
 					}
 					break;
 
 				case 0x06: // i64.trunc_sat_f64_s
 					WASM_CHECK_STACK(1);
-					if (std::isnan(stack.back().f64))
 					{
-						stack.back() = static_cast<int64_t>(0);
-					}
-					else if (stack.back().f64 < F64_I64_MIN)
-					{
-						stack.back() = INT64_MIN;
-					}
-					else if (stack.back().f64 > F64_I64_MAX)
-					{
-						stack.back() = INT64_MAX;
-					}
-					else
-					{
-						stack.back() = static_cast<int64_t>(stack.back().f64);
+						int64_t i;
+						float_to_int(stack.back().f64, i);
+						stack.back() = i;
 					}
 					break;
 
 				case 0x07: // i64.trunc_sat_f64_u
 					WASM_CHECK_STACK(1);
-					if (std::isnan(stack.back().f64))
 					{
-						stack.back() = static_cast<int64_t>(0);
-					}
-					else if (stack.back().f64 < F64_U64_MIN)
-					{
-						stack.back() = static_cast<int64_t>(0);
-					}
-					else if (stack.back().f64 > F64_U64_MAX)
-					{
-						stack.back() = UINT64_MAX;
-					}
-					else
-					{
-						stack.back() = static_cast<uint64_t>(stack.back().f64);
+						uint64_t i;
+						float_to_int(stack.back().f64, i);
+						stack.back() = i;
 					}
 					break;
 
@@ -5035,6 +6362,1126 @@ NAMESPACE_SOUP
 					return CODE_ERROR;
 				}
 				break;
+
+#if SOUP_WASM_SIMD
+			case 0xfd: {
+				uint32_t simdop;
+				WASM_READ_OML(simdop);
+				switch (simdop)
+				{
+				case 0x00: // v128.load
+					{
+						WASM_CHECK_STACK(1);
+						auto base = stack.back().uptr(); stack.pop_back();
+						WASM_READ_MEMARG;
+						auto memory = script.getMemoryByIndex(memidx);
+						SOUP_RETHROW_FALSE(memory);
+						auto ptr = memory->getView(base + offset, 16);
+						SOUP_RETHROW_FALSE(ptr);
+						memcpy(stack.emplace_back(WASM_V128).i8x16, ptr, 16);
+					}
+					break;
+
+				case 0x01: // v128.load8x8_s
+					SOUP_RETHROW_FALSE(simd_loadx<int8_t>(stack, r, script, &WasmValue::i16x8));
+					break;
+
+				case 0x02: // v128.load8x8_u
+					SOUP_RETHROW_FALSE(simd_loadx<uint8_t>(stack, r, script, &WasmValue::i16x8));
+					break;
+
+				case 0x03: // v128.load16x4_s
+					SOUP_RETHROW_FALSE(simd_loadx<int16_t>(stack, r, script, &WasmValue::i32x4));
+					break;
+
+				case 0x04: // v128.load16x4_u
+					SOUP_RETHROW_FALSE(simd_loadx<uint16_t>(stack, r, script, &WasmValue::i32x4));
+					break;
+
+				case 0x05: // v128.load32x2_s
+					SOUP_RETHROW_FALSE(simd_loadx<int32_t>(stack, r, script, &WasmValue::i64x2));
+					break;
+
+				case 0x06: // v128.load32x2_u
+					SOUP_RETHROW_FALSE(simd_loadx<uint32_t>(stack, r, script, &WasmValue::i64x2));
+					break;
+
+				case 0x07: // v128.load8_splat
+					SOUP_RETHROW_FALSE(simd_load_splat(stack, r, script, &WasmValue::i8x16));
+					break;
+
+				case 0x08: // v128.load16_splat
+					SOUP_RETHROW_FALSE(simd_load_splat(stack, r, script, &WasmValue::i16x8));
+					break;
+
+				case 0x09: // v128.load32_splat
+					SOUP_RETHROW_FALSE(simd_load_splat(stack, r, script, &WasmValue::i32x4));
+					break;
+
+				case 0x0a: // v128.load64_splat
+					SOUP_RETHROW_FALSE(simd_load_splat(stack, r, script, &WasmValue::i64x2));
+					break;
+
+				case 0x0b: // v128.store
+					{
+						WASM_CHECK_STACK(2);
+						auto value = stack.back(); stack.pop_back();
+						auto base = stack.back().uptr(); stack.pop_back();
+						WASM_READ_MEMARG;
+						auto memory = script.getMemoryByIndex(memidx);
+						SOUP_RETHROW_FALSE(memory);
+						auto ptr = memory->getView(base + offset, 16);
+						SOUP_RETHROW_FALSE(ptr);
+						memcpy(ptr, value.i8x16, 16);
+					}
+					break;
+
+				case 0x0c: // v128.const
+					r.raw(stack.emplace_back(WASM_V128).i8x16, 16);
+					break;
+
+				case 0x0d: // i8x16.shuffle
+					{
+						WASM_CHECK_STACK(2);
+						int8_t b[16]; memcpy(b, stack.back().i8x16, 16); stack.pop_back();
+						int8_t a[16]; memcpy(a, stack.back().i8x16, 16);
+						WasmValue& result = stack.back();
+						for (int i = 0; i != 16; ++i)
+						{
+							uint8_t idx;
+							r.u8(idx);
+							SOUP_RETHROW_FALSE(idx < 32);
+							if (idx < 16)
+							{
+								result.i8x16[i] = a[idx];
+							}
+							else
+							{
+								result.i8x16[i] = b[idx - 16];
+							}
+						}
+					}
+					break;
+
+				case 0x0e: // i8x16.swizzle
+					{
+						WASM_CHECK_STACK(2);
+						int8_t s[16]; memcpy(s, stack.back().i8x16, 16); stack.pop_back();
+						int8_t a[16]; memcpy(a, stack.back().i8x16, 16);
+						WasmValue& result = stack.back();
+						for (int i = 0; i != 16; ++i)
+						{
+							result.i8x16[i] = static_cast<uint8_t>(s[i]) < 16 ? a[s[i]] : 0;
+						}
+					}
+					break;
+
+				case 0x0f: // i8x16.splat
+					SOUP_RETHROW_FALSE(simd_splat(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x10: // i16x8.splat
+					SOUP_RETHROW_FALSE(simd_splat(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x11: // i32x4.splat
+					SOUP_RETHROW_FALSE(simd_splat(stack, &WasmValue::i32x4));
+					break;
+
+				case 0x12: // i64x2.splat
+					SOUP_RETHROW_FALSE(simd_splat(stack, &WasmValue::i64x2));
+					break;
+
+				case 0x13: // f32x4.splat
+					SOUP_RETHROW_FALSE(simd_splat(stack, &WasmValue::f32x4));
+					break;
+
+				case 0x14: // f64x2.splat
+					SOUP_RETHROW_FALSE(simd_splat(stack, &WasmValue::f64x2));
+					break;
+
+				case 0x15: // i8x16.extract_lane_s
+					SOUP_RETHROW_FALSE(extract_lane_s(stack, r, &WasmValue::i8x16));
+					break;
+
+				case 0x16: // i8x16.extract_lane_u
+					SOUP_RETHROW_FALSE(extract_lane_u(stack, r, &WasmValue::i8x16));
+					break;
+
+				case 0x17: // i8x16.replace_lane
+					SOUP_RETHROW_FALSE(replace_lane(stack, r, &WasmValue::i8x16));
+					break;
+
+				case 0x18: // i16x8.extract_lane_s
+					SOUP_RETHROW_FALSE(extract_lane_s(stack, r, &WasmValue::i16x8));
+					break;
+
+				case 0x19: // i16x8.extract_lane_u
+					SOUP_RETHROW_FALSE(extract_lane_u(stack, r, &WasmValue::i16x8));
+					break;
+
+				case 0x1a: // i16x8.replace_lane
+					SOUP_RETHROW_FALSE(replace_lane(stack, r, &WasmValue::i16x8));
+					break;
+
+				case 0x1b: // i32x4.extract_lane
+					SOUP_RETHROW_FALSE(extract_lane(stack, r, &WasmValue::i32x4));
+					break;
+
+				case 0x1c: // i32x4.replace_lane
+					SOUP_RETHROW_FALSE(replace_lane(stack, r, &WasmValue::i32x4));
+					break;
+
+				case 0x1d: // i64x2.extract_lane
+					SOUP_RETHROW_FALSE(extract_lane(stack, r, &WasmValue::i64x2));
+					break;
+
+				case 0x1e: // i64x2.replace_lane
+					SOUP_RETHROW_FALSE(replace_lane(stack, r, &WasmValue::i64x2));
+					break;
+
+				case 0x1f: // f32x4.extract_lane
+					SOUP_RETHROW_FALSE(extract_lane(stack, r, &WasmValue::f32x4));
+					break;
+
+				case 0x20: // f32x4.replace_lane
+					SOUP_RETHROW_FALSE(replace_lane(stack, r, &WasmValue::f32x4));
+					break;
+
+				case 0x21: // f64x2.extract_lane
+					SOUP_RETHROW_FALSE(extract_lane(stack, r, &WasmValue::f64x2));
+					break;
+
+				case 0x22: // f64x2.replace_lane
+					SOUP_RETHROW_FALSE(replace_lane(stack, r, &WasmValue::f64x2));
+					break;
+
+				case 0x23: // i8x16.eq
+					SOUP_RETHROW_FALSE(simd_eq(stack, &WasmValue::i8x16, &WasmValue::i8x16));
+					break;
+
+				case 0x24: // i8x16.ne
+					SOUP_RETHROW_FALSE(simd_ne(stack, &WasmValue::i8x16, &WasmValue::i8x16));
+					break;
+
+				case 0x25: // i8x16.lt_s
+					SOUP_RETHROW_FALSE(simd_lt(stack, &WasmValue::i8x16, &WasmValue::i8x16));
+					break;
+
+				case 0x26: // i8x16.lt_u
+					SOUP_RETHROW_FALSE(simd_lt_u(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x27: // i8x16.gt_s
+					SOUP_RETHROW_FALSE(simd_gt(stack, &WasmValue::i8x16, &WasmValue::i8x16));
+					break;
+
+				case 0x28: // i8x16.gt_u
+					SOUP_RETHROW_FALSE(simd_gt_u(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x29: // i8x16.le_s
+					SOUP_RETHROW_FALSE(simd_le(stack, &WasmValue::i8x16, &WasmValue::i8x16));
+					break;
+
+				case 0x2a: // i8x16.le_u
+					SOUP_RETHROW_FALSE(simd_le_u(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x2b: // i8x16.ge_s
+					SOUP_RETHROW_FALSE(simd_ge(stack, &WasmValue::i8x16, &WasmValue::i8x16));
+					break;
+
+				case 0x2c: // i8x16.ge_u
+					SOUP_RETHROW_FALSE(simd_ge_u(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x2d: // i16x8.eq
+					SOUP_RETHROW_FALSE(simd_eq(stack, &WasmValue::i16x8, &WasmValue::i16x8));
+					break;
+
+				case 0x2e: // i16x8.ne
+					SOUP_RETHROW_FALSE(simd_ne(stack, &WasmValue::i16x8, &WasmValue::i16x8));
+					break;
+
+				case 0x2f: // i16x8.lt_s
+					SOUP_RETHROW_FALSE(simd_lt(stack, &WasmValue::i16x8, &WasmValue::i16x8));
+					break;
+
+				case 0x30: // i16x8.lt_u
+					SOUP_RETHROW_FALSE(simd_lt_u(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x31: // i16x8.gt_s
+					SOUP_RETHROW_FALSE(simd_gt(stack, &WasmValue::i16x8, &WasmValue::i16x8));
+					break;
+
+				case 0x32: // i16x8.gt_u
+					SOUP_RETHROW_FALSE(simd_gt_u(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x33: // i16x8.le_s
+					SOUP_RETHROW_FALSE(simd_le(stack, &WasmValue::i16x8, &WasmValue::i16x8));
+					break;
+
+				case 0x34: // i16x8.le_u
+					SOUP_RETHROW_FALSE(simd_le_u(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x35: // i16x8.ge_s
+					SOUP_RETHROW_FALSE(simd_ge(stack, &WasmValue::i16x8, &WasmValue::i16x8));
+					break;
+
+				case 0x36: // i16x8.ge_u
+					SOUP_RETHROW_FALSE(simd_ge_u(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x37: // i32x4.eq
+					SOUP_RETHROW_FALSE(simd_eq(stack, &WasmValue::i32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x38: // i32x4.ne
+					SOUP_RETHROW_FALSE(simd_ne(stack, &WasmValue::i32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x39: // i32x4.lt_s
+					SOUP_RETHROW_FALSE(simd_lt(stack, &WasmValue::i32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x3a: // i32x4.lt_u
+					SOUP_RETHROW_FALSE(simd_lt_u(stack, &WasmValue::i32x4));
+					break;
+
+				case 0x3b: // i32x4.gt_s
+					SOUP_RETHROW_FALSE(simd_gt(stack, &WasmValue::i32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x3c: // i32x4.gt_u
+					SOUP_RETHROW_FALSE(simd_gt_u(stack, &WasmValue::i32x4));
+					break;
+
+				case 0x3d: // i32x4.le_s
+					SOUP_RETHROW_FALSE(simd_le(stack, &WasmValue::i32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x3e: // i32x4.le_u
+					SOUP_RETHROW_FALSE(simd_le_u(stack, &WasmValue::i32x4));
+					break;
+
+				case 0x3f: // i32x4.ge_s
+					SOUP_RETHROW_FALSE(simd_ge(stack, &WasmValue::i32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x40: // i32x4.ge_u
+					SOUP_RETHROW_FALSE(simd_ge_u(stack, &WasmValue::i32x4));
+					break;
+
+				case 0x41: // f32x4.eq
+					SOUP_RETHROW_FALSE(simd_eq(stack, &WasmValue::f32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x42: // f32x4.ne
+					SOUP_RETHROW_FALSE(simd_ne(stack, &WasmValue::f32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x43: // f32x4.lt
+					SOUP_RETHROW_FALSE(simd_lt(stack, &WasmValue::f32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x44: // f32x4.gt
+					SOUP_RETHROW_FALSE(simd_gt(stack, &WasmValue::f32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x45: // f32x4.le
+					SOUP_RETHROW_FALSE(simd_le(stack, &WasmValue::f32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x46: // f32x4.ge
+					SOUP_RETHROW_FALSE(simd_ge(stack, &WasmValue::f32x4, &WasmValue::i32x4));
+					break;
+
+				case 0x47: // f64x2.eq
+					SOUP_RETHROW_FALSE(simd_eq(stack, &WasmValue::f64x2, &WasmValue::i64x2));
+					break;
+
+				case 0x48: // f64x2.ne
+					SOUP_RETHROW_FALSE(simd_ne(stack, &WasmValue::f64x2, &WasmValue::i64x2));
+					break;
+
+				case 0x49: // f64x2.lt
+					SOUP_RETHROW_FALSE(simd_lt(stack, &WasmValue::f64x2, &WasmValue::i64x2));
+					break;
+
+				case 0x4a: // f64x2.gt
+					SOUP_RETHROW_FALSE(simd_gt(stack, &WasmValue::f64x2, &WasmValue::i64x2));
+					break;
+
+				case 0x4b: // f64x2.le
+					SOUP_RETHROW_FALSE(simd_le(stack, &WasmValue::f64x2, &WasmValue::i64x2));
+					break;
+
+				case 0x4c: // f64x2.ge
+					SOUP_RETHROW_FALSE(simd_ge(stack, &WasmValue::f64x2, &WasmValue::i64x2));
+					break;
+
+				case 0x4d: // v128.not
+					WASM_CHECK_STACK(1);
+					stack.back().i64x2[0] = ~stack.back().i64x2[0];
+					stack.back().i64x2[1] = ~stack.back().i64x2[1];
+					break;
+
+				case 0x4e: // v128.and
+					{
+						WASM_CHECK_STACK(2);
+						int64_t b[2]; memcpy(b, stack.back().i64x2, 16); stack.pop_back();
+						stack.back().i64x2[0] &= b[0];
+						stack.back().i64x2[1] &= b[1];
+					}
+					break;
+
+				case 0x4f: // v128.andnot
+					{
+						WASM_CHECK_STACK(2);
+						int64_t b[2]; memcpy(b, stack.back().i64x2, 16); stack.pop_back();
+						stack.back().i64x2[0] &= ~b[0];
+						stack.back().i64x2[1] &= ~b[1];
+					}
+					break;
+
+				case 0x50: // v128.or
+					{
+						WASM_CHECK_STACK(2);
+						int64_t b[2]; memcpy(b, stack.back().i64x2, 16); stack.pop_back();
+						stack.back().i64x2[0] |= b[0];
+						stack.back().i64x2[1] |= b[1];
+					}
+					break;
+
+				case 0x51: // v128.xor
+					{
+						WASM_CHECK_STACK(2);
+						int64_t b[2]; memcpy(b, stack.back().i64x2, 16); stack.pop_back();
+						stack.back().i64x2[0] ^= b[0];
+						stack.back().i64x2[1] ^= b[1];
+					}
+					break;
+
+				case 0x52: // v128.bitselect
+					{
+						WASM_CHECK_STACK(3);
+						int64_t c[2]; memcpy(c, stack.back().i64x2, 16); stack.pop_back();
+						int64_t b[2]; memcpy(b, stack.back().i64x2, 16); stack.pop_back();
+						stack.back().i64x2[0] = (stack.back().i64x2[0] & c[0]) | (b[0] & ~c[0]);
+						stack.back().i64x2[1] = (stack.back().i64x2[1] & c[1]) | (b[1] & ~c[1]);
+					}
+					break;
+
+				case 0x60: // i8x16.abs
+					SOUP_RETHROW_FALSE(simd_abs(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x61: // i8x16.neg
+					SOUP_RETHROW_FALSE(simd_neg(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x63: // i8x16.all_true
+					SOUP_RETHROW_FALSE(all_true(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x64: // i8x16.bitmask
+					SOUP_RETHROW_FALSE(simd_bitmask(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x65: // i8x16.narrow_i16x8_s
+					SOUP_RETHROW_FALSE(simd_narrow_s(stack, &WasmValue::i16x8, &WasmValue::i8x16));
+					break;
+
+				case 0x66: // i8x16.narrow_i16x8_u
+					SOUP_RETHROW_FALSE(simd_narrow_u(stack, &WasmValue::i16x8, &WasmValue::i8x16));
+					break;
+
+				case 0x6b: // i8x16.shl
+					SOUP_RETHROW_FALSE(simd_shl(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x6c: // i8x16.shr_s
+					SOUP_RETHROW_FALSE(simd_shr_s(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x6d: // i8x16.shr_u
+					SOUP_RETHROW_FALSE(simd_shr_u(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x6e: // i8x16.add
+					SOUP_RETHROW_FALSE(simd_add(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x6f: // i8x16.add_sat_s
+					SOUP_RETHROW_FALSE(simd_add_sat_s(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x70: // i8x16.add_sat_u
+					SOUP_RETHROW_FALSE(simd_add_sat_u(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x71: // i8x16.sub
+					SOUP_RETHROW_FALSE(simd_sub(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x72: // i8x16.sub_sat_s
+					SOUP_RETHROW_FALSE(simd_sub_sat_s(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x73: // i8x16.sub_sat_u
+					SOUP_RETHROW_FALSE(simd_sub_sat_u(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x76: // i8x16.min_s
+					SOUP_RETHROW_FALSE(simd_pmin(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x77: // i8x16.min_u
+					SOUP_RETHROW_FALSE(simd_min_u(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x78: // i8x16.max_s
+					SOUP_RETHROW_FALSE(simd_pmax(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x79: // i8x16.max_u
+					SOUP_RETHROW_FALSE(simd_max_u(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x7b: // i8x16.avgr_u
+					SOUP_RETHROW_FALSE(simd_avgr_u(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x80: // i16x8.abs
+					SOUP_RETHROW_FALSE(simd_abs(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x81: // i16x8.neg
+					SOUP_RETHROW_FALSE(simd_neg(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x83: // i16x8.all_true
+					SOUP_RETHROW_FALSE(all_true(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x84: // i16x8.bitmask
+					SOUP_RETHROW_FALSE(simd_bitmask(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x85: // i16x8.narrow_i32x4_s
+					SOUP_RETHROW_FALSE(simd_narrow_s(stack, &WasmValue::i32x4, &WasmValue::i16x8));
+					break;
+
+				case 0x86: // i16x8.narrow_i32x4_u
+					SOUP_RETHROW_FALSE(simd_narrow_u(stack, &WasmValue::i32x4, &WasmValue::i16x8));
+					break;
+					
+				case 0x87: // i16x8.extend_low_i8x16_s
+					SOUP_RETHROW_FALSE(simd_extend_low_s(stack, &WasmValue::i8x16, &WasmValue::i16x8));
+					break;
+
+				case 0x88: // i16x8.extend_high_i8x16_s
+					SOUP_RETHROW_FALSE(simd_extend_high_s(stack, &WasmValue::i8x16, &WasmValue::i16x8));
+					break;
+
+				case 0x89: // i16x8.extend_low_i8x16_u
+					SOUP_RETHROW_FALSE(simd_extend_low_u(stack, &WasmValue::i8x16, &WasmValue::i16x8));
+					break;
+
+				case 0x8a: // i16x8.extend_high_i8x16_u
+					SOUP_RETHROW_FALSE(simd_extend_high_u(stack, &WasmValue::i8x16, &WasmValue::i16x8));
+					break;
+
+				case 0x8b: // i16x8.shl
+					SOUP_RETHROW_FALSE(simd_shl(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x8c: // i16x8.shr_s
+					SOUP_RETHROW_FALSE(simd_shr_s(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x8d: // i16x8.shr_u
+					SOUP_RETHROW_FALSE(simd_shr_u(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x8e: // i16x8.add
+					SOUP_RETHROW_FALSE(simd_add(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x8f: // i16x8.add_sat_s
+					SOUP_RETHROW_FALSE(simd_add_sat_s(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x90: // i16x8.add_sat_u
+					SOUP_RETHROW_FALSE(simd_add_sat_u(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x91: // i16x8.sub
+					SOUP_RETHROW_FALSE(simd_sub(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x92: // i16x8.sub_sat_s
+					SOUP_RETHROW_FALSE(simd_sub_sat_s (stack, &WasmValue::i16x8));
+					break;
+
+				case 0x93: // i16x8.sub_sat_u
+					SOUP_RETHROW_FALSE(simd_sub_sat_u(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x95: // i16x8.mul
+					SOUP_RETHROW_FALSE(simd_mul(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x96: // i16x8.min_s
+					SOUP_RETHROW_FALSE(simd_pmin(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x97: // i16x8.min_u
+					SOUP_RETHROW_FALSE(simd_min_u(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x98: // i16x8.max_s
+					SOUP_RETHROW_FALSE(simd_pmax(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x99: // i16x8.max_u
+					SOUP_RETHROW_FALSE(simd_max_u(stack, &WasmValue::i16x8));
+					break;
+
+				case 0x9b: // i16x8.avgr_u
+					SOUP_RETHROW_FALSE(simd_avgr_u(stack, &WasmValue::i16x8));
+					break;
+
+				case 0xa0: // i32x4.abs
+					SOUP_RETHROW_FALSE(simd_abs(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xa1: // i32x4.neg
+					SOUP_RETHROW_FALSE(simd_neg(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xa3: // i32x4.all_true
+					SOUP_RETHROW_FALSE(all_true(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xa4: // i32x4.bitmask
+					SOUP_RETHROW_FALSE(simd_bitmask(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xa7: // i32x4.extend_low_i16x8_s
+					SOUP_RETHROW_FALSE(simd_extend_low_s(stack, &WasmValue::i16x8, &WasmValue::i32x4));
+					break;
+
+				case 0xa8: // i32x4.extend_high_i16x8_s
+					SOUP_RETHROW_FALSE(simd_extend_high_s(stack, &WasmValue::i16x8, &WasmValue::i32x4));
+					break;
+
+				case 0xa9: // i32x4.extend_low_i16x8_u
+					SOUP_RETHROW_FALSE(simd_extend_low_u(stack, &WasmValue::i16x8, &WasmValue::i32x4));
+					break;
+
+				case 0xaa: // i32x4.extend_high_i16x8_u
+					SOUP_RETHROW_FALSE(simd_extend_high_u(stack, &WasmValue::i16x8, &WasmValue::i32x4));
+					break;
+
+				case 0xab: // i32x4.shl
+					SOUP_RETHROW_FALSE(simd_shl(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xac: // i32x4.shr_s
+					SOUP_RETHROW_FALSE(simd_shr_s(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xad: // i32x4.shr_u
+					SOUP_RETHROW_FALSE(simd_shr_u(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xae: // i32x4.add
+					SOUP_RETHROW_FALSE(simd_add(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xb1: // i32x4.sub
+					SOUP_RETHROW_FALSE(simd_sub(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xb5: // i32x4.mul
+					SOUP_RETHROW_FALSE(simd_mul(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xb6: // i32x4.min_s
+					SOUP_RETHROW_FALSE(simd_pmin(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xb7: // i32x4.min_u
+					SOUP_RETHROW_FALSE(simd_min_u(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xb8: // i32x4.max_s
+					SOUP_RETHROW_FALSE(simd_pmax(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xb9: // i32x4.max_u
+					SOUP_RETHROW_FALSE(simd_max_u(stack, &WasmValue::i32x4));
+					break;
+
+				case 0xba: // i32x4.dot_i16x8_s
+					{
+						WASM_CHECK_STACK(1);
+						int16_t b[8]; memcpy(b, stack.back().i16x8, 16); stack.pop_back();
+						int16_t a[8]; memcpy(a, stack.back().i16x8, 16);
+						int32_t* res = stack.back().i32x4;
+						for (int i = 0; i != 4; ++i)
+						{
+							res[i] = static_cast<int32_t>(a[i * 2]) * static_cast<int32_t>(b[i * 2])
+								+ static_cast<int32_t>(a[i * 2 + 1]) * static_cast<int32_t>(b[i * 2 + 1])
+								;
+						}
+					}
+					break;
+
+				case 0xc0: // i64x2.abs
+					SOUP_RETHROW_FALSE(simd_abs(stack, &WasmValue::i64x2));
+					break;
+
+				case 0xc1: // i64x2.neg
+					SOUP_RETHROW_FALSE(simd_neg(stack, &WasmValue::i64x2));
+					break;
+
+				case 0xc4: // i64x2.bitmask
+					SOUP_RETHROW_FALSE(simd_bitmask(stack, &WasmValue::i64x2));
+					break;
+
+				case 0xc7: // i64x2.extend_low_i32x4_s
+					SOUP_RETHROW_FALSE(simd_extend_low_s(stack, &WasmValue::i32x4, &WasmValue::i64x2));
+					break;
+
+				case 0xc8: // i64x2.extend_high_i32x4_s
+					SOUP_RETHROW_FALSE(simd_extend_high_s(stack, &WasmValue::i32x4, &WasmValue::i64x2));
+					break;
+
+				case 0xc9: // i64x2.extend_low_i32x4_u
+					SOUP_RETHROW_FALSE(simd_extend_low_u(stack, &WasmValue::i32x4, &WasmValue::i64x2));
+					break;
+
+				case 0xca: // i64x2.extend_high_i32x4_u
+					SOUP_RETHROW_FALSE(simd_extend_high_u(stack, &WasmValue::i32x4, &WasmValue::i64x2));
+					break;
+
+				case 0xcb: // i64x2.shl
+					SOUP_RETHROW_FALSE(simd_shl(stack, &WasmValue::i64x2));
+					break;
+
+				case 0xcc: // i64x2.shr_s
+					SOUP_RETHROW_FALSE(simd_shr_s(stack, &WasmValue::i64x2));
+					break;
+
+				case 0xcd: // i64x2.shr_u
+					SOUP_RETHROW_FALSE(simd_shr_u(stack, &WasmValue::i64x2));
+					break;
+
+				case 0xce: // i64x2.add
+					SOUP_RETHROW_FALSE(simd_add(stack, &WasmValue::i64x2));
+					break;
+
+				case 0xd1: // i64x2.sub
+					SOUP_RETHROW_FALSE(simd_sub(stack, &WasmValue::i64x2));
+					break;
+
+				case 0xd5: // i64x2.mul
+					SOUP_RETHROW_FALSE(simd_mul(stack, &WasmValue::i64x2));
+					break;
+
+				case 0x67: // f32x4.ceil
+					SOUP_RETHROW_FALSE(simd_ceil(stack, &WasmValue::f32x4));
+					break;
+
+				case 0x68: // f32x4.floor
+					SOUP_RETHROW_FALSE(simd_floor(stack, &WasmValue::f32x4));
+					break;
+
+				case 0x69: // f32x4.trunc
+					SOUP_RETHROW_FALSE(simd_trunc(stack, &WasmValue::f32x4));
+					break;
+
+				case 0x6a: // f32x4.nearest
+					SOUP_RETHROW_FALSE(simd_nearest(stack, &WasmValue::f32x4));
+					break;
+
+				case 0x74: // f64x2.ceil
+					SOUP_RETHROW_FALSE(simd_ceil(stack, &WasmValue::f64x2));
+					break;
+
+				case 0x75: // f64x2.floor
+					SOUP_RETHROW_FALSE(simd_floor(stack, &WasmValue::f64x2));
+					break;
+
+				case 0x7a: // f64x2.trunc
+					SOUP_RETHROW_FALSE(simd_trunc(stack, &WasmValue::f64x2));
+					break;
+
+				case 0x94: // f64x2.nearest
+					SOUP_RETHROW_FALSE(simd_nearest(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xe0: // f32x4.abs
+					SOUP_RETHROW_FALSE(simd_abs(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xe1: // f32x4.neg
+					SOUP_RETHROW_FALSE(simd_neg(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xe3: // f32x4.sqrt
+					SOUP_RETHROW_FALSE(simd_sqrt(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xe4: // f32x4.add
+					SOUP_RETHROW_FALSE(simd_add(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xe5: // f32x4.sub
+					SOUP_RETHROW_FALSE(simd_sub(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xe6: // f32x4.mul
+					SOUP_RETHROW_FALSE(simd_mul(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xe7: // f32x4.div
+					SOUP_RETHROW_FALSE(simd_div(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xe8: // f32x4.min
+					SOUP_RETHROW_FALSE(simd_min(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xe9: // f32x4.max
+					SOUP_RETHROW_FALSE(simd_max(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xea: // f32x4.pmin
+					SOUP_RETHROW_FALSE(simd_pmin(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xeb: // f32x4.pmax
+					SOUP_RETHROW_FALSE(simd_pmax(stack, &WasmValue::f32x4));
+					break;
+
+				case 0xec: // f64x2.abs
+					SOUP_RETHROW_FALSE(simd_abs(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xed: // f64x2.neg
+					SOUP_RETHROW_FALSE(simd_neg(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xef: // f64x2.sqrt
+					SOUP_RETHROW_FALSE(simd_sqrt(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xf0: // f64x2.add
+					SOUP_RETHROW_FALSE(simd_add(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xf1: // f64x2.sub
+					SOUP_RETHROW_FALSE(simd_sub(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xf2: // f64x2.mul
+					SOUP_RETHROW_FALSE(simd_mul(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xf3: // f64x2.div
+					SOUP_RETHROW_FALSE(simd_div(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xf4: // f64x2.min
+					SOUP_RETHROW_FALSE(simd_min(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xf5: // f64x2.max
+					SOUP_RETHROW_FALSE(simd_max(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xf6: // f64x2.pmin
+					SOUP_RETHROW_FALSE(simd_pmin(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xf7: // f64x2.pmax
+					SOUP_RETHROW_FALSE(simd_pmax(stack, &WasmValue::f64x2));
+					break;
+
+				case 0xf8: // i32x4.trunc_sat_f32x4_s
+					WASM_CHECK_STACK(1);
+					for (int i = 0; i != 4; ++i)
+					{
+						float_to_int(stack.back().f32x4[i], stack.back().i32x4[i]);
+					}
+					break;
+
+				case 0xf9: // i32x4.trunc_sat_f32x4_u
+					WASM_CHECK_STACK(1);
+					for (int i = 0; i != 4; ++i)
+					{
+						float_to_int(stack.back().f32x4[i], reinterpret_cast<uint32_t&>(stack.back().i32x4[i]));
+					}
+					break;
+
+				case 0xfa: // f32x4.convert_i32x4_s
+					WASM_CHECK_STACK(1);
+					for (int i = 0; i != 4; ++i)
+					{
+						stack.back().f32x4[i] = static_cast<float>(stack.back().i32x4[i]);
+					}
+					break;
+
+				case 0xfb: // f32x4.convert_i32x4_u
+					WASM_CHECK_STACK(1);
+					for (int i = 0; i != 4; ++i)
+					{
+						stack.back().f32x4[i] = static_cast<float>(static_cast<uint32_t>(stack.back().i32x4[i]));
+					}
+					break;
+
+				case 0x5c: // v128.load32_zero
+					SOUP_RETHROW_FALSE(load_zero(stack, r, script, &WasmValue::i32x4));
+					break;
+
+				case 0x5d: // v128.load64_zero
+					SOUP_RETHROW_FALSE(load_zero(stack, r, script, &WasmValue::i64x2));
+					break;
+
+				case 0x9c: // i16x8.extmul_low_i8x16_s
+					SOUP_RETHROW_FALSE(extmul_low_s(stack, &WasmValue::i8x16, &WasmValue::i16x8));
+					break;
+
+				case 0x9d: // i16x8.extmul_high_i8x16_s
+					SOUP_RETHROW_FALSE(extmul_high_s(stack, &WasmValue::i8x16, &WasmValue::i16x8));
+					break;
+
+				case 0x9e: // i16x8.extmul_low_i8x16_u
+					SOUP_RETHROW_FALSE(extmul_low_u(stack, &WasmValue::i8x16, &WasmValue::i16x8));
+					break;
+
+				case 0x9f: // i16x8.extmul_high_i8x16_u
+					SOUP_RETHROW_FALSE(extmul_high_u(stack, &WasmValue::i8x16, &WasmValue::i16x8));
+					break;
+
+				case 0xbc: // i32x4.extmul_low_i16x8_s
+					SOUP_RETHROW_FALSE(extmul_low_s(stack, &WasmValue::i16x8, &WasmValue::i32x4));
+					break;
+
+				case 0xbd: // i32x4.extmul_high_i16x8_s
+					SOUP_RETHROW_FALSE(extmul_high_s(stack, &WasmValue::i16x8, &WasmValue::i32x4));
+					break;
+
+				case 0xbe: // i32x4.extmul_low_i16x8_u
+					SOUP_RETHROW_FALSE(extmul_low_u(stack, &WasmValue::i16x8, &WasmValue::i32x4));
+					break;
+
+				case 0xbf: // i32x4.extmul_high_i16x8_u
+					SOUP_RETHROW_FALSE(extmul_high_u(stack, &WasmValue::i16x8, &WasmValue::i32x4));
+					break;
+
+				case 0xdc: // i64x2.extmul_low_i32x4_s
+					SOUP_RETHROW_FALSE(extmul_low_s(stack, &WasmValue::i32x4, &WasmValue::i64x2));
+					break;
+
+				case 0xdd: // i64x2.extmul_high_i32x4_s
+					SOUP_RETHROW_FALSE(extmul_high_s(stack, &WasmValue::i32x4, &WasmValue::i64x2));
+					break;
+
+				case 0xde: // i64x2.extmul_low_i32x4_u
+					SOUP_RETHROW_FALSE(extmul_low_u(stack, &WasmValue::i32x4, &WasmValue::i64x2));
+					break;
+
+				case 0xdf: // i64x2.extmul_high_i32x4_u
+					SOUP_RETHROW_FALSE(extmul_high_u(stack, &WasmValue::i32x4, &WasmValue::i64x2));
+					break;
+
+				case 0x82: // i16x8.q15mulr_sat_s
+					WASM_CHECK_STACK(2);
+					{
+						int16_t b[8]; memcpy(b, stack.back().i16x8, 16); stack.pop_back();
+						auto a = stack.back().i16x8;
+						for (int i = 0; i != 8; ++i)
+						{
+							a[i] = saturate<int16_t>((static_cast<int32_t>(a[i]) * static_cast<int32_t>(b[i]) + 0x4000) >> 15);
+						}
+					}
+					break;
+
+				case 0x53: // v128.any_true
+					WASM_CHECK_STACK(1);
+					if (stack.back().i64x2[0] || stack.back().i64x2[1])
+					{
+						stack.back().i64 = 1;
+					}
+					else
+					{
+						stack.back().i64 = 0;
+					}
+					stack.back().type = WASM_I32;
+					break;
+
+				case 0x54: // v128.load8_lane
+					SOUP_RETHROW_FALSE(load_lane(stack, r, script, &WasmValue::i8x16));
+					break;
+
+				case 0x55: // v128.load16_lane
+					SOUP_RETHROW_FALSE(load_lane(stack, r, script, &WasmValue::i16x8));
+					break;
+
+				case 0x56: // v128.load32_lane
+					SOUP_RETHROW_FALSE(load_lane(stack, r, script, &WasmValue::i32x4));
+					break;
+
+				case 0x57: // v128.load64_lane
+					SOUP_RETHROW_FALSE(load_lane(stack, r, script, &WasmValue::i64x2));
+					break;
+
+				case 0x58: // v128.store8_lane
+					SOUP_RETHROW_FALSE(store_lane(stack, r, script, &WasmValue::i8x16));
+					break;
+
+				case 0x59: // v128.store16_lane
+					SOUP_RETHROW_FALSE(store_lane(stack, r, script, &WasmValue::i16x8));
+					break;
+
+				case 0x5a: // v128.store32_lane
+					SOUP_RETHROW_FALSE(store_lane(stack, r, script, &WasmValue::i32x4));
+					break;
+
+				case 0x5b: // v128.store64_lane
+					SOUP_RETHROW_FALSE(store_lane(stack, r, script, &WasmValue::i64x2));
+					break;
+
+				case 0xd6: // i64x2.eq
+					SOUP_RETHROW_FALSE(simd_eq(stack, &WasmValue::i64x2, &WasmValue::i64x2));
+					break;
+
+				case 0xd7: // i64x2.ne
+					SOUP_RETHROW_FALSE(simd_ne(stack, &WasmValue::i64x2, &WasmValue::i64x2));
+					break;
+
+				case 0xd8: // i64x2.lt_s
+					SOUP_RETHROW_FALSE(simd_lt(stack, &WasmValue::i64x2, &WasmValue::i64x2));
+					break;
+
+				case 0xd9: // i64x2.gt_s
+					SOUP_RETHROW_FALSE(simd_gt(stack, &WasmValue::i64x2, &WasmValue::i64x2));
+					break;
+
+				case 0xda: // i64x2.le_s
+					SOUP_RETHROW_FALSE(simd_le(stack, &WasmValue::i64x2, &WasmValue::i64x2));
+					break;
+
+				case 0xdb: // i64x2.ge_s
+					SOUP_RETHROW_FALSE(simd_ge(stack, &WasmValue::i64x2, &WasmValue::i64x2));
+					break;
+
+				case 0xc3: // i64x2.all_true
+					SOUP_RETHROW_FALSE(all_true(stack, &WasmValue::i64x2));
+					break;
+
+				case 0xfe: // f64x2.convert_low_i32x4_s
+					{
+						WASM_CHECK_STACK(1);
+						const auto in0 = stack.back().i32x4[0];
+						const auto in1 = stack.back().i32x4[1];
+						stack.back().f64x2[0] = static_cast<double>(in0);
+						stack.back().f64x2[1] = static_cast<double>(in1);
+					}
+					break;
+
+				case 0xff: // f64x2.convert_low_i32x4_u
+					{
+						WASM_CHECK_STACK(1);
+						const auto in0 = stack.back().i32x4[0];
+						const auto in1 = stack.back().i32x4[1];
+						stack.back().f64x2[0] = static_cast<double>(static_cast<uint32_t>(in0));
+						stack.back().f64x2[1] = static_cast<double>(static_cast<uint32_t>(in1));
+					}
+					break;
+
+				case 0xfc: // i32x4.trunc_sat_f64x2_s_zero
+					WASM_CHECK_STACK(1);
+					for (int i = 0; i != 2; ++i)
+					{
+						float_to_int(stack.back().f64x2[i], stack.back().i32x4[i]);
+					}
+					for (int i = 2; i != 4; ++i)
+					{
+						stack.back().i32x4[i] = 0;
+					}
+					break;
+
+				case 0xfd: // i32x4.trunc_sat_f64x2_u_zero
+					WASM_CHECK_STACK(1);
+					for (int i = 0; i != 2; ++i)
+					{
+						float_to_int(stack.back().f64x2[i], reinterpret_cast<uint32_t&>(stack.back().i32x4[i]));
+					}
+					for (int i = 2; i != 4; ++i)
+					{
+						stack.back().i32x4[i] = 0;
+					}
+					break;
+
+				case 0x5e: // f32x4.demote_f64x2_zero
+					{
+						WASM_CHECK_STACK(1);
+						const auto in0 = stack.back().f64x2[0];
+						const auto in1 = stack.back().f64x2[1];
+						stack.back().f32x4[0] = static_cast<float>(in0);
+						stack.back().f32x4[1] = static_cast<float>(in1);
+						stack.back().f32x4[2] = 0.0f;
+						stack.back().f32x4[3] = 0.0f;
+					}
+					break;
+
+				case 0x5f: // f64x2.promote_low_f32x4
+					{
+						WASM_CHECK_STACK(1);
+						const auto in0 = stack.back().f32x4[0];
+						const auto in1 = stack.back().f32x4[1];
+						stack.back().f64x2[0] = static_cast<double>(in0);
+						stack.back().f64x2[1] = static_cast<double>(in1);
+					}
+					break;
+
+				case 0x62: // i8x16.popcnt
+					SOUP_RETHROW_FALSE(simd_popcnt(stack, &WasmValue::i8x16));
+					break;
+
+				case 0x7c: // i16x8.extadd_pairwise_i8x16_s
+					SOUP_RETHROW_FALSE(extadd_pairwise_s(stack, &WasmValue::i8x16, &WasmValue::i16x8));
+					break;
+
+				case 0x7d: // i16x8.extadd_pairwise_i8x16_u
+					SOUP_RETHROW_FALSE(extadd_pairwise_u(stack, &WasmValue::i8x16, &WasmValue::i16x8));
+					break;
+
+				case 0x7e: // i32x4.extadd_pairwise_i16x8_s
+					SOUP_RETHROW_FALSE(extadd_pairwise_s(stack, &WasmValue::i16x8, &WasmValue::i32x4));
+					break;
+
+				case 0x7f: // i32x4.extadd_pairwise_i16x8_u
+					SOUP_RETHROW_FALSE(extadd_pairwise_u(stack, &WasmValue::i16x8, &WasmValue::i32x4));
+					break;
+
+				default:
+#if DEBUG_VM
+					std::cout << "Unsupported opcode: FD " << string::hex(simdop) << "\n";
+#endif
+					return CODE_ERROR;
+				}
+			} break;
+#endif
 			}
 		}
 		return CODE_RETURN;
@@ -5116,6 +7563,9 @@ NAMESPACE_SOUP
 				++depth;
 				break;
 
+#if SOUP_WASM_EXCEPTIONS
+			case 0x08: // throw
+#endif
 			case 0x0c: // br
 			case 0x0d: // br_if
 			case 0x10: // call
@@ -5164,6 +7614,22 @@ NAMESPACE_SOUP
 				r.skip(2);
 				break;
 
+#if SOUP_WASM_EXCEPTIONS
+			case 0x1f: // try_table
+				{
+					--depth;
+					int32_t result_type; WASM_READ_SOML(result_type);
+					uint32_t num_catches; WASM_READ_OML(num_catches);
+					while (num_catches--)
+					{
+						uint8_t type; r.u8(type);
+						if (type < 0x02) { uint32_t tagidx; WASM_READ_OML(tagidx); }
+						uint32_t labelidx; WASM_READ_OML(labelidx);
+					}
+				}
+				break;
+#endif
+
 			case 0x28: // i32.load
 			case 0x29: // i64.load
 			case 0x2a: // f32.load
@@ -5190,8 +7656,12 @@ NAMESPACE_SOUP
 				{
 					WASM_READ_MEMARG;
 					SOUP_UNUSED(memidx);
-#if SOUP_WASM_PEDANTIC && !SOUP_WASM_MULTI_MEMORY
+#if SOUP_WASM_PEDANTIC
+	#if SOUP_WASM_MULTI_MEMORY
+					SOUP_RETHROW_FALSE(align < 0x80);
+	#else
 					SOUP_RETHROW_FALSE(align < 0x20);
+	#endif
 #endif
 				}
 				break;
@@ -5239,6 +7709,7 @@ NAMESPACE_SOUP
 #if DEBUG_VM
 			case 0x00: // unreachable
 			case 0x01: // nop
+			case 0x0a: // throw_ref
 			case 0x0f: // return
 			case 0x1a: // drop
 			case 0x1b: // select
@@ -5439,6 +7910,283 @@ NAMESPACE_SOUP
 #endif
 				}
 				break;
+
+#if SOUP_WASM_SIMD
+			case 0xfd: {
+				uint32_t simdop;
+				WASM_READ_OML(simdop);
+				switch (simdop)
+				{
+				case 0x00: // v128.load
+				case 0x01: // v128.load8x8_s
+				case 0x02: // v128.load8x8_u
+				case 0x03: // v128.load16x4_s
+				case 0x04: // v128.load16x4_u
+				case 0x05: // v128.load32x2_s
+				case 0x06: // v128.load32x2_u
+				case 0x07: // v128.load8_splat
+				case 0x08: // v128.load16_splat
+				case 0x09: // v128.load32_splat
+				case 0x0a: // v128.load64_splat
+				case 0x0b: // v128.store
+				case 0x5c: // v128.load32_zero
+				case 0x5d: // v128.load64_zero
+					{
+						WASM_READ_MEMARG;
+						SOUP_UNUSED(memidx);
+					}
+					break;
+
+				case 0x0c: // v128.const
+				case 0x0d: // i8x16.shuffle
+					r.skip(16);
+					break;
+
+				case 0x15: // i8x16.extract_lane_s
+				case 0x16: // i8x16.extract_lane_u
+				case 0x17: // i8x16.replace_lane
+				case 0x18: // i16x8.extract_lane_s
+				case 0x19: // i16x8.extract_lane_u
+				case 0x1a: // i16x8.replace_lane
+				case 0x1b: // i32x4.extract_lane
+				case 0x1c: // i32x4.replace_lane
+				case 0x1d: // i64x2.extract_lane
+				case 0x1e: // i64x2.replace_lane
+				case 0x1f: // f32x4.extract_lane
+				case 0x20: // f32x4.replace_lane
+				case 0x21: // f64x2.extract_lane
+				case 0x22: // f64x2.replace_lane
+					r.skip(1); // lane idx
+					break;
+
+				case 0x54: // v128.load8_lane
+				case 0x55: // v128.load16_lane
+				case 0x56: // v128.load32_lane
+				case 0x57: // v128.load64_lane
+				case 0x58: // v128.store8_lane
+				case 0x59: // v128.store16_lane
+				case 0x5a: // v128.store32_lane
+				case 0x5b: // v128.store64_lane
+					{
+						WASM_READ_MEMARG;
+						SOUP_UNUSED(memidx);
+					}
+					r.skip(1); // lane idx
+					break;
+
+#if DEBUG_VM
+				case 0x0e: // i8x16.swizzle
+				case 0x0f: // i8x16.splat
+				case 0x10: // i16x8.splat
+				case 0x11: // i32x4.splat
+				case 0x12: // i64x2.splat
+				case 0x13: // f32x4.splat
+				case 0x14: // f64x2.splat
+				case 0x23: // i8x16.eq
+				case 0x24: // i8x16.ne
+				case 0x25: // i8x16.lt_s
+				case 0x26: // i8x16.lt_u
+				case 0x27: // i8x16.gt_s
+				case 0x28: // i8x16.gt_u
+				case 0x29: // i8x16.le_s
+				case 0x2a: // i8x16.le_u
+				case 0x2b: // i8x16.ge_s
+				case 0x2c: // i8x16.ge_u
+				case 0x2d: // i16x8.eq
+				case 0x2e: // i16x8.ne
+				case 0x2f: // i16x8.lt_s
+				case 0x30: // i16x8.lt_u
+				case 0x31: // i16x8.gt_s
+				case 0x32: // i16x8.gt_u
+				case 0x33: // i16x8.le_s
+				case 0x34: // i16x8.le_u
+				case 0x35: // i16x8.ge_s
+				case 0x36: // i16x8.ge_u
+				case 0x37: // i32x4.eq
+				case 0x38: // i32x4.ne
+				case 0x39: // i32x4.lt_s
+				case 0x3a: // i32x4.lt_u
+				case 0x3b: // i32x4.gt_s
+				case 0x3c: // i32x4.gt_u
+				case 0x3d: // i32x4.le_s
+				case 0x3e: // i32x4.le_u
+				case 0x3f: // i32x4.ge_s
+				case 0x40: // i32x4.ge_u
+				case 0x41: // f32x4.eq
+				case 0x42: // f32x4.ne
+				case 0x43: // f32x4.lt
+				case 0x44: // f32x4.gt
+				case 0x45: // f32x4.le
+				case 0x46: // f32x4.ge
+				case 0x47: // f64x2.eq
+				case 0x48: // f64x2.ne
+				case 0x49: // f64x2.lt
+				case 0x4a: // f64x2.gt
+				case 0x4b: // f64x2.le
+				case 0x4c: // f64x2.ge
+				case 0x4d: // v128.not
+				case 0x4e: // v128.and
+				case 0x4f: // v128.andnot
+				case 0x50: // v128.or
+				case 0x51: // v128.xor
+				case 0x52: // v128.bitselect
+				case 0x60: // i8x16.abs
+				case 0x61: // i8x16.neg
+				case 0x63: // i8x16.all_true
+				case 0x64: // i8x16.bitmask
+				case 0x65: // i8x16.narrow_i16x8_s
+				case 0x66: // i8x16.narrow_i16x8_u
+				case 0x6b: // i8x16.shl
+				case 0x6c: // i8x16.shr_s
+				case 0x6d: // i8x16.shr_u
+				case 0x6e: // i8x16.add
+				case 0x6f: // i8x16.add_sat_s
+				case 0x70: // i8x16.add_sat_u
+				case 0x71: // i8x16.sub
+				case 0x72: // i8x16.sub_sat_s
+				case 0x73: // i8x16.sub_sat_u
+				case 0x76: // i8x16.min_s
+				case 0x77: // i8x16.min_u
+				case 0x78: // i8x16.max_s
+				case 0x79: // i8x16.max_u
+				case 0x7b: // i8x16.avgr_u
+				case 0x80: // i16x8.abs
+				case 0x81: // i16x8.neg
+				case 0x83: // i16x8.all_true
+				case 0x84: // i16x8.bitmask
+				case 0x85: // i16x8.narrow_i32x4_s
+				case 0x86: // i16x8.narrow_i32x4_u
+				case 0x87: // i16x8.extend_low_i8x16_s
+				case 0x88: // i16x8.extend_high_i8x16_s
+				case 0x89: // i16x8.extend_low_i8x16_u
+				case 0x8a: // i16x8.extend_high_i8x16_u
+				case 0x8b: // i16x8.shl
+				case 0x8c: // i16x8.shr_s
+				case 0x8d: // i16x8.shr_u
+				case 0x8e: // i16x8.add
+				case 0x8f: // i16x8.add_sat_s
+				case 0x90: // i16x8.add_sat_u
+				case 0x91: // i16x8.sub
+				case 0x92: // i16x8.sub_sat_s
+				case 0x93: // i16x8.sub_sat_u
+				case 0x95: // i16x8.mul
+				case 0x96: // i16x8.min_s
+				case 0x97: // i16x8.min_u
+				case 0x98: // i16x8.max_s
+				case 0x99: // i16x8.max_u
+				case 0x9b: // i16x8.avgr_u
+				case 0xa0: // i32x4.abs
+				case 0xa1: // i32x4.neg
+				case 0xa3: // i32x4.all_true
+				case 0xa4: // i32x4.bitmask
+				case 0xa7: // i32x4.extend_low_i16x8_s
+				case 0xa8: // i32x4.extend_high_i16x8_s
+				case 0xa9: // i32x4.extend_low_i16x8_u
+				case 0xaa: // i32x4.extend_high_i16x8_u
+				case 0xab: // i32x4.shl
+				case 0xac: // i32x4.shr_s
+				case 0xad: // i32x4.shr_u
+				case 0xae: // i32x4.add
+				case 0xb1: // i32x4.sub
+				case 0xb5: // i32x4.mul
+				case 0xb6: // i32x4.min_s
+				case 0xb7: // i32x4.min_u
+				case 0xb8: // i32x4.max_s
+				case 0xb9: // i32x4.max_u
+				case 0xba: // i32x4.dot_i16x8_s
+				case 0xc0: // i64x2.abs
+				case 0xc1: // i64x2.neg
+				case 0xc4: // i64x2.bitmask
+				case 0xc7: // i64x2.extend_low_i32x4_s
+				case 0xc8: // i64x2.extend_high_i32x4_s
+				case 0xc9: // i64x2.extend_low_i32x4_u
+				case 0xca: // i64x2.extend_high_i32x4_u
+				case 0xcb: // i64x2.shl
+				case 0xcc: // i64x2.shr_s
+				case 0xcd: // i64x2.shr_u
+				case 0xce: // i64x2.add
+				case 0xd1: // i64x2.sub
+				case 0xd5: // i64x2.mul
+				case 0x67: // f32x4.ceil
+				case 0x68: // f32x4.floor
+				case 0x69: // f32x4.trunc
+				case 0x6a: // f32x4.nearest
+				case 0x74: // f64x2.ceil
+				case 0x75: // f64x2.floor
+				case 0x7a: // f64x2.trunc
+				case 0x94: // f64x2.nearest
+				case 0xe0: // f32x4.abs
+				case 0xe1: // f32x4.neg
+				case 0xe3: // f32x4.sqrt
+				case 0xe4: // f32x4.add
+				case 0xe5: // f32x4.sub
+				case 0xe6: // f32x4.mul
+				case 0xe7: // f32x4.div
+				case 0xe8: // f32x4.min
+				case 0xe9: // f32x4.max
+				case 0xea: // f32x4.pmin
+				case 0xeb: // f32x4.pmax
+				case 0xec: // f64x2.abs
+				case 0xed: // f64x2.neg
+				case 0xef: // f64x2.sqrt
+				case 0xf0: // f64x2.add
+				case 0xf1: // f64x2.sub
+				case 0xf2: // f64x2.mul
+				case 0xf3: // f64x2.div
+				case 0xf4: // f64x2.min
+				case 0xf5: // f64x2.max
+				case 0xf6: // f64x2.pmin
+				case 0xf7: // f64x2.pmax
+				case 0xf8: // i32x4.trunc_sat_f32x4_s
+				case 0xf9: // i32x4.trunc_sat_f32x4_u
+				case 0xfa: // f32x4.convert_i32x4_s
+				case 0xfb: // f32x4.convert_i32x4_u
+				case 0x9c: // i16x8.extmul_low_i8x16_s
+				case 0x9d: // i16x8.extmul_high_i8x16_s
+				case 0x9e: // i16x8.extmul_low_i8x16_u
+				case 0x9f: // i16x8.extmul_high_i8x16_u
+				case 0xbc: // i32x4.extmul_low_i16x8_s
+				case 0xbd: // i32x4.extmul_high_i16x8_s
+				case 0xbe: // i32x4.extmul_low_i16x8_u
+				case 0xbf: // i32x4.extmul_high_i16x8_u
+				case 0xdc: // i64x2.extmul_low_i32x4_s
+				case 0xdd: // i64x2.extmul_high_i32x4_s
+				case 0xde: // i64x2.extmul_low_i32x4_u
+				case 0xdf: // i64x2.extmul_high_i32x4_u
+				case 0x82: // i16x8.q15mulr_sat_s
+				case 0x53: // v128.any_true
+				case 0xd6: // i64x2.eq
+				case 0xd7: // i64x2.ne
+				case 0xd8: // i64x2.lt_s
+				case 0xd9: // i64x2.gt_s
+				case 0xda: // i64x2.le_s
+				case 0xdb: // i64x2.ge_s
+				case 0xc3: // i64x2.all_true
+				case 0xfe: // f64x2.convert_low_i32x4_s
+				case 0xff: // f64x2.convert_low_i32x4_u
+				case 0xfc: // i32x4.trunc_sat_f64x2_s_zero
+				case 0xfd: // i32x4.trunc_sat_f64x2_u_zero
+				case 0x5e: // f32x4.demote_f64x2_zero
+				case 0x5f: // f64x2.promote_low_f32x4
+				case 0x62: // i8x16.popcnt
+				case 0x7c: // i16x8.extadd_pairwise_i8x16_s
+				case 0x7d: // i16x8.extadd_pairwise_i8x16_u
+				case 0x7e: // i32x4.extadd_pairwise_i16x8_s
+				case 0x7f: // i32x4.extadd_pairwise_i16x8_u
+					break;
+
+				default:
+					std::cout << "skipOverBranch: unknown instruction FD " << string::hex(simdop) << ", might cause problems\n";
+					break;
+#endif
+				}
+			} break;
+#endif
+
+#if SOUP_WASM_PEDANTIC
+			case 0xff:
+				return PEDANTIC_ERROR;
+#endif
 			}
 		}
 #if DEBUG_VM
@@ -5474,7 +8222,8 @@ NAMESPACE_SOUP
 			}
 		}
 
-		if (ctrlflow.top().position == -1)
+		const bool is_forward = ctrlflow.top().isForwardJump();
+		if (is_forward)
 		{
 			// branch forwards
 			if (skipOverBranch(r, depth, script, func_index) == ELSE_REACHED)
@@ -5501,7 +8250,7 @@ NAMESPACE_SOUP
 		std::cout << "stack size after branch: " << stack.size() << "\n";
 #endif
 
-		if (ctrlflow.top().position == -1)
+		if (is_forward)
 		{
 			ctrlflow.pop(); // we passed 'end', so need to pop here.
 		}
@@ -5510,14 +8259,14 @@ NAMESPACE_SOUP
 	}
 
 	// function_index and type_index must be in-bounds.
-	bool WasmVm::doCall(WasmScript* script, uint32_t type_index, uint32_t function_index, unsigned depth)
+	WasmVm::RunCodeResult WasmVm::doCall(WasmScript* script, uint32_t type_index, uint32_t function_index, unsigned depth)
 	{
 		SOUP_IF_UNLIKELY (depth >= 200)
 		{
 #if DEBUG_VM
 			std::cout << "call: c stack overflow\n";
 #endif
-			return false;
+			return CODE_ERROR;
 		}
 		++depth;
 
@@ -5536,7 +8285,7 @@ NAMESPACE_SOUP
 #if DEBUG_VM
 					std::cout << "call(pedantic): function type is out-of-bounds\n";
 #endif
-					return false;
+					return CODE_ERROR;
 				}
 #endif
 				const auto& func_type = script->types[func_type_index];
@@ -5548,7 +8297,7 @@ NAMESPACE_SOUP
 #if DEBUG_VM
 					std::cout << "call(pedantic): function type is incompatible with call type\n";
 #endif
-					return false;
+					return CODE_ERROR;
 				}
 			}
 		}
@@ -5564,14 +8313,14 @@ NAMESPACE_SOUP
 			{
 				const auto& type = this->script.types[type_index];
 				imp.ptr(*this, imp.user_data, type);
-				return true;
+				return CODE_RETURN;
 			}
 			SOUP_IF_UNLIKELY (!imp.source)
 			{
 #if DEBUG_VM
 				std::cout << "call: unresolved function import\n";
 #endif
-				return false;
+				return CODE_ERROR;
 			}
 
 			script = imp.source;
@@ -5585,7 +8334,7 @@ NAMESPACE_SOUP
 #if DEBUG_VM
 			std::cout << "call: function is out-of-bounds\n";
 #endif
-			return false;
+			return CODE_ERROR;
 		}
 #endif
 		const auto& type = this->script.types[type_index];
@@ -5598,16 +8347,22 @@ NAMESPACE_SOUP
 #endif
 		const auto pre_call_stack_size = stack.size();
 		callvm.stack = std::move(stack);
-		SOUP_RETHROW_FALSE(callvm.run(script->code[function_index], depth, function_index));
+		const auto result = callvm.run(script->code[function_index], depth, function_index);
 		stack = std::move(callvm.stack);
+#if SOUP_WASM_EXCEPTIONS
+		current_throw_tag = callvm.current_throw_tag;
+#endif
 #if DEBUG_VM
 		//std::cout << "call: leave " << function_index << "\n";
 #endif
-		if (const auto result_stack_size = pre_call_stack_size + type.results.size(); stack.size() > result_stack_size)
+		SOUP_IF_LIKELY (result == WasmVm::CODE_RETURN)
 		{
-			stack.erase(stack.begin() + pre_call_stack_size, stack.end() - type.results.size());
+			if (const auto result_stack_size = pre_call_stack_size + type.results.size(); stack.size() > result_stack_size)
+			{
+				stack.erase(stack.begin() + pre_call_stack_size, stack.end() - type.results.size());
+			}
 		}
-		return true;
+		return result;
 	}
 
 	bool WasmVm::moveArguments(WasmVm& callvm, const WasmFunctionType& type)
@@ -5625,4 +8380,49 @@ NAMESPACE_SOUP
 		}
 		return true;
 	}
+
+#if SOUP_WASM_EXCEPTIONS
+	bool WasmVm::doThrow(Reader& r, uint32_t func_index, std::stack<CtrlFlowEntry>& ctrlflow) noexcept
+	{
+		while (!ctrlflow.empty())
+		{
+			if (ctrlflow.top().is_try_table)
+			{
+				r.seek(ctrlflow.top().position);
+				uint32_t num_catches; WASM_READ_OML(num_catches);
+				uint32_t handler_depth = 0;
+				bool push_ref = false;
+				while (num_catches--)
+				{
+					uint8_t type; r.u8(type);
+					uint32_t tagidx = -1;
+					if (type < 0x02) { WASM_READ_OML(tagidx); }
+					uint32_t labelidx; WASM_READ_OML(labelidx);
+					if (handler_depth == 0
+						&& (tagidx >= script.tags.size() || script.tags[tagidx].get() == current_throw_tag)
+						)
+					{
+						handler_depth = labelidx + 1; // try_table will 'end' but apparently is not counted in the labelidx, so adding 1.
+						push_ref = (type & 1);
+					}
+				}
+				if (handler_depth != 0)
+				{
+#if DEBUG_VM
+					std::cout << "unwind: destination labelidx " << handler_depth << "\n";
+#endif
+					skipOverBranch(r, handler_depth, script, func_index);
+					ctrlflow.pop();
+					if (push_ref)
+					{
+						stack.emplace_back(WASM_EXNREF).i64 = reinterpret_cast<uintptr_t>(current_throw_tag);
+					}
+					return true;
+				}
+			}
+			ctrlflow.pop();
+		}
+		return false;
+	}
+#endif
 }

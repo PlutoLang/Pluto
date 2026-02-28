@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base.hpp"
+#if !SOUP_WASM
 
 #include <vector>
 
@@ -57,3 +58,5 @@ NAMESPACE_SOUP
 		[[nodiscard]] Pointer externalScan(const Range& range, const Pattern& sig) const;
 	};
 }
+
+#endif

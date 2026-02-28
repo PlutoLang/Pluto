@@ -13,9 +13,8 @@ NAMESPACE_SOUP
 			return 0;
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			return {};
 		}
 
 		[[nodiscard]] bool matches(RegexMatcher& m) const noexcept final

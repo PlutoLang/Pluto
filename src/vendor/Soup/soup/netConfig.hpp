@@ -12,9 +12,11 @@ NAMESPACE_SOUP
 	{
 		[[nodiscard]] static netConfig& get(); // returns the netConfig instance for this thread
 
+#if !SOUP_WASM || SOUP_EMSCRIPTEN
 		SharedPtr<dnsResolver> dns_resolver;
 
 		[[nodiscard]] SharedPtr<dnsResolver>& getDnsResolver() SOUP_EXCAL;
+#endif
 
 		netConfig();
 	};

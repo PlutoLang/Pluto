@@ -32,20 +32,17 @@ NAMESPACE_SOUP
 			return false;
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
 			if constexpr (escape_sequence)
 			{
 				static_assert(multi_line == false);
-				return end_only ? "\\z" : "\\Z";
+				str.append(end_only ? "\\z" : "\\Z");
 			}
-			return "$";
-		}
-
-		void getFlags(uint16_t& set, uint16_t& unset) const noexcept final
-		{
-			if constexpr (!escape_sequence)
+			else
 			{
+				uint16_t set = 0;
+				uint16_t unset = 0;
 				if constexpr (multi_line)
 				{
 					set |= RE_MULTILINE;
@@ -62,6 +59,8 @@ NAMESPACE_SOUP
 				{
 					unset |= RE_DOLLAR_ENDONLY;
 				}
+				updateFlags(str, flags, set, unset);
+				str.push_back('$');
 			}
 		}
 

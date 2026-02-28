@@ -29,9 +29,8 @@ NAMESPACE_SOUP
 			return true;
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			std::string str(1, c);
 			switch (c)
 			{
 			case '\\':
@@ -44,10 +43,10 @@ NAMESPACE_SOUP
 			case '.':
 			case '^':
 			case '$':
-				str.insert(0, 1, '\\');
+				str.push_back('\\');
 				break;
 			}
-			return str;
+			str.push_back(c);
 		}
 
 		[[nodiscard]] size_t getCursorAdvancement() const final

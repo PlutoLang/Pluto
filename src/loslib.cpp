@@ -524,7 +524,7 @@ LUAMOD_API int luaopen_os (lua_State *L) {
   lua_pushliteral(L, "platform");
 #if SOUP_WINDOWS
   lua_pushliteral(L, "windows");
-#elif SOUP_WASM
+#elif SOUP_EMSCRIPTEN
   lua_pushliteral(L, "emscripten");
 #elif SOUP_LINUX
   lua_pushliteral(L, "linux");

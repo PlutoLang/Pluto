@@ -21,11 +21,10 @@ NAMESPACE_SOUP
 			return true;
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			std::string str = constraint->toString();
+			constraint->toString(str, flags);
 			str.push_back('?');
-			return str;
 		}
 	};
 }

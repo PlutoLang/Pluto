@@ -2,9 +2,10 @@
 
 #include "RegexConstraint.hpp"
 
-#include "RegexGroup.hpp"
-
 #include <unordered_map>
+
+#include "RegexGroup.hpp"
+#include "RegexTransitionsVector.hpp"
 
 NAMESPACE_SOUP
 {
@@ -32,42 +33,11 @@ NAMESPACE_SOUP
 			return true;
 		}
 
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final;
+
 		[[nodiscard]] const RegexGroup* getGroupCaturedWithin() const noexcept final
 		{
 			return &data;
-		}
-
-		[[nodiscard]] std::string toString() const noexcept final
-		{
-			auto str = data.toString();
-			if (data.isNonCapturing())
-			{
-				str.insert(0, "?:");
-			}
-			else if (!data.name.empty())
-			{
-				if (data.name.find('\'') != std::string::npos)
-				{
-					str.insert(0, 1, '>');
-					str.insert(0, data.name);
-					str.insert(0, 1, '<');
-				}
-				else
-				{
-					str.insert(0, 1, '\'');
-					str.insert(0, data.name);
-					str.insert(0, 1, '\'');
-				}
-				str.insert(0, 1, '?');
-			}
-			str.insert(0, 1, '(');
-			str.push_back(')');
-			return str;
-		}
-
-		void getFlags(uint16_t& set, uint16_t& unset) const noexcept final
-		{
-			data.getFlags(set, unset);
 		}
 
 		[[nodiscard]] size_t getCursorAdvancement() const final

@@ -13,12 +13,22 @@ NAMESPACE_SOUP
 
 		using Base::Base;
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			auto str = Base::group.toString();
-			str.insert(0, "(?<!");
+			uint16_t set = 0;
+			uint16_t unset = 0;
+			if constexpr (unicode)
+			{
+				set |= RE_UNICODE;
+			}
+			else
+			{
+				unset |= RE_UNICODE;
+			}
+			RegexConstraint::updateFlags(str, flags, set, unset);
+			str.append("(?<!");
+			Base::group.toString(str, flags);
 			str.push_back(')');
-			return str;
 		}
 	};
 }

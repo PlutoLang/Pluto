@@ -3,15 +3,17 @@
 #include <fstream>
 
 #if SOUP_WINDOWS
-#include <windows.h>
-#include <shlobj.h> // CSIDL_COMMON_APPDATA
+	#include <windows.h>
+	#include <shlobj.h> // CSIDL_COMMON_APPDATA
 
-#pragma comment(lib, "shell32.lib") // SHGetFolderPathW
+	#pragma comment(lib, "shell32.lib") // SHGetFolderPathW
 #else
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
+	#if !SOUP_WASM || SOUP_EMSCRIPTEN
+		#include <sys/mman.h>
+	#endif
+	#include <sys/stat.h>
+	#include <fcntl.h>
+	#include <unistd.h>
 #endif
 
 #include "rand.hpp"
@@ -80,6 +82,7 @@ NAMESPACE_SOUP
 #endif
 	}
 
+#if !SOUP_WASM || SOUP_EMSCRIPTEN
 	static const char empty_file_data = 0;
 
 	const void* filesystem::createFileMapping(const std::filesystem::path& path, size_t& out_len) noexcept
@@ -147,4 +150,5 @@ NAMESPACE_SOUP
 #endif
 		}
 	}
+#endif
 }

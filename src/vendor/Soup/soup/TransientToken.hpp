@@ -9,7 +9,7 @@ NAMESPACE_SOUP
 	public:
 		SharedPtr<bool> sp;
 
-		TransientTokenBase(bool valid) SOUP_EXCAL
+		explicit TransientTokenBase(bool valid) SOUP_EXCAL
 			: TransientTokenBase(soup::make_shared<bool>(valid))
 		{
 		}
@@ -30,6 +30,11 @@ NAMESPACE_SOUP
 		{
 			return *sp;
 		}
+
+		void reset() SOUP_EXCAL
+		{
+			sp = soup::make_shared<bool>(false);
+		}
 	};
 
 	struct TransientToken : public TransientTokenBase
@@ -39,6 +44,22 @@ NAMESPACE_SOUP
 		TransientToken() SOUP_EXCAL
 			: TransientTokenBase(soup::make_shared<bool>(true))
 		{
+		}
+
+		TransientToken(const TransientToken& tt) = delete;
+
+		TransientToken(TransientToken&& tt) SOUP_EXCAL
+			: TransientTokenBase(std::move(tt.sp))
+		{
+			tt.reset();
+		}
+		
+		void operator=(const TransientToken& tt) = delete;
+
+		void operator=(TransientToken&& tt) SOUP_EXCAL
+		{
+			sp = std::move(tt.sp);
+			tt.reset();
 		}
 
 		~TransientToken() noexcept
@@ -70,11 +91,6 @@ NAMESPACE_SOUP
 		TransientTokenRef(const TransientTokenBase& tt) noexcept
 			: TransientTokenBase(tt.sp)
 		{
-		}
-
-		void reset() SOUP_EXCAL
-		{
-			sp = soup::make_shared<bool>(false);
 		}
 	};
 }

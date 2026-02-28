@@ -2,16 +2,17 @@
 
 #include <cstring> // memcpy
 
-#include "alloc.hpp"
 #include "base.hpp"
 #ifdef _DEBUG
 #include "Exception.hpp"
 #endif
+#include "memAllocating.hpp"
+#include "type_traits.hpp" // SOUP_RESTRICT
 
 NAMESPACE_SOUP
 {
-	template <typename T>
-	class IntVector
+	template <typename T, typename AllocatorT = void>
+	class IntVector : public memAllocating<AllocatorT>
 	{
 	public:
 		T* m_data = nullptr;
@@ -20,18 +21,30 @@ NAMESPACE_SOUP
 
 		explicit constexpr IntVector() noexcept = default;
 
+		using memAllocating<AllocatorT>::memAllocating;
+
 		explicit IntVector(const IntVector<T>& b) SOUP_EXCAL
 			: m_capacity(b.m_capacity), m_size(b.m_size)
 		{
 			if (m_capacity != 0)
 			{
-				m_data = (T*)soup::malloc(m_capacity * sizeof(T));
+				m_data = (T*)this->allocate(m_capacity * sizeof(T));
 				memcpy(m_data, b.m_data, m_size * sizeof(T));
 			}
 		}
 
-		explicit IntVector(IntVector<T>&& b) noexcept
+		template <typename OtherAllocatorT, SOUP_RESTRICT(std::is_same_v<AllocatorT, OtherAllocatorT> && std::is_void_v<AllocatorT>)>
+		explicit IntVector(IntVector<T, OtherAllocatorT>&& b) noexcept
 			: m_data(b.m_data), m_capacity(b.m_capacity), m_size(b.m_size)
+		{
+			b.m_data = nullptr;
+			b.m_capacity = 0;
+			b.m_size = 0;
+		}
+
+		template <typename OtherAllocatorT, SOUP_RESTRICT(std::is_same_v<AllocatorT, OtherAllocatorT> && !std::is_void_v<AllocatorT>)>
+		explicit IntVector(IntVector<T, OtherAllocatorT>&& b) noexcept
+			: memAllocating<AllocatorT>(b.allocator), m_data(b.m_data), m_capacity(b.m_capacity), m_size(b.m_size)
 		{
 			b.m_data = nullptr;
 			b.m_capacity = 0;
@@ -43,20 +56,34 @@ NAMESPACE_SOUP
 			free();
 		}
 
-		void operator=(const IntVector<T>& b) SOUP_EXCAL
+		void operator=(const IntVector<T, AllocatorT>& b) SOUP_EXCAL
 		{
 			if (m_capacity < b.m_size)
 			{
 				free();
 				m_capacity = b.m_size;
-				m_data = (T*)soup::malloc(m_capacity * sizeof(T));
+				m_data = (T*)this->allocate(m_capacity * sizeof(T));
 			}
 
 			m_size = b.m_size;
 			memcpy(m_data, b.m_data, m_size * sizeof(T));
 		}
 
-		void operator=(IntVector<T>&& b) noexcept
+		template <typename OtherAllocatorT>
+		void operator=(const IntVector<T, OtherAllocatorT>& b) SOUP_EXCAL
+		{
+			if (m_capacity < b.m_size)
+			{
+				free();
+				m_capacity = b.m_size;
+				m_data = (T*)this->allocate(m_capacity * sizeof(T));
+			}
+
+			m_size = b.m_size;
+			memcpy(m_data, b.m_data, m_size * sizeof(T));
+		}
+
+		void operator=(IntVector<T, AllocatorT>&& b) noexcept
 		{
 			free();
 
@@ -123,7 +150,7 @@ NAMESPACE_SOUP
 			SOUP_IF_UNLIKELY (m_size + elms > m_capacity)
 			{
 				m_capacity = m_size + elms;
-				auto data = reinterpret_cast<T*>(soup::malloc(m_capacity * sizeof(T)));
+				auto data = reinterpret_cast<T*>(this->allocate(m_capacity * sizeof(T)));
 				memcpy(&data[elms], &m_data[0], m_size * sizeof(T));
 				memset(&data[0], 0, elms * sizeof(T));
 				m_data = data;
@@ -172,7 +199,7 @@ NAMESPACE_SOUP
 			if (m_capacity == 0)
 			{
 				m_capacity = (0x1000 / sizeof(T));
-				m_data = reinterpret_cast<T*>(soup::malloc(m_capacity * sizeof(T)));
+				m_data = reinterpret_cast<T*>(this->allocate(m_capacity * sizeof(T)));
 			}
 		}
 
@@ -180,7 +207,7 @@ NAMESPACE_SOUP
 		void makeSpaceForMoreElements() SOUP_EXCAL
 		{
 			m_capacity += (0x1000 / sizeof(T));
-			m_data = reinterpret_cast<T*>(soup::realloc(m_data, m_capacity * sizeof(T)));
+			m_data = reinterpret_cast<T*>(this->reallocate(m_data, m_capacity * sizeof(T)));
 		}
 
 	public:
@@ -195,7 +222,7 @@ NAMESPACE_SOUP
 			if (m_capacity != 0)
 			{
 				m_capacity = 0;
-				soup::free(m_data);
+				this->deallocate(m_data);
 				m_data = nullptr;
 			}
 		}*/
@@ -205,7 +232,7 @@ NAMESPACE_SOUP
 		{
 			if (m_capacity != 0)
 			{
-				soup::free(m_data);
+				this->deallocate(m_data);
 			}
 		}
 	};

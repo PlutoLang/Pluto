@@ -13,6 +13,7 @@
 #endif
 
 #include "AtomicDeque.hpp"
+#include "netSocketSecurity.hpp"
 #include "SharedPtr.hpp"
 #include "Worker.hpp"
 
@@ -135,7 +136,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] SharedPtr<Worker> getShared(const Worker& w) const;
 #if !SOUP_WASM
-		[[nodiscard]] SharedPtr<Socket> findReusableSocket(const std::string& host, uint16_t port, bool tls);
+		[[nodiscard]] SharedPtr<Socket> findReusableSocket(const std::string& host, uint16_t port, netSocketSecurity min_security);
 		void closeReusableSockets() SOUP_EXCAL;
 #endif
 

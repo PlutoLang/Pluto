@@ -14,6 +14,7 @@ NAMESPACE_SOUP
 
 	UniquePtr<JsonNode> json::decodeFile(const std::filesystem::path& path, int max_depth)
 	{
+#if !SOUP_WASM || SOUP_EMSCRIPTEN
 		UniquePtr<JsonNode> res;
 		size_t size;
 		if (auto data = filesystem::createFileMapping(path, size))
@@ -22,6 +23,9 @@ NAMESPACE_SOUP
 			filesystem::destroyFileMapping(data, size);
 		}
 		return res;
+#else
+		return json::decode(string::fromFile(path), max_depth);
+#endif
 	}
 
 	void* json::decode(const JsonTreeWriter& tw, void* user_data, const char*& c, size_t& s, int max_depth)

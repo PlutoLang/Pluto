@@ -295,9 +295,12 @@ NAMESPACE_SOUP
 		return res;
 	}
 
-	std::string Regex::unparseFlags(uint16_t flags)
+	void Regex::unparseFlags(std::string& str, uint16_t flags)
 	{
-		std::string str{};
+		if (flags & RE_GLOBAL)
+		{
+			str.push_back('g');
+		}
 		if (flags & RE_MULTILINE)
 		{
 			str.push_back('m');
@@ -330,13 +333,16 @@ NAMESPACE_SOUP
 		{
 			str.push_back('n');
 		}
-		return str;
 	}
 
 	[[nodiscard]] static std::string node_to_graphviz_dot_string(const RegexConstraint* node)
 	{
+		std::string str;
+		uint16_t flags = 0;
+		node->toString(str, flags);
+
 		std::stringstream ss;
-		if (auto str = node->toString(); !str.empty())
+		if (!str.empty())
 		{
 			ss << std::move(str);
 		}

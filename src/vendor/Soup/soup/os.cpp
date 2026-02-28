@@ -47,6 +47,7 @@ NAMESPACE_SOUP
 		str.push_back('"');
 	}
 
+#if !SOUP_WASM
 	std::string os::execute(std::string program, const std::vector<std::string>& args)
 	{
 		resolveProgram(program);
@@ -129,8 +130,9 @@ NAMESPACE_SOUP
 #endif
 		return result;
 	}
+#endif
 
-#if !SOUP_WINDOWS
+#if !SOUP_WINDOWS && !SOUP_WASM
 	pid_t os::getProcessId() noexcept
 	{
 		return ::getpid();

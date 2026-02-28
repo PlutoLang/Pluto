@@ -1,4 +1,5 @@
 #include "memGuard.hpp"
+#if !SOUP_WASM
 
 #if SOUP_WINDOWS
 	#include <windows.h>
@@ -110,3 +111,5 @@ NAMESPACE_SOUP
 		return 0;
 	}
 }
+
+#endif

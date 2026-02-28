@@ -17,7 +17,9 @@ NAMESPACE_SOUP
 		[[nodiscard]] static std::filesystem::path tempfile(const std::string& ext = {});
 		[[nodiscard]] static std::filesystem::path getProgramData() SOUP_EXCAL;
 
+#if !SOUP_WASM || SOUP_EMSCRIPTEN
 		[[nodiscard]] static const void* createFileMapping(const std::filesystem::path& path, size_t& out_len) noexcept;
 		static void destroyFileMapping(const void* addr, size_t len) noexcept;
+#endif
 	};
 }

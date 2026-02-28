@@ -22,13 +22,12 @@ NAMESPACE_SOUP
 			return constraints.at(0)->getEntrypoint();
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			std::string str = constraints.at(0)->toString();
+			constraints.at(0)->toString(str, flags);
 			str.push_back('{');
 			str.append(std::to_string(constraints.size()));
 			str.push_back('}');
-			return str;
 		}
 
 		[[nodiscard]] size_t getCursorAdvancement() const final

@@ -44,7 +44,7 @@ NAMESPACE_SOUP
 	}
 
 	RegexGroup::RegexGroup(const ConstructorState& s, bool non_capturing)
-		: index(non_capturing ? -1 : s.next_index++)
+		: index(non_capturing ? -1 : s.next_index++), initial_flags(s.flags)
 	{
 		RegexTransitionsVector success_transitions;
 		success_transitions.data = { &initial };
@@ -913,41 +913,19 @@ NAMESPACE_SOUP
 		s.alternatives_transitions = std::move(alternatives_transitions);
 	}
 
-	std::string RegexGroup::toString() const SOUP_EXCAL
+	void RegexGroup::toString(std::string& str, uint16_t& flags) const SOUP_EXCAL
 	{
-		std::string str{};
 		for (const auto& a : alternatives)
 		{
 			for (const auto& c : a.constraints)
 			{
-				str.append(c->toString());
+				c->toString(str, flags);
 			}
 			str.push_back('|');
 		}
-		if (!str.empty())
+		if (!alternatives.empty())
 		{
 			str.pop_back();
-		}
-		return str;
-	}
-
-	uint16_t RegexGroup::getFlags() const
-	{
-		uint16_t set = 0;
-		uint16_t unset = 0;
-		getFlags(set, unset);
-		SOUP_ASSERT((set & unset) == 0, "RegexGroup has contradicting flags");
-		return set;
-	}
-
-	void RegexGroup::getFlags(uint16_t& set, uint16_t& unset) const noexcept
-	{
-		for (const auto& a : alternatives)
-		{
-			for (const auto& c : a.constraints)
-			{
-				c->getFlags(set, unset);
-			}
 		}
 	}
 

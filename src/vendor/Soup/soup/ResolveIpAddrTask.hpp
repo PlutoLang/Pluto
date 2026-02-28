@@ -1,5 +1,8 @@
 #pragma once
 
+#include "base.hpp"
+#if !SOUP_WASM || SOUP_EMSCRIPTEN
+
 #include <string>
 
 #include "dnsLookupTask.hpp"
@@ -21,3 +24,5 @@ NAMESPACE_SOUP
 		void onTick() final;
 	};
 }
+
+#endif
