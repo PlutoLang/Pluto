@@ -31,32 +31,30 @@ NAMESPACE_SOUP
 
 	struct RegexRangeQuantifierConstraintGreedy : public RegexRangeQuantifierConstraintBase
 	{
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			std::string str = constraints.at(0)->toString();
+			constraints.at(0)->toString(str, flags);
 			str.push_back('{');
 			str.append(std::to_string(min_reps));
 			str.push_back(',');
 			str.append(std::to_string(constraints.size()));
 			str.push_back('}');
-			return str;
 		}
 	};
 
 	struct RegexRangeQuantifierConstraintLazy : public RegexRangeQuantifierConstraintBase
 	{
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
 			const size_t optional_reps = (constraints.size() - min_reps) / 2;
 
-			std::string str = constraints.at(0)->toString();
+			constraints.at(0)->toString(str, flags);
 			str.push_back('{');
 			str.append(std::to_string(min_reps));
 			str.push_back(',');
 			str.append(std::to_string(min_reps + optional_reps));
 			str.push_back('}');
 			str.push_back('?');
-			return str;
 		}
 	};
 }

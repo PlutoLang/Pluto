@@ -15,9 +15,16 @@ NAMESPACE_SOUP
 			return string::isWordChar(*m.it++) ^ inverted;
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			return inverted ? "\\W" : "\\w";
+			if constexpr (inverted)
+			{
+				str.append("\\W");
+			}
+			else
+			{
+				str.append("\\w");
+			}
 		}
 
 		[[nodiscard]] size_t getCursorAdvancement() const final

@@ -311,9 +311,9 @@ NAMESPACE_SOUP
 			str.push_back(c);
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			std::string str(1, '[');
+			str.push_back('[');
 			if (inverted)
 			{
 				str.push_back('^');
@@ -370,7 +370,6 @@ NAMESPACE_SOUP
 				}
 			}
 			str.push_back(']');
-			return str;
 		}
 
 		[[nodiscard]] size_t getCursorAdvancement() const final

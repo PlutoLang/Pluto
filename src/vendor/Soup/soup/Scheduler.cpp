@@ -376,7 +376,7 @@ NAMESPACE_SOUP
 			}
 		}
 
-		// Iterating over the AtomicDeque is fine here because this function should only be called on the scheduler thread, which is the same one that would pop.
+		// Iterating over the AtomicDeque is fine here because this function should only be called on the scheduler thread, which is the one that would pop.
 		for (auto node = pending_workers.head.load(); node != nullptr; node = node->next.load())
 		{
 			const SharedPtr<Worker>& spW = node->data;
@@ -390,7 +390,7 @@ NAMESPACE_SOUP
 	}
 
 #if !SOUP_WASM
-	SharedPtr<Socket> Scheduler::findReusableSocket(const std::string& host, uint16_t port, bool tls)
+	SharedPtr<Socket> Scheduler::findReusableSocket(const std::string& host, uint16_t port, netSocketSecurity min_security)
 	{
 		for (const auto& w : workers)
 		{
@@ -398,14 +398,14 @@ NAMESPACE_SOUP
 				&& static_cast<Socket*>(w.get())->custom_data.isStructInMap(netReuseTag)
 				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(netReuseTag).host == host
 				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(netReuseTag).port == port
-				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(netReuseTag).tls == tls
+				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(netReuseTag).security >= min_security
 				)
 			{
 				return w;
 			}
 		}
 
-		// Iterating over the AtomicDeque is fine here because this function should only be called on the scheduler thread, which is the same one that would pop.
+		// Iterating over the AtomicDeque is fine here because this function should only be called on the scheduler thread, which is the one that would pop.
 		for (auto node = pending_workers.head.load(); node != nullptr; node = node->next.load())
 		{
 			const SharedPtr<Worker>& w = node->data;
@@ -413,7 +413,7 @@ NAMESPACE_SOUP
 				&& static_cast<Socket*>(w.get())->custom_data.isStructInMap(netReuseTag)
 				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(netReuseTag).host == host
 				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(netReuseTag).port == port
-				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(netReuseTag).tls == tls
+				&& static_cast<Socket*>(w.get())->custom_data.getStructFromMapConst(netReuseTag).security >= min_security
 				)
 			{
 				return w;

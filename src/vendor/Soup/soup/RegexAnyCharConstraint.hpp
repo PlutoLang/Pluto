@@ -33,13 +33,10 @@ NAMESPACE_SOUP
 			return true;
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			return ".";
-		}
-
-		void getFlags(uint16_t& set, uint16_t& unset) const noexcept final
-		{
+			uint16_t set = 0;
+			uint16_t unset = 0;
 			if constexpr (dotall)
 			{
 				set |= RE_DOTALL;
@@ -56,6 +53,8 @@ NAMESPACE_SOUP
 			{
 				unset |= RE_UNICODE;
 			}
+			updateFlags(str, flags, set, unset);
+			str.push_back('.');
 		}
 
 		[[nodiscard]] size_t getCursorAdvancement() const final

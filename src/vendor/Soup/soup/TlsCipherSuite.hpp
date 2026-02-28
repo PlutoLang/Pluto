@@ -45,6 +45,44 @@ NAMESPACE_SOUP
 		TLS_GREASE_15 = 0xFAFA,
 	};
 
+	[[nodiscard]] inline bool tls_serverSupportsCipherSuite(uint16_t cs) noexcept
+	{
+		switch (cs)
+		{
+		case TLS_RSA_WITH_RC4_128_MD5:
+		case TLS_RSA_WITH_AES_128_CBC_SHA:
+		case TLS_RSA_WITH_AES_256_CBC_SHA:
+		case TLS_RSA_WITH_AES_128_CBC_SHA256:
+		case TLS_RSA_WITH_AES_256_CBC_SHA256:
+		case TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:
+		case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:
+		case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:
+		case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
+		case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
+			return true;
+		}
+		return false;
+	}
+
+	[[nodiscard]] inline bool tls_isEcdheCiphersuite(TlsCipherSuite_t ciphersuite)
+	{
+		switch (ciphersuite)
+		{
+		case TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:
+		case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:
+		case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:
+		case TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:
+		case TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256:
+		case TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:
+		case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
+		case TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
+		case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
+		case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
+			return true;
+		}
+		return false;
+	}
+
 	[[nodiscard]] inline bool tls_isGreaseyCiphersuite(TlsCipherSuite_t ciphersuite)
 	{
 		switch (ciphersuite)

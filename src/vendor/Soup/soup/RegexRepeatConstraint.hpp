@@ -69,9 +69,9 @@ NAMESPACE_SOUP
 			return RegexConstraint::clone(success_transitions);
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			std::string str = constraint->toString();
+			constraint->toString(str, flags);
 			if (at_least_one)
 			{
 				str.push_back('+');
@@ -84,7 +84,6 @@ NAMESPACE_SOUP
 			{
 				str.push_back('?');
 			}
-			return str;
 		}
 	};
 }

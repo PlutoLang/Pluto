@@ -33,6 +33,7 @@ NAMESPACE_SOUP
 		RegexConstraint* initial = nullptr;
 		std::vector<RegexAlternative> alternatives{};
 		std::string name{};
+		uint16_t initial_flags = 0;
 		bool lookahead_or_lookbehind = false;
 
 		RegexGroup() = default;
@@ -56,10 +57,7 @@ NAMESPACE_SOUP
 			return index == -1;
 		}
 
-		[[nodiscard]] std::string toString() const SOUP_EXCAL;
-
-		[[nodiscard]] uint16_t getFlags() const;
-		void getFlags(uint16_t& set, uint16_t& unset) const noexcept;
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL;
 
 		[[nodiscard]] size_t getCursorAdvancement() const;
 	};

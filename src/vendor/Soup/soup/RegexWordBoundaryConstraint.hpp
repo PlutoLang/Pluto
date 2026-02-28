@@ -28,9 +28,16 @@ NAMESPACE_SOUP
 			}
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			return inverted ? "\\B" : "\\b";
+			if constexpr (inverted)
+			{
+				str.append("\\B");
+			}
+			else
+			{
+				str.append("\\b");
+			}
 		}
 
 		[[nodiscard]] size_t getCursorAdvancement() const final

@@ -25,15 +25,16 @@ NAMESPACE_SOUP
 			return false;
 		}
 
-		[[nodiscard]] std::string toString() const noexcept final
+		void toString(std::string& str, uint16_t& flags) const SOUP_EXCAL final
 		{
-			return escape_sequence ? "\\A" : "^";
-		}
-
-		void getFlags(uint16_t& set, uint16_t& unset) const noexcept final
-		{
-			if constexpr (!escape_sequence)
+			if constexpr (escape_sequence)
 			{
+				str.append("\\A");
+			}
+			else
+			{
+				uint16_t set = 0;
+				uint16_t unset = 0;
 				if constexpr (multi_line)
 				{
 					set |= RE_MULTILINE;
@@ -42,6 +43,8 @@ NAMESPACE_SOUP
 				{
 					unset |= RE_MULTILINE;
 				}
+				updateFlags(str, flags, set, unset);
+				str.push_back('^');
 			}
 		}
 

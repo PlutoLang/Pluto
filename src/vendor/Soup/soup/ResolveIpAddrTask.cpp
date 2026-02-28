@@ -1,4 +1,5 @@
 #include "ResolveIpAddrTask.hpp"
+#if !SOUP_WASM || SOUP_EMSCRIPTEN
 
 #include "dnsResolver.hpp"
 #include "netConfig.hpp"
@@ -44,3 +45,5 @@ NAMESPACE_SOUP
 		}
 	}
 }
+
+#endif

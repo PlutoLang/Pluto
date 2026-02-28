@@ -9,9 +9,17 @@
 
 #include <iostream>
 
+#ifndef SOUP_HAVE_TERMIOS
+	#if !SOUP_WINDOWS && (!SOUP_WASM || SOUP_EMSCRIPTEN)
+		#define SOUP_HAVE_TERMIOS true
+	#else
+		#define SOUP_HAVE_TERMIOS false
+	#endif
+#endif
+
 #if SOUP_WINDOWS
 #include <windows.h>
-#else
+#elif SOUP_HAVE_TERMIOS
 #include <termios.h>
 #endif
 
@@ -40,7 +48,7 @@ NAMESPACE_SOUP
 		bool pressed_lmb = false;
 		bool pressed_rmb = false;
 		bool pressed_mmb = false;
-#else
+#elif SOUP_HAVE_TERMIOS
 		inline static struct termios termattrs_og{};
 		inline static struct termios termattrs_cur{};
 #endif

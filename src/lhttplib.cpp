@@ -186,7 +186,7 @@ struct HasConnectionTask : public soup::PromiseTask<bool> {
   HasConnectionTask(std::string&& host, uint16_t port, bool tls) : host(std::move(host)), port(port), tls(tls) {}
 
   void onTick() {
-    fulfil(soup::Scheduler::get()->findReusableSocket(host, port, tls));
+    fulfil(soup::Scheduler::get()->findReusableSocket(host, port, tls ? soup::SOCKET_TLS : soup::SOCKET_INSECURE));
   }
 };
 

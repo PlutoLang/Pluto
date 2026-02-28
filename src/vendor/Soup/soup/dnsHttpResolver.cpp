@@ -1,4 +1,5 @@
 #include "dnsHttpResolver.hpp"
+#if !SOUP_WASM || SOUP_EMSCRIPTEN
 
 #include "base64.hpp"
 #include "HttpRequest.hpp"
@@ -84,3 +85,5 @@ NAMESPACE_SOUP
 		return soup::make_unique<dnsHttpLookupTask>(server, qtype, name);
 	}
 }
+
+#endif

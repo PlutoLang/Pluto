@@ -4,7 +4,7 @@
 #include "ObfusString.hpp"
 #include "WeakRef.hpp"
 
-#if SOUP_WASM
+#if SOUP_EMSCRIPTEN
 #include "dnsHttpResolver.hpp"
 #elif SOUP_WINDOWS || SOUP_LINUX
 #include "dnsOsResolver.hpp"
@@ -63,9 +63,10 @@ NAMESPACE_SOUP
 	};
 #endif
 
+#if !SOUP_WASM || SOUP_EMSCRIPTEN
 	SharedPtr<dnsResolver> dnsResolver::makeDefault()
 	{
-#if SOUP_WASM
+#if SOUP_EMSCRIPTEN
 		return soup::make_shared<dnsHttpResolver>();
 #elif SOUP_WINDOWS || SOUP_LINUX
 		// Pros:
@@ -82,6 +83,7 @@ NAMESPACE_SOUP
 		return soup::make_shared<dnsSmartResolver>();
 #endif
 	}
+#endif
 
 #if !SOUP_WASM
 	std::vector<IpAddr> dnsResolver::lookupIPv4(const std::string& name) const

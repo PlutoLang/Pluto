@@ -1,4 +1,5 @@
 #include "ProcessHandle.hpp"
+#if !SOUP_WASM
 
 #include "alloc.hpp"
 #include "memGuard.hpp"
@@ -110,3 +111,5 @@ NAMESPACE_SOUP
 		return res;
 	}
 }
+
+#endif

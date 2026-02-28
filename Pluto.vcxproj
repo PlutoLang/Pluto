@@ -790,7 +790,9 @@
     <ClCompile Include="src\vendor\Soup\soup\Rc4State.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Reader.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Regex.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\RegexConstraint.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\RegexGroup.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\RegexGroupConstraint.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ResolveIpAddrTask.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\rflParser.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Rgb.cpp" />
@@ -979,6 +981,7 @@
     <ClInclude Include="src\vendor\Soup\soup\netConfig.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netConnectTask.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netReuseTag.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\netSocketSecurity.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netStatus.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Notifyable.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\ObfusString.hpp" />

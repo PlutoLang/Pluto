@@ -63,7 +63,7 @@ NAMESPACE_SOUP
 	[[nodiscard]] constexpr int popcount(const T val) noexcept
 	{
 #if SOUP_CPP20
-		return std::popcount<T>(val);
+		return std::popcount<std::make_unsigned_t<T>>(val);
 #else
 		if constexpr (sizeof(T) <= 4)
 		{

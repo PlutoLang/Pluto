@@ -412,7 +412,7 @@ NAMESPACE_SOUP
 		bool sha256;
 	};
 
-	void Socket::enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&, std::string&& alpn_protocol), Capture&& cap, std::string&& initial_application_data, certchain_validator_t certchain_validator, std::vector<std::string>&& alpn_protocols)
+	void Socket::enableCryptoClient(std::string server_name, void(*callback)(Socket&, Capture&&, std::string&& alpn_protocol), Capture&& cap, std::string&& initial_application_data, certchain_validator_t certchain_validator, std::vector<std::string>&& alpn_protocols, bool require_ecdhe)
 	{
 		UniquePtr<SocketTlsHandshaker> handshaker = soup::make_unique<SocketTlsHandshakerClient>(
 			callback,
@@ -426,12 +426,15 @@ NAMESPACE_SOUP
 		hello.random.time = static_cast<uint32_t>(time::unixSeconds());
 		rand.fill(hello.random.random);
 		handshaker->client_random = hello.random.toBinaryString();
-		vector_emplace_back_randomised(hello.cipher_suites, {
-			TLS_RSA_WITH_AES_256_CBC_SHA256,
-			TLS_RSA_WITH_AES_128_CBC_SHA256,
-			TLS_RSA_WITH_AES_256_CBC_SHA,
-			TLS_RSA_WITH_AES_128_CBC_SHA,
-		});
+		if (!require_ecdhe)
+		{
+			vector_emplace_back_randomised(hello.cipher_suites, {
+				TLS_RSA_WITH_AES_256_CBC_SHA256,
+				TLS_RSA_WITH_AES_128_CBC_SHA256,
+				TLS_RSA_WITH_AES_256_CBC_SHA,
+				TLS_RSA_WITH_AES_128_CBC_SHA,
+			});
+		}
 		vector_emplace_back_randomised(hello.cipher_suites, {
 			TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
 			TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, // Cloudfront
@@ -609,22 +612,12 @@ NAMESPACE_SOUP
 						auto& s = static_cast<Socket&>(w);
 						UniquePtr<SocketTlsHandshaker> handshaker = std::move(cap.get<UniquePtr<SocketTlsHandshaker>>());
 
-						switch (handshaker->cipher_suite)
+						if (!tls_isEcdheCiphersuite(handshaker->cipher_suite))
 						{
-						default:
 							s.enableCryptoClientRecvServerHelloDone(std::move(handshaker));
-							break;
-
-						case TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:
-						case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:
-						case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:
-						case TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:
-						case TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256:
-						case TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA:
-						case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
-						case TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
-						case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
-						case TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
+						}
+						else
+						{
 							s.tls_recvHandshake(std::move(handshaker), [](Socket& s, UniquePtr<SocketTlsHandshaker>&& handshaker, TlsHandshakeType_t handshake_type, std::string&& data) SOUP_EXCAL
 							{
 								if (handshake_type != TlsHandshake::server_key_exchange)
@@ -765,7 +758,6 @@ NAMESPACE_SOUP
 									s.enableCryptoClientRecvServerHelloDone(std::move(handshaker));
 								}, std::move(handshaker));
 							});
-							break;
 						}
 					}, std::move(handshaker));
 				});
@@ -937,37 +929,16 @@ NAMESPACE_SOUP
 		}
 	}
 
-	[[nodiscard]] static bool tls_serverSupportsCipherSuite(uint16_t cs) noexcept
+	TlsCipherSuite_t Socket::default_select_ciphersuite(Socket&, const TlsClientHello& hello)
 	{
-		switch (cs)
+		for (const auto& cs : hello.cipher_suites)
 		{
-		case TLS_RSA_WITH_RC4_128_MD5:
-		case TLS_RSA_WITH_AES_128_CBC_SHA:
-		case TLS_RSA_WITH_AES_256_CBC_SHA:
-		case TLS_RSA_WITH_AES_128_CBC_SHA256:
-		case TLS_RSA_WITH_AES_256_CBC_SHA256:
-		case TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:
-		case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:
-		case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:
-		case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
-		case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
-			return true;
+			if (tls_serverSupportsCipherSuite(cs))
+			{
+				return cs;
+			}
 		}
-		return false;
-	}
-
-	[[nodiscard]] static bool tls_cipherSuiteIsEcdhe(uint16_t cs) noexcept
-	{
-		switch (cs)
-		{
-		case TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:
-		case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256:
-		case TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:
-		case TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
-		case TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
-			return true;
-		}
-		return false;
+		return TLS_RSA_WITH_AES_128_CBC_SHA; // The TLS 1.2 spec says this one has to be supported, so surely everyone using TLS 1.2 supports it :derp:
 	}
 
 	struct CaptureDecryptPreMasterSecret
@@ -976,13 +947,13 @@ NAMESPACE_SOUP
 		Bigint data;
 	};
 
-	void Socket::enableCryptoServer(SharedPtr<CertStore> certstore, void(*callback)(Socket&, Capture&&), Capture&& cap, tls_server_on_client_hello_t on_client_hello, tls_server_alpn_select_protocol_t alpn_select_protocol)
+	void Socket::enableCryptoServer(SharedPtr<CertStore> certstore, void(*callback)(Socket&, Capture&&), Capture&& cap, tls_server_select_ciphersuite_t select_ciphersuite, tls_server_alpn_select_protocol_t alpn_select_protocol)
 	{
 		UniquePtr<SocketTlsHandshaker> handshaker = soup::make_unique<SocketTlsHandshakerServer>(
 			callback,
 			std::move(cap),
 			std::move(certstore),
-			on_client_hello,
+			select_ciphersuite ? select_ciphersuite : &default_select_ciphersuite,
 			alpn_select_protocol
 		);
 
@@ -1012,18 +983,16 @@ NAMESPACE_SOUP
 
 				handshaker->layer_bytes.append(data.substr(2)); // "For the purposes of calculating Finished and CertificateVerify, the msg_length field is not considered to be a part of the handshake message."
 
+				TlsClientHello converted_hello;
+				converted_hello.cipher_suites.reserve(hello.cipher_suites.size());
 				for (const auto& val : hello.cipher_suites)
 				{
 					if (val <= 0xffff)
 					{
-						TlsCipherSuite_t cs = val;
-						if (tls_serverSupportsCipherSuite(cs))
-						{
-							handshaker->cipher_suite = cs;
-							break;
-						}
+						converted_hello.cipher_suites.emplace_back(static_cast<TlsCipherSuite_t>(val));
 					}
 				}
+				handshaker->cipher_suite = static_cast<SocketTlsHandshakerServer*>(handshaker.get())->select_ciphersuite(s, converted_hello);
 
 				const CertStoreEntry* rsa_data = static_cast<SocketTlsHandshakerServer*>(handshaker.get())->certstore->findEntryForDomain({});
 				if (!rsa_data)
@@ -1033,11 +1002,6 @@ NAMESPACE_SOUP
 				}
 
 				handshaker->client_random = std::move(hello.challenge);
-
-				if (static_cast<SocketTlsHandshakerServer*>(handshaker.get())->on_client_hello)
-				{
-					// Meh
-				}
 
 				s.enableCryptoServerAfterClientHello(std::move(handshaker), rsa_data, {});
 			}
@@ -1064,14 +1028,7 @@ NAMESPACE_SOUP
 					s.tls_close(TlsAlertDescription::decode_error);
 					return;
 				}
-				for (const auto& cs : hello.cipher_suites)
-				{
-					if (tls_serverSupportsCipherSuite(cs))
-					{
-						handshaker->cipher_suite = cs;
-						break;
-					}
-				}
+				handshaker->cipher_suite = static_cast<SocketTlsHandshakerServer*>(handshaker.get())->select_ciphersuite(s, hello);
 
 				std::string server_name{};
 				for (const auto& ext : hello.extensions.extensions)
@@ -1102,7 +1059,7 @@ NAMESPACE_SOUP
 					}
 					else if (ext.id == TlsExtensionType::elliptic_curves)
 					{
-						if (tls_cipherSuiteIsEcdhe(handshaker->cipher_suite))
+						if (tls_isEcdheCiphersuite(handshaker->cipher_suite))
 						{
 							TlsClientHelloExtEllipticCurves ext_curves;
 							if (ext_curves.fromBinary(ext.data))
@@ -1124,7 +1081,7 @@ NAMESPACE_SOUP
 					}
 				}
 
-				if (tls_cipherSuiteIsEcdhe(handshaker->cipher_suite) && handshaker->ecdhe_curve == 0)
+				if (tls_isEcdheCiphersuite(handshaker->cipher_suite) && handshaker->ecdhe_curve == 0)
 				{
 					s.tls_close(TlsAlertDescription::handshake_failure);
 					return;
@@ -1137,11 +1094,6 @@ NAMESPACE_SOUP
 				}
 
 				handshaker->client_random = hello.random.toBinaryString();
-
-				if (static_cast<SocketTlsHandshakerServer*>(handshaker.get())->on_client_hello)
-				{
-					static_cast<SocketTlsHandshakerServer*>(handshaker.get())->on_client_hello(s, std::move(hello));
-				}
 			}
 
 			s.enableCryptoServerAfterClientHello(std::move(handshaker), rsa_data, std::move(alpn_selection));
@@ -1191,7 +1143,7 @@ NAMESPACE_SOUP
 
 		static_cast<SocketTlsHandshakerServer*>(handshaker.get())->private_key = &rsa_data->private_key;
 
-		if (tls_cipherSuiteIsEcdhe(handshaker->cipher_suite))
+		if (tls_isEcdheCiphersuite(handshaker->cipher_suite))
 		{
 			std::string pub{};
 			if (handshaker->ecdhe_curve == NamedCurves::x25519)
@@ -1238,7 +1190,7 @@ NAMESPACE_SOUP
 			return;
 		}
 
-		if (tls_cipherSuiteIsEcdhe(handshaker->cipher_suite))
+		if (tls_isEcdheCiphersuite(handshaker->cipher_suite))
 		{
 			enableCryptoServerRecvClientKeyExchangeEcdhe(std::move(handshaker));
 		}

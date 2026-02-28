@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dnsRawResolver.hpp"
+#if !SOUP_WASM || SOUP_EMSCRIPTEN
 
 NAMESPACE_SOUP
 {
@@ -13,3 +14,5 @@ NAMESPACE_SOUP
 		[[nodiscard]] UniquePtr<dnsLookupTask> makeLookupTask(dnsType qtype, const std::string& name) const final;
 	};
 }
+
+#endif

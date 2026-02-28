@@ -57,14 +57,5 @@ NAMESPACE_SOUP
 			}
 			return true;
 		}
-
-		void getFlags(uint16_t& set, uint16_t& unset) const noexcept final
-		{
-			group.getFlags(set, unset);
-			if constexpr (unicode)
-			{
-				set |= RE_UNICODE;
-			}
-		}
 	};
 }

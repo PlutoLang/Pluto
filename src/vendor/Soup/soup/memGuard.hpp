@@ -1,8 +1,9 @@
 #pragma once
 
-#include <cstddef> // size_t
-
 #include "base.hpp"
+#if !SOUP_WASM
+
+#include <cstddef> // size_t
 
 #if SOUP_WINDOWS
 	#include <windows.h>
@@ -31,3 +32,5 @@ NAMESPACE_SOUP
 		static int getAllowedAccess(void* addr);
 	};
 }
+
+#endif
