@@ -40,7 +40,7 @@ $objects = [];
 $objects_lib = [];
 foreach($files as $file)
 {
-	run_command_async("$clang -c src/$file.cpp -o bin/int/".basename($file).".o");
+	run_command_async("$clang -Wno-invalid-noreturn -c src/$file.cpp -o bin/int/".basename($file).".o");
 	array_push($objects, escapeshellarg("bin/int/".basename($file).".o"));
 	if ($file != "lua")
 	{
