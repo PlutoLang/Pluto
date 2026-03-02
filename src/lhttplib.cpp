@@ -172,6 +172,10 @@ static int http_request (lua_State *L) {
     if (lua_rawget(L, optionsidx) > LUA_TNIL)
       spTask->dont_make_reusable_sockets = lua_istrue(L, -1);
     lua_pop(L, 1);
+    lua_pushliteral(L, "require_ecdhe");
+    if (lua_rawget(L, optionsidx) > LUA_TNIL)
+      spTask->require_ecdhe = lua_istrue(L, -1);
+    lua_pop(L, 1);
   }
   return await_task<soup::HttpRequestTask, push_http_response>(L, std::move(spTask));
 #endif
