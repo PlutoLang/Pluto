@@ -318,6 +318,23 @@ static int instantiate (lua_State *L) {
     inst.globals[i] = g;
     lua_pop(L, 2);
   }
+  for (size_t i = 0; i != inst.table_imports.size(); ++i) {
+    const auto& imp = inst.table_imports[i];
+    pluto_pushstring(L, imp.module_name);
+    if (l_unlikely(lua_gettable(L, 2) <= LUA_TNIL)) {
+      luaL_error(L, "missing import module \"%s\"", imp.module_name.c_str());
+    }
+    pluto_pushstring(L, imp.field_name);
+    if (l_unlikely(lua_gettable(L, -2) <= LUA_TNIL)) {
+      luaL_error(L, R"(missing import global "%s" in module "%s")", imp.field_name.c_str(), imp.module_name.c_str());
+    }
+    auto& tbl = *(soup::SharedPtr<soup::WasmScript::Table>*)luaL_checkudata(L, -1, "soup::SharedPtr<soup::WasmScript::Table>");
+    if (!imp.isCompatibleWith(*tbl)) {
+      luaL_error(L, R"(type mismatch for import table "%s" in module "%s")", imp.field_name.c_str(), imp.module_name.c_str());
+    }
+    inst.tables[i] = tbl;
+    lua_pop(L, 2);
+  }
   if (inst.memory_import) {
     const auto& imp = *inst.memory_import;
     pluto_pushstring(L, imp.module_name);
@@ -500,6 +517,31 @@ static const luaL_Reg funcs_wasm_global[] = {
   {nullptr, nullptr}
 };
 
+static int table_new (lua_State* L) {
+  size_t len;
+  const char *data = luaL_checklstring(L, 1, &len);
+  soup::WasmType type;
+  if (len == 7 && memcmp(data, "funcref", 7) == 0) {
+    type = soup::WASM_FUNCREF;
+  }
+  else if (len == 9 && memcmp(data, "externref", 9) == 0) {
+    type = soup::WASM_EXTERNREF;
+  }
+  else {
+    luaL_error(L, "invalid wasm type name (%s). expected funcref or externref.", data);
+  }
+  const soup::wasm_uptr_t initial_size = luaL_checkinteger(L, 2);
+  const soup::wasm_uptr_t max_size = luaL_optinteger(L, 3, 0x10'000);
+  const bool _64bit = lua_istrue(L, 4);
+  pluto_newclassinst(L, soup::SharedPtr<soup::WasmScript::Table>, soup::make_shared<soup::WasmScript::Table>(type, initial_size, max_size, _64bit));
+  return 1;
+}
+
+static const luaL_Reg funcs_wasm_table[] = {
+  {"new", table_new},
+  {nullptr, nullptr}
+};
+
 static int memory_new (lua_State* L) {
   const soup::wasm_uptr_t initial_pages = luaL_checkinteger(L, 1);
   const soup::wasm_uptr_t max_pages = luaL_optinteger(L, 2, 0x10'000);
@@ -518,6 +560,10 @@ int luaopen_wasm (lua_State *L) {
 
   lua_pushliteral(L, "global");
   luaL_newlib(L, funcs_wasm_global);
+  lua_settable(L, -3);
+
+  lua_pushliteral(L, "table");
+  luaL_newlib(L, funcs_wasm_table);
   lua_settable(L, -3);
 
   lua_pushliteral(L, "memory");
