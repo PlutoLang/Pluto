@@ -329,6 +329,7 @@ static int starttls (lua_State *L) {
   else {
     auto& early_data = *pluto_newclassinst(L, std::string);
     auto& alpn_protocols = *pluto_newclassinst(L, std::vector<std::string>);
+    bool require_ecdhe = false;
     if (lua_type(L, 3) == LUA_TTABLE) {
       lua_pushliteral(L, "early_data");
       if (lua_rawget(L, 3) > 0) {
@@ -345,8 +346,14 @@ static int starttls (lua_State *L) {
         }
       }
       lua_pop(L, 1);
+
+      lua_pushliteral(L, "require_ecdhe");
+      if (lua_rawget(L, 3) > 0) {
+        require_ecdhe = lua_istrue(L, -1);
+      }
+      lua_pop(L, 1);
     }
-    ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallbackclient, &ss, std::move(early_data), &soup::Socket::certchain_validator_default, std::move(alpn_protocols));
+    ss.sock->enableCryptoClient(luaL_checkstring(L, 2), starttlscallbackclient, &ss, std::move(early_data), &soup::Socket::certchain_validator_default, std::move(alpn_protocols), require_ecdhe);
   }
 
   if (lua_isyieldable(L))
