@@ -59,6 +59,7 @@ static void wasm_to_lua_stack (lua_State *L, soup::WasmSharedEnvironment& shared
   }
 }
 
+static soup::WasmSharedEnvironment& getstatewasmenv (lua_State *L);
 static void opt_wasm_value (lua_State *L, int i, soup::WasmValue& value) {
   switch (value.type) {
     case soup::WASM_I32:
@@ -77,6 +78,7 @@ static void opt_wasm_value (lua_State *L, int i, soup::WasmValue& value) {
       if (lua_type(L, i) >= 0) {
         lua_pushvalue(L, i);
         value.i64 = luaL_ref(L, LUA_REGISTRYINDEX) | 0x1'0000'0000;
+        getstatewasmenv(L).trackExternRef(value.i64);
       }
       break;
     default:
@@ -106,12 +108,15 @@ static int funcref_call (lua_State *L) {
   for (uint32_t i = 0; i != type.parameters.size(); ++i) {
     opt_wasm_value(L, 2 + i, args.emplace_back());
   }
+  const auto prev_callback_L = callback_L;
   callback_L = L;
   if (!ptr->script->call(ptr->index, std::move(args), &out)
     || out.size() < type.results.size() // Not using != because the stack may be over-filled as implicit drops only happen on internal calls.
     ) {
+    callback_L = prev_callback_L;
     luaL_error(L, "wasm vm error");
   }
+  callback_L = prev_callback_L;
   wasm_to_lua_stack(L, *ptr->script->shared_env, out, type.results);
   return static_cast<int>(type.results.size());
 }
@@ -150,12 +155,15 @@ static int call (lua_State *L) {
   for (uint32_t i = 0; i != type.parameters.size(); ++i) {
     opt_wasm_value(L, 3 + i, args.emplace_back(type.parameters[i]));
   }
+  const auto prev_callback_L = callback_L;
   callback_L = L;
   if (!inst.call(func_idx, std::move(args), &out)
     || out.size() < type.results.size() // Not using != because the stack may be over-filled as implicit drops only happen on internal calls.
     ) {
+    callback_L = prev_callback_L;
     luaL_error(L, "wasm vm error");
   }
+  callback_L = prev_callback_L;
   wasm_to_lua_stack(L, *inst.shared_env, out, type.results);
   return static_cast<int>(type.results.size());
 }
@@ -191,20 +199,57 @@ static int wasm_module_write (lua_State *L) {
   return 0;
 }
 
-static soup::WasmScript& pushmodule (lua_State *L) {
+static void call_imported_func (soup::WasmVm& vm, uint32_t user_data, const soup::WasmFunctionType& type) {
+  lua_assert(callback_L);
+  const auto L = callback_L;
+  lua_rawgeti(L, LUA_REGISTRYINDEX, user_data);
+  wasm_to_lua_stack(L, *vm.script.shared_env, vm.stack, type.parameters);
+  lua_call(L, static_cast<int>(type.parameters.size()), static_cast<int>(type.results.size()));
+  for (int i = 0; i != type.results.size(); ++i) {
+    opt_wasm_value(L, (static_cast<int>(type.results.size()) - i) * -1, vm.stack.emplace_back(type.results[i]));
+  }
+}
+
+static soup::WasmSharedEnvironment& getstatewasmenv (lua_State *L) {
   if (lua_getfield(L, LUA_REGISTRYINDEX, "pluto:statewasmenv") == LUA_TNIL) {
     lua_pop(L, 1);
-    pluto_newclassinst(L, soup::WasmSharedEnvironment);
+    auto env = (soup::WasmSharedEnvironment*)pluto_setupgcmt(L, new (lua_newuserdata(L, sizeof(soup::WasmSharedEnvironment))) soup::WasmSharedEnvironment(), "soup::WasmSharedEnvironment", [](lua_State* L) {
+      pluto_errorifnotgc(L);
+      const auto prev_callback_L = callback_L;
+      callback_L = L;
+      std::destroy_at<>((soup::WasmSharedEnvironment*)luaL_checkudata(L, 1, "soup::WasmSharedEnvironment"));
+      callback_L = prev_callback_L;
+      return 0;
+    });
     lua_pushvalue(L, -1);
     lua_setfield(L, LUA_REGISTRYINDEX, "pluto:statewasmenv");
+    env->on_pre_free_script = [](soup::WasmScript& scr) {
+      lua_assert(callback_L);
+      for (const auto& imp : scr.function_imports) {
+        if (imp.ptr == &call_imported_func) {
+          luaL_unref(callback_L, LUA_REGISTRYINDEX, imp.user_data);
+        }
+      }
+    };
+    env->free_externref = [](uint64_t value) {
+      lua_assert(callback_L);
+	  luaL_unref(callback_L, LUA_REGISTRYINDEX, value & 0xffff'ffff);
+    };
   }
-  auto env = reinterpret_cast<soup::WasmSharedEnvironment*>(lua_touserdata(L, -1));
-  auto ptr = new (lua_newuserdata(L, sizeof(soup::WasmSharedEnvironment::ScriptRaii))) soup::WasmSharedEnvironment::ScriptRaii(env->createScript());
+  return *reinterpret_cast<soup::WasmSharedEnvironment*>(lua_touserdata(L, -1));
+}
+
+static soup::WasmScript& pushmodule (lua_State *L) {
+  auto& env = getstatewasmenv(L);
+  auto ptr = new (lua_newuserdata(L, sizeof(soup::WasmSharedEnvironment::ScriptRaii))) soup::WasmSharedEnvironment::ScriptRaii(env.createScript());
   if (l_unlikely(luaL_newmetatable(L, "pluto:wasm-module"))) {
     lua_pushliteral(L, "__gc");
     lua_pushcfunction(L, [](lua_State* L) {
       pluto_errorifnotgc(L);
+      const auto prev_callback_L = callback_L;
+      callback_L = L;
       std::destroy_at<>(checkmoduleraw(L, 1));
+      callback_L = prev_callback_L;
       return 0;
     });
     lua_settable(L, -3);
@@ -252,16 +297,7 @@ static int instantiate (lua_State *L) {
     if (l_unlikely(lua_gettable(L, -2) <= LUA_TNIL)) {
       luaL_error(L, R"(missing import function "%s" in module "%s")", imp.field_name.c_str(), imp.module_name.c_str());
     }
-    imp.ptr = [](soup::WasmVm& vm, uint32_t user_data, const soup::WasmFunctionType& type) {
-      lua_assert(callback_L);
-      const auto L = callback_L;
-      lua_rawgeti(L, LUA_REGISTRYINDEX, user_data);
-      wasm_to_lua_stack(L, *vm.script.shared_env, vm.stack, type.parameters);
-      lua_call(L, static_cast<int>(type.parameters.size()), static_cast<int>(type.results.size()));
-      for (int i = 0; i != type.results.size(); ++i) {
-        opt_wasm_value(L, (static_cast<int>(type.results.size()) - i) * -1, vm.stack.emplace_back(type.results[i]));
-      }
-    };
+    imp.ptr = &call_imported_func;
     imp.user_data = luaL_ref(L, LUA_REGISTRYINDEX);
     lua_pop(L, 1);
   }
@@ -299,10 +335,14 @@ static int instantiate (lua_State *L) {
     inst.memory = mem;
     lua_pop(L, 2);
   }
+  const auto prev_callback_L = callback_L;
   callback_L = L;
   if (l_unlikely(!inst.instantiate())) {
+    getstatewasmenv(L).collectGarbage();
+    callback_L = prev_callback_L;
     luaL_error(L, "failed to instantiate wasm module");
   }
+  callback_L = prev_callback_L;
   return 1;
 }
 
