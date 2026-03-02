@@ -3163,10 +3163,13 @@ do
         assert(mod:call("get_getter")() == 1337)
     end
     do
-        -- memory import
-        local m = new wasm.memory(1)
-        local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABBAFgAAACBwEAAW0CAAEDAgEABwcBA3NldAAACgwBCgBBAEGkAzYCAAsACgRuYW1lAgMBAAA="), { [""] = $object(m) })
-        mod:call("set")
+        -- memory & table imports
+        local imp = {
+            m = new wasm.memory(1),
+            t = new wasm.table("funcref", 1),
+        }
+        local mod = wasm.instantiate(base64.decode("AGFzbQEAAAABBAFgAAACFAIDaW1wAW0CAAEDaW1wAXQBcAABAwMCAAAHEAEMc2V0LWluZGlyZWN0AAEJBwEAQQALAQAKFAIKAEEAQaQDNgIACwcAQQARAAALABQEbmFtZQEGAQADc2V0AgUCAAABAA=="), $object(imp))
+        mod:call("set-indirect")
         assert(string.unpack("I4", mod:read(0, 4)) == 420)
     end
 end
