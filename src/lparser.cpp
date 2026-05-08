@@ -284,7 +284,7 @@ static l_noret error_expected (LexState *ls, int token) {
     }
     case TK_DO: {
       throwerr(ls,
-        "expected 'do' to establish block.", "you need to append this with the 'do' symbol.",
+        "expected 'do' to establish block.", "you need to replace this with the 'do' symbol.",
         Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     case TK_END: {
