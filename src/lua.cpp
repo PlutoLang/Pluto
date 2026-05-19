@@ -550,10 +550,6 @@ static const char *get_prompt (lua_State *L, int firstline) {
   }
 }
 
-/* mark in error messages for incomplete statements */
-#define EOFMARK		"<eof>"
-#define marklen		(sizeof(EOFMARK)/sizeof(char) - 1)
-
 
 /*
 ** Check whether 'status' signals a syntax error and the error
@@ -568,9 +564,8 @@ static const char *get_prompt (lua_State *L, int firstline) {
 */
 static int incomplete (lua_State *L, int status) {
   if (status == LUA_ERRSYNTAX) {
-    size_t lmsg;
-    const char *msg = lua_tolstring(L, -1, &lmsg);
-    if (lmsg >= marklen && strcmp(msg + lmsg - marklen, EOFMARK) == 0)
+    const char *msg = lua_tostring(L, -1);
+    if (strstr(msg, "near '<eof>'") != nullptr)
       return 1;
   }
   return 0;  /* else... */
