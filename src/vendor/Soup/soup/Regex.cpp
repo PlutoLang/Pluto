@@ -220,7 +220,7 @@ NAMESPACE_SOUP
 		return {};
 	}
 
-	void Regex::replaceAll(std::string& str, const std::string& replacement) const
+	void Regex::replace(std::string& str, const std::string& replacement, bool all) const
 	{
 		RegexMatchResult m;
 		size_t i = 0;
@@ -229,11 +229,12 @@ NAMESPACE_SOUP
 			const size_t offset = (m.groups.at(0).value().begin - str.data());
 			str.erase(offset, m.length());
 			str.insert(offset, replacement);
+			if (!all) break;
 			i = offset + replacement.length();
 		}
 	}
 
-	std::string Regex::substituteAll(const std::string& str, const std::string& substitution) const
+	std::string Regex::substitute(const std::string& str, const std::string& substitution, bool all) const
 	{
 		std::string res;
 		size_t i = 0;
@@ -290,6 +291,8 @@ NAMESPACE_SOUP
 					}
 				}
 			}
+
+			if (!all) break;
 		}
 		res.append(str.data() + i, str.size() - i);
 		return res;

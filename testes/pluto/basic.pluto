@@ -3046,6 +3046,21 @@ do
     assert(b == 7)
     assert(e == 8)
     assert(pattern:search("Hello World", 8) == nil)
+
+    do
+        local r = new regex[[/[0-9]+/]]
+        assert(r:replace("I have 3 apples and 5 bananas.", "2") == "I have 2 apples and 5 bananas.")
+        assert(r:substitute("I have 3 apples and 5 bananas.", "2") == "I have 2 apples and 5 bananas.")
+    end
+    do
+        local r = new regex[[/[0-9]+/g]]
+        assert(r:replace("I have 3 apples and 5 bananas.", "2") == "I have 2 apples and 2 bananas.")
+        assert(r:substitute("I have 3 apples and 5 bananas.", "2") == "I have 2 apples and 2 bananas.")
+    end
+    do
+        local r = new regex[[/.+ (.+)/]]
+        assert(r:substitute("hello earth", "welcome to $1") == "welcome to earth")
+    end
 end
 do
     assert(io.part("/deez/nuts", "parent") == "/deez")

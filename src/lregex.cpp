@@ -77,10 +77,39 @@ static int regex_search (lua_State *L) {
   return 1;
 }
 
+static int regex_replace (lua_State *L) {
+  const auto r = checkregex(L, 1);
+  size_t lStr;
+  const char *cStr = luaL_checklstring(L, 2, &lStr);
+  size_t lReplacement;
+  const char *cReplacement = luaL_checklstring(L, 3, &lReplacement);
+
+  std::string& str = *pluto_newclassinst(L, std::string, cStr, lStr);
+  std::string& replacement = *pluto_newclassinst(L, std::string, cReplacement, lReplacement);
+  r->replace(str, replacement, r->hasGlobalFlag());
+  pluto_pushstring(L, str);
+  return 1;
+}
+
+static int regex_substitute (lua_State *L) {
+  const auto r = checkregex(L, 1);
+  size_t lStr;
+  const char *cStr = luaL_checklstring(L, 2, &lStr);
+  size_t lReplacement;
+  const char *cReplacement = luaL_checklstring(L, 3, &lReplacement);
+
+  std::string& str = *pluto_newclassinst(L, std::string, cStr, lStr);
+  std::string& replacement = *pluto_newclassinst(L, std::string, cReplacement, lReplacement);
+  pluto_pushstring(L, r->substitute(str, replacement, r->hasGlobalFlag()));
+  return 1;
+}
+
 static const luaL_Reg funcs_regex[] = {
   {"new", regex_new},
   {"match", regex_match},
   {"search", regex_search},
+  {"replace", regex_replace},
+  {"substitute", regex_substitute},
   {nullptr, nullptr}
 };
 PLUTO_NEWLIB(regex);
