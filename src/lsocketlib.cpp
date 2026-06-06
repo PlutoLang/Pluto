@@ -417,6 +417,31 @@ static int socket_getpeer (lua_State *L) {
   return 2;
 }
 
+static int socket_setpeer(lua_State* L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  const char *ipstr = luaL_checkstring(L, 2);
+  const lua_Integer port = luaL_checkinteger(L, 3);
+  if (l_unlikely(!ss.udp)) {
+    luaL_error(L, "setpeer is only available on UDP sockets");
+  }
+  soup::IpAddr ip; static_assert(std::is_trivially_destructible_v<soup::IpAddr>);
+  if (l_unlikely(!ip.fromString(ipstr))) {
+    luaL_error(L, "invalid IP address");
+  }
+#if SOUP_WINDOWS
+  if (ss.from_listener) {
+    /* We may need to switch from IPv4 to IPv6 or vice-versa */
+    ss.sock = ss.sched.workers.at(ip.isV4() ? 1 : 0);
+  }
+  else if (ss.sock->peer.ip.isV4() != ip.isV4()) {
+    luaL_error(L, "cannot change address family");
+  }
+#endif
+  ss.sock->peer.ip = ip;
+  ss.sock->peer.port = soup::Endianness::toNetwork((soup::native_u16_t)(uint16_t)port);
+  return 0;
+}
+
 struct Listener {
   soup::Server serv;
   soup::ServerService srv{ &onTunnelEstablished };
@@ -540,6 +565,9 @@ static int l_udpserver (lua_State *L) {
     if (l_unlikely(!ss.sock->udpBind(addr.ip, addr.port)))
       return 0;
   }
+#if SOUP_WINDOWS
+  ss.sched.tick(); lua_assert(ss.sched.workers.size() >= 2);
+#endif
   return 1;
 }
 
@@ -556,6 +584,7 @@ static const luaL_Reg funcs_socket[] = {
   {"isopen", socket_isopen},
   {"getside", socket_getside},
   {"getpeer", socket_getpeer},
+  {"setpeer", socket_setpeer},
   {"listen", l_listen},
   {"udpserver", l_udpserver},
   {NULL, NULL}
