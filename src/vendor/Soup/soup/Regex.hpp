@@ -48,9 +48,11 @@ NAMESPACE_SOUP
 		[[nodiscard]] RegexMatchResult search(const std::string& str) const noexcept;
 		[[nodiscard]] RegexMatchResult search(const char* it, const char* end) const noexcept;
 
-		void replaceAll(std::string& str, const std::string& replacement) const;
+		void replace(std::string& str, const std::string& replacement, bool all = false) const;
+		void replaceAll(std::string& str, const std::string& replacement) const { return replace(str, replacement, true); }
 
-		[[nodiscard]] std::string substituteAll(const std::string& str, const std::string& substitution) const;
+		[[nodiscard]] std::string substitute(const std::string& str, const std::string& substitution, bool all) const;
+		[[nodiscard]] std::string substituteAll(const std::string& str, const std::string& substitution) const { return substitute(str, substitution, true); }
 
 		[[nodiscard]] std::string toString() const SOUP_EXCAL
 		{
