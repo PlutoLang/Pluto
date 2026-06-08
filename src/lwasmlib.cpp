@@ -439,7 +439,7 @@ static int describe (lua_State *L) {
         pluto_pushstring(L, inst->memory_import->field_name);
         lua_settable(L, -3);
         lua_pushliteral(L, "kind");
-        lua_pushliteral(L, "table");
+        lua_pushliteral(L, "memory");
         lua_settable(L, -3);
       }
       lua_settable(L, -3);
