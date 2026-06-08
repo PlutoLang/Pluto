@@ -3,6 +3,7 @@
 #include "filesystem.hpp"
 #include "Reader.hpp"
 #include "string.hpp"
+#include "time.hpp"
 
 NAMESPACE_SOUP
 {
@@ -554,6 +555,123 @@ NAMESPACE_SOUP
 			}
 		}
 
+		return {};
+	}
+
+	UniquePtr<JsonObject> json::bsonDecode(Reader& r, int max_depth)
+	{
+		SOUP_ASSERT(max_depth-- != 0, "Depth limit exceeded");
+
+		auto obj = soup::make_unique<JsonObject>();
+		r.skip(4); // length prefix
+		while (true)
+		{
+			uint8_t k;
+			r.u8(k);
+			switch (k)
+			{
+			case 0:
+				return obj;
+
+			case 1:
+				{
+					std::string n; r.str_nt(n);
+					double v; r.f64(v);
+					obj->add(std::move(n), v);
+				}
+				break;
+
+			case 2:
+				{
+					std::string n; r.str_nt(n);
+					uint32_t len; r.u32_le(len);
+					SOUP_RETHROW_FALSE(len != 0);
+					len -= 1; // null terminator
+					std::string v; r.str(len, v);
+					obj->add(std::move(n), std::move(v));
+					r.skip(1); // null terminator
+				}
+				break;
+
+			case 3:
+				{
+					std::string n; r.str_nt(n);
+					auto v = bsonDecode(r, max_depth);
+					SOUP_RETHROW_FALSE(v);
+					obj->add(std::move(n), std::move(v));
+				}
+				break;
+
+			case 4:
+				{
+					std::string n; r.str_nt(n);
+					auto v = bsonDecode(r, max_depth);
+					SOUP_RETHROW_FALSE(v);
+					auto arr = soup::make_unique<JsonArray>();
+					for (auto& e : v->children)
+					{
+						arr->children.emplace_back(std::move(e.second));
+					}
+					obj->add(std::move(n), std::move(arr));
+				}
+				break;
+
+			case 7:
+				{
+					std::string n; r.str_nt(n);
+					char v[12]; r.raw(v, sizeof(v));
+					auto w = soup::make_unique<JsonObject>();
+					w->add("$oid", string::bin2hexLower(v, sizeof(v)));
+					obj->add(std::move(n), std::move(w));
+				}
+				break;
+
+			case 8:
+				{
+					std::string n; r.str_nt(n);
+					bool v; r.b(v);
+					obj->add(std::move(n), v);
+				}
+				break;
+
+			case 9:
+				{
+					std::string n; r.str_nt(n);
+					int64_t v; r.i64_le(v);
+					auto w = soup::make_unique<JsonObject>();
+					w->add("$date", time::toIso8601(v / 1000)); // TODO: Append .123 to avoid precision loss?
+					obj->add(std::move(n), std::move(w));
+				}
+				break;
+
+			case 10:
+				{
+					std::string n; r.str_nt(n);
+					obj->add(std::move(n), soup::make_unique<JsonNull>());
+				}
+				break;
+
+			case 16:
+				{
+					std::string n; r.str_nt(n);
+					int32_t v; r.i32_le(v);
+					obj->add(std::move(n), v);
+				}
+				break;
+
+			case 18:
+				{
+					std::string n; r.str_nt(n);
+					int64_t v; r.i64_le(v);
+					obj->add(std::move(n), v);
+				}
+				break;
+
+			default:
+				//std::cout << "Unhandled BSON type: " << (int)k << std::endl;
+				return {};
+			}
+		}
 		return {};
 	}
 

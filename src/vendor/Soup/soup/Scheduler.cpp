@@ -74,7 +74,7 @@ NAMESPACE_SOUP
 		this_thread_running_scheduler = prev_scheduler;
 	}
 
-	void Scheduler::runFor(unsigned int ms)
+	bool Scheduler::runFor(unsigned int ms)
 	{
 		const auto prev_scheduler = this_thread_running_scheduler;
 		this_thread_running_scheduler = this;
@@ -87,11 +87,12 @@ NAMESPACE_SOUP
 			yieldBusyspin(pollfds, workload_flags);
 			if (time::millis() > deadline)
 			{
-				break;
+				return false;
 			}
 			pollfds.clear();
 		}
 		this_thread_running_scheduler = prev_scheduler;
+		return true;
 	}
 
 	bool Scheduler::shouldKeepRunning() const noexcept

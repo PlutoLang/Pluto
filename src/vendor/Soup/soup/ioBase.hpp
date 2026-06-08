@@ -68,9 +68,6 @@ NAMESPACE_SOUP
 		template <typename T>
 		bool ser(T& v) noexcept;
 
-		[[deprecated("Renamed to u16_be")]] bool u16be(uint16_t& v) noexcept { return u16_be(v); }
-		[[deprecated("Renamed to u16_le")]] bool u16le(uint16_t& v) noexcept { return u16_le(v); }
-
 		bool u16_be(uint16_t& v) noexcept
 		{
 			return u16<ENDIAN_NATIVE == ENDIAN_BIG>(v);
@@ -106,9 +103,6 @@ NAMESPACE_SOUP
 		}
 
 	public:
-		[[deprecated("Renamed to u32_be")]] bool u32be(uint32_t& v) noexcept { return u32_be(v); }
-		[[deprecated("Renamed to u32_le")]] bool u32le(uint32_t& v) noexcept { return u32_le(v); }
-
 		bool u32_be(uint32_t& v) noexcept
 		{
 			return u32<ENDIAN_NATIVE == ENDIAN_BIG>(v);
@@ -144,9 +138,6 @@ NAMESPACE_SOUP
 		}
 
 	public:
-		[[deprecated("Renamed to u64_be")]] bool u64be(uint64_t& v) noexcept { return u64_be(v); }
-		[[deprecated("Renamed to u64_le")]] bool u64le(uint64_t& v) noexcept { return u64_le(v); }
-
 		bool u64_be(uint64_t& v) noexcept
 		{
 			return u64<ENDIAN_NATIVE == ENDIAN_BIG>(v);
@@ -187,29 +178,17 @@ NAMESPACE_SOUP
 			return u8(*(uint8_t*)&v);
 		}
 
-		[[deprecated("Renamed to i16_be")]] bool i16le(int16_t& v) noexcept { return i16_be(v); }
-		[[deprecated("Renamed to i16_le")]] bool i16be(int16_t& v) noexcept { return i16_le(v); }
-
 		bool i16(int16_t& v) noexcept { return u16(*(uint16_t*)&v); }
 		bool i16_le(int16_t& v) noexcept { return u16_le(*(uint16_t*)&v); }
 		bool i16_be(int16_t& v) noexcept { return u16_be(*(uint16_t*)&v); }
-
-		[[deprecated("Renamed to i32_be")]] bool i32le(int32_t& v) noexcept { return i32_be(v); }
-		[[deprecated("Renamed to i32_le")]] bool i32be(int32_t& v) noexcept { return i32_le(v); }
 
 		bool i32(int32_t& v) noexcept { return u32(*(uint32_t*)&v); }
 		bool i32_le(int32_t& v) noexcept { return u32_le(*(uint32_t*)&v); }
 		bool i32_be(int32_t& v) noexcept { return u32_be(*(uint32_t*)&v); }
 
-		[[deprecated("Renamed to i64_be")]] bool i64le(int64_t& v) noexcept { return i64_be(v); }
-		[[deprecated("Renamed to i64_le")]] bool i64be(int64_t& v) noexcept { return i64_le(v); }
-
 		bool i64(int64_t& v) noexcept { return u64(*(uint64_t*)&v); }
 		bool i64_le(int64_t& v) noexcept { return u64_le(*(uint64_t*)&v); }
 		bool i64_be(int64_t& v) noexcept { return u64_be(*(uint64_t*)&v); }
-
-		[[deprecated("Renamed to u24_be")]] bool u24be(uint32_t& v) noexcept { return u24_be(v); }
-		[[deprecated("Renamed to u24_le")]] bool u24le(uint32_t& v) noexcept { return u24_le(v); }
 
 		bool u24_be(uint32_t& v) noexcept
 		{

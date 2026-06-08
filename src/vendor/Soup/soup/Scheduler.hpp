@@ -104,7 +104,7 @@ NAMESPACE_SOUP
 		}
 
 		void run();
-		void runFor(unsigned int ms);
+		bool runFor(unsigned int ms); // false = timeout, true = all done.
 		[[nodiscard]] bool shouldKeepRunning() const noexcept;
 		void tick();
 	protected:

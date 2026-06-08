@@ -144,7 +144,11 @@ NAMESPACE_SOUP
 	Datetime time::datetimeUtc(std::time_t ts) noexcept
 	{
 #if SOUP_WINDOWS
-		return Datetime::fromTm(*::gmtime(&ts));
+		if (auto t = ::gmtime(&ts))
+		{
+			return Datetime::fromTm(*t);
+		}
+		return {};
 #else
 		struct tm t;
 		::gmtime_r(&ts, &t);

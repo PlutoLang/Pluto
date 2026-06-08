@@ -15,6 +15,7 @@ NAMESPACE_SOUP
 		application_layer_protocol_negotiation = 16,
 		extended_master_secret = 23,
 		supported_versions = 43,
+		renegotiation_info = 0xff01,
 	);
 
 	[[nodiscard]] inline bool tls_isGreaseyExtension(TlsExtensionType_t ext)

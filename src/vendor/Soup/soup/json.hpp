@@ -30,6 +30,8 @@ NAMESPACE_SOUP
 		[[nodiscard]] static UniquePtr<JsonNode> msgpackDecode(Reader& r, int max_depth = 100);
 		static void* msgpackDecode(const JsonTreeWriter& tw, void* user_data, Reader& r, int max_depth);
 
+		[[nodiscard]] static UniquePtr<JsonObject> bsonDecode(Reader& r, int max_depth = 100);
+
 		// internal
 		static void handleLeadingSpace(const char*& c, size_t& s);
 		static void handleComment(const char*& c, size_t& s);

@@ -34,6 +34,8 @@ NAMESPACE_SOUP
 
 		bool msgpackEncode(Writer& w) const final;
 
+		bool bsonEncode(Writer& w) const;
+
 		[[nodiscard]] JsonNode* find(const char* data, size_t size) const noexcept;
 		[[nodiscard]] JsonNode* find(std::string k) const noexcept;
 		[[nodiscard]] JsonNode* find(const JsonNode& k) const noexcept;

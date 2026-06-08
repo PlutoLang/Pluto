@@ -16,6 +16,9 @@
 #include "unicode.hpp"
 #endif
 
+#define WASM_CALL_REUSES_STACK true
+static_assert(WASM_CALL_REUSES_STACK || !SOUP_WASM_EXCEPTIONS);
+
 #define DEBUG_LOAD false
 #define DEBUG_LINK false
 #define DEBUG_VM false
@@ -691,7 +694,6 @@ NAMESPACE_SOUP
 				r.seek(section_end);
 				break;
 
-#if SOUP_WASM_PEDANTIC
 			case SEC_CUSTOM:
 				{
 					SOUP_RETHROW_FALSE(section_size != 0);
@@ -701,15 +703,55 @@ NAMESPACE_SOUP
 					SOUP_RETHROW_FALSE(name_len <= 0x1000);
 					std::string name;
 					r.str(name_len, name);
-					auto name_utf32 = unicode::utf8_to_utf32(name);
-					SOUP_RETHROW_FALSE(name_utf32.find(unicode::REPLACEMENT_CHAR) == std::string::npos); // UTF-8 must be valid
-					SOUP_RETHROW_FALSE(unicode::utf32_to_utf8(name_utf32) == name); // UTF-8 must also be represented canonically (so, no overlong encodings)
+#if SOUP_WASM_PEDANTIC
+					{
+						auto name_utf32 = unicode::utf8_to_utf32(name);
+						SOUP_RETHROW_FALSE(name_utf32.find(unicode::REPLACEMENT_CHAR) == std::string::npos); // UTF-8 must be valid
+						SOUP_RETHROW_FALSE(unicode::utf32_to_utf8(name_utf32) == name); // UTF-8 must also be represented canonically (so, no overlong encodings)
+					}
 					r.seekEnd();
 					SOUP_RETHROW_FALSE(section_end <= r.getPosition());
+#endif
+					if (name == "name")
+					{
+						auto& nd = custom_data.getStructFromMap(WasmNameData);
+						while (r.getPosition() < section_end)
+						{
+							uint8_t subsection_id;
+							r.u8(subsection_id);
+							uint32_t subsection_size;
+							WASM_READ_OML(subsection_size);
+							SOUP_RETHROW_FALSE(subsection_size != 0);
+							const auto subsection_end = r.getPosition() + subsection_size;
+							switch (subsection_id)
+							{
+							case 0:
+								WASM_READ_OML(name_len);
+								r.str(name_len, nd.module_name);
+								break;
+
+							case 1:
+								{
+									uint32_t list_len;
+									WASM_READ_OML(list_len);
+									while (list_len--)
+									{
+										uint32_t func_idx;
+										WASM_READ_OML(func_idx);
+										WASM_READ_OML(name_len);
+										std::string func_name;
+										r.str(name_len, func_name);
+										nd.function_names.emplace(func_idx, std::move(func_name));
+									}
+								}
+								break;
+							}
+							r.seek(subsection_end);
+						}
+					}
 					r.seek(section_end);
 				}
 				break;
-#endif
 
 			case SEC_TYPE:
 				{
@@ -891,7 +933,8 @@ NAMESPACE_SOUP
 							uint8_t type; r.u8(type);
 							SOUP_RETHROW_FALSE(type == 0);
 							uint32_t typeidx; WASM_READ_OML(typeidx);
-							tag_imports.emplace_back(std::move(module_name), std::move(field_name));
+							SOUP_RETHROW_FALSE(typeidx < types.size());
+							tag_imports.emplace_back(TagImport{ { std::move(module_name), std::move(field_name) }, types[typeidx].parameters });
 							tags.emplace_back();
 						}
 #endif
@@ -963,6 +1006,9 @@ NAMESPACE_SOUP
 			case SEC_MEMORY:
 				{
 					uint32_t num_memories; WASM_READ_OML(num_memories);
+#if DEBUG_LOAD
+					std::cout << num_memories << " memory/memories\n";
+#endif
 #if SOUP_WASM_MULTI_MEMORY
 					memories.reserve(memories.size() + num_memories);
 #endif
@@ -1034,6 +1080,9 @@ NAMESPACE_SOUP
 						}
 #endif
 						SOUP_RETHROW_FALSE(pages <= page_limit);
+#if DEBUG_LOAD
+						std::cout << "- " << pages << " pages (" << (pages * page_size) << " bytes total), max. " << page_limit <<"\n";
+#endif
 #if SOUP_WASM_MULTI_MEMORY
 						this->memories.emplace_back(soup::make_shared<Memory>(pages * page_size, page_limit * page_size, flags & 4, page_size == 1));
 #else
@@ -1057,7 +1106,8 @@ NAMESPACE_SOUP
 						uint8_t type; r.u8(type);
 						SOUP_RETHROW_FALSE(type == 0);
 						uint32_t typeidx; WASM_READ_OML(typeidx);
-						tags.emplace_back(soup::make_shared<Tag>(/*typeidx*/));
+						SOUP_RETHROW_FALSE(typeidx < types.size());
+						tags.emplace_back(soup::make_shared<Tag>(types[typeidx].parameters));
 					}
 				}
 				break;
@@ -1192,9 +1242,16 @@ NAMESPACE_SOUP
 							}
 						}
 
+						if (type == WASM_FUNCREF)
+						{
+							SOUP_RETHROW_FALSE(shared_env);
+						}
+						else
+						{
 #if SOUP_WASM_PEDANTIC
-						SOUP_RETHROW_FALSE(type == WASM_FUNCREF || type == WASM_EXTERNREF);
+							SOUP_RETHROW_FALSE(type == WASM_EXTERNREF);
 #endif
+						}
 
 						ElemSegment& es = elem_segments.emplace_back(ElemSegment{ static_cast<WasmType>(type), static_cast<uint8_t>(flags) });
 #if SOUP_WASM_EXTENDED_CONST
@@ -1222,7 +1279,7 @@ NAMESPACE_SOUP
 								uint32_t function_index;
 								WASM_READ_OML(function_index);
 								es.values.emplace_back(
-									es.type == WASM_FUNCREF && shared_env && function_index < function_imports.size() + functions.size()
+									es.type == WASM_FUNCREF && function_index < function_imports.size() + functions.size()
 									? shared_env->createFuncRef(*this, function_index)
 									: 0
 								);
@@ -1259,7 +1316,7 @@ NAMESPACE_SOUP
 						std::string body;
 						r.str(body_size, body);
 #if DEBUG_LOAD
-						std::cout << "- " << string::bin2hex(body) << "\n";
+						//std::cout << "- " << string::bin2hex(body) << "\n";
 #endif
 #if SOUP_WASM_PEDANTIC
 						{
@@ -1780,6 +1837,7 @@ NAMESPACE_SOUP
 					if (e->second.kind == IE_kTag
 						&& e->second.index < other.tags.size()
 						&& other.tags[e->second.index]
+						&& ti.parameters == other.tags[e->second.index]->parameters
 						)
 					{
 						tags[i] = other.tags[e->second.index];
@@ -1973,7 +2031,7 @@ NAMESPACE_SOUP
 		return nullptr;
 	}
 
-#define API_CHECK_STACK(x) SOUP_IF_UNLIKELY (vm.stack.size() < x) { throw Exception("Insufficient values on stack for function call"); }
+#define API_CHECK_STACK(x) SOUP_IF_UNLIKELY (vm.stack.size() < x) { SOUP_THROW(Exception("Insufficient values on stack for function call")); }
 
 	// https://github.com/WebAssembly/wasi-libc/blob/d02bdc21afc4d835383b006c11e285c4a7c78439/libc-bottom-half/headers/public/wasi/wasip1.h#L106
 	enum WasiErrno : int32_t
@@ -2436,8 +2494,8 @@ NAMESPACE_SOUP
 			func_index = imp.func_index;
 			goto _call_other_script;
 		}
-		func_index -= script->function_imports.size();
-		SOUP_IF_UNLIKELY (func_index >= script->code.size())
+		const auto code_index = func_index - script->function_imports.size();
+		SOUP_IF_UNLIKELY (code_index >= script->code.size())
 		{
 #if DEBUG_LOAD || DEBUG_API
 			std::cout << "call: function is out-of-bounds\n";
@@ -2447,7 +2505,7 @@ NAMESPACE_SOUP
 		WasmVm vm(*script);
 		vm.locals = std::move(args);
 		//std::cout << "code: " << string::bin2hex(script->code[func_index]) << "\n";
-		SOUP_IF_UNLIKELY (vm.run(script->code[func_index], 0, func_index) != WasmVm::CODE_RETURN)
+		SOUP_IF_UNLIKELY (vm.run(script->code[code_index], 0, func_index) != WasmVm::CODE_RETURN)
 		{
 #if DEBUG_LOAD || DEBUG_API
 			std::cout << "call: execution failed\n";
@@ -2744,12 +2802,12 @@ NAMESPACE_SOUP
 #if DEBUG_VM
 			std::cout << "tail-call, weee! going to " << func_index << "\n";
 #endif
-			func_index -= script.function_imports.size();
-			SOUP_RETHROW_FALSE(func_index < script.code.size());
+			const auto code_index = func_index - script.function_imports.size();
+			SOUP_RETHROW_FALSE(code_index < script.code.size());
 			locals.clear();
-			SOUP_RETHROW_FALSE(moveArguments(*this, script.types[script.functions[func_index]]));
+			SOUP_RETHROW_FALSE(moveArguments(*this, script.types[script.functions[code_index]]));
 			stack.clear();
-			rr.emplace(script.code[func_index]);
+			rr.emplace(script.code[code_index]);
 			pr = &*rr;
 		}
 		return result;
@@ -3831,9 +3889,9 @@ NAMESPACE_SOUP
 						}
 					}
 					WASM_CHECK_STACK(1);
-					auto value = stack.back(); stack.pop_back();
+					auto value = stack.back().i32; stack.pop_back();
 					//std::cout << "if: condition is " << (value.i32 ? "true" : "false") << "\n";
-					if (value.i32)
+					if (value)
 					{
 						ctrlflow.emplace(CtrlFlowEntry{ (uint32_t)-1, stack_size, num_values });
 					}
@@ -3877,8 +3935,8 @@ NAMESPACE_SOUP
 					uint32_t depth;
 					WASM_READ_OML(depth);
 					WASM_CHECK_STACK(1);
-					auto value = stack.back(); stack.pop_back();
-					if (value.i32)
+					auto value = stack.back().i32; stack.pop_back();
+					if (value)
 					{
 						SOUP_IF_UNLIKELY (!doBranch(r, depth, func_index, ctrlflow))
 						{
@@ -4262,7 +4320,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4289,7 +4347,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4316,7 +4374,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4343,7 +4401,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4370,7 +4428,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4397,7 +4455,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4424,7 +4482,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4451,7 +4509,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4478,7 +4536,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4505,7 +4563,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4532,7 +4590,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4559,7 +4617,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4586,7 +4644,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4613,7 +4671,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4642,7 +4700,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4670,7 +4728,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4698,7 +4756,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4726,7 +4784,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4754,7 +4812,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4782,7 +4840,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4810,7 +4868,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4838,7 +4896,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4866,7 +4924,7 @@ NAMESPACE_SOUP
 					else
 					{
 #if DEBUG_VM
-						std::cout << "memory access out of bounds\n";
+						std::cout << "memory access out of bounds: " << base << " + " << offset << "\n";
 #endif
 						return CODE_ERROR;
 					}
@@ -4940,11 +4998,8 @@ NAMESPACE_SOUP
 				break;
 
 			case 0x45: // i32.eqz
-				{
-					WASM_CHECK_STACK(1);
-					auto value = stack.back(); stack.pop_back();
-					stack.emplace_back(value.i32 == 0);
-				}
+				WASM_CHECK_STACK(1);
+				stack.back() = (stack.back().i32 == 0);
 				break;
 
 			case 0x46: // i32.eq
@@ -5038,11 +5093,8 @@ NAMESPACE_SOUP
 				break;
 
 			case 0x50: // i64.eqz
-				{
-					WASM_CHECK_STACK(1);
-					auto value = stack.back(); stack.pop_back();
-					stack.emplace_back(value.i64 == 0);
-				}
+				WASM_CHECK_STACK(1);
+				stack.back() = (stack.back().i64 == 0);
 				break;
 
 			case 0x51: // i64.eq
@@ -6425,14 +6477,14 @@ NAMESPACE_SOUP
 				case 0x0b: // v128.store
 					{
 						WASM_CHECK_STACK(2);
-						auto value = stack.back(); stack.pop_back();
+						int8_t value[16]; memcpy(value, stack.back().i8x16, 16); stack.pop_back();
 						auto base = stack.back().uptr(); stack.pop_back();
 						WASM_READ_MEMARG;
 						auto memory = script.getMemoryByIndex(memidx);
 						SOUP_RETHROW_FALSE(memory);
 						auto ptr = memory->getView(base + offset, 16);
 						SOUP_RETHROW_FALSE(ptr);
-						memcpy(ptr, value.i8x16, 16);
+						memcpy(ptr, value, 16);
 					}
 					break;
 
@@ -8327,9 +8379,9 @@ NAMESPACE_SOUP
 			function_index = imp.func_index;
 			goto _doCall_other_script;
 		}
-		function_index -= script->function_imports.size();
+		const auto code_index = function_index - script->function_imports.size();
 #if false // already checked by caller
-		SOUP_IF_UNLIKELY (function_index >= script->code.size())
+		SOUP_IF_UNLIKELY (code_index >= script->code.size())
 		{
 #if DEBUG_VM
 			std::cout << "call: function is out-of-bounds\n";
@@ -8343,18 +8395,23 @@ NAMESPACE_SOUP
 		SOUP_RETHROW_FALSE(moveArguments(callvm, type));
 #if DEBUG_VM
 		//std::cout << "call: enter " << function_index << "\n";
-		//std::cout << string::bin2hex(script->code[function_index]) << "\n";
+		//std::cout << string::bin2hex(script->code[code_index]) << "\n";
 #endif
+#if WASM_CALL_REUSES_STACK
 		const auto pre_call_stack_size = stack.size();
 		callvm.stack = std::move(stack);
-		const auto result = callvm.run(script->code[function_index], depth, function_index);
+#endif
+		const auto result = callvm.run(script->code[code_index], depth, function_index);
+#if WASM_CALL_REUSES_STACK
 		stack = std::move(callvm.stack);
+#endif
 #if SOUP_WASM_EXCEPTIONS
 		current_throw_tag = callvm.current_throw_tag;
 #endif
 #if DEBUG_VM
 		//std::cout << "call: leave " << function_index << "\n";
 #endif
+#if WASM_CALL_REUSES_STACK
 		SOUP_IF_LIKELY (result == WasmVm::CODE_RETURN)
 		{
 			if (const auto result_stack_size = pre_call_stack_size + type.results.size(); stack.size() > result_stack_size)
@@ -8362,6 +8419,16 @@ NAMESPACE_SOUP
 				stack.erase(stack.begin() + pre_call_stack_size, stack.end() - type.results.size());
 			}
 		}
+#else
+		SOUP_IF_UNLIKELY (callvm.stack.size() < type.results.size())
+		{
+#if DEBUG_VM
+			std::cout << "call: not enough values on the stack after return\n";
+#endif
+			return CODE_ERROR;
+		}
+		this->stack.insert(this->stack.end(), callvm.stack.end() - type.results.size(), callvm.stack.end());
+#endif
 		return result;
 	}
 
