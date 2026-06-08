@@ -207,6 +207,7 @@ static void *weaklycheckudata (lua_State *L, int ud, const char *tname) {
   return p;
 }
 
+#if !SOUP_WASM
 struct FfiFuncWrapper {
   void* addr;
   std::vector<FfiType> args;
@@ -414,6 +415,7 @@ static int ffi_open (lua_State *L) {
 #endif
   return 1;
 }
+#endif
 
 struct FfiStruct : public soup::rflStruct {
   inline auto operator=(soup::rflStruct&& strct) noexcept {
@@ -827,7 +829,9 @@ static int ffi_callback (lua_State *L) {
 #endif
 
 static const luaL_Reg funcs_ffi[] = {
+#if !SOUP_WASM
   {"open", ffi_open},
+#endif
   {"struct", ffi_struct},
   {"alloc", ffi_alloc},
   {"write", ffi_write},
