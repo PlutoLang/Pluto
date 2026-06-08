@@ -17,6 +17,14 @@ end
 print "Testing warnings."
 do
     assert_warn([[local a; local a]]) -- var-shadow
+    do
+        local warning = wcall(function()
+            assert(load[[local a = 0x61
+local a = 0x61]])()
+        end)
+        assert(warning:find("local a = 0x61", 1, true))
+        assert(not warning:find("local a = 97", 1, true))
+    end
 
     -- unused
     assert_warn[[local a]]
