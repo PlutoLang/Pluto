@@ -425,6 +425,26 @@ typedef struct global_State {
   bool preference_parent : 1;
   bool have_preference_export : 1;
   bool preference_export : 1;
+
+  /*
+  ** Each warning type has a boolean here to determine its default state, which can be overwritten by @pluto_warnings directives.
+  */
+  bool warn_var_shadow : 1;
+  bool warn_global_shadow : 1;
+  bool warn_type_mismatch : 1;
+  bool warn_unreachable_code : 1;
+  bool warn_excessive_arguments : 1;
+  bool warn_deprecated : 1;
+  bool warn_bad_practice : 1;
+  bool warn_possible_typo : 1;
+  bool warn_non_portable_code : 1;
+  bool warn_non_portable_bytecode : 1;
+  bool warn_non_portable_name : 1;
+  bool warn_implicit_global : 1;
+  bool warn_unannotated_fallthrough : 1;
+  bool warn_discarded_return : 1;
+  bool warn_field_shadow : 1;
+  bool warn_unused : 1;
 #endif
 #ifdef PLUTO_ETL_ENABLE
   std::time_t deadline;  /* internal use only; do not use this in your own code. */
