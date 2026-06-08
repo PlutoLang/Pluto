@@ -189,8 +189,6 @@ struct Token {
 
 
 enum WarningType : int {
-  ALL_WARNINGS = 0,
-
   WT_VAR_SHADOW,
   WT_GLOBAL_SHADOW,
   WT_TYPE_MISMATCH,
@@ -208,12 +206,13 @@ enum WarningType : int {
   WT_FIELD_SHADOW,
   WT_UNUSED,
 
-  NUM_WARNING_TYPES
+  NUM_STATEFUL_WARNING_TYPES,
+  ALL_WARNINGS = NUM_STATEFUL_WARNING_TYPES,
+  NUM_DIRECTIVE_WARNING_TYPES,
 };
 
 
 inline const char* const luaX_warnNames[] = {
-  "all",
   "var-shadow",
   "global-shadow",
   "type-mismatch",
@@ -230,11 +229,13 @@ inline const char* const luaX_warnNames[] = {
   "discarded-return",
   "field-shadow",
   "unused",
+
+  "all",
 };
-static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_WARNING_TYPES);
+static_assert(sizeof(luaX_warnNames) / sizeof(const char*) == NUM_DIRECTIVE_WARNING_TYPES);
 
 [[nodiscard]] inline const char* luaX_getwarnname(const WarningType w) {
-  lua_assert((size_t)w >= 0 && (size_t)w < NUM_WARNING_TYPES);
+  lua_assert((size_t)w >= 0 && (size_t)w < NUM_DIRECTIVE_WARNING_TYPES);
   return luaX_warnNames[(size_t)w];
 }
 
@@ -246,80 +247,14 @@ enum WarningState : lu_byte {
 };
 
 
-class WarningConfig
+struct WarningConfig
 {
-public:
   const size_t begins_at;
-  WarningState states[NUM_WARNING_TYPES];
+  WarningState states[NUM_STATEFUL_WARNING_TYPES];
 
-private:
-  [[nodiscard]] static WarningState getDefaultState(WarningType type) noexcept {
-    switch (type) {
-    /* off by default*/
-#ifndef PLUTO_WARN_GLOBAL_SHADOW
-    case WT_GLOBAL_SHADOW:
-#endif
-#ifndef PLUTO_WARN_NON_PORTABLE_CODE
-    case WT_NON_PORTABLE_CODE:
-#endif
-#ifndef PLUTO_WARN_NON_PORTABLE_BYTECODE
-    case WT_NON_PORTABLE_BYTECODE:
-#endif
-#ifndef PLUTO_WARN_NON_PORTABLE_NAME
-    case WT_NON_PORTABLE_NAME:
-#endif
-#ifndef PLUTO_WARN_IMPLICIT_GLOBAL
-    case WT_IMPLICIT_GLOBAL:
-#endif
-    /* on by default */
-#ifdef PLUTO_NO_WARN_VAR_SHADOW
-    case WT_VAR_SHADOW:
-#endif
-#ifdef PLUTO_NO_WARN_TYPE_MISMATCH
-    case WT_TYPE_MISMATCH:
-#endif
-#ifdef PLUTO_NO_WARN_UNREACHABLE_CODE
-    case WT_UNREACHABLE_CODE:
-#endif
-#ifdef PLUTO_NO_WARN_EXCESSIVE_ARGUMENTS
-    case WT_EXCESSIVE_ARGUMENTS:
-#endif
-#ifdef PLUTO_NO_WARN_DEPRECATED
-    case WT_DEPRECATED:
-#endif
-#ifdef PLUTO_NO_WARN_BAD_PRACTICE
-    case WT_BAD_PRACTICE:
-#endif
-#ifdef PLUTO_NO_WARN_POSSIBLE_TYPO
-    case WT_POSSIBLE_TYPO:
-#endif
-#ifdef PLUTO_NO_WARN_UNANNOTATED_FALLTHROUGH
-    case WT_UNANNOTATED_FALLTHROUGH:
-#endif
-#ifdef PLUTO_NO_WARN_DISCARDED_RETURN
-    case WT_DISCARDED_RETURN:
-#endif
-#ifdef PLUTO_NO_WARN_FIELD_SHADOW
-    case WT_FIELD_SHADOW:
-#endif
-#ifdef PLUTO_NO_WARN_UNUSED
-    case WT_UNUSED:
-#endif
-    case NUM_WARNING_TYPES:  /* dummy case so compiler doesn't cry when all macros are set */
-      return WS_OFF;
-    default:
-      return WS_ON;
-    }
-  }
+  explicit WarningConfig(struct global_State* g) noexcept;
 
-public:
-  WarningConfig(size_t begins_at) noexcept : begins_at(begins_at) {
-    for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
-      states[id] = getDefaultState((WarningType)id);
-    }
-  }
-
-  void copyFrom(const WarningConfig& b) noexcept {
+  explicit WarningConfig(size_t begins_at, const WarningConfig& b) noexcept : begins_at(begins_at) {
     memcpy(states, b.states, sizeof(states));
   }
 
@@ -332,13 +267,13 @@ public:
   }
 
   void setAllTo(WarningState newState) noexcept {
-    for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
+    for (int id = 0; id != NUM_STATEFUL_WARNING_TYPES; ++id) {
       states[id] = newState;
     }
   }
 
   void processComment(const std::string_view& line) noexcept {
-    for (int id = 0; id != NUM_WARNING_TYPES; ++id) {
+    for (int id = 0; id != NUM_DIRECTIVE_WARNING_TYPES; ++id) {
       const char* name = luaX_warnNames[id];
       if (line.find(name) == std::string::npos)
         continue;
@@ -520,7 +455,7 @@ struct LexState {
   std::unordered_map<const TString*, Macro> macros{};  /* used during preprocessor pass */
   std::unordered_map<const TString*, std::vector<Token>> macro_args{};  /* used during preprocessor pass */
 
-  LexState() : lines{ std::string{} }, warnconfs{ WarningConfig(0) } {
+  LexState() : lines{ std::string{} } {
     laststat = Token {};
     laststat.token = TK_EOS;
     parser_context_stck.push(PARCTX_NONE);  /* ensure there is at least 1 item on the parser context stack */
@@ -613,9 +548,7 @@ struct LexState {
     if (warnconfs.back().begins_at == tokens.size()) {
       return warnconfs.back();
     }
-    WarningConfig warnconf(tokens.size());
-    warnconf.copyFrom(warnconfs.back());
-    return warnconfs.emplace_back(std::move(warnconf));
+    return warnconfs.emplace_back(WarningConfig(tokens.size(), warnconfs.back()));
   }
 
   [[nodiscard]] const WarningConfig& getWarningConfig() const noexcept {

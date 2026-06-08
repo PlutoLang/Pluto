@@ -432,6 +432,88 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, unsigned seed) {
 #else
   g->have_preference_export = false;
 #endif
+  /* warnings - off by default*/
+#ifdef PLUTO_WARN_GLOBAL_SHADOW
+  g->warn_global_shadow = true;
+#else
+  g->warn_global_shadow = false;
+#endif
+#ifdef PLUTO_WARN_NON_PORTABLE_CODE
+  g->warn_non_portable_code = true;
+#else
+  g->warn_non_portable_code = false;
+#endif
+#ifdef PLUTO_WARN_NON_PORTABLE_BYTECODE
+  g->warn_non_portable_bytecode = true;
+#else
+  g->warn_non_portable_bytecode = false;
+#endif
+#ifdef PLUTO_WARN_NON_PORTABLE_NAME
+  g->warn_non_portable_name = true;
+#else
+  g->warn_non_portable_name = false;
+#endif
+#ifdef PLUTO_WARN_IMPLICIT_GLOBAL
+  g->warn_implicit_global = true;
+#else
+  g->warn_implicit_global = false;
+#endif
+  /* warnings - on by default */
+#ifdef PLUTO_NO_WARN_VAR_SHADOW
+  g->warn_var_shadow = false;
+#else
+  g->warn_var_shadow = true;
+#endif
+#ifdef PLUTO_NO_WARN_TYPE_MISMATCH
+  g->warn_type_mismatch = false;
+#else
+  g->warn_type_mismatch = true;
+#endif
+#ifdef PLUTO_NO_WARN_UNREACHABLE_CODE
+  g->warn_unreachable_code = false;
+#else
+  g->warn_unreachable_code = true;
+#endif
+#ifdef PLUTO_NO_WARN_EXCESSIVE_ARGUMENTS
+  g->warn_excessive_arguments = false;
+#else
+  g->warn_excessive_arguments = true;
+#endif
+#ifdef PLUTO_NO_WARN_DEPRECATED
+  g->warn_deprecated = false;
+#else
+  g->warn_deprecated = true;
+#endif
+#ifdef PLUTO_NO_WARN_BAD_PRACTICE
+  g->warn_bad_practice = false;
+#else
+  g->warn_bad_practice = true;
+#endif
+#ifdef PLUTO_NO_WARN_POSSIBLE_TYPO
+  g->warn_possible_typo = false;
+#else
+  g->warn_possible_typo = true;
+#endif
+#ifdef PLUTO_NO_WARN_UNANNOTATED_FALLTHROUGH
+  g->warn_unannotated_fallthrough = false;
+#else
+  g->warn_unannotated_fallthrough = true;
+#endif
+#ifdef PLUTO_NO_WARN_DISCARDED_RETURN
+  g->warn_discarded_return = false;
+#else
+  g->warn_discarded_return = true;
+#endif
+#ifdef PLUTO_NO_WARN_FIELD_SHADOW
+  g->warn_field_shadow = false;
+#else
+  g->warn_field_shadow = true;
+#endif
+#ifdef PLUTO_NO_WARN_UNUSED
+  g->warn_unused = false;
+#else
+  g->warn_unused = true;
+#endif
 #ifdef PLUTO_ETL_ENABLE
   g->deadline = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() + PLUTO_ETL_NANOS;
 #endif

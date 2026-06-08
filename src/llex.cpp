@@ -290,6 +290,8 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
 #endif
   luaZ_resizebuffer(ls->L, ls->buff, LUA_MINBUFFER);  /* initialize buffer */
 
+  ls->warnconfs.emplace_back(WarningConfig(G(L)));
+
   while (true) {  /* perform lexer pass */
     Token t;
     t.column = (int)ls->getLineBuff().size();
@@ -484,6 +486,26 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
   lua_assert(ls->tidx + 1 == ls->tokens.size());
   luaX_setpos(ls, 0);
 #endif
+}
+
+
+WarningConfig::WarningConfig(global_State* g) noexcept : begins_at(0) {
+  states[WT_VAR_SHADOW] = g->warn_var_shadow ? WS_ON : WS_OFF;
+  states[WT_GLOBAL_SHADOW] = g->warn_global_shadow ? WS_ON : WS_OFF;
+  states[WT_TYPE_MISMATCH] = g->warn_type_mismatch ? WS_ON : WS_OFF;
+  states[WT_UNREACHABLE_CODE] = g->warn_unreachable_code ? WS_ON : WS_OFF;
+  states[WT_EXCESSIVE_ARGUMENTS] = g->warn_excessive_arguments ? WS_ON : WS_OFF;
+  states[WT_DEPRECATED] = g->warn_deprecated ? WS_ON : WS_OFF;
+  states[WT_BAD_PRACTICE] = g->warn_bad_practice ? WS_ON : WS_OFF;
+  states[WT_POSSIBLE_TYPO] = g->warn_possible_typo ? WS_ON : WS_OFF;
+  states[WT_NON_PORTABLE_CODE] = g->warn_non_portable_code ? WS_ON : WS_OFF;
+  states[WT_NON_PORTABLE_BYTECODE] = g->warn_non_portable_bytecode ? WS_ON : WS_OFF;
+  states[WT_NON_PORTABLE_NAME] = g->warn_non_portable_name ? WS_ON : WS_OFF;
+  states[WT_IMPLICIT_GLOBAL] = g->warn_implicit_global ? WS_ON : WS_OFF;
+  states[WT_UNANNOTATED_FALLTHROUGH] = g->warn_unannotated_fallthrough ? WS_ON : WS_OFF;
+  states[WT_DISCARDED_RETURN] = g->warn_discarded_return ? WS_ON : WS_OFF;
+  states[WT_FIELD_SHADOW] = g->warn_field_shadow ? WS_ON : WS_OFF;
+  states[WT_UNUSED] = g->warn_unused ? WS_ON : WS_OFF;
 }
 
 
