@@ -1016,7 +1016,7 @@ static int l_decompress (lua_State *L) {
         algo = lua_tostring(L, 2);
       }
       else {
-        max_decompressed_size = luaL_optinteger(L, 3, -1);
+        max_decompressed_size = luaL_optinteger(L, 2, -1);
       }
       break;
     }
