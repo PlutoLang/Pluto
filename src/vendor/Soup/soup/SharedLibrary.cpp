@@ -1,4 +1,5 @@
 #include "SharedLibrary.hpp"
+#if !SOUP_WASM
 
 #include <string>
 
@@ -86,3 +87,5 @@ NAMESPACE_SOUP
 		SOUP_THROW(Exception(std::move(msg)));
 	}
 }
+
+#endif

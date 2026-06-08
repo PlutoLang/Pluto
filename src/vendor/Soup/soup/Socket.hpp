@@ -133,7 +133,7 @@ NAMESPACE_SOUP
 		void enableCryptoServer(SharedPtr<CertStore> certstore, void(*callback)(Socket&, Capture&&), Capture&& cap = {}, tls_server_select_ciphersuite_t select_ciphersuite = &default_select_ciphersuite, tls_server_alpn_select_protocol_t alpn_select_protocol = nullptr);
 	protected:
 		void enableCryptoServerRecvTlsClientHello(UniquePtr<SocketTlsHandshaker>&& handshaker);
-		void enableCryptoServerAfterClientHello(UniquePtr<SocketTlsHandshaker>&& handshaker, const CertStoreEntry* rsa_data, std::string&& alpn_selection);
+		void enableCryptoServerAfterClientHello(UniquePtr<SocketTlsHandshaker>&& handshaker, const CertStoreEntry* rsa_data, std::string&& alpn_selection, bool client_supports_secure_renegotiation);
 		void enableCryptoServerRecvClientKeyExchangeRsa(UniquePtr<SocketTlsHandshaker>&& handshaker);
 		void enableCryptoServerRecvClientKeyExchangeEcdhe(UniquePtr<SocketTlsHandshaker>&& handshaker);
 
@@ -146,18 +146,18 @@ NAMESPACE_SOUP
 		bool send(const void* data, size_t size) SOUP_EXCAL;
 
 		bool initUdpBroadcast4();
-
-		bool setSourcePort4(uint16_t port);
+		bool setSource(native_u32_t ip_addr, native_u16_t port);
+		bool setSourcePort4(native_u16_t port) { return setSource((native_u32_t)0, port); }
 
 		bool udpClientSend(const SocketAddr& addr, const std::string& data) noexcept { return udpClientSend(addr, data.data(), data.size()); }
-		bool udpClientSend(const SocketAddr& addr, const char* data, size_t size) noexcept;
+		bool udpClientSend(const SocketAddr& addr, const void* data, size_t size) noexcept;
 		bool udpClientSend(const IpAddr& ip, uint16_t port, const std::string& data) noexcept { return udpClientSend(ip, port, data.data(), data.size()); }
-		bool udpClientSend(const IpAddr& ip, uint16_t port, const char* data, size_t size) noexcept;
+		bool udpClientSend(const IpAddr& ip, uint16_t port, const void* data, size_t size) noexcept;
 
 		bool udpServerSend(const SocketAddr& addr, const std::string& data) noexcept { return udpServerSend(addr, data.data(), data.size()); }
-		bool udpServerSend(const SocketAddr& addr, const char* data, size_t size) noexcept;
+		bool udpServerSend(const SocketAddr& addr, const void* data, size_t size) noexcept;
 		bool udpServerSend(const IpAddr& ip, uint16_t port, const std::string& data) noexcept { return udpServerSend(ip, port, data.data(), data.size()); }
-		bool udpServerSend(const IpAddr& ip, uint16_t port, const char* data, size_t size) noexcept;
+		bool udpServerSend(const IpAddr& ip, uint16_t port, const void* data, size_t size) noexcept;
 
 		void recv(void(*callback)(Socket&, std::string&&, Capture&&), Capture&& cap = {}); // noexcept but may rethrow callback's exceptions
 

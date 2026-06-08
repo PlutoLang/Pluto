@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base.hpp"
+#if !SOUP_WASM
 
 #if SOUP_WINDOWS
 #include <windows.h>
@@ -50,3 +51,5 @@ NAMESPACE_SOUP
 		[[nodiscard]] void* getAddressMandatory(const char* name) const;
 	};
 }
+
+#endif

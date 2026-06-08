@@ -1003,7 +1003,7 @@ NAMESPACE_SOUP
 
 				handshaker->client_random = std::move(hello.challenge);
 
-				s.enableCryptoServerAfterClientHello(std::move(handshaker), rsa_data, {});
+				s.enableCryptoServerAfterClientHello(std::move(handshaker), rsa_data, {}, false);
 			}
 		}, std::move(handshaker));
 	}
@@ -1020,6 +1020,7 @@ NAMESPACE_SOUP
 
 			const CertStoreEntry* rsa_data;
 			std::string alpn_selection;
+			bool client_supports_secure_renegotiation = false;
 
 			{
 				TlsClientHello hello;
@@ -1079,6 +1080,10 @@ NAMESPACE_SOUP
 					{
 						handshaker->extended_master_secret = true;
 					}
+					else if (ext.id == TlsExtensionType::renegotiation_info)
+					{
+						client_supports_secure_renegotiation = true;
+					}
 				}
 
 				if (tls_isEcdheCiphersuite(handshaker->cipher_suite) && handshaker->ecdhe_curve == 0)
@@ -1096,11 +1101,11 @@ NAMESPACE_SOUP
 				handshaker->client_random = hello.random.toBinaryString();
 			}
 
-			s.enableCryptoServerAfterClientHello(std::move(handshaker), rsa_data, std::move(alpn_selection));
+			s.enableCryptoServerAfterClientHello(std::move(handshaker), rsa_data, std::move(alpn_selection), client_supports_secure_renegotiation);
 		});
 	}
 
-	void Socket::enableCryptoServerAfterClientHello(UniquePtr<SocketTlsHandshaker>&& handshaker, const CertStoreEntry* rsa_data, std::string&& alpn_selection)
+	void Socket::enableCryptoServerAfterClientHello(UniquePtr<SocketTlsHandshaker>&& handshaker, const CertStoreEntry* rsa_data, std::string&& alpn_selection, bool client_supports_secure_renegotiation)
 	{
 		{
 			TlsServerHello shello{};
@@ -1120,6 +1125,13 @@ NAMESPACE_SOUP
 				TlsExtAlpn ext_alpn;
 				ext_alpn.protocol_names.emplace_back(std::move(alpn_selection));
 				shello.extensions.add(TlsExtensionType::application_layer_protocol_negotiation, ext_alpn);
+			}
+
+			if (client_supports_secure_renegotiation)
+			{
+				// OpenSSL might feel left out and drop the connection if we don't play along with this little signalling game.
+				// Of course, Soup doesn't support renegotiation, so all abuse of this mechanism is precluded. :')
+				shello.extensions.add(TlsExtensionType::renegotiation_info, std::string(1, '\0'));
 			}
 
 			if (!tls_sendHandshake(handshaker, TlsHandshake::server_hello, shello.toBinaryString()))
@@ -1396,16 +1408,18 @@ NAMESPACE_SOUP
 			;
 	}
 
-	bool Socket::setSourcePort4(uint16_t port)
+	bool Socket::setSource(native_u32_t ip_addr, native_u16_t port)
 	{
 		sockaddr_in bindto{};
 		bindto.sin_family = AF_INET;
-		bindto.sin_addr.s_addr = INADDR_ANY;
+		bindto.sin_addr.s_addr = Endianness::toNetwork(ip_addr);
 		bindto.sin_port = Endianness::toNetwork(port);
-		return ::bind(fd, (sockaddr*)&bindto, sizeof(bindto)) != -1;
+		return (ip_addr == 0 || setOpt<int>(SOL_SOCKET, SO_REUSEADDR, 1))
+			&& ::bind(fd, (sockaddr*)&bindto, sizeof(bindto)) != -1
+			;
 	}
 
-	bool Socket::udpClientSend(const SocketAddr& addr, const char* data, size_t size) noexcept
+	bool Socket::udpClientSend(const SocketAddr& addr, const void* data, size_t size) noexcept
 	{
 		peer = addr;
 #if SOUP_WINDOWS
@@ -1417,12 +1431,12 @@ NAMESPACE_SOUP
 			;
 	}
 
-	bool Socket::udpClientSend(const IpAddr& ip, uint16_t port, const char* data, size_t size) noexcept
+	bool Socket::udpClientSend(const IpAddr& ip, uint16_t port, const void* data, size_t size) noexcept
 	{
 		return udpClientSend(SocketAddr(ip, native_u16_t(port)), data, size);
 	}
 
-	bool Socket::udpServerSend(const SocketAddr& addr, const char* data, size_t size) noexcept
+	bool Socket::udpServerSend(const SocketAddr& addr, const void* data, size_t size) noexcept
 	{
 #if !SOUP_MACOS
 		if (addr.ip.isV4())
@@ -1431,7 +1445,7 @@ NAMESPACE_SOUP
 			sa.sin_family = AF_INET;
 			sa.sin_port = addr.port;
 			sa.sin_addr.s_addr = addr.ip.getV4();
-			if (::sendto(fd, data, static_cast<int>(size), 0, (sockaddr*)&sa, sizeof(sa)) != size)
+			if (::sendto(fd, (const char*)data, static_cast<int>(size), 0, (sockaddr*)&sa, sizeof(sa)) != size)
 			{
 				return false;
 			}
@@ -1443,7 +1457,7 @@ NAMESPACE_SOUP
 			sa.sin6_family = AF_INET6;
 			memcpy(&sa.sin6_addr, &addr.ip.data, sizeof(in6_addr));
 			sa.sin6_port = addr.port;
-			if (::sendto(fd, data, static_cast<int>(size), 0, (sockaddr*)&sa, sizeof(sa)) != size)
+			if (::sendto(fd, (const char*)data, static_cast<int>(size), 0, (sockaddr*)&sa, sizeof(sa)) != size)
 			{
 				return false;
 			}
@@ -1451,7 +1465,7 @@ NAMESPACE_SOUP
 		return true;
 	}
 
-	bool Socket::udpServerSend(const IpAddr& ip, uint16_t port, const char* data, size_t size) noexcept
+	bool Socket::udpServerSend(const IpAddr& ip, uint16_t port, const void* data, size_t size) noexcept
 	{
 		return udpServerSend(SocketAddr(ip, native_u16_t(port)), data, size);
 	}
@@ -1747,6 +1761,13 @@ NAMESPACE_SOUP
 	{
 		transport_recvExact(5, [](Socket& s, std::string&& data, Capture&& cap) SOUP_EXCAL
 		{
+			SOUP_IF_UNLIKELY (data.empty())
+			{
+				SOUP_ASSUME(s.remote_closed && s.callback_recv_on_close);
+				cap.get<CaptureSocketTlsRecvRecord1>().callback(s, TlsContentType::application_data, {}, std::move(cap.get<CaptureSocketTlsRecvRecord1>().cap));
+				return;
+			}
+
 			TlsRecord record{};
 			if (!record.fromBinary(data)
 				|| record.version.major != 3
@@ -2022,6 +2043,10 @@ NAMESPACE_SOUP
 			}
 			if (remote_closed)
 			{
+				if (callback_recv_on_close)
+				{
+					callback(*this, {}, std::move(cap));
+				}
 				return;
 			}
 		}

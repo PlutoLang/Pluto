@@ -393,7 +393,12 @@ NAMESPACE_SOUP
 #if SOUP_WASM_EXCEPTIONS
 		struct Tag
 		{
-			//uint32_t type_index; // would also need a WasmScript* for reference at which point the GC would need to get involved and meh, we really don't need to know this information
+			std::vector<WasmType> parameters;
+		};
+
+		struct TagImport : public Import
+		{
+			std::vector<WasmType> parameters;
 		};
 #endif
 
@@ -406,7 +411,7 @@ NAMESPACE_SOUP
 		Optional<MemoryImport> memory_import;
 #endif
 #if SOUP_WASM_EXCEPTIONS
-		std::vector<Import> tag_imports{};
+		std::vector<TagImport> tag_imports{};
 #endif
 		std::unordered_map<std::string, Export> export_map{};
 #if SOUP_WASM_MULTI_MEMORY
@@ -660,5 +665,12 @@ NAMESPACE_SOUP
 			last_alloc -= len;
 			return last_alloc;
 		}
+	};
+
+	// Example usage: script.custom_data.getStructFromMap(WasmNameData).function_names.at(func_index)
+	struct WasmNameData
+	{
+		std::string module_name;
+		std::unordered_map<uint32_t, std::string> function_names;
 	};
 }

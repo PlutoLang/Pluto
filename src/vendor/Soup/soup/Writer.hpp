@@ -178,7 +178,11 @@ NAMESPACE_SOUP
 		// String with known length.
 		bool str(size_t len, const std::string& v) noexcept
 		{
-			SOUP_RETHROW_FALSE(len >= v.size());
+			SOUP_IF_LIKELY (v.size() >= len)
+			{
+				raw(const_cast<char*>(v.data()), len);
+				return true;
+			}
 			size_t pad = (len - v.size());
 			bool ret = raw(const_cast<char*>(v.data()), v.size());
 			ret &= skip(pad);

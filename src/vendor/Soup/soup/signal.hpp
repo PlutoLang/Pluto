@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base.hpp"
-#if SOUP_POSIX
+#if SOUP_POSIX && !SOUP_WASM
 #include <signal.h>
 
 NAMESPACE_SOUP

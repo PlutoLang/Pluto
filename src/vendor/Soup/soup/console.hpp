@@ -9,17 +9,9 @@
 
 #include <iostream>
 
-#ifndef SOUP_HAVE_TERMIOS
-	#if !SOUP_WINDOWS && (!SOUP_WASM || SOUP_EMSCRIPTEN)
-		#define SOUP_HAVE_TERMIOS true
-	#else
-		#define SOUP_HAVE_TERMIOS false
-	#endif
-#endif
-
 #if SOUP_WINDOWS
 #include <windows.h>
-#elif SOUP_HAVE_TERMIOS
+#elif SOUP_POSIX && !SOUP_WASM
 #include <termios.h>
 #endif
 
@@ -48,7 +40,7 @@ NAMESPACE_SOUP
 		bool pressed_lmb = false;
 		bool pressed_rmb = false;
 		bool pressed_mmb = false;
-#elif SOUP_HAVE_TERMIOS
+#elif SOUP_POSIX && !SOUP_WASM
 		inline static struct termios termattrs_og{};
 		inline static struct termios termattrs_cur{};
 #endif
@@ -88,10 +80,12 @@ NAMESPACE_SOUP
 		static void setTitle(const std::string& title);
 
 		inline static EventHandler<void(unsigned int, unsigned int)> size_handler;
-#if SOUP_POSIX
+#if SOUP_POSIX && !SOUP_WASM
 		static void sigwinch_handler_proc(int);
 #endif
+#if SOUP_WINDOWS || (SOUP_POSIX && !SOUP_WASM)
 		static void enableSizeTracking(void(*fp)(unsigned int, unsigned int, const Capture&), Capture&& cap = {});
+#endif
 
 		// Output
 
@@ -175,7 +169,7 @@ NAMESPACE_SOUP
 		}
 
 		// Ctrl+C
-
+#if SOUP_WINDOWS || (SOUP_POSIX && !SOUP_WASM)
 	private:
 		using ctrl_c_handler_t = void(*)();
 
@@ -189,6 +183,7 @@ NAMESPACE_SOUP
 
 	public:
 		static void overrideCtrlC(ctrl_c_handler_t handler);
+#endif
 	};
 
 	inline console_impl console;
