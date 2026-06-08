@@ -531,25 +531,43 @@ static int check_next2 (LexState *ls, const char *set) {
 **
 ** The caller might have already read an initial dot.
 */
+static void save_numeral_and_next (LexState *ls) {
+  ls->appendLineBuff(cast_char(ls->current));
+  save_and_next(ls);
+}
+
+
+static int check_next2_numeral (LexState *ls, const char *set) {
+  lua_assert(set[2] == '\0');
+  if (ls->current == set[0] || ls->current == set[1]) {
+    save_numeral_and_next(ls);
+    return 1;
+  }
+  else return 0;
+}
+
+
 static int read_numeral (LexState *ls, SemInfo *seminfo) {
   TValue obj;
   const char *expo = "Ee";
   int first = ls->current;
   lua_assert(lisdigit(ls->current));
-  save_and_next(ls);
-  if (first == '0' && check_next2(ls, "xX"))  /* hexadecimal? */
+  save_numeral_and_next(ls);
+  if (first == '0' && check_next2_numeral(ls, "xX"))  /* hexadecimal? */
     expo = "Pp";
   for (;;) {
-    if (check_next2(ls, expo))  /* exponent mark? */
-      check_next2(ls, "-+");  /* optional exponent sign */
+    if (check_next2_numeral(ls, expo))  /* exponent mark? */
+      check_next2_numeral(ls, "-+");  /* optional exponent sign */
     else if (lisxdigit(ls->current) || ls->current == '.' || ls->current == 'o')  /* '%x|%.' */
-      save_and_next(ls);
-    else if (ls->current == '_')
+      save_numeral_and_next(ls);
+    else if (ls->current == '_') {
+      ls->appendLineBuff('_');
       next(ls);
+    }
     else break;
   }
   if (lislalpha(ls->current))  /* is numeral touching a letter? */
-    save_and_next(ls);  /* force an error */
+    save_numeral_and_next(ls);  /* force an error */
   save(ls, '\0');
   if (luaO_str2num(luaZ_buffer(ls->buff), &obj) == 0)  /* format error? */
     lexerror(ls, "malformed number", TK_FLT);
@@ -1106,22 +1124,13 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
           return '.';
         }
         else {
-          int ret = read_numeral(ls, seminfo);
-          if (ret == TK_INT)
-            ls->appendLineBuff(std::to_string(seminfo->i));
-          else
-            ls->appendLineBuff(std::to_string(seminfo->r));
-          return ret;
+          ls->appendLineBuff('.');
+          return read_numeral(ls, seminfo);
         }
       }
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9': {
-        int ret = read_numeral(ls, seminfo);
-        if (ret == TK_INT)
-          ls->appendLineBuff(std::to_string(seminfo->i));
-        else
-          ls->appendLineBuff(std::to_string(seminfo->r));
-        return ret;
+        return read_numeral(ls, seminfo);
       }
       case '_': {  /* arbitrary underscores for more readable long numbers */
         if (lislalpha(ls->current)) {
@@ -1142,12 +1151,8 @@ static int llex (LexState *ls, SemInfo *seminfo, int *column) {
         } else {  /* needed to emulate default check because _ is fairly multi-purpose. */
           next(ls);
           if (lisdigit(ls->current)) {
-            int ret = read_numeral(ls, seminfo);
-            if (ret == TK_INT)
-              ls->appendLineBuff(std::to_string(seminfo->i));
-            else
-              ls->appendLineBuff(std::to_string(seminfo->r));
-            return ret;  /* arbitrary character detected in numeral */
+            ls->appendLineBuff('_');
+            return read_numeral(ls, seminfo);  /* arbitrary character detected in numeral */
           } else {
             ls->appendLineBuff('_');
             return '_';  /* this is a normal underscore */
