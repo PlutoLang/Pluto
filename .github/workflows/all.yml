@@ -134,7 +134,10 @@ jobs:
   wasm:
     runs-on: ubuntu-latest
     steps:
-      - uses: mymindstorm/setup-emsdk@v13
+      - uses: emscripten-core/setup-emsdk@v16
+        with:
+          version: 5.0.2
+          emsdk-version: 5.0.2
       - uses: actions/checkout@v4
       - run: php scripts/wasm.php
       - name: Ensure files exist
