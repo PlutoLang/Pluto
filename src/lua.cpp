@@ -690,6 +690,7 @@ static void doREPL (lua_State *L) {
   const char *oldprogname = progname;
   progname = NULL;  /* no 'progname' on errors in interactive mode */
   lua_initreadline(L);
+  L->l_G->warn_unused = false;  /* [Pluto] disable 'unused' warning by default because we may not see the entire code in REPL mode */
   while ((status = loadline(L)) != -1) {
     if (status == LUA_OK)
       status = docall(L, 0, LUA_MULTRET);
