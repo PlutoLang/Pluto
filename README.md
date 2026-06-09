@@ -27,4 +27,3 @@ You can use Pluto right in your browser [in the interactive playground](https://
 ### Tooling
 
 - [Pluto Syntax Highlighting](https://github.com/PlutoLang/Syntax-Highlighting)
-- [Pluto Language Server](https://github.com/PlutoLang/pluto-language-server)
