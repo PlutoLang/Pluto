@@ -2625,6 +2625,9 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
       }
       vmcase(OP_ERRNNIL) {
         TValue *ra = vRA(i);
+        vmDumpInit();
+        vmDumpAddA();
+        vmDumpOut("; error if not nil");
         if (!ttisnil(ra))
           halfProtect(luaG_errnnil(L, cl, GETARG_Bx(i)));
         vmbreak;
