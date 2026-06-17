@@ -1351,6 +1351,7 @@ static const std::vector<OpCode> allowOps = { vmDumpAllow };
 #define vmDumpAddA() if (!ignore) { tmp += std::to_string(GETARG_A(i)); tmp += " "; }
 #define vmDumpAddB() if (!ignore) { tmp += std::to_string(GETARG_B(i)); tmp += " "; }
 #define vmDumpAddC() if (!ignore) { tmp += std::to_string(GETARG_C(i)); tmp += " "; }
+#define vmDumpAddK() if (!ignore) { tmp += std::to_string(GETARG_k(i)); tmp += " "; }
 #define vmDumpAdd(o) if (!ignore) { tmp += std::to_string(o);           tmp += " "; }
 #define vmDumpOut(c) if (!ignore) { padUntilGoal(tmp, 20); std::stringstream cs; cs << c; tmp.append(cs.str()); lua_writestring(tmp.data(), tmp.size()); lua_writeline(); }
 #else
@@ -1358,6 +1359,7 @@ static const std::vector<OpCode> allowOps = { vmDumpAllow };
 #define vmDumpAddA()
 #define vmDumpAddB()
 #define vmDumpAddC()
+#define vmDumpAddK()
 #define vmDumpAdd(o)
 #define vmDumpOut(c)
 #endif  /* PLUTO_VMDUMP */
@@ -1729,6 +1731,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         vmDumpAddA();
         vmDumpAddB();
         vmDumpAddC();
+        vmDumpAddK();
         vmDumpOut ("; push self to call '" << getstr(key) << "' (" << stringify_ttype(s2v(ra)) << ")");
         vmbreak;
       }
