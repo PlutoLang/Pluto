@@ -239,6 +239,9 @@ static void createvarargtab (lua_State *L, StkId f, int n) {
   int i;
   TValue key, value;
   Table *t = luaH_new(L);
+#ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
+  luaH_initmetatable(L, t);
+#endif
   sethvalue(L, s2v(L->top.p), t);
   L->top.p++;
   luaH_resize(L, t, cast_uint(n), 1);

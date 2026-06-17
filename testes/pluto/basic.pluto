@@ -3217,6 +3217,16 @@ do
     assert(t.a == 1)
     assert(t.min == nil)
     assert(t:min())
+
+    -- Works for vararg tables
+    local function vaproxy(...args)
+        return args:unpack()
+    end
+    local a, b, c, d = vaproxy(1, 2, 3)
+    assert(a == 1)
+    assert(b == 2)
+    assert(c == 3)
+    assert(d == nil)
 end
 
 print "Testing default arguments."
