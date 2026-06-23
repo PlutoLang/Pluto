@@ -354,6 +354,9 @@ NAMESPACE_SOUP
 							{
 								if (joaat::hash(*enc) == joaat::hash("chunked"))
 								{
+#if LOGGING
+									logWriteLine("Chunked transfer encoding");
+#endif
 									self.resp.removeHeader(str_transfer_encoding); // we don't wanna keep this header around, e.g. in case we're playing reverse-proxy.
 									self.status = BODY_CHUNKED;
 								}
@@ -385,6 +388,9 @@ NAMESPACE_SOUP
 									{
 										if (joaat::hash(*con) == joaat::hash("close"))
 										{
+#if LOGGING
+											logWriteLine("Server will close connection to signal EOF");
+#endif
 											self.status = BODY_CLOSE;
 											s.callback_recv_on_close = true;
 										}

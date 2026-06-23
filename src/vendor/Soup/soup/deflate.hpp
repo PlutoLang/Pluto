@@ -25,7 +25,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] static size_t getMaxDecompressedSize(const void* compressed_data, size_t compressed_data_size)
 		{
-			return compressed_data_size * 29;
+			return compressed_data_size * 30;
 		}
 	};
 }

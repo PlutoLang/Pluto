@@ -197,6 +197,11 @@ NAMESPACE_SOUP
 		return nullptr;
 	}
 
+	UniquePtr<JsonNode>* JsonObject::findUp(const char* data, size_t size) noexcept
+	{
+		return findUp(JsonString(data, size));
+	}
+
 	UniquePtr<JsonNode>* JsonObject::findUp(std::string k) noexcept
 	{
 		return findUp(JsonString(std::move(k)));
@@ -349,6 +354,24 @@ NAMESPACE_SOUP
 		if (auto n = find(q, l))
 		{
 			return n->query(&q[l]);
+		}
+		return nullptr;
+	}
+
+	UniquePtr<JsonNode>* JsonObject::queryUp(const char* q) noexcept
+	{
+		size_t l = 0;
+		if (*q == '.')
+		{
+			++q;
+		}
+		while (q[l] && q[l] != '.')
+		{
+			++l;
+		}
+		if (auto n = findUp(q, l))
+		{
+			return q[l] ? (*n)->queryUp(&q[l]) : n;
 		}
 		return nullptr;
 	}

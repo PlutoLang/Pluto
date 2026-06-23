@@ -64,5 +64,6 @@ NAMESPACE_SOUP
 		}
 
 		[[nodiscard]] JsonNode* query(const char* q) noexcept;
+		[[nodiscard]] UniquePtr<JsonNode>* queryUp(const char* q) noexcept;
 	};
 }

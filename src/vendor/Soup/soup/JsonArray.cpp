@@ -131,4 +131,33 @@ NAMESPACE_SOUP
 		}
 		return nullptr;
 	}
+
+	UniquePtr<JsonNode>* JsonArray::queryUp(const char* q) noexcept
+	{
+		size_t index = 0;
+		if (*q == '.')
+		{
+			++q;
+		}
+		if (*q == '[')
+		{
+			++q;
+		}
+		while (*q && string::isNumberChar(*q))
+		{
+			index *= 10;
+			index += (*q - '0');
+			++q;
+		}
+		if (*q == ']')
+		{
+			++q;
+		}
+		if (index < children.size())
+		{
+			UniquePtr<JsonNode>* n = &children[index];
+			return *q ? (*n)->queryUp(q) : n;
+		}
+		return nullptr;
+	}
 }

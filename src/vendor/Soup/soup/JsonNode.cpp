@@ -75,6 +75,19 @@ NAMESPACE_SOUP
 		return nullptr;
 	}
 
+	UniquePtr<JsonNode>* JsonNode::queryUp(const char* q) noexcept
+	{
+		if (isObj())
+		{
+			return reinterpretAsObj().queryUp(q);
+		}
+		if (isArr())
+		{
+			return reinterpretAsArr().queryUp(q);
+		}
+		return nullptr;
+	}
+
 	void JsonNode::throwTypeError()
 	{
 		SOUP_THROW(Exception("JsonNode has unexpected type"));

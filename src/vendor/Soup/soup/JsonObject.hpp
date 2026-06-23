@@ -39,6 +39,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] JsonNode* find(const char* data, size_t size) const noexcept;
 		[[nodiscard]] JsonNode* find(std::string k) const noexcept;
 		[[nodiscard]] JsonNode* find(const JsonNode& k) const noexcept;
+		[[nodiscard]] UniquePtr<JsonNode>* findUp(const char* data, size_t size) noexcept;
 		[[nodiscard]] UniquePtr<JsonNode>* findUp(std::string k) noexcept;
 		[[nodiscard]] UniquePtr<JsonNode>* findUp(const JsonNode& k) noexcept;
 		[[nodiscard]] Container::iterator findIt(std::string k) noexcept;
@@ -75,5 +76,6 @@ NAMESPACE_SOUP
 		}
 
 		[[nodiscard]] JsonNode* query(const char* q) noexcept;
+		[[nodiscard]] UniquePtr<JsonNode>* queryUp(const char* q) noexcept;
 	};
 }
