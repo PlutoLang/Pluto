@@ -7,7 +7,7 @@ jobs:
   ubuntu-24-04:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: src/pluto testes/_driver.pluto
@@ -15,7 +15,7 @@ jobs:
   ubuntu-22-04:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: src/pluto testes/_driver.pluto
@@ -23,13 +23,13 @@ jobs:
   debian-10:
     runs-on: [debian-10]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
       - run: php scripts/link_shared.php clang
       - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: "Linux (X64)"
           path: |
@@ -40,20 +40,20 @@ jobs:
       - run: src/pluto testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
       - run: php scripts/bundle_deb.php
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: "Linux (X64) - .deb Package"
           path: pluto.deb
   macos-x64:
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
       - run: php scripts/link_shared.php clang
       - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: "MacOS (X64)"
           path: |
@@ -67,13 +67,13 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: shivammathur/setup-php@v2
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
       - run: php scripts/link_shared.php clang
       - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: "MacOS (ARM64)"
           path: |
@@ -88,12 +88,12 @@ jobs:
     steps:
       #- name: Ensure LLVM is up-to-date
       #  run: choco upgrade llvm
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
       - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: "Windows (X64)"
           path: |
@@ -103,7 +103,7 @@ jobs:
       - run: src/pluto.exe testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
       - run: php scripts/bundle_nupkg.php
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: "Windows (X64) Chocolatey Package"
           path: plutolang/*.nupkg
@@ -112,14 +112,14 @@ jobs:
     steps:
       #- name: Ensure LLVM is up-to-date
       #  run: choco upgrade llvm
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: php scripts/make_dll.php clang
       - name: Ensure files exist
         uses: andstor/file-existence-action@v3
         with:
           files: "src/pluto.dll, src/pluto.lib, src/pluto.exp"
           fail: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: "Windows (X64) DLL"
           path: |
@@ -129,7 +129,7 @@ jobs:
   makefile:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: make -j PLAT=linux
   wasm:
     runs-on: ubuntu-latest
@@ -138,14 +138,14 @@ jobs:
         with:
           version: 5.0.2
           emsdk-version: 5.0.2
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: php scripts/wasm.php
       - name: Ensure files exist
         uses: andstor/file-existence-action@v3
         with:
           files: "pluto.js, pluto.wasm, libpluto.js, libpluto.wasm"
           fail: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: WASM
           path: |
