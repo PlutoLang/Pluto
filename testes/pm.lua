@@ -347,6 +347,16 @@ do   -- init parameter in gmatch
 end
 
 
+do  -- bug since 5.3
+  local N = 20000
+  local iter = string.gmatch(string.rep("a", N), string.rep("a?", N))
+  pcall(iter)   -- error for pattern too complex
+  -- calling function again found recursion count ('matchdepth') equal
+  -- to -1, so it did not detect next C-stack overflow
+  pcall(iter)
+end
+
+
 -- tests for `%f' (`frontiers')
 
 assert(string.gsub("aaa aa a aaa a", "%f[%w]a", "x") == "xaa xa x xaa x")
