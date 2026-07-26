@@ -43,7 +43,7 @@ function check_compiler()
 	{
 		if (PHP_OS_FAMILY == "Darwin")
 		{
-			$compiler .= " -lc++";
+			$compiler .= " -lc++ -lreadline";
 		}
 		else
 		{
