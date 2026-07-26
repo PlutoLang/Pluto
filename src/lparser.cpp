@@ -5083,22 +5083,13 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen, tdn
 }
 
 
-/*
-** Control whether for-loop control variables are read-only
-*/
-#if LUA_COMPAT_LOOPVAR
-#define LOOPVARKIND	VDKREG
-#else  /* by default, these variables are read only */
-#define LOOPVARKIND	RDKCONST
-#endif
-
 static void fornum (LexState *ls, TString *varname, tdn_t *nprop, TypeHint *prop, int line) {
   /* fornum -> NAME = exp,exp[,exp] forbody */
   FuncState *fs = ls->fs;
   int base = fs->freereg;
   new_localvarliteral(ls, "(for state)");
   new_localvarliteral(ls, "(for state)");
-  new_varkind(ls, varname, LOOPVARKIND);  /* control variable */
+  new_varkind(ls, varname, RDKCONST);  /* control variable */
   checknext(ls, '=');
   exp1(ls);  /* initial value */
   checknext(ls, ',');
@@ -5125,7 +5116,7 @@ static void forlist (LexState *ls, TString *indexname, tdn_t *nprop, TypeHint *p
   new_localvarliteral(ls, "(for state)");  /* iterator function */
   new_localvarliteral(ls, "(for state)");  /* state */
   new_localvarliteral(ls, "(for state)");  /* closing var. (after swap) */
-  new_varkind(ls, indexname, LOOPVARKIND);  /* control variable */
+  new_varkind(ls, indexname, RDKCONST);  /* control variable */
   while (testnext(ls, ',')) {
     new_localvar(ls, str_checkname(ls));
     nvars++;
