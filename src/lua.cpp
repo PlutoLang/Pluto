@@ -384,12 +384,21 @@ static int runargs (lua_State *L, char **argv, int n) {
 }
 
 
+static char *(*l_getenv)(const char *name);
+
+/* Function to ignore environment variables, used by option -E */
+static char *no_getenv (const char *name) {
+  UNUSED(name);
+  return NULL;
+}
+
+
 static int handle_luainit (lua_State *L) {
   const char *name = "=" LUA_INITVARVERSION;
-  const char *init = getenv(name + 1);
+  const char *init = l_getenv(name + 1);
   if (init == NULL) {
     name = "=" LUA_INIT_VAR;
-    init = getenv(name + 1);  /* try alternative name */
+    init = l_getenv(name + 1);  /* try alternative name */
   }
   if (init == NULL) return LUA_OK;
   else if (init[0] == '@')
@@ -728,9 +737,12 @@ static int pmain (lua_State *L) {
   if (args & has_v)  /* option '-v'? */
     print_version();
   if (args & has_E) {  /* option '-E'? */
+    l_getenv = &no_getenv;  /* program will ignore environment variables */
     lua_pushboolean(L, 1);  /* signal for libraries to ignore env. vars. */
     lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
   }
+  else
+    l_getenv = &getenv;
   if (args & has_c) {
     L->l_G->setCompatibilityMode(true);
   }
@@ -738,10 +750,8 @@ static int pmain (lua_State *L) {
   createargtable(L, argv, argc, script);  /* create table 'arg' */
   lua_gc(L, LUA_GCRESTART);  /* start GC... */
   lua_gc(L, LUA_GCGEN);  /* ...in generational mode */
-  if (!(args & has_E)) {  /* no option '-E'? */
-    if (handle_luainit(L) != LUA_OK)  /* run LUA_INIT */
-      return 0;  /* error running LUA_INIT */
-  }
+  if (handle_luainit(L) != LUA_OK)  /* run LUA_INIT */
+    return 0;  /* error running LUA_INIT */
   if (!runargs(L, argv, optlim))  /* execute arguments -e and -l */
     return 0;  /* something failed */
   if (script > 0) {  /* execute main script (if there is one) */
