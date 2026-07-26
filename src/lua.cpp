@@ -726,7 +726,13 @@ static void doREPL (lua_State *L) {
 /* }================================================================== */
 
 #if !defined(luai_openlibs)
-#define luai_openlibs(L)	luaL_openselectedlibs(L, PLUTO_DEFAULTLOADLIBS, ~0)
+#if defined(LUA_NODEBUGLIB)
+/* With this option, code must require the debug library before using it */
+#define luai_openlibs(L)  luaL_openselectedlibs(L, PLUTO_DEFAULTLOADLIBS & ~LUA_DBLIBK, LUA_DBLIBK)
+#else
+/* The default is to open all standard libraries */
+#define luai_openlibs(L)  luaL_openselectedlibs(L, PLUTO_DEFAULTLOADLIBS, ~0)
+#endif
 #endif
 
 

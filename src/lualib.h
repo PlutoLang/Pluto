@@ -56,7 +56,7 @@ LUAMOD_API int (luaopen_table) (lua_State *L);
 LUAMOD_API int (luaopen_utf8) (lua_State *L);
 
 
-#define PLUTO_DEFAULTLOADLIBS PLUTO_CRYPTOLIBK - 1
+#define PLUTO_DEFAULTLOADLIBS (PLUTO_CRYPTOLIBK - 1)
 
 #define PLUTO_CRYPTOLIBNAME "crypto"
 #define PLUTO_CRYPTOLIBK (LUA_UTF8LIBK << 1)
