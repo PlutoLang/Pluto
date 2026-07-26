@@ -430,12 +430,6 @@ void luaD_shrinkstack (lua_State *L) {
   luaE_shrinkCI(L);  /* shrink CI list */
 }
 
-
-void luaD_inctop (lua_State *L) {
-  L->top.p++;
-  luaD_checkstack(L, 1);
-}
-
 /* }================================================================== */
 
 
