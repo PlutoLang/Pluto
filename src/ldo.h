@@ -88,7 +88,6 @@ LUAI_FUNC void luaD_poscall (lua_State *L, CallInfo *ci, int nres);
 LUAI_FUNC int luaD_reallocstack (lua_State *L, int newsize, int raiseerror);
 LUAI_FUNC int luaD_growstack (lua_State *L, int n, int raiseerror);
 LUAI_FUNC void luaD_shrinkstack (lua_State *L);
-LUAI_FUNC void luaD_inctop (lua_State *L);
 LUAI_FUNC int luaD_checkminstack (lua_State *L);
 LUAI_FUNC void luaD_anchorobj (lua_State *L, Table *anchor, GCObject *obj);
 
