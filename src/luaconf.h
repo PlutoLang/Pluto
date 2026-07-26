@@ -693,7 +693,7 @@
 */
 #if !defined(luai_likely)
 
-#if (defined(__GNUC__) || defined(__CLANG__)) && !defined(LUA_NOBUILTIN)
+#if !defined(LUA_NOBUILTIN) && defined(__GNUC__) && (__GNUC__ >= 3)
 #define luai_likely(x)		(__builtin_expect(((x) != 0), 1))
 #define luai_unlikely(x)	(__builtin_expect(((x) != 0), 0))
 #else
