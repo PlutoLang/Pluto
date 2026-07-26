@@ -1179,6 +1179,25 @@ if rawget(_G, "T") then
 end
 
 
+do
+  -- detail in scopes of variables in the loop of 'repeat-until'
+  local res = {}
+  local function foo (a)
+    repeat
+      local x
+      local i <close> = setmetatable({}, {__close = function ()
+              res[#res + 1] = debug.getlocal(2, 2)   -- get 'x'
+              res[#res + 1] = debug.getlocal(2, 3)   -- get 'i'
+              a = true
+            end})
+    until a
+  end
+  foo(false)
+  -- loop variables still in scope when closing 'i', both when 'repeat'
+  -- repeats and when 'repeat' stops.
+  assert(res[1] == "x" and res[2] == "i" and res[3] == "x" and res[4] == "i")
+end
+
 
 -- to-be-closed variables in generic for loops
 do
