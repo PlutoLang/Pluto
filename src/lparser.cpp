@@ -5103,7 +5103,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isgen, tdn
 /*
 ** Control whether for-loop control variables are read-only
 */
-#if defined(LUA_COMPAT_LOOPVAR)
+#if LUA_COMPAT_LOOPVAR
 #define LOOPVARKIND	VDKREG
 #else  /* by default, these variables are read only */
 #define LOOPVARKIND	RDKCONST
@@ -6283,7 +6283,7 @@ static void statement (LexState *ls, tdn_t *nprop, TypeHint *prop) {
       expsuffix(ls, &v, line, 0, nprop, prop);
       break;
     }
-#if defined(LUA_COMPAT_GLOBAL)
+#if LUA_COMPAT_GLOBAL
     case TK_NAME: {
       /* compatibility code to parse global keyword when "global"
          is not reserved */
