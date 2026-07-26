@@ -382,16 +382,22 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
       luaT_callTM(L, tm, t, key, val);
       return;
     }
-    t = tm;  /* else repeat assignment over 'tm' */
+    t = tm;  /* else must repeat assignment over 'tm' */
+    /* do the equivalent to 'luaV_fastset', but saving 'h' */
+    if (!ttistable(t))
+      hres = HNOTATABLE;
+    else {
+      Table *h = hvalue(t);  /* next call can change the value at 't' */
 #ifdef PLUTO_ENABLE_TABLE_FREEZING
-    if (l_unlikely(hvalue(t)->isfrozen)) luaG_runerror(L, "attempt to modify frozen table.");
+      if (l_unlikely(h->isfrozen)) luaG_runerror(L, "attempt to modify frozen table.");
 #endif
-    luaV_fastset(t, key, val, hres, luaH_pset);
-    if (hres == HOK) {
-      luaV_finishfastset(L, t, val);
-      return;  /* done */
+      hres = luaH_pset(h, key, val);
+      if (hres == HOK) {
+        luaC_barrierback(L, obj2gco(h), val);  /* luaV_finishfastset */
+        return;  /* done */
+      }
     }
-    /* else 'return luaV_finishset(L, t, key, val, slot)' (loop) */
+    /* else 'return luaV_finishset(L, t, key, val, hres)' (loop) */
   }
   luaG_runerror(L, "'__newindex' chain too long; possible loop");
 }
