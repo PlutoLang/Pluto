@@ -372,6 +372,13 @@
 
 
 /*
+@@ LUA_COMPAT_LOOPVAR makes for-loop control variables not read-only,
+** as they were in previous versions.
+*/
+/* #define LUA_COMPAT_LOOPVAR */
+
+
+/*
 @@ LUA_COMPAT_MATHLIB controls the presence of several deprecated
 ** functions in the mathematical library.
 ** (These functions were already officially removed in 5.3;
