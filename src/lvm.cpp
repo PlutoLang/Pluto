@@ -300,7 +300,7 @@ lu_byte luaV_finishget (lua_State *L, const TValue *t, TValue *key,
           index += tsslen(tsvalue(t)) + 1;
         }
         if (((lua_Integer)tsslen(tsvalue(t)) < index) || (index < 1)) { /* invalid index */
-          setnilvalue(s2v(val));
+          setnilvalue2s(val);
           return LUA_TNIL;
         }
         else { /* index is valid */
@@ -322,7 +322,7 @@ lu_byte luaV_finishget (lua_State *L, const TValue *t, TValue *key,
       if (tm == NULL && mindex && hvalue(t)->metatable)
         tm = luaT_gettmbyobj(L, t, TM_MINDEX);
       if (tm == NULL) {  /* no metamethod? */
-        setnilvalue(s2v(val));  /* result is nil */
+        setnilvalue2s(val);  /* result is nil */
         return LUA_VNIL;
       }
       /* else will try the metamethod */
