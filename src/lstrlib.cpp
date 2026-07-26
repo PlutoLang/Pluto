@@ -811,19 +811,25 @@ static int nospecials (const char *p, size_t l) {
 }
 
 
+/*
+** Prepare state for matches. These fields are not affected by each match.
+*/
 static void prepstate (MatchState *ms, lua_State *L,
                        const char *s, size_t ls, const char *p, size_t lp) {
   ms->L = L;
-  ms->matchdepth = MAXCCALLS;
   ms->src_init = s;
   ms->src_end = s + ls;
   ms->p_end = p + lp;
 }
 
 
+/*
+** (Re)prepare state for a match, setting fields that change during
+** each match.
+*/
 static void reprepstate (MatchState *ms) {
+  ms->matchdepth = MAXCCALLS;
   ms->level = 0;
-  lua_assert(ms->matchdepth == MAXCCALLS);
 }
 
 
