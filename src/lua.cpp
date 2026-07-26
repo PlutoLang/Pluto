@@ -36,6 +36,12 @@
 #define LUA_INIT_VAR		"LUA_INIT"
 #endif
 
+/* Name of the environment variable with the name of the readline library */
+#if !defined(LUA_RLLIB_VAR)
+#define LUA_RLLIB_VAR		"LUA_READLINELIB"
+#endif
+
+
 #define LUA_INITVARVERSION	LUA_INIT_VAR LUA_VERSUFFIX
 
 
@@ -517,18 +523,24 @@ static void lua_freeline (char *line) {
 #include <dlfcn.h>
 
 static void lua_initreadline (lua_State *L) {
-  void *lib = dlopen(LUA_READLINELIB, RTLD_NOW | RTLD_LOCAL);
-  if (lib == NULL)
-    lua_warning(L, "library '" LUA_READLINELIB "' not found", 0);
-  else {
+  const char *rllib = l_getenv(LUA_RLLIB_VAR);  /* name of readline library */
+  void *lib;  /* library handle */
+  if (rllib == NULL)  /* no environment variable? */
+    rllib = LUA_READLINELIB;  /* use default name */
+  lib = dlopen(rllib, RTLD_NOW | RTLD_LOCAL);
+  if (lib != NULL) {
     const char **name = cast(const char**, dlsym(lib, "rl_readline_name"));
     if (name != NULL)
       *name = "lua";
     l_readline = cast(l_readlineT, cast_func(dlsym(lib, "readline")));
     l_addhist = cast(l_addhistT, cast_func(dlsym(lib, "add_history")));
-    if (l_readline == NULL)
-      lua_warning(L, "unable to load 'readline'", 0);
+    if (l_readline != NULL)  /* could load readline function? */
+      return;  /* everything ok */
+    /* else emit a warning */
   }
+  lua_warning(L, "unable to load readline library '", 1);
+  lua_warning(L, rllib, 1);
+  lua_warning(L, "'", 0);
 }
 
 #else		/* }{ */
