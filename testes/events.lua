@@ -392,6 +392,18 @@ do
   for i=1, 10 do t[i] = 1 end
 end
 
+
+do   -- bug since 5.4
+  local parent = {}
+  parent.__newindex = parent
+  collectgarbage()
+  local child = setmetatable({}, parent)
+  child.__newindex = {x = "hello"}
+  collectgarbage("step")
+  assert(parent.__newindex.x == "hello")
+end
+
+
 -- concat metamethod x numbers (bug in 5.1.1)
 c = {}
 local x
