@@ -89,9 +89,7 @@
 #if defined(LUA_USE_MACOSX)
 #define LUA_USE_POSIX
 #define LUA_USE_DLOPEN		/* macOS does not need -ldl */
-#if !defined(LUA_READLINELIB)
-#define LUA_READLINELIB		"libedit.dylib"
-#endif
+#define LUA_USE_READLINE
 #endif
 
 
