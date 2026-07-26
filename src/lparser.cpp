@@ -2992,6 +2992,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
     }
     default: {
       luaX_syntaxerror(ls, "function arguments expected");
+      return;  /* to avoid warnings */
     }
   }
   if (funcdesc) {
