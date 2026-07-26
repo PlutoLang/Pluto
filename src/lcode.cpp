@@ -841,7 +841,7 @@ void luaK_dischargevars (FuncState *fs, expdesc *e) {
     case VLOCAL: {  /* already in a register */
       e->code_primitive = getlocalvardesc(fs, e->u.var.vidx)->vd.prop->toPrimitive();
       int temp = e->u.var.ridx;
-      e->u.reg = temp;  /* (can't do a direct assignment; values overlap) */
+      e->u.reg = temp;  /* (avoid a direct assignment; values overlap) */
       e->k = VNONRELOC;  /* becomes a non-relocatable value */
       break;
     }
@@ -1507,7 +1507,7 @@ void luaK_indexed (FuncState *fs, expdesc *t, expdesc *k) {
     luaK_exp2anyreg(fs, t);  /* put it in a register */
   if (t->k == VUPVAL) {
     lu_byte temp = cast_byte(t->u.info);  /* upvalue index */
-    t->u.ind.t = temp;  /* (can't do a direct assignment; values overlap) */
+    t->u.ind.t = temp;  /* (avoid do a direct assignment; values overlap) */
     lua_assert(isKstr(fs, k));
     fillidxk(t, k->u.info, VINDEXUP);  /* literal short string */
   }
@@ -1515,12 +1515,13 @@ void luaK_indexed (FuncState *fs, expdesc *t, expdesc *k) {
     int kreg = luaK_exp2anyreg(fs, k);  /* put key in some register */
     lu_byte vreg = cast_byte(t->u.var.ridx);  /* register with vararg param. */
     lua_assert(vreg == fs->f->numparams);
-    t->u.ind.t = vreg;  /* (avoid a direct assignment; values may overlap) */
+    t->u.ind.t = vreg;  /* (avoid a direct assignment; values may overlap?) */
     fillidxk(t, kreg, VVARGIND);  /* 't' represents 'vararg[k]' */
   }
   else {
     /* register index of the table */
-    t->u.ind.t = cast_byte((t->k == VLOCAL) ? t->u.var.ridx: t->u.info);
+    lu_byte temp = cast_byte((t->k == VLOCAL) ? t->u.var.ridx: t->u.info);
+    t->u.ind.t = temp;  /* (avoid a direct assignment; values may overlap?) */
     if (isKstr(fs, k))
       fillidxk(t, k->u.info, VINDEXSTR);  /* literal short string */
     else if (isCint(k))  /* int. constant in proper range? */
