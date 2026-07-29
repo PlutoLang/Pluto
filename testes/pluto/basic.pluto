@@ -4100,6 +4100,28 @@ do
         func3 : function
         func4:function
     end
+    -- https://github.com/PlutoLang/Pluto/issues/1465
+    local class smth2
+        function a()
+            switch _VERSION do
+                case "":
+                    if _VERSION then
+                    end
+                    break
+            end
+        end
+    end
+    -- @pluto_warnings: disable-next
+    local class smth3
+        function a()
+            switch _VERSION do
+                case (smth2:a()):
+                    if _VERSION then
+                    end
+                    break
+            end
+        end
+    end
 end
 
 print "Testing protected fields."

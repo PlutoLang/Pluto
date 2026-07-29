@@ -2202,15 +2202,28 @@ static void applyextends (LexState *ls, size_t name_pos, size_t parent_pos, int 
   fs->freereg = base + 1;
 }
 
-static size_t preprocessclass (LexState *ls) {
-  int allowed_ends = 0;
+
+enum PreprocessSpecialBlockType : uint8_t {
+  SBT_ROOT,
+  SBT_NONE,
+  SBT_SWITCH,
+};
+
+// noexcept because std::stack would need unwind
+static size_t preprocessclass (LexState *ls) noexcept {
+  std::stack<PreprocessSpecialBlockType> blocks; blocks.push(SBT_ROOT);
   bool expect_block_opener = false;
   const auto start = luaX_getpos(ls);
 
+  //printf("Begin processing class at line %d.\n", ls->getLineNumber());
   while (ls->t.token != TK_EOS) {
-    if (ls->t.token == TK_END && allowed_ends-- <= 0) {
-      // printf("Preprocessed class body ending at line %d.\n", ls->getLineNumber());
-      break;
+    if (ls->t.token == TK_END) {
+      //printf("End block at line %d.\n", ls->getLineNumber());
+      if (blocks.top() == SBT_ROOT) {
+        //printf("End processing class at line %d.\n", ls->getLineNumber());
+        break;
+      }
+      blocks.pop();
     }
 
     // This is only checking *inside* our current class body, the parser has already skipped the class declaration.
@@ -2219,16 +2232,18 @@ static size_t preprocessclass (LexState *ls) {
     case TK_ENUM:
     case TK_CLASS: /* class or enum class */
     case TK_FUNCTION:
+    case TK_SWITCH: case TK_PSWITCH:
       /* ensure this keyword isn't being used in a goto label, call, type hint, or table key assignment (issue #1410) */
       if (luaX_lookahead(ls) != '='
-        && luaX_lookbehind(ls).token != ':'
+        && (luaX_lookbehind(ls).token != ':' || blocks.top() == SBT_SWITCH)  /* `case "": if` starts an if block */
         && luaX_lookbehind(ls).token != '.'
         && luaX_lookbehind(ls).token != TK_GOTO
         && (luaX_lookbehind(ls).token != TK_DBCOLON || luaX_lookahead(ls) != TK_DBCOLON)  /* allow keyword immediately after goto label */
         ) {
         expect_block_opener = ls->t.token != TK_FUNCTION;
         if (ls->t.token != TK_ENUM || luaX_lookahead(ls) != TK_CLASS) {  /* 'enum class' would already be counted */
-          ++allowed_ends;
+          blocks.push((ls->t.token == TK_SWITCH || ls->t.token == TK_PSWITCH) ? SBT_SWITCH : SBT_NONE);
+          //printf("Begin block at line %d.\n", ls->getLineNumber());
         }
       }
       break;
@@ -2241,8 +2256,10 @@ static size_t preprocessclass (LexState *ls) {
     case TK_DO:
       if (expect_block_opener)
         expect_block_opener = false;
-      else
-        ++allowed_ends;  /* forstat, whilestat, switchstat, dostat, '-> do' */
+      else {
+        blocks.push(SBT_NONE);  /* forstat, whilestat, switchstat, dostat, '-> do' */
+        //printf("Begin block at line %d.\n", ls->getLineNumber());
+      }
       break;
     }
 
@@ -2251,7 +2268,8 @@ static size_t preprocessclass (LexState *ls) {
         checknext(ls, TK_NAME);
         checknext(ls, TK_FUNCTION);
         ls->classes.top().addProtectedField(getstr(ls->t.seminfo.ts));
-        ++allowed_ends; // For TK_FUNCTION
+        blocks.push(SBT_NONE);  /* for TK_FUNCTION */
+        //printf("Begin block at line %d.\n", ls->getLineNumber());
       }
       else if (luaX_lookahead(ls) == TK_NAME) {
         checknext(ls, TK_NAME);
@@ -2263,7 +2281,8 @@ static size_t preprocessclass (LexState *ls) {
         checknext(ls, TK_NAME);
         checknext(ls, TK_FUNCTION);
         ls->classes.top().addPrivateField(getstr(ls->t.seminfo.ts));
-        ++allowed_ends; // For TK_FUNCTION
+        blocks.push(SBT_NONE);  /* for TK_FUNCTION */
+        //printf("Begin block at line %d.\n", ls->getLineNumber());
       }
       else if (luaX_lookahead(ls) == TK_NAME) {
         checknext(ls, TK_NAME);
@@ -2278,6 +2297,7 @@ static size_t preprocessclass (LexState *ls) {
   luaX_setpos(ls, start);
   return finish;
 }
+
 
 static void classexpr (LexState *ls, expdesc *t) {
   FuncState *fs = ls->fs;
