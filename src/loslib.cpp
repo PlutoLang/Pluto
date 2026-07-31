@@ -28,6 +28,9 @@
 #include "vendor/Soup/soup/base.hpp"
 #include "vendor/Soup/soup/dnsOsResolver.hpp"
 #include "vendor/Soup/soup/os.hpp"
+#if SOUP_WINDOWS
+#include "vendor/Soup/soup/unicode.hpp"
+#endif
 
 
 /*
@@ -154,7 +157,12 @@ static int os_execute (lua_State *L) {
   const char *cmd = luaL_optstring(L, 1, NULL);
   int stat;
   errno = 0;
+#if SOUP_WINDOWS
+  std::wstring& wcmd = *pluto_newclassinst(L, std::wstring, soup::unicode::utf8_to_utf16(cmd));
+  stat = _wsystem(wcmd.c_str());
+#else
   stat = l_system(cmd);
+#endif
   if (cmd != NULL)
     return luaL_execresult(L, stat);
   else {
