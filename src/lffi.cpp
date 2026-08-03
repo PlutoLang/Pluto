@@ -628,11 +628,22 @@ static int ffi_alloc (lua_State *L) {
 }
 
 static int ffi_write (lua_State *L) {
-  luaL_checktype(L, 1, LUA_TUSERDATA);
-  auto dst_len = lua_rawlen(L, 1);
-  auto dst = lua_touserdata(L, 1);
+  void* dst;
+  size_t dst_len;
+  int i;
+  if (lua_type(L, 1) == LUA_TUSERDATA) {
+    dst_len = lua_rawlen(L, 1);
+    dst = lua_touserdata(L, 1);
+    i = 2;
+  }
+  else if (lua_type(L, 1) == LUA_TLIGHTUSERDATA) {
+    dst = lua_touserdata(L, 1);
+    dst_len = luaL_checkinteger(L, 2);
+    i = 3;
+  }
+  else luaL_typeerror(L, 1, "userdata or lightuserdata");
   size_t src_len;
-  auto src = luaL_checklstring(L, 2, &src_len);
+  auto src = luaL_checklstring(L, i, &src_len);
   if (src_len > dst_len) {
     src_len = dst_len;
   }
@@ -641,9 +652,17 @@ static int ffi_write (lua_State *L) {
 }
 
 static int ffi_read (lua_State *L) {
-  luaL_checktype(L, 1, LUA_TUSERDATA);
-  auto size = lua_rawlen(L, 1);
-  auto data = lua_touserdata(L, 1);
+  void* data;
+  size_t size;
+  if (lua_type(L, 1) == LUA_TUSERDATA) {
+    size = lua_rawlen(L, 1);
+    data = lua_touserdata(L, 1);
+  }
+  else if (lua_type(L, 1) == LUA_TLIGHTUSERDATA) {
+    data = lua_touserdata(L, 1);
+    size = luaL_checkinteger(L, 2);
+  }
+  else luaL_typeerror(L, 1, "userdata or lightuserdata");
   lua_pushlstring(L, static_cast<char*>(data), size);
   return 1;
 }
