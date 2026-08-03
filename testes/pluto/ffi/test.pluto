@@ -158,17 +158,32 @@ assert(float_test_inst.f == 69)
 assert(float_test_inst.d == 420)
 
 print "Testing FFI allocations."
-local pIn = ffi.alloc(13)
-local pOut = ffi.alloc(13)
-assert(ffi.read(pIn) == "\0":rep(13))
-assert(ffi.read(pOut) == "\0":rep(13))
-ffi.write(pIn, "Hello, world!")
-assert(ffi.read(pIn) == "Hello, world!")
-lib:cdef[[
-void buffer_test(uint8_t* in, size_t inlen, uint8_t* out, size_t outlen);
-]]
-lib.buffer_test(pIn, 13, pOut, 13)
-assert(ffi.read(pOut) == "Hello, world!")
+do
+    local pIn = ffi.alloc(13)
+    local pOut = ffi.alloc(13)
+    assert(ffi.read(pIn) == "\0":rep(13))
+    assert(ffi.read(pOut) == "\0":rep(13))
+    ffi.write(pIn, "Hello, world!")
+    assert(ffi.read(pIn) == "Hello, world!")
+    lib:cdef[[
+    void buffer_test(uint8_t* in, size_t inlen, uint8_t* out, size_t outlen);
+    ]]
+    lib.buffer_test(pIn, 13, pOut, 13)
+    assert(ffi.read(pOut) == "Hello, world!")
+end
+do
+    lib:cdef[[
+    const void* foreign_read_test(size_t* out_len);
+    int foreign_write_test();
+    ]]
+    local out_len = ffi.alloc(8)
+    local out = lib.foreign_read_test(out_len)
+    out_len = "I8":unpack(ffi.read(out_len))
+    assert(out_len == 17)
+    assert(ffi.read(out, out_len) == "Hello from C/C++!")
+    ffi.write(out, 17, "Hello from Pluto!")
+    assert(lib.foreign_write_test() == 0)
+end
 
 if ffi.callback then
     print "Testing FFI callbacks."
