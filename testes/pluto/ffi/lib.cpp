@@ -82,3 +82,17 @@ SOUP_CEXPORT float float_cb_test(float(*func)(float, float))
 {
     return func(1.0f, 2.0f);
 }
+
+static char foreign_rw_buffer[75];
+
+SOUP_CEXPORT const void* foreign_read_test(size_t* out_len)
+{
+    memcpy(foreign_rw_buffer, "Hello from C/C++! Oops, there's unrelated data past the end of this string!", 75);
+    *out_len = 17;
+    return foreign_rw_buffer;
+}
+
+SOUP_CEXPORT int foreign_write_test()
+{
+    return memcmp(foreign_rw_buffer, "Hello from Pluto! Oops, there's unrelated data past the end of this string!", 75);
+}
