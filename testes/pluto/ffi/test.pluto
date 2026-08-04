@@ -174,7 +174,7 @@ end
 do
     lib:cdef[[
     const void* foreign_read_test(size_t* out_len);
-    int foreign_write_test();
+    bool foreign_write_test();
     ]]
     local out_len = ffi.alloc(8)
     local out = lib.foreign_read_test(out_len)
@@ -182,7 +182,7 @@ do
     assert(out_len == 17)
     assert(ffi.read(out, out_len) == "Hello from C/C++!")
     ffi.write(out, 17, "Hello from Pluto!")
-    assert(lib.foreign_write_test() == 0)
+    assert(lib.foreign_write_test() == true)
 end
 
 if ffi.callback then
