@@ -35,6 +35,9 @@ NAMESPACE_SOUP
 	// data.container
 	struct StructMap;
 
+	// data.content-addressed
+	struct cadInterface;
+
 	// data.json
 	struct JsonArray;
 	struct JsonBool;

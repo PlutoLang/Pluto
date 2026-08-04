@@ -2084,17 +2084,17 @@ NAMESPACE_SOUP
 			auto plen = vm.stack.back().i32; vm.stack.pop_back();
 			auto pargc = vm.stack.back().i32; vm.stack.pop_back();
 			WasiData& wd = vm.script.custom_data.getStructFromMapConst(WasiData);
-			if (auto pLen = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(plen))
+			if (int32_t* pLen = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(plen))
 			{
 				*pLen = 0;
 				for (const auto& arg : wd.args)
 				{
-					*pLen += arg.size() + 1;
+					*pLen += static_cast<int32_t>(arg.size() + 1);
 				}
 			}
-			if (auto pArgc = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(pargc))
+			if (int32_t* pArgc = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(pargc))
 			{
-				*pArgc = wd.args.size();
+				*pArgc = static_cast<int32_t>(wd.args.size());
 			}
 			vm.stack.emplace_back(WASI_ERRNO_SUCCESS);
 		});
@@ -2107,9 +2107,9 @@ NAMESPACE_SOUP
 			std::string argstr;
 			for (uint32_t i = 0; i != wd.args.size(); ++i)
 			{
-				if (auto pArg = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(pargv + i * 4))
+				if (int32_t* pArg = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(pargv + i * 4))
 				{
-					*pArg = pstr + argstr.size();
+					*pArg = static_cast<int32_t>(pstr + argstr.size());
 				}
 				argstr.append(wd.args[i].data(), wd.args[i].size() + 1);
 			}
@@ -2285,9 +2285,9 @@ NAMESPACE_SOUP
 				if (auto f = fopen(path_str.c_str(), "rb"))
 				{
 					WasiData& wd = vm.script.custom_data.getStructFromMapConst(WasiData);
-					if (auto pOutFd = vm.script.getMemoryByIndex(0)->getPointer<uint32_t>(out_fd))
+					if (uint32_t* pOutFd = vm.script.getMemoryByIndex(0)->getPointer<uint32_t>(out_fd))
 					{
-						*pOutFd = WASI_FD_FILES_BASE + wd.files.size();
+						*pOutFd = static_cast<uint32_t>(WASI_FD_FILES_BASE + wd.files.size());
 					}
 					wd.files.emplace_back(f);
 					vm.stack.emplace_back(WASI_ERRNO_SUCCESS);
@@ -2307,7 +2307,7 @@ NAMESPACE_SOUP
 			API_CHECK_STACK(4);
 			auto out_off = vm.stack.back().i32; vm.stack.pop_back();
 			auto whence = vm.stack.back().i32; vm.stack.pop_back();
-			auto delta = vm.stack.back().i64; vm.stack.pop_back();
+			auto delta = static_cast<long>(vm.stack.back().i64); vm.stack.pop_back();
 			auto fd = vm.stack.back().i32; vm.stack.pop_back();
 #if DEBUG_API
 			std::cout << "fd_seek: fd=" << fd << ", delta=" << delta << ", whence=" << whence << "\n";
@@ -2350,7 +2350,7 @@ NAMESPACE_SOUP
 			}
 			if (f)
 			{
-				int32_t nread = 0;
+				size_t nread = 0;
 				while (iovs_len--)
 				{
 					int32_t iov_base = 0;
@@ -2367,19 +2367,19 @@ NAMESPACE_SOUP
 					iovs += 4;
 					if (auto ptr = vm.script.getMemoryByIndex(0)->getView(iov_base, iov_len))
 					{
-						const auto ret = fread(ptr, 1, iov_len, f);
+						const size_t ret = fread(ptr, 1, iov_len, f);
 						if (ret >= 0)
 						{
 							nread += ret;
 						}
 					}
 				}
-				if (auto pOut = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(out_nread))
+				if (int32_t* pOut = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(out_nread))
 				{
 #if DEBUG_API
 					std::cout << "read " << nread << " bytes from fd " << fd << "\n";
 #endif
-					*pOut = nread;
+					*pOut = static_cast<int32_t>(nread);
 				}
 				vm.stack.emplace_back(WASI_ERRNO_SUCCESS);
 			}
@@ -2407,7 +2407,7 @@ NAMESPACE_SOUP
 			}
 			if (f)
 			{
-				int32_t nwritten = 0;
+				size_t nwritten = 0;
 				while (iovs_len--)
 				{
 					int32_t iov_base = 0;
@@ -2424,16 +2424,16 @@ NAMESPACE_SOUP
 					iovs += 4;
 					if (auto ptr = vm.script.getMemoryByIndex(0)->getView(iov_base, iov_len))
 					{
-						const auto ret = fwrite(ptr, 1, iov_len, f);
+						const size_t ret = fwrite(ptr, 1, iov_len, f);
 						if (ret >= 0)
 						{
 							nwritten += ret;
 						}
 					}
 				}
-				if (auto pOut = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(out_nwritten))
+				if (int32_t* pOut = vm.script.getMemoryByIndex(0)->getPointer<int32_t>(out_nwritten))
 				{
-					*pOut = nwritten;
+					*pOut = static_cast<int32_t>(nwritten);
 				}
 				vm.stack.emplace_back(WASI_ERRNO_SUCCESS);
 			}
@@ -3821,7 +3821,7 @@ NAMESPACE_SOUP
 			case 0x02: // block
 				{
 					int32_t result_type; WASM_READ_SOML(result_type);
-					uint32_t stack_size = stack.size();
+					uint32_t stack_size = static_cast<uint32_t>(stack.size());
 					uint32_t num_values = 0;
 					if (result_type != -64)
 					{
@@ -3830,8 +3830,8 @@ NAMESPACE_SOUP
 #if DEBUG_VM
 							std::cout << "result type is a type index: " << script.types[result_type].parameters.size() << " + " << script.types[result_type].results.size() << "\n";
 #endif
-							stack_size -= script.types[result_type].parameters.size();
-							num_values = script.types[result_type].results.size();
+							stack_size -= static_cast<uint32_t>(script.types[result_type].parameters.size());
+							num_values = static_cast<uint32_t>(script.types[result_type].results.size());
 						}
 						else
 						{
@@ -3848,7 +3848,7 @@ NAMESPACE_SOUP
 			case 0x03: // loop
 				{
 					int32_t result_type; WASM_READ_SOML(result_type);
-					uint32_t stack_size = stack.size();
+					uint32_t stack_size = static_cast<uint32_t>(stack.size());
 					uint32_t num_values = 0;
 					if (result_type != -64)
 					{
@@ -3857,7 +3857,7 @@ NAMESPACE_SOUP
 #if DEBUG_VM
 							std::cout << "result type is a type index: " << script.types[result_type].parameters.size() << " + " << script.types[result_type].results.size() << "\n";
 #endif
-							num_values = script.types[result_type].parameters.size();
+							num_values = static_cast<uint32_t>(script.types[result_type].parameters.size());
 							stack_size -= num_values;
 						}
 					}
@@ -3871,7 +3871,7 @@ NAMESPACE_SOUP
 			case 0x04: // if
 				{
 					int32_t result_type; WASM_READ_SOML(result_type);
-					uint32_t stack_size = stack.size();
+					uint32_t stack_size = static_cast<uint32_t>(stack.size());
 					uint32_t num_values = 0;
 					if (result_type != -64)
 					{
@@ -3880,8 +3880,8 @@ NAMESPACE_SOUP
 #if DEBUG_VM
 							std::cout << "result type is a type index: " << script.types[result_type].parameters.size() << " + " << script.types[result_type].results.size() << "\n";
 #endif
-							stack_size -= script.types[result_type].parameters.size();
-							num_values = script.types[result_type].results.size();
+							stack_size -= static_cast<uint32_t>(script.types[result_type].parameters.size());
+							num_values = static_cast<uint32_t>(script.types[result_type].results.size());
 						}
 						else
 						{
@@ -7561,7 +7561,7 @@ NAMESPACE_SOUP
 				}
 				else
 				{
-					depth = hints->size() - 1;
+					depth = static_cast<int32_t>(static_cast<uint32_t>(hints->size())) - 1;
 					r.seek(hints->back());
 #if DEBUG_BRANCHING
 					std::cout << "skipOverBranch: partial hit: " << hint_key << " -> " << e->second[target_depth] << " (depth " << depth << "/" << target_depth << ")\n";
@@ -7589,7 +7589,7 @@ NAMESPACE_SOUP
 			case 0x05: // else
 				if (depth == hints->size())
 				{
-					hints->emplace_back(r.getPosition() - 1);
+					hints->emplace_back(static_cast<uint32_t>(r.getPosition() - 1));
 #if DEBUG_BRANCHING
 					std::cout << "skipOverBranch: caching " << hint_key << " + depth " << depth << " -> " << hints->back() << "\n";
 #endif
@@ -7603,7 +7603,7 @@ NAMESPACE_SOUP
 			case 0x0b: // end
 				if (depth == hints->size())
 				{
-					hints->emplace_back(r.getPosition() - 1);
+					hints->emplace_back(static_cast<uint32_t>(r.getPosition() - 1));
 #if DEBUG_BRANCHING
 					std::cout << "skipOverBranch: caching " << hint_key << " + depth " << depth << " -> " << hints->back() << "\n";
 #endif

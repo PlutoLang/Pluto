@@ -748,6 +748,7 @@
     <ClCompile Include="src\vendor\Soup\soup\dns_records.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ecc.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\ffi.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\ffi_call_win_x64.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\filesystem.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\HardwareRng.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\HttpRequest.cpp" />

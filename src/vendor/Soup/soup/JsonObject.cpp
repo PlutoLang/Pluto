@@ -103,9 +103,11 @@ NAMESPACE_SOUP
 			case JSON_INT:
 				if (child.second->reinterpretAsInt().value <= 0xFFFF'FFFF)
 				{
-					uint8_t k = 16; sw.u8(k);
+					uint8_t k = 16;
+					sw.u8(k);
 					sw.str_nt(child.first->reinterpretAsStr().value);
-					int32_t v = child.second->reinterpretAsInt().value; sw.i32_le(v);
+					auto v = static_cast<int32_t>(child.second->reinterpretAsInt().value);
+					sw.i32_le(v);
 				}
 				else
 				{
@@ -125,7 +127,7 @@ NAMESPACE_SOUP
 				{ uint8_t k = 2; sw.u8(k); }
 				sw.str_nt(child.first->reinterpretAsStr().value);
 				{
-					uint32_t len = child.second->reinterpretAsStr().value.size() + 1; // including the null terminator
+					auto len = static_cast<uint32_t>(child.second->reinterpretAsStr().value.size() + 1); // including the null terminator
 					sw.u32_le(len);
 					sw.raw(const_cast<char*>(child.second->reinterpretAsStr().value.c_str()), len);
 				}
@@ -168,7 +170,7 @@ NAMESPACE_SOUP
 				break;
 			}
 		}
-		uint32_t len = sw.data.size() + 5; // including the length field and the terminating null
+		auto len = static_cast<uint32_t>(sw.data.size() + 5); // including the length field and the terminating null
 		w.u32_le(len);
 		w.raw(sw.data.data(), sw.data.size());
 		{ uint8_t k = 0; w.u8(k); }

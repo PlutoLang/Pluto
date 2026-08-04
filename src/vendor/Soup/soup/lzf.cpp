@@ -138,11 +138,11 @@ NAMESPACE_SOUP
 
 			hval = NEXT(hval, ip);
 			hslot = htab + IDX(hval);
-			ref = *hslot + LZF_HSLOT_BIAS; *hslot = ip - LZF_HSLOT_BIAS;
+			ref = *hslot + LZF_HSLOT_BIAS; *hslot = static_cast<LZF_HSLOT>(ip - LZF_HSLOT_BIAS);
 
 			if (1
 				&& ref < ip /* the next test will actually take care of this, but this is faster */
-				&& (off = ip - ref - 1) < MAX_OFF
+				&& (off = static_cast<unsigned long>(ip - ref - 1)) < MAX_OFF
 				&& ref > (u8*)in_data
 				&& ref[2] == ip[2]
 #if STRICT_ALIGN
@@ -154,7 +154,7 @@ NAMESPACE_SOUP
 			{
 				/* match found at *ref++ */
 				unsigned int len = 2;
-				unsigned int maxlen = in_end - ip - len;
+				unsigned int maxlen = static_cast<unsigned int>(in_end - ip - len);
 				maxlen = maxlen > MAX_REF ? MAX_REF : maxlen;
 
 				if (expect_false(op + 3 + 1 >= out_end)) /* first a faster conservative test */
@@ -201,15 +201,15 @@ NAMESPACE_SOUP
 
 				if (len < 7)
 				{
-					*op++ = (off >> 8) + (len << 5);
+					*op++ = static_cast<u8>((off >> 8) + (len << 5));
 				}
 				else
 				{
-					*op++ = (off >> 8) + (7 << 5);
+					*op++ = static_cast<u8>((off >> 8) + (7 << 5));
 					*op++ = len - 7;
 				}
 
-				*op++ = off;
+				*op++ = static_cast<u8>(off);
 
 				lit = 0; op++; /* start run */
 
@@ -240,7 +240,7 @@ NAMESPACE_SOUP
 				do
 				{
 					hval = NEXT(hval, ip);
-					htab[IDX(hval)] = ip - LZF_HSLOT_BIAS;
+					htab[IDX(hval)] = static_cast<LZF_HSLOT>(ip - LZF_HSLOT_BIAS);
 					ip++;
 				} while (len--);
 #endif
@@ -278,7 +278,7 @@ NAMESPACE_SOUP
 		op[-lit - 1] = lit - 1; /* end run */
 		op -= !lit; /* undo run if length is zero */
 
-		return op - (u8*)out_data;
+		return static_cast<unsigned int>(op - (u8*)out_data);
 	}
 
 #undef FRST
@@ -398,6 +398,6 @@ NAMESPACE_SOUP
 			}
 		} while (ip < in_end);
 
-		return op - (u8*)out_data;
+		return static_cast<unsigned int>(op - (u8*)out_data);
 	}
 }

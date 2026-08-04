@@ -244,17 +244,20 @@ static int ffi_funcwrapper_call (lua_State *L) {
     luaL_error(L, "disallowed by content moderation policy");
   }
 #endif
-  uintptr_t args[soup::ffi::MAX_ARGS];
+  soup::ffi::ValueType types[soup::ffi::MAX_CALL_ARGS + 1];
+  uintptr_t args[soup::ffi::MAX_CALL_ARGS];
   int i = 0;
   for (const auto& arg_type : fw->args) {
     lua_assert(i < soup::ffi::MAX_ARGS);
+    types[i] = (arg_type == FFI_F32 || arg_type == FFI_F64) ? soup::ffi::VT_FLOAT : soup::ffi::VT_INTEGRAL;
     args[i] = check_ffi_value(L, 1 + i, arg_type);
     ++i;
   }
+  types[i] = (fw->ret == FFI_F32 || fw->ret == FFI_F64) ? soup::ffi::VT_FLOAT : soup::ffi::VT_INTEGRAL;
   uintptr_t retval;
   callback_L = L;
   try {
-    retval = soup::ffi::call(fw->addr, args, i);
+    retval = soup::ffi::call(fw->addr, types, args, i);
   }
   catch (const std::exception& e) {
     callback_L = nullptr;

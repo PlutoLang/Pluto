@@ -11,6 +11,11 @@ SOUP_CEXPORT int add(int a, int b)
     return a + b;
 }
 
+SOUP_CEXPORT float fadd(float a, float b)
+{
+    return a + b;
+}
+
 struct Result
 {
     int sum;

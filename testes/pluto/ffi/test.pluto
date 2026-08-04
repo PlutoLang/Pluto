@@ -11,6 +11,7 @@ local ffi = require "ffi"
 local lib = ffi.open(os.platform == "windows" ? "lib" : "./liblib.so")
 assert(lib:value("i32", "MY_MAGIC_INT") == 69)
 assert(lib:wrap("i32", "add", "i32", "i32")(38, 4) == 42)
+assert(lib:wrap("f32", "fadd", "f32", "f32")(38, 4) == 42)
 
 -- 'lib' can be used like any old table
 lib.add = lib:wrap("i32", "add", "i32", "i32")
