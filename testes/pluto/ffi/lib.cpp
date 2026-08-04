@@ -92,7 +92,7 @@ SOUP_CEXPORT const void* foreign_read_test(size_t* out_len)
     return foreign_rw_buffer;
 }
 
-SOUP_CEXPORT int foreign_write_test()
+SOUP_CEXPORT bool foreign_write_test()
 {
-    return memcmp(foreign_rw_buffer, "Hello from Pluto! Oops, there's unrelated data past the end of this string!", 75);
+    return memcmp(foreign_rw_buffer, "Hello from Pluto! Oops, there's unrelated data past the end of this string!", 75) == 0;
 }
