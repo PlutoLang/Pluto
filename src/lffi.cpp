@@ -19,6 +19,7 @@ static thread_local lua_State* callback_L = nullptr;
 enum FfiType : uint8_t {
   FFI_UNKNOWN = 0,
   FFI_VOID,
+  FFI_BOOL,
   FFI_I8,
   FFI_I16,
   FFI_I32,
@@ -36,6 +37,7 @@ enum FfiType : uint8_t {
 [[nodiscard]] static FfiType check_ffi_type (lua_State *L, int i) {
   const char *str = luaL_checkstring(L, i);
   if (strcmp(str, "void") == 0) return FFI_VOID;
+  if (strcmp(str, "bool") == 0) return FFI_BOOL;
   if (strcmp(str, "i8") == 0) return FFI_I8;
   if (strcmp(str, "i16") == 0) return FFI_I16;
   if (strcmp(str, "i32") == 0) return FFI_I32;
@@ -54,7 +56,7 @@ enum FfiType : uint8_t {
 [[nodiscard]] static FfiType rfl_type_to_ffi_type (const soup::rflType& type) noexcept {
   if (type.at == soup::rflType::DIRECT) {
     if (type.name == "void") { return FFI_VOID; }
-    if (type.name == "bool") { return FFI_U8; }
+    if (type.name == "bool") { return FFI_BOOL; }
     if (type.name == "char") { return FFI_I8; }
     if (type.name == "unsigned char") { return FFI_U8; }
     if (type.name == "int8_t") { return FFI_I8; }
@@ -91,6 +93,9 @@ static int push_ffi_value (lua_State *L, FfiType type, const void *value) {
       break;
     case FFI_VOID:
       return 0;
+    case FFI_BOOL:
+      lua_pushboolean(L, *reinterpret_cast<const bool*>(value));
+      return 1;
     case FFI_I8:
       lua_pushinteger(L, *reinterpret_cast<const int8_t*>(value));
       return 1;
@@ -138,6 +143,9 @@ static uint64_t check_ffi_value (lua_State *L, int i, FfiType type) {
       break;
     case FFI_VOID:
       return 0;
+    case FFI_BOOL:
+      luaL_checktype(L, i, LUA_TBOOLEAN);
+      return static_cast<uint64_t>(lua_istrue(L, i));
     case FFI_I8:
       return static_cast<uint64_t>(static_cast<int8_t>(luaL_checkinteger(L, i)));
     case FFI_I16:
