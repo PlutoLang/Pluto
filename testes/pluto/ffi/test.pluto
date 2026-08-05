@@ -173,8 +173,13 @@ assert(ffi.read(pOut) == "Hello, world!")
 if ffi.callback then
     print "Testing FFI callbacks."
     local cb
+    local cb_recurse = 0
     xpcall(|| -> do
         cb = ffi.callback("i32", "i32", function(val)
+            if cb_recurse ~= 0 then
+                cb_recurse -= 1
+                return lib:wrap("i32", "call_cb", "i32")(val)
+            end
             return val + 69
         end)
     end, || -> do
@@ -183,6 +188,9 @@ if ffi.callback then
     if cb then
         lib:wrap("void", "set_cb", "ptr")(cb)
         assert(lib:wrap("i32", "call_cb", "i32")(42) == 42 + 69)
+        cb_recurse = 2
+        assert(lib:wrap("i32", "call_cb_twice", "i32")(12) == 12 + 69)
+        assert(cb_recurse == 0)
 
         assert(not cb:blocking())
         cb:blocking(true)

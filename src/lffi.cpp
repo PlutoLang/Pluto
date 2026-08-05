@@ -255,19 +255,20 @@ static int ffi_funcwrapper_call (lua_State *L) {
   }
   types[i] = (fw->ret == FFI_F32 || fw->ret == FFI_F64) ? soup::ffi::VT_FLOAT : soup::ffi::VT_INTEGRAL;
   uintptr_t retval;
+  const auto prev_callback_L = callback_L;
   callback_L = L;
   try {
     retval = soup::ffi::call(fw->addr, types, args, i);
   }
   catch (const std::exception& e) {
-    callback_L = nullptr;
+    callback_L = prev_callback_L;
     luaL_error(L, "C++ exception: %s", e.what());
   }
   catch (...) {
-    callback_L = nullptr;
+    callback_L = prev_callback_L;
     luaL_error(L, "C++ exception");
   }
-  callback_L = nullptr;
+  callback_L = prev_callback_L;
   return push_ffi_value(L, fw->ret, &retval);
 }
 

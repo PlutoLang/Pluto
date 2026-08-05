@@ -61,6 +61,12 @@ SOUP_CEXPORT int call_cb(int val)
     return s_cb(val);
 }
 
+SOUP_CEXPORT int call_cb_twice(int val)
+{
+    s_cb(0);
+    return s_cb(val);
+}
+
 SOUP_CEXPORT int cb_async_res = 0;
 
 SOUP_CEXPORT void call_cb_async()
