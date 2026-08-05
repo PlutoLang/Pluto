@@ -223,6 +223,12 @@ if ffi.callback then
         assert(not ok)
         assert("oops" in err)
         assert(cb:callcount() == 1)
+
+        local float_cb_test = lib:wrap("f32", "float_cb_test", "ptr")
+        cb = ffi.callback("f32", "f32", "f32", function(a, b)
+            return a + b
+        end)
+        assert(float_cb_test(cb) == 3.0)
     end
 else
     print "Skipping FFI callback test on unsupported platform."

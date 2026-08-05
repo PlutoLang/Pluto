@@ -24,9 +24,9 @@ NAMESPACE_SOUP
 			VT_FLOAT,
 		};
 
-		constexpr static auto MAX_CALL_ARGS = 20;
-		constexpr static auto /*deprecated*/ MAX_ARGS = MAX_CALL_ARGS;
-		constexpr static auto MAX_CALLBACK_ARGS = 20;
+		constexpr static size_t MAX_CALL_ARGS = 20;
+		constexpr static size_t /*deprecated*/ MAX_ARGS = MAX_CALL_ARGS;
+		constexpr static size_t MAX_CALLBACK_ARGS = 20;
 
 		[[nodiscard]] static bool isSafeToCall(void* func) noexcept;
 
@@ -51,9 +51,11 @@ NAMESPACE_SOUP
 
 #define SOUP_FFI_CALLBACK_AVAILABLE (SOUP_X86 || (SOUP_ARM && SOUP_BITS == 64))
 #if SOUP_FFI_CALLBACK_AVAILABLE
-		// Returns nullptr on allocation failure.
-		// On MacOS, allocation may fail if the 'com.apple.security.cs.allow-jit' entitlement is missing.
-		[[nodiscard]] static void* callbackAlloc(uintptr_t(*func)(uintptr_t user_data, const uintptr_t args[MAX_CALLBACK_ARGS]), uintptr_t user_data) noexcept;
+		using callback_t = uintptr_t(*)(uintptr_t user_data, const uintptr_t args[MAX_CALLBACK_ARGS]);
+
+		// Returns nullptr on allocation failure. On MacOS, allocation may fail if the 'com.apple.security.cs.allow-jit' entitlement is missing.
+		// types[MAX_CALLBACK_ARGS] is used for the return type.
+		[[nodiscard]] static void* callbackAlloc(callback_t func, uintptr_t user_data, const ValueType types[MAX_CALLBACK_ARGS + 1]) noexcept;
 		static void callbackFree(void* cb) noexcept;
 #endif
 	};

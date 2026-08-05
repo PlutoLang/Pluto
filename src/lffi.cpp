@@ -730,20 +730,24 @@ static uintptr_t ffi_callback_trampoline (uintptr_t user_data, const uintptr_t* 
 }
 
 static int ffi_callback (lua_State *L) {
-  const auto nargs = lua_gettop(L) - 2;
+  const int nargs = lua_gettop(L) - 2;
   if (nargs < 0)
     luaL_error(L, "expected at least 2 arguments");
-  if (nargs > soup::ffi::MAX_ARGS)
+  if (nargs > soup::ffi::MAX_CALLBACK_ARGS)
     luaL_error(L, "callback has too many parameters");
   luaL_checktype(L, nargs + 2, LUA_TFUNCTION);
 
   auto& cb = *pluto_newclassinst(L, FfiCallback);
   cb.ret = check_ffi_type(L, 1);
   cb.args.reserve(nargs);
+  soup::ffi::ValueType types[soup::ffi::MAX_CALLBACK_ARGS + 1];
   for (int i = 0; i != nargs; ++i) {
-    cb.args.emplace_back(check_ffi_type(L, 2 + i));
+    const auto t = check_ffi_type(L, 2 + i);
+    cb.args.emplace_back(t);
+    types[i] = (t == FFI_F32 || t == FFI_F64) ? soup::ffi::VT_FLOAT : soup::ffi::VT_INTEGRAL;
   }
-  cb.trampoline = soup::ffi::callbackAlloc(ffi_callback_trampoline, reinterpret_cast<uintptr_t>(&cb));
+  types[soup::ffi::MAX_CALLBACK_ARGS] = (cb.ret == FFI_F32 || cb.ret == FFI_F64) ? soup::ffi::VT_FLOAT : soup::ffi::VT_INTEGRAL;
+  cb.trampoline = soup::ffi::callbackAlloc(ffi_callback_trampoline, reinterpret_cast<uintptr_t>(&cb), types);
   if (!cb.trampoline) {
 #if SOUP_APPLE
     luaL_error(L, "Failed to allocate an FFI callback. Is the 'com.apple.security.cs.allow-jit' entitlement set?");
