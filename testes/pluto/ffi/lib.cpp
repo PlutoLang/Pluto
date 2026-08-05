@@ -77,3 +77,8 @@ SOUP_CEXPORT void call_cb_async()
     });
     t.detach();
 }
+
+SOUP_CEXPORT float float_cb_test(float(*func)(float, float))
+{
+    return func(1.0f, 2.0f);
+}
