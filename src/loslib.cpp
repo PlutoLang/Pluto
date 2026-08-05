@@ -185,7 +185,14 @@ static int os_tmpname (lua_State *L) {
 
 
 static int os_getenv (lua_State *L) {
+#if SOUP_WINDOWS
+  size_t len;
+  const char *key = luaL_checklstring(L, 1, &len);
+  std::wstring wkey = luaL_utf8_to_utf16(key, len); // may not error after this point
+  pluto_pushstring(L, soup::unicode::utf16_to_utf8<std::wstring>(_wgetenv(wkey.c_str())));
+#else
   lua_pushstring(L, getenv(luaL_checkstring(L, 1)));  /* if NULL push nil */
+#endif
   return 1;
 }
 
