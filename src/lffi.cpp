@@ -19,6 +19,7 @@ static thread_local lua_State* callback_L = nullptr;
 enum FfiType : uint8_t {
   FFI_UNKNOWN = 0,
   FFI_VOID,
+  FFI_BOOL,
   FFI_I8,
   FFI_I16,
   FFI_I32,
@@ -36,6 +37,7 @@ enum FfiType : uint8_t {
 [[nodiscard]] static FfiType check_ffi_type (lua_State *L, int i) {
   const char *str = luaL_checkstring(L, i);
   if (strcmp(str, "void") == 0) return FFI_VOID;
+  if (strcmp(str, "bool") == 0) return FFI_BOOL;
   if (strcmp(str, "i8") == 0) return FFI_I8;
   if (strcmp(str, "i16") == 0) return FFI_I16;
   if (strcmp(str, "i32") == 0) return FFI_I32;
@@ -54,7 +56,7 @@ enum FfiType : uint8_t {
 [[nodiscard]] static FfiType rfl_type_to_ffi_type (const soup::rflType& type) noexcept {
   if (type.at == soup::rflType::DIRECT) {
     if (type.name == "void") { return FFI_VOID; }
-    if (type.name == "bool") { return FFI_U8; }
+    if (type.name == "bool") { return FFI_BOOL; }
     if (type.name == "char") { return FFI_I8; }
     if (type.name == "unsigned char") { return FFI_U8; }
     if (type.name == "int8_t") { return FFI_I8; }
@@ -91,6 +93,9 @@ static int push_ffi_value (lua_State *L, FfiType type, const void *value) {
       break;
     case FFI_VOID:
       return 0;
+    case FFI_BOOL:
+      lua_pushboolean(L, *reinterpret_cast<const bool*>(value));
+      return 1;
     case FFI_I8:
       lua_pushinteger(L, *reinterpret_cast<const int8_t*>(value));
       return 1;
@@ -138,6 +143,9 @@ static uint64_t check_ffi_value (lua_State *L, int i, FfiType type) {
       break;
     case FFI_VOID:
       return 0;
+    case FFI_BOOL:
+      luaL_checktype(L, i, LUA_TBOOLEAN);
+      return static_cast<uint64_t>(lua_istrue(L, i));
     case FFI_I8:
       return static_cast<uint64_t>(static_cast<int8_t>(luaL_checkinteger(L, i)));
     case FFI_I16:
@@ -632,11 +640,22 @@ static int ffi_alloc (lua_State *L) {
 }
 
 static int ffi_write (lua_State *L) {
-  luaL_checktype(L, 1, LUA_TUSERDATA);
-  auto dst_len = lua_rawlen(L, 1);
-  auto dst = lua_touserdata(L, 1);
+  void* dst;
+  size_t dst_len;
+  int i;
+  if (lua_type(L, 1) == LUA_TUSERDATA) {
+    dst_len = lua_rawlen(L, 1);
+    dst = lua_touserdata(L, 1);
+    i = 2;
+  }
+  else if (lua_type(L, 1) == LUA_TLIGHTUSERDATA) {
+    dst = lua_touserdata(L, 1);
+    dst_len = luaL_checkinteger(L, 2);
+    i = 3;
+  }
+  else luaL_typeerror(L, 1, "userdata or lightuserdata");
   size_t src_len;
-  auto src = luaL_checklstring(L, 2, &src_len);
+  auto src = luaL_checklstring(L, i, &src_len);
   if (src_len > dst_len) {
     src_len = dst_len;
   }
@@ -645,9 +664,17 @@ static int ffi_write (lua_State *L) {
 }
 
 static int ffi_read (lua_State *L) {
-  luaL_checktype(L, 1, LUA_TUSERDATA);
-  auto size = lua_rawlen(L, 1);
-  auto data = lua_touserdata(L, 1);
+  void* data;
+  size_t size;
+  if (lua_type(L, 1) == LUA_TUSERDATA) {
+    size = lua_rawlen(L, 1);
+    data = lua_touserdata(L, 1);
+  }
+  else if (lua_type(L, 1) == LUA_TLIGHTUSERDATA) {
+    data = lua_touserdata(L, 1);
+    size = luaL_checkinteger(L, 2);
+  }
+  else luaL_typeerror(L, 1, "userdata or lightuserdata");
   lua_pushlstring(L, static_cast<char*>(data), size);
   return 1;
 }
