@@ -1967,29 +1967,34 @@ static void field (LexState *ls, ConsControl *cc, bool for_class = false) {
   }
   else switch(ls->t.token) {
     case TK_NAME: {  /* may be 'listfield', 'recfield' or static 'funcfield' */
-      if (strcmp(getstr(ls->t.seminfo.ts), "static") == 0) {
-        luaX_next(ls);
-        check(ls, TK_FUNCTION);
-        funcfield(ls, cc, false);
+      if (luaX_lookahead(ls) == TK_FUNCTION) {
+        if (strcmp(getstr(ls->t.seminfo.ts), "static") == 0) {
+          luaX_next(ls);
+          funcfield(ls, cc, false);
+          break;
+        }
+        if (for_class) {
+          if (strcmp(getstr(ls->t.seminfo.ts), "public") == 0) {
+            luaX_next(ls);
+            funcfield(ls, cc, true);
+            break;
+          }
+          if (strcmp(getstr(ls->t.seminfo.ts), "protected") == 0) {
+            luaX_next(ls);
+            funcfield(ls, cc, true, false, true);
+            break;
+          }
+          if (strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
+            luaX_next(ls);
+            funcfield(ls, cc, true, true);
+            break;
+          }
+        }
       }
-      else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "public") == 0) {
-        luaX_next(ls);
-        funcfield(ls, cc, true);
-      }
-      else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "protected") == 0) {
-        luaX_next(ls);
-        funcfield(ls, cc, true, false, true);
-      }
-      else if (for_class && luaX_lookahead(ls) == TK_FUNCTION && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
-        luaX_next(ls);
-        funcfield(ls, cc, true, true);
-      }
-      else {
-        if (!for_class && luaX_lookahead(ls) != '=')  /* expression? */
-          listfield(ls, cc);
-        else
-          recfield(ls, cc, for_class);
-      }
+      if (!for_class && luaX_lookahead(ls) != '=')  /* expression? */
+        listfield(ls, cc);
+      else
+        recfield(ls, cc, for_class);
       break;
     }
     case '[': {
