@@ -4388,10 +4388,12 @@ do
     compat_names(default, parent)
 end
 do
-    local compat_parent_shorthand_syntaxes = {
-        parent = true
+    local compat_shorthand_keys = {
+        parent = 1,
+        static = 2,
     }
-    assert(compat_parent_shorthand_syntaxes.parent == true)
+    assert(compat_shorthand_keys.parent == 1)
+    assert(compat_shorthand_keys.static == 2)
 end
 -- 'parent' may also defer to global, raising a warning when it does
 load([[
