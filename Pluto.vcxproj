@@ -1111,6 +1111,7 @@
     <ClInclude Include="src\vendor\Soup\soup\TransientToken.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TreeNode.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\TrustStore.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\tunables.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\type.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\type_traits.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\unicode.hpp" />

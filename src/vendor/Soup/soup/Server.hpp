@@ -15,8 +15,9 @@ NAMESPACE_SOUP
 
 		uint16_t bind(uint16_t port, ServerService* service) SOUP_EXCAL;
 		uint16_t bind(const IpAddr& ip, uint16_t port, ServerService* service) SOUP_EXCAL;
-		uint16_t bindCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_select_ciphersuite_t select_ciphersuite = nullptr, tls_server_alpn_select_protocol_t alpn_select_protocol = nullptr) SOUP_EXCAL;
-		uint16_t bindOptCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_select_ciphersuite_t select_ciphersuite = nullptr, tls_server_alpn_select_protocol_t alpn_select_protocol = nullptr) SOUP_EXCAL;
+		uint16_t bindCrypto(uint16_t port, ServerService* service, const SharedPtr<CertStore>& certstore, tls_server_select_ciphersuite_t select_ciphersuite = nullptr, tls_server_alpn_select_protocol_t alpn_select_protocol = nullptr) SOUP_EXCAL;
+		uint16_t bindOptCrypto(uint16_t port, ServerService* service, const SharedPtr<CertStore>& certstore, tls_server_select_ciphersuite_t select_ciphersuite = nullptr, tls_server_alpn_select_protocol_t alpn_select_protocol = nullptr) SOUP_EXCAL;
+		uint16_t bindOptCrypto(const IpAddr& ip, uint16_t port, ServerService* service, const SharedPtr<CertStore>& certstore, tls_server_select_ciphersuite_t select_ciphersuite = nullptr, tls_server_alpn_select_protocol_t alpn_select_protocol = nullptr) SOUP_EXCAL;
 		uint16_t bindUdp(uint16_t port, udp_callback_t callback) SOUP_EXCAL;
 		uint16_t bindUdp(const IpAddr& addr, uint16_t port, udp_callback_t callback) SOUP_EXCAL;
 		uint16_t bindUdp(uint16_t port, ServerServiceUdp* service) SOUP_EXCAL;

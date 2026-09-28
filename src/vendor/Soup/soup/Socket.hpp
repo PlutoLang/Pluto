@@ -145,6 +145,10 @@ NAMESPACE_SOUP
 		bool send(const std::string& data) SOUP_EXCAL { return send(data.data(), data.size()); }
 		bool send(const void* data, size_t size) SOUP_EXCAL;
 
+		void send(const std::string& data, std::string& overflow_buffer) SOUP_EXCAL { return send(data.data(), data.size(), overflow_buffer); }
+		void send(const void* data, size_t size, std::string& overflow_buffer) SOUP_EXCAL;
+		bool sendRetry(std::string& overflow_buffer) SOUP_EXCAL;
+
 		bool initUdpBroadcast4();
 		bool setSource(native_u32_t ip_addr, native_u16_t port);
 		bool setSourcePort4(native_u16_t port) { return setSource((native_u32_t)0, port); }
@@ -188,6 +192,7 @@ NAMESPACE_SOUP
 		bool tls_sendRecord(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
 		bool tls_sendRecordEncrypted(TlsContentType_t content_type, const std::string& content) SOUP_EXCAL;
 		bool tls_sendRecordEncrypted(TlsContentType_t content_type, const void* data, size_t size) SOUP_EXCAL;
+		void tls_sendRecordEncrypted(TlsContentType_t content_type, const void* data, size_t size, std::string& overflow_buffer) SOUP_EXCAL;
 
 		void tls_recvHandshake(UniquePtr<SocketTlsHandshaker>&& handshaker, void(*callback)(Socket&, UniquePtr<SocketTlsHandshaker>&&, TlsHandshakeType_t, std::string&&), std::string&& pre = {});
 		void tls_recvRecord(TlsContentType_t expected_content_type, void(*callback)(Socket&, std::string&&, Capture&&), Capture&& cap = {}); // noexcept but may rethrow callback's exceptions
@@ -201,7 +206,7 @@ NAMESPACE_SOUP
 
 		bool transport_send(const Buffer<>& buf) const noexcept;
 		bool transport_send(const std::string& data) const noexcept;
-		bool transport_send(const void* data, int size) const noexcept;
+		int transport_send(const void* data, int size) const noexcept;
 
 		using transport_recv_callback_t = void(*)(Socket&, std::string&&, Capture&&);
 
@@ -220,7 +225,8 @@ NAMESPACE_SOUP
 
 		// Utils
 
-		[[nodiscard]] bool isWorkDoneOrClosed() const noexcept;
+		[[nodiscard]] bool isClosed() const noexcept { return !hasConnection() || remote_closed; }
+		[[nodiscard]] bool isWorkDoneOrClosed() const noexcept { return isWorkDone() || isClosed(); }
 
 		void keepAlive() SOUP_EXCAL;
 

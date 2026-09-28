@@ -2,8 +2,13 @@
 #if !SOUP_WASM || SOUP_EMSCRIPTEN
 
 #if !SOUP_WASM
+#define LOGGING false
+
+#if LOGGING
 #include "format.hpp"
 #include "log.hpp"
+#endif
+
 #include "netConfig.hpp"
 #include "netStatus.hpp"
 #include "ObfusString.hpp"
@@ -108,51 +113,68 @@ NAMESPACE_SOUP
 						sock->custom_data.getStructFromMap(netReuseTag).init(host, port, hr.use_tls ? (require_ecdhe ? SOCKET_TLS_ECDHE : SOCKET_TLS) : SOCKET_INSECURE);
 					}
 				}
-				state = AWAIT_RESPONSE;
-				awaiting_response_since = time::unixSeconds();
 				if (hr.use_tls)
 				{
-					sock->enableCryptoClient(std::get<0>(hr.getHostAndPort()), [](Socket&, Capture&& cap, std::string&&) SOUP_EXCAL
+					std::string initial_application_data;
+					if (hr.body.size() <= 0x4000)
 					{
-						cap.get<HttpRequestTask*>()->recvResponse();
-					}, this, hr.getDataToSend(), certchain_validator, {}, require_ecdhe);
+						initial_application_data = hr.getDataToSend();
+					}
+					sock->enableCryptoClient(std::get<0>(hr.getHostAndPort()), [](Socket& s, Capture&& cap, std::string&&) SOUP_EXCAL
+					{
+						if (cap.get<HttpRequestTask*>()->hr.body.size() > 0x4000)
+						{
+							cap.get<HttpRequestTask*>()->sendRequest();
+						}
+						else
+						{
+							cap.get<HttpRequestTask*>()->recvResponse();
+						}
+					}, this, std::move(initial_application_data), certchain_validator, {}, require_ecdhe);
+					state = TLS_HANDSHAKE;
 				}
 				else
 				{
-					hr.send(*sock);
-					recvResponse();
+					sendRequest();
 				}
 			}
 			break;
 
-		case AWAIT_RESPONSE:
-			if (sock->isWorkDoneOrClosed())
+		case TLS_HANDSHAKE:
+			SOUP_IF_UNLIKELY (sock->isWorkDoneOrClosed())
 			{
-				if (retry_on_broken_pipe)
-				{
-					retry_on_broken_pipe = false;
-					//logWriteLine(soup::format("AWAIT_RESPONSE from {} - broken pipe, making a new one", hr.getHost()));
-					cannotRecycle(); // transition to CONNECTING state
-				}
-				else
-				{
-					//logWriteLine(soup::format("AWAIT_RESPONSE from {} - request failed", hr.getHost()));
-					if (sock->custom_data.isStructInMap(SocketCloseReason))
-					{
-						await_response_finish_reason = sock->custom_data.getStructFromMapConst(SocketCloseReason);
-					}
-					else
-					{
-						await_response_finish_reason = netStatusToString(NET_FAIL_L7_PREMATURE_END);
-					}
-					setWorkDone();
-				}
-				sock->close();
-				sock.reset();
+#if LOGGING
+				logWriteLine(soup::format("TLS_HANDSHAKE to {} - socket closed prematurely", hr.getHost()));
+#endif
+				setWorkDone();
 			}
-			else if (time::unixSecondsSince(awaiting_response_since) > 30)
+			break;
+
+		case SEND_REQUEST:
+			SOUP_IF_UNLIKELY (!sock->sendRetry(overflow_buffer))
 			{
-				//logWriteLine(soup::format("AWAIT_RESPONSE from {} - timeout", hr.getHost()));
+#if LOGGING
+				logWriteLine(soup::format("SEND_REQUEST to {} - socket closed prematurely", hr.getHost()));
+#endif
+				setWorkDone();
+			}
+			else if (overflow_buffer.empty())
+			{
+				overflow_buffer.shrink_to_fit();
+#if LOGGING
+				logWriteLine(soup::format("SEND_REQUEST to {} - all bytes transmitted", hr.getHost()));
+#endif
+				state = AWAIT_RESPONSE;
+				await_response_timeout = time::unixSeconds() + FIRST_CHUNK_TIMEOUT_SECS;
+			}
+			break;
+
+		case AWAIT_RESPONSE:
+			if (time::unixSeconds() > await_response_timeout)
+			{
+#if LOGGING
+				logWriteLine(soup::format("AWAIT_RESPONSE from {} - timeout", hr.getHost()));
+#endif
 				sock->close();
 				sock.reset();
 				await_response_finish_reason = netStatusToString(NET_FAIL_L7_TIMEOUT);
@@ -164,13 +186,10 @@ NAMESPACE_SOUP
 
 	void HttpRequestTask::sendRequestOnReusedSocket()
 	{
-		state = AWAIT_RESPONSE;
 		retry_on_broken_pipe = true;
 		sock->custom_data.getStructFromMapConst(netReuseTag).is_busy = true;
-		awaiting_response_since = time::unixSeconds();
 		hr.setKeepAlive();
-		hr.send(*sock);
-		recvResponse();
+		sendRequest();
 	}
 
 	void HttpRequestTask::cannotRecycle()
@@ -181,9 +200,31 @@ NAMESPACE_SOUP
 		connector.emplace(resolver, host, port, prefer_ipv6);
 	}
 
+	void HttpRequestTask::sendRequest() SOUP_EXCAL
+	{
+		sock->send(hr.getDataToSend(), overflow_buffer);
+		if (overflow_buffer.empty())
+		{
+			state = AWAIT_RESPONSE;
+			await_response_timeout = time::unixSeconds() + FIRST_CHUNK_TIMEOUT_SECS;
+		}
+		else
+		{
+			state = SEND_REQUEST;
+#if LOGGING
+			logWriteLine(soup::format("SEND_REQUEST to {} - {} bytes not yet transmitted", hr.getHost(), overflow_buffer.size()));
+#endif
+		}
+		recvResponse(); // we have to be ready to receive either way
+	}
+
 	void HttpRequestTask::recvResponse() SOUP_EXCAL
 	{
-		HttpRequest::recvResponse(*sock, [](Socket& s, Optional<HttpResponse>&& res, Capture&& cap) SOUP_EXCAL
+		HttpRequest::recvResponse(*sock, [](Socket&, const std::string&, const Capture& cap)
+		{
+			cap.get<HttpRequestTask*>()->await_response_timeout = time::unixSeconds() + SUBSEQUENT_CHUNK_TIMEOUT_SECS;
+			return true;
+		}, [](Socket& s, Optional<HttpResponse>&& res, Capture&& cap) SOUP_EXCAL
 		{
 			if (res.has_value())
 			{
@@ -199,7 +240,26 @@ NAMESPACE_SOUP
 			}
 			else
 			{
-				cap.get<HttpRequestTask*>()->await_response_finish_reason = soup::ObfusString("Protocol Error").str();
+				if (cap.get<HttpRequestTask*>()->retry_on_broken_pipe)
+				{
+					cap.get<HttpRequestTask*>()->retry_on_broken_pipe = false;
+#if LOGGING
+					logWriteLine(soup::format("AWAIT_RESPONSE from {} - broken pipe, making a new one", cap.get<HttpRequestTask*>()->hr.getHost()));
+#endif
+					cap.get<HttpRequestTask*>()->cannotRecycle(); // transition to CONNECTING state
+					return;
+				}
+#if LOGGING
+				logWriteLine(soup::format("AWAIT_RESPONSE from {} - request failed", cap.get<HttpRequestTask*>()->hr.getHost()));
+#endif
+				if (s.custom_data.isStructInMap(SocketCloseReason))
+				{
+					cap.get<HttpRequestTask*>()->await_response_finish_reason = s.custom_data.getStructFromMapConst(SocketCloseReason);
+				}
+				else
+				{
+					cap.get<HttpRequestTask*>()->await_response_finish_reason = netStatusToString(NET_FAIL_L7_PREMATURE_END);
+				}
 			}
 			cap.get<HttpRequestTask*>()->fulfil(std::move(res));
 			if (s.custom_data.isStructInMap(netReuseTag))
@@ -234,6 +294,8 @@ NAMESPACE_SOUP
 			str.push_back(']');
 			break;
 
+		case TLS_HANDSHAKE: str.append(ObfusString("TLS_HANDSHAKE").str()); break;
+		case SEND_REQUEST: str.append(ObfusString("SEND_REQUEST").str()); break;
 		case AWAIT_RESPONSE: str.append(ObfusString("AWAIT_RESPONSE").str()); break;
 		}
 		return str;
@@ -243,12 +305,26 @@ NAMESPACE_SOUP
 	{
 		switch (state)
 		{
-		case CONNECTING: return netStatusToString(connector->getStatus());
-		case AWAIT_RESPONSE: return isWorkDone() ? await_response_finish_reason : netStatusToString(NET_PENDING);
-		default: break; // keep the compiler happy
+		case START:
+		case WAIT_TO_REUSE:
+			return netStatusToString(NET_PENDING);
+
+		case CONNECTING:
+			return netStatusToString(connector->getStatus());
+
+		case TLS_HANDSHAKE:
+			if (sock && sock->custom_data.isStructInMap(SocketCloseReason))
+			{
+				return sock->custom_data.getStructFromMap(SocketCloseReason);
+			}
+			[[fallthrough]];
+		case SEND_REQUEST:
+			return netStatusToString(NET_FAIL_L7_PREMATURE_END);
+
+		case AWAIT_RESPONSE:
+			return isWorkDone() ? await_response_finish_reason : netStatusToString(NET_PENDING);
 		}
-		// Assuming `!isWorkDone()` because the task can only finish during CONNECTING and AWAIT_RESPONSE.
-		return netStatusToString(NET_PENDING);
+		SOUP_UNREACHABLE;
 	}
 #else
 	HttpRequestTask::HttpRequestTask(HttpRequest&& _hr)

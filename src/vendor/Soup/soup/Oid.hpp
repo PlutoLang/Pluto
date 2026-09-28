@@ -5,6 +5,8 @@
 
 #include "fwd.hpp"
 
+#undef MAX_SIZE
+
 NAMESPACE_SOUP
 {
 	struct Oid

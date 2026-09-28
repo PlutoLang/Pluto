@@ -1,9 +1,5 @@
 #include "Scheduler.hpp"
 
-#if !SOUP_WINDOWS
-#include <netinet/tcp.h> // TCP_NODELAY
-#endif
-
 #include "log.hpp"
 #include "os.hpp"
 #include "Promise.hpp"
@@ -37,10 +33,10 @@ NAMESPACE_SOUP
 
 	void Scheduler::addSocket(SharedPtr<Socket> sock) SOUP_EXCAL
 	{
-#if !SOUP_WINDOWS
-		sock->setNonBlocking();
-#endif
-		sock->setOpt<int>(IPPROTO_TCP, TCP_NODELAY, 1);
+		if (!blocking)
+		{
+			sock->setNonBlocking();
+		}
 		return addWorker(std::move(sock));
 	}
 #endif
@@ -249,7 +245,7 @@ NAMESPACE_SOUP
 		// - If a scheduler that is only waiting on sockets has addWorker called on it, we don't want an insane delay until that worker starts.
 		int timeout = 50;
 #if SOUP_WINDOWS
-		if (add_worker_can_wait_forever_for_all_i_care)
+		if (blocking)
 		{
 			timeout = -1;
 		}
