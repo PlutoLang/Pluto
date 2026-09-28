@@ -4,9 +4,12 @@
 #include <string>
 
 #include "base.hpp"
+#include "tunables.hpp"
 
 NAMESPACE_SOUP
 {
+	inline SOUP_TUNABLE(uint32_t, SOUP_DEFLATE_MAX_COMPRESSED_RATIO) = 30;
+
 	struct deflate
 	{
 		struct DecompressResult
@@ -25,7 +28,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] static size_t getMaxDecompressedSize(const void* compressed_data, size_t compressed_data_size)
 		{
-			return compressed_data_size * 30;
+			return compressed_data_size * SOUP_DEFLATE_MAX_COMPRESSED_RATIO;
 		}
 	};
 }

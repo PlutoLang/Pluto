@@ -457,6 +457,7 @@ NAMESPACE_SOUP
 		/* 23 */ 0xB8, 0, 0, 0, 0,									// mov     eax, (4 bytes) ; callback_finish
 		/* 28 */ 0xFF, 0xE0,										// jmp     eax
 	};
+	static_assert(sizeof(callback_bytes) == 30);
 
 	void* ffi::callbackAlloc(callback_t func, uintptr_t user_data, const ValueType types[MAX_CALLBACK_ARGS + 1]) noexcept
 	{

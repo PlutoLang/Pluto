@@ -53,6 +53,7 @@ NAMESPACE_SOUP
 		void setKeepAlive() noexcept;
 
 		static void recvResponse(Socket& s, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
+		static void recvResponse(Socket& s, bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
 		static void recvEventStream(Socket& s, void callback(Socket&, std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
 #endif
 

@@ -150,7 +150,7 @@ NAMESPACE_SOUP
 		return port;
 	}
 
-	uint16_t Server::bindCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_select_ciphersuite_t select_ciphersuite, tls_server_alpn_select_protocol_t alpn_select_protocol) SOUP_EXCAL
+	uint16_t Server::bindCrypto(uint16_t port, ServerService* service, const SharedPtr<CertStore>& certstore, tls_server_select_ciphersuite_t select_ciphersuite, tls_server_alpn_select_protocol_t alpn_select_protocol) SOUP_EXCAL
 	{
 		Socket sock6{};
 		if (!sock6.bind6(port))
@@ -176,7 +176,7 @@ NAMESPACE_SOUP
 		return port;
 	}
 
-	uint16_t Server::bindOptCrypto(uint16_t port, ServerService* service, SharedPtr<CertStore> certstore, tls_server_select_ciphersuite_t select_ciphersuite, tls_server_alpn_select_protocol_t alpn_select_protocol) SOUP_EXCAL
+	uint16_t Server::bindOptCrypto(uint16_t port, ServerService* service, const SharedPtr<CertStore>& certstore, tls_server_select_ciphersuite_t select_ciphersuite, tls_server_alpn_select_protocol_t alpn_select_protocol) SOUP_EXCAL
 	{
 		Socket sock6{};
 		if (!sock6.bind6(port))
@@ -199,6 +199,29 @@ NAMESPACE_SOUP
 		addSocket(std::move(sock4));
 #endif
 
+		return port;
+	}
+
+	uint16_t Server::bindOptCrypto(const IpAddr& ip, uint16_t port, ServerService* service, const SharedPtr<CertStore>& certstore, tls_server_select_ciphersuite_t select_ciphersuite, tls_server_alpn_select_protocol_t alpn_select_protocol) SOUP_EXCAL
+	{
+		Socket sock{};
+#if SOUP_WINDOWS
+		if (!ip.isV4())
+#endif
+		{
+			SOUP_RETHROW_FALSE(sock.bind6(SOCK_STREAM, port, ip));
+			setDataAvailableHandlerOptCrypto6(sock);
+		}
+#if SOUP_WINDOWS
+		else
+		{
+			SOUP_RETHROW_FALSE(sock.bind4(SOCK_STREAM, port, ip));
+			setDataAvailableHandlerOptCrypto4(sock);
+		}
+#endif
+		sock.holdup_callback.cap = CaptureServerPortOptCrypto(this, service, certstore, select_ciphersuite, alpn_select_protocol);
+		port = sock.getBoundAddress().getPort();
+		addSocket(std::move(sock));
 		return port;
 	}
 

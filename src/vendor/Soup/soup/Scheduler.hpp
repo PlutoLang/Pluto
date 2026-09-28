@@ -33,10 +33,7 @@ NAMESPACE_SOUP
 		uint8_t default_workload_flags = 0;
 #if !SOUP_WASM
 		bool dont_make_reusable_sockets = false;
-#endif
-	private:
-#if SOUP_WINDOWS
-		bool add_worker_can_wait_forever_for_all_i_care = false;
+		bool blocking = false;
 #endif
 
 	public:
@@ -84,12 +81,13 @@ NAMESPACE_SOUP
 #endif
 		}
 
-		void setAddWorkerCanWaitForeverForAllICare() noexcept
+		void setBlocking() noexcept
 		{
-#if SOUP_WINDOWS
-			add_worker_can_wait_forever_for_all_i_care = true;
+#if !SOUP_WASM
+			blocking = true;
 #endif
 		}
+		[[deprecated("Use `setBlocking` instead")]] void setAddWorkerCanWaitForeverForAllICare() noexcept { setBlocking(); }
 
 		// When a scheduler only has sockets, addWorker can take up to 50ms.
 		// If this is called, that delay is reduced to 1ms.

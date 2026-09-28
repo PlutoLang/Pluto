@@ -62,7 +62,7 @@ NAMESPACE_SOUP
 	{
 		Scheduler sched;
 		sched.setDontMakeReusableSockets();
-		sched.setAddWorkerCanWaitForeverForAllICare();
+		sched.setBlocking();
 		sched.add<TaskWrapper>(*this);
 		sched.run();
 	}

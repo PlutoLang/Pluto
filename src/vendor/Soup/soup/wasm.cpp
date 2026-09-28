@@ -875,14 +875,14 @@ NAMESPACE_SOUP
 						else if (kind == IE_kMemory)
 						{
 							uint8_t flags; r.u8(flags);
+#if SOUP_WASM_MEMORY64
 							uint8_t known_flags = 1;
-#if SOUP_WASM_MEMORY64
+	#if SOUP_WASM_MEMORY64
 							known_flags |= 4;
-#endif
-#if SOUP_WASM_CUSTOM_PAGE_SIZES
+	#endif
+	#if SOUP_WASM_CUSTOM_PAGE_SIZES
 							known_flags |= 8;
-#endif
-#if SOUP_WASM_MEMORY64
+	#endif
 							SOUP_RETHROW_FALSE((flags & ~known_flags) == 0);
 #endif
 							uint64_t min_pages;
@@ -1027,14 +1027,14 @@ NAMESPACE_SOUP
 						}
 #endif
 						uint8_t flags; r.u8(flags);
+#if SOUP_WASM_MEMORY64
 						uint8_t known_flags = 1;
-#if SOUP_WASM_MEMORY64
+	#if SOUP_WASM_MEMORY64
 						known_flags |= 4;
-#endif
-#if SOUP_WASM_CUSTOM_PAGE_SIZES
+	#endif
+	#if SOUP_WASM_CUSTOM_PAGE_SIZES
 						known_flags |= 8;
-#endif
-#if SOUP_WASM_MEMORY64
+	#endif
 						SOUP_RETHROW_FALSE((flags & ~known_flags) == 0);
 #endif
 						uint64_t pages;

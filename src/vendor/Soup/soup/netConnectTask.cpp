@@ -1,10 +1,6 @@
 #include "netConnectTask.hpp"
 #if !SOUP_WASM
 
-#if !SOUP_WINDOWS
-#include <netinet/tcp.h> // TCP_NODELAY
-#endif
-
 #include "netConfig.hpp"
 #include "netStatus.hpp"
 #include "ObfusString.hpp"
@@ -122,7 +118,6 @@ NAMESPACE_SOUP
 				if (res == 1 && !(pfd.revents & ~POLLOUT))
 				{
 					// Success
-					sock.setOpt<int>(IPPROTO_TCP, TCP_NODELAY, 1);
 					status = NET_OK;
 				}
 				else

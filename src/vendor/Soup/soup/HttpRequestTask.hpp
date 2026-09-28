@@ -24,6 +24,8 @@ NAMESPACE_SOUP
 			START = 0,
 			WAIT_TO_REUSE,
 			CONNECTING,
+			TLS_HANDSHAKE,
+			SEND_REQUEST,
 			AWAIT_RESPONSE,
 		};
 
@@ -33,6 +35,7 @@ NAMESPACE_SOUP
 		bool dont_make_reusable_sockets = false;
 		bool require_ecdhe = false;
 		bool retry_on_broken_pipe = false; // internal
+		// <2 free bytes due to alignment>
 		std::string await_response_finish_reason; // internal
 #endif
 		HttpRequest hr;
@@ -41,7 +44,10 @@ NAMESPACE_SOUP
 		certchain_validator_t certchain_validator;
 		Optional<netConnectTask> connector;
 		SharedPtr<Socket> sock;
-		time_t awaiting_response_since;
+		std::string overflow_buffer;
+		time_t await_response_timeout;
+		static constexpr time_t FIRST_CHUNK_TIMEOUT_SECS = 30;
+		static constexpr time_t SUBSEQUENT_CHUNK_TIMEOUT_SECS = 10;
 #else
 		std::unordered_map<std::string, std::string> header_fields;
 		std::vector<const char*> headers;
@@ -63,6 +69,7 @@ NAMESPACE_SOUP
 		void sendRequestOnReusedSocket();
 		void cannotRecycle();
 
+		void sendRequest() SOUP_EXCAL;
 		void recvResponse() SOUP_EXCAL;
 
 	public:
