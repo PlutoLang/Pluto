@@ -64,7 +64,7 @@ jobs:
       - run: src/pluto testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
   macos-arm64:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: shivammathur/setup-php@v2
       - uses: actions/checkout@v7
