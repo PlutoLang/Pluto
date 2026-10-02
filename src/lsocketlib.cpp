@@ -540,7 +540,12 @@ static int l_listen (lua_State *L) {
   }
   lua_setmetatable(L, -2);
 
-  return (addr.ip.isZero() ? l.serv.bind(port, &l.srv) : l.serv.bind(addr.ip, port, &l.srv)) ? 1 : 0;
+  uint16_t bound_port = (addr.ip.isZero() ? l.serv.bind(port, &l.srv) : l.serv.bind(addr.ip, port, &l.srv));
+  if (l_unlikely(bound_port == 0)) {
+    return 0;
+  }
+  lua_pushinteger(L, bound_port);
+  return 2;
 }
 
 static int l_udpserver (lua_State *L) {
@@ -597,7 +602,7 @@ LUAMOD_API int luaopen_socket (lua_State *L) {
   lua_pushliteral(L, "bind");
   luaL_loadstring(L, R"EOC(
 return function(sched, port, callback)
-    local l = require"pluto:socket".listen(port)
+    local l, bound_port = require"pluto:socket".listen(port)
     assert(l, "Failed to bind port "..port)
     return sched:add(function()
         while s := l:accept() do
@@ -605,7 +610,7 @@ return function(sched, port, callback)
                 callback(s)
             end)
         end
-    end)
+    end), bound_port
 end)EOC");
   lua_call(L, 0, 1);
   lua_settable(L, -3);
