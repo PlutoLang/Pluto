@@ -3,6 +3,7 @@
 #include <string>
 
 #include "netSocketSecurity.hpp"
+#include "ObfusString.hpp"
 
 NAMESPACE_SOUP
 {
@@ -18,6 +19,11 @@ NAMESPACE_SOUP
 			this->host = host;
 			this->port = port;
 			this->security = security;
+		}
+
+		[[nodiscard]] std::string toString() const SOUP_EXCAL
+		{
+			return ObfusString("[netReuseTag: host=").str() + host + ObfusString(", is_busy=").str() + (is_busy ? "true" : "false") + std::string(1, ']');
 		}
 	};
 }

@@ -26,6 +26,7 @@
 #include "Exception.hpp"
 #include "NamedCurves.hpp"
 #include "netConfig.hpp"
+#include "netReuseTag.hpp"
 #include "ObfusString.hpp"
 #include "rand.hpp"
 #include "Rc4State.hpp"
@@ -1583,8 +1584,6 @@ NAMESPACE_SOUP
 
 	void Socket::close() SOUP_EXCAL
 	{
-		//custom_data.removeStructFromMap(ReuseTag);
-
 		if (tls_encrypter_send.isActive())
 		{
 			tls_close(TlsAlertDescription::close_notify);
@@ -2150,21 +2149,35 @@ NAMESPACE_SOUP
 #else
 			::close(fd);
 #endif
-			fd = -1;
+			fd = (fd_t)-1;
 		}
 	}
 
 	void Socket::keepAlive() SOUP_EXCAL
 	{
+		callback_recv_on_close = false;
 		recv([](Socket&, std::string&&, Capture&&) SOUP_EXCAL
 		{
 			// If we actually receive something in this state, we just let the scheduler delete the socket since it won't have a holdup anymore.
+#if LOGGING
+			logWriteLine("Socket::keepAlive - received data unexpectedly");
+#endif
 		});
 	}
 
 	std::string Socket::toString() const SOUP_EXCAL
 	{
-		return peer.toString();
+		auto res = peer.toString();
+		if (!hasConnection())
+		{
+			res.append(ObfusString(" <closed>").str());
+		}
+		else if (custom_data.isStructInMap(netReuseTag))
+		{
+			res.push_back(' ');
+			res.append(custom_data.getStructFromMapConst(netReuseTag).toString());
+		}
+		return res;
 	}
 }
 

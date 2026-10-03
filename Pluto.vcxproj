@@ -963,8 +963,6 @@
     <ClInclude Include="src\vendor\Soup\soup\Lexeme.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\LexemeParser.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\log.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\logSink.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\logStdSink.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\lzf.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\macros.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\math.hpp" />

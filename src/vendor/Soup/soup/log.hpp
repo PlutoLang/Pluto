@@ -1,24 +1,30 @@
 #pragma once
 
-#include "logSink.hpp"
-#include "UniquePtr.hpp"
+#include "base.hpp"
+
+#include <string>
 
 NAMESPACE_SOUP
 {
-	extern UniquePtr<logSink> g_logSink;
+	using log_write_t = void(*)(std::string&&);
 
-	inline void logWriteLine(std::string message)
+	extern void log_write_std(std::string&& msg);
+
+	inline log_write_t g_log_write = &log_write_std;
+
+	inline void logWriteLine(std::string msg)
 	{
-		g_logSink->writeLine(std::move(message));
+		msg.push_back('\n');
+		g_log_write(std::move(msg));
 	}
 
-	inline void logWrite(std::string message)
+	inline void logWrite(std::string msg)
 	{
-		g_logSink->write(std::move(message));
+		g_log_write(std::move(msg));
 	}
 
-	inline void logSetSink(UniquePtr<logSink>&& sink)
+	inline void logSetWrite(log_write_t f)
 	{
-		g_logSink = std::move(sink);
+		g_log_write = f;
 	}
 }

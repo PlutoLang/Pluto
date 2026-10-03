@@ -82,7 +82,6 @@ NAMESPACE_SOUP
 		case WAIT_TO_REUSE:
 			if (sock->isWorkDoneOrClosed())
 			{
-				sock.reset();
 				cannotRecycle();
 			}
 			else if (!sock->custom_data.getStructFromMap(netReuseTag).is_busy)
@@ -101,18 +100,35 @@ NAMESPACE_SOUP
 				}
 				sock = connector->getSocket();
 				connector.reset();
+
+				// Tag socket we just created for reuse, if it's not a one-off.
 				if (dont_make_reusable_sockets == false
 					&& Scheduler::get()->dont_make_reusable_sockets == false
 					)
 				{
-					// Tag socket we just created for reuse, if it's not a one-off.
 					const auto [host, port] = hr.getHostAndPort();
 					SOUP_IF_LIKELY (!Scheduler::get()->findReusableSocket(host, port, hr.use_tls ? (require_ecdhe ? SOCKET_TLS_ECDHE : SOCKET_TLS) : SOCKET_INSECURE))
 					{
 						hr.setKeepAlive();
 						sock->custom_data.getStructFromMap(netReuseTag).init(host, port, hr.use_tls ? (require_ecdhe ? SOCKET_TLS_ECDHE : SOCKET_TLS) : SOCKET_INSECURE);
+#if LOGGING
+						logWriteLine(soup::format("Connected to {} - reusable socket", hr.getHost()));
+#endif
 					}
+#if LOGGING
+					else
+					{
+						logWriteLine(soup::format("Connected to {} - socket will be closed after request is done (duplicate)", hr.getHost()));
+					}
+#endif
 				}
+#if LOGGING
+				else
+				{
+					logWriteLine(soup::format("Connected to {} - socket will be closed after request is done (policy)", hr.getHost()));
+				}
+#endif
+
 				if (hr.use_tls)
 				{
 					std::string initial_application_data;
@@ -146,6 +162,16 @@ NAMESPACE_SOUP
 #if LOGGING
 				logWriteLine(soup::format("TLS_HANDSHAKE to {} - socket closed prematurely", hr.getHost()));
 #endif
+				if (sock->custom_data.isStructInMap(SocketCloseReason))
+				{
+					state_finish_reason = sock->custom_data.getStructFromMapConst(SocketCloseReason);
+				}
+				else
+				{
+					state_finish_reason = netStatusToString(NET_FAIL_L7_PREMATURE_END);
+				}
+				sock->close();
+				sock.reset();
 				setWorkDone();
 			}
 			break;
@@ -156,6 +182,8 @@ NAMESPACE_SOUP
 #if LOGGING
 				logWriteLine(soup::format("SEND_REQUEST to {} - socket closed prematurely", hr.getHost()));
 #endif
+				sock->close();
+				sock.reset();
 				setWorkDone();
 			}
 			else if (overflow_buffer.empty())
@@ -175,9 +203,9 @@ NAMESPACE_SOUP
 #if LOGGING
 				logWriteLine(soup::format("AWAIT_RESPONSE from {} - timeout", hr.getHost()));
 #endif
+				state_finish_reason = netStatusToString(NET_FAIL_L7_TIMEOUT);
 				sock->close();
 				sock.reset();
-				await_response_finish_reason = netStatusToString(NET_FAIL_L7_TIMEOUT);
 				setWorkDone();
 			}
 			break;
@@ -194,6 +222,8 @@ NAMESPACE_SOUP
 
 	void HttpRequestTask::cannotRecycle()
 	{
+		sock.reset();
+
 		state = CONNECTING;
 
 		const auto [host, port] = hr.getHostAndPort();
@@ -230,11 +260,11 @@ NAMESPACE_SOUP
 			{
 				if (!HttpRequest::isChallengeResponse(*res))
 				{
-					cap.get<HttpRequestTask*>()->await_response_finish_reason = std::string(netStatusToString(NET_OK));
+					cap.get<HttpRequestTask*>()->state_finish_reason = netStatusToString(NET_OK);
 				}
 				else
 				{
-					cap.get<HttpRequestTask*>()->await_response_finish_reason = soup::ObfusString("Blocked By Security Solution").str();
+					cap.get<HttpRequestTask*>()->state_finish_reason = soup::ObfusString("Blocked By Security Solution").str();
 					res.reset();
 				}
 			}
@@ -246,6 +276,7 @@ NAMESPACE_SOUP
 #if LOGGING
 					logWriteLine(soup::format("AWAIT_RESPONSE from {} - broken pipe, making a new one", cap.get<HttpRequestTask*>()->hr.getHost()));
 #endif
+					s.close();
 					cap.get<HttpRequestTask*>()->cannotRecycle(); // transition to CONNECTING state
 					return;
 				}
@@ -254,22 +285,25 @@ NAMESPACE_SOUP
 #endif
 				if (s.custom_data.isStructInMap(SocketCloseReason))
 				{
-					cap.get<HttpRequestTask*>()->await_response_finish_reason = s.custom_data.getStructFromMapConst(SocketCloseReason);
+					cap.get<HttpRequestTask*>()->state_finish_reason = s.custom_data.getStructFromMapConst(SocketCloseReason);
 				}
 				else
 				{
-					cap.get<HttpRequestTask*>()->await_response_finish_reason = netStatusToString(NET_FAIL_L7_PREMATURE_END);
+					cap.get<HttpRequestTask*>()->state_finish_reason = netStatusToString(NET_FAIL_L7_PREMATURE_END);
 				}
 			}
 			cap.get<HttpRequestTask*>()->fulfil(std::move(res));
 			if (s.custom_data.isStructInMap(netReuseTag))
 			{
-				s.custom_data.getStructFromMap(netReuseTag).is_busy = false;
-				if (Scheduler::get()->dont_make_reusable_sockets == false)
+				if (Scheduler::get()->dont_make_reusable_sockets == false) // Scheduler policy hasn't changed?
 				{
+					s.custom_data.getStructFromMap(netReuseTag).is_busy = false;
 					s.keepAlive();
+					return;
 				}
 			}
+			// Not a reusable socket or scheduler policy has changed.
+			s.close();
 		}, this);
 	}
 
@@ -312,17 +346,12 @@ NAMESPACE_SOUP
 		case CONNECTING:
 			return netStatusToString(connector->getStatus());
 
-		case TLS_HANDSHAKE:
-			if (sock && sock->custom_data.isStructInMap(SocketCloseReason))
-			{
-				return sock->custom_data.getStructFromMap(SocketCloseReason);
-			}
-			[[fallthrough]];
 		case SEND_REQUEST:
-			return netStatusToString(NET_FAIL_L7_PREMATURE_END);
+			return netStatusToString(isWorkDone() ? NET_FAIL_L7_PREMATURE_END : NET_PENDING);
 
+		case TLS_HANDSHAKE:
 		case AWAIT_RESPONSE:
-			return isWorkDone() ? await_response_finish_reason : netStatusToString(NET_PENDING);
+			return isWorkDone() ? state_finish_reason : netStatusToString(NET_PENDING);
 		}
 		SOUP_UNREACHABLE;
 	}

@@ -71,7 +71,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] constexpr bool hasConnection() const noexcept
 		{
-			return fd != -1;
+			return fd != (fd_t)-1;
 		}
 
 		bool init(int af, int type);

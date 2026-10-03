@@ -36,7 +36,7 @@ NAMESPACE_SOUP
 		bool require_ecdhe = false;
 		bool retry_on_broken_pipe = false; // internal
 		// <2 free bytes due to alignment>
-		std::string await_response_finish_reason; // internal
+		std::string state_finish_reason; // internal
 #endif
 		HttpRequest hr;
 #if !SOUP_EMSCRIPTEN

@@ -139,7 +139,7 @@ NAMESPACE_SOUP
 			if ((*i)->type == WORKER_TYPE_SOCKET)
 			{
 #if !SOUP_WASM
-				SOUP_IF_UNLIKELY (static_cast<Socket*>(i->get())->fd == -1)
+				SOUP_IF_UNLIKELY (!static_cast<Socket*>(i->get())->hasConnection())
 				{
 					processClosedSocket(*static_cast<Socket*>(i->get()));
 				}
@@ -272,7 +272,7 @@ NAMESPACE_SOUP
 		for (auto i = pollfds.begin(); i != pollfds.end(); ++i)
 		{
 			if (i->revents != 0
-				&& i->fd != -1
+				&& i->fd != (Socket::fd_t)-1
 				)
 			{
 				auto workers_i = workers.begin() + (i - pollfds.begin());

@@ -1,8 +1,11 @@
 #include "log.hpp"
 
-#include "logStdSink.hpp"
+#include <iostream>
 
 NAMESPACE_SOUP
 {
-	UniquePtr<logSink> g_logSink = soup::make_unique<logStdSink>();
+	void log_write_std(std::string&& msg)
+	{
+		std::cout << msg;
+	}
 }
