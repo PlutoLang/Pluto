@@ -279,27 +279,27 @@ static l_noret error_expected (LexState *ls, int token) {
     }
     case TK_IN: {
       throwerr(ls,
-        "expected 'in' to delimit loop iterator.", "expected 'in' symbol.",
+        "expected 'in' to delimit loop iterator", "expected 'in' symbol.",
         Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     case TK_DO: {
       throwerr(ls,
-        "expected 'do' to establish block.", "you need to replace this with the 'do' symbol.",
+        "expected 'do' to establish block", "you need to replace this with the 'do' symbol.",
         Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     case TK_END: {
       throwerr(ls,
-        "expected 'end' to terminate block.", "expected 'end' symbol after or on this line.",
+        "expected 'end' to terminate block", "expected 'end' symbol after or on this line.",
         Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     case TK_NAME: {
       throwerr(ls,
-        "expected an identifier.", "this needs a name.",
+        "expected an identifier", "this needs a name.",
         Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     case TK_PCONTINUE: {
       throwerr(ls,
-        "expected 'continue' inside a loop.", "this is not within a loop.",
+        "expected 'continue' inside a loop", "this is not within a loop.",
         Pluto::ErrorMessage::encodePos(luaX_getpos(ls)));
     }
     default: {
