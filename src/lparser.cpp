@@ -157,7 +157,7 @@ static void expr (LexState *ls, expdesc *v, tdn_t *nprop = nullptr, TypeHint *pr
 static l_noret throwerr (LexState *ls, const char *err, const char *here, intptr_t line_or_tidx, const char *note = nullptr) {
   const auto line = Pluto::ErrorMessage::decodeLine(ls, line_or_tidx);
   err = luaG_addinfo(ls->L, err, ls->source, line);
-  auto msg = new Pluto::ErrorMessage{ ls, HRED "syntax error: " BWHT }; // We'll only throw syntax errors if 'throwerr' is called
+  auto msg = new Pluto::ErrorMessage{ ls }; // We'll only throw syntax errors if 'throwerr' is called
   msg->addMsg(err);
   if (ls->t.token == TK_EOS && strstr(err, "near '<eof>'") == nullptr) {  /* for 'incomplete' in REPL */
     msg->addMsg(" near ")
