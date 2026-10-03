@@ -2964,7 +2964,7 @@ static void funcargs (LexState *ls, expdesc *f, TypeDesc *funcdesc = nullptr) {
         }
         if (ls->t.token != ')') {
           if (!isnamedarg(ls)) {  /* is this not a named argument? */
-            error_expected(ls, ')');  /* then raise syntax error similar to Lua */
+            check_match(ls, ')', '(', line);  /* then raise syntax error similar to Lua */
           }
           if (!funcdesc) {
             luaX_syntaxerror(ls, "can't use named arguments here because the function was not found at parse-time");
