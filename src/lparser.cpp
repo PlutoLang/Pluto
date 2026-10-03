@@ -397,21 +397,7 @@ static void check_match (LexState *ls, int what, int who, int where, const char*
         throwerr(ls, msg, "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine());
       }
       else {
-        auto err = new Pluto::ErrorMessage{ ls, RED "syntax error: " BWHT };
-        err->addMsg(luaX_token2str(ls, what))
-          .addMsg(" expected (to close ")
-          .addMsg(luaX_token2str(ls, who))
-          .addMsg(" on line ")
-          .addMsg(luaO_fmt(ls->L, "%d", where))
-          .addMsg(")")
-          .addSrcLine(ls->getLineNumberOfLastNonEmptyLine())
-          .addGenericHere();
-
-        if (note != nullptr) {
-          err->addNote(note);
-        }
-
-        err->finalizeAndThrow();
+        throwerr(ls, luaO_fmt(ls->L, "%s expected (to close %s on line %d)", luaX_token2str(ls, what), luaX_token2str(ls, who), where), "this was the last statement.", ls->getLineNumberOfLastNonEmptyLine(), note);
       }
     }
   }
