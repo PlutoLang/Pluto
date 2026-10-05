@@ -7,6 +7,7 @@
 #include "adler32.hpp"
 #include "crc32.hpp"
 #include "Endian.hpp"
+#include "memory.hpp" // construct_at
 
 /*
 Original source: https://github.com/Artexety/inflatecpp
@@ -76,9 +77,9 @@ NAMESPACE_SOUP
 	private:
 		int shifter_bit_count_ = 0;
 		shifter_t shifter_data_ = 0;
-		unsigned char* in_block_;
-		unsigned char* in_block_end_;
-		unsigned char* in_block_start_;
+		const uint8_t* in_block_;
+		const uint8_t* in_block_end_;
+		const uint8_t* in_block_start_;
 
 	public:
 		/**
@@ -87,7 +88,7 @@ NAMESPACE_SOUP
 		 * @param in_block pointer to the start of the compressed block
 		 * @param in_block_end pointer to the end of the compressed block + 1
 		 */
-		explicit DeflateBitReader(unsigned char* in_block, unsigned char* in_block_end)
+		explicit DeflateBitReader(const uint8_t* in_block, const uint8_t* in_block_end)
 			: in_block_(in_block), in_block_end_(in_block_end), in_block_start_(in_block)
 		{
 		}
@@ -207,10 +208,12 @@ NAMESPACE_SOUP
 			return true;
 		}
 
-		unsigned char* getInBlock() { return this->in_block_; };
-		unsigned char* getInBlockEnd() { return this->in_block_end_; };
-		unsigned char* getInBlockStart() { return this->in_block_start_; };
+		const uint8_t* getInBlock() { return this->in_block_; };
+		const uint8_t* getInBlockEnd() { return this->in_block_end_; };
+		const uint8_t* getInBlockStart() { return this->in_block_start_; };
 	};
+	static_assert(sizeof(deflate::Context) >= sizeof(DeflateBitReader));
+	static_assert(std::is_trivially_destructible_v<DeflateBitReader>);
 
 	constexpr auto kMaxSymbols = 288;
 	constexpr auto kCodeLenSyms = 19;
@@ -504,8 +507,7 @@ NAMESPACE_SOUP
 		}
 	};
 
-
-	unsigned int copyStored(DeflateBitReader& bit_reader, unsigned char* out, size_t out_offset, size_t block_size_max)
+	static unsigned int copy_stored(DeflateBitReader& bit_reader, unsigned char* out, size_t out_offset, size_t block_size_max)
 	{
 		SOUP_IF_UNLIKELY (!bit_reader.alignToByte())
 		{
@@ -539,7 +541,7 @@ NAMESPACE_SOUP
 		return stored_length;
 	}
 
-	unsigned int decompressBlock(DeflateBitReader& br, bool dynamic_block, unsigned char* out, size_t out_offset, size_t block_size_max)
+	static unsigned int decompress_block(DeflateBitReader& br, bool dynamic_block, unsigned char* out, size_t out_offset, size_t block_size_max)
 	{
 		HuffmanDecoder literals_decoder;
 		HuffmanDecoder offset_decoder;
@@ -780,8 +782,8 @@ NAMESPACE_SOUP
 
 	DecompressResult deflate::decompress(const void* compressed_data, size_t compressed_data_size, size_t max_decompressed_size)
 	{
-		uint8_t* current_compressed_data = (unsigned char*)compressed_data;
-		uint8_t* end_compressed_data = current_compressed_data + compressed_data_size;
+		const uint8_t* current_compressed_data = static_cast<const uint8_t*>(compressed_data);
+		const uint8_t* end_compressed_data = current_compressed_data + compressed_data_size;
 
 		DecompressResult res{};
 
@@ -901,31 +903,11 @@ NAMESPACE_SOUP
 		res.decompressed = std::string(max_decompressed_size, '\0');
 		auto out = reinterpret_cast<uint8_t*>(&res.decompressed[0]);
 		size_t current_out_offset = 0;
-		while (true)
+		bool final_block;
+		do
 		{
-			bool final_block = br.getBits(1);
-			auto block_type = br.getBits(2);
-
-			unsigned int block_result;
-			switch (block_type)
-			{
-			case 0:
-				block_result = copyStored(br, out, current_out_offset, max_decompressed_size - current_out_offset);
-				break;
-
-			case 1:
-				block_result = decompressBlock(br, false, out, current_out_offset, max_decompressed_size - current_out_offset);
-				break;
-
-			case 2:
-				block_result = decompressBlock(br, true, out, current_out_offset, max_decompressed_size - current_out_offset);
-				break;
-
-			default:
-				return {};
-			}
-
-			if (block_result == -1)
+			unsigned int block_result = decompressBlock(reinterpret_cast<Context&>(br), out, current_out_offset, max_decompressed_size, final_block);
+			SOUP_IF_UNLIKELY (block_result == -1)
 			{
 				return {};
 			}
@@ -945,12 +927,7 @@ NAMESPACE_SOUP
 			}
 
 			current_out_offset += block_result;
-
-			if (final_block)
-			{
-				break;
-			}
-		}
+		} while (!final_block);
 
 		res.decompressed.resize(current_out_offset);
 
@@ -1000,5 +977,53 @@ NAMESPACE_SOUP
 		res.compressed_size = (current_compressed_data - (unsigned char*)compressed_data);
 
 		return res;
+	}
+
+	void deflate::initContext(Context& ctx, const uint8_t* compressed_data, size_t compressed_data_size)
+	{
+		soup::construct_at<DeflateBitReader>(reinterpret_cast<DeflateBitReader*>(&ctx), compressed_data, compressed_data + compressed_data_size);
+	}
+
+	unsigned int deflate::decompressBlock(Context& ctx, uint8_t* out, size_t current_out_offset, size_t max_decompressed_size, bool& final_block)
+	{
+		auto& br = reinterpret_cast<DeflateBitReader&>(ctx);
+		final_block = br.getBits(1);
+		const auto block_type = br.getBits(2);
+		switch (block_type)
+		{
+		case 0:
+			return copy_stored(br, out, current_out_offset, max_decompressed_size - current_out_offset);
+
+		case 1:
+			return decompress_block(br, false, out, current_out_offset, max_decompressed_size - current_out_offset);
+
+		case 2:
+			return decompress_block(br, true, out, current_out_offset, max_decompressed_size - current_out_offset);
+
+		case 3:
+			return -1;
+		}
+		SOUP_UNREACHABLE;
+	}
+
+	std::string deflate::decompressZeroTerminated(const std::string& data)
+	{
+		Context ctx;
+		initContext(ctx, reinterpret_cast<const uint8_t*>(data.data()), data.size());
+		const size_t max_decompressed_size = getMaxDecompressedSize(data.data(), data.size());
+		std::string out(max_decompressed_size, '\0');
+		size_t current_out_offset = 0;
+		unsigned int block_result;
+		do {
+			bool final_block;
+			block_result = decompressBlock(ctx, reinterpret_cast<uint8_t*>(out.data()), current_out_offset, max_decompressed_size, final_block);
+			SOUP_IF_UNLIKELY (block_result == -1)
+			{
+				return {};
+			}
+			current_out_offset += block_result;
+		} while (block_result != 0);
+		out.resize(current_out_offset);
+		return out;
 	}
 }

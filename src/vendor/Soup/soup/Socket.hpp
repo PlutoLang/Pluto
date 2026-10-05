@@ -117,7 +117,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] Socket accept4() noexcept;
 
 		bool setBlocking(bool blocking = true) noexcept;
-		bool setNonBlocking() noexcept;
+		bool setNonBlocking() noexcept { return setBlocking(false); }
 
 		static bool certchain_validator_none(const X509Certchain&, const std::string&, StructMap&) SOUP_EXCAL; // Accepts everything.
 		static bool certchain_validator_default(const X509Certchain&, const std::string&, StructMap&) SOUP_EXCAL;

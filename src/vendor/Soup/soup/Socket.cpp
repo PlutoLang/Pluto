@@ -170,7 +170,7 @@ NAMESPACE_SOUP
 		if (addr.ip.isV4())
 		{
 			SOUP_RETHROW_FALSE(init(AF_INET, SOCK_STREAM));
-
+			SOUP_RETHROW_FALSE(setNonBlocking());
 			setOpt<int>(IPPROTO_TCP, TCP_NODELAY, 1);
 
 			sockaddr_in sa{};
@@ -182,7 +182,7 @@ NAMESPACE_SOUP
 		else
 		{
 			SOUP_RETHROW_FALSE(init(AF_INET6, SOCK_STREAM));
-
+			SOUP_RETHROW_FALSE(setNonBlocking());
 			setOpt<int>(IPPROTO_TCP, TCP_NODELAY, 1);
 
 			sockaddr_in6 sa{};
@@ -355,11 +355,6 @@ NAMESPACE_SOUP
 		flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
 		return (fcntl(fd, F_SETFL, flags) == 0) ? true : false;
 #endif
-	}
-
-	bool Socket::setNonBlocking() noexcept
-	{
-		return setBlocking(false);
 	}
 
 	bool Socket::certchain_validator_none(const X509Certchain&, const std::string&, StructMap&) SOUP_EXCAL

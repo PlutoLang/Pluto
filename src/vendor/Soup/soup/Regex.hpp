@@ -6,6 +6,7 @@
 
 NAMESPACE_SOUP
 {
+	// Documentation on Soup's regex flavour: https://github.com/calamity-inc/Soup/blob/senpai/docs/user/regex.md
 	struct Regex
 	{
 		RegexGroup group;

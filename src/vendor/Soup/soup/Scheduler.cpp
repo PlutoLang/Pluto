@@ -17,7 +17,7 @@
 
 NAMESPACE_SOUP
 {
-	void Scheduler::addWorker(SharedPtr<Worker>&& w)
+	void Scheduler::addWorker(SharedPtr<Worker> w)
 	{
 		SOUP_ASSERT(w); // SharedPtr must hold a pointer
 		pending_workers.emplace_front(std::move(w));
@@ -27,16 +27,14 @@ NAMESPACE_SOUP
 	SharedPtr<Socket> Scheduler::addSocket() SOUP_EXCAL
 	{
 		auto s = soup::make_shared<Socket>();
-		addSocket(s);
+		//addSocket(s); // can't setBlocking on an uninitalised socket
+		addWorker(s);
 		return s;
 	}
 
 	void Scheduler::addSocket(SharedPtr<Socket> sock) SOUP_EXCAL
 	{
-		if (!blocking)
-		{
-			sock->setNonBlocking();
-		}
+		sock->setBlocking(blocking);
 		return addWorker(std::move(sock));
 	}
 #endif

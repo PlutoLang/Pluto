@@ -33,7 +33,7 @@ NAMESPACE_SOUP
 		closeReusableSockets();
 	}
 
-	void DetachedScheduler::addWorker(SharedPtr<Worker>&& w)
+	void DetachedScheduler::addWorker(SharedPtr<Worker> w)
 	{
 		Scheduler::addWorker(std::move(w));
 		if (!thrd.isRunning())

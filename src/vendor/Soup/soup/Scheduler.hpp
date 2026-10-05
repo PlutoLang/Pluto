@@ -51,7 +51,7 @@ NAMESPACE_SOUP
 
 		virtual ~Scheduler() = default;
 
-		virtual void addWorker(SharedPtr<Worker>&& w);
+		virtual void addWorker(SharedPtr<Worker> w);
 
 #if !SOUP_WASM
 		SharedPtr<Socket> addSocket() SOUP_EXCAL;

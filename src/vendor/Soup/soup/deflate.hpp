@@ -30,5 +30,14 @@ NAMESPACE_SOUP
 		{
 			return compressed_data_size * SOUP_DEFLATE_MAX_COMPRESSED_RATIO;
 		}
+
+		struct Context
+		{
+			void* _[5];
+		};
+		static void initContext(Context& ctx, const uint8_t* compressed_data, size_t compressed_data_size);
+		static unsigned int decompressBlock(Context& ctx, uint8_t out[/*max_decompressed_size*/], size_t current_out_offset, size_t max_decompressed_size, /*out*/ bool& final_block); // Returns bytes written to 'out' or -1 on error. When processing multiple related blocks (same sliding window), adjust 'current_out_offset', NOT 'out' or 'max_decompressed_size'!
+
+		static std::string decompressZeroTerminated(const std::string& data); // For RFC7692 style data where instead of the "final block" bit, an empty block signals the end.
 	};
 }
