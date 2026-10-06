@@ -48,4 +48,4 @@ copy("src/lauxlib.h", "pluto/usr/include/pluto/lauxlib.h");
 copy("src/luaconf.h", "pluto/usr/include/pluto/luaconf.h");
 
 passthru("dpkg-deb --build pluto");
-rename("pluto.deb", "pluto.$arch.deb");
+rename("pluto.deb", "pluto.$pluto_version.$arch.deb");
