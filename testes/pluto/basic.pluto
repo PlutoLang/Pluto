@@ -2868,6 +2868,8 @@ do
     assert(inflated == "Hello World")
     assert(info.compressed_size == 19)
 
+    assert(not pcall(crypto.decompress, deflated, -2)) -- decompressed_size is too big to allocate, should raise a Lua error
+
     -- (data, offset, decompressed_size)
     inflated, info = crypto.decompress(deflated, 20, nil)
     assert(inflated == "FooBarBaz")
