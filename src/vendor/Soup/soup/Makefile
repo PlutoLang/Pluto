@@ -1,4 +1,4 @@
-CXX=g++ -std=c++17 -O3 -flto -fvisibility=hidden -fPIC
+CXX=g++ -std=c++20 -O3 -flto -fvisibility=hidden -fPIC
 CFLAGS=-c -Wall
 
 LIBNAME=libsoup.a

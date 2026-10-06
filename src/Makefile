@@ -6,14 +6,14 @@
 # Your platform. See PLATS for possible values.
 PLAT=
 
-CXX= g++ -std=c++17 -O3 -flto -fvisibility=hidden -fPIC
+CXX= g++ -std=c++20 -O3 -flto -fvisibility=hidden -fPIC
 CXXFLAGS= -Wno-multichar -Wno-invalid-noreturn $(SYSCFLAGS) $(MYCFLAGS)
 LDFLAGS= $(SYSLDFLAGS) $(MYLDFLAGS)
 LIBS= -lm -Lvendor/Soup/soup -lsoup $(SYSLIBS) $(MYLIBS)
 
 # Specifying DEBUG=0 (or any value) will remove any optimizations.
 ifdef DEBUG
-override CXX= g++ -std=c++17
+override CXX= g++ -std=c++20
 endif
 
 AR= ar rcu
