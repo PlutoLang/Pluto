@@ -1,8 +1,8 @@
 print "Compiling library for FFI test."
 if os.platform == "windows" then
-    os.execute("clang -std=c++17 -fuse-ld=lld --shared -o lib.dll lib.cpp")
+    os.execute("clang -std=c++20 -fuse-ld=lld --shared -o lib.dll lib.cpp")
 else
-    os.execute("clang -std=c++17 -lstdc++ --shared -fPIC -o liblib.so lib.cpp")
+    os.execute("clang -std=c++20 -lstdc++ --shared -fPIC -o liblib.so lib.cpp")
 end
 
 print "Testing FFI."
