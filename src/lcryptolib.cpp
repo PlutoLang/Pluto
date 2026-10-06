@@ -1075,10 +1075,10 @@ static int l_decompress (lua_State *L) {
   lua_pushinteger(L, res.compressed_size);
   lua_settable(L, -3);
   lua_pushliteral(L, "checksum_present");
-  lua_pushboolean(L, res.checksum_present);
+  lua_pushboolean(L, res.checksum_state != soup::deflate::CHKSUM_NONE);
   lua_settable(L, -3);
   lua_pushliteral(L, "checksum_mismatch");
-  lua_pushboolean(L, res.checksum_mismatch);
+  lua_pushboolean(L, res.checksum_state == soup::deflate::CHKSUM_FAIL);
   lua_settable(L, -3);
   return 2;
 }

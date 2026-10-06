@@ -142,9 +142,11 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] bool isEncrypted() const noexcept;
 
+		// universal send. non-blocking sockets should try not to send big payloads as they might error the connection.
 		bool send(const std::string& data) SOUP_EXCAL { return send(data.data(), data.size()); }
 		bool send(const void* data, size_t size) SOUP_EXCAL;
 
+		// send for non-blocking sockets with overflow+retry for big payloads.
 		void send(const std::string& data, std::string& overflow_buffer) SOUP_EXCAL { return send(data.data(), data.size(), overflow_buffer); }
 		void send(const void* data, size_t size, std::string& overflow_buffer) SOUP_EXCAL;
 		bool sendRetry(std::string& overflow_buffer) SOUP_EXCAL;
