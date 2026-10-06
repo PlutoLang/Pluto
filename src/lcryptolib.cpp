@@ -1061,7 +1061,14 @@ static int l_decompress (lua_State *L) {
   if (max_decompressed_size == -1) {
     max_decompressed_size = soup::deflate::getMaxDecompressedSize(data, size);
   }
-  auto res = soup::deflate::decompress(data, size, max_decompressed_size);
+  soup::deflate::DecompressResult res;  /* trivially deconstructable as long as `res.decompressed.empty()` */
+  try {
+    res = soup::deflate::decompress(data, size, max_decompressed_size);
+  }
+  catch (const std::exception& /*e*/) {
+    /* e.what() would be "string too long" */
+    luaL_error(L, "max_decompressed_size exceeds available memory");
+  }
   pluto_pushstring(L, res.decompressed);
   lua_newtable(L);
   lua_pushliteral(L, "compressed_size");
