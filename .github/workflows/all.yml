@@ -43,7 +43,31 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: "Linux (X64) - .deb Package"
-          path: pluto.deb
+          path: pluto.amd64.deb
+  ubuntu-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - run: php scripts/compile.php clang
+      - run: php scripts/link_pluto.php clang
+      - run: php scripts/link_plutoc.php clang
+      - run: php scripts/link_shared.php clang
+      - run: php scripts/link_static.php
+      - uses: actions/upload-artifact@v7
+        with:
+          name: "Linux (ARM64)"
+          path: |
+            src/pluto
+            src/plutoc
+            src/libpluto.so
+            src/libplutostatic.a
+      - run: src/pluto testes/_driver.pluto
+      - run: src/pluto testes/bench/_stdlib.pluto
+      - run: php scripts/bundle_deb.php
+      - uses: actions/upload-artifact@v7
+        with:
+          name: "Linux (ARM64) - .deb Package"
+          path: pluto.arm64.deb
   macos-x64:
     runs-on: macos-15-intel
     steps:
