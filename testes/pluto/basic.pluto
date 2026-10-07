@@ -3205,6 +3205,10 @@ do
         assert(string.unpack("I4", mod:read(0, 4)) == 420)
     end
 end
+do
+    assert(utf8.from16("480065006c006c006f002c002000164e4c75210020003dd8afdc":fromhex()) == "Hello, 世界! 💯")
+    assert(utf8.to16("Hello, 世界! 💯"):tohex() == "480065006c006c006f002c002000164e4c75210020003dd8afdc")
+end
 
 print "Testing default table metatable."
 do
