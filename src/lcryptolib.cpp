@@ -18,6 +18,7 @@
 #include "vendor/Soup/soup/Curve25519.hpp"
 #include "vendor/Soup/soup/deflate.hpp"
 #include "vendor/Soup/soup/HardwareRng.hpp"
+#include "vendor/Soup/soup/lookup3.hpp"
 #include "vendor/Soup/soup/lzf.hpp"
 #include "vendor/Soup/soup/md5.hpp"
 #include "vendor/Soup/soup/ripemd160.hpp"
@@ -238,8 +239,10 @@ static int lookup3(lua_State *L)
 {
   size_t len;
   const auto text = luaL_checklstring(L, 1, &len);
-  const auto hash = lookup3_impl(text, (int)len, (uint32_t)luaL_optinteger(L, 2, 0));
-  lua_pushinteger(L, hash);
+  uint32_t pc = (uint32_t)luaL_optinteger(L, 2, 0);
+  uint32_t pb = 0;
+  soup::lookup3::hashlittle2(text, len, pc, pb);
+  lua_pushinteger(L, pc);
   return 1;
 }
 
