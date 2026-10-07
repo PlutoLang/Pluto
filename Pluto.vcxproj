@@ -642,6 +642,7 @@
     <ClCompile Include="src\lassertlib.cpp" />
     <ClCompile Include="src\lauxlib.cpp" />
     <ClCompile Include="src\lbase32.cpp" />
+    <ClCompile Include="src\lbase58.cpp" />
     <ClCompile Include="src\lbase64.cpp" />
     <ClCompile Include="src\lbaselib.cpp" />
     <ClCompile Include="src\lbigint.cpp" />
@@ -870,6 +871,7 @@
     <ClInclude Include="src\vendor\Soup\soup\aes.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\aes_intrin.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\alloc.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\alpha2decodetbl.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Asn1Element.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Asn1Identifier.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Asn1Sequence.hpp" />
@@ -877,6 +879,7 @@
     <ClInclude Include="src\vendor\Soup\soup\AtomicDeque.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\base.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\base32.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\base58.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\base64.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\BCanvas.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\BigBitset.hpp" />
@@ -908,6 +911,7 @@
     <ClInclude Include="src\vendor\Soup\soup\crc32_intrin.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\CryptoHashAlgo.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Curve25519.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\CustomEncoding.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\DefaultRngInterface.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\deflate.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\deleter.hpp" />
