@@ -19,6 +19,9 @@
 #include "lauxlib.h"
 #include "lualib.h"
 #include "llimits.h"
+#include "lstring.h"
+
+#include "vendor/Soup/soup/unicode.hpp"
 
 
 #define MAXUNICODE	0x10FFFFu
@@ -273,6 +276,31 @@ static int iter_codes (lua_State *L) {
 #define UTF8PATT	"[\0-\x7F\xC2-\xFD][\x80-\xBF]*"
 
 
+static int utf8_from16(lua_State* L) {
+  char shrtbuf[LUAI_MAXSHORTLEN];
+  size_t in_len;
+  const char *in = luaL_checklstring(L, 1, &in_len);
+  in_len >>= 1;
+  const size_t out_len = soup::unicode::utf16_to_utf8_len(in, in_len);
+  char *out = plutoS_prealloc(L, shrtbuf, out_len);
+  soup::unicode::utf16_to_utf8(in, in_len, out);
+  plutoS_commit(L, out, out_len);
+  return 1;
+}
+
+
+static int utf8_to16(lua_State* L) {
+  char shrtbuf[LUAI_MAXSHORTLEN];
+  size_t in_len;
+  const char *in = luaL_checklstring(L, 1, &in_len);
+  const size_t out_len = soup::unicode::utf8_to_utf16_len(in, in_len) * 2;
+  char *out = plutoS_prealloc(L, shrtbuf, out_len);
+  soup::unicode::utf8_to_utf16(in, in_len, (UTF16_CHAR_TYPE*)out);
+  plutoS_commit(L, out, out_len);
+  return 1;
+}
+
+
 static const luaL_Reg funcs[] = {
   {"offset", byteoffset},
   {"codepoint", codepoint},
@@ -281,6 +309,9 @@ static const luaL_Reg funcs[] = {
   {"codes", iter_codes},
   /* placeholders */
   {"charpattern", NULL},
+  /* Pluto additions */
+  {"from16", utf8_from16},
+  {"to16", utf8_to16},
   {NULL, NULL}
 };
 
