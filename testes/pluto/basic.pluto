@@ -2896,9 +2896,7 @@ do
     inflated, info = crypto.decompress(deflated, -17, 9)
     assert(inflated == "FooBarBaz")
     assert(info.compressed_size == 17)
-end
-do
-    local crypto = require "pluto:crypto"
+
     for {
         "abc",
         "abcdefghijklmnopqrstuvwxyz",
@@ -3214,6 +3212,11 @@ end
 do
     assert(utf8.from16("480065006c006c006f002c002000164e4c75210020003dd8afdc":fromhex()) == "Hello, 世界! 💯")
     assert(utf8.to16("Hello, 世界! 💯"):tohex() == "480065006c006c006f002c002000164e4c75210020003dd8afdc")
+end
+do
+    local base58 = require "pluto:base58"
+    assert("5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ" |> base58.decode |> string.tohex == "800c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d507a5b8d")
+    assert("800c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d507a5b8d":fromhex() |> base58.encode == "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ")
 end
 
 print "Testing default table metatable."
