@@ -20,7 +20,7 @@ $libc = trim(explode("-", substr(shell_exec("dpkg -s libc6 | grep '^Version:'"),
 @mkdir("pluto/usr/include");
 @mkdir("pluto/usr/include/pluto");
 
-file_put_contents("pluto/DEBIAN/control", <<<EOC
+$control = <<<EOC
 Package: pluto
 Version: $pluto_version
 Section: custom
@@ -32,7 +32,9 @@ Description: A superset of Lua 5.5 with a focus on general-purpose programming.
 Depends: libc6 (>= $libc)
 Recommends: libreadline-dev
 
-EOC);
+EOC;
+echo $control;
+file_put_contents("pluto/DEBIAN/control", $control);
 chmod("pluto/DEBIAN/control", 0644);
 
 copy("src/pluto", "pluto/usr/bin/pluto");
