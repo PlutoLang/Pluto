@@ -634,7 +634,7 @@ PLUTO_API const char* pluto_pushstring(lua_State* L, const std::string& str) {
   return lua_pushlstring(L, str.c_str(), str.length());
 }
 
-PLUTO_API const char* pluto_pushstring(lua_State* L, const std::string_view&& str) {
+PLUTO_API const char* pluto_pushstring(lua_State* L, const std::string_view& str) {
   return lua_pushlstring(L, str.data(), str.length());
 }
 

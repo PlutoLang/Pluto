@@ -260,7 +260,7 @@ LUA_API const char *(lua_pushexternalstring) (lua_State *L,
 LUA_API const char *(lua_pushstring) (lua_State *L, const char *s);
 #ifdef __cplusplus
 PLUTO_API const char *(pluto_pushstring) (lua_State* L, const std::string& str);
-PLUTO_API const char *(pluto_pushstring) (lua_State* L, const std::string_view&& str);
+PLUTO_API const char *(pluto_pushstring) (lua_State* L, const std::string_view& str);
 #endif
 LUA_API const char *(lua_pushvfstring) (lua_State *L, const char *fmt,
                                                       va_list argp);
