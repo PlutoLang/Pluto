@@ -10,6 +10,7 @@ foreach (file("src/lua.h") as $line)
 $pluto_version or die("Failed to determine Pluto version");
 
 $arch = trim(shell_exec("dpkg --print-architecture"));
+$libc = trim(explode("-", substr(shell_exec("dpkg -s libc6 | grep '^Version:'"), 9))[0]);
 
 @mkdir("pluto");
 @mkdir("pluto/DEBIAN");
@@ -28,6 +29,7 @@ Architecture: $arch
 Essential: no
 Maintainer: Sainan <sainan@calamity.inc>
 Description: A superset of Lua 5.5 with a focus on general-purpose programming.
+Depends: libc6 (>= $libc)
 Recommends: libreadline-dev
 
 EOC);
