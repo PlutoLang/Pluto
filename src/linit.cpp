@@ -64,6 +64,7 @@ static const luaL_Reg stdlibs[] = {
   {PLUTO_CANVASLIBNAME, luaopen_canvas},
   {PLUTO_BUFFERLIBNAME, luaopen_buffer},
   {PLUTO_WASMLIBNAME, luaopen_wasm},
+  {PLUTO_BASE58LIBNAME, luaopen_base58},
 #ifndef __EMSCRIPTEN__
   {PLUTO_SOCKETLIBNAME, luaopen_socket},
 #endif
@@ -74,8 +75,8 @@ static const luaL_Reg stdlibs[] = {
 /*
 ** require and preload selected standard libraries
 */
-LUALIB_API void luaL_openselectedlibs (lua_State *L, int load, int preload) {
-  int mask;
+LUALIB_API void luaL_openselectedlibs (lua_State *L, uint64_t load, uint64_t preload) {
+  uint64_t mask;
   const luaL_Reg *lib;
   luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
   for (lib = stdlibs, mask = 1; lib->name != NULL; lib++, mask <<= 1) {

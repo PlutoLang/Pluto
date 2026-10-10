@@ -239,10 +239,16 @@ NAMESPACE_SOUP
 		template <typename T = std::string>
 		[[nodiscard]] static size_t levenshtein(const T& a, const T& b)
 		{
+			return levenshtein(a.data(), a.size(), b.data(), b.size());
+		}
+
+		template <typename T = char>
+		[[nodiscard]] static size_t levenshtein(const T a[/*a_size*/], size_t a_size, const T b[/*b_size*/], size_t b_size)
+		{
 			// Adapted from https://github.com/guilhermeagostinelli/levenshtein/blob/master/levenshtein.cpp & https://gist.github.com/TheRayTracer/2644387
 
-			size_t n = a.size() + 1;
-			size_t m = b.size() + 1;
+			size_t n = a_size + 1;
+			size_t m = b_size + 1;
 
 			auto d = new size_t[n * m];
 
