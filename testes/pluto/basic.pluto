@@ -1839,6 +1839,12 @@ do
     assert($crypto.crc32("hello world") == 222957957)
     assert($crypto.crc32c("hello world") == 3381945770)
 
+    assert(crypto.lookup3("Hello") == 0xc7bc405b)
+    assert(crypto.lookup3("Hello", 1337) == 0x9ddedb37)
+    assert(crypto.lookup3("Hello", 0, true) == 0x2aa452d1_c7bc405b)
+    assert(crypto.lookup3("Hello", 1337, true) == 0x11197984_9ddedb37)
+    assert(crypto.lookup3("Hello", 0x1337_cafebabe, true) == 0x1a50cb7d_01b393f2)
+
     assert(crypto.sha1("Pluto") == "bce8c9aca4120776fad6b517874aa09c46405454")
     assert(crypto.sha1("Pluto", true) == "\xbc\xe8\xc9\xac\xa4\x12\x07\x76\xfa\xd6\xb5\x17\x87\x4a\xa0\x9c\x46\x40\x54\x54")
     assert(crypto.sha256("Pluto") == "8dad5f6a7dd2dcd8c35ec2fd7babb499bcad60d27d73fe73eca2ce025dfd3b47")
