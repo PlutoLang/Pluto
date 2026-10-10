@@ -8,6 +8,8 @@
 #ifndef lualib_h
 #define lualib_h
 
+#include <stdint.h>
+
 #include "lua.h"
 #include "lauxlib.h" // Pluto::Preloaded
 
@@ -195,7 +197,7 @@ namespace Pluto {
 
 
 /* open selected libraries */
-LUALIB_API void (luaL_openselectedlibs) (lua_State *L, int load, int preload);
+LUALIB_API void (luaL_openselectedlibs) (lua_State *L, uint64_t load, uint64_t preload);
 
 /* open all libraries */
 #define luaL_openlibs(L)	luaL_openselectedlibs(L, PLUTO_DEFAULTLOADLIBS, ~0)
