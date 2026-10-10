@@ -177,3 +177,4 @@ jobs:
             pluto.wasm
             libpluto.js
             libpluto.wasm
+      - run: node scripts/wasm-test.mjs
