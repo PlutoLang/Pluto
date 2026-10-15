@@ -79,8 +79,7 @@ NAMESPACE_SOUP
 		state[5] = 0x9b05688c2b3e6c1fULL;
 		state[6] = 0x1f83d9abfb41bd6bULL;
 		state[7] = 0x5be0cd19137e2179ULL;
-		buffer_counter = 0;
-		n_bits = 0;
+		n_bytes = 0;
 	}
 
 	void sha512::State::transform() noexcept
@@ -126,20 +125,20 @@ NAMESPACE_SOUP
 
 	void sha512::State::finalise() noexcept
 	{
-		uint64_t n_bits = this->n_bits;
+		const uint64_t n_bits = this->n_bytes * 8;
 
+		// Padding
 		appendByte(0x80);
-
-		while (buffer_counter != 112)
+		while ((this->n_bytes % BLOCK_BYTES) != 112)
 		{
 			appendByte(0);
 		}
 
+		// Write data size in bits as a 128-bit integer
 		for (int i = 7; i >= 0; i--)
 		{
 			appendByte(0);
 		}
-
 		for (int i = 7; i >= 0; i--)
 		{
 			appendByte((n_bits >> 8 * i) & 0xff);

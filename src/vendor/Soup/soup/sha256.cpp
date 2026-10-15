@@ -189,15 +189,16 @@ NAMESPACE_SOUP
 
 	void sha256::State::finalise() noexcept
 	{
-		uint64_t n_bits = this->n_bytes * 8;
+		const uint64_t n_bits = this->n_bytes * 8;
 
+		// Padding
 		appendByte(0x80);
-
 		while ((this->n_bytes % BLOCK_BYTES) != 56)
 		{
 			appendByte(0);
 		}
 
+		// Write data size in bits as a 64-bit integer
 		for (int i = 7; i >= 0; i--)
 		{
 			appendByte((n_bits >> 8 * i) & 0xff);
