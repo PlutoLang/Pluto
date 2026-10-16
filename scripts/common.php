@@ -8,16 +8,20 @@ if(!is_dir("int"))
 
 function build_soup()
 {
-	global $argv;
+	global $argv, $soup_already_built;
 
-	echo ">>> Building Soup\n";
-	passthru("php ".__DIR__."/../src/vendor/Soup/build_lib.php ".escapeshellarg($argv[1]));
+	if (!$soup_already_built)
+	{
+		echo ">>> Building Soup\n";
+		passthru("php ".__DIR__."/../src/vendor/Soup/build_lib.php ".escapeshellarg($argv[1]));
+	}
+
 	echo ">>> Compiling Pluto\n";
 }
 
 function check_compiler()
 {
-	global $argv, $compiler, $is_windows_target;
+	global $argv, $compiler, $is_windows_target, $soup_already_built;
 
 	if(empty($argv[1]))
 	{
@@ -28,7 +32,14 @@ function check_compiler()
 	$is_windows_target = defined("PHP_WINDOWS_VERSION_MAJOR") || stripos($argv[1], "mingw") !== false;
 	for($i = 2; $i != count($argv); ++$i)
 	{
-		$compiler .= " ".escapeshellarg($argv[$i]);
+		if ($argv[$i] == "--dont-build-soup-again")
+		{
+			$soup_already_built = true;
+		}
+		else
+		{
+			$compiler .= " ".escapeshellarg($argv[$i]);
+		}
 	}
 	$compiler .= " -std=c++17 -O3 -fvisibility=hidden -fno-rtti -ffunction-sections -fdata-sections";
 	if($is_windows_target)

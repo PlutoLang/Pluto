@@ -124,7 +124,7 @@ jobs:
         with:
           name: "Windows (X64) Chocolatey Package"
           path: plutolang/*.nupkg
-      - run: php scripts/make_dll.php clang
+      - run: php scripts/make_dll.php clang --dont-build-soup-again
       - name: Ensure files exist
         uses: andstor/file-existence-action@v3
         with:
@@ -149,7 +149,7 @@ jobs:
       - run: php scripts/link_static.php
       - run: src/pluto.exe testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
-      - run: php scripts/make_dll.php clang
+      - run: php scripts/make_dll.php clang --dont-build-soup-again
       - name: Ensure files exist
         uses: andstor/file-existence-action@v3
         with:
