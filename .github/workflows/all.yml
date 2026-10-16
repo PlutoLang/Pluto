@@ -134,14 +134,12 @@ jobs:
   windows-dll:
     runs-on: windows-latest
     steps:
-      #- name: Ensure LLVM is up-to-date
-      #  run: choco upgrade llvm
       - uses: actions/checkout@v7
       - run: php scripts/make_dll.php clang
       - name: Ensure files exist
         uses: andstor/file-existence-action@v3
         with:
-          files: "src/pluto.dll, src/pluto.lib, src/pluto.exp"
+          files: "src/pluto.dll, src/pluto.lib"
           fail: true
       - uses: actions/upload-artifact@v7
         with:
@@ -149,7 +147,6 @@ jobs:
           path: |
             src/pluto.dll
             src/pluto.lib
-            src/pluto.exp
   makefile:
     runs-on: ubuntu-latest
     steps:

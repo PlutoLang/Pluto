@@ -33,7 +33,7 @@ function check_compiler()
 	$compiler .= " -std=c++17 -O3 -fvisibility=hidden -fno-rtti -ffunction-sections -fdata-sections";
 	if($is_windows_target)
 	{
-		$compiler .= " -D _CRT_SECURE_NO_WARNINGS";
+		$compiler .= " -fuse-ld=lld -D _CRT_SECURE_NO_WARNINGS";
 		if (!defined("PHP_WINDOWS_VERSION_MAJOR"))
 		{
 			$compiler .= " -static-libstdc++";
