@@ -107,7 +107,7 @@ jobs:
             src/libplutostatic.a
       - run: src/pluto testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
-  windows:
+  windows-x64:
     runs-on: windows-latest
     steps:
       #- name: Ensure LLVM is up-to-date
@@ -133,6 +133,31 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: "Windows (X64)"
+          path: |
+            src/pluto.exe
+            src/plutoc.exe
+            src/libplutostatic.a
+            src/libpluto.dll
+            src/libpluto.lib
+  windows-arm64:
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v7
+      - run: php scripts/compile.php clang
+      - run: php scripts/link_pluto.php clang
+      - run: php scripts/link_plutoc.php clang
+      - run: php scripts/link_static.php
+      - run: src/pluto.exe testes/_driver.pluto
+      - run: src/pluto testes/bench/_stdlib.pluto
+      - run: php scripts/make_dll.php clang
+      - name: Ensure files exist
+        uses: andstor/file-existence-action@v3
+        with:
+          files: "src/pluto.exe, src/plutoc.exe, src/libplutostatic.a, src/libpluto.dll, src/libpluto.lib"
+          fail: true
+      - uses: actions/upload-artifact@v7
+        with:
+          name: "Windows (ARM64)"
           path: |
             src/pluto.exe
             src/plutoc.exe
