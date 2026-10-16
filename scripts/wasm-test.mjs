@@ -9,7 +9,7 @@ import libpluto from "../libpluto.js";
 const mod = await (await libpluto)();
 const luaL_newstate = mod.cwrap("luaL_newstate", "int", []);
 const luaL_openselectedlibs = mod.cwrap("luaL_openselectedlibs", "int", ["int", "int", "int"]);
-const luaL_openlibs = (L) => luaL_openselectedlibs(L, 1023, 0xffffffff);
+const luaL_openlibs = (L) => luaL_openselectedlibs(L, 1023n, 0xffffffffffffffffn);
 const luaL_loadstring = mod.cwrap("luaL_loadstring", "int", ["int", "string"]);
 const lua_callk = mod.cwrap("lua_callk", "void", ["int", "int", "int", "int", "int"]);
 const lua_tolstring = mod.cwrap("lua_tolstring", "string", ["int", "int", "int"]);

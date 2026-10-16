@@ -4,8 +4,8 @@ on:
     branches: [ "main" ]
   pull_request: {}
 jobs:
-  ubuntu-24-04:
-    runs-on: ubuntu-24.04
+  ubuntu-26-04:
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - run: php scripts/compile.php clang
@@ -14,14 +14,6 @@ jobs:
       - run: src/pluto testes/bench/_stdlib.pluto
   ubuntu-22-04:
     runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v7
-      - run: php scripts/compile.php clang
-      - run: php scripts/link_pluto.php clang
-      - run: src/pluto testes/_driver.pluto
-      - run: src/pluto testes/bench/_stdlib.pluto
-  debian-10:
-    runs-on: [debian-10]
     steps:
       - uses: actions/checkout@v7
       - run: php scripts/compile.php clang
@@ -44,8 +36,8 @@ jobs:
         with:
           name: "Linux (X64) - .deb Package"
           path: pluto.*.deb
-  debian-arm64:
-    runs-on: [ARM64]
+  ubuntu-arm64:
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7
       - run: php scripts/compile.php clang

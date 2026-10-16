@@ -393,6 +393,9 @@
     <ClCompile Include="src\vendor\Soup\soup\ffi_call_win_x64.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\lookup3.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -1221,6 +1224,9 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\tunables.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\lookup3.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>
