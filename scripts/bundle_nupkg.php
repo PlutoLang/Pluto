@@ -18,7 +18,7 @@ file_put_contents(".chocogen.json", <<<EOC
 {
     "path": ["pluto.exe", "plutoc.exe", "LICENSE.txt", "VERIFICATION.txt"],
     "title": "Pluto Language",
-    "description": "A superset of Lua 5.4 with a focus on general-purpose programming.",
+    "description": "A superset of Lua 5.5 with a focus on general-purpose programming.",
     "authors": "Ryan Starrett, Sainan",
     "website": "https://pluto-lang.org/",
     "repository": "https://github.com/PlutoLang/Pluto",
@@ -29,6 +29,6 @@ file_put_contents(".chocogen.json", <<<EOC
     "issues": "https://github.com/PlutoLang/Pluto/issues"
 }
 EOC);
-file_put_contents("VERIFICATION.txt", "These are the same files as in the Windows.zip for this release of Pluto: https://github.com/PlutoLang/Pluto/releases");
+file_put_contents("VERIFICATION.txt", "These are the same files as in the Windows.X64.zip for this release of Pluto: https://github.com/PlutoLang/Pluto/releases");
 file_put_contents("chocogen.php", file_get_contents("https://raw.githubusercontent.com/calamity-inc/chocogen/0b1c843eaa167caf590bd56f46f5a57f6ffc6000/chocogen.php"));
 passthru("php chocogen.php $pluto_version");
