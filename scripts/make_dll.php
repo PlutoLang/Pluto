@@ -11,7 +11,7 @@ for_each_obj(function($file)
 });
 await_commands();
 
-$cmd = $compiler." -shared -o src/pluto.dll";
+$cmd = $compiler." -shared -o src/libpluto.dll";
 for_each_obj(function($file)
 {
 	if($file != "lua" && $file != "luac")

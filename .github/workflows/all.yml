@@ -117,13 +117,6 @@ jobs:
       - run: php scripts/link_pluto.php clang
       - run: php scripts/link_plutoc.php clang
       - run: php scripts/link_static.php
-      - uses: actions/upload-artifact@v7
-        with:
-          name: "Windows (X64)"
-          path: |
-            src/pluto.exe
-            src/plutoc.exe
-            src/libplutostatic.a
       - run: src/pluto.exe testes/_driver.pluto
       - run: src/pluto testes/bench/_stdlib.pluto
       - run: php scripts/bundle_nupkg.php
@@ -131,22 +124,21 @@ jobs:
         with:
           name: "Windows (X64) Chocolatey Package"
           path: plutolang/*.nupkg
-  windows-dll:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v7
       - run: php scripts/make_dll.php clang
       - name: Ensure files exist
         uses: andstor/file-existence-action@v3
         with:
-          files: "src/pluto.dll, src/pluto.lib"
+          files: "src/pluto.exe, src/plutoc.exe, src/libplutostatic.a, src/libpluto.dll, src/libpluto.lib"
           fail: true
       - uses: actions/upload-artifact@v7
         with:
-          name: "Windows (X64) DLL"
+          name: "Windows (X64)"
           path: |
-            src/pluto.dll
-            src/pluto.lib
+            src/pluto.exe
+            src/plutoc.exe
+            src/libplutostatic.a
+            src/libpluto.dll
+            src/libpluto.lib
   makefile:
     runs-on: ubuntu-latest
     steps:
