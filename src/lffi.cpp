@@ -599,25 +599,57 @@ static int ffi_cdef (lua_State *L) {
   return 0;
 }
 
+static FfiStruct *test_struct_type (lua_State *L) {
+  switch (lua_type(L, 1)) {
+    case LUA_TSTRING: {  /* name of a cdef'd struct type? */
+      lua_pushvalue(L, 1);
+      if (lua_gettable(L, lua_upvalueindex(1)) > LUA_TNIL) {
+        return (FfiStruct*)weaklytestudata(L, -1, "pluto:ffi-struct-type");
+      }
+    } break;
+
+    case LUA_TUSERDATA: {
+      /* struct type itself? */
+      if (void *addr = weaklytestudata(L, 1, "pluto:ffi-struct-type")) {
+        return (FfiStruct*)addr;
+      }
+      /* struct instance? */
+      lua_getmetatable(L, 1);
+      lua_pushliteral(L, "type");
+      lua_gettable(L, -2);
+      return (FfiStruct*)weaklytestudata(L, -1, "pluto:ffi-struct-type");
+    } break;
+  }
+  return nullptr;
+}
+
 static FfiStruct *check_struct_type (lua_State *L) {
-  if (lua_type(L, 1) == LUA_TSTRING) {
-    lua_pushvalue(L, 1);
-    if (lua_gettable(L, lua_upvalueindex(1)) > LUA_TNIL) {
-      return (FfiStruct*)weaklycheckudata(L, -1, "pluto:ffi-struct-type");
-    }
-  }
-  if (void *addr = weaklytestudata(L, 1, "pluto:ffi-struct-type")) {
-    return (FfiStruct*)addr;
-  }
-  luaL_checktype(L, 1, LUA_TUSERDATA);
-  lua_getmetatable(L, 1);
-  lua_pushliteral(L, "type");
-  lua_gettable(L, -2);
-  return (FfiStruct*)weaklycheckudata(L, -1, "pluto:ffi-struct-type");
+  const auto t = test_struct_type(L);
+  luaL_argexpected(L, t, 1, "struct name, type, or instance");
+  return t;
 }
 
 static int ffi_sizeof (lua_State *L) {
-  lua_pushinteger(L, check_struct_type(L)->getSize());
+  if (const auto t = test_struct_type(L)) {  /* struct type? */
+    lua_pushinteger(L, t->getSize());
+    return 1;
+  }
+  /* primtive type? */
+  auto par = pluto_newclassinst(L, soup::rflParser, pluto_checkstring(L, 1));
+  auto rt = pluto_newclassinst(L, soup::rflType);
+  bool fail = false;
+  try {
+    *rt = par->readType();
+  }
+  catch (...) {
+    fail = true;
+  }
+  if (l_unlikely(fail)  /* failed to parse as a type? */
+    || rfl_type_to_ffi_type(*rt) == FFI_UNKNOWN  /* or a bogus type? */
+    ) {
+    luaL_typeerror(L, 1, "struct name, type, or instance");
+  }
+  lua_pushinteger(L, rt->getSize());
   return 1;
 }
 
