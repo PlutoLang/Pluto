@@ -98,6 +98,9 @@ assert(ffi.offsetof(position, "x") == 0)
 assert(ffi.offsetof(position, "y") == 4)
 assert(ffi.offsetof(position, "z") == 8)
 
+assert(ffi.sizeof("uint8_t") == 1)
+assert(not pcall(ffi.sizeof, "deez"))
+
 ffi.cdef[[
 struct PointedAt {
 };
