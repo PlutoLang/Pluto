@@ -130,6 +130,7 @@ jobs:
         with:
           files: "src/pluto.exe, src/plutoc.exe, src/libplutostatic.a, src/libpluto.dll, src/libpluto.lib"
           fail: true
+      - run: copy .github/workflows/windows-zip-readme.txt src/README.txt
       - uses: actions/upload-artifact@v7
         with:
           name: "Windows (X64)"
@@ -139,6 +140,7 @@ jobs:
             src/libplutostatic.a
             src/libpluto.dll
             src/libpluto.lib
+            src/README.txt
   windows-arm64:
     runs-on: windows-11-arm
     steps:
@@ -155,6 +157,7 @@ jobs:
         with:
           files: "src/pluto.exe, src/plutoc.exe, src/libplutostatic.a, src/libpluto.dll, src/libpluto.lib"
           fail: true
+      - run: copy .github/workflows/windows-zip-readme.txt src/README.txt
       - uses: actions/upload-artifact@v7
         with:
           name: "Windows (ARM64)"
@@ -164,6 +167,7 @@ jobs:
             src/libplutostatic.a
             src/libpluto.dll
             src/libpluto.lib
+            src/README.txt
   makefile:
     runs-on: ubuntu-latest
     steps:
