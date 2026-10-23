@@ -297,7 +297,7 @@ extern bool PLUTO_WRITE_FILE_HOOK(lua_State* L, const char* path);
 
 
 static void policycheck (lua_State *L, const char *filename, const char *mode) {
-  if (mode[0] == 'r') {
+  if (mode[0] == 'r' && mode[1] == '\0') {
 #ifdef PLUTO_READ_FILE_HOOK
     if (!PLUTO_READ_FILE_HOOK(L, filename)) {
       luaL_error(L, "disallowed by content moderation policy");
