@@ -13,7 +13,7 @@ const {
 	lua_pushvalue, lua_type, lua_istrue, lua_isinteger, lua_tointegerx, lua_tonumberx,
 	lua_gettop, lua_settop, lua_pop, lua_setglobal, lua_getglobal,
 	lua_typename, lua_absindex, lua_rotate, lua_copy, lua_arith, lua_compare,
-	lua_createtable, lua_getfield, lua_setfield, lua_geti, lua_seti,
+	lua_createtable, lua_getfield, lua_setfield, lua_geti, lua_seti, lua_next,
 	lua_concat, lua_len, lua_stringtonumber, lua_pcall, lua_pushglobaltable,
 	lua_isnil, lua_isnoneornil,
 	lua_rawgeti, lua_rawseti, lua_rawget, lua_rawset, lua_rawequal, lua_pushthread,
@@ -275,6 +275,38 @@ test("lua_seti / lua_geti round-trip an array element", L => {
 	lua_seti(L, -2, 1n);
 	expectEqual(lua_geti(L, -1, 1n), LUA_TNUMBER);
 	expectEqual(lua_tointegerx(L, -1, 0), 7n);
+});
+
+// lua_next
+test("lua_next iterates every key/value pair of a table", L => {
+	lua_createtable(L, 0, 0);
+	lua_pushinteger(L, 1n);
+	lua_setfield(L, -2, "x");
+	lua_pushinteger(L, 2n);
+	lua_setfield(L, -2, "y");
+	lua_pushinteger(L, 3n);
+	lua_setfield(L, -2, "z");
+
+	const keys: string[] = [];
+	let sum = 0n;
+	lua_pushnil(L); // initial key
+	while (lua_next(L, -2) !== 0) {
+		// stack: table, key, value
+		keys.push(lua_tolstring(L, -2, 0));
+		sum += lua_tointegerx(L, -1, 0);
+		lua_pop(L, 1); // drop value, keep key for the next call
+	}
+
+	expectEqual(keys.sort().join(","), "x,y,z");
+	expectEqual(sum, 6n);
+	expectEqual(lua_gettop(L), 1, "lua_next should leave only the table when finished");
+});
+
+test("lua_next returns 0 and pushes nothing for an empty table", L => {
+	lua_createtable(L, 0, 0);
+	lua_pushnil(L);
+	expectEqual(lua_next(L, -2), 0);
+	expectEqual(lua_gettop(L), 1, "only the table should remain");
 });
 
 // lua_concat / lua_len
