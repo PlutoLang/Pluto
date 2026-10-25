@@ -6,11 +6,20 @@ import wrapper from "../bindings/libpluto-wrapper.mjs";
 
 const mod = await (await libpluto)();
 const {
-	LUA_TNIL, LUA_TBOOLEAN, LUA_TNUMBER, LUA_TSTRING,
+	LUA_TNIL, LUA_TBOOLEAN, LUA_TNUMBER, LUA_TSTRING, LUA_TTABLE, LUA_TFUNCTION, LUA_ERRRUN,
+	LUA_OPADD, LUA_OPLT,
 	luaL_newstate, luaL_openlibs, luaL_loadstring, lua_callk, lua_tolstring, lua_close,
 	lua_pushnil, lua_pushstring, lua_pushlstring, lua_pushinteger, lua_pushnumber, lua_pushboolean,
 	lua_pushvalue, lua_type, lua_istrue, lua_isinteger, lua_tointegerx, lua_tonumberx,
 	lua_gettop, lua_settop, lua_pop, lua_setglobal, lua_getglobal,
+	lua_typename, lua_absindex, lua_rotate, lua_copy, lua_arith, lua_compare,
+	lua_createtable, lua_getfield, lua_setfield, lua_geti, lua_seti,
+	lua_concat, lua_len, lua_stringtonumber, lua_pcall, lua_pushglobaltable,
+	lua_isnil, lua_isnoneornil,
+	lua_rawgeti, lua_rawseti, lua_rawget, lua_rawset, lua_rawequal, lua_pushthread,
+	luaL_ref, luaL_unref,
+	LUA_TTHREAD, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS, LUA_RIDX_MAINTHREAD,
+	LUA_REFNIL, LUA_NOREF,
 } = wrapper(mod);
 
 // ---- Original smoke test ----
@@ -197,6 +206,216 @@ test("lua_setglobal / lua_getglobal round-trip a number", L => {
 	lua_getglobal(L, "answer");
 	expectEqual(lua_type(L, -1), LUA_TNUMBER);
 	expectEqual(lua_tonumberx(L, -1, 0), 1.25);
+});
+
+// lua_typename
+test("lua_typename names basic types", L => {
+	expectEqual(lua_typename(L, LUA_TTABLE), "table");
+	expectEqual(lua_typename(L, LUA_TFUNCTION), "function");
+	expectEqual(lua_typename(L, LUA_TNIL), "nil");
+});
+
+// lua_absindex
+test("lua_absindex converts a negative index to absolute", L => {
+	lua_pushinteger(L, 1n);
+	lua_pushinteger(L, 2n);
+	expectEqual(lua_absindex(L, -1), 2);
+	expectEqual(lua_absindex(L, 1), 1);
+});
+
+// lua_rotate
+test("lua_rotate moves the top value down to the given index", L => {
+	lua_pushinteger(L, 1n);
+	lua_pushinteger(L, 2n);
+	lua_pushinteger(L, 3n);
+	lua_rotate(L, 1, 1); // stack becomes 3, 1, 2
+	expectEqual(lua_tointegerx(L, 1, 0), 3n);
+	expectEqual(lua_tointegerx(L, -1, 0), 2n);
+});
+
+// lua_copy
+test("lua_copy overwrites one slot with another", L => {
+	lua_pushinteger(L, 1n);
+	lua_pushinteger(L, 2n);
+	lua_copy(L, 1, 2);
+	expectEqual(lua_gettop(L), 2);
+	expectEqual(lua_tointegerx(L, -1, 0), 1n);
+});
+
+// lua_arith / lua_compare
+test("lua_arith adds the two top values", L => {
+	lua_pushinteger(L, 2n);
+	lua_pushinteger(L, 3n);
+	lua_arith(L, LUA_OPADD);
+	expectEqual(lua_gettop(L), 1);
+	expectEqual(lua_tointegerx(L, -1, 0), 5n);
+});
+
+test("lua_compare reports less-than", L => {
+	lua_pushinteger(L, 1n);
+	lua_pushinteger(L, 2n);
+	expectEqual(lua_compare(L, 1, 2, LUA_OPLT), 1);
+	expectEqual(lua_compare(L, 2, 1, LUA_OPLT), 0);
+});
+
+// lua_createtable / lua_getfield / lua_setfield
+test("lua_setfield / lua_getfield round-trip a table field", L => {
+	lua_createtable(L, 0, 0);
+	lua_pushinteger(L, 5n);
+	lua_setfield(L, -2, "x");
+	expectEqual(lua_gettop(L), 1, "setfield should pop the value");
+	expectEqual(lua_getfield(L, -1, "x"), LUA_TNUMBER);
+	expectEqual(lua_tointegerx(L, -1, 0), 5n);
+});
+
+// lua_geti / lua_seti
+test("lua_seti / lua_geti round-trip an array element", L => {
+	lua_createtable(L, 0, 0);
+	lua_pushinteger(L, 7n);
+	lua_seti(L, -2, 1n);
+	expectEqual(lua_geti(L, -1, 1n), LUA_TNUMBER);
+	expectEqual(lua_tointegerx(L, -1, 0), 7n);
+});
+
+// lua_concat / lua_len
+test("lua_concat joins the top n strings", L => {
+	lua_pushstring(L, "a");
+	lua_pushstring(L, "b");
+	lua_concat(L, 2);
+	expectEqual(lua_gettop(L), 1);
+	expectEqual(lua_tolstring(L, -1, 0), "ab");
+});
+
+test("lua_len pushes the length of a string", L => {
+	lua_pushstring(L, "abc");
+	lua_len(L, -1);
+	expectEqual(lua_tointegerx(L, -1, 0), 3n);
+});
+
+// lua_stringtonumber
+test("lua_stringtonumber pushes the parsed number and returns size+1", L => {
+	expectEqual(lua_stringtonumber(L, "42"), 3);
+	expectEqual(lua_tointegerx(L, -1, 0), 42n);
+});
+
+test("lua_stringtonumber returns 0 and pushes nothing on bad input", L => {
+	expectEqual(lua_stringtonumber(L, "nope"), 0);
+	expectEqual(lua_gettop(L), 0);
+});
+
+// lua_pcall
+test("lua_pcall returns LUA_ERRRUN for a raised error", L => {
+	luaL_openlibs(L);
+	luaL_loadstring(L, "error('boom')");
+	expectEqual(lua_pcall(L, 0, 0, 0), LUA_ERRRUN);
+});
+
+test("lua_pcall returns LUA_OK on success", L => {
+	luaL_loadstring(L, "return 1 + 1");
+	expectEqual(lua_pcall(L, 0, 1, 0), 0);
+	expectEqual(lua_tointegerx(L, -1, 0), 2n);
+});
+
+// lua_pushglobaltable
+test("lua_pushglobaltable exposes the globals table", L => {
+	lua_pushglobaltable(L);
+	expectEqual(lua_type(L, -1), LUA_TTABLE);
+	lua_pushinteger(L, 9n);
+	lua_setfield(L, -2, "from_c");
+	lua_pop(L, 1);
+	expectEqual(lua_getglobal(L, "from_c"), LUA_TNUMBER);
+	expectEqual(lua_tointegerx(L, -1, 0), 9n);
+});
+
+// Type-check macros
+test("lua_isnil and lua_isnoneornil work on nil and none", L => {
+	lua_pushnil(L);
+	expectEqual(lua_isnil(L, -1), 1);
+	expectEqual(lua_isnoneornil(L, 5), 1);
+	expectEqual(lua_isnoneornil(L, -1), 1);
+	lua_pushinteger(L, 1n);
+	expectEqual(lua_isnil(L, -1), 0);
+});
+
+// ---- Registry ----
+test("LUA_REGISTRYINDEX is a large negative pseudo-index", () => {
+	assert.ok(LUA_REGISTRYINDEX < -1_000_000, `got ${LUA_REGISTRYINDEX}`);
+});
+
+test("registry holds the globals table at LUA_RIDX_GLOBALS", L => {
+	lua_pushglobaltable(L);
+	expectEqual(lua_rawgeti(L, LUA_REGISTRYINDEX, BigInt(LUA_RIDX_GLOBALS)), LUA_TTABLE);
+	expectEqual(lua_rawequal(L, -1, -2), 1, "registry entry should be the globals table");
+});
+
+test("registry holds the main thread at LUA_RIDX_MAINTHREAD", L => {
+	expectEqual(lua_rawgeti(L, LUA_REGISTRYINDEX, BigInt(LUA_RIDX_MAINTHREAD)), LUA_TTHREAD);
+	expectEqual(lua_pushthread(L), 1, "pushthread should report the main thread");
+	expectEqual(lua_rawequal(L, -1, -2), 1, "registry entry should be the main thread");
+});
+
+test("luaL_ref stores a value and lua_rawgeti retrieves it", L => {
+	lua_pushstring(L, "stored");
+	const ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	assert.ok(ref > 0, `expected a positive ref, got ${ref}`);
+	expectEqual(lua_gettop(L), 0, "luaL_ref should pop the value");
+	expectEqual(lua_rawgeti(L, LUA_REGISTRYINDEX, BigInt(ref)), LUA_TSTRING);
+	expectEqual(lua_tolstring(L, -1, 0), "stored");
+});
+
+test("luaL_ref keeps tables reachable through their ref", L => {
+	lua_createtable(L, 0, 0);
+	lua_pushinteger(L, 11n);
+	lua_setfield(L, -2, "x");
+	const ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	expectEqual(lua_gettop(L), 0);
+	expectEqual(lua_rawgeti(L, LUA_REGISTRYINDEX, BigInt(ref)), LUA_TTABLE);
+	expectEqual(lua_getfield(L, -1, "x"), LUA_TNUMBER);
+	expectEqual(lua_tointegerx(L, -1, 0), 11n);
+});
+
+test("luaL_ref returns distinct refs for distinct values", L => {
+	lua_pushinteger(L, 1n);
+	const a = luaL_ref(L, LUA_REGISTRYINDEX);
+	lua_pushinteger(L, 2n);
+	const b = luaL_ref(L, LUA_REGISTRYINDEX);
+	assert.notEqual(a, b);
+
+	expectEqual(lua_rawgeti(L, LUA_REGISTRYINDEX, BigInt(a)), LUA_TNUMBER);
+	expectEqual(lua_tointegerx(L, -1, 0), 1n);
+	expectEqual(lua_rawgeti(L, LUA_REGISTRYINDEX, BigInt(b)), LUA_TNUMBER);
+	expectEqual(lua_tointegerx(L, -1, 0), 2n);
+});
+
+test("luaL_ref on nil returns LUA_REFNIL and pops the value", L => {
+	lua_pushnil(L);
+	expectEqual(luaL_ref(L, LUA_REGISTRYINDEX), LUA_REFNIL);
+	expectEqual(lua_gettop(L), 0);
+});
+
+test("luaL_unref releases a ref so its value is no longer retrievable", L => {
+	lua_pushstring(L, "temp");
+	const ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	luaL_unref(L, LUA_REGISTRYINDEX, ref);
+	// Lua reuses the slot for its free list, so it must no longer hold the string.
+	assert.notEqual(lua_rawgeti(L, LUA_REGISTRYINDEX, BigInt(ref)), LUA_TSTRING);
+});
+
+test("luaL_unref ignores LUA_REFNIL and LUA_NOREF", L => {
+	luaL_unref(L, LUA_REGISTRYINDEX, LUA_REFNIL);
+	luaL_unref(L, LUA_REGISTRYINDEX, LUA_NOREF);
+	expectEqual(lua_gettop(L), 0);
+});
+
+test("registry supports custom keys via lua_rawset / lua_rawget", L => {
+	lua_pushstring(L, "pluto-test-key");
+	lua_pushinteger(L, 99n);
+	lua_rawset(L, LUA_REGISTRYINDEX);
+	expectEqual(lua_gettop(L), 0, "rawset should pop key and value");
+
+	lua_pushstring(L, "pluto-test-key");
+	expectEqual(lua_rawget(L, LUA_REGISTRYINDEX), LUA_TNUMBER);
+	expectEqual(lua_tointegerx(L, -1, 0), 99n);
 });
 
 if (failures > 0) {
