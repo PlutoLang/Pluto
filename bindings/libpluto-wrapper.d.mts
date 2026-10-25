@@ -24,18 +24,18 @@ interface IWrapper {
 	readonly luaL_openlibs: (L: number) => void;
 	readonly luaL_loadstring: (L: number, str: string) => number;
 	readonly luaL_loadbufferx: (
-	  L: number,
-	  buf: Uint8Array,
-	  size: number,
-	  name: number,
-	  mode: number
+		L: number,
+		buf: Uint8Array,
+		size: number,
+		name: number,
+		mode: number
 	) => number;
 	readonly lua_callk: (
-	  L: number,
-	  nargs: number,
-	  nresults: number,
-	  ctx: number,
-	  k: number
+		L: number,
+		nargs: number,
+		nresults: number,
+		ctx: number,
+		k: number
 	) => void;
 	readonly lua_getglobal: (L: number, name: string) => number;
 	readonly lua_type: (L: number, idx: number) => number;
@@ -57,10 +57,10 @@ interface IWrapper {
 	readonly lua_closethread: (L: number, from: number) => number;
 	readonly lua_status: (L: number) => number;
 	readonly lua_resume: (
-	  L: number,
-	  from: number,
-	  nargs: number,
-	  nres: number
+		L: number,
+		from: number,
+		nargs: number,
+		nres: number
 	) => number;
 	readonly lua_gettop: (L: number) => number;
 	readonly lua_pushvalue: (L: number, idx: number) => void;
@@ -71,9 +71,9 @@ interface IWrapper {
 	readonly lua_createtable: (L: number, narr: number, nrec: number) => void;
 	readonly lua_settable: (L: number, idx: number) => void;
 	readonly luaL_loadfilex: (
-	  L: number,
-	  filename: string,
-	  mode: number
+		L: number,
+		filename: string,
+		mode: number
 	) => number;
 	readonly lua_close: (L: number) => void;
 
