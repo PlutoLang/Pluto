@@ -1,5 +1,3 @@
-/// <reference types="emscripten" />
-
 interface IWrapper {
 	readonly LUA_OK: 0;
 	readonly LUA_YIELD: 1;
@@ -174,5 +172,5 @@ interface IWrapper {
 	readonly lua_isnoneornil: (L: number, idx: number) => 0 | 1;
 }
 
-declare function createWrapper(emscripten_module: EmscriptenModule): IWrapper;
+declare function createWrapper(emscripten_module: any): IWrapper;
 export default createWrapper;
