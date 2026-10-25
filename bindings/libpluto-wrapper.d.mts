@@ -8,6 +8,16 @@ interface IWrapper {
 	readonly LUA_ERRMEM: 4;
 	readonly LUA_ERRERR: 5;
 
+	readonly LUA_TNIL: 0;
+	readonly LUA_TBOOLEAN: 1;
+	readonly LUA_TLIGHTUSERDATA: 2;
+	readonly LUA_TNUMBER: 3;
+	readonly LUA_TSTRING: 4;
+	readonly LUA_TTABLE: 5;
+	readonly LUA_TFUNCTION: 6;
+	readonly LUA_TUSERDATA: 7;
+	readonly LUA_TTHREAD: 8;
+
 	readonly malloc: (size: number) => number;
 	readonly luaL_newstate: () => number;
 	readonly luaL_openselectedlibs: (L: number, load: number, preload: number) => void;
@@ -32,13 +42,13 @@ interface IWrapper {
 	readonly lua_pushnil: (L: number) => void;
 	readonly lua_pushstring: (L: number, str: string) => void;
 	readonly lua_pushlstring: (L: number, str: Uint8Array, len: number) => void;
-	readonly lua_pushinteger: (L: number, n: number) => void;
+	readonly lua_pushinteger: (L: number, n: BigInt) => void;
 	readonly lua_pushnumber: (L: number, n: number) => void;
 	readonly lua_pushboolean: (L: number, b: number) => void;
 	readonly lua_istrue: (L: number, idx: number) => number;
 	readonly lua_isinteger: (L: number, idx: number) => number;
 	readonly lua_tolstring: (L: number, idx: number, lenPtr: number) => string;
-	readonly lua_tointegerx: (L: number, idx: number, isnum: number) => number;
+	readonly lua_tointegerx: (L: number, idx: number, isnum: number) => BigInt;
 	readonly lua_tonumberx: (L: number, idx: number, isnum: number) => number;
 	readonly lua_settop: (L: number, idx: number) => void;
 	readonly lua_setglobal: (L: number, name: string) => void;
