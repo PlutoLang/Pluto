@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 
 // @ts-expect-error no declaration file
 import libpluto from "../libpluto.js";
-import wrapper from "../bindings/libpluto-wrapper.mjs";
+import wrapper from "./libpluto-wrapper.mjs";
 
 const mod = await (await libpluto)();
 const {
