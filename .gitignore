@@ -1,3 +1,8 @@
+.vscode/
+.vs/
+int/
+out/
+node_modules/
 *.o
 *.exe
 *.dll
@@ -5,15 +10,7 @@
 *.a
 *.lib
 *.exp
-
-# VS Code
-/.vscode/
-
-# Visual Studio
-.vs/
-int/
-out/
-Pluto.vcxproj.user
+*.vcxproj.user
 
 # Linux Executables
 src/pluto
