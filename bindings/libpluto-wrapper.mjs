@@ -1,4 +1,4 @@
-export default function(mod)
+const createWrapper = function(mod)
 {
 	const w = {};
 
@@ -149,3 +149,10 @@ export default function(mod)
 
 	return w;
 };
+
+if (typeof window !== "undefined")
+{
+	window.libplutoWrapper = createWrapper;
+}
+
+export default createWrapper;
