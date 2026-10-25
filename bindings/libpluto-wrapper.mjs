@@ -9,6 +9,16 @@ export default function(mod)
 	w.LUA_ERRMEM = 4;
 	w.LUA_ERRERR = 5;
 
+	w.LUA_TNIL = 0;
+	w.LUA_TBOOLEAN = 1;
+	w.LUA_TLIGHTUSERDATA = 2;
+	w.LUA_TNUMBER = 3;
+	w.LUA_TSTRING = 4;
+	w.LUA_TTABLE = 5;
+	w.LUA_TFUNCTION = 6;
+	w.LUA_TUSERDATA = 7;
+	w.LUA_TTHREAD = 8;
+
 	w.malloc = mod.cwrap("malloc", "int", ["int"]);
 	w.luaL_newstate = mod.cwrap("luaL_newstate", "int", []);
 	w.luaL_openselectedlibs = mod.cwrap("luaL_openselectedlibs", "int", ["int", "int", "int"]);
