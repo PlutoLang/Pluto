@@ -1,4 +1,32 @@
+export interface ILibplutoModule {
+	cwrap: <T extends (...args: any[]) => any>(
+		ident: string,
+		returnType: string,
+		argTypes: string[]
+	) => T;
+
+	getValue: (ptr: number, type: string) => number;
+
+	FS: {
+		open: (path: string, flags: string) => number | { fd: number };
+		write: (
+			stream: number | { fd: number },
+			buffer: Uint8Array,
+			offset: number,
+			length: number,
+			position: number
+			) => number;
+		close: (stream: number | { fd: number }) => void;
+
+		writeFile: (path: string, data: Uint8Array | string, opts?: { encoding?: string; flags?: string }) => void;
+		readFile?: (path: string, opts?: { encoding?: 'utf8' | 'binary' }) => string | Uint8Array;
+		unlink?: (path: string) => void;
+	};
+}
+
 export interface ILibplutoWrapper {
+	readonly mod: ILibplutoModule;
+
 	readonly LUA_OK: 0;
 	readonly LUA_YIELD: 1;
 	readonly LUA_ERRRUN: 2;
@@ -172,7 +200,7 @@ export interface ILibplutoWrapper {
 	readonly lua_isnoneornil: (L: number, idx: number) => 0 | 1;
 }
 
-declare function createWrapper(emscripten_module: any): ILibplutoWrapper;
+declare function createWrapper(emscripten_module: ILibplutoModule): ILibplutoWrapper;
 declare global {
 	interface Window {
 		libplutoWrapper: typeof createWrapper;
