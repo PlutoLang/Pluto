@@ -179,6 +179,11 @@ jobs:
         with:
           files: "pluto.js, pluto.wasm, libpluto.js, libpluto.wasm"
           fail: true
+      - run: npm i
+        working-directory: bindings
+      - run: npm run test
+        working-directory: bindings
+      - run: cp bindings/libpluto-wrapper.mjs libpluto-wrapper.mjs && cp bindings/libpluto-wrapper.d.mts libpluto-wrapper.d.mts
       - uses: actions/upload-artifact@v7
         with:
           name: WASM
@@ -187,7 +192,5 @@ jobs:
             pluto.wasm
             libpluto.js
             libpluto.wasm
-      - run: npm i
-        working-directory: bindings
-      - run: npm run test
-        working-directory: bindings
+            libpluto-wrapper.mjs
+            libpluto-wrapper.d.mts
