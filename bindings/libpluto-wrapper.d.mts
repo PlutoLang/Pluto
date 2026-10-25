@@ -173,4 +173,9 @@ export interface ILibplutoWrapper {
 }
 
 declare function createWrapper(emscripten_module: any): ILibplutoWrapper;
+declare global {
+	interface Window {
+		libplutoWrapper: typeof createWrapper;
+	}
+}
 export default createWrapper;
