@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "test": "tsc --noEmit && node test.mts"
+  },
+  "dependencies": {
+    "@types/emscripten": "^1.41.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^7.0.2"
+  }
+}
