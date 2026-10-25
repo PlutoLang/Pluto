@@ -187,4 +187,7 @@ jobs:
             pluto.wasm
             libpluto.js
             libpluto.wasm
-      - run: node scripts/wasm-test.mjs
+      - run: npm i
+        working-directory: bindings
+      - run: npm run test
+        working-directory: bindings
