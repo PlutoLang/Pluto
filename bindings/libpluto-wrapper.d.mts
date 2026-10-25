@@ -136,7 +136,7 @@ export interface ILibplutoWrapper {
 	readonly lua_rawget: (L: number, idx: number) => number;
 	readonly lua_rawset: (L: number, idx: number) => void;
 	readonly luaL_unref: (L: number, t: number, ref: number) => void;
-	readonly lua_next: (L: number) => number;
+	readonly lua_next: (L: number, idx: number) => number;
 	readonly lua_createtable: (L: number, narr: number, nrec: number) => void;
 	readonly lua_gettable: (L: number, idx: number) => number;
 	readonly lua_settable: (L: number, idx: number) => void;
