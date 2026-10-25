@@ -1,4 +1,4 @@
-interface IWrapper {
+export interface ILibplutoWrapper {
 	readonly LUA_OK: 0;
 	readonly LUA_YIELD: 1;
 	readonly LUA_ERRRUN: 2;
@@ -172,5 +172,5 @@ interface IWrapper {
 	readonly lua_isnoneornil: (L: number, idx: number) => 0 | 1;
 }
 
-declare function createWrapper(emscripten_module: any): IWrapper;
+declare function createWrapper(emscripten_module: any): ILibplutoWrapper;
 export default createWrapper;
