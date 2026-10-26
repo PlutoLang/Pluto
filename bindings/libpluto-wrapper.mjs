@@ -70,6 +70,7 @@ const createWrapper = function(mod)
 		malloc: mod.cwrap("malloc", "int", ["int"]),
 		luaL_newstate: mod.cwrap("luaL_newstate", "int", []),
 		luaL_openselectedlibs: mod.cwrap("luaL_openselectedlibs", "void", ["int", "int", "int"]),
+		luaL_openlibs: (L) => w.luaL_openselectedlibs(L, 1023n, 0xffffffffffffffffn),
 		luaL_loadstring: mod.cwrap("luaL_loadstring", "int", ["int", "string"]),
 		luaL_loadbufferx: mod.cwrap("luaL_loadbufferx", "int", ["int", "array", "int", "int", "int"]),
 		lua_callk: mod.cwrap("lua_callk", "void", ["int", "int", "int", "int", "int"]),
@@ -134,6 +135,8 @@ const createWrapper = function(mod)
 		lua_toclose: mod.cwrap("lua_toclose", "void", ["int", "int"]),
 		lua_closeslot: mod.cwrap("lua_closeslot", "void", ["int", "int"]),
 		luaL_loadfilex: mod.cwrap("luaL_loadfilex", "int", ["int", "string", "int"]),
+		lua_close: mod.cwrap("lua_close", "void", ["int"]),
+
 		luaL_getmetafield: mod.cwrap("luaL_getmetafield", "int", ["int", "int", "string"]),
 		luaL_callmeta: mod.cwrap("luaL_callmeta", "int", ["int", "int", "string"]),
 		luaL_tolstring: mod.cwrap("luaL_tolstring", "string", ["int", "int", "int"]),
@@ -161,42 +164,40 @@ const createWrapper = function(mod)
 		luaL_getsubtable: mod.cwrap("luaL_getsubtable", "int", ["int", "int", "string"]),
 		luaL_traceback: mod.cwrap("luaL_traceback", "void", ["int", "int", "string", "int"]),
 		luaL_requiref: mod.cwrap("luaL_requiref", "void", ["int", "string", "int", "int"]),
-		lua_close: mod.cwrap("lua_close", "void", ["int"]),
-	};
 
-	w.luaL_openlibs = (L) => w.luaL_openselectedlibs(L, 1023n, 0xffffffffffffffffn);
-	w.lua_call = (L, nargs, nresults) => w.lua_callk(L, nargs, nresults, 0, 0);
-	w.lua_pcall = (L, nargs, nresults, errfunc) => w.lua_pcallk(L, nargs, nresults, errfunc, 0, 0);
-	w.lua_pop = (L, n) => w.lua_settop(L, -(n)-1);
-	w.lua_newtable = (L) => w.lua_createtable(L, 0, 0);
-	w.lua_pushglobaltable = (L) => w.lua_rawgeti(L, w.LUA_REGISTRYINDEX, BigInt(w.LUA_RIDX_GLOBALS));
-	w.lua_upvalueindex = (i) => w.LUA_REGISTRYINDEX - i;
-	w.lua_tonumber = (L, i) => w.lua_tonumberx(L, i, 0);
-	w.lua_tointeger = (L, i) => w.lua_tointegerx(L, i, 0);
-	w.lua_tostring = (L, i) => w.lua_tolstring(L, i, 0);
-	w.lua_isnil = (L, n) => w.lua_type(L, n) === w.LUA_TNIL ? 1 : 0;
-	w.lua_isboolean = (L, n) => w.lua_type(L, n) === w.LUA_TBOOLEAN ? 1 : 0;
-	w.lua_istable = (L, n) => w.lua_type(L, n) === w.LUA_TTABLE ? 1 : 0;
-	w.lua_isfunction = (L, n) => w.lua_type(L, n) === w.LUA_TFUNCTION ? 1 : 0;
-	w.lua_isnone = (L, n) => w.lua_type(L, n) === w.LUA_TNONE ? 1 : 0;
-	w.lua_isnoneornil = (L, n) => w.lua_type(L, n) <= 0 ? 1 : 0;
+		luaL_checkstring: (L, n) => w.luaL_checklstring(L, n, 0),
+		luaL_optstring: (L, n, d) => w.luaL_optlstring(L, n, d, 0),
+		luaL_typename: (L, i) => w.lua_typename(L, w.lua_type(L, i)),
+		luaL_getmetatable: (L, n) => w.lua_getfield(L, w.LUA_REGISTRYINDEX, n),
+		luaL_loadfile: (L, filename) => w.luaL_loadfilex(L, filename, 0),
+		luaL_dofile: (L, filename) => {
+			const status = w.luaL_loadfile(L, filename);
+			return status !== w.LUA_OK ? status : w.lua_pcall(L, 0, w.LUA_MULTRET, 0);
+		},
+		luaL_dostring: (L, s) => {
+			const status = w.luaL_loadstring(L, s);
+			return status !== w.LUA_OK ? status : w.lua_pcall(L, 0, w.LUA_MULTRET, 0);
+		},
+		luaL_pushfail: (L) => w.lua_pushnil(L),
+		luaL_argcheck: (L, cond, arg, extramsg) => { if (!cond) w.luaL_argerror(L, arg, extramsg); },
+		luaL_argexpected: (L, cond, arg, tname) => { if (!cond) w.luaL_typeerror(L, arg, tname); },
 
-	w.luaL_checkstring = (L, n) => w.luaL_checklstring(L, n, 0);
-	w.luaL_optstring = (L, n, d) => w.luaL_optlstring(L, n, d, 0);
-	w.luaL_typename = (L, i) => w.lua_typename(L, w.lua_type(L, i));
-	w.luaL_getmetatable = (L, n) => w.lua_getfield(L, w.LUA_REGISTRYINDEX, n);
-	w.luaL_loadfile = (L, filename) => w.luaL_loadfilex(L, filename, 0);
-	w.luaL_dofile = (L, filename) => {
-		const status = w.luaL_loadfile(L, filename);
-		return status !== w.LUA_OK ? status : w.lua_pcall(L, 0, w.LUA_MULTRET, 0);
+		lua_call: (L, nargs, nresults) => w.lua_callk(L, nargs, nresults, 0, 0),
+		lua_pcall: (L, nargs, nresults, errfunc) => w.lua_pcallk(L, nargs, nresults, errfunc, 0, 0),
+		lua_pop: (L, n) => w.lua_settop(L, -(n)-1),
+		lua_newtable: (L) => w.lua_createtable(L, 0, 0),
+		lua_pushglobaltable: (L) => w.lua_rawgeti(L, w.LUA_REGISTRYINDEX, BigInt(w.LUA_RIDX_GLOBALS)),
+		lua_upvalueindex: (i) => w.LUA_REGISTRYINDEX - i,
+		lua_tonumber: (L, i) => w.lua_tonumberx(L, i, 0),
+		lua_tointeger: (L, i) => w.lua_tointegerx(L, i, 0),
+		lua_tostring: (L, i) => w.lua_tolstring(L, i, 0),
+		lua_isnil: (L, n) => w.lua_type(L, n) === w.LUA_TNIL ? 1 : 0,
+		lua_isboolean: (L, n) => w.lua_type(L, n) === w.LUA_TBOOLEAN ? 1 : 0,
+		lua_istable: (L, n) => w.lua_type(L, n) === w.LUA_TTABLE ? 1 : 0,
+		lua_isfunction: (L, n) => w.lua_type(L, n) === w.LUA_TFUNCTION ? 1 : 0,
+		lua_isnone: (L, n) => w.lua_type(L, n) === w.LUA_TNONE ? 1 : 0,
+		lua_isnoneornil: (L, n) => w.lua_type(L, n) <= 0 ? 1 : 0,
 	};
-	w.luaL_dostring = (L, s) => {
-		const status = w.luaL_loadstring(L, s);
-		return status !== w.LUA_OK ? status : w.lua_pcall(L, 0, w.LUA_MULTRET, 0);
-	};
-	w.luaL_pushfail = (L) => w.lua_pushnil(L);
-	w.luaL_argcheck = (L, cond, arg, extramsg) => { if (!cond) w.luaL_argerror(L, arg, extramsg); };
-	w.luaL_argexpected = (L, cond, arg, tname) => { if (!cond) w.luaL_typeerror(L, arg, tname); };
 
 	return w;
 };
