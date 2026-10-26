@@ -10,6 +10,7 @@ const createWrapper = function(mod)
 		LUA_ERRSYNTAX: 3,
 		LUA_ERRMEM: 4,
 		LUA_ERRERR: 5,
+		LUA_ERRFILE: 6,
 
 		LUA_TNONE: -1,
 		LUA_TNIL: 0,
@@ -31,6 +32,11 @@ const createWrapper = function(mod)
 
 		LUA_REFNIL: -1,
 		LUA_NOREF: -2,
+
+		LUA_GNAME: "_G",
+		LUA_LOADED_TABLE: "_LOADED",
+		LUA_PRELOAD_TABLE: "_PRELOAD",
+		LUA_FILEHANDLE: "FILE*",
 
 		LUA_OPADD: 0,
 		LUA_OPSUB: 1,
@@ -128,6 +134,33 @@ const createWrapper = function(mod)
 		lua_toclose: mod.cwrap("lua_toclose", "void", ["int", "int"]),
 		lua_closeslot: mod.cwrap("lua_closeslot", "void", ["int", "int"]),
 		luaL_loadfilex: mod.cwrap("luaL_loadfilex", "int", ["int", "string", "int"]),
+		luaL_getmetafield: mod.cwrap("luaL_getmetafield", "int", ["int", "int", "string"]),
+		luaL_callmeta: mod.cwrap("luaL_callmeta", "int", ["int", "int", "string"]),
+		luaL_tolstring: mod.cwrap("luaL_tolstring", "string", ["int", "int", "int"]),
+		luaL_argerror: mod.cwrap("luaL_argerror", "int", ["int", "int", "string"]),
+		luaL_typeerror: mod.cwrap("luaL_typeerror", "int", ["int", "int", "string"]),
+		luaL_checklstring: mod.cwrap("luaL_checklstring", "string", ["int", "int", "int"]),
+		luaL_optlstring: mod.cwrap("luaL_optlstring", "string", ["int", "int", "string", "int"]),
+		luaL_checknumber: mod.cwrap("luaL_checknumber", "number", ["int", "int"]),
+		luaL_optnumber: mod.cwrap("luaL_optnumber", "number", ["int", "int", "number"]),
+		luaL_checkinteger: mod.cwrap("luaL_checkinteger", "int", ["int", "int"]),
+		luaL_optinteger: mod.cwrap("luaL_optinteger", "int", ["int", "int", "int"]),
+		luaL_checkstack: mod.cwrap("luaL_checkstack", "void", ["int", "int", "string"]),
+		luaL_checktype: mod.cwrap("luaL_checktype", "void", ["int", "int", "int"]),
+		luaL_checkany: mod.cwrap("luaL_checkany", "void", ["int", "int"]),
+		luaL_newmetatable: mod.cwrap("luaL_newmetatable", "int", ["int", "string"]),
+		luaL_setmetatable: mod.cwrap("luaL_setmetatable", "void", ["int", "string"]),
+		luaL_testudata: mod.cwrap("luaL_testudata", "int", ["int", "int", "string"]),
+		luaL_checkudata: mod.cwrap("luaL_checkudata", "int", ["int", "int", "string"]),
+		luaL_where: mod.cwrap("luaL_where", "void", ["int", "int"]),
+		luaL_fileresult: mod.cwrap("luaL_fileresult", "int", ["int", "int", "string"]),
+		luaL_execresult: mod.cwrap("luaL_execresult", "int", ["int", "int"]),
+		luaL_makeseed: mod.cwrap("luaL_makeseed", "int", ["int"]),
+		luaL_len: mod.cwrap("luaL_len", "int", ["int", "int"]),
+		luaL_gsub: mod.cwrap("luaL_gsub", "string", ["int", "string", "string", "string"]),
+		luaL_getsubtable: mod.cwrap("luaL_getsubtable", "int", ["int", "int", "string"]),
+		luaL_traceback: mod.cwrap("luaL_traceback", "void", ["int", "int", "string", "int"]),
+		luaL_requiref: mod.cwrap("luaL_requiref", "void", ["int", "string", "int", "int"]),
 		lua_close: mod.cwrap("lua_close", "void", ["int"]),
 	};
 
@@ -147,6 +180,23 @@ const createWrapper = function(mod)
 	w.lua_isfunction = (L, n) => w.lua_type(L, n) === w.LUA_TFUNCTION ? 1 : 0;
 	w.lua_isnone = (L, n) => w.lua_type(L, n) === w.LUA_TNONE ? 1 : 0;
 	w.lua_isnoneornil = (L, n) => w.lua_type(L, n) <= 0 ? 1 : 0;
+
+	w.luaL_checkstring = (L, n) => w.luaL_checklstring(L, n, 0);
+	w.luaL_optstring = (L, n, d) => w.luaL_optlstring(L, n, d, 0);
+	w.luaL_typename = (L, i) => w.lua_typename(L, w.lua_type(L, i));
+	w.luaL_getmetatable = (L, n) => w.lua_getfield(L, w.LUA_REGISTRYINDEX, n);
+	w.luaL_loadfile = (L, filename) => w.luaL_loadfilex(L, filename, 0);
+	w.luaL_dofile = (L, filename) => {
+		const status = w.luaL_loadfile(L, filename);
+		return status !== w.LUA_OK ? status : w.lua_pcall(L, 0, w.LUA_MULTRET, 0);
+	};
+	w.luaL_dostring = (L, s) => {
+		const status = w.luaL_loadstring(L, s);
+		return status !== w.LUA_OK ? status : w.lua_pcall(L, 0, w.LUA_MULTRET, 0);
+	};
+	w.luaL_pushfail = (L) => w.lua_pushnil(L);
+	w.luaL_argcheck = (L, cond, arg, extramsg) => { if (!cond) w.luaL_argerror(L, arg, extramsg); };
+	w.luaL_argexpected = (L, cond, arg, tname) => { if (!cond) w.luaL_typeerror(L, arg, tname); };
 
 	return w;
 };
