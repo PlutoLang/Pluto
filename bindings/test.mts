@@ -4,6 +4,10 @@ import { strict as assert } from "node:assert";
 import libpluto from "../libpluto.js";
 import wrapper from "./libpluto-wrapper.mjs";
 
+// This file performs various unit tests to make sure the typings in libpluto-wrapper.d.mts are consistent with what gets marshalled by Emscripten (argument types & return types).
+// As well as that the constants provided match the headers and therefore have the expected functionality.
+// Otherwise this file is NOT a C API functionality test.
+
 const mod = await (await libpluto)();
 const {
 	LUA_TNIL, LUA_TBOOLEAN, LUA_TNUMBER, LUA_TSTRING, LUA_TTABLE, LUA_TFUNCTION, LUA_ERRRUN,
@@ -20,9 +24,12 @@ const {
 	luaL_ref, luaL_unref,
 	LUA_TTHREAD, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS, LUA_RIDX_MAINTHREAD,
 	LUA_REFNIL, LUA_NOREF,
+	LUA_OK, LUA_ERRFILE, lua_pop,
+	luaL_checkinteger, luaL_optinteger, luaL_checknumber, luaL_optnumber,
+	luaL_checkstring, luaL_optstring, luaL_gsub, luaL_tolstring, luaL_len, luaL_getmetafield,
+	luaL_getsubtable, luaL_newmetatable, luaL_loadfilex, luaL_dostring,
 } = wrapper(mod);
 
-// ---- Unit tests: each runs on a fresh Lua state ----
 let failures = 0;
 function test(name: string, fn: (L: number) => void) {
 	const L = luaL_newstate();
@@ -43,7 +50,6 @@ function expectEqual<T>(actual: T, expected: T, msg?: string): void {
 	assert.equal(actual, expected, msg);
 }
 
-// lua_pushnumber
 test("lua_pushnumber pushes a float that reads back", L => {
 	lua_pushnumber(L, 3.5);
 	expectEqual(lua_type(L, -1), LUA_TNUMBER);
@@ -57,7 +63,6 @@ test("lua_pushnumber keeps integral-valued numbers as floats", L => {
 	expectEqual(lua_tonumberx(L, -1, 0), 2);
 });
 
-// lua_pushinteger
 test("lua_pushinteger pushes an integer", L => {
 	lua_pushinteger(L, 42n);
 	expectEqual(lua_type(L, -1), LUA_TNUMBER);
@@ -66,14 +71,12 @@ test("lua_pushinteger pushes an integer", L => {
 	expectEqual(lua_tonumberx(L, -1, 0), 42);
 });
 
-// lua_pushnil
 test("lua_pushnil pushes nil", L => {
 	lua_pushnil(L);
 	expectEqual(lua_type(L, -1), LUA_TNIL);
 	expectEqual(lua_gettop(L), 1);
 });
 
-// lua_pushboolean / lua_istrue
 test("lua_pushboolean true is a boolean and truthy", L => {
 	lua_pushboolean(L, 1);
 	expectEqual(lua_type(L, -1), LUA_TBOOLEAN);
@@ -86,7 +89,6 @@ test("lua_pushboolean false is a boolean and falsy", L => {
 	expectEqual(lua_istrue(L, -1), 0);
 });
 
-// lua_pushstring / lua_pushlstring
 test("lua_pushstring pushes a string", L => {
 	lua_pushstring(L, "hello");
 	expectEqual(lua_type(L, -1), LUA_TSTRING);
@@ -100,13 +102,11 @@ test("lua_pushlstring pushes exactly len bytes", L => {
 	expectEqual(lua_tolstring(L, -1, 0), "he");
 });
 
-// lua_tointegerx return type
 test("lua_tointegerx returns a bigint", L => {
 	lua_pushnumber(L, 3.0);
 	expectEqual(lua_tointegerx(L, -1, 0), 3n);
 });
 
-// lua_gettop return type
 test("lua_gettop counts pushed values", L => {
 	lua_pushinteger(L, 1n);
 	lua_pushnil(L);
@@ -114,7 +114,6 @@ test("lua_gettop counts pushed values", L => {
 	expectEqual(lua_gettop(L), 3);
 });
 
-// lua_setglobal / lua_getglobal
 test("lua_setglobal / lua_getglobal round-trip a number", L => {
 	lua_pushnumber(L, 1.25);
 	lua_setglobal(L, "answer");
@@ -124,14 +123,12 @@ test("lua_setglobal / lua_getglobal round-trip a number", L => {
 	expectEqual(lua_tonumberx(L, -1, 0), 1.25);
 });
 
-// lua_typename
 test("lua_typename names basic types", L => {
 	expectEqual(lua_typename(L, LUA_TTABLE), "table");
 	expectEqual(lua_typename(L, LUA_TFUNCTION), "function");
 	expectEqual(lua_typename(L, LUA_TNIL), "nil");
 });
 
-// lua_arith / lua_compare (constants)
 test("lua_arith with LUA_OPADD adds the two top values", L => {
 	lua_pushinteger(L, 2n);
 	lua_pushinteger(L, 3n);
@@ -147,7 +144,6 @@ test("lua_compare with LUA_OPLT reports less-than", L => {
 	expectEqual(lua_compare(L, 2, 1, LUA_OPLT), 0);
 });
 
-// lua_createtable / lua_getfield / lua_setfield
 test("lua_setfield / lua_getfield round-trip a table field", L => {
 	lua_createtable(L, 0, 0);
 	lua_pushinteger(L, 5n);
@@ -157,7 +153,6 @@ test("lua_setfield / lua_getfield round-trip a table field", L => {
 	expectEqual(lua_tointegerx(L, -1, 0), 5n);
 });
 
-// lua_geti / lua_seti (bigint index argument)
 test("lua_seti / lua_geti round-trip an array element", L => {
 	lua_createtable(L, 0, 0);
 	lua_pushinteger(L, 7n);
@@ -166,7 +161,6 @@ test("lua_seti / lua_geti round-trip an array element", L => {
 	expectEqual(lua_tointegerx(L, -1, 0), 7n);
 });
 
-// lua_next return type
 test("lua_next returns 0 and pushes nothing for an empty table", L => {
 	lua_createtable(L, 0, 0);
 	lua_pushnil(L);
@@ -174,19 +168,16 @@ test("lua_next returns 0 and pushes nothing for an empty table", L => {
 	expectEqual(lua_gettop(L), 1, "only the table should remain");
 });
 
-// lua_stringtonumber return type
 test("lua_stringtonumber returns size+1 for a parsed number", L => {
 	expectEqual(lua_stringtonumber(L, "42"), 3);
 });
 
-// lua_pcall / LUA_ERRRUN constant
 test("lua_pcall returns LUA_ERRRUN for a raised error", L => {
 	luaL_openlibs(L);
 	luaL_loadstring(L, "error('boom')");
 	expectEqual(lua_pcall(L, 0, 0, 0), LUA_ERRRUN);
 });
 
-// lua_isnil / lua_isnoneornil return types
 test("lua_isnil and lua_isnoneornil work on nil and none", L => {
 	lua_pushnil(L);
 	expectEqual(lua_isnil(L, -1), 1);
@@ -196,7 +187,6 @@ test("lua_isnil and lua_isnoneornil work on nil and none", L => {
 	expectEqual(lua_isnil(L, -1), 0);
 });
 
-// ---- Registry constants and argument/return types ----
 test("LUA_REGISTRYINDEX is a large negative pseudo-index", () => {
 	assert.ok(LUA_REGISTRYINDEX < -1_000_000, `got ${LUA_REGISTRYINDEX}`);
 });
@@ -239,6 +229,74 @@ test("registry supports custom keys via lua_rawset / lua_rawget", L => {
 	lua_pushstring(L, "pluto-test-key");
 	expectEqual(lua_rawget(L, LUA_REGISTRYINDEX), LUA_TNUMBER);
 	expectEqual(lua_tointegerx(L, -1, 0), 99n);
+});
+
+test("luaL_checkinteger reads an integer argument", L => {
+	lua_pushinteger(L, 7n);
+	expectEqual(luaL_checkinteger(L, 1), 7n);
+});
+
+test("luaL_optinteger returns the default for a missing argument", L => {
+	expectEqual(luaL_optinteger(L, 1, 9n), 9n);
+});
+
+test("luaL_checknumber and luaL_optnumber", L => {
+	lua_pushnumber(L, 1.5);
+	expectEqual(luaL_checknumber(L, 1), 1.5);
+	expectEqual(luaL_optnumber(L, 2, 2.5), 2.5);
+});
+
+test("luaL_checkstring and luaL_optstring", L => {
+	lua_pushstring(L, "abc");
+	expectEqual(luaL_checkstring(L, 1), "abc");
+	expectEqual(luaL_optstring(L, 2, "dflt"), "dflt");
+});
+
+test("luaL_gsub replaces every occurrence and pushes the result", L => {
+	expectEqual(luaL_gsub(L, "a-b-c", "-", "+"), "a+b+c");
+	expectEqual(lua_gettop(L), 1);
+});
+
+test("luaL_tolstring converts a number and pushes the result", L => {
+	lua_pushinteger(L, 42n);
+	expectEqual(luaL_tolstring(L, 1, 0), "42");
+	expectEqual(lua_gettop(L), 2);
+});
+
+test("luaL_len returns the length of a string", L => {
+	lua_pushstring(L, "hello");
+	expectEqual(luaL_len(L, 1), 5n);
+});
+
+test("luaL_getmetafield returns LUA_TNIL without a metatable", L => {
+	lua_pushinteger(L, 1n);
+	expectEqual(luaL_getmetafield(L, 1, "__index"), LUA_TNIL);
+	expectEqual(lua_gettop(L), 1, "nothing should be pushed");
+});
+
+test("luaL_newmetatable registers a metatable only once", L => {
+	expectEqual(luaL_newmetatable(L, "pluto-test-mt"), 1);
+	lua_pop(L, 1);
+	expectEqual(luaL_newmetatable(L, "pluto-test-mt"), 0);
+	expectEqual(lua_type(L, -1), LUA_TTABLE, "existing metatable should be left on top");
+});
+
+test("luaL_getsubtable creates a table once and then reuses it", L => {
+	expectEqual(luaL_getsubtable(L, LUA_REGISTRYINDEX, "pluto-test-subtable"), 0);
+	expectEqual(lua_type(L, -1), LUA_TTABLE);
+	lua_pop(L, 1);
+	expectEqual(luaL_getsubtable(L, LUA_REGISTRYINDEX, "pluto-test-subtable"), 1);
+	expectEqual(lua_type(L, -1), LUA_TTABLE);
+});
+
+test("luaL_loadfilex reports LUA_ERRFILE for a missing file", L => {
+	expectEqual(luaL_loadfilex(L, "pluto-test-does-not-exist.lua", 0), LUA_ERRFILE);
+});
+
+test("luaL_dostring runs a chunk", L => {
+	luaL_openlibs(L);
+	expectEqual(luaL_dostring(L, "pluto_test_global = 3"), LUA_OK);
+	expectEqual(lua_getglobal(L, "pluto_test_global"), LUA_TNUMBER);
 });
 
 if (failures > 0) {

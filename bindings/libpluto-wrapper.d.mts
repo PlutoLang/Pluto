@@ -33,6 +33,7 @@ export interface ILibplutoWrapper {
 	readonly LUA_ERRSYNTAX: 3;
 	readonly LUA_ERRMEM: 4;
 	readonly LUA_ERRERR: 5;
+	readonly LUA_ERRFILE: 6;
 
 	readonly LUA_TNONE: -1;
 	readonly LUA_TNIL: 0;
@@ -54,6 +55,11 @@ export interface ILibplutoWrapper {
 
 	readonly LUA_REFNIL: -1;
 	readonly LUA_NOREF: -2;
+
+	readonly LUA_GNAME: "_G";
+	readonly LUA_LOADED_TABLE: "_LOADED";
+	readonly LUA_PRELOAD_TABLE: "_PRELOAD";
+	readonly LUA_FILEHANDLE: "FILE*";
 
 	readonly LUA_OPADD: 0;
 	readonly LUA_OPSUB: 1;
@@ -182,6 +188,45 @@ export interface ILibplutoWrapper {
 		mode: number
 	) => number;
 	readonly lua_close: (L: number) => void;
+
+	readonly luaL_getmetafield: (L: number, obj: number, e: string) => number;
+	readonly luaL_callmeta: (L: number, obj: number, e: string) => number;
+	readonly luaL_tolstring: (L: number, idx: number, lenPtr: number) => string;
+	readonly luaL_argerror: (L: number, arg: number, extramsg: string) => number;
+	readonly luaL_typeerror: (L: number, arg: number, tname: string) => number;
+	readonly luaL_checklstring: (L: number, arg: number, lenPtr: number) => string;
+	readonly luaL_optlstring: (L: number, arg: number, def: string | null, lenPtr: number) => string;
+	readonly luaL_checknumber: (L: number, arg: number) => number;
+	readonly luaL_optnumber: (L: number, arg: number, def: number) => number;
+	readonly luaL_checkinteger: (L: number, arg: number) => bigint;
+	readonly luaL_optinteger: (L: number, arg: number, def: bigint) => bigint;
+	readonly luaL_checkstack: (L: number, sz: number, msg: string | null) => void;
+	readonly luaL_checktype: (L: number, arg: number, t: number) => void;
+	readonly luaL_checkany: (L: number, arg: number) => void;
+	readonly luaL_newmetatable: (L: number, tname: string) => number;
+	readonly luaL_setmetatable: (L: number, tname: string) => void;
+	readonly luaL_testudata: (L: number, ud: number, tname: string) => number;
+	readonly luaL_checkudata: (L: number, ud: number, tname: string) => number;
+	readonly luaL_where: (L: number, lvl: number) => void;
+	readonly luaL_fileresult: (L: number, stat: number, fname: string | null) => number;
+	readonly luaL_execresult: (L: number, stat: number) => number;
+	readonly luaL_makeseed: (L: number) => number;
+	readonly luaL_len: (L: number, idx: number) => bigint;
+	readonly luaL_gsub: (L: number, s: string, p: string, r: string) => string;
+	readonly luaL_getsubtable: (L: number, idx: number, fname: string) => number;
+	readonly luaL_traceback: (L: number, L1: number, msg: string | null, level: number) => void;
+	readonly luaL_requiref: (L: number, modname: string, openf: number, glb: number) => void;
+
+	readonly luaL_checkstring: (L: number, n: number) => string;
+	readonly luaL_optstring: (L: number, n: number, d: string) => string;
+	readonly luaL_typename: (L: number, i: number) => string;
+	readonly luaL_getmetatable: (L: number, n: string) => number;
+	readonly luaL_loadfile: (L: number, filename: string) => number;
+	readonly luaL_dofile: (L: number, filename: string) => number;
+	readonly luaL_dostring: (L: number, s: string) => number;
+	readonly luaL_pushfail: (L: number) => void;
+	readonly luaL_argcheck: (L: number, cond: boolean | number, arg: number, extramsg: string) => void;
+	readonly luaL_argexpected: (L: number, cond: boolean | number, arg: number, tname: string) => void;
 
 	readonly lua_call: (L: number, nargs: number, nresults: number) => void;
 	readonly lua_pcall: (L: number, nargs: number, nresults: number, errfunc: number) => number;
