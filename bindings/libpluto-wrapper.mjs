@@ -68,6 +68,8 @@ const createWrapper = function(mod)
 		LUA_GCPARAM: 9,
 
 		malloc: mod.cwrap("malloc", "int", ["int"]),
+		free: mod.cwrap("free", "void", ["int"]),
+
 		luaL_newstate: mod.cwrap("luaL_newstate", "int", []),
 		luaL_openselectedlibs: mod.cwrap("luaL_openselectedlibs", "void", ["int", "int", "int"]),
 		luaL_openlibs: (L) => w.luaL_openselectedlibs(L, 1023n, 0xffffffffffffffffn),
