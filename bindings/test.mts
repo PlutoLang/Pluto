@@ -21,6 +21,7 @@ const {
 	lua_stringtonumber, lua_pcall, lua_pushglobaltable,
 	lua_isnil, lua_isnoneornil,
 	lua_rawgeti, lua_rawget, lua_rawset, lua_rawequal, lua_pushthread,
+	lua_newthread, lua_resume, malloc,
 	luaL_ref, luaL_unref,
 	LUA_TTHREAD, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS, LUA_RIDX_MAINTHREAD,
 	LUA_REFNIL, LUA_NOREF,
@@ -297,6 +298,16 @@ test("luaL_dostring runs a chunk", L => {
 	luaL_openlibs(L);
 	expectEqual(luaL_dostring(L, "pluto_test_global = 3"), LUA_OK);
 	expectEqual(lua_getglobal(L, "pluto_test_global"), LUA_TNUMBER);
+});
+
+test("malloc returns memory that lua_resume can write nres into", L => {
+	const co = lua_newthread(L);
+	expectEqual(luaL_loadstring(co, "return 1, 2, 3"), LUA_OK);
+
+	const nres = malloc(4);
+	assert.ok(nres !== 0, "malloc should return a non-null pointer");
+	expectEqual(lua_resume(co, 0, 0, nres), LUA_OK);
+	expectEqual(mod.getValue(nres, "i32"), 3, "nres should report the three results");
 });
 
 if (failures > 0) {
