@@ -21,7 +21,7 @@ const {
 	lua_stringtonumber, lua_pcall, lua_pushglobaltable,
 	lua_isnil, lua_isnoneornil,
 	lua_rawgeti, lua_rawget, lua_rawset, lua_rawequal, lua_pushthread,
-	lua_newthread, lua_resume, malloc,
+	lua_newthread, lua_resume, malloc, free,
 	luaL_ref, luaL_unref,
 	LUA_TTHREAD, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS, LUA_RIDX_MAINTHREAD,
 	LUA_REFNIL, LUA_NOREF,
@@ -308,6 +308,8 @@ test("malloc returns memory that lua_resume can write nres into", L => {
 	assert.ok(nres !== 0, "malloc should return a non-null pointer");
 	expectEqual(lua_resume(co, 0, 0, nres), LUA_OK);
 	expectEqual(mod.getValue(nres, "i32"), 3, "nres should report the three results");
+
+	free(nres);
 });
 
 if (failures > 0) {
