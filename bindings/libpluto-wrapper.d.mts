@@ -6,6 +6,7 @@ export interface ILibplutoModule {
 	) => T;
 
 	getValue: (ptr: number, type: string) => number;
+	setValue: (ptr: number, value: number, type: string) => void;
 
 	FS: {
 		open: (path: string, flags: string) => number | { fd: number };
@@ -92,6 +93,8 @@ export interface ILibplutoWrapper {
 	readonly LUA_GCPARAM: 9;
 
 	readonly malloc: (size: number) => number;
+	readonly free: (ptr: number) => void;
+
 	readonly luaL_newstate: () => number;
 	readonly luaL_openselectedlibs: (L: number, load: bigint, preload: bigint) => void;
 	readonly luaL_openlibs: (L: number) => void;
