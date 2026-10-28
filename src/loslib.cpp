@@ -466,7 +466,7 @@ int l_os_remove(lua_State* L);
 int l_os_rename(lua_State* L);
 
 
-#if SOUP_WINDOWS || SOUP_LINUX
+#if SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
 static int os_dnsresolve (lua_State *L) {
   const char *qtypestr = luaL_checkstring(L, 1);
   const char *qname = luaL_checkstring(L, 2);
@@ -522,7 +522,7 @@ static const luaL_Reg syslib[] = {
   {"millis",      os_millis},
   {"micros",      os_micros},
   {"nanos",       os_nanos},
-#if SOUP_WINDOWS || SOUP_LINUX
+#if SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
   {"dnsresolve",  os_dnsresolve},
 #endif
   {NULL, NULL}

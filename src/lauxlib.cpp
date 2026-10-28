@@ -16,10 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 
 /*
 ** This file uses only the official API of Lua.
@@ -39,6 +35,9 @@
 #include "vendor/Soup/soup/filesystem.hpp"
 #include "vendor/Soup/soup/sha256.hpp"
 #include "vendor/Soup/soup/string.hpp"
+#endif
+#ifdef _WIN32
+#include "vendor/Soup/soup/unicode.hpp"
 #endif
 
 
@@ -833,23 +832,11 @@ static int skipBOM (FILE *f) {
 
 #ifdef _WIN32
 std::wstring luaL_utf8_to_utf16(const char *utf8, size_t utf8_len) {
-  std::wstring utf16;
-  const int sizeRequired = MultiByteToWideChar(CP_UTF8, 0, utf8, (int)utf8_len, nullptr, 0);
-  if (l_likely(sizeRequired != 0)) {
-    utf16 = std::wstring(sizeRequired, 0);
-    MultiByteToWideChar(CP_UTF8, 0, utf8, (int)utf8_len, utf16.data(), sizeRequired);
-  }
-  return utf16;
+  return soup::unicode::utf8_to_utf16(utf8, utf8_len);
 }
 
 std::string luaL_utf16_to_utf8(const wchar_t *utf16, size_t utf16_len) {
-  std::string utf8;
-  const int sizeRequired = WideCharToMultiByte(CP_UTF8, 0, utf16, (int)utf16_len, nullptr, 0, 0, 0);
-  if (l_likely(sizeRequired != 0)) {
-    utf8 = std::string(sizeRequired, 0);
-    WideCharToMultiByte(CP_UTF8, 0, utf16, (int)utf16_len, utf8.data(), sizeRequired, 0, 0);
-  }
-  return utf8;
+  return soup::unicode::utf16_to_utf8(utf16, utf16_len);
 }
 #endif
 

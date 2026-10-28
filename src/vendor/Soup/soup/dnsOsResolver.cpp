@@ -1,19 +1,55 @@
 #include "dnsOsResolver.hpp"
 
-#if SOUP_WINDOWS || SOUP_LINUX
+#if SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
 
 #if SOUP_WINDOWS
-#undef UNICODE
-#include "windns.h"
-#pragma comment(lib, "dnsapi.lib")
+	#undef UNICODE
+	#include "windns.h"
+	#pragma comment(lib, "dnsapi.lib")
 #else
-#include <resolv.h>
+	#include <resolv.h>
 
-#include "dnsClass.hpp" // for DNS_IN because C_IN is not available on MacOS, not even in <arpa/nameser.h>
+	#include "dnsClass.hpp" // for DNS_IN because C_IN is not available on MacOS, not even in <arpa/nameser.h>
+	#if SOUP_MACOS
+		#include <sstream>
+		#include "FileReader.hpp"
+	#endif
 #endif
 
 NAMESPACE_SOUP
 {
+#if SOUP_MACOS
+	[[nodiscard]] static bool lookupInHostsFile(const char* name, network_u32_t& out) SOUP_EXCAL
+	{
+		FileReader fr("/etc/hosts");
+		for (std::string line; fr.getLine(line); )
+		{
+			if (const auto hash = line.find('#'); hash != std::string::npos)
+			{
+				line.erase(hash);
+			}
+			std::istringstream iss(line);
+			std::string str;
+			if (!(iss >> str))
+			{
+				continue;
+			}
+			if (inet_pton(AF_INET, str.c_str(), &out) != 1)
+			{
+				continue; // not IPv4 or malformed
+			}
+			while (iss >> str)
+			{
+				if (strcasecmp(str.c_str(), name) == 0)
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+#endif
+
 	Optional<std::vector<UniquePtr<dnsRecord>>> dnsOsResolver::lookup(dnsType qtype, const std::string& name) const
 	{
 		return staticLookup(qtype, name);
@@ -69,7 +105,18 @@ NAMESPACE_SOUP
 			DnsRecordListFree(pDnsRecord, DnsFreeRecordListDeep);
 			return res;
 		}
-#elif SOUP_LINUX
+#else
+	#if SOUP_MACOS
+		if (qtype == DNS_A)
+		{
+			if (network_u32_t addr; lookupInHostsFile(name.c_str(), addr))
+			{
+				std::vector<UniquePtr<dnsRecord>> res{};
+				res.emplace_back(soup::make_unique<dnsARecord>(name, 0/*consistent with Linux*/, addr));
+				return res;
+			}
+		}
+	#endif
 		unsigned char query_buffer[1024];
 		auto ret = res_query(name.c_str(), DNS_IN, qtype, query_buffer, sizeof(query_buffer));
 		if (ret > 0)

@@ -270,7 +270,7 @@ NAMESPACE_SOUP
 		{
 			do
 			{
-				k = Bigint::random(getBytesPerAxis()); // let's hope we never use the same k twice if we don't want to leak the d :)
+				k = Bigint::random(getBytesPerAxis() * 8); // let's hope we never use the same k twice if we don't want to leak the d :)
 				r = (multiply(G, k).x % n);
 			} while (r.isZero());
 			s = ((k.modMulInv(n) * (z + (r * d))) % n);
