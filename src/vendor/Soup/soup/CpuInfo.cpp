@@ -156,7 +156,7 @@ NAMESPACE_SOUP
 		if (supportsRDSEED()) { string::listAppend(misc_features, "RDSEED"); }
 		if (supportsSHA()) { string::listAppend(misc_features, "SHA"); }
 		if (supportsSHA512()) { string::listAppend(misc_features, "SHA512"); }
-		if (supportsXOP()) { string::listAppend(misc_features, "supportsXOP"); }
+		if (supportsXOP()) { string::listAppend(misc_features, "XOP"); }
 		str.append("\nOther Known Features: ").append(misc_features);
 
 		return str;

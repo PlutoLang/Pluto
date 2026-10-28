@@ -6,7 +6,7 @@
 
 #if SOUP_EMSCRIPTEN
 #include "dnsHttpResolver.hpp"
-#elif SOUP_WINDOWS || SOUP_LINUX
+#elif SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
 #include "dnsOsResolver.hpp"
 #else
 #include "dnsSmartResolver.hpp"
@@ -68,7 +68,7 @@ NAMESPACE_SOUP
 	{
 #if SOUP_EMSCRIPTEN
 		return soup::make_shared<dnsHttpResolver>();
-#elif SOUP_WINDOWS || SOUP_LINUX
+#elif SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
 		// Pros:
 		// - Fast responses (thanks to caching and using UDP in most cases)
 		// - Works as expected in Docker in regards to talking to other containers by name (respects /etc/hosts and such)
