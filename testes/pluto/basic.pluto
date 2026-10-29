@@ -3082,6 +3082,16 @@ do
         local r = new regex[[/.+ (.+)/]]
         assert(r:substitute("hello earth", "welcome to $1") == "welcome to earth")
     end
+
+    do
+        local r = new regex [[/(?<=[0-9]);+/]]
+        local arr = r:split("a;1;;;b;2;;c;3;d;4")
+        assert(#arr == 4)
+        assert(arr[1] == "a;1")
+        assert(arr[2] == "b;2")
+        assert(arr[3] == "c;3")
+        assert(arr[4] == "d;4")
+    end
 end
 do
     assert(io.part("/deez/nuts", "parent") == "/deez")
