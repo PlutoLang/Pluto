@@ -1032,7 +1032,7 @@
 // It's suggested you implement PLUTO_LOADCLIB_HOOK, etc, for even more powerful coverage. Package.loadlib can still load other Pluto/Lua libraries and use their lua_CFunction objects.
 //#define PLUTO_NO_FILESYSTEM
 
-// Disables os.execute & io.popen.
+// Disables os.execute, io.popen, & Pluto's os.system.
 //#define PLUTO_NO_OS_EXECUTE
 
 // Eliminate any loading of any binaries. This removes package.loadlib & ffi.open and prevents 'require' from loading any C modules or shared libraries.

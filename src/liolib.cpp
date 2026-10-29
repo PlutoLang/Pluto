@@ -360,10 +360,8 @@ static int io_pclose (lua_State *L) {
 }
 
 
+#ifndef PLUTO_NO_OS_EXECUTE
 static int io_popen (lua_State *L) {
-#ifdef PLUTO_NO_OS_EXECUTE
-  return 0;
-#endif
   FS_FUNCTION
   const char *filename = luaL_checkstring(L, 1);
   const char *mode = luaL_optstring(L, 2, "r");
@@ -386,6 +384,7 @@ static int io_popen (lua_State *L) {
     return luaL_fileresult(L, 0, filename);
   }
 }
+#endif
 
 
 static int io_tmpfile (lua_State *L) {
@@ -1383,7 +1382,9 @@ static const luaL_Reg iolib[] = {
   {"lines", io_lines},
   {"open", io_open},
   {"output", io_output},
+#ifndef PLUTO_NO_OS_EXECUTE
   {"popen", io_popen},
+#endif
   {"read", io_read},
   {"tmpfile", io_tmpfile},
   {"type", io_type},
