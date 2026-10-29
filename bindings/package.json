@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "test": "tsc --noEmit && node test.mts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^7.0.2"
+  }
+}
