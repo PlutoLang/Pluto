@@ -44,7 +44,7 @@ NAMESPACE_SOUP
 		[[nodiscard]] std::string getDataToSend() const SOUP_EXCAL;
 		void send(Socket& s) const SOUP_EXCAL;
 	private:
-		static void execute_recvResponse(Socket& s, Optional<HttpResponse>* resp) SOUP_EXCAL;
+		static void execute_recvResponse(Socket& s, bool head, Optional<HttpResponse>* resp) SOUP_EXCAL;
 		static void executeEventStream_recv(Socket& s, void* cap) SOUP_EXCAL;
 	public:
 		[[nodiscard]] static bool isChallengeResponse(const HttpResponse& res) SOUP_EXCAL;
@@ -52,8 +52,8 @@ NAMESPACE_SOUP
 		[[deprecated("HttpRequest is already 'Connection: close' by default.")]] void setClose() noexcept;
 		void setKeepAlive() noexcept;
 
-		static void recvResponse(Socket& s, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
-		static void recvResponse(Socket& s, bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
+		static void recvResponse(Socket& s, bool head, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
+		static void recvResponse(Socket& s, bool head, bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
 		static void recvEventStream(Socket& s, void callback(Socket&, std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
 #endif
 

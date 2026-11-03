@@ -9,6 +9,7 @@
 #include "log.hpp"
 #endif
 
+#include "joaat.hpp"
 #include "netConfig.hpp"
 #include "netStatus.hpp"
 #include "ObfusString.hpp"
@@ -250,7 +251,7 @@ NAMESPACE_SOUP
 
 	void HttpRequestTask::recvResponse() SOUP_EXCAL
 	{
-		HttpRequest::recvResponse(*sock, [](Socket&, const std::string&, const Capture& cap)
+		HttpRequest::recvResponse(*sock, joaat::hash(hr.method) == joaat::compileTimeHash("HEAD"), [](Socket&, const std::string&, const Capture& cap)
 		{
 			cap.get<HttpRequestTask*>()->await_response_timeout = time::unixSeconds() + SUBSEQUENT_CHUNK_TIMEOUT_SECS;
 			return true;

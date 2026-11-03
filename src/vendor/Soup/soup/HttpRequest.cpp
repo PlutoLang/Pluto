@@ -98,18 +98,17 @@ NAMESPACE_SOUP
 
 	void HttpRequest::setPayload(std::string payload)
 	{
-		if (joaat::hash(method) == joaat::hash("GET"))
+		if (joaat::hash(method) == joaat::compileTimeHash("GET"))
 		{
 			method = ObfusString("POST").str();
 		}
-
-		setBody(std::move(payload));
+		return setBody(std::move(payload));
 	}
 
 #if !SOUP_WASM
 	struct HttpRequestExecuteData
 	{
-		const HttpRequest* req;
+		bool head;
 		Optional<HttpResponse> resp;
 	};
 
@@ -131,7 +130,7 @@ NAMESPACE_SOUP
 
 	Optional<HttpResponse> HttpRequest::execute(const dnsResolver& resolver, certchain_validator_t certchain_validator) const
 	{
-		HttpRequestExecuteData data{ this };
+		HttpRequestExecuteData data{ joaat::hash(method) == joaat::compileTimeHash("HEAD") };
 		auto sock = soup::make_shared<Socket>();
 		const auto [host, port] = getHostAndPort();
 		if (sock->connect(resolver, host, port))
@@ -144,13 +143,13 @@ NAMESPACE_SOUP
 				sock->enableCryptoClient(host, [](Socket& s, Capture&& cap, std::string&& alpn_protocol) SOUP_EXCAL
 				{
 					auto& data = *cap.get<HttpRequestExecuteData*>();
-					execute_recvResponse(s, &data.resp);
+					execute_recvResponse(s, data.head, &data.resp);
 				}, &data, getDataToSend(), certchain_validator);
 			}
 			else
 			{
 				send(*sock);
-				execute_recvResponse(*sock, &data.resp);
+				execute_recvResponse(*sock, data.head, &data.resp);
 			}
 			sched.run();
 		}
@@ -159,7 +158,6 @@ NAMESPACE_SOUP
 
 	struct HttpRequestExecuteEventStreamData
 	{
-		const HttpRequest* req;
 		void(*on_event)(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL;
 		Capture cap;
 	};
@@ -172,7 +170,7 @@ NAMESPACE_SOUP
 
 	void HttpRequest::executeEventStream(const dnsResolver& resolver, void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) const
 	{
-		HttpRequestExecuteEventStreamData data{ this, on_event, std::move(cap) };
+		HttpRequestExecuteEventStreamData data{ on_event, std::move(cap) };
 		auto sock = make_shared<Socket>();
 		const auto [host, port] = getHostAndPort();
 		if (sock->connect(resolver, host, port))
@@ -214,9 +212,9 @@ NAMESPACE_SOUP
 		s.send(getDataToSend());
 	}
 
-	void HttpRequest::execute_recvResponse(Socket& s, Optional<HttpResponse>* resp) SOUP_EXCAL
+	void HttpRequest::execute_recvResponse(Socket& s, bool head, Optional<HttpResponse>* resp) SOUP_EXCAL
 	{
-		recvResponse(s, [](Socket& s, Optional<HttpResponse>&& resp, Capture&& cap) noexcept
+		recvResponse(s, head, [](Socket& s, Optional<HttpResponse>&& resp, Capture&& cap) noexcept
 		{
 			SOUP_IF_LIKELY (resp.has_value() && !HttpRequest::isChallengeResponse(*resp))
 			{
@@ -264,6 +262,7 @@ NAMESPACE_SOUP
 
 		std::string buf{};
 		HttpResponse resp{};
+		const bool head;
 		Status status = CODE;
 		uint64_t bytes_remain = 0;
 
@@ -271,18 +270,18 @@ NAMESPACE_SOUP
 		void(*callback)(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL = nullptr;
 		Capture cap;
 
-		HttpResponseReceiver(bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, Capture&& cap) noexcept
-			: on_body_part(on_body_part), cap(std::move(cap))
+		HttpResponseReceiver(bool head, bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, Capture&& cap) noexcept
+			: head(head), on_body_part(on_body_part), cap(std::move(cap))
 		{
 		}
 
-		HttpResponseReceiver(void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap) noexcept
-			: callback(callback), cap(std::move(cap))
+		HttpResponseReceiver(bool head, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap) noexcept
+			: head(head), callback(callback), cap(std::move(cap))
 		{
 		}
 
-		HttpResponseReceiver(bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap) noexcept
-			: on_body_part(on_body_part), callback(callback), cap(std::move(cap))
+		HttpResponseReceiver(bool head, bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap) noexcept
+			: head(head), on_body_part(on_body_part), callback(callback), cap(std::move(cap))
 		{
 		}
 
@@ -359,7 +358,7 @@ NAMESPACE_SOUP
 							ObfusString str_transfer_encoding("Transfer-Encoding");
 							if (auto enc = self.resp.findHeader(str_transfer_encoding))
 							{
-								if (joaat::hash(*enc) == joaat::hash("chunked"))
+								if (joaat::hash(*enc) == joaat::compileTimeHash("chunked"))
 								{
 #if LOGGING
 									logWriteLine("Chunked transfer encoding");
@@ -378,7 +377,7 @@ NAMESPACE_SOUP
 #if LOGGING
 										logWriteLine("Got Content-Length");
 #endif
-										self.bytes_remain = opt.value();
+										self.bytes_remain = self.head ? 0 : opt.value();
 									}
 									else
 									{
@@ -396,7 +395,7 @@ NAMESPACE_SOUP
 								{
 									if (auto con = self.resp.findHeader(ObfusString("Connection")))
 									{
-										if (joaat::hash(*con) == joaat::hash("close"))
+										if (joaat::hash(*con) == joaat::compileTimeHash("close"))
 										{
 #if LOGGING
 											logWriteLine("Server will close connection to signal EOF");
@@ -509,15 +508,15 @@ NAMESPACE_SOUP
 		}
 	};
 
-	void HttpRequest::recvResponse(Socket& s, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& _cap) SOUP_EXCAL
+	void HttpRequest::recvResponse(Socket& s, bool head, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& _cap) SOUP_EXCAL
 	{
-		Capture cap = HttpResponseReceiver(callback, std::move(_cap));
+		Capture cap = HttpResponseReceiver(head, callback, std::move(_cap));
 		cap.get<HttpResponseReceiver>().tick(s, std::move(cap));
 	}
 
-	void HttpRequest::recvResponse(Socket& s, bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& _cap) SOUP_EXCAL
+	void HttpRequest::recvResponse(Socket& s, bool head, bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& _cap) SOUP_EXCAL
 	{
-		Capture cap = HttpResponseReceiver(on_body_part, callback, std::move(_cap));
+		Capture cap = HttpResponseReceiver(head, on_body_part, callback, std::move(_cap));
 		cap.get<HttpResponseReceiver>().tick(s, std::move(cap));
 	}
 
@@ -529,7 +528,7 @@ NAMESPACE_SOUP
 
 	void HttpRequest::recvEventStream(Socket& s, void callback(Socket&, std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) SOUP_EXCAL
 	{
-		Capture receiver_cap = HttpResponseReceiver([](Socket& s, const std::string& part, const Capture& _cap) SOUP_EXCAL
+		Capture receiver_cap = HttpResponseReceiver(false, [](Socket& s, const std::string& part, const Capture& _cap) SOUP_EXCAL
 		{
 			std::unordered_map<std::string, std::string> data{};
 			auto lines = string::explode(part, '\n');
