@@ -1062,11 +1062,33 @@ static int l_decompress (lua_State *L) {
     }
     auto buffer_size = soup::lzf::getMaxDecompressedSize(data, static_cast<unsigned int>(size));
     auto buffer = lua_newuserdata(L, buffer_size);
-    if (auto compressed_size = soup::lzf::decompress(data, static_cast<unsigned int>(size), buffer, buffer_size)) {
-      lua_pushlstring(L, static_cast<char*>(buffer), compressed_size);
+    if (auto decompressed_size = soup::lzf::decompress(data, static_cast<unsigned int>(size), buffer, buffer_size)) {
+      lua_pushlstring(L, static_cast<char*>(buffer), decompressed_size);
       return 1;
     }
     return luaL_error(L, "failed to decompress string");
+  }
+
+  if (strcmp(algo, "gzip") == 0) {
+    soup::deflate::gzFooter f;
+    if (l_unlikely(!soup::deflate::gzReadFooter(data, size, f))) {
+      luaL_error(L, "invalid gzip data");
+    }
+    char shrtbuf[LUAI_MAXSHORTLEN];
+    char* buffer = plutoS_prealloc(L, shrtbuf, f.uncompressed_size);
+    size_t uncompressed_size = f.uncompressed_size;
+    soup::deflate::ChecksumState checksum_state;
+    /*const size_t compressed_size =*/ soup::deflate::decompress(data, size, buffer, uncompressed_size, checksum_state);
+    if (l_unlikely(uncompressed_size != f.uncompressed_size)) {
+      luaL_error(L, "invalid gzip data");
+    }
+    plutoS_commit(L, buffer, f.uncompressed_size);
+    lua_pushboolean(L, checksum_state == soup::deflate::CHKSUM_PASS);  /* compressed_size must be known in advance, and checksum_present is always true */
+    return 2;
+  }
+
+  if (l_unlikely(strcmp(algo, "deflate") != 0)) {
+    luaL_error(L, "unknown algorithm");
   }
   if (max_decompressed_size == -1) {
     max_decompressed_size = soup::deflate::getMaxDecompressedSize(data, size);
