@@ -2415,12 +2415,10 @@ static void localclass (LexState *ls, bool isexport = false) {
   int vidx = new_localvar(ls, name, line);
   if (isexport)
     getlocalvardesc(ls->fs, vidx)->vd.kind = RDKCONST;
+  adjustlocalvars(ls, 1);
 
   expdesc t;
   classexpr(ls, &t);
-
-  adjust_assign(ls, 1, 1, &t);
-  adjustlocalvars(ls, 1);
 
   if (!ls->classes.top().protected_fields.empty()) {
     auto& cname = *pluto_newclassinst(ls->L, std::string);
