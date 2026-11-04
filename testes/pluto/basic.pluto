@@ -4125,6 +4125,15 @@ do
         end
     end
 end
+do
+    -- Local class can reference itself
+    local class C
+        static function f()
+            return C
+        end
+    end
+    assert(C == C.f())
+end
 
 print "Testing protected fields."
 do
