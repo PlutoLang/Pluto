@@ -220,6 +220,7 @@ struct FfiFuncWrapper {
   void* addr;
   std::vector<FfiType> args;
   FfiType ret;
+  bool vararg = false;
   soup::SharedPtr<soup::SharedLibrary> owner;
 };
 
@@ -261,12 +262,32 @@ static int ffi_funcwrapper_call (lua_State *L) {
     args[i] = check_ffi_value(L, 1 + i, arg_type);
     ++i;
   }
+  if (fw->vararg) {
+    const int nfixedargs = i;
+    int nrestargs = lua_gettop(L) - nfixedargs;
+    if (l_unlikely(nrestargs % 2)) {
+      luaL_error(L, "invalid argument count in vararg call");
+    }
+    nrestargs >>= 1;
+    for (int j = 0; j != nrestargs; ++j) {
+      const auto arg_type = check_ffi_type(L, 1 + nfixedargs + j);
+      lua_assert(i < soup::ffi::MAX_ARGS);
+      types[i] = (arg_type == FFI_F32 || arg_type == FFI_F64) ? soup::ffi::VT_FLOAT : soup::ffi::VT_INTEGRAL;
+      args[i] = check_ffi_value(L, 1 + nfixedargs + nrestargs + j, arg_type);
+      ++i;
+    }
+  }
   types[i] = (fw->ret == FFI_F32 || fw->ret == FFI_F64) ? soup::ffi::VT_FLOAT : soup::ffi::VT_INTEGRAL;
   uintptr_t retval;
   const auto prev_callback_L = callback_L;
   callback_L = L;
   try {
-    retval = soup::ffi::call(fw->addr, types, args, i);
+    if (fw->vararg) {
+      retval = soup::ffi::callVariadic(fw->addr, types, args, fw->args.size(), i);
+    }
+    else {
+      retval = soup::ffi::call(fw->addr, types, args, i);
+    }
   }
   catch (const std::exception& e) {
     callback_L = prev_callback_L;
@@ -311,6 +332,13 @@ static int ffi_lib_wrap (lua_State *L) {
   }
   fw->args.reserve(nargtypes);
   for (int i = 4; i != 4 + nargtypes; ++i) {
+    if (strcmp(luaL_checkstring(L, i), "...") == 0) {
+      fw->vararg = true;
+      if (l_unlikely(++i != 4 + nargtypes)) {
+        luaL_error(L, "'...' must be the last argument");
+      }
+      break;
+    }
     fw->args.emplace_back(check_ffi_type(L, i));
   }
   fw->owner = *pSpLib;
