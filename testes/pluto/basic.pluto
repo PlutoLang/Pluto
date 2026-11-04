@@ -3863,6 +3863,25 @@ do
     inst.a = true
     assert(rawget(inst, "newindex_called"))
 end
+do
+    -- However, when Pluto_operator_new defines __index, this should not be extended.
+
+    class Base
+        function greet()
+            return "base"
+        end
+    end
+
+    new Base()
+
+    class Child extends Base
+        function greet()
+            return "child"
+        end
+    end
+
+    assert((new Child()):greet() == "child")
+end
 -- Metamethod inheritance
 do
     local class Base
