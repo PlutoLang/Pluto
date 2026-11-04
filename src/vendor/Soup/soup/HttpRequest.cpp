@@ -24,7 +24,7 @@ NAMESPACE_SOUP
 			{ObfusString("Host: ").str() + host},
 			{ObfusString("User-Agent: Mozilla/5.0 (compatible; calamity-inc/Soup)").str()},
 			{ObfusString("Connection: close").str()},
-			{ObfusString("Accept-Encoding: deflate, gzip").str()},
+			{ObfusString("Accept-Encoding: gzip").str()},
 		}), method(std::move(method)), path(std::move(path))
 	{
 		fixPath();
