@@ -13,6 +13,11 @@ assert(lib:value("i32", "MY_MAGIC_INT") == 69)
 assert(lib:wrap("i32", "add", "i32", "i32")(38, 4) == 42)
 assert(lib:wrap("f32", "fadd", "f32", "f32")(38, 4) == 42)
 
+-- variadic call
+local fsum = lib:wrap("f64", "fsum", "i32", "...")
+assert(fsum(2, "f64", "f64", 0.1, 0.2) == (0.1 + 0.2))
+assert(fsum(3, "f64", "f64", "f64", 0.1, 0.2, 0.3) == (0.1 + 0.2 + 0.3))
+
 -- 'lib' can be used like any old table
 lib.add = lib:wrap("i32", "add", "i32", "i32")
 assert(lib.add(32, 10) == 42)
