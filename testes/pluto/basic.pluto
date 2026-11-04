@@ -2897,6 +2897,7 @@ do
     assert(inflated == "FooBarBaz")
     assert(info.compressed_size == 17)
 
+    -- lzf
     for {
         "abc",
         "abcdefghijklmnopqrstuvwxyz",
@@ -2905,6 +2906,15 @@ do
     } as str do
         assert(str |> crypto.compress|"lzf"| |> crypto.decompress|"lzf"| == str, str)
     end
+
+    -- gzip
+    local checksum_ok
+    inflated, checksum_ok = "1f8b080800a2eb6a020068656c6c6f2e74787400f348cdc9c9d75108c8292dc9570400029af9da0d000000":fromhex() |> crypto.decompress|"gzip"|
+    assert(inflated == "Hello, Pluto!")
+    assert(checksum_ok)
+    inflated, checksum_ok = "1f8b080800a2eb6a020068656c6c6f2e74787400f348cdc9c9d75108c8292dc9570400deadbeef0d000000":fromhex() |> crypto.decompress|"gzip"|
+    assert(inflated == "Hello, Pluto!")
+    assert(not checksum_ok)
 end
 do
     local bigint = require "pluto:bigint"
