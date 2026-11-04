@@ -1,15 +1,13 @@
 #pragma once
 
+#include <cstdint>
 #include <cstddef>
 #include <string>
 
 #include "base.hpp"
-#include "tunables.hpp"
 
 NAMESPACE_SOUP
 {
-	inline SOUP_TUNABLE(uint32_t, SOUP_DEFLATE_MAX_COMPRESSED_RATIO) = 30;
-
 	struct deflate
 	{
 		enum ChecksumState : uint8_t
@@ -26,7 +24,20 @@ NAMESPACE_SOUP
 			ChecksumState checksum_state = CHKSUM_NONE;
 		};
 
-		// accepts DEFLATE, gzip & zlib formats
+		// gzip API - assumes that the entire range data[0]..data[size] is the contents of a .gz file
+
+		struct gzFooter
+		{
+			uint32_t uncompressed_data_crc32;
+			uint32_t uncompressed_size;
+		};
+
+		static bool gzReadFooter(const void* data, size_t size, gzFooter& out) noexcept;
+		static DecompressResult gzDecompress(const std::string& data) SOUP_EXCAL { return gzDecompress(data.data(), data.size()); }
+		static DecompressResult gzDecompress(const void* data, size_t size) SOUP_EXCAL;
+
+		// versatile API - accepts DEFLATE, gzip & zlib formats
+
 		static DecompressResult decompress(const std::string& compressed_data) SOUP_EXCAL { return decompress(compressed_data.data(), compressed_data.size()); }
 		static DecompressResult decompress(const std::string& compressed_data, size_t max_decompressed_size) SOUP_EXCAL { return decompress(compressed_data.data(), compressed_data.size(), max_decompressed_size); }
 		static DecompressResult decompress(const void* compressed_data, size_t compressed_data_size) SOUP_EXCAL { return decompress(compressed_data, compressed_data_size, getMaxDecompressedSize(compressed_data, compressed_data_size)); }
@@ -35,8 +46,12 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] static size_t getMaxDecompressedSize(const void* compressed_data, size_t compressed_data_size) noexcept
 		{
-			return compressed_data_size * SOUP_DEFLATE_MAX_COMPRESSED_RATIO;
+			return compressed_data_size * 42;
+			// The input that is known to be 42 times bigger uncompressed: https://github.com/Sainan/eve-online-sde/blob/c38c9175cb36b6b058a332c35a0e1f2b6c7b0e7e/controlTowerResources.jsonl.gz
+			// However, such a good ratio is very unlikely, so it is advisable to just know the decompressed size upfront if at all possible.
 		}
+
+		// raw stream API
 
 		struct Context
 		{

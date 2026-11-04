@@ -3,7 +3,7 @@
 #if SOUP_WINDOWS && SOUP_X86 && SOUP_BITS == 64
 NAMESPACE_SOUP
 {
-	uintptr_t ffi::call(void* func, const ValueType types[/*nargs + 1 (return type)*/], const uintptr_t args[/*nargs*/], size_t nargs)
+	uintptr_t ffi::call(void* func, ValueType types[/*nargs + 1 (return type)*/], const uintptr_t args[/*nargs*/], size_t nargs)
 	{
 		switch (nargs)
 		{
