@@ -32,8 +32,7 @@ NAMESPACE_SOUP
 			switch (enc_joaat)
 			{
 			case joaat::hash("gzip"):
-			case joaat::hash("deflate"):
-				return deflate::decompress(body).decompressed;
+				return deflate::gzDecompress(body).decompressed;
 			}
 		}
 		return body;
@@ -197,9 +196,8 @@ NAMESPACE_SOUP
 			switch (enc_joaat)
 			{
 			case joaat::hash("gzip"):
-			case joaat::hash("deflate"):
 				removeHeader(enc_header_name);
-				body = deflate::decompress(body).decompressed;
+				body = deflate::gzDecompress(body).decompressed;
 				break;
 			}
 		}

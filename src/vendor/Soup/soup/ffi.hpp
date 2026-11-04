@@ -7,7 +7,7 @@
 
 NAMESPACE_SOUP
 {
-	// Raised by ffi::call if nargs > ffi::MAX_CALL_ARGS
+	// Raised by ffi::call if nargs > ffi::MAX_CALL_ARGS or nfixedargs > nargs
 	struct BadCall : public Exception
 	{
 		BadCall()
@@ -47,7 +47,10 @@ NAMESPACE_SOUP
 		}
 
 		// types[nargs] is used for the return type.
-		static uintptr_t call(void* func, const ValueType types[/*nargs + 1*/], const uintptr_t args[/*nargs*/], size_t nargs);
+		static uintptr_t call(void* func, ValueType types[/*nargs + 1*/], const uintptr_t args[/*nargs*/], size_t nargs);
+
+		// For variadic calls like `printf("%d:%d", 1, 2);`; in this example there's 1 fixed arg and 3 args total.
+		static uintptr_t callVariadic(void* func, ValueType types[/*nargs + 1*/], const uintptr_t args[/*nargs*/], size_t nfixedargs, size_t nargs);
 
 #define SOUP_FFI_CALLBACK_AVAILABLE (SOUP_X86 || (SOUP_ARM && SOUP_BITS == 64))
 #if SOUP_FFI_CALLBACK_AVAILABLE
@@ -59,4 +62,17 @@ NAMESPACE_SOUP
 		static void callbackFree(void* cb) noexcept;
 #endif
 	};
+
+#if SOUP_MACOS && SOUP_ARM
+	inline uintptr_t ffi::call(void* func, ValueType types[/*nargs + 1*/], const uintptr_t args[/*nargs*/], size_t nargs)
+	{
+		return callVariadic(func, types, args, nargs, nargs);
+	}
+#elif !SOUP_WINDOWS
+	inline uintptr_t ffi::callVariadic(void* func, ValueType types[/*nargs + 1*/], const uintptr_t args[/*nargs*/], size_t nfixedargs, size_t nargs)
+	{
+		return call(func, types, args, nargs);
+	}
+#endif
+
 }
