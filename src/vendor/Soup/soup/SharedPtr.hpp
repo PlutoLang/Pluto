@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <exception> // rethrow_exception, current_exception
 #include <memory> // destroy_at
 
 #include "Exception.hpp"
