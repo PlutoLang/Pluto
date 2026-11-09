@@ -170,8 +170,8 @@ jobs:
     steps:
       - uses: emscripten-core/setup-emsdk@v16
         with:
-          version: 5.0.2
-          emsdk-version: 5.0.2
+          version: 7.0.0
+          emsdk-version: 7.0.0
       - uses: actions/checkout@v7
       - run: php scripts/wasm.php
       - name: Ensure files exist
