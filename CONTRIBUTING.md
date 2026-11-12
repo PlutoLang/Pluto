@@ -20,3 +20,10 @@ After building Pluto, you can run the test suite like so:
 ```
 src/pluto testes/_driver.pluto
 ```
+
+## Submitting issues/PRs
+
+- Title: Describe the issue/change/request.
+- Description: The best description is an empty one because you wrote a good title, but if you need one, keep it concise; you certainly shouldn't need more than 3 paragraphs to describe *anything*. For bug reports, a code snippet of a minimal repro would be good context to add.
+
+In less subtle terms: If you are to use AI, use it as a tool, not as a replacement for your own understanding and words.
