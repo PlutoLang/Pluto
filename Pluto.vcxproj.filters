@@ -396,6 +396,13 @@
     <ClCompile Include="src\vendor\Soup\soup\lookup3.cpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClCompile>
+    <ClCompile Include="src\lbase58.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\MacAddr.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\Soup\soup\netAdaptor.cpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ltm.h" />
@@ -1224,6 +1231,21 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\lookup3.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\alpha2decodetbl.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\base58.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\CustomEncoding.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\MacAddr.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\netAdaptor.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\AllocRaii.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\AllocRaiiLocalBase.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>

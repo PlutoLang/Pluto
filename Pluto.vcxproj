@@ -770,10 +770,12 @@
     <ClCompile Include="src\vendor\Soup\soup\log.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\lookup3.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\lzf.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\MacAddr.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\md5.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\memGuard.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\MimeMessage.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\Mixed.cpp" />
+    <ClCompile Include="src\vendor\Soup\soup\netAdaptor.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\netConfig.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\netConnectTask.cpp" />
     <ClCompile Include="src\vendor\Soup\soup\netStatus.cpp" />
@@ -871,6 +873,8 @@
     <ClInclude Include="src\vendor\Soup\soup\aes.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\aes_intrin.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\alloc.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\AllocRaii.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\AllocRaiiLocalBase.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\alpha2decodetbl.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Asn1Element.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Asn1Identifier.hpp" />
@@ -970,6 +974,7 @@
     <ClInclude Include="src\vendor\Soup\soup\log.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\lookup3.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\lzf.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\MacAddr.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\macros.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\math.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\md5.hpp" />
@@ -983,6 +988,7 @@
     <ClInclude Include="src\vendor\Soup\soup\Mixed.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\Module.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\NamedCurves.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\netAdaptor.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netConfig.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netConnectTask.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\netReuseTag.hpp" />
