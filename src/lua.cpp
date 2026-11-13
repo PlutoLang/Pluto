@@ -790,7 +790,7 @@ static int pmain (lua_State *L) {
 }
 
 
-#if defined(_WIN32) && !defined(PLUTO_NO_UTF8)
+#if defined(_WIN32)
 int wmain (int argc, wchar_t **wargv) {
   SetConsoleCP(CP_UTF8);
   SetConsoleOutputCP(CP_UTF8);
