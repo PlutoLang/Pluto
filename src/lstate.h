@@ -402,6 +402,7 @@ typedef struct global_State {
   TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */
   lua_WarnFunction warnf;  /* warning function */
   void *ud_warn;         /* auxiliary data to 'warnf' */
+  LX mainth;  /* main thread of this state */
 #ifndef PLUTO_LUA_LINKABLE
   void* user_data;  /* a pointer to data you, the user, would like to specify */
 
@@ -425,6 +426,23 @@ typedef struct global_State {
   bool preference_parent : 1;
   bool have_preference_export : 1;
   bool preference_export : 1;
+
+  void setCompatibilityMode(bool b) noexcept {
+    have_preference_switch = true;
+    preference_switch = !b;
+    have_preference_continue = true;
+    preference_continue = !b;
+    have_preference_enum = true;
+    preference_enum = !b;
+    have_preference_new = true;
+    preference_new = !b;
+    have_preference_class = true;
+    preference_class = !b;
+    have_preference_parent = true;
+    preference_parent = !b;
+    have_preference_export = true;
+    preference_export = !b;
+  }
 
   /*
   ** Each warning type has a boolean here to determine its default state, which can be overwritten by @pluto_warnings directives.
@@ -452,25 +470,6 @@ typedef struct global_State {
 #ifndef PLUTO_NO_DEFAULT_TABLE_METATABLE
   TValue table_mt;  /* internal use only; do not use this in your own code. */
 #endif
-
-  void setCompatibilityMode(bool b) noexcept {
-    have_preference_switch = true;
-    preference_switch = !b;
-    have_preference_continue = true;
-    preference_continue = !b;
-    have_preference_enum = true;
-    preference_enum = !b;
-    have_preference_new = true;
-    preference_new = !b;
-    have_preference_class = true;
-    preference_class = !b;
-    have_preference_parent = true;
-    preference_parent = !b;
-    have_preference_export = true;
-    preference_export = !b;
-  }
-
-  LX mainth;  /* main thread of this state */
 } global_State;
 
 
