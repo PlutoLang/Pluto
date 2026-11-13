@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** $Id: luaconf.h $
 ** Configuration file for Lua
 ** See Copyright Notice in lua.h
@@ -780,7 +780,8 @@
 // If defined, Pluto will exclude code snippets from error messages to make them shorter.
 //#define PLUTO_SHORT_ERRORS
 
-// If defined, Pluto won't assume that source files are UTF-8 encoded and restrict valid symbol names.
+// If defined, Pluto won't allow non-Latin symbol names (e.g., `local ひゃく = 100`).
+// Note that this does not affect Pluto forcing Windows to use UTF-8 in command line arguments and standard library functions (IO & OS).
 //#define PLUTO_NO_UTF8
 
 // If defined, Pluto will use a jumptable in the VM even if not compiled via GCC or Clang.
