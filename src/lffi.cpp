@@ -271,7 +271,9 @@ static int ffi_funcwrapper_call (lua_State *L) {
     nrestargs >>= 1;
     for (int j = 0; j != nrestargs; ++j) {
       const auto arg_type = check_ffi_type(L, 1 + nfixedargs + j);
-      lua_assert(i < soup::ffi::MAX_ARGS);
+      if (l_unlikely(i >= soup::ffi::MAX_ARGS)) {
+        luaL_error(L, "too many arguments in vararg call");
+      }
       types[i] = (arg_type == FFI_F32 || arg_type == FFI_F64) ? soup::ffi::VT_FLOAT : soup::ffi::VT_INTEGRAL;
       args[i] = check_ffi_value(L, 1 + nfixedargs + nrestargs + j, arg_type);
       ++i;
