@@ -410,6 +410,7 @@ local function checksize (source)
   -- syntax error
   local _, msg = load("x", source)
   msg = string.match(msg, "^([^:]*):")   -- get source (1st part before ':')
+  msg = msg:replace("\x1b[1;37m", "")    -- [Pluto] remove color prefix in case it was added
   assert(msg:len() <= idsize)
 end
 
