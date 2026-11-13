@@ -8,7 +8,8 @@
 namespace Pluto {
 	class ErrorMessage {
 	private:
-		LexState* ls;
+		LexState* const ls;
+		const bool colored_output;
 		size_t src_off = 0;
 		size_t src_len = 0; // The size of the source line itself.
 		size_t line_len = 0; // The buffer size needed to align a bar (|) or note (+).
@@ -17,11 +18,11 @@ namespace Pluto {
 		std::string content{};
 
 		ErrorMessage(LexState* ls)
-			: ls(ls) {
+			: ls(ls), colored_output(ls->L->l_G->colored_output) {
 		}
 
 		ErrorMessage(LexState* ls, const char* initial_msg)
-			: ls(ls), content(initial_msg) {
+			: ls(ls), colored_output(ls->L->l_G->colored_output), content(initial_msg) {
 		}
 
 		ErrorMessage& addMsg(const char* msg) {
@@ -94,12 +95,16 @@ namespace Pluto {
 			this->content.push_back('\n');
 			this->content.append(this->line_len, ' ');
 			this->content.append("| ");
-			this->content.append(HBLU);
+			if (colored_output) {
+				this->content.append(HBLU);
+			}
 			this->content.append(this->src_off, ' ');
 			this->content.append(this->src_len, '^');
 			this->content.append(" here: ");
 			this->content.append(msg);
-			this->content.append(RESET);
+			if (colored_output) {
+				this->content.append(RESET);
+			}
 #endif
 			return *this;
 		}
@@ -109,11 +114,15 @@ namespace Pluto {
 			this->content.push_back('\n');
 			this->content.append(this->line_len, ' ');
 			this->content.append("| ");
-			this->content.append(HBLU);
+			if (colored_output) {
+				this->content.append(HBLU);
+			}
 			this->content.append(this->src_off, ' ');
 			this->content.append(this->src_len, '^');
 			this->content.append(" here");
-			this->content.append(RESET);
+			if (colored_output) {
+				this->content.append(RESET);
+			}
 #endif
 			return *this;
 		}
@@ -123,7 +132,9 @@ namespace Pluto {
 			if (*msg != '\0') {
 				this->content.push_back('\n');
 				this->content.append(this->line_len, ' ');
-				this->content.append(HCYN "+ note: " RESET);
+				if (colored_output) {
+					this->content.append(HCYN "+ note: " RESET);
+				}
 
 				if (strchr(msg, '\n') != nullptr) { // Multi-line note?
 					std::vector<std::string> lines = soup::string::explode<std::string>(msg, '\n');
@@ -149,7 +160,9 @@ namespace Pluto {
 
 		// Pushes the string to the stack for luaD_throw to conveniently pick up.
 		void finalize() {
-			this->content.append(RESET);
+			if (colored_output) {
+				this->content.append(RESET);
+			}
 			lua_pushlstring(ls->L, this->content.data(), this->content.size());
 		}
 

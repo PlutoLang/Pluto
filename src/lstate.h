@@ -382,6 +382,8 @@ typedef struct global_State {
 #ifndef PLUTO_LUA_LINKABLE
   void* user_data;  /* a pointer to data you, the user, would like to specify */
 
+  bool colored_output : 1;
+
   /*
   ** Each non-compatible keyword has 2 bools here: "have_preference" and "preference".
   ** "have_preference" declares that you would like to overwrite the default enable/disable state of a given keyword,
