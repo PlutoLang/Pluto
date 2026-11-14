@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** $Id: luaconf.h $
 ** Configuration file for Lua
 ** See Copyright Notice in lua.h
@@ -780,7 +780,8 @@
 // If defined, Pluto will exclude code snippets from error messages to make them shorter.
 //#define PLUTO_SHORT_ERRORS
 
-// If defined, Pluto won't assume that source files are UTF-8 encoded and restrict valid symbol names.
+// If defined, Pluto won't allow non-Latin symbol names (e.g., `local ひゃく = 100`).
+// Note that this does not affect Pluto forcing Windows to use UTF-8 in command line arguments and standard library functions (IO & OS).
 //#define PLUTO_NO_UTF8
 
 // If defined, Pluto will use a jumptable in the VM even if not compiled via GCC or Clang.
@@ -1032,7 +1033,7 @@
 // It's suggested you implement PLUTO_LOADCLIB_HOOK, etc, for even more powerful coverage. Package.loadlib can still load other Pluto/Lua libraries and use their lua_CFunction objects.
 //#define PLUTO_NO_FILESYSTEM
 
-// Disables os.execute & io.popen.
+// Disables os.execute, io.popen, & Pluto's os.system.
 //#define PLUTO_NO_OS_EXECUTE
 
 // Eliminate any loading of any binaries. This removes package.loadlib & ffi.open and prevents 'require' from loading any C modules or shared libraries.
@@ -1072,7 +1073,6 @@
 ** =====================================================================}
 */
 
-#ifdef PLUTO_USE_COLORED_OUTPUT // Don't need to write any 'ifdef' macro logic inside of Pluto::ErrorMessage.
 #define ESC "\x1B"
 
 #define BLK ESC "[0;30m"
@@ -1148,68 +1148,6 @@
 #define RESET ESC "[0m"
 #define CRESET ESC "[0m"
 #define COLOR_RESET ESC "[0m"
-#else // PLUTO_USE_COLORED_OUTPUT
-#define ESC ""
-#define BLK ESC
-#define RED ESC
-#define GRN ESC
-#define YEL ESC
-#define BLU ESC
-#define MAG ESC
-#define CYN ESC
-#define WHT ESC
-#define BBLK ESC
-#define BRED ESC
-#define BGRN ESC
-#define BYEL ESC
-#define BBLU ESC
-#define BMAG ESC
-#define BCYN ESC
-#define BWHT ESC
-#define UBLK ESC
-#define URED ESC
-#define UGRN ESC
-#define UYEL ESC
-#define UBLU ESC
-#define UMAG ESC
-#define UCYN ESC
-#define UWHT ESC
-#define BLKB ESC
-#define REDB ESC
-#define GRNB ESC
-#define YELB ESC
-#define BLUB ESC
-#define MAGB ESC
-#define CYNB ESC
-#define WHTB ESC
-#define BLKHB ESC
-#define REDHB ESC
-#define GRNHB ESC
-#define YELHB ESC
-#define BLUHB ESC
-#define MAGHB ESC
-#define CYNHB ESC
-#define WHTHB ESC
-#define HBLK ESC
-#define HRED ESC
-#define HGRN ESC
-#define HYEL ESC
-#define HBLU ESC
-#define HMAG ESC
-#define HCYN ESC
-#define HWHT ESC
-#define BHBLK ESC
-#define BHRED ESC
-#define BHGRN ESC
-#define BHYEL ESC
-#define BHBLU ESC
-#define BHMAG ESC
-#define BHCYN ESC
-#define BHWHT ESC
-#define RESET ESC
-#define CRESET ESC
-#define COLOR_RESET ESC
-#endif // PLUTO_USE_COLORED_OUTPUT
 
 /* }================================================================== */
 

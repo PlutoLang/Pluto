@@ -11,6 +11,7 @@
 #undef MAX_SIZE
 
 #include "vendor/Soup/soup/CertStore.hpp"
+#include "vendor/Soup/soup/netAdaptor.hpp"
 #include "vendor/Soup/soup/netConnectTask.hpp"
 #include "vendor/Soup/soup/os.hpp"
 #include "vendor/Soup/soup/ResolveIpAddrTask.hpp"
@@ -540,7 +541,12 @@ static int l_listen (lua_State *L) {
   }
   lua_setmetatable(L, -2);
 
-  return (addr.ip.isZero() ? l.serv.bind(port, &l.srv) : l.serv.bind(addr.ip, port, &l.srv)) ? 1 : 0;
+  uint16_t bound_port = (addr.ip.isZero() ? l.serv.bind(port, &l.srv) : l.serv.bind(addr.ip, port, &l.srv));
+  if (l_unlikely(bound_port == 0)) {
+    return 0;
+  }
+  lua_pushinteger(L, bound_port);
+  return 2;
 }
 
 static int l_udpserver (lua_State *L) {
@@ -571,6 +577,42 @@ static int l_udpserver (lua_State *L) {
   return 1;
 }
 
+#if SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
+static int l_interfaces (lua_State *L) {
+  auto& arr = *pluto_newclassinst(L, std::vector<soup::netAdaptor>, soup::netAdaptor::getAll());
+  lua_newtable(L);
+  lua_Integer i = 0;
+  for (auto& ad : arr) {
+    lua_pushinteger(L, ++i);
+    lua_newtable(L);
+    {
+      lua_pushliteral(L, "name");
+      pluto_pushstring(L, ad.name);
+      lua_settable(L, -3);
+    }
+    {
+      lua_pushliteral(L, "mac_addr");
+      char buf[17];
+      ad.mac_addr.toString(buf);
+      lua_pushlstring(L, buf, 17);
+      lua_settable(L, -3);
+    }
+    {
+      lua_pushliteral(L, "ip_addr");
+      pluto_pushstring(L, soup::IpAddr(ad.ip_addr).toString4());
+      lua_settable(L, -3);
+    }
+    {
+      lua_pushliteral(L, "netmask");
+      pluto_pushstring(L, soup::IpAddr(ad.netmask).toString4());
+      lua_settable(L, -3);
+    }
+    lua_settable(L, -3);
+  }
+  return 1;
+}
+#endif
+
 static const luaL_Reg funcs_socket[] = {
   {"connect", l_connect},
   {"send", l_send},
@@ -587,6 +629,9 @@ static const luaL_Reg funcs_socket[] = {
   {"setpeer", socket_setpeer},
   {"listen", l_listen},
   {"udpserver", l_udpserver},
+#if SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
+  {"interfaces", l_interfaces},
+#endif
   {NULL, NULL}
 };
 
@@ -597,7 +642,7 @@ LUAMOD_API int luaopen_socket (lua_State *L) {
   lua_pushliteral(L, "bind");
   luaL_loadstring(L, R"EOC(
 return function(sched, port, callback)
-    local l = require"pluto:socket".listen(port)
+    local l, bound_port = require"pluto:socket".listen(port)
     assert(l, "Failed to bind port "..port)
     return sched:add(function()
         while s := l:accept() do
@@ -605,7 +650,7 @@ return function(sched, port, callback)
                 callback(s)
             end)
         end
-    end)
+    end), bound_port
 end)EOC");
   lua_call(L, 0, 1);
   lua_settable(L, -3);

@@ -150,10 +150,8 @@
 #endif
 
 
+#ifndef PLUTO_NO_OS_EXECUTE
 static int os_execute (lua_State *L) {
-#ifdef PLUTO_NO_OS_EXECUTE
-  return 0;
-#else
   const char *cmd = luaL_optstring(L, 1, NULL);
   int stat;
   errno = 0;
@@ -169,8 +167,8 @@ static int os_execute (lua_State *L) {
     lua_pushboolean(L, stat);  /* true if there is a shell */
     return 1;
   }
-#endif
 }
+#endif
 
 
 static int os_tmpname (lua_State *L) {
@@ -534,6 +532,17 @@ static const luaL_Reg syslib[] = {
 
 LUAMOD_API int luaopen_os (lua_State *L) {
   luaL_newlib(L, syslib);
+
+#if !defined(PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO) && !defined(PLUTO_NO_OS_EXECUTE)
+  lua_pushliteral(L, "system");
+  luaL_loadstring(L, R"EOC(
+return function(cmd)
+    local h <close> = io.popen(cmd, "r")
+    return h:read("a*")
+end)EOC");
+  lua_call(L, 0, 1);
+  lua_settable(L, -3);
+#endif
 
   /* define os.platform constant */
   lua_pushliteral(L, "platform");

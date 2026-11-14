@@ -790,7 +790,7 @@ static int pmain (lua_State *L) {
 }
 
 
-#if defined(_WIN32) && !defined(PLUTO_NO_UTF8)
+#if defined(_WIN32)
 int wmain (int argc, wchar_t **wargv) {
   SetConsoleCP(CP_UTF8);
   SetConsoleOutputCP(CP_UTF8);
@@ -805,23 +805,26 @@ int wmain (int argc, wchar_t **wargv) {
 #else
 int main (int argc, char **argv) {
 #endif
-#if defined(PLUTO_USE_COLORED_OUTPUT) && defined(_WIN32)
-  if (auto hSTDOUT = GetStdHandle(STD_OUTPUT_HANDLE); hSTDOUT != INVALID_HANDLE_VALUE) {
-    DWORD mode;
-    if (GetConsoleMode(hSTDOUT, &mode))
-      SetConsoleMode(hSTDOUT, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-  }
-#endif
-#ifdef _WIN32
-  /* If we print '\r\n' in text mode, Windows would convert it into '\r\r\n', which some environments interpret as 2 new lines instead of 1. */
-  _setmode(_fileno(stdout), O_BINARY);
-#endif
   int status, result;
   lua_State *L = luaL_newstate();  /* create state */
   if (L == NULL) {
     l_message(argv[0], "cannot create state: not enough memory");
     return EXIT_FAILURE;
   }
+#if defined(_WIN32)
+  if (auto hSTDOUT = GetStdHandle(STD_OUTPUT_HANDLE); hSTDOUT != INVALID_HANDLE_VALUE) {
+    DWORD mode;
+    if (GetConsoleMode(hSTDOUT, &mode) && SetConsoleMode(hSTDOUT, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)) {
+      L->l_G->colored_output = true;  /* we know this is a terminal that can handle ANSI color codes, so use them */
+    }
+  }
+#else
+  L->l_G->colored_output = true;
+#endif
+#ifdef _WIN32
+  /* If we print '\r\n' in text mode, Windows would convert it into '\r\r\n', which some environments interpret as 2 new lines instead of 1. */
+  _setmode(_fileno(stdout), O_BINARY);
+#endif
   lua_gc(L, LUA_GCSTOP);  /* stop GC while building state */
   lua_pushcfunction(L, &pmain);  /* to call 'pmain' in protected mode */
   lua_pushinteger(L, argc);  /* 1st argument */

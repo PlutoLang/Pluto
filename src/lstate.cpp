@@ -390,6 +390,12 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, unsigned seed) {
   setgcparam(g, MAJORMINOR, LUAI_MAJORMINOR);
   for (i=0; i < LUA_NUMTYPES; i++) g->mt[i] = NULL;
 
+#ifdef PLUTO_USE_COLORED_OUTPUT
+  g->colored_output = true;
+#else
+  g->colored_output = false;
+#endif
+  /* compatibility */
 #ifdef PLUTO_COMPATIBLE_SWITCH
   g->have_preference_switch = true;
   g->preference_switch = false;

@@ -197,7 +197,7 @@ const char* luaX_reserved2str (int token) {
 
 static l_noret lexerror (LexState *ls, const char *msg, const Token& t) {
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->getLineNumber());
-  auto err = new Pluto::ErrorMessage{ ls, HRED "syntax error: " BWHT };
+  auto err = new Pluto::ErrorMessage{ ls, ls->L->l_G->colored_output ? BWHT : "" };
   err->addMsg(msg);
   if (t.token) {
     err->addMsg(" near ")

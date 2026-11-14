@@ -1,3 +1,4 @@
+#include <cstdarg>
 #include <cstdint> // uint8_t
 #include <cstring> // memcpy
 #include <stdexcept>
@@ -81,4 +82,31 @@ SOUP_CEXPORT void call_cb_async()
 SOUP_CEXPORT float float_cb_test(float(*func)(float, float))
 {
     return func(1.0f, 2.0f);
+}
+
+static char foreign_rw_buffer[75];
+
+SOUP_CEXPORT const void* foreign_read_test(size_t* out_len)
+{
+    memcpy(foreign_rw_buffer, "Hello from C/C++! Oops, there's unrelated data past the end of this string!", 75);
+    *out_len = 17;
+    return foreign_rw_buffer;
+}
+
+SOUP_CEXPORT bool foreign_write_test()
+{
+    return memcmp(foreign_rw_buffer, "Hello from Pluto! Oops, there's unrelated data past the end of this string!", 75) == 0;
+}
+
+SOUP_CEXPORT double fsum(unsigned int count, ...)
+{
+    double result = 0;
+    va_list args;
+    va_start(args, count);
+    for (unsigned int i = 0; i != count; ++i)
+    {
+        result += va_arg(args, double);
+    }
+    va_end(args);
+    return result;
 }

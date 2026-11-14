@@ -77,6 +77,27 @@ static int regex_search (lua_State *L) {
   return 1;
 }
 
+static int regex_split (lua_State *L) {
+  const auto self = checkregex(L, 1);
+  size_t len;
+  const char *str = luaL_checklstring(L, 2, &len);
+  lua_Integer idx = 0;
+  size_t off = 0;
+  lua_newtable(L);
+  for (soup::RegexMatchResult res; (res = self->search(str + off, str + len)).isSuccess(); ) {
+	const size_t match_begin_offset = (res.groups.at(0).value().begin - str);
+	const size_t match_end_offset = (res.groups.at(0).value().end - str);
+    lua_pushinteger(L, ++idx);
+    lua_pushlstring(L, str + off, match_begin_offset - off);
+    lua_settable(L, -3);
+    off = match_end_offset;
+  }
+  lua_pushinteger(L, ++idx);
+  lua_pushlstring(L, str + off, len - off);
+  lua_settable(L, -3);
+  return 1;
+}
+
 static int regex_replace (lua_State *L) {
   const auto r = checkregex(L, 1);
   size_t lStr;
@@ -108,6 +129,7 @@ static const luaL_Reg funcs_regex[] = {
   {"new", regex_new},
   {"match", regex_match},
   {"search", regex_search},
+  {"split", regex_split},
   {"replace", regex_replace},
   {"substitute", regex_substitute},
   {nullptr, nullptr}
