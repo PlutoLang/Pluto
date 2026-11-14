@@ -807,6 +807,10 @@ int main (int argc, char **argv) {
 #endif
   int status, result;
   lua_State *L = luaL_newstate();  /* create state */
+  if (L == NULL) {
+    l_message(argv[0], "cannot create state: not enough memory");
+    return EXIT_FAILURE;
+  }
 #if defined(_WIN32)
   if (auto hSTDOUT = GetStdHandle(STD_OUTPUT_HANDLE); hSTDOUT != INVALID_HANDLE_VALUE) {
     DWORD mode;
@@ -821,10 +825,6 @@ int main (int argc, char **argv) {
   /* If we print '\r\n' in text mode, Windows would convert it into '\r\r\n', which some environments interpret as 2 new lines instead of 1. */
   _setmode(_fileno(stdout), O_BINARY);
 #endif
-  if (L == NULL) {
-    l_message(argv[0], "cannot create state: not enough memory");
-    return EXIT_FAILURE;
-  }
   lua_gc(L, LUA_GCSTOP);  /* stop GC while building state */
   lua_pushcfunction(L, &pmain);  /* to call 'pmain' in protected mode */
   lua_pushinteger(L, argc);  /* 1st argument */
