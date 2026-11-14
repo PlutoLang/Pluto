@@ -1,5 +1,3 @@
-#ifndef __EMSCRIPTEN__
-
 #define LUA_LIB
 #include "lualib.h"
 #include "lstate.h"
@@ -21,6 +19,7 @@
 #include "vendor/Soup/soup/Socket.hpp"
 #include "vendor/Soup/soup/TlsExtAlpn.hpp"
 
+#ifndef __EMSCRIPTEN__
 struct StandaloneSocket {
   soup::Scheduler sched;
   soup::SharedPtr<soup::Socket> sock;
@@ -576,6 +575,7 @@ static int l_udpserver (lua_State *L) {
 #endif
   return 1;
 }
+#endif // __EMSCRIPTEN__
 
 #if SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
 static int l_interfaces (lua_State *L) {
@@ -613,7 +613,29 @@ static int l_interfaces (lua_State *L) {
 }
 #endif
 
+static int l_ipint (lua_State *L) {
+  soup::IpAddr ip;
+  if (l_unlikely(!ip.fromString(luaL_checkstring(L, 1)))) {
+    luaL_error(L, "invalid IP address");
+  }
+  lua_pushinteger(L, soup::Endianness::toNative((soup::network_u32_t)ip.ints()[3]));
+  lua_pushinteger(L, soup::Endianness::toNative((soup::network_u32_t)ip.ints()[2]));
+  lua_pushinteger(L, soup::Endianness::toNative((soup::network_u32_t)ip.ints()[1]));
+  lua_pushinteger(L, soup::Endianness::toNative((soup::network_u32_t)ip.ints()[0]));
+  return 4;
+}
+
+static int l_ipstring (lua_State *L) {
+  soup::native_u32_t d = (uint32_t)luaL_checkinteger(L, 1);
+  soup::native_u32_t c = (uint32_t)luaL_optinteger(L, 2, 0xffff);
+  soup::native_u32_t b = (uint32_t)luaL_optinteger(L, 3, 0);
+  soup::native_u32_t a = (uint32_t)luaL_optinteger(L, 4, 0);
+  pluto_pushstring(L, soup::IpAddr(a, b, c, d).toString());
+  return 1;
+}
+
 static const luaL_Reg funcs_socket[] = {
+#ifndef __EMSCRIPTEN__
   {"connect", l_connect},
   {"send", l_send},
   {"peek", l_peek},
@@ -629,16 +651,19 @@ static const luaL_Reg funcs_socket[] = {
   {"setpeer", socket_setpeer},
   {"listen", l_listen},
   {"udpserver", l_udpserver},
+#endif
 #if SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
   {"interfaces", l_interfaces},
 #endif
+  {"ipint", l_ipint},
+  {"ipstring", l_ipstring},
   {NULL, NULL}
 };
 
 LUAMOD_API int luaopen_socket (lua_State *L) {
   luaL_newlib(L, funcs_socket);
 
-#ifndef PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO
+#if !defined(__EMSCRIPTEN__) && !defined(PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO)
   lua_pushliteral(L, "bind");
   luaL_loadstring(L, R"EOC(
 return function(sched, port, callback)
@@ -659,5 +684,3 @@ end)EOC");
   return 1;
 }
 const Pluto::PreloadedLibrary Pluto::preloaded_socket{ PLUTO_SOCKETLIBNAME, funcs_socket, &luaopen_socket };
-
-#endif
