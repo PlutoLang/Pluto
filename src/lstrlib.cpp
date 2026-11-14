@@ -2264,22 +2264,22 @@ static int str_truncate (lua_State *L) {
 
 static int str_replace (lua_State *L) {
   size_t pos = 0;
-  size_t sublen = 0;
+  size_t oldlen = 0;
   size_t newlen = 0;
 
   std::string og = pluto_checkstring(L, 1);
-  const char *sub = luaL_checklstring(L, 2, &sublen);
+  const char *old = luaL_checklstring(L, 2, &oldlen);
   const char *new_ = luaL_checklstring(L, 3, &newlen);
   const auto max_replace = luaL_optinteger(L, 4, 0);
 
-  luaL_check(L, sublen == 0, "argument 'substitute' for string.replace cannot be empty");
+  luaL_check(L, oldlen == 0, "argument 'original' for string.replace cannot be empty");
   luaL_check(L, max_replace < 0, "argument 'max_replace' for string.replace cannot be negative");
 
   if (max_replace == 0) {
     /* No limit on number of replaces; use a faster way to get it done. */
     pluto_pushstring(L,
       soup::string::join(
-        soup::string::explode(og, std::string(sub, sublen)),
+        soup::string::explode(og, std::string(old, oldlen)),
         std::string(new_, newlen)
       )
     );
@@ -2288,16 +2288,16 @@ static int str_replace (lua_State *L) {
 
   const bool erase = newlen == 0;
   size_t replacements = 0;
-  while ((pos = og.find(sub, pos, sublen)) != std::string::npos) {
+  while ((pos = og.find(old, pos, oldlen)) != std::string::npos) {
     if (max_replace != 0 && replacements++ == max_replace) {
       break;
     }
 
     if (erase) {
-      og.erase(pos, sublen);
+      og.erase(pos, oldlen);
     }
     else {
-      og.replace(pos, sublen, new_, newlen);
+      og.replace(pos, oldlen, new_, newlen);
       pos += newlen;
     }
   }
