@@ -91,39 +91,37 @@ LUALIB_API void luaL_openselectedlibs (lua_State *L, uint64_t load, uint64_t pre
   lua_pop(L, 1);  /* remove PRELOAD table */
 
 #ifndef PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO
-  const auto startup_code = R"EOC(
-pluto_use "0.6.0"
+  const auto startup_code = R"EOC(pluto_use "0.6.0"
 
 class exception
-    __name = "pluto:exception"
+  __name = "pluto:exception"
 
-    function __construct(public what)
-        local caller
-        local i = 2
-        while true do
-            caller = debug.getinfo(i)
-            if caller == nil then
-                error("exception instances must be created with 'pluto_new'", 0)
-            end
-            ++i
-            if caller.name == "Pluto_operator_new" then
-                caller = debug.getinfo(i)
-                break
-            end
-        end
-        self.where = $"{caller.short_src}:{caller.currentline}"
-        error(self, 0)
+  function __construct(public what)
+    local caller
+    local i = 2
+    while true do
+      caller = debug.getinfo(i)
+      if caller == nil then
+        error("exception instances must be created with 'pluto_new'", 0)
+      end
+      ++i
+      if caller.name == "Pluto_operator_new" then
+        caller = debug.getinfo(i)
+        break
+      end
     end
+    self.where = $"{caller.short_src}:{caller.currentline}"
+    error(self, 0)
+  end
 
-    function __tostring()
-        return $"{self.where}: {tostring(self.what)}"
-    end
+  function __tostring()
+    return $"{self.where}: {tostring(self.what)}"
+  end
 end
 
 function instanceof(a, b)
   return a instanceof b
-end
-)EOC";
+end)EOC";
   luaL_loadbuffer(L, startup_code, strlen(startup_code), "Pluto Standard Library");
   lua_call(L, 0, 0);
 #endif

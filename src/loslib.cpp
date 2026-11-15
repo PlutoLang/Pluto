@@ -535,10 +535,9 @@ LUAMOD_API int luaopen_os (lua_State *L) {
 
 #if !defined(PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO) && !defined(PLUTO_NO_OS_EXECUTE)
   lua_pushliteral(L, "system");
-  luaL_loadstring(L, R"EOC(
-return function(cmd)
-    local h <close> = io.popen(cmd, "r")
-    return h:read("a*")
+  luaL_loadstring(L, R"EOC(return function(cmd)
+  local h <close> = io.popen(cmd, "r")
+  return h:read("a*")
 end)EOC");
   lua_call(L, 0, 1);
   lua_settable(L, -3);
