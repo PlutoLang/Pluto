@@ -64,9 +64,9 @@ static int await_task (lua_State *L, soup::SharedPtr<Task>&& spTask) {
 extern bool PLUTO_HTTP_REQUEST_HOOK(lua_State* L, const char* url);
 #endif
 
-static int http_request (lua_State *L) {
+[[nodiscard]] static soup::HttpRequest checkrequest (lua_State *L, /*out*/ int& optionsidx) {
   std::string uri;
-  int optionsidx = 0;
+  optionsidx = 0;
   if (lua_type(L, 1) == LUA_TTABLE) {
     lua_pushliteral(L, "url");
     if (lua_rawget(L, 1) != LUA_TSTRING)
@@ -146,6 +146,12 @@ static int http_request (lua_State *L) {
       hr.setPayload("");
     lua_pop(L, 1);
   }
+  return hr;
+}
+
+static int http_request (lua_State *L) {
+  int optionsidx;
+  soup::HttpRequest hr = checkrequest(L, optionsidx);
 
 #if SOUP_WASM
   auto pTask = pluto_newclassinst(L, soup::HttpRequestTask, std::move(hr));
@@ -248,12 +254,37 @@ static int http_closeconnections (lua_State *L) {
   return 0;
 }
 
+#if !SOUP_WASM
+static int http_eventstream (lua_State *L) {
+  int optionsidx;
+  soup::HttpRequest hr = checkrequest(L, optionsidx);
+  const int callbackidx = (optionsidx ? optionsidx + 1 : 2);
+  luaL_checktype(L, callbackidx, LUA_TFUNCTION);
+  lua_pushvalue(L, callbackidx);
+  hr.executeEventStream([](std::unordered_map<std::string, std::string>&& data, const soup::Capture& cap) {
+    lua_State *L = cap.get<lua_State*>();
+    lua_pushvalue(L, -1);
+    lua_newtable(L);
+    for (const auto& e : data) {
+      pluto_pushstring(L, e.first);
+      pluto_pushstring(L, e.second);
+      lua_settable(L, -3);
+    }
+    lua_call(L, 1, 0);
+  }, L);
+  return 0;
+}
+#endif
+
 static const luaL_Reg funcs_http[] = {
   {"request", http_request},
 #if !SOUP_WASM
   {"hasconnection", http_hasconnection},
 #endif
   {"closeconnections", http_closeconnections},
+#if !SOUP_WASM
+  {"eventstream", http_eventstream},
+#endif
   {nullptr, nullptr}
 };
 
