@@ -13,8 +13,10 @@ LUAMOD_API int luaopen_vector3(lua_State* L) {
 #else
     const auto code = R"EOC(pluto_use "0.6.0"
 
-local vector3
- class vector3
+local vector3, xyzmap
+local g_system
+
+class vector3
   __name = "pluto:vector3"
 
   function __construct(x, y, z)
@@ -136,32 +138,33 @@ local vector3
     return self / self:magnitude()
   end
 
+  static function setsystem(pos, rot)
+    g_system = new xyzmap(pos, rot)
+  end
+
+  static function getsystem()
+    return g_system:tostrings()
+  end
+
   function torot(format)
-    format ??= ""
-    if format[1] ~= 'z' then
-      assert(format[1] == nil or format[1] == 'y', "Invalid up-axis in format")
-      local yaw = math.deg(math.atan(self.x, self.z))
-      if format[2] == 'r' then
-        yaw *= -1
+    if format then
+      local pos, rot
+      if format[1] ~= "z" then
+        pos = format[2] == "r" ? "-r+u+f" : "+r+u+f"
+        rot = "+p+y+b"
+      else
+        pos = format[2] ~= "r" ? "-r+f+u" : "+r+f+u"
+        rot = "+p+b+y"
       end
-      local pitch = math.deg(math.asin(self.y / self:magnitude()))
-      return new vector3(
-        math.isnan(pitch) ? 0 : pitch,
-        yaw,
-        0
-      )
-    else
-      local yaw = math.deg(math.atan(self.x, self.y))
-      if format[2] ~= 'r' then
-        yaw *= -1
-      end
-      local pitch = math.deg(math.asin(self.z / self:magnitude()))
-      return new vector3(
-        math.isnan(pitch) ? 0 : pitch,
-        0,
-        yaw
-      )
+      warn("vector3.torot: specifying a format is deprecated; for \""..format.."\", call vector3.setsystem(\""..pos.."\", \""..rot.."\") instead")
+      vector3.setsystem(pos, rot)
     end
+    local f, r, u = g_system:unmappos(self)
+    return g_system:maprot(
+      math.deg(math.atan(r, f)),
+      math.deg(math.asin(u / self:magnitude())),
+      0
+    )
   end
 
   function lookat(b, format)
@@ -170,27 +173,26 @@ local vector3
   end
 
   function todir(format)
-    format ??= ""
-    if format[1] ~= 'z' then
-      assert(format[1] == nil or format[1] == 'y', "Invalid up-axis in format")
-      local handedness_factor = (format[2] == 'r' ? -1 : +1)
-      local yaw_radians = math.rad(self.y)
-      local pitch_radians = math.rad(self.x) * handedness_factor
-      return new vector3(
-        math.cos(pitch_radians) * math.sin(yaw_radians) * handedness_factor,
-        math.sin(pitch_radians) * handedness_factor,
-        math.cos(pitch_radians) * math.cos(yaw_radians)
-      )
-    else
-      local handedness_factor = (format[2] ~= 'r' ? -1 : +1)
-      local yaw_radians = math.rad(self.z)
-      local pitch_radians = math.rad(self.x) * handedness_factor
-      return new vector3(
-        math.cos(pitch_radians) * math.sin(yaw_radians) * handedness_factor,
-        math.cos(pitch_radians) * math.cos(yaw_radians),
-        math.sin(pitch_radians) * handedness_factor
-      )
+    if format then
+      local pos, rot
+      if format[1] ~= "z" then
+        pos = format[2] == "r" ? "-r+u+f" : "+r+u+f"
+        rot = "+p+y+b"
+      else
+        pos = format[2] ~= "r" ? "-r+f+u" : "+r+f+u"
+        rot = "+p+b+y"
+      end
+      warn("vector3.todir: specifying a format is deprecated; for \""..format.."\", call vector3.setsystem(\""..pos.."\", \""..rot.."\") instead")
+      vector3.setsystem(pos, rot)
     end
+    local yaw, pitch = g_system:unmaprot(self)
+    local yaw_radians = math.rad(yaw)
+    local pitch_radians = math.rad(pitch)
+    return g_system:mappos(
+      math.cos(pitch_radians) * math.cos(yaw_radians),
+      math.cos(pitch_radians) * math.sin(yaw_radians),
+      math.sin(pitch_radians)
+    )
   end
 end
 
@@ -199,6 +201,89 @@ setmetatable(vector3, {
     return new vector3(x, y, z)
   end
 })
+
+class xyzmap
+  function __construct(pos, rot)
+    assert(#pos == 6, "invalid position system specification")
+    assert(pos[1] == "+" or pos[1] == "-", "invalid position system specification")
+    assert(pos[2] == "f" or pos[2] == "r" or pos[2] == "u", "invalid position system specification")
+    assert(pos[3] == "+" or pos[3] == "-", "invalid position system specification")
+    assert(pos[4] == "f" or pos[4] == "r" or pos[4] == "u", "invalid position system specification")
+    assert(pos[5] == "+" or pos[5] == "-", "invalid position system specification")
+    assert(pos[6] == "f" or pos[6] == "r" or pos[6] == "u", "invalid position system specification")
+
+    assert(#rot == 6, "invalid rotation system specification")
+    assert(rot[1] == "+" or rot[1] == "-", "invalid rotation system specification")
+    assert(rot[2] == "y" or rot[2] == "p" or rot[2] == "b", "invalid rotation system specification")
+    assert(rot[3] == "+" or rot[3] == "-", "invalid rotation system specification")
+    assert(rot[4] == "y" or rot[4] == "p" or rot[4] == "b", "invalid rotation system specification")
+    assert(rot[5] == "+" or rot[5] == "-", "invalid rotation system specification")
+    assert(rot[6] == "y" or rot[6] == "p" or rot[6] == "b", "invalid rotation system specification")
+
+    self[pos[2]] = "x"
+    self[pos[2] .. "f"] = pos[1] == "+" ? +1 : -1
+    self[pos[4]] = "y"
+    self[pos[4] .. "f"] = pos[3] == "+" ? +1 : -1
+    self[pos[6]] = "z"
+    self[pos[6] .. "f"] = pos[5] == "+" ? +1 : -1
+
+    self[rot[2]] = "x"
+    self[rot[2] .. "f"] = rot[1] == "+" ? +1 : -1
+    self[rot[4]] = "y"
+    self[rot[4] .. "f"] = rot[3] == "+" ? +1 : -1
+    self[rot[6]] = "z"
+    self[rot[6] .. "f"] = rot[5] == "+" ? +1 : -1
+
+    assert(self.f and self.r and self.u, "invalid position system specification")
+    assert(self.y and self.p and self.b, "invalid rotation system specification")
+  end
+
+  function mappos(f, r, u)
+    local vec = new vector3()
+    vec[self.f] = f * self.ff
+    vec[self.r] = r * self.rf
+    vec[self.u] = u * self.uf
+    return vec
+  end
+
+  function unmappos(vec)
+    return vec[self.f] * self.ff, vec[self.r] * self.rf, vec[self.u] * self.uf
+  end
+
+  function maprot(y, p, b)
+    local vec = new vector3()
+    vec[self.y] = y * self.yf
+    vec[self.p] = p * self.pf
+    vec[self.b] = b * self.bf
+    return vec
+  end
+
+  function unmaprot(vec)
+    return vec[self.y] * self.yf, vec[self.p] * self.pf, vec[self.b] * self.bf
+  end
+
+  function tostrings()
+    local pos = {}
+    pos[self.f .. "s"] = self.ff > 0 ? "+" : "-"
+    pos[self.f] = "f"
+    pos[self.r .. "s"] = self.rf > 0 ? "+" : "-"
+    pos[self.r] = "r"
+    pos[self.u .. "s"] = self.uf > 0 ? "+" : "-"
+    pos[self.u] = "u"
+
+    local rot = {}
+    rot[self.y .. "s"] = self.yf > 0 ? "+" : "-"
+    rot[self.y] = "y"
+    rot[self.p .. "s"] = self.pf > 0 ? "+" : "-"
+    rot[self.p] = "p"
+    rot[self.b .. "s"] = self.bf > 0 ? "+" : "-"
+    rot[self.b] = "b"
+
+    return pos.xs .. pos.x .. pos.ys .. pos.y .. pos.zs .. pos.z, rot.xs .. rot.x .. rot.ys .. rot.y .. rot.zs .. rot.z
+  end
+end
+
+vector3.setsystem("-r+f+u", "+p+b+y")
 
 return vector3)EOC";
     luaL_loadbuffer(L, code, strlen(code), "pluto:vector3");
