@@ -1793,6 +1793,56 @@ do
     end
 end
 do
+    local vector3 = require "pluto:vector3"
+
+    -- Position: X, Y, Z = Forward, Rightward, Upward
+    -- Rotation: X, Y, Z = Yaw (Rightward), Pitch (Upward), Bank/Roll
+    vector3.setsystem("+f+r+u", "+y+p+b")
+    assert(select(1, vector3.getsystem()) == "+f+r+u")
+    assert(select(2, vector3.getsystem()) == "+y+p+b")
+    assert(vector3(0, 0, 0):todir() == vector3(1, 0, 0))
+    assert(vector3(1, 0, 0):torot() == vector3(0, 0, 0))
+    assert(vector3(0, 1, 0):torot() == vector3(90, 0, 0))
+    assert(vector3(0, 0, 1):torot() == vector3(0, 90, 0))
+
+    -- Left-handed Z-up: Thumb points left, index finger points forward, middle finger points up.
+    vector3.setsystem("-r+f+u", "+p+b+y")
+    assert(select(1, vector3.getsystem()) == "-r+f+u")
+    assert(select(2, vector3.getsystem()) == "+p+b+y")
+    assert(vector3(0, 0, 0):todir() == vector3(0, 1, 0))
+    assert(vector3(0, 1, 0):torot() == vector3(0, 0, 0))
+    assert(vector3(1, 0, 0):torot() == vector3(0, 0, -90))
+    assert(vector3(0, 0, 1):torot() == vector3(90, 0, 0))
+
+    -- Right-handed Z-up: Thumb points right, index finger points forward, middle finger points up.
+    vector3.setsystem("+r+f+u", "+p+b+y")
+    assert(select(1, vector3.getsystem()) == "+r+f+u")
+    assert(select(2, vector3.getsystem()) == "+p+b+y")
+    assert(vector3(0, 0, 0):todir() == vector3(0, 1, 0)) -- no rotation; forward = +Y
+    assert(vector3(0, 1, 0):torot() == vector3(0, 0, 0))
+    assert(vector3(1, 0, 0):torot() == vector3(0, 0, 90))
+    assert(vector3(0, 0, 1):torot() == vector3(90, 0, 0))
+
+    -- Left-handed Y-up: Thumb points right, index finger points up, middle finger points forward.
+    vector3.setsystem("+r+u+f", "+p+y+b")
+    assert(select(1, vector3.getsystem()) == "+r+u+f")
+    assert(select(2, vector3.getsystem()) == "+p+y+b")
+    assert(vector3(0, 0, 0):todir() == vector3(0, 0, 1)) -- no rotation; forward = +Z
+    assert(vector3(0, 0, 1):torot() == vector3(0, 0, 0))
+    assert(vector3(1, 0, 0):torot() == vector3(0, 90, 0))
+    assert(vector3(0, 1, 0):torot() == vector3(90, 0, 0))
+
+    -- Right-handed Y-up: Thumb points left, index finger points up, middle finger points forward.
+    vector3.setsystem("-r+u+f", "+p+y+b")
+    assert(select(1, vector3.getsystem()) == "-r+u+f")
+    assert(select(2, vector3.getsystem()) == "+p+y+b")
+    assert(vector3(0, 0, 0):todir() == vector3(0, 0, 1)) -- no rotation; forward = +Z
+    assert(vector3(0, 0, 1):torot() == vector3(0, 0, 0))
+    assert(vector3(1, 0, 0):torot() == vector3(0, -90, 0))
+    assert(vector3(0, 1, 0):torot() == vector3(90, 0, 0))
+end
+-- Specifying a format in torot/todir is now deprecated, but should still work as expected.
+wcall(function()
     local v3 = require"pluto:vector3"
     -- Left-handed Z-up: Thumb points left, index finger points forward, middle finger points up.
     assert(v3(1, 0, 0):torot("zl") == v3(0, 0, -90))
@@ -1823,7 +1873,7 @@ do
     assert(v3(0, -90, 0):todir("yr").x == 1)
     assert(v3(90, 0, 0):todir("yr").y == 1)
     assert(v3(0, 0, 0):todir("yr").z == 1)
-end
+end)
 do
     local crypto = require("crypto")
     assert(crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
