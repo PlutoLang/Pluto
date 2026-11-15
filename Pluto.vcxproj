@@ -946,6 +946,7 @@
     <ClInclude Include="src\vendor\Soup\soup\HandleBase.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\HandleRaii.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\HardwareRng.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\HttpEmscriptenBuffer.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\HttpRequest.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\HttpRequestTask.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\HttpResponse.hpp" />

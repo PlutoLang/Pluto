@@ -360,16 +360,7 @@ NAMESPACE_SOUP
 	HttpRequestTask::HttpRequestTask(HttpRequest&& _hr)
 		: hr(std::move(_hr))
 	{
-		emscripten_fetch_attr_t attr;
-		emscripten_fetch_attr_init(&attr);
-		if ((hr.method.size() + 1) < sizeof(attr.requestMethod))
-		{
-			strcpy(attr.requestMethod, hr.method.c_str());
-		}
-		else
-		{
-			strcpy(attr.requestMethod, "GET");
-		}
+		emscripten_fetch_attr_t attr = hr.toEmscripten(buffer);
 		attr.userData = this;
 		attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
 		attr.onsuccess = [](emscripten_fetch_t* fetch)
@@ -386,29 +377,6 @@ NAMESPACE_SOUP
 			((HttpRequestTask*)fetch->userData)->setWorkDone();
 			emscripten_fetch_close(fetch);
 		};
-		header_fields = hr.getHeaderFields();
-		for (const auto& field : header_fields)
-		{
-			if (field.first != "Host"
-				&& field.first != "User-Agent"
-				&& field.first != "Connection"
-				&& field.first != "Accept-Encoding"
-				)
-			{
-				headers.emplace_back(field.first.c_str());
-				headers.emplace_back(field.second.c_str());
-			}
-		}
-		if (!headers.empty())
-		{
-			headers.emplace_back(nullptr);
-			attr.requestHeaders = &headers[0];
-		}
-		if (!hr.body.empty())
-		{
-			attr.requestData = hr.body.data();
-			attr.requestDataSize = hr.body.size();
-		}
 		auto url = hr.getUrl();
 		emscripten_fetch(&attr, url.c_str());
 	}

@@ -49,8 +49,7 @@ NAMESPACE_SOUP
 		static constexpr time_t FIRST_CHUNK_TIMEOUT_SECS = 30;
 		static constexpr time_t SUBSEQUENT_CHUNK_TIMEOUT_SECS = 10;
 #else
-		std::unordered_map<std::string, std::string> header_fields;
-		std::vector<const char*> headers;
+		HttpEmscriptenBuffer buffer;
 #endif
 
 		HttpRequestTask(const Uri& uri);

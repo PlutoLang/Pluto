@@ -561,6 +561,65 @@ NAMESPACE_SOUP
 		}, CaptureRecvEventStream{ callback, std::move(cap) });
 		receiver_cap.get<HttpResponseReceiver>().tick(s, std::move(receiver_cap));
 	}
+#elif SOUP_EMSCRIPTEN
+	emscripten_fetch_attr_t HttpRequest::toEmscripten(HttpEmscriptenBuffer& buffer) const SOUP_EXCAL
+	{
+		emscripten_fetch_attr_t attr;
+		emscripten_fetch_attr_init(&attr);
+		if ((this->method.size() + 1) < sizeof(attr.requestMethod))
+		{
+			strcpy(attr.requestMethod, this->method.c_str());
+		}
+		else
+		{
+			strcpy(attr.requestMethod, "GET");
+		}
+		buffer.header_fields = this->getHeaderFields();
+		for (const auto& field : buffer.header_fields)
+		{
+			if (field.first != "Host"
+				&& field.first != "User-Agent"
+				&& field.first != "Connection"
+				&& field.first != "Accept-Encoding"
+				)
+			{
+				buffer.headers.emplace_back(field.first.c_str());
+				buffer.headers.emplace_back(field.second.c_str());
+			}
+		}
+		if (!buffer.headers.empty())
+		{
+			buffer.headers.emplace_back(nullptr);
+			attr.requestHeaders = &buffer.headers[0];
+		}
+		if (!this->body.empty())
+		{
+			attr.requestData = this->body.data();
+			attr.requestDataSize = this->body.size();
+		}
+		return emscripten_fetch_attr_t();
+	}
+
+	Optional<HttpResponse> HttpRequest::execute() const SOUP_EXCAL
+	{
+		HttpEmscriptenBuffer buffer;
+		emscripten_fetch_attr_t attr = this->toEmscripten(buffer);
+		Optional<HttpResponse> res;
+		attr.userData = &res;
+		attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY | EMSCRIPTEN_FETCH_SYNCHRONOUS;
+		attr.onsuccess = [](emscripten_fetch_t* fetch)
+		{
+			HttpResponse resp;
+			resp.body = std::string(fetch->data, fetch->numBytes);
+			resp.status_code = fetch->status;
+			resp.status_text = fetch->statusText;
+			*(Optional<HttpResponse>*)fetch->userData = std::move(resp);
+		};
+		auto url = this->getUrl();
+		emscripten_fetch_t* fetch = emscripten_fetch(&attr, url.c_str());
+		emscripten_fetch_close(fetch);
+		return res;
+	}
 #endif
 
 	void HttpRequest::clear() noexcept

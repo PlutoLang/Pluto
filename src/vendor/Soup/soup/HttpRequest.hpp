@@ -9,6 +9,11 @@
 #include "MimeMessage.hpp"
 #include "Optional.hpp"
 
+#if SOUP_EMSCRIPTEN
+	#include "HttpEmscriptenBuffer.hpp"
+	#include <emscripten/fetch.h>
+#endif
+
 NAMESPACE_SOUP
 {
 	class HttpRequest : public MimeMessage
@@ -55,6 +60,9 @@ NAMESPACE_SOUP
 		static void recvResponse(Socket& s, bool head, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
 		static void recvResponse(Socket& s, bool head, bool on_body_part(Socket&, const std::string&, const Capture&) SOUP_EXCAL, void callback(Socket&, Optional<HttpResponse>&&, Capture&&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
 		static void recvEventStream(Socket& s, void callback(Socket&, std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}) SOUP_EXCAL;
+#elif SOUP_EMSCRIPTEN
+		[[nodiscard]] emscripten_fetch_attr_t toEmscripten(HttpEmscriptenBuffer& buffer) const SOUP_EXCAL;
+		[[nodiscard]] Optional<HttpResponse> execute() const SOUP_EXCAL; // blocking
 #endif
 
 		void clear() noexcept;

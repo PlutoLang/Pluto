@@ -10,20 +10,24 @@
 #include "vendor/Soup/soup/os.hpp"
 #include "vendor/Soup/soup/Uri.hpp"
 
+static int push_http_response (lua_State *L, soup::HttpResponse& resp) {
+  // Return value order is 'body, status_code, response_headers, status_text' for compatibility with luasocket.
+  pluto_pushstring(L, resp.body);
+  lua_pushinteger(L, resp.status_code);
+  lua_newtable(L);
+  const auto header_fields = resp.getHeaderFields();
+  for (auto& e : header_fields) {
+    pluto_pushstring(L, e.first);
+    pluto_pushstring(L, e.second);
+    lua_settable(L, -3);
+  }
+  pluto_pushstring(L, resp.status_text);
+  return 4;
+}
+
 static int push_http_response (lua_State *L, soup::HttpRequestTask& task) {
   if (task.result.has_value()) {
-    // Return value order is 'body, status_code, response_headers, status_text' for compatibility with luasocket.
-    pluto_pushstring(L, task.result->body);
-    lua_pushinteger(L, task.result->status_code);
-    lua_newtable(L);
-    const auto header_fields = task.result->getHeaderFields();
-    for (auto& e : header_fields) {
-      pluto_pushstring(L, e.first);
-      pluto_pushstring(L, e.second);
-      lua_settable(L, -3);
-    }
-    pluto_pushstring(L, task.result->status_text);
-    return 4;
+    return push_http_response(L, *task.result);
   }
   // Return value order is 'nil, message' for compatibility with luasocket.
   luaL_pushfail(L);
@@ -34,6 +38,16 @@ static int push_http_response (lua_State *L, soup::HttpRequestTask& task) {
   return 2;
 #endif
 }
+
+#if SOUP_WASM
+static int push_http_response (lua_State *L, soup::Optional<soup::HttpResponse>& result) {
+  if (result.has_value()) {
+    return push_http_response(L, *result);
+  }
+  luaL_pushfail(L);
+  return 1;
+}
+#endif
 
 template <typename Task, int(*callback)(lua_State* L, Task&)>
 static int await_task_cont (lua_State *L, int status, lua_KContext ctx) {
@@ -93,12 +107,6 @@ static int http_request (lua_State *L) {
     luaL_error(L, "disallowed by content moderation policy");
 #endif
 
-#if SOUP_WASM
-  if (!lua_isyieldable(L)) {
-    luaL_error(L, "HTTP requests are not possible in this WASM environment due to running Pluto as a blocking program.");
-  }
-#endif
-
   soup::HttpRequest hr(soup::Uri(std::move(uri)));
   if (optionsidx) {
     lua_pushnil(L);
@@ -148,8 +156,12 @@ static int http_request (lua_State *L) {
   }
 
 #if SOUP_WASM
-  auto pTask = pluto_newclassinst(L, soup::HttpRequestTask, std::move(hr));
-  return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), &await_task_cont<soup::HttpRequestTask, push_http_response>);
+  if (lua_isyieldable(L)) {
+    auto pTask = pluto_newclassinst(L, soup::HttpRequestTask, std::move(hr));
+    return lua_yieldk(L, 0, reinterpret_cast<lua_KContext>(pTask), &await_task_cont<soup::HttpRequestTask, push_http_response>);
+  }
+  auto pOptResp = pluto_newclassinst(L, soup::Optional<soup::HttpResponse>, hr.execute());
+  return push_http_response(L, *pOptResp);
 #else
   if (lua_getfield(L, LUA_REGISTRYINDEX, "pluto:statescheduler") == LUA_TNIL) {
     lua_pop(L, 1);

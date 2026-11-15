@@ -1233,9 +1233,6 @@
     <ClInclude Include="src\vendor\Soup\soup\lookup3.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
-    <ClInclude Include="src\vendor\Soup\soup\alpha2decodetbl.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\base58.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\CustomEncoding.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\MacAddr.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
@@ -1246,6 +1243,18 @@
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
     <ClInclude Include="src\vendor\Soup\soup\AllocRaiiLocalBase.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\HttpEmscriptenBuffer.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\base58.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\CustomEncoding.hpp">
+      <Filter>vendor\Soup\soup</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\Soup\soup\alpha2decodetbl.hpp">
       <Filter>vendor\Soup\soup</Filter>
     </ClInclude>
   </ItemGroup>
