@@ -665,35 +665,35 @@ LUAMOD_API int luaopen_socket (lua_State *L) {
 
 #if !defined(__EMSCRIPTEN__) && !defined(PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO)
   luaL_loadstring(L, R"EOC(return function(socket)
-    function socket.bind(sched, port, callback)
-        local l, bound_port = require"pluto:socket".listen(port)
-        assert(l, "Failed to bind port "..port)
-        return sched:add(function()
-            while s := l:accept() do
-                sched:add(function()
-                    callback(s)
-                end)
-            end
-        end), bound_port
-    end
+  function socket.bind(sched, port, callback)
+    local l, bound_port = require"pluto:socket".listen(port)
+    assert(l, "Failed to bind port "..port)
+    return sched:add(function()
+      while s := l:accept() do
+        sched:add(function()
+          callback(s)
+        end)
+      end
+    end), bound_port
+  end
 
-    local recv_impl = socket.recv
-    function socket.recv(s, timeout)
-        if timeout then
-            local deadline = os.millis() + timeout
-            while not s:peek() do
-                if coroutine.isyieldable() then
-                    coroutine.yield()
-                else
-                    os.sleep(1)
-                end
-                if os.millis() > deadline then
-                    return nil
-                end
-            end
+  local recv_impl = socket.recv
+  function socket.recv(s, timeout)
+    if timeout then
+      local deadline = os.millis() + timeout
+      while not s:peek() do
+        if coroutine.isyieldable() then
+          coroutine.yield()
+        else
+          os.sleep(1)
         end
-        return recv_impl(s)
+        if os.millis() > deadline then
+          return nil
+        end
+      end
     end
+    return recv_impl(s)
+  end
 end)EOC");
   lua_call(L, 0, 1);
   lua_pushvalue(L, -2);
