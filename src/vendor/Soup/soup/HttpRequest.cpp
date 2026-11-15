@@ -162,14 +162,16 @@ NAMESPACE_SOUP
 		Capture cap;
 	};
 
-	void HttpRequest::executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) const
+	void HttpRequest::executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap)
 	{
 		auto resolver = netConfig::get().getDnsResolver();
 		return executeEventStream(*resolver, on_event, std::move(cap));
 	}
 
-	void HttpRequest::executeEventStream(const dnsResolver& resolver, void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) const
+	void HttpRequest::executeEventStream(const dnsResolver& resolver, void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap)
 	{
+		this->removeHeader("Accept-Encoding");
+
 		HttpRequestExecuteEventStreamData data{ on_event, std::move(cap) };
 		auto sock = make_shared<Socket>();
 		const auto [host, port] = getHostAndPort();
