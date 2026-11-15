@@ -39,8 +39,8 @@ NAMESPACE_SOUP
 		[[nodiscard]] Optional<HttpResponse> execute(certchain_validator_t certchain_validator) const; // blocking
 		[[nodiscard]] Optional<HttpResponse> execute(const dnsResolver& resolver) const; // blocking
 		[[nodiscard]] Optional<HttpResponse> execute(const dnsResolver& resolver, certchain_validator_t certchain_validator) const; // blocking
-		void executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}) const; // blocking
-		void executeEventStream(const dnsResolver& resolver, void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}) const; // blocking
+		void executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}); // blocking
+		void executeEventStream(const dnsResolver& resolver, void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap = {}); // blocking
 		[[nodiscard]] std::string getDataToSend() const SOUP_EXCAL;
 		void send(Socket& s) const SOUP_EXCAL;
 	private:
