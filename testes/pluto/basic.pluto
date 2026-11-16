@@ -4143,6 +4143,23 @@ do
             end
         end
     end
+    -- https://github.com/PlutoLang/Pluto/issues/1531 & https://github.com/PlutoLang/Pluto/issues/1532
+    -- @pluto_warnings: disable-next
+    local class smth4
+        static function end(data)
+            if data.end then
+                return data:end()
+            end
+        end
+    end
+    assert(smth4.end({ end = || -> 1 }) == 1)
+    local class smth5
+        function end()
+           return smth4.end({ end = || -> 2 }) 
+        end
+    end
+    local inst = new smth5()
+    assert(inst:end() == 2)
 end
 do
     -- Local class can reference itself

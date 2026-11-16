@@ -1920,7 +1920,7 @@ static void funcfield (LexState *ls, struct ConsControl *cc, int ismethod, bool 
   expdesc tab, key, val;
   cc->nh++;
   luaX_next(ls); /* skip TK_FUNCTION */
-  codename(ls, &key);
+  codename(ls, &key, N_RESERVED_NON_VALUE | N_OVERRIDABLE);
   if (isprivate) {
     const auto new_name = ls->classes.top().addPrivateField(getstr(key.u.strval));
     codestring(&key, luaX_newstring(ls, new_name.c_str()));
@@ -2210,7 +2210,10 @@ static size_t preprocessclass (LexState *ls) noexcept {
 
   //printf("Begin processing class at line %d.\n", ls->getLineNumber());
   while (ls->t.token != TK_EOS) {
-    if (ls->t.token == TK_END) {
+    if (ls->t.token == TK_END
+      && luaX_lookbehind(ls).token != '.' && luaX_lookbehind(ls).token != ':'  /* not a member access? */
+      && luaX_lookahead(ls) != '='  /* and not defining a variable/member? */
+      ) {
       //printf("End block at line %d.\n", ls->getLineNumber());
       if (blocks.top() == SBT_ROOT) {
         //printf("End processing class at line %d.\n", ls->getLineNumber());
@@ -2238,6 +2241,9 @@ static size_t preprocessclass (LexState *ls) noexcept {
           blocks.push((ls->t.token == TK_SWITCH || ls->t.token == TK_PSWITCH) ? SBT_SWITCH : SBT_NONE);
           //printf("Begin block at line %d.\n", ls->getLineNumber());
         }
+        if (ls->t.token == TK_FUNCTION) {
+          luaX_next(ls);  /* advance to skip name, in case the name is 'end' */
+        }
       }
       break;
 
@@ -2258,27 +2264,27 @@ static size_t preprocessclass (LexState *ls) noexcept {
 
     if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "protected") == 0) {
       if (luaX_lookahead(ls) == TK_FUNCTION) {
-        checknext(ls, TK_NAME);
-        checknext(ls, TK_FUNCTION);
+        luaX_next(ls);  /* skip TK_NAME */
+        luaX_next(ls);  /* skip TK_FUNCTION */
         ls->classes.top().addProtectedField(getstr(ls->t.seminfo.ts));
         blocks.push(SBT_NONE);  /* for TK_FUNCTION */
         //printf("Begin block at line %d.\n", ls->getLineNumber());
       }
       else if (luaX_lookahead(ls) == TK_NAME) {
-        checknext(ls, TK_NAME);
+        luaX_next(ls);  /* skip TK_NAME */
         ls->classes.top().addProtectedField(getstr(ls->t.seminfo.ts));
       }
     }
     else if (ls->t.token == TK_NAME && strcmp(getstr(ls->t.seminfo.ts), "private") == 0) {
       if (luaX_lookahead(ls) == TK_FUNCTION) {
-        checknext(ls, TK_NAME);
-        checknext(ls, TK_FUNCTION);
+        luaX_next(ls);  /* skip TK_NAME */
+        luaX_next(ls);  /* skip TK_FUNCTION */
         ls->classes.top().addPrivateField(getstr(ls->t.seminfo.ts));
         blocks.push(SBT_NONE);  /* for TK_FUNCTION */
         //printf("Begin block at line %d.\n", ls->getLineNumber());
       }
       else if (luaX_lookahead(ls) == TK_NAME) {
-        checknext(ls, TK_NAME);
+        luaX_next(ls);  /* skip TK_NAME */
         ls->classes.top().addPrivateField(getstr(ls->t.seminfo.ts));
       }
     }
