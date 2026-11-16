@@ -2225,7 +2225,7 @@ static size_t preprocessclass (LexState *ls) noexcept {
     case TK_ENUM:
     case TK_CLASS: /* class or enum class */
     case TK_FUNCTION:
-    case TK_SWITCH: case TK_PSWITCH:
+    case TK_SWITCH:
       /* ensure this keyword isn't being used in a goto label, call, type hint, or table key assignment (issue #1410) */
       if (luaX_lookahead(ls) != '='
         && (luaX_lookbehind(ls).token != ':' || blocks.top() == SBT_SWITCH)  /* `case "": if` starts an if block */
