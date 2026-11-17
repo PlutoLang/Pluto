@@ -1060,9 +1060,8 @@ static int l_decompress (lua_State *L) {
     if (max_decompressed_size == -1) {
       max_decompressed_size = soup::lzf::getMaxDecompressedSize(data, static_cast<unsigned int>(size));
     }
-    auto buffer_size = soup::lzf::getMaxDecompressedSize(data, static_cast<unsigned int>(size));
-    auto buffer = lua_newuserdata(L, buffer_size);
-    if (auto decompressed_size = soup::lzf::decompress(data, static_cast<unsigned int>(size), buffer, buffer_size)) {
+    auto buffer = lua_newuserdata(L, max_decompressed_size);
+    if (auto decompressed_size = soup::lzf::decompress(data, static_cast<unsigned int>(size), buffer, max_decompressed_size)) {
       lua_pushlstring(L, static_cast<char*>(buffer), decompressed_size);
       return 1;
     }
