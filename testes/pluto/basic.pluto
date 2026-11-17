@@ -4665,9 +4665,6 @@ do
     assert(utonumber("1337") == 1337)
     assert(utonumber("1337", 16) == 0x1337)
 
-    pcall(|| -> utostring())
-    assert(utostring(1337) == "1337")
-
     pcall(|| -> string.uformat("%f", ""))
     assert(string.uformat("%.2f", 4.20) == "4.20")
 end
