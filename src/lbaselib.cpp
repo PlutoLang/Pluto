@@ -576,11 +576,6 @@ int luaB_tostring (lua_State *L) {
 }
 
 
-int luaB_utostring (lua_State *L) {
-  pluto_uwrap(L, luaB_tostring, 1);
-}
-
-
 static int luaB_newuserdata (lua_State *L) {
   lua_newuserdata(L, 0);
   lua_newtable(L);
@@ -894,7 +889,6 @@ static const luaL_Reg base_funcs[] = {
   {"tonumber", luaB_tonumber},
   {"utonumber", luaB_utonumber},
   {"tostring", luaB_tostring},
-  {"utostring", luaB_utostring},
   {"type", luaB_type},
   {"xpcall", luaB_xpcall},
   /* placeholders */
