@@ -1793,6 +1793,56 @@ do
     end
 end
 do
+    local vector3 = require "pluto:vector3"
+
+    -- Position: X, Y, Z = Forward, Rightward, Upward
+    -- Rotation: X, Y, Z = Yaw (Rightward), Pitch (Upward), Bank/Roll
+    vector3.setsystem("+f+r+u", "+y+p+b")
+    assert(select(1, vector3.getsystem()) == "+f+r+u")
+    assert(select(2, vector3.getsystem()) == "+y+p+b")
+    assert(vector3(0, 0, 0):todir() == vector3(1, 0, 0))
+    assert(vector3(1, 0, 0):torot() == vector3(0, 0, 0))
+    assert(vector3(0, 1, 0):torot() == vector3(90, 0, 0))
+    assert(vector3(0, 0, 1):torot() == vector3(0, 90, 0))
+
+    -- Left-handed Z-up: Thumb points left, index finger points forward, middle finger points up.
+    vector3.setsystem("-r+f+u", "+p+b+y")
+    assert(select(1, vector3.getsystem()) == "-r+f+u")
+    assert(select(2, vector3.getsystem()) == "+p+b+y")
+    assert(vector3(0, 0, 0):todir() == vector3(0, 1, 0))
+    assert(vector3(0, 1, 0):torot() == vector3(0, 0, 0))
+    assert(vector3(1, 0, 0):torot() == vector3(0, 0, -90))
+    assert(vector3(0, 0, 1):torot() == vector3(90, 0, 0))
+
+    -- Right-handed Z-up: Thumb points right, index finger points forward, middle finger points up.
+    vector3.setsystem("+r+f+u", "+p+b+y")
+    assert(select(1, vector3.getsystem()) == "+r+f+u")
+    assert(select(2, vector3.getsystem()) == "+p+b+y")
+    assert(vector3(0, 0, 0):todir() == vector3(0, 1, 0)) -- no rotation; forward = +Y
+    assert(vector3(0, 1, 0):torot() == vector3(0, 0, 0))
+    assert(vector3(1, 0, 0):torot() == vector3(0, 0, 90))
+    assert(vector3(0, 0, 1):torot() == vector3(90, 0, 0))
+
+    -- Left-handed Y-up: Thumb points right, index finger points up, middle finger points forward.
+    vector3.setsystem("+r+u+f", "+p+y+b")
+    assert(select(1, vector3.getsystem()) == "+r+u+f")
+    assert(select(2, vector3.getsystem()) == "+p+y+b")
+    assert(vector3(0, 0, 0):todir() == vector3(0, 0, 1)) -- no rotation; forward = +Z
+    assert(vector3(0, 0, 1):torot() == vector3(0, 0, 0))
+    assert(vector3(1, 0, 0):torot() == vector3(0, 90, 0))
+    assert(vector3(0, 1, 0):torot() == vector3(90, 0, 0))
+
+    -- Right-handed Y-up: Thumb points left, index finger points up, middle finger points forward.
+    vector3.setsystem("-r+u+f", "+p+y+b")
+    assert(select(1, vector3.getsystem()) == "-r+u+f")
+    assert(select(2, vector3.getsystem()) == "+p+y+b")
+    assert(vector3(0, 0, 0):todir() == vector3(0, 0, 1)) -- no rotation; forward = +Z
+    assert(vector3(0, 0, 1):torot() == vector3(0, 0, 0))
+    assert(vector3(1, 0, 0):torot() == vector3(0, -90, 0))
+    assert(vector3(0, 1, 0):torot() == vector3(90, 0, 0))
+end
+-- Specifying a format in torot/todir is now deprecated, but should still work as expected.
+wcall(function()
     local v3 = require"pluto:vector3"
     -- Left-handed Z-up: Thumb points left, index finger points forward, middle finger points up.
     assert(v3(1, 0, 0):torot("zl") == v3(0, 0, -90))
@@ -1823,7 +1873,7 @@ do
     assert(v3(0, -90, 0):todir("yr").x == 1)
     assert(v3(90, 0, 0):todir("yr").y == 1)
     assert(v3(0, 0, 0):todir("yr").z == 1)
-end
+end)
 do
     local crypto = require("crypto")
     assert(crypto.fnv1("hello world") == 0x7DCF62CDB1910E6F)
@@ -1838,6 +1888,12 @@ do
     assert($crypto.joaat("hello world") == 1045060183)
     assert($crypto.crc32("hello world") == 222957957)
     assert($crypto.crc32c("hello world") == 3381945770)
+
+    assert(crypto.lookup3("Hello") == 0xc7bc405b)
+    assert(crypto.lookup3("Hello", 1337) == 0x9ddedb37)
+    assert(crypto.lookup3("Hello", 0, true) == 0x2aa452d1_c7bc405b)
+    assert(crypto.lookup3("Hello", 1337, true) == 0x11197984_9ddedb37)
+    assert(crypto.lookup3("Hello", 0x1337_cafebabe, true) == 0x1a50cb7d_01b393f2)
 
     assert(crypto.sha1("Pluto") == "bce8c9aca4120776fad6b517874aa09c46405454")
     assert(crypto.sha1("Pluto", true) == "\xbc\xe8\xc9\xac\xa4\x12\x07\x76\xfa\xd6\xb5\x17\x87\x4a\xa0\x9c\x46\x40\x54\x54")
@@ -2088,6 +2144,13 @@ do
     assert(string.isalnum("abc?123") == false)
     assert(string.iswhitespace("   \t   \f \n \r\n") == true)
     assert(string.iswhitespace("\t\f   \r\n \r \n \t z") == false)
+    assert(string.levenshtein("", "abc") == 3)
+    assert(string.levenshtein("abc", "") == 3)
+    assert(string.levenshtein("abc", "abc") == 0)
+    assert(string.levenshtein("abc", "abxc") == 1)
+    assert(string.levenshtein("\0abc", "\0") == 3)
+    assert(string.levenshtein("\0abc", "\0abc") == 0)
+    assert(string.levenshtein("\0abc", "\0abxc") == 1)
     assert(string.contains("hello world", "world") == true)
     assert(string.contains("hello world", "z") == false)
     assert(string.endswith("hello world", "rld") == true)
@@ -2883,9 +2946,8 @@ do
     inflated, info = crypto.decompress(deflated, -17, 9)
     assert(inflated == "FooBarBaz")
     assert(info.compressed_size == 17)
-end
-do
-    local crypto = require "pluto:crypto"
+
+    -- lzf
     for {
         "abc",
         "abcdefghijklmnopqrstuvwxyz",
@@ -2894,6 +2956,15 @@ do
     } as str do
         assert(str |> crypto.compress|"lzf"| |> crypto.decompress|"lzf"| == str, str)
     end
+
+    -- gzip
+    local checksum_ok
+    inflated, checksum_ok = "1f8b080800a2eb6a020068656c6c6f2e74787400f348cdc9c9d75108c8292dc9570400029af9da0d000000":fromhex() |> crypto.decompress|"gzip"|
+    assert(inflated == "Hello, Pluto!")
+    assert(checksum_ok)
+    inflated, checksum_ok = "1f8b080800a2eb6a020068656c6c6f2e74787400f348cdc9c9d75108c8292dc9570400deadbeef0d000000":fromhex() |> crypto.decompress|"gzip"|
+    assert(inflated == "Hello, Pluto!")
+    assert(not checksum_ok)
 end
 do
     local bigint = require "pluto:bigint"
@@ -2966,71 +3037,82 @@ end
 do
     local { scheduler, socket } = require "*"
 
-    local sched = new scheduler()
-    sched:add(function()
-        local l = socket.listen(30724)
-        local s = l:accept()
-        assert(s:getside() == "server")
-        while data := s:recv() do
-            s:send(data)
-        end
-        assert(s:isopen() == false)
-    end)
-    sched:add(function()
-        assert(not socket.listen(30724))
-        local s = socket.connect("127.0.0.1", 30724)
-        assert(s)
-        assert(s:isopen() == true)
-        assert(s:getside() == "client")
-        assert(select(2, s:getpeer()) == 30724)
-        assert(s:peek() == nil)
-        s:send("Hello")
-        while s:peek() == nil do
-            coroutine.yield()
-        end
-        assert(s:peek() == "Hello")
-        assert(s:recv() == "Hello")
-        assert(s:peek() == nil)
-        s:close()
-        assert(s:isopen() == false)
-    end)
-    sched:run()
-end
-do
-    local { scheduler, socket } = require "*"
+    do
+        local sched = new scheduler()
+        sched:add(function()
+            local l = socket.listen(30724)
+            local s = l:accept()
+            assert(s:getside() == "server")
+            while data := s:recv() do
+                s:send(data)
+            end
+            assert(s:isopen() == false)
+        end)
+        sched:add(function()
+            assert(not socket.listen(30724))
+            local s = socket.connect("127.0.0.1", 30724)
+            assert(s)
+            assert(s:isopen() == true)
+            assert(s:getside() == "client")
+            assert(select(2, s:getpeer()) == 30724)
+            assert(s:peek() == nil)
+            s:send("Hello")
+            while s:peek() == nil do
+                coroutine.yield()
+            end
+            assert(s:peek() == "Hello")
+            assert(s:recv() == "Hello")
+            assert(s:peek() == nil)
+            s:close()
+            assert(s:isopen() == false)
+        end)
+        sched:run()
+    end
 
-    local sched = new scheduler()
-    sched:add(function()
-        local serv = socket.udpserver(30725)
-        local data = serv:recv()
-        assert(data == "ping")
-        serv:send("pong")
-    end)
-    sched:add(function()
-        local sock = socket.connect("localhost", 30725, "udp")
-        sock:send("ping")
-        local data = sock:recv()
-        assert(data == "pong")
-    end)
-    sched:run()
-end
-do
-    local { scheduler, socket } = require "*"
+    do
+        local sched = new scheduler()
+        sched:add(function()
+            local serv = socket.udpserver(30725)
+            local data = serv:recv()
+            assert(data == "ping")
+            serv:send("pong")
+        end)
+        sched:add(function()
+            local sock = socket.connect("localhost", 30725, "udp")
+            sock:send("ping")
+            local data = sock:recv()
+            assert(data == "pong")
+        end)
+        sched:run()
+    end
 
-    local sched = new scheduler()
-    sched:add(function()
-        local serv = socket.udpserver(30726)
-        local data = serv:recv()
-        assert(data == "ping")
-        serv:send("pong")
-    end)
-    sched:add(function()
-        local sock = socket.connect("::1", 30726, "udp")
-        sock:send("ping")
-        local data = sock:recv()
-        assert(data == "pong")
-    end)
-    sched:run()
+    do
+        local sched = new scheduler()
+        sched:add(function()
+            local serv = socket.udpserver(30726)
+            local data = serv:recv()
+            assert(data == "ping")
+            serv:send("pong")
+        end)
+        sched:add(function()
+            local sock = socket.connect("::1", 30726, "udp")
+            sock:send("ping")
+            local data = sock:recv()
+            assert(data == "pong")
+        end)
+        sched:run()
+    end
+
+    assert(socket.ipint("1.2.3.4") == 0x01_02_03_04)
+    do
+        local d, c, b, a = socket.ipint("::cafe:babe:dead:beef")
+        assert(a == 0)
+        assert(b == 0)
+        assert(c == 0xcafebabe)
+        assert(d == 0xdeadbeef)
+    end
+    assert(socket.ipstring(0x01_02_03_04) == "1.2.3.4")
+    assert(socket.ipstring(0xdeadbeef, 0xcafebabe) == "::cafe:babe:dead:beef")
 end
 do
     local regex = require "pluto:regex"
@@ -3070,6 +3152,16 @@ do
     do
         local r = new regex[[/.+ (.+)/]]
         assert(r:substitute("hello earth", "welcome to $1") == "welcome to earth")
+    end
+
+    do
+        local r = new regex [[/(?<=[0-9]);+/]]
+        local arr = r:split("a;1;;;b;2;;c;3;d;4")
+        assert(#arr == 4)
+        assert(arr[1] == "a;1")
+        assert(arr[2] == "b;2")
+        assert(arr[3] == "c;3")
+        assert(arr[4] == "d;4")
     end
 end
 do
@@ -3197,6 +3289,15 @@ do
         mod:call("set-indirect")
         assert(string.unpack("I4", mod:read(0, 4)) == 420)
     end
+end
+do
+    assert(utf8.from16("480065006c006c006f002c002000164e4c75210020003dd8afdc":fromhex()) == "Hello, 世界! 💯")
+    assert(utf8.to16("Hello, 世界! 💯"):tohex() == "480065006c006c006f002c002000164e4c75210020003dd8afdc")
+end
+do
+    local base58 = require "pluto:base58"
+    assert("5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ" |> base58.decode |> string.tohex == "800c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d507a5b8d")
+    assert("800c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d507a5b8d":fromhex() |> base58.encode == "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ")
 end
 
 print "Testing default table metatable."
@@ -4563,9 +4664,6 @@ do
     pcall(|| -> utonumber("", 69))
     assert(utonumber("1337") == 1337)
     assert(utonumber("1337", 16) == 0x1337)
-
-    pcall(|| -> utostring())
-    assert(utostring(1337) == "1337")
 
     pcall(|| -> string.uformat("%f", ""))
     assert(string.uformat("%.2f", 4.20) == "4.20")

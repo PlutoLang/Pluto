@@ -8,6 +8,7 @@
 #include "crc32.hpp"
 #include "Endian.hpp"
 #include "memory.hpp" // construct_at
+#include "MemoryRefReader.hpp"
 
 /*
 Original source: https://github.com/Artexety/inflatecpp
@@ -757,14 +758,44 @@ NAMESPACE_SOUP
 		return (unsigned int)(current_out - (out + out_offset));
 	}
 
+	bool deflate::gzReadFooter(const void* _data, size_t size, gzFooter& out) noexcept
+	{
+		// Quick sanity check to make sure this is gzip data
+		SOUP_IF_UNLIKELY (size < 18)
+		{
+			return false;
+		}
+		const uint8_t* data = static_cast<const uint8_t*>(_data);
+		SOUP_IF_UNLIKELY (data[0] != 0x1f || data[1] != 0x8b || data[2] != 0x08)
+		{
+			return false;
+		}
+
+		// Then let's hope it's gzip data all the way through
+		MemoryRefReader rr(data + size - 8, 8);
+		rr.u32_le(out.uncompressed_data_crc32);
+		rr.u32_le(out.uncompressed_size);
+		return (out.uncompressed_size >> 7) < size; // And another sanity check; make sure the uncompressed_size does not exceed `size * 128`.
+	}
+
+	using DecompressResult = deflate::DecompressResult;
+
+	DecompressResult deflate::gzDecompress(const void* data, size_t size) SOUP_EXCAL
+	{
+		gzFooter f;
+		SOUP_IF_LIKELY (gzReadFooter(data, size, f))
+		{
+			return decompress(data, size, f.uncompressed_size);
+		}
+		return {};
+	}
+
 	enum class checksum_type : uint8_t
 	{
 		NONE = 0,
 		GZIP,
 		ZLIB
 	};
-
-	using DecompressResult = deflate::DecompressResult;
 
 	DecompressResult deflate::decompress(const void* compressed_data, size_t compressed_data_size, size_t decompressed_size) SOUP_EXCAL
 	{

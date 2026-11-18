@@ -64,9 +64,8 @@ static const luaL_Reg stdlibs[] = {
   {PLUTO_CANVASLIBNAME, luaopen_canvas},
   {PLUTO_BUFFERLIBNAME, luaopen_buffer},
   {PLUTO_WASMLIBNAME, luaopen_wasm},
-#ifndef __EMSCRIPTEN__
+  {PLUTO_BASE58LIBNAME, luaopen_base58},
   {PLUTO_SOCKETLIBNAME, luaopen_socket},
-#endif
   {NULL, NULL}
 };
 
@@ -74,8 +73,8 @@ static const luaL_Reg stdlibs[] = {
 /*
 ** require and preload selected standard libraries
 */
-LUALIB_API void luaL_openselectedlibs (lua_State *L, int load, int preload) {
-  int mask;
+LUALIB_API void luaL_openselectedlibs (lua_State *L, uint64_t load, uint64_t preload) {
+  uint64_t mask;
   const luaL_Reg *lib;
   luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
   for (lib = stdlibs, mask = 1; lib->name != NULL; lib++, mask <<= 1) {
@@ -92,39 +91,37 @@ LUALIB_API void luaL_openselectedlibs (lua_State *L, int load, int preload) {
   lua_pop(L, 1);  /* remove PRELOAD table */
 
 #ifndef PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO
-  const auto startup_code = R"EOC(
-pluto_use "0.6.0"
+  const auto startup_code = R"EOC(pluto_use "0.6.0"
 
 class exception
-    __name = "pluto:exception"
+  __name = "pluto:exception"
 
-    function __construct(public what)
-        local caller
-        local i = 2
-        while true do
-            caller = debug.getinfo(i)
-            if caller == nil then
-                error("exception instances must be created with 'pluto_new'", 0)
-            end
-            ++i
-            if caller.name == "Pluto_operator_new" then
-                caller = debug.getinfo(i)
-                break
-            end
-        end
-        self.where = $"{caller.short_src}:{caller.currentline}"
-        error(self, 0)
+  function __construct(public what)
+    local caller
+    local i = 2
+    while true do
+      caller = debug.getinfo(i)
+      if caller == nil then
+        error("exception instances must be created with 'pluto_new'", 0)
+      end
+      ++i
+      if caller.name == "Pluto_operator_new" then
+        caller = debug.getinfo(i)
+        break
+      end
     end
+    self.where = $"{caller.short_src}:{caller.currentline}"
+    error(self, 0)
+  end
 
-    function __tostring()
-        return $"{self.where}: {tostring(self.what)}"
-    end
+  function __tostring()
+    return $"{self.where}: {tostring(self.what)}"
+  end
 end
 
 function instanceof(a, b)
   return a instanceof b
-end
-)EOC";
+end)EOC";
   luaL_loadbuffer(L, startup_code, strlen(startup_code), "Pluto Standard Library");
   lua_call(L, 0, 0);
 #endif

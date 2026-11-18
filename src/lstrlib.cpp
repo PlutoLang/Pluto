@@ -2383,10 +2383,25 @@ static int str_fromhex (lua_State* L) {
   return 1;
 }
 
+
+static int str_levenshtein(lua_State* L) {
+  size_t len1, len2;
+  const char* str1 = luaL_checklstring(L, 1, &len1);
+  const char* str2 = luaL_checklstring(L, 2, &len2);
+  try {
+    lua_pushinteger(L, soup::string::levenshtein(str1, len1, str2, len2));
+  }
+  catch (const std::exception&) {
+    luaL_error(L, "allocation failed");
+  }
+  return 1;
+}
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"levenshtein", str_levenshtein},
   {"tohex", str_tohex},
   {"fromhex", str_fromhex},
   {"formatint", str_formatint},

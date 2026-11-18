@@ -185,7 +185,7 @@ inline thread_local bool parser_emitted_warnings;
 static void throw_warn(LexState* ls, const char* err, const char* here, const char* note, intptr_t line_or_tidx, WarningType warningType) {
   int line = Pluto::ErrorMessage::decodeLine(ls, line_or_tidx);
   if (ls->shouldEmitWarning(line, warningType)) {
-    auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, BWHT, ls->source, line) };
+    auto msg = new Pluto::ErrorMessage{ ls, luaG_addinfo(ls->L, ls->L->l_G->colored_output ? BWHT : "", ls->source, line)};
     msg->addMsg(err)
       .addMsg(" [")
       .addMsg(luaX_getwarnname(warningType))
@@ -3273,7 +3273,6 @@ static bool check_constexpr_call (LexState *ls, expdesc *v, const char *name, lu
 int luaB_tonumber (lua_State *L);
 int luaB_utonumber (lua_State *L);
 int luaB_tostring (lua_State *L);
-int luaB_utostring (lua_State *L);
 int luaB_assert (lua_State *L);
 
 static void const_expr (LexState *ls, expdesc *v) {
@@ -3339,7 +3338,6 @@ static void const_expr (LexState *ls, expdesc *v) {
       else if (!check_constexpr_call(ls, v, "tonumber", luaB_tonumber)
           && !check_constexpr_call(ls, v, "utonumber", luaB_utonumber)
           && !check_constexpr_call(ls, v, "tostring", luaB_tostring)
-          && !check_constexpr_call(ls, v, "utostring", luaB_utostring)
           && !check_constexpr_call(ls, v, "assert", luaB_assert)
         )
       {

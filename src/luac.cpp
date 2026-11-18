@@ -17,6 +17,7 @@
 
 #ifdef _WIN32
 #include <vector>
+#include <Windows.h>
 #endif
 
 #include "lua.h"
@@ -224,6 +225,16 @@ int main (int argc, char **argv) {
  if (argc<=0) usage("no input files given");
  L=luaL_newstate();
  if (L==NULL) fatal("cannot create state: not enough memory");
+#if defined(_WIN32)
+  if (auto hSTDOUT = GetStdHandle(STD_OUTPUT_HANDLE); hSTDOUT != INVALID_HANDLE_VALUE) {
+    DWORD mode;
+    if (GetConsoleMode(hSTDOUT, &mode) && SetConsoleMode(hSTDOUT, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)) {
+      L->l_G->colored_output = true;  /* we know this is a terminal that can handle ANSI color codes, so use them */
+    }
+  }
+#else
+  L->l_G->colored_output = true;
+#endif
  lua_pushcfunction(L,&pmain);
  lua_pushinteger(L,argc);
  lua_pushlightuserdata(L,argv);
@@ -237,6 +248,7 @@ int main (int argc, char **argv) {
 */
 
 #define UPVALNAME(x) ((f->upvalues[x].name) ? getstr(f->upvalues[x].name) : "-")
+#undef VOID  /* [Pluto] already defined by Windows.h */
 #define VOID(p) ((const void*)(p))
 #define eventname(i) (getstr(tmname[i]))
 

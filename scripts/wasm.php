@@ -1,7 +1,7 @@
 <?php
 require "common.php";
 
-$clang = "em++ -O3 -flto -std=c++17 -fvisibility=hidden -D LUA_USE_LONGJMP -D PLUTO_ILP_ENABLE -D PLUTO_USE_SOUP -D PLUTO_C_LINKAGE";
+$clang = "em++ -O3 -flto -std=c++20 -fvisibility=hidden -D LUA_USE_LONGJMP -D PLUTO_ILP_ENABLE -D PLUTO_USE_SOUP -D PLUTO_C_LINKAGE";
 
 // Setup folders
 if(!is_dir("bin"))
@@ -56,7 +56,7 @@ $link .= " -s ALLOW_MEMORY_GROWTH=1 -s ABORTING_MALLOC=0"; // to correctly handl
 passthru("$link -o pluto.js ".join(" ", $objects));
 
 echo "Linking libpluto...\n";
-$link = $clang." -s WASM=1 -s MODULARIZE=1 -s EXPORT_NAME=libpluto -s EXPORTED_FUNCTIONS=_malloc -s EXPORTED_RUNTIME_METHODS=[\"FS\",\"cwrap\",\"getValue\",\"setValue\"] -s FS_DEBUG=1 -s FETCH=1";
+$link = $clang." -s WASM=1 -s MODULARIZE=1 -s EXPORT_NAME=libpluto -s EXPORTED_FUNCTIONS=_malloc,_free -s EXPORTED_RUNTIME_METHODS=[\"FS\",\"cwrap\",\"getValue\",\"setValue\"] -s FS_DEBUG=1 -s FETCH=1";
 $link .= " -s ALLOW_MEMORY_GROWTH=1 -s ABORTING_MALLOC=0"; // to correctly handle memory-intensive tasks
 //$link .= " -s ASSERTIONS=2 -s SAFE_HEAP=1 -s STACK_OVERFLOW_CHECK=2 -g"; // uncomment for debugging
 passthru("$link -o libpluto.js ".join(" ", $objects_lib));
