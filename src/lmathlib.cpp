@@ -349,6 +349,30 @@ static int math_popcnt (lua_State *L) {
 }
 
 
+static int math_sdiv (lua_State *L) {
+  lua_pushinteger(L, luaL_checkinteger(L, 1) / luaL_checkinteger(L, 2));
+  return 1;
+}
+
+
+static int math_udiv (lua_State *L) {
+  lua_pushinteger(L, static_cast<lua_Unsigned>(luaL_checkinteger(L, 1)) / static_cast<lua_Unsigned>(luaL_checkinteger(L, 2)));
+  return 1;
+}
+
+
+static int math_smod (lua_State *L) {
+  lua_pushinteger(L, luaL_checkinteger(L, 1) % luaL_checkinteger(L, 2));
+  return 1;
+}
+
+
+static int math_umod (lua_State *L) {
+  lua_pushinteger(L, static_cast<lua_Unsigned>(luaL_checkinteger(L, 1)) % static_cast<lua_Unsigned>(luaL_checkinteger(L, 2)));
+  return 1;
+}
+
+
 
 /*
 ** {==================================================================
@@ -818,6 +842,10 @@ static const luaL_Reg mathlib[] = {
   {"clz", math_clz},
   {"ctz", math_ctz},
   {"popcnt", math_popcnt},
+  {"sdiv", math_sdiv},
+  {"udiv", math_udiv},
+  {"smod", math_smod},
+  {"umod", math_umod},
 #if defined(LUA_COMPAT_MATHLIB)
   {"atan2", math_atan},
   {"cosh",   math_cosh},
