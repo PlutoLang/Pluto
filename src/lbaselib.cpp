@@ -801,24 +801,28 @@ static int luaB_range (lua_State *L) {
 
 
 static int luaB_sdiv (lua_State *L) {
+  pluto_warning(L, "global sdiv is deprecated, use math.sdiv instead");
   lua_pushinteger(L, luaL_checkinteger(L, 1) / luaL_checkinteger(L, 2));
   return 1;
 }
 
 
 static int luaB_udiv (lua_State *L) {
+  pluto_warning(L, "global udiv is deprecated, use math.udiv instead");
   lua_pushinteger(L, static_cast<lua_Unsigned>(luaL_checkinteger(L, 1)) / static_cast<lua_Unsigned>(luaL_checkinteger(L, 2)));
   return 1;
 }
 
 
 static int luaB_smod (lua_State *L) {
+  pluto_warning(L, "global smod is deprecated, use math.smod instead");
   lua_pushinteger(L, luaL_checkinteger(L, 1) % luaL_checkinteger(L, 2));
   return 1;
 }
 
 
 static int luaB_umod (lua_State *L) {
+  pluto_warning(L, "global umod is deprecated, use math.umod instead");
   lua_pushinteger(L, static_cast<lua_Unsigned>(luaL_checkinteger(L, 1)) % static_cast<lua_Unsigned>(luaL_checkinteger(L, 2)));
   return 1;
 }
