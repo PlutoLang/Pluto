@@ -450,10 +450,10 @@ static int db_traceback (lua_State *L) {
 
 
 static const luaL_Reg dblib[] = {
+#ifndef PLUTO_SAFE_DEBUG_LIB
   {"debug", db_debug},
   {"getuservalue", db_getuservalue},
   {"gethook", db_gethook},
-  {"getinfo", db_getinfo},
   {"getlocal", db_getlocal},
   {"getregistry", db_getregistry},
   {"getmetatable", db_getmetatable},
@@ -465,6 +465,8 @@ static const luaL_Reg dblib[] = {
   {"setlocal", db_setlocal},
   {"setmetatable", db_setmetatable},
   {"setupvalue", db_setupvalue},
+#endif
+  {"getinfo", db_getinfo},
   {"traceback", db_traceback},
   {NULL, NULL}
 };
