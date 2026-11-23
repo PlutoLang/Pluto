@@ -16,7 +16,7 @@ NAMESPACE_SOUP
 
 		[[nodiscard]] static unsigned int getMaxDecompressedSize(const void* data, unsigned int size)
 		{
-			return size << 1;
+			return size * 3;
 		}
 	};
 }
