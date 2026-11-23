@@ -2756,11 +2756,11 @@ do
 end
 do
     assert(0xefffffffffffffff // 12 == -96076792050570582)
-    assert(sdiv(0xefffffffffffffff, 12) == -96076792050570581)
-    assert(udiv(0xefffffffffffffff, 12) == 1441151880758558719)
+    assert(math.sdiv(0xefffffffffffffff, 12) == -96076792050570581)
+    assert(math.udiv(0xefffffffffffffff, 12) == 1441151880758558719)
     assert(0xefffffffffffffff % 12 == 7)
-    assert(smod(0xefffffffffffffff, 12) == -5)
-    assert(umod(0xefffffffffffffff, 12) == 11)
+    assert(math.smod(0xefffffffffffffff, 12) == -5)
+    assert(math.umod(0xefffffffffffffff, 12) == 11)
 end
 do
     local mask = { 0xf0, 0x0f }
