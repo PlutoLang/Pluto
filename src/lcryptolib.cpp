@@ -1086,7 +1086,7 @@ static int l_decompress (lua_State *L) {
     return 2;
   }
 
-  if (l_unlikely(strcmp(algo, "deflate") != 0)) {
+  if (l_unlikely(strcmp(algo, "deflate") != 0 && strcmp(algo, "zlib") != 0)) {
     luaL_error(L, "unknown algorithm");
   }
   if (max_decompressed_size == -1) {
