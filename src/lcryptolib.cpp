@@ -1061,7 +1061,7 @@ static int l_decompress (lua_State *L) {
       max_decompressed_size = soup::lzf::getMaxDecompressedSize(data, static_cast<unsigned int>(size));
     }
     auto buffer = lua_newuserdata(L, max_decompressed_size);
-    if (auto decompressed_size = soup::lzf::decompress(data, static_cast<unsigned int>(size), buffer, max_decompressed_size)) {
+    if (auto decompressed_size = soup::lzf::decompress(data, static_cast<unsigned int>(size), buffer, static_cast<unsigned int>(max_decompressed_size))) {
       lua_pushlstring(L, static_cast<char*>(buffer), decompressed_size);
       return 1;
     }
@@ -1119,16 +1119,39 @@ static int l_compress (lua_State *L) {
   size_t size;
   const char *data = luaL_checklstring(L, 1, &size);
   const char *algo = luaL_checkstring(L, 2);
-  if (l_unlikely(strcmp(algo, "lzf") != 0)) {
-    return luaL_error(L, "crypto.compress currently only supports 'lzf' algorithm");
+
+  if (strcmp(algo, "lzf") == 0) {
+    auto buffer_size = soup::lzf::getMaxCompressedSize(data, static_cast<unsigned int>(size));
+    auto buffer = lua_newuserdata(L, buffer_size);
+    if (auto compressed_size = soup::lzf::compress(data, static_cast<unsigned int>(size), buffer, static_cast<unsigned int>(buffer_size))) {
+      lua_pushlstring(L, static_cast<char*>(buffer), compressed_size);
+      return 1;
+    }
+    return luaL_error(L, "failed to compress string");
   }
-  auto buffer_size = soup::lzf::getMaxCompressedSize(data, static_cast<unsigned int>(size));
-  auto buffer = lua_newuserdata(L, buffer_size);
-  if (auto compressed_size = soup::lzf::compress(data, static_cast<unsigned int>(size), buffer, static_cast<unsigned int>(buffer_size))) {
-    lua_pushlstring(L, static_cast<char*>(buffer), compressed_size);
-    return 1;
+
+  soup::deflate::WrapperType wt = soup::deflate::WT_DEFLATE;
+  if (strcmp(algo, "gzip") == 0) {
+    wt = soup::deflate::WT_GZIP;
   }
-  return luaL_error(L, "failed to compress string");
+  else if (strcmp(algo, "zlib") == 0) {
+    wt = soup::deflate::WT_ZLIB;
+  }
+  else if (strcmp(algo, "deflate") != 0) {
+    luaL_error(L, "unknown algorithm");
+  }
+  uint_fast8_t level = luaL_optinteger(L, 3, 6) & 0xff;
+  if (level == 0) {
+    char shrtbuf[LUAI_MAXSHORTLEN];
+    size_t out_size = soup::deflate::encodeUncompressed_size(size, wt);
+    char *out = plutoS_prealloc(L, shrtbuf, out_size);
+    soup::deflate::encodeUncompressed(data, size, out, wt);
+    plutoS_commit(L, out, out_size);
+  }
+  else {
+    pluto_pushstring(L, soup::deflate::compress(data, size, level, wt));
+  }
+  return 1;
 }
 
 
