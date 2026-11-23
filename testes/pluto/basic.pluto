@@ -2965,6 +2965,34 @@ do
     inflated, checksum_ok = "1f8b080800a2eb6a020068656c6c6f2e74787400f348cdc9c9d75108c8292dc9570400deadbeef0d000000":fromhex() |> crypto.decompress|"gzip"|
     assert(inflated == "Hello, Pluto!")
     assert(not checksum_ok)
+
+    -- compress with level 0
+    deflated = crypto.compress("ABC", "deflate", 0)
+    assert(deflated:tohex() == "010300fcff414243")
+    assert(crypto.decompress(deflated) == "ABC")
+
+    deflated = crypto.compress("ABC", "zlib", 0)
+    assert(deflated:tohex() == "7801010300fcff414243018d00c7")
+    assert(crypto.decompress(deflated) == "ABC")
+
+    deflated = crypto.compress("ABC", "gzip", 0)
+    assert(deflated:tohex() == "1f8b0800000000000003010300fcff414243480383a303000000")
+    assert(crypto.decompress(deflated) == "ABC")
+
+    -- compress with level 6 (default)
+    inflated = "Have you ever had a dream that you, um, you had, your, you- you could, you’ll do, you- you wants, you, you could do so, you- you’ll do, you could- you, you want, you want him to do you so much you could do anything?"
+
+    deflated = crypto.compress(inflated, "deflate")
+    assert(#deflated < #inflated)
+    assert(crypto.decompress(deflated) == inflated)
+
+    deflated = crypto.compress(inflated, "zlib")
+    assert(#deflated < #inflated)
+    assert(crypto.decompress(deflated) == inflated)
+
+    deflated = crypto.compress(inflated, "gzip")
+    assert(#deflated < #inflated)
+    assert(crypto.decompress(deflated) == inflated)
 end
 do
     local bigint = require "pluto:bigint"
