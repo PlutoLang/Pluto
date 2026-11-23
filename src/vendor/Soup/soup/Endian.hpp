@@ -1,11 +1,13 @@
 #pragma once
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#include <cstdlib> // _byteswap_*
-#include <type_traits> // is_constant_evaluated
-#endif
-
 #include "base.hpp"
+
+#if SOUP_CPP23
+	#include <bit> // byteswap
+#elif defined(_MSC_VER) && !defined(__clang__)
+	#include <cstdlib> // _byteswap_*
+	#include <type_traits> // is_constant_evaluated
+#endif
 
 #include "IntStruct.hpp"
 

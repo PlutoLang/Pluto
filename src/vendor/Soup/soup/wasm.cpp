@@ -13,8 +13,9 @@
 #include "string.hpp"
 #include "StringRefWriter.hpp"
 #if SOUP_WASM_PEDANTIC
-#include "unicode.hpp"
+	#include "unicode.hpp"
 #endif
+#include "utility.hpp" // SOUP_UNREACHABLE
 
 #define WASM_CALL_REUSES_STACK true
 static_assert(WASM_CALL_REUSES_STACK || !SOUP_WASM_EXCEPTIONS);

@@ -1,5 +1,7 @@
 #include "netStatus.hpp"
 
+#include "utility.hpp" // SOUP_UNREACHABLE
+
 NAMESPACE_SOUP
 {
 	const char* netStatusToString(netStatus status)

@@ -119,12 +119,42 @@ NAMESPACE_SOUP
 		}
 
 		// https://stackoverflow.com/a/2602885
-		[[nodiscard]] static uint8_t reverse(uint8_t b) noexcept
+		// https://graphics.stanford.edu/%7Eseander/bithacks.html#BitReverseObvious
+		// C++29 anyone? https://en.cppreference.com/cpp/numeric/bit_reverse
+		[[nodiscard]] static uint8_t reverse(uint8_t v) noexcept
 		{
-			b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
-			b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
-			b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
-			return b;
+			v = static_cast<uint8_t>(((v >> 1) & 0x55) | ((v & 0x55) << 1));
+			v = static_cast<uint8_t>(((v >> 2) & 0x33) | ((v & 0x33) << 2));
+			v = static_cast<uint8_t>((v >> 4) | (v << 4));
+			return v;
+		}
+		[[nodiscard]] static uint16_t reverse(uint16_t v)
+		{
+			v = static_cast<uint16_t>(((v >> 1) & 0x5555) | ((v & 0x5555) << 1));
+			v = static_cast<uint16_t>(((v >> 2) & 0x3333) | ((v & 0x3333) << 2));
+			v = static_cast<uint16_t>(((v >> 4) & 0x0F0F) | ((v & 0x0F0F) << 4));
+			v = static_cast<uint16_t>((v >> 8) | (v << 8));
+			return v;
+		}
+		[[nodiscard]] static uint32_t reverse(uint32_t v)
+		{
+			v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);
+			v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2);
+			v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);
+			v = ((v >> 8) & 0x00FF00FF) | ((v & 0x00FF00FF) << 8);
+			v = (v >> 16) | (v << 16);
+			return v;
+		}
+		template <typename T>
+		[[nodiscard]] static T reverse(T v, uint_fast8_t bits)
+		{
+			T res = 0;
+			for (uint_fast8_t i = 0; i != bits; ++i)
+			{
+				res = (res << 1) | (v & 1);
+				v >>= 1;
+			}
+			return res;
 		}
 
 		[[nodiscard]] static uint32_t parallelDeposit(uint32_t src, uint32_t mask);

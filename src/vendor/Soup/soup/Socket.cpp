@@ -568,6 +568,13 @@ NAMESPACE_SOUP
 						s.tls_close(TlsAlertDescription::decode_error);
 						return;
 					}
+#if LOGGING && false
+					logWriteLine(soup::format("Certchain ({} certs):", cert.asn1_certs.size()));
+					for (const auto& der : cert.asn1_certs)
+					{
+						logWriteLine(string::bin2hex(der));
+					}
+#endif
 					if (!static_cast<SocketTlsHandshakerClient*>(handshaker.get())->certchain.fromDer(cert.asn1_certs))
 					{
 						s.tls_close(TlsAlertDescription::bad_certificate);
@@ -1968,6 +1975,10 @@ NAMESPACE_SOUP
 
 	void Socket::tls_close(TlsAlertDescription_t desc) SOUP_EXCAL
 	{
+#if LOGGING
+		logWriteLine(soup::format("Socket::tls_close called with desc={}", (int)desc));
+#endif
+
 		if (hasConnection())
 		{
 			if (!custom_data.isStructInMap(SocketCloseReason))
