@@ -1435,6 +1435,12 @@ static int str_format (lua_State *L) {
           nb = l_sprintf(buff, maxitem, form, (LUAI_UACINT)n);
           break;
         }
+        case 'b': {  /* [Pluto] binary */
+          lua_Integer n = luaL_checkinteger(L, arg);
+          auto str = soup::string::binary(n);
+          luaL_addlstring(&b, str.data(), str.size());
+          break;
+        }
         case 'a': case 'A':
           checkformat(L, form, L_FMTFLAGSF, 1);
           addlenmod(form, LUA_NUMBER_FRMLEN);
