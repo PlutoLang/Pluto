@@ -1043,6 +1043,9 @@
 #define PLUTO_NO_BINARIES_FAIL luaL_error(L, "binary modules cannot be loaded in this environment");
 #endif
 
+// If defined, the debug library will be reduced to debug.getinfo and debug.traceback.
+//#define PLUTO_SAFE_DEBUG_LIB
+
 // If defined, all HTTP requests will fail.
 // Note that the 'socket' library can still be used to the same effect (with more effort).
 //#define PLUTO_DISABLE_HTTP_COMPLETELY
