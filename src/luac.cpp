@@ -31,7 +31,7 @@
 #include "lstate.h"
 #include "lundump.h"
 
-#include "vendor/Soup/soup/base.hpp" // SOUP_UNREACHABLE
+#include "vendor/Soup/soup/utility.hpp" // SOUP_UNREACHABLE
 
 static void PrintFunction(const Proto* f, int full);
 #define luaU_print	PrintFunction

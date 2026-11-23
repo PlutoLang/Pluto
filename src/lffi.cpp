@@ -13,6 +13,7 @@
 #include "vendor/Soup/soup/rflParser.hpp"
 #include "vendor/Soup/soup/rflStruct.hpp"
 #include "vendor/Soup/soup/SharedLibrary.hpp"
+#include "vendor/Soup/soup/utility.hpp"
 
 static thread_local lua_State* callback_L = nullptr;
 

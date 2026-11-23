@@ -44,9 +44,9 @@ NAMESPACE_SOUP
 		return hash(data.data(), data.size());
 	}
 
-	uint32_t adler32::hash(const char* data, size_t size)
+	uint32_t adler32::hash(const void* data, size_t size)
 	{
-		return hash((const uint8_t*)data, size);
+		return hash(reinterpret_cast<const uint8_t*>(data), size);
 	}
 
 	uint32_t adler32::hash(const uint8_t* data, size_t size, uint32_t init)

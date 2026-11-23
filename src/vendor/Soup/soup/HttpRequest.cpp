@@ -14,6 +14,7 @@
 #define LOGGING false
 
 #if LOGGING
+#include "format.hpp"
 #include "log.hpp"
 #endif
 
@@ -135,6 +136,9 @@ NAMESPACE_SOUP
 		const auto [host, port] = getHostAndPort();
 		if (sock->connect(resolver, host, port))
 		{
+#if LOGGING
+			logWriteLine(soup::format("HttpRequest: Established TCP connection with {} for host {}", sock->peer.toString(), host));
+#endif
 			Scheduler sched{};
 			sched.setBlocking();
 			sched.addSocket(sock);
