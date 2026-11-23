@@ -2,22 +2,23 @@
 #if !SOUP_WASM || SOUP_EMSCRIPTEN
 
 #if !SOUP_WASM
-#define LOGGING false
+	#define LOGGING false
 
-#if LOGGING
-#include "format.hpp"
-#include "log.hpp"
-#endif
+	#if LOGGING
+		#include "format.hpp"
+		#include "log.hpp"
+	#endif
 
-#include "joaat.hpp"
-#include "netConfig.hpp"
-#include "netStatus.hpp"
-#include "ObfusString.hpp"
-#include "netReuseTag.hpp"
-#include "Scheduler.hpp"
-#include "time.hpp"
+	#include "joaat.hpp"
+	#include "netConfig.hpp"
+	#include "netStatus.hpp"
+	#include "ObfusString.hpp"
+	#include "netReuseTag.hpp"
+	#include "Scheduler.hpp"
+	#include "time.hpp"
+	#include "utility.hpp" // SOUP_UNREACHABLE
 #else
-#include <emscripten/fetch.h> // https://github.com/emscripten-core/emscripten/blob/main/system/include/emscripten/fetch.h
+	#include <emscripten/fetch.h> // https://github.com/emscripten-core/emscripten/blob/main/system/include/emscripten/fetch.h
 #endif
 
 NAMESPACE_SOUP
