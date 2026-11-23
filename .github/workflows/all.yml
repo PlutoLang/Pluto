@@ -110,8 +110,8 @@ jobs:
   windows-x64:
     runs-on: windows-latest
     steps:
-      #- name: Ensure LLVM is up-to-date
-      #  run: choco upgrade llvm
+      - name: Ensure LLVM is up-to-date
+        run: choco upgrade llvm
       - uses: actions/checkout@v7
       - run: php scripts/compile.php clang
       - run: php scripts/link_pluto.php clang
