@@ -7,8 +7,12 @@
 #include "string.hpp"
 #include "TrustStore.hpp"
 
-//#include "log.hpp"
-//#include "format.hpp"
+#define LOGGING false
+
+#if LOGGING
+#include "log.hpp"
+#include "format.hpp"
+#endif
 
 NAMESPACE_SOUP
 {
@@ -76,40 +80,66 @@ NAMESPACE_SOUP
 	{
 		if (certs.at(0).valid_to < unix_timestamp)
 		{
-			return false; // Expired
+#if LOGGING
+			logWriteLine("cert invalid: expired");
+#endif
+			return false;
 		}
 
 		if (!certs.empty())
 		{
 			uint8_t max_children = 0;
+			uint8_t root_index = static_cast<uint8_t>(certs.size() - 1);
 
-			const auto& root = certs.back();
-			if (ts.contains(root))
+			do
 			{
-				// The root of the chain is a CA cert
-				max_children = root.max_children;
-			}
-			else
-			{
-				// The root of the chain is an intermediate cert
-				auto entry = ts.findCommonName(root.issuer.getCommonName());
-				if (!entry)
+				const auto& root = certs[root_index];
+				if (ts.contains(root))
 				{
-					return false; // Root issuer is not in trust store
+					// The root of the chain is a CA cert
+					max_children = root.max_children;
 				}
-				max_children = entry->max_children;
-				//logWriteLine(format("Allowed # of certs below {}: {}", root.issuer.getCommonName(), max_children));
-				if (max_children == 0)
+				else
 				{
-					return false; // Root issuer may not have any children
+					// The root of the chain is an intermediate cert
+					auto entry = ts.findCommonName(root.issuer.getCommonName());
+					if (!entry)
+					{
+						if (certs.size() > 3 && root_index == certs.size() - 1)
+						{
+							// It's possible that the root's parent was provided, e.g. "DigiCert Global Root CA", when it's "DigiCert Global Root G2" that is the actual trust root in that case.
+#if LOGGING
+							logWriteLine(soup::format("root of chain is {}, but that's not a trusted root or intermediate, skipping it", root.subject.getCommonName()));
+#endif
+							--root_index;
+							continue;
+						}
+#if LOGGING
+						logWriteLine(soup::format("cert invalid: root of chain {} (issued by {}) is not trusted", root.subject.getCommonName(), root.issuer.getCommonName()));
+#endif
+						return false;
+					}
+					max_children = entry->max_children;
+					//logWriteLine(soup::format("Allowed # of certs below {}: {}", root.issuer.getCommonName(), max_children));
+					if (max_children == 0)
+					{
+#if LOGGING
+						logWriteLine("cert invalid: intermediate has children but max_children was set to 0");
+#endif
+						return false;
+					}
+					max_children = std::min<uint8_t>(max_children - 1, root.max_children);
+					if (!root.verify(*entry))
+					{
+#if LOGGING
+						logWriteLine(soup::format("cert invalid: intermediate {} (issued by {})'s signature could not be verified against root ({})", entry->subject.getCommonName(), entry->issuer.getCommonName(), root.subject.getCommonName()));
+#endif
+						return false;
+					}
 				}
-				max_children = std::min<uint8_t>(max_children - 1, root.max_children);
-				if (!root.verify(*entry))
-				{
-					return false;
-				}
-			}
-			//logWriteLine(format("Allowed # of certs below {}: {}", root.subject.getCommonName(), max_children));
+				//logWriteLine(format("Allowed # of certs below {}: {}", root.subject.getCommonName(), max_children));
+				break;
+			} while (true);
 
 			// Now that we have a trusted root, we can follow the chain.
 			if (certs.size() > 1)
@@ -119,6 +149,9 @@ NAMESPACE_SOUP
 					// Handle path length constraints
 					if (max_children == 0)
 					{
+#if LOGGING
+						logWriteLine("cert invalid: too many children");
+#endif
 						return false;
 					}
 					max_children = std::min<uint8_t>(max_children - 1, i->max_children);
@@ -127,6 +160,9 @@ NAMESPACE_SOUP
 					// Each cert must be signed by the one above it
 					if (!i->verify(*(i - 1)))
 					{
+#if LOGGING
+						logWriteLine(soup::format("cert invalid: {} (issued by {})'s signature could not be verified against {}", (i - 1)->subject.getCommonName(), (i - 1)->issuer.getCommonName(), i->subject.getCommonName()));
+#endif
 						return false;
 					}
 				}
