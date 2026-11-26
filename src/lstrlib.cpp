@@ -1436,7 +1436,7 @@ static int str_format (lua_State *L) {
           break;
         }
         case 'b': {  /* [Pluto] binary */
-          lua_Integer n = luaL_checkinteger(L, arg);
+          lua_Unsigned n = luaL_checkinteger(L, arg);
           auto str = soup::string::binary(n);
           luaL_addlstring(&b, str.data(), str.size());
           break;
