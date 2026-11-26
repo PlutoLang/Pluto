@@ -510,6 +510,7 @@ static const luaL_Reg syslib[] = {
   {"getenv",      os_getenv},
 #ifndef PLUTO_NO_FILESYSTEM
   {"remove",      l_os_remove},
+  {"unlink",      l_os_remove},
   {"rename",      l_os_rename},
 #endif
   {"setlocale",   os_setlocale},
