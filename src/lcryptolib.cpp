@@ -563,25 +563,23 @@ static int l_encrypt (lua_State *L) {
       luaL_error(L, "IV must be 16 bytes");
     }
 
-    char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15 + 16));  /* need up to 15 for alignment and up to 16 for padding */
-    if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
-      data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
-    }
-    memcpy(data, in_data, data_len);
-
+    char pad_size = 0;
     if (mode_len != 7) {
       if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
         size_t next_aligned_size = ((data_len / 16) + 1) * 16;
-        auto pad_size = static_cast<char>(next_aligned_size - data_len);
-        for (size_t i = data_len; i != next_aligned_size; ++i) {
-          data[i] = pad_size;
-        }
-        data_len = next_aligned_size;
+        pad_size = static_cast<char>(next_aligned_size - data_len);
       }
       else {
         luaL_error(L, "Unknown mode");
       }
     }
+    char shrtbuf[LUAI_MAXSHORTLEN];
+    char *data = reinterpret_cast<char*>(plutoS_prealloc(L, shrtbuf, data_len + pad_size));
+    memcpy(data, in_data, data_len);
+    for (size_t i = data_len; i != data_len + pad_size; ++i) {
+      data[i] = pad_size;
+    }
+    data_len += pad_size;
 
     uint8_t tag[16];
     if (memcmp(&mode[4], "cbc", 3) == 0) {
@@ -614,7 +612,7 @@ static int l_encrypt (lua_State *L) {
       );
     }
 
-    lua_pushlstring(L, data, data_len);
+    plutoS_commit(L, data, data_len);
     if (aadata) {
       lua_remove(L, -2);
       lua_pushlstring(L, reinterpret_cast<const char*>(tag), 16);
@@ -771,12 +769,6 @@ static int l_decrypt (lua_State *L) {
       luaL_error(L, "IV must be 16 bytes");
     }
 
-    char *data = reinterpret_cast<char*>(lua_newuserdata(L, data_len + 15));  /* need up to 15 for alignment */
-    if (reinterpret_cast<uintptr_t>(data) % 16) {  /* data is not aligned? */
-      data = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(data) + (16 - (reinterpret_cast<uintptr_t>(data) % 16)));  /* align data */
-    }
-    memcpy(data, in_data, data_len);
-
     bool pkcs7 = false;
     if (mode_len != 7) {
       if (!aadata && mode_len == 13 && memcmp(&mode[7], "-pkcs7", 6) == 0) {
@@ -786,6 +778,16 @@ static int l_decrypt (lua_State *L) {
         luaL_error(L, "Unknown mode");
       }
     }
+
+    char shrtbuf[LUAI_MAXSHORTLEN];
+    char *data;
+    if (pkcs7) {  /* data_len will shrink? */
+      data = reinterpret_cast<char*>(lua_newuserdata(L, data_len));
+    }
+    else {  /* data_len will not change? */
+      data = plutoS_prealloc(L, shrtbuf, data_len);
+    }
+    memcpy(data, in_data, data_len);
 
     if (memcmp(&mode[4], "cbc", 3) == 0) {
       soup::aes::cbcDecrypt(
@@ -829,9 +831,11 @@ static int l_decrypt (lua_State *L) {
           luaL_error(L, "Unpadding failed");
         }
       }
+      lua_pushlstring(L, data, data_len);
     }
-
-    lua_pushlstring(L, data, data_len);
+    else {
+      plutoS_commit(L, data, data_len);
+    }
     return 1;
   }
   else if (mode_len >= 3 && memcmp(mode, "rsa", 3) == 0) {
