@@ -283,7 +283,7 @@ class xyzmap
   end
 end
 
-vector3.setsystem("-r+f+u", "+p+b+y")
+vector3.setsystem("+r+u+f", "+p+y+b")
 
 return vector3)EOC";
     luaL_loadbuffer(L, code, strlen(code), "pluto:vector3");
