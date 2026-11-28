@@ -284,6 +284,7 @@ static int ffi_funcwrapper_call (lua_State *L) {
   uintptr_t retval;
   const auto prev_callback_L = callback_L;
   callback_L = L;
+  bool err = false;
   try {
     if (fw->vararg) {
       retval = soup::ffi::callVariadic(fw->addr, types, args, fw->args.size(), i);
@@ -293,14 +294,17 @@ static int ffi_funcwrapper_call (lua_State *L) {
     }
   }
   catch (const std::exception& e) {
-    callback_L = prev_callback_L;
-    luaL_error(L, "C++ exception: %s", e.what());
+    plutoL_preperror(L, "C++ exception: %s", e.what());
+    err = true;
   }
   catch (...) {
-    callback_L = prev_callback_L;
-    luaL_error(L, "C++ exception");
+    plutoL_preperror(L, "C++ exception");
+    err = true;
   }
   callback_L = prev_callback_L;
+  if (l_unlikely(err)) {
+    lua_error(L);
+  }
   return push_ffi_value(L, fw->ret, &retval);
 }
 
