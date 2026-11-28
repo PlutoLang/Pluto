@@ -104,6 +104,9 @@ LUALIB_API void *(luaL_testudata) (lua_State *L, int ud, const char *tname);
 LUALIB_API void *(luaL_checkudata) (lua_State *L, int ud, const char *tname);
 
 LUALIB_API void (luaL_where) (lua_State *L, int lvl);
+#ifndef PLUTO_LUA_LINKABLE
+LUALIB_API void (plutoL_preperror) (lua_State* L, const char* fmt, ...);
+#endif
 LUALIB_API_NORETURN int (luaL_error) (lua_State *L, const char *fmt, ...);
 
 LUALIB_API int (luaL_checkoption) (lua_State *L, int arg, const char *def,
