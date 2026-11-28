@@ -866,6 +866,7 @@ static int io_flush (lua_State *L) {
   }
 
   std::filesystem::path& p = *pluto_newclassinst(L, std::filesystem::path);
+  bool err = false;
   try {
 #if SOUP_CPP20
     p = soup::string::toUtf8Type(f);
@@ -874,7 +875,11 @@ static int io_flush (lua_State *L) {
 #endif
   }
   catch (const std::exception& e) {
-    luaL_error(L, "%s", e.what());
+    plutoL_preperror(L, "%s", e.what());
+    err = true;
+  }
+  if (l_unlikely(err)) {
+    lua_error(L);
   }
   return p;
 }

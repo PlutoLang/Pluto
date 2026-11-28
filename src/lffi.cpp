@@ -342,10 +342,10 @@ static int ffi_lib_cdef (lua_State *L) {
     if (par->align(), par->i->isLiteral() && par->i->val.getString() == "(") {
       par->i = i;
       try {
-          *func = par->readFunc();
+        *func = par->readFunc();
       }
       catch (...) {
-        fail = false;
+        fail = true;
       }
       if (l_unlikely(fail))
         luaL_error(L, "malformed function");

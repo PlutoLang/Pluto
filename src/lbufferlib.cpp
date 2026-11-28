@@ -7,7 +7,6 @@
 
 #include "vendor/Soup/soup/Buffer.hpp"
 
-#include "ldo.h"
 #include "lmem.h"
 
 #ifdef PLUTO_MEMORY_LIMIT
@@ -100,30 +99,34 @@ static int buffer_new (lua_State *L) {
 
 static int buffer_append (lua_State *L) {
   size_t size;
-  bool fail = false;
+  bool err = false;
   const char* data = luaL_checklstring(L, 2, &size);
   try {
     checkbuffer(L, 1)->buffer.append(data, size);
   }
   catch (const std::bad_alloc&) {
-    fail = true;
+    plutoL_preperror(L, "allocation failed");
+    err = true;
   }
-  if (l_unlikely(fail))
-    luaD_throw(L, LUA_ERRMEM);
+  if (l_unlikely(err)) {
+    lua_error(L);
+  }
   return 0;
 }
 
 static int buffer_tostring (lua_State *L) {
   soup::Buffer<>& buf = checkbuffer(L, 1)->buffer;
-  bool fail = false;
+  bool err = false;
   try {
     lua_pushlstring(L, (const char*)buf.data(), buf.size());
   }
   catch (const std::bad_alloc&) {
-    fail = true;
+    plutoL_preperror(L, "allocation failed");
+    err = true;
   }
-  if (l_unlikely(fail))
-    luaD_throw(L, LUA_ERRMEM);
+  if (l_unlikely(err)) {
+    lua_error(L);
+  }
   return 1;
 }
 
