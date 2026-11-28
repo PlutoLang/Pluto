@@ -889,8 +889,10 @@ static int l_decrypt (lua_State *L) {
       }
       if (l_unlikely(invalidkey))
         luaL_error(L, "Invalid private key");
-      if (!padok)
+      if (!padok) {
+        data.clear(); data.shrink_to_fit();
         luaL_error(L, "Unpadding failed");
+      }
       pluto_pushstring(L, data);
       return 1;
     }
