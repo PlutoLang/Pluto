@@ -2394,12 +2394,11 @@ static int str_levenshtein(lua_State* L) {
   size_t len1, len2;
   const char* str1 = luaL_checklstring(L, 1, &len1);
   const char* str2 = luaL_checklstring(L, 2, &len2);
-  try {
-    lua_pushinteger(L, soup::string::levenshtein(str1, len1, str2, len2));
-  }
-  catch (const std::exception&) {
-    luaL_error(L, "allocation failed");
-  }
+
+  size_t n = len1 + 1;
+  size_t m = len2 + 1;
+  size_t *d = (size_t *)lua_newuserdata(L, n * m * sizeof(size_t));
+  lua_pushinteger(L, soup::string::levenshtein(d, str1, n, str2, m));
   return 1;
 }
 
