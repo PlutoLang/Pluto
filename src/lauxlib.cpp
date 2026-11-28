@@ -1211,9 +1211,12 @@ void *luaL_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
   }
   else {
 #ifdef PLUTO_MEMORY_LIMIT
+    if (!ptr) {
+      osize = 0;
+    }
     if (ud  /* state has finished opening? */
-      && (!ptr || nsize > osize)  /* new allocation or increasing existing allocation? */
-      && gettotalbytes(reinterpret_cast<global_State*>(ud)) >= PLUTO_MEMORY_LIMIT  /* limit reached? */
+      && nsize > osize
+      && (gettotalbytes(reinterpret_cast<global_State*>(ud)) + (nsize - osize)) >= PLUTO_MEMORY_LIMIT  /* limit reached? */
       ) {
       return NULL;
     }
