@@ -612,7 +612,7 @@ static void checktypehint (LexState *ls, TypeHint &th) {
       ls->L->top.p--;
       luaX_next(ls);
     }
-  } while (testnext(ls, '|'));
+  } while (ls->t.token == '|' && luaX_lookahead(ls) != ':' && luaX_lookahead(ls) != TK_ARROW && (luaX_next(ls), true));  /* testnext(ls, '|'), provided the next token is not ':' or '->' */
   if (!th.contains(VT_NULL) && testnext(ls, '?'))
     th.emplaceTypeDesc(VT_NULL);
 }
