@@ -968,7 +968,7 @@
     <ClInclude Include="src\vendor\Soup\soup\math.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\md5.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memAllocating.hpp" />
-    <ClInclude Include="src\vendor\Soup\soup\memCAllocator.hpp" />
+    <ClInclude Include="src\vendor\Soup\soup\memAllocator.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memGuard.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\memory.hpp" />
     <ClInclude Include="src\vendor\Soup\soup\MemoryRefReader.hpp" />

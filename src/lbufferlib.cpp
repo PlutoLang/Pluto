@@ -6,6 +6,7 @@
 #include <new> // bad_alloc
 
 #include "vendor/Soup/soup/Buffer.hpp"
+#include "vendor/Soup/soup/memAllocator.hpp"
 
 #include "lmem.h"
 
@@ -55,8 +56,10 @@ struct PlutoBuffer
 {
 #ifdef PLUTO_MEMORY_LIMIT
     PlutoSingleBlockAllocator allocator;
-#endif
+    soup::Buffer<PlutoSingleBlockAllocator> buffer;
+#else
     soup::Buffer<> buffer;
+#endif
 
     PlutoBuffer()
 #ifdef PLUTO_MEMORY_LIMIT
@@ -115,7 +118,7 @@ static int buffer_append (lua_State *L) {
 }
 
 static int buffer_tostring (lua_State *L) {
-  soup::Buffer<>& buf = checkbuffer(L, 1)->buffer;
+  auto& buf = checkbuffer(L, 1)->buffer;
   bool err = false;
   try {
     lua_pushlstring(L, (const char*)buf.data(), buf.size());
