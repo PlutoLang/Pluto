@@ -10,11 +10,16 @@ static soup::Regex* checkregex (lua_State *L, int i) {
 
 static int regex_new (lua_State *L) {
   void *addr = lua_newuserdata(L, sizeof(soup::Regex));
+  bool err = false;
   try {
     new (addr) soup::Regex{ soup::Regex::fromFullString(pluto_checkstring(L, 1)) };
   }
   catch (std::exception& e) {
-    luaL_error(L, "%s", e.what());
+    plutoL_preperror(L, "%s", e.what());
+    err = true;
+  }
+  if (l_unlikely(err)) {
+    lua_error(L);
   }
   if (luaL_newmetatable(L, "pluto:regex")) {
     lua_pushliteral(L, "__index");
