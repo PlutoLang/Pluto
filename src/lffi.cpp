@@ -836,6 +836,9 @@ static int ffi_callback (lua_State *L) {
     cb.args.emplace_back(t);
     types[i] = (t == FFI_F32 || t == FFI_F64) ? soup::ffi::VT_FLOAT : soup::ffi::VT_INTEGRAL;
   }
+  for (int i = nargs; i != soup::ffi::MAX_CALLBACK_ARGS; ++i) {
+    types[i] = soup::ffi::VT_INTEGRAL;
+  }
   types[soup::ffi::MAX_CALLBACK_ARGS] = (cb.ret == FFI_F32 || cb.ret == FFI_F64) ? soup::ffi::VT_FLOAT : soup::ffi::VT_INTEGRAL;
   cb.trampoline = soup::ffi::callbackAlloc(ffi_callback_trampoline, reinterpret_cast<uintptr_t>(&cb), types);
   if (!cb.trampoline) {
