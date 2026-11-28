@@ -12,7 +12,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#ifdef _WIN32
+#ifdef __cplusplus
 #include <string>
 #endif
 
@@ -83,7 +83,7 @@ LUALIB_API const char *(luaL_checklstring) (lua_State *L, int arg,
                                                           size_t *l);
 LUALIB_API const char *(luaL_optlstring) (lua_State *L, int arg,
                                           const char *def, size_t *l);
-#ifndef PLUTO_LUA_LINKABLE
+#if !defined(PLUTO_LUA_LINKABLE) && defined(__cplusplus)
 PLUTOLIB_API std::string pluto_checkstring (lua_State *L, int arg);
 PLUTOLIB_API std::string pluto_optstring (lua_State *L, int arg, std::string def);
 #endif
@@ -126,7 +126,7 @@ LUALIB_API void *(luaL_alloc) (void *ud, void *ptr, size_t osize,
 LUALIB_API int (luaL_ref) (lua_State *L, int t);
 LUALIB_API void (luaL_unref) (lua_State *L, int t, int ref);
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(__cplusplus)
 PLUTOLIB_API std::wstring luaL_utf8_to_utf16(const char *utf8, size_t utf8_len);
 PLUTOLIB_API std::string luaL_utf16_to_utf8(const wchar_t *utf16, size_t utf16_len);
 #endif
