@@ -4740,3 +4740,29 @@ do
     assert(obj.a == a)
     assert(obj.b == b)
 end
+
+print "Testing lambda expressions."
+do
+    local f = |a| -> a
+    assert(f(1) == 1)
+end
+do
+    local f = |a: number| -> a
+    assert(f(1) == 1)
+end
+do
+    local f = |a: number?| -> a
+    assert(f(1) == 1)
+end
+do
+    local f = |a: number?| -> a
+    assert(f() == nil)
+end
+do
+    local f = |a: number|string| -> a
+    assert(f(1) == 1)
+end
+do
+    local f = |a: number|string| -> a
+    assert(f("a") == "a")
+end
