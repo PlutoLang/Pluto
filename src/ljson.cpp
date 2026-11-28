@@ -281,6 +281,7 @@ static int decode(lua_State* L)
 	jtw.free = [](void* L, void* node) -> void {
 		lua_pop((lua_State*)L, 1);
 	};
+	bool err = false;
 	try
 	{
 		if (flags & (1 << 2)) // json.msgpack
@@ -301,7 +302,12 @@ static int decode(lua_State* L)
 	}
 	catch (const std::exception& e)
 	{
-		luaL_error(L, "%s", e.what());
+		plutoL_preperror(L, "%s", e.what());
+		err = true;
+	}
+	if (l_unlikely(err))
+	{
+		lua_error(L);
 	}
 	return 0;
 }
