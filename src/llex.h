@@ -598,18 +598,25 @@ struct LexState {
   }
 
   [[nodiscard]] void* parAlloc(size_t size) {
-    return parse_time_allocations.emplace_back(malloc(size));
+    void *addr = parse_time_allocations.emplace_back(malloc(size));
+    lua_assert(addr);
+    return addr;
   }
 
   [[nodiscard]] void* parRealloc(void* oldaddr, size_t newsize) {
+    if (oldaddr == nullptr) {
+      return parAlloc(newsize);
+    }
     void* newaddr = realloc(oldaddr, newsize);
-    if (newaddr != oldaddr && oldaddr != nullptr) {
+    lua_assert(newaddr != nullptr);
+    if (newaddr != nullptr && newaddr != oldaddr) {
       for (auto i = parse_time_allocations.rbegin(); i != parse_time_allocations.rend(); ++i) {
         if (*i == oldaddr) {
           *i = newaddr;
-          break;
+          return newaddr;
         }
       }
+      lua_assert(false);
     }
     return newaddr;
   }
