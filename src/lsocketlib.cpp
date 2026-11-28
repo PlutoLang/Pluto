@@ -1,5 +1,3 @@
-#ifndef __EMSCRIPTEN__
-
 #define LUA_LIB
 #include "lualib.h"
 #include "lstate.h"
@@ -11,6 +9,7 @@
 #undef MAX_SIZE
 
 #include "vendor/Soup/soup/CertStore.hpp"
+#include "vendor/Soup/soup/netAdaptor.hpp"
 #include "vendor/Soup/soup/netConnectTask.hpp"
 #include "vendor/Soup/soup/os.hpp"
 #include "vendor/Soup/soup/ResolveIpAddrTask.hpp"
@@ -20,6 +19,7 @@
 #include "vendor/Soup/soup/Socket.hpp"
 #include "vendor/Soup/soup/TlsExtAlpn.hpp"
 
+#ifndef __EMSCRIPTEN__
 struct StandaloneSocket {
   soup::Scheduler sched;
   soup::SharedPtr<soup::Socket> sock;
@@ -177,6 +177,16 @@ static int l_send (lua_State *L) {
   return 0;
 }
 
+static int l_peek (lua_State *L) {
+  StandaloneSocket& ss = *checksocket(L, 1);
+  ss.sched.tick();
+  if (!ss.recvd.empty()) {
+    pluto_pushstring(L, ss.recvd.front());
+    return 1;
+  }
+  return 0;
+}
+
 static int restrecv (lua_State *L, StandaloneSocket& ss) {
   if (!ss.recvd.empty()) {
     pluto_pushstring(L, std::move(ss.recvd.front()));
@@ -195,16 +205,6 @@ static int recvcont (lua_State *L, int status, lua_KContext ctx) {
     }
   }
   return restrecv(L, ss);
-}
-
-static int l_peek (lua_State *L) {
-  StandaloneSocket& ss = *checksocket(L, 1);
-  ss.sched.tick();
-  if (!ss.recvd.empty()) {
-    pluto_pushstring(L, ss.recvd.front());
-    return 1;
-  }
-  return 0;
 }
 
 static int l_recv (lua_State *L) {
@@ -540,7 +540,12 @@ static int l_listen (lua_State *L) {
   }
   lua_setmetatable(L, -2);
 
-  return (addr.ip.isZero() ? l.serv.bind(port, &l.srv) : l.serv.bind(addr.ip, port, &l.srv)) ? 1 : 0;
+  uint16_t bound_port = (addr.ip.isZero() ? l.serv.bind(port, &l.srv) : l.serv.bind(addr.ip, port, &l.srv));
+  if (l_unlikely(bound_port == 0)) {
+    return 0;
+  }
+  lua_pushinteger(L, bound_port);
+  return 2;
 }
 
 static int l_udpserver (lua_State *L) {
@@ -570,8 +575,67 @@ static int l_udpserver (lua_State *L) {
 #endif
   return 1;
 }
+#endif // __EMSCRIPTEN__
+
+#if SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
+static int l_interfaces (lua_State *L) {
+  auto& arr = *pluto_newclassinst(L, std::vector<soup::netAdaptor>, soup::netAdaptor::getAll());
+  lua_newtable(L);
+  lua_Integer i = 0;
+  for (auto& ad : arr) {
+    lua_pushinteger(L, ++i);
+    lua_newtable(L);
+    {
+      lua_pushliteral(L, "name");
+      pluto_pushstring(L, ad.name);
+      lua_settable(L, -3);
+    }
+    {
+      lua_pushliteral(L, "mac_addr");
+      char buf[17];
+      ad.mac_addr.toString(buf);
+      lua_pushlstring(L, buf, 17);
+      lua_settable(L, -3);
+    }
+    {
+      lua_pushliteral(L, "ip_addr");
+      pluto_pushstring(L, soup::IpAddr(ad.ip_addr).toString4());
+      lua_settable(L, -3);
+    }
+    {
+      lua_pushliteral(L, "netmask");
+      pluto_pushstring(L, soup::IpAddr(ad.netmask).toString4());
+      lua_settable(L, -3);
+    }
+    lua_settable(L, -3);
+  }
+  return 1;
+}
+#endif
+
+static int l_ipint (lua_State *L) {
+  soup::IpAddr ip;
+  if (l_unlikely(!ip.fromString(luaL_checkstring(L, 1)))) {
+    luaL_error(L, "invalid IP address");
+  }
+  lua_pushinteger(L, soup::Endianness::toNative((soup::network_u32_t)ip.ints()[3]));
+  lua_pushinteger(L, soup::Endianness::toNative((soup::network_u32_t)ip.ints()[2]));
+  lua_pushinteger(L, soup::Endianness::toNative((soup::network_u32_t)ip.ints()[1]));
+  lua_pushinteger(L, soup::Endianness::toNative((soup::network_u32_t)ip.ints()[0]));
+  return 4;
+}
+
+static int l_ipstring (lua_State *L) {
+  soup::native_u32_t d = (uint32_t)luaL_checkinteger(L, 1);
+  soup::native_u32_t c = (uint32_t)luaL_optinteger(L, 2, 0xffff);
+  soup::native_u32_t b = (uint32_t)luaL_optinteger(L, 3, 0);
+  soup::native_u32_t a = (uint32_t)luaL_optinteger(L, 4, 0);
+  pluto_pushstring(L, soup::IpAddr(a, b, c, d).toString());
+  return 1;
+}
 
 static const luaL_Reg funcs_socket[] = {
+#ifndef __EMSCRIPTEN__
   {"connect", l_connect},
   {"send", l_send},
   {"peek", l_peek},
@@ -587,32 +651,55 @@ static const luaL_Reg funcs_socket[] = {
   {"setpeer", socket_setpeer},
   {"listen", l_listen},
   {"udpserver", l_udpserver},
+#endif
+#if SOUP_WINDOWS || SOUP_LINUX || SOUP_MACOS
+  {"interfaces", l_interfaces},
+#endif
+  {"ipint", l_ipint},
+  {"ipstring", l_ipstring},
   {NULL, NULL}
 };
 
 LUAMOD_API int luaopen_socket (lua_State *L) {
   luaL_newlib(L, funcs_socket);
 
-#ifndef PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO
-  lua_pushliteral(L, "bind");
-  luaL_loadstring(L, R"EOC(
-return function(sched, port, callback)
-    local l = require"pluto:socket".listen(port)
+#if !defined(__EMSCRIPTEN__) && !defined(PLUTO_DONT_LOAD_ANY_STANDARD_LIBRARY_CODE_WRITTEN_IN_PLUTO)
+  luaL_loadstring(L, R"EOC(return function(socket)
+  function socket.bind(sched, port, callback)
+    local l, bound_port = require"pluto:socket".listen(port)
     assert(l, "Failed to bind port "..port)
     return sched:add(function()
-        while s := l:accept() do
-            sched:add(function()
-                callback(s)
-            end)
+      while s := l:accept() do
+        sched:add(function()
+          callback(s)
+        end)
+      end
+    end), bound_port
+  end
+
+  local recv_impl = socket.recv
+  function socket.recv(s, timeout)
+    if timeout then
+      local deadline = os.millis() + timeout
+      while not s:peek() do
+        if coroutine.isyieldable() then
+          coroutine.yield()
+        else
+          os.sleep(1)
         end
-    end)
+        if os.millis() > deadline then
+          return nil
+        end
+      end
+    end
+    return recv_impl(s)
+  end
 end)EOC");
   lua_call(L, 0, 1);
-  lua_settable(L, -3);
+  lua_pushvalue(L, -2);
+  lua_call(L, 1, 0);
 #endif
 
   return 1;
 }
 const Pluto::PreloadedLibrary Pluto::preloaded_socket{ PLUTO_SOCKETLIBNAME, funcs_socket, &luaopen_socket };
-
-#endif

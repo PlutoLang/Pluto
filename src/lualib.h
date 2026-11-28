@@ -8,6 +8,8 @@
 #ifndef lualib_h
 #define lualib_h
 
+#include <stdint.h>
+
 #include "lua.h"
 #include "lauxlib.h" // Pluto::Preloaded
 
@@ -130,11 +132,13 @@ LUAMOD_API int (luaopen_buffer)	(lua_State *L);
 #define PLUTO_WASMLIBK (PLUTO_BUFFERLIBK << 1)
 LUAMOD_API int (luaopen_wasm)	(lua_State *L);
 
-#ifndef __EMSCRIPTEN__
+#define PLUTO_BASE58LIBNAME "base58"
+#define PLUTO_BASE58LIBK (PLUTO_WASMLIBK << 1)
+LUAMOD_API int (luaopen_base58)(lua_State* L);
+
 #define PLUTO_SOCKETLIBNAME "socket"
-#define PLUTO_SOCKETLIBK (PLUTO_WASMLIBK << 1)
+#define PLUTO_SOCKETLIBK (PLUTO_BASE58LIBK << 1)
 LUAMOD_API int (luaopen_socket)(lua_State* L);
-#endif
 
 
 namespace Pluto {
@@ -156,9 +160,8 @@ namespace Pluto {
   extern const PreloadedLibrary preloaded_canvas;
   extern const PreloadedLibrary preloaded_buffer;
   extern const PreloadedLibrary preloaded_wasm;
-#ifndef __EMSCRIPTEN__
+  extern const PreloadedLibrary preloaded_base58;
   extern const PreloadedLibrary preloaded_socket;
-#endif
 
   inline const PreloadedLibrary* const all_preloaded[] = {
     &preloaded_crypto,
@@ -179,9 +182,8 @@ namespace Pluto {
     &preloaded_canvas,
     &preloaded_buffer,
     &preloaded_wasm,
-#ifndef __EMSCRIPTEN__
+    &preloaded_base58,
     &preloaded_socket,
-#endif
   };
 
   extern const ConstexprLibrary constexpr_io;
@@ -195,7 +197,7 @@ namespace Pluto {
 
 
 /* open selected libraries */
-LUALIB_API void (luaL_openselectedlibs) (lua_State *L, int load, int preload);
+LUALIB_API void (luaL_openselectedlibs) (lua_State *L, uint64_t load, uint64_t preload);
 
 /* open all libraries */
 #define luaL_openlibs(L)	luaL_openselectedlibs(L, PLUTO_DEFAULTLOADLIBS, ~0)

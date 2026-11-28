@@ -1435,6 +1435,12 @@ static int str_format (lua_State *L) {
           nb = l_sprintf(buff, maxitem, form, (LUAI_UACINT)n);
           break;
         }
+        case 'b': {  /* [Pluto] binary */
+          lua_Unsigned n = luaL_checkinteger(L, arg);
+          auto str = soup::string::binary(n);
+          luaL_addlstring(&b, str.data(), str.size());
+          break;
+        }
         case 'a': case 'A':
           checkformat(L, form, L_FMTFLAGSF, 1);
           addlenmod(form, LUA_NUMBER_FRMLEN);
@@ -2383,10 +2389,24 @@ static int str_fromhex (lua_State* L) {
   return 1;
 }
 
+
+static int str_levenshtein(lua_State* L) {
+  size_t len1, len2;
+  const char* str1 = luaL_checklstring(L, 1, &len1);
+  const char* str2 = luaL_checklstring(L, 2, &len2);
+
+  size_t n = len1 + 1;
+  size_t m = len2 + 1;
+  size_t *d = (size_t *)lua_newuserdata(L, n * m * sizeof(size_t));
+  lua_pushinteger(L, soup::string::levenshtein(d, str1, n, str2, m));
+  return 1;
+}
+
 /* }====================================================== */
 
 
 static const luaL_Reg strlib[] = {
+  {"levenshtein", str_levenshtein},
   {"tohex", str_tohex},
   {"fromhex", str_fromhex},
   {"formatint", str_formatint},

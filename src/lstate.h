@@ -283,25 +283,6 @@ struct CallInfo {
 #define getoah(ci)  (((ci)->callstatus & CIST_OAH) ? 1 : 0)
 
 
-class Registry {
-public:
-  lua_State *state;
-
-  // Fetch a string value from the internal registry.
-  inline const char *GetStrKey(const char *key) {
-    if (lua_getfield(state, LUA_REGISTRYINDEX, key)) {
-      return lua_tostring(state, -1);
-    } else return nullptr;
-  }
-
-  // Fetch a boolean value from the internal registry.
-  inline bool GetBoolKey(const char *key) {
-    return lua_getfield(state, LUA_REGISTRYINDEX, key);
-  }
-
-  Registry(lua_State *L) : state(L) {}
-};
-
 /*
 ** 'per thread' state
 */
@@ -332,11 +313,6 @@ struct lua_State {
     int ftransfer;  /* offset of first value transferred */
     int ntransfer;  /* number of values transferred */
   } transferinfo;
-
-  // Lua registry abstration.
-  [[nodiscard]] inline Registry GetReg() {
-      return this;
-  }
 
 #ifdef PLUTO_ETL_ENABLE
   void checkEtl();
@@ -405,6 +381,8 @@ typedef struct global_State {
   LX mainth;  /* main thread of this state */
 #ifndef PLUTO_LUA_LINKABLE
   void* user_data;  /* a pointer to data you, the user, would like to specify */
+
+  bool colored_output : 1;
 
   /*
   ** Each non-compatible keyword has 2 bools here: "have_preference" and "preference".

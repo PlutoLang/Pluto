@@ -14,6 +14,7 @@
 #define LOGGING false
 
 #if LOGGING
+#include "format.hpp"
 #include "log.hpp"
 #endif
 
@@ -24,7 +25,7 @@ NAMESPACE_SOUP
 			{ObfusString("Host: ").str() + host},
 			{ObfusString("User-Agent: Mozilla/5.0 (compatible; calamity-inc/Soup)").str()},
 			{ObfusString("Connection: close").str()},
-			{ObfusString("Accept-Encoding: deflate, gzip").str()},
+			{ObfusString("Accept-Encoding: gzip").str()},
 		}), method(std::move(method)), path(std::move(path))
 	{
 		fixPath();
@@ -135,6 +136,9 @@ NAMESPACE_SOUP
 		const auto [host, port] = getHostAndPort();
 		if (sock->connect(resolver, host, port))
 		{
+#if LOGGING
+			logWriteLine(soup::format("HttpRequest: Established TCP connection with {} for host {}", sock->peer.toString(), host));
+#endif
 			Scheduler sched{};
 			sched.setBlocking();
 			sched.addSocket(sock);
@@ -162,14 +166,16 @@ NAMESPACE_SOUP
 		Capture cap;
 	};
 
-	void HttpRequest::executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) const
+	void HttpRequest::executeEventStream(void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap)
 	{
 		auto resolver = netConfig::get().getDnsResolver();
 		return executeEventStream(*resolver, on_event, std::move(cap));
 	}
 
-	void HttpRequest::executeEventStream(const dnsResolver& resolver, void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap) const
+	void HttpRequest::executeEventStream(const dnsResolver& resolver, void on_event(std::unordered_map<std::string, std::string>&&, const Capture&) SOUP_EXCAL, Capture&& cap)
 	{
+		this->removeHeader("Accept-Encoding");
+
 		HttpRequestExecuteEventStreamData data{ on_event, std::move(cap) };
 		auto sock = make_shared<Socket>();
 		const auto [host, port] = getHostAndPort();

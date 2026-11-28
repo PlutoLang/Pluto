@@ -19,6 +19,7 @@
 #include "llimits.h"
 
 #include "vendor/Soup/soup/time.hpp"
+#include "vendor/Soup/soup/utility.hpp"
 
 
 static lua_State *getco (lua_State *L) {

@@ -237,20 +237,26 @@ NAMESPACE_SOUP
 		}
 
 		template <typename T = std::string>
-		[[nodiscard]] static size_t levenshtein(const T& a, const T& b)
+		[[nodiscard]] static size_t levenshtein(const T& a, const T& b) SOUP_EXCAL
 		{
 			return levenshtein(a.data(), a.size(), b.data(), b.size());
 		}
 
 		template <typename T = char>
-		[[nodiscard]] static size_t levenshtein(const T a[/*a_size*/], size_t a_size, const T b[/*b_size*/], size_t b_size)
+		[[nodiscard]] static size_t levenshtein(const T a[/*a_size*/], size_t a_size, const T b[/*b_size*/], size_t b_size) SOUP_EXCAL
 		{
-			// Adapted from https://github.com/guilhermeagostinelli/levenshtein/blob/master/levenshtein.cpp & https://gist.github.com/TheRayTracer/2644387
-
 			size_t n = a_size + 1;
 			size_t m = b_size + 1;
-
 			auto d = new size_t[n * m];
+			size_t r = levenshtein<T>(d, a, n, b, m);
+			delete[] d;
+			return r;
+		}
+
+		template <typename T = char>
+		[[nodiscard]] static size_t levenshtein(size_t d[/*nm*/], const T a[/*n-1*/], size_t n, const T b[/*m-1*/], size_t m) noexcept
+		{
+			// Adapted from https://github.com/guilhermeagostinelli/levenshtein/blob/master/levenshtein.cpp & https://gist.github.com/TheRayTracer/2644387
 
 			//memset(d, 0, n * m * sizeof(size_t));
 			for (size_t i = 0; i != n; ++i)
@@ -282,11 +288,7 @@ NAMESPACE_SOUP
 				}
 			}
 
-			const auto r = d[n * m - 1];
-
-			delete[] d;
-
-			return r;
+			return d[n * m - 1];
 		}
 
 		// conversions
